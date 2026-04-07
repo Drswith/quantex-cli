@@ -2,7 +2,15 @@
 
 ## 项目简介
 
-一个统一的 AI Agent CLI 管理工具，支持安装、更新、卸载、查询主流 AI 编程助手。
+一个统一的 AI Agent CLI 管理工具，支持安装、更新、卸载、查询、快捷启动主流 AI 编程助手。
+
+## 技术栈
+
+- **Runtime**: [Bun](https://bun.sh) — 包管理、脚本执行、运行时
+- **Language**: TypeScript (strict mode)
+- **Build**: [tsdown](https://github.com/nicepkg/tsdown) — 输出 ESM
+- **Test**: [Vitest](https://vitest.dev)
+- **Lint**: @antfu/eslint-config
 
 ## 支持的 AI Agent
 
@@ -138,10 +146,13 @@ silver which <agent>      # 查看 agent 可执行文件路径
 |----|------|
 | [commander](https://github.com/tj/commander.js) | CLI 框架（最成熟，生态最大） |
 | [c12](https://unjs.io/packages/c12) | 配置文件管理 |
-| [execa](https://github.com/sindresorhus/execa) | 子进程执行（安装/更新/启动 agent） |
-| [ofetch](https://unjs.io/packages/ofetch) | HTTP 请求（查询 npm registry 最新版本） |
 | [picocolors](https://github.com/alexeyraspopov/picocolors) | 终端彩色输出（极轻量） |
 | [prompts](https://github.com/terkelg/prompts) | 交互式提示（安装确认等） |
+
+> **利用 Bun 内置能力替代的依赖:**
+> - `Bun.spawn` 替代 execa（子进程执行）
+> - `Bun.file` / `Bun.write` 替代 fs-extra（文件操作）
+> - `fetch`（Bun 内置）替代 ofetch（查询 npm registry 版本信息）
 
 ### 目录结构（规划）
 
@@ -203,10 +214,11 @@ type InstallMethod = {
 ## 开发计划
 
 ### Phase 1 - 基础框架
-- [ ] 初始化 CLI 框架（citty）
+- [ ] 初始化 CLI 框架（commander）
+- [ ] `package.json` 添加 `bin` 字段指向 CLI 入口
 - [ ] 定义 Agent 类型与注册表
 - [ ] 实现配置系统（c12）
-- [ ] 实现环境检测（OS、包管理器可用性）
+- [ ] 实现环境检测（OS、bun/npm 可用性）
 - [ ] 实现 `silver list` 命令
 
 ### Phase 2 - 核心功能
@@ -232,8 +244,11 @@ type InstallMethod = {
 
 ## 注意事项
 
-- 项目使用 `bun` 作为包管理器，通过 `packageManager` 字段锁定版本
+- 运行时为 Bun，利用 `Bun.spawn` 替代 execa 处理子进程（零依赖）
+- 利用 `Bun.file` / `Bun.write` 处理文件操作
+- 使用 `bun:test` 进行测试（即 vitest，项目已配置）
+- `packageManager` 字段锁定 Bun 版本
 - 遵循 `@antfu/eslint-config` 代码规范
-- 使用 `tsdown` 构建，输出 ESM 格式
-- 需要在 `package.json` 中添加 `bin` 字段指向 CLI 入口
+- `tsdown` 构建，输出 ESM 格式
+- `package.json` 需添加 `bin` 字段指向 CLI 入口
 - Windows 平台需特别处理 PowerShell 安装脚本
