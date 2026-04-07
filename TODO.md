@@ -8,9 +8,10 @@
 
 - **Runtime**: [Bun](https://bun.sh) — 包管理、脚本执行、运行时
 - **Language**: TypeScript (strict mode)
-- **Build**: [tsdown](https://github.com/nicepkg/tsdown) — 输出 ESM
-- **Test**: [Vitest](https://vitest.dev)
+- **Build**: `bun build` — Bun 内置打包器
+- **Test**: `bun test` — Bun 内置测试运行器
 - **Lint**: @antfu/eslint-config
+- **Run**: Bun 原生支持 TypeScript，无需 tsx
 
 ## 支持的 AI Agent
 
@@ -153,13 +154,16 @@ silver which <agent>      # 查看 agent 可执行文件路径
 > - `Bun.spawn` 替代 execa（子进程执行）
 > - `Bun.file` / `Bun.write` 替代 fs-extra（文件操作）
 > - `fetch`（Bun 内置）替代 ofetch（查询 npm registry 版本信息）
+> - `bun build` 替代 tsdown（打包构建）
+> - `bun test` 替代 vitest（测试运行器）
+> - Bun 原生 TS 支持替代 tsx（直接运行 TypeScript）
 
 ### 目录结构（规划）
 
 ```
 src/
 ├── index.ts              # 入口（导出核心 API）
-├── cli.ts                # CLI 入口（citty 定义命令）
+├── cli.ts                # CLI 入口（commander 定义命令）
 ├── commands/             # CLI 命令实现
 │   ├── install.ts
 │   ├── update.ts
@@ -244,11 +248,14 @@ type InstallMethod = {
 
 ## 注意事项
 
-- 运行时为 Bun，利用 `Bun.spawn` 替代 execa 处理子进程（零依赖）
-- 利用 `Bun.file` / `Bun.write` 处理文件操作
-- 使用 `bun:test` 进行测试（即 vitest，项目已配置）
+- 运行时为 Bun，最大化利用内置能力：
+  - `Bun.spawn` 处理子进程（安装/更新/启动 agent）
+  - `Bun.file` / `Bun.write` 处理文件读写
+  - `fetch` 查询 npm registry 版本信息
+  - `bun build` 打包 CLI 产物
+  - `bun test` 运行测试
+  - 直接运行 `.ts` 文件，无需 tsx 编译
 - `packageManager` 字段锁定 Bun 版本
 - 遵循 `@antfu/eslint-config` 代码规范
-- `tsdown` 构建，输出 ESM 格式
 - `package.json` 需添加 `bin` 字段指向 CLI 入口
 - Windows 平台需特别处理 PowerShell 安装脚本
