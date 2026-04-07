@@ -5,6 +5,7 @@ export const opencode: AgentDefinition = {
   aliases: ['opencode'],
   displayName: 'OpenCode',
   description: '开源 AI 编程 CLI',
+  homepage: 'https://opencode.ai',
   package: 'opencode-ai',
   binaryName: 'opencode',
   installMethods: [

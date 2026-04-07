@@ -5,6 +5,7 @@ export const geminiCli: AgentDefinition = {
   aliases: ['gemini'],
   displayName: 'Gemini CLI',
   description: 'Google 开源 AI 编程助手 CLI',
+  homepage: 'https://geminicli.com',
   package: '@google/gemini-cli',
   binaryName: 'gemini',
   installMethods: [

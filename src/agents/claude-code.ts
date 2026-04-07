@@ -5,6 +5,7 @@ export const claudeCode: AgentDefinition = {
   aliases: ['claude'],
   displayName: 'Claude Code',
   description: 'Anthropic 官方 AI 编程助手 CLI',
+  homepage: 'https://code.claude.com/docs',
   package: '@anthropic-ai/claude-code',
   binaryName: 'claude',
   installMethods: [

@@ -12,6 +12,7 @@ export interface AgentDefinition {
   aliases: string[]
   displayName: string
   description: string
+  homepage: string
   package: string
   installMethods: InstallMethod[]
   binaryName: string

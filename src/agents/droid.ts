@@ -5,6 +5,7 @@ export const droid: AgentDefinition = {
   aliases: ['droid'],
   displayName: 'Droid',
   description: 'Factory AI 软件工程 Agent CLI',
+  homepage: 'https://docs.factory.ai/cli/getting-started/overview',
   package: 'droid',
   binaryName: 'droid',
   installMethods: [

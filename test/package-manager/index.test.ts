@@ -21,6 +21,7 @@ const testAgent = {
   aliases: [] as string[],
   displayName: 'Test Agent',
   description: 'A test agent',
+  homepage: 'https://example.com',
   package: 'test-pkg',
   binaryName: 'test-bin',
   installMethods: [
