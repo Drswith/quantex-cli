@@ -28,6 +28,7 @@ const testAgent = {
   binaryName: 'test-bin',
   platforms: {
     linux: [{ type: 'bun' as const, command: 'bun add -g test-pkg', priority: 1 }],
+    macos: [{ type: 'bun' as const, command: 'bun add -g test-pkg', priority: 1 }],
     windows: [{ type: 'bun' as const, command: 'bun add -g test-pkg', priority: 1 }],
   },
 }
