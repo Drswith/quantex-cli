@@ -5,6 +5,7 @@ export const githubCopilotCli: AgentDefinition = {
   aliases: ['copilot', 'gh-copilot'],
   displayName: 'GitHub Copilot CLI',
   description: 'GitHub Copilot 命令行工具',
+  homepage: 'https://github.com/features/copilot/cli',
   package: '@github/copilot',
   binaryName: 'copilot',
   installMethods: [

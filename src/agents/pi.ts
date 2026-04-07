@@ -5,6 +5,7 @@ export const pi: AgentDefinition = {
   aliases: ['pi'],
   displayName: 'Pi',
   description: '极简可扩展的终端编程 Agent',
+  homepage: 'https://pi.dev',
   package: '@mariozechner/pi-coding-agent',
   binaryName: 'pi',
   installMethods: [

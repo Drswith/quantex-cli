@@ -5,6 +5,7 @@ export const codex: AgentDefinition = {
   aliases: ['codex'],
   displayName: 'Codex CLI',
   description: 'OpenAI 官方 AI 编程助手 CLI',
+  homepage: 'https://developers.openai.com/codex',
   package: '@openai/codex',
   binaryName: 'codex',
   installMethods: [

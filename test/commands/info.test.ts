@@ -23,6 +23,7 @@ const testAgent = {
   aliases: ['ta'],
   displayName: 'Test Agent',
   description: 'A test agent',
+  homepage: 'https://example.com',
   package: 'test-pkg',
   binaryName: 'test-bin',
   installMethods: [
