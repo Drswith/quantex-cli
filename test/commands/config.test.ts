@@ -1,13 +1,13 @@
 import { existsSync, mkdirSync, readFileSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
-import { afterAll, afterEach, beforeEach, describe, expect, it, jest } from 'bun:test'
+import { afterAll, afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { configCommand } from '../../src/commands/config'
 import * as config from '../../src/config'
 
 const tempDir = join(tmpdir(), `silver-test-${Date.now()}`)
-const getConfigDirSpy = jest.spyOn(config, 'getConfigDir').mockReturnValue(tempDir)
-const loadConfigSpy = jest.spyOn(config, 'loadConfig')
+const getConfigDirSpy = vi.spyOn(config, 'getConfigDir').mockReturnValue(tempDir)
+const loadConfigSpy = vi.spyOn(config, 'loadConfig')
 
 afterAll(() => {
   getConfigDirSpy.mockRestore()
@@ -15,11 +15,11 @@ afterAll(() => {
 })
 
 describe('configCommand', () => {
-  let logSpy: ReturnType<typeof jest.spyOn>
+  let logSpy: ReturnType<typeof vi.spyOn>
 
   beforeEach(() => {
     mkdirSync(tempDir, { recursive: true })
-    logSpy = jest.spyOn(console, 'log').mockImplementation(() => {})
+    logSpy = vi.spyOn(console, 'log').mockImplementation(() => {})
     loadConfigSpy.mockClear()
   })
 

@@ -1,7 +1,7 @@
-import { describe, expect, it, jest, mock } from 'bun:test'
+import { describe, expect, it, vi } from 'vitest'
 
-mock.module('c12', () => ({
-  loadConfig: jest.fn(() => Promise.resolve({
+vi.mock('c12', () => ({
+  loadConfig: vi.fn(() => Promise.resolve({
     config: { defaultPackageManager: 'bun' },
   })),
 }))

@@ -1,12 +1,12 @@
-import { afterAll, afterEach, beforeEach, describe, expect, it, jest } from 'bun:test'
+import { afterAll, afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import * as agents from '../../src/agents'
 import { installCommand } from '../../src/commands/install'
 import * as pm from '../../src/package-manager'
 import * as detect from '../../src/utils/detect'
 
-const agentSpy = jest.spyOn(agents, 'getAgentByNameOrAlias')
-const installSpy = jest.spyOn(pm, 'installAgent')
-const binaryInPathSpy = jest.spyOn(detect, 'isBinaryInPath')
+const agentSpy = vi.spyOn(agents, 'getAgentByNameOrAlias')
+const installSpy = vi.spyOn(pm, 'installAgent')
+const binaryInPathSpy = vi.spyOn(detect, 'isBinaryInPath')
 
 afterAll(() => {
   agentSpy.mockRestore()
@@ -25,10 +25,10 @@ const testAgent = {
 }
 
 describe('installCommand', () => {
-  let logSpy: ReturnType<typeof jest.spyOn>
+  let logSpy: ReturnType<typeof vi.spyOn>
 
   beforeEach(() => {
-    logSpy = jest.spyOn(console, 'log').mockImplementation(() => {})
+    logSpy = vi.spyOn(console, 'log').mockImplementation(() => {})
     agentSpy.mockClear()
     installSpy.mockClear()
     binaryInPathSpy.mockClear()

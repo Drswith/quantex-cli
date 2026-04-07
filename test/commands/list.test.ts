@@ -1,12 +1,12 @@
-import { afterAll, afterEach, beforeEach, describe, expect, it, jest } from 'bun:test'
+import { afterAll, afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import * as agents from '../../src/agents'
 import { listCommand } from '../../src/commands/list'
 import * as detect from '../../src/utils/detect'
 import * as version from '../../src/utils/version'
 
-const allAgentsSpy = jest.spyOn(agents, 'getAllAgents')
-const binaryInPathSpy = jest.spyOn(detect, 'isBinaryInPath')
-const installedVerSpy = jest.spyOn(version, 'getInstalledVersion')
+const allAgentsSpy = vi.spyOn(agents, 'getAllAgents')
+const binaryInPathSpy = vi.spyOn(detect, 'isBinaryInPath')
+const installedVerSpy = vi.spyOn(version, 'getInstalledVersion')
 
 afterAll(() => {
   allAgentsSpy.mockRestore()
@@ -25,10 +25,10 @@ const testAgent = {
 }
 
 describe('listCommand', () => {
-  let logSpy: ReturnType<typeof jest.spyOn>
+  let logSpy: ReturnType<typeof vi.spyOn>
 
   beforeEach(() => {
-    logSpy = jest.spyOn(console, 'log').mockImplementation(() => {})
+    logSpy = vi.spyOn(console, 'log').mockImplementation(() => {})
     allAgentsSpy.mockClear()
     binaryInPathSpy.mockClear()
     installedVerSpy.mockClear()

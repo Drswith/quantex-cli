@@ -1,33 +1,20 @@
-import { afterAll, beforeEach, describe, expect, it, jest } from 'bun:test'
+import { afterAll, beforeEach, describe, expect, it, vi } from 'vitest'
 import * as binaryPm from '../../src/package-manager/binary'
 import * as bunPm from '../../src/package-manager/bun'
 import { installAgent, uninstallAgent, updateAgent } from '../../src/package-manager/index'
 import * as npmPm from '../../src/package-manager/npm'
 import * as detectUtils from '../../src/utils/detect'
 
-const bunInstallSpy = jest.spyOn(bunPm, 'install')
-const bunUpdateSpy = jest.spyOn(bunPm, 'update')
-const bunUninstallSpy = jest.spyOn(bunPm, 'uninstall')
-const npmInstallSpy = jest.spyOn(npmPm, 'install')
-const npmUpdateSpy = jest.spyOn(npmPm, 'update')
-const npmUninstallSpy = jest.spyOn(npmPm, 'uninstall')
-const binarySpy = jest.spyOn(binaryPm, 'runBinaryInstall')
-const getPlatformSpy = jest.spyOn(detectUtils, 'getPlatform')
-const isBunSpy = jest.spyOn(detectUtils, 'isBunAvailable')
-const isNpmSpy = jest.spyOn(detectUtils, 'isNpmAvailable')
-
-afterAll(() => {
-  bunInstallSpy.mockRestore()
-  bunUpdateSpy.mockRestore()
-  bunUninstallSpy.mockRestore()
-  npmInstallSpy.mockRestore()
-  npmUpdateSpy.mockRestore()
-  npmUninstallSpy.mockRestore()
-  binarySpy.mockRestore()
-  getPlatformSpy.mockRestore()
-  isBunSpy.mockRestore()
-  isNpmSpy.mockRestore()
-})
+const bunInstallSpy = vi.spyOn(bunPm, 'install')
+const bunUpdateSpy = vi.spyOn(bunPm, 'update')
+const bunUninstallSpy = vi.spyOn(bunPm, 'uninstall')
+const npmInstallSpy = vi.spyOn(npmPm, 'install')
+const npmUpdateSpy = vi.spyOn(npmPm, 'update')
+const npmUninstallSpy = vi.spyOn(npmPm, 'uninstall')
+const binarySpy = vi.spyOn(binaryPm, 'runBinaryInstall')
+const getPlatformSpy = vi.spyOn(detectUtils, 'getPlatform')
+const isBunSpy = vi.spyOn(detectUtils, 'isBunAvailable')
+const isNpmSpy = vi.spyOn(detectUtils, 'isNpmAvailable')
 
 const testAgent = {
   name: 'test-agent',
@@ -54,6 +41,19 @@ beforeEach(() => {
   isBunSpy.mockClear()
   isNpmSpy.mockClear()
   getPlatformSpy.mockReturnValue('linux')
+})
+
+afterAll(() => {
+  bunInstallSpy.mockRestore()
+  bunUpdateSpy.mockRestore()
+  bunUninstallSpy.mockRestore()
+  npmInstallSpy.mockRestore()
+  npmUpdateSpy.mockRestore()
+  npmUninstallSpy.mockRestore()
+  binarySpy.mockRestore()
+  getPlatformSpy.mockRestore()
+  isBunSpy.mockRestore()
+  isNpmSpy.mockRestore()
 })
 
 describe('installAgent', () => {

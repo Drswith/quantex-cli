@@ -34,7 +34,8 @@
     "prepublishOnly": "bun run build",
     "release": "bumpp",
     "dev": "bun run src/cli.ts",
-    "test": "bun test",
+    "test": "vitest run",
+    "test:watch": "vitest",
     "typecheck": "tsc --noEmit",
     "prepare": "simple-git-hooks"
   },
@@ -54,7 +55,8 @@
     "lint-staged": "^16.2.7",
     "simple-git-hooks": "^2.13.1",
     "tsdown": "^0.21.7",
-    "typescript": "^5.9.3"
+    "typescript": "^5.9.3",
+    "vitest": "^4.1.3"
   },
   "simple-git-hooks": {
     "pre-commit": "bun install --frozen-lockfile && npx lint-staged"

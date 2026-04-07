@@ -1,14 +1,14 @@
-import { afterAll, afterEach, beforeEach, describe, expect, it, jest } from 'bun:test'
+import { afterAll, afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import * as agents from '../../src/agents'
 import { infoCommand } from '../../src/commands/info'
 import * as detect from '../../src/utils/detect'
 import * as version from '../../src/utils/version'
 
-const agentSpy = jest.spyOn(agents, 'getAgentByNameOrAlias')
-const binaryInPathSpy = jest.spyOn(detect, 'isBinaryInPath')
-const installedVerSpy = jest.spyOn(version, 'getInstalledVersion')
-const latestVerSpy = jest.spyOn(version, 'getLatestVersion')
-const binaryPathSpy = jest.spyOn(version, 'getBinaryPath')
+const agentSpy = vi.spyOn(agents, 'getAgentByNameOrAlias')
+const binaryInPathSpy = vi.spyOn(detect, 'isBinaryInPath')
+const installedVerSpy = vi.spyOn(version, 'getInstalledVersion')
+const latestVerSpy = vi.spyOn(version, 'getLatestVersion')
+const binaryPathSpy = vi.spyOn(version, 'getBinaryPath')
 
 afterAll(() => {
   agentSpy.mockRestore()
@@ -31,10 +31,10 @@ const testAgent = {
 }
 
 describe('infoCommand', () => {
-  let logSpy: ReturnType<typeof jest.spyOn>
+  let logSpy: ReturnType<typeof vi.spyOn>
 
   beforeEach(() => {
-    logSpy = jest.spyOn(console, 'log').mockImplementation(() => {})
+    logSpy = vi.spyOn(console, 'log').mockImplementation(() => {})
     agentSpy.mockClear()
     binaryInPathSpy.mockClear()
     installedVerSpy.mockClear()

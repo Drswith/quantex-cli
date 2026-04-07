@@ -6,8 +6,9 @@ Silver CLI — 统一的 AI Agent CLI 管理工具，支持安装、更新、卸
 
 ## Tech Stack
 
-- **Runtime**: Bun（运行时、包管理器、测试）
+- **Runtime**: Bun（运行时、包管理器）
 - **Build**: tsdown（基于 rolldown）
+- **Test**: Vitest
 - **Language**: TypeScript (strict mode)
 - **Lint**: @antfu/eslint-config
 - **Dependencies**: commander, c12, picocolors, prompts
@@ -17,7 +18,8 @@ Silver CLI — 统一的 AI Agent CLI 管理工具，支持安装、更新、卸
 ```bash
 bun install              # 安装依赖
 bun run dev              # 开发运行（bun run src/cli.ts）
-bun test                 # 运行测试
+bun run test             # 运行测试（vitest run）
+bun run test:watch       # 监听模式运行测试
 bun run lint             # ESLint 检查
 bun run typecheck        # TypeScript 类型检查
 bun run build            # 打包（tsdown）

@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'bun:test'
+import { describe, expect, it } from 'vitest'
 import { getAgentByNameOrAlias, getAllAgents } from '../src/index'
 
 describe('agent registry', () => {
