@@ -31,11 +31,9 @@ export async function infoCommand(agentName: string): Promise<void> {
     console.log(`  Path:         ${binaryPath}`)
 
   console.log(pc.bold('\n  Install Methods:'))
-  for (const method of agent.installMethods) {
-    const supported = method.supportedPlatforms.includes(platform)
-    const cmd = typeof method.command === 'function' ? method.command(platform) : method.command
-    const marker = supported ? pc.green('+') : pc.dim('-')
-    console.log(`    ${marker} [${method.type}] ${cmd}`)
+  const methods = agent.platforms[platform] ?? []
+  for (const method of methods) {
+    console.log(`    ${pc.green('+')} [${method.type}] ${method.command}`)
   }
 
   console.log()

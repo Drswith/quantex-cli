@@ -197,21 +197,24 @@ src/
 ### Agent 类型定义（草案）
 
 ```typescript
-interface AgentDefinition {
-  name: string              // 唯一标识，如 "claude-code"
-  aliases: string[]         // 快捷启动名，如 ["claude"]
-  displayName: string
-  description: string
-  package: string
-  installMethods: InstallMethod[]
-  binaryName: string        // 安装后的可执行文件名，如 "claude"
+type Platform = 'windows' | 'macos' | 'linux'
+type InstallType = 'bun' | 'npm' | 'binary'
+
+interface InstallMethod {
+  type: InstallType
+  command: string              // 始终为字符串，声明式
+  priority: number             // 越小越优先
 }
 
-type InstallMethod = {
-  type: 'bun' | 'npm' | 'binary'
-  command: string | ((platform: Platform) => string)
-  supportedPlatforms: Platform[]
-  priority: number          // 越小越优先
+interface AgentDefinition {
+  name: string                 // 唯一标识，如 "claude-code"
+  aliases: string[]            // 快捷启动名，如 ["claude"]
+  displayName: string
+  description: string
+  homepage: string
+  package: string
+  platforms: Partial<Record<Platform, InstallMethod[]>>
+  binaryName: string           // 安装后的可执行文件名，如 "claude"
 }
 ```
 

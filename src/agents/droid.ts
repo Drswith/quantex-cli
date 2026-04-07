@@ -1,4 +1,4 @@
-import type { AgentDefinition, Platform } from './types'
+import type { AgentDefinition } from './types'
 
 export const droid: AgentDefinition = {
   name: 'droid',
@@ -8,42 +8,23 @@ export const droid: AgentDefinition = {
   homepage: 'https://docs.factory.ai/cli/getting-started/overview',
   package: 'droid',
   binaryName: 'droid',
-  installMethods: [
-    {
-      type: 'bun',
-      command: 'bun add -g droid',
-      supportedPlatforms: ['windows', 'macos', 'linux'],
-      priority: 1,
-    },
-    {
-      type: 'npm',
-      command: 'npm i -g droid',
-      supportedPlatforms: ['windows', 'macos', 'linux'],
-      priority: 2,
-    },
-    {
-      type: 'binary',
-      command: (platform: Platform) => {
-        switch (platform) {
-          case 'windows': return 'irm https://app.factory.ai/cli/windows | iex'
-          case 'macos': return 'curl -fsSL https://app.factory.ai/cli | sh'
-          case 'linux': return 'curl -fsSL https://app.factory.ai/cli | sh'
-        }
-      },
-      supportedPlatforms: ['windows', 'macos', 'linux'],
-      priority: 3,
-    },
-    {
-      type: 'binary',
-      command: (platform: Platform) => {
-        switch (platform) {
-          case 'macos': return 'brew install --cask droid'
-          case 'linux': return 'brew install --cask droid'
-          case 'windows': return ''
-        }
-      },
-      supportedPlatforms: ['macos', 'linux'],
-      priority: 4,
-    },
-  ],
+  platforms: {
+    windows: [
+      { type: 'bun', command: 'bun add -g droid', priority: 1 },
+      { type: 'npm', command: 'npm i -g droid', priority: 2 },
+      { type: 'binary', command: 'irm https://app.factory.ai/cli/windows | iex', priority: 3 },
+    ],
+    macos: [
+      { type: 'bun', command: 'bun add -g droid', priority: 1 },
+      { type: 'npm', command: 'npm i -g droid', priority: 2 },
+      { type: 'binary', command: 'curl -fsSL https://app.factory.ai/cli | sh', priority: 3 },
+      { type: 'binary', command: 'brew install --cask droid', priority: 4 },
+    ],
+    linux: [
+      { type: 'bun', command: 'bun add -g droid', priority: 1 },
+      { type: 'npm', command: 'npm i -g droid', priority: 2 },
+      { type: 'binary', command: 'curl -fsSL https://app.factory.ai/cli | sh', priority: 3 },
+      { type: 'binary', command: 'brew install --cask droid', priority: 4 },
+    ],
+  },
 }

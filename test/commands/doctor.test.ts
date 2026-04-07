@@ -28,7 +28,7 @@ const testAgent = {
   homepage: 'https://example.com',
   package: 'test-pkg',
   binaryName: 'test-bin',
-  installMethods: [],
+  platforms: {},
 }
 
 describe('doctorCommand', () => {

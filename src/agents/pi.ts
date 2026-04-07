@@ -8,18 +8,18 @@ export const pi: AgentDefinition = {
   homepage: 'https://pi.dev',
   package: '@mariozechner/pi-coding-agent',
   binaryName: 'pi',
-  installMethods: [
-    {
-      type: 'bun',
-      command: 'bun add -g @mariozechner/pi-coding-agent',
-      supportedPlatforms: ['windows', 'macos', 'linux'],
-      priority: 1,
-    },
-    {
-      type: 'npm',
-      command: 'npm i -g @mariozechner/pi-coding-agent',
-      supportedPlatforms: ['windows', 'macos', 'linux'],
-      priority: 2,
-    },
-  ],
+  platforms: {
+    windows: [
+      { type: 'bun', command: 'bun add -g @mariozechner/pi-coding-agent', priority: 1 },
+      { type: 'npm', command: 'npm i -g @mariozechner/pi-coding-agent', priority: 2 },
+    ],
+    macos: [
+      { type: 'bun', command: 'bun add -g @mariozechner/pi-coding-agent', priority: 1 },
+      { type: 'npm', command: 'npm i -g @mariozechner/pi-coding-agent', priority: 2 },
+    ],
+    linux: [
+      { type: 'bun', command: 'bun add -g @mariozechner/pi-coding-agent', priority: 1 },
+      { type: 'npm', command: 'npm i -g @mariozechner/pi-coding-agent', priority: 2 },
+    ],
+  },
 }

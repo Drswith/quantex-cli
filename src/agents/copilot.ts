@@ -1,4 +1,4 @@
-import type { AgentDefinition, Platform } from './types'
+import type { AgentDefinition } from './types'
 
 export const copilot: AgentDefinition = {
   name: 'copilot',
@@ -8,42 +8,21 @@ export const copilot: AgentDefinition = {
   homepage: 'https://github.com/features/copilot/cli',
   package: '@github/copilot',
   binaryName: 'copilot',
-  installMethods: [
-    {
-      type: 'bun',
-      command: 'bun add -g @github/copilot',
-      supportedPlatforms: ['macos', 'linux'],
-      priority: 1,
-    },
-    {
-      type: 'npm',
-      command: 'npm i -g @github/copilot',
-      supportedPlatforms: ['macos', 'linux'],
-      priority: 2,
-    },
-    {
-      type: 'binary',
-      command: (platform: Platform) => {
-        switch (platform) {
-          case 'macos': return 'curl -fsSL https://gh.io/copilot-install | bash'
-          case 'linux': return 'curl -fsSL https://gh.io/copilot-install | bash'
-          case 'windows': return 'winget install GitHub.Copilot'
-        }
-      },
-      supportedPlatforms: ['windows', 'macos', 'linux'],
-      priority: 3,
-    },
-    {
-      type: 'binary',
-      command: (platform: Platform) => {
-        switch (platform) {
-          case 'macos': return 'brew install copilot-cli'
-          case 'linux': return 'brew install copilot-cli'
-          case 'windows': return ''
-        }
-      },
-      supportedPlatforms: ['macos', 'linux'],
-      priority: 4,
-    },
-  ],
+  platforms: {
+    windows: [
+      { type: 'binary', command: 'winget install GitHub.Copilot', priority: 3 },
+    ],
+    macos: [
+      { type: 'bun', command: 'bun add -g @github/copilot', priority: 1 },
+      { type: 'npm', command: 'npm i -g @github/copilot', priority: 2 },
+      { type: 'binary', command: 'curl -fsSL https://gh.io/copilot-install | bash', priority: 3 },
+      { type: 'binary', command: 'brew install copilot-cli', priority: 4 },
+    ],
+    linux: [
+      { type: 'bun', command: 'bun add -g @github/copilot', priority: 1 },
+      { type: 'npm', command: 'npm i -g @github/copilot', priority: 2 },
+      { type: 'binary', command: 'curl -fsSL https://gh.io/copilot-install | bash', priority: 3 },
+      { type: 'binary', command: 'brew install copilot-cli', priority: 4 },
+    ],
+  },
 }

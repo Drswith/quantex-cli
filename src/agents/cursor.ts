@@ -1,4 +1,4 @@
-import type { AgentDefinition, Platform } from './types'
+import type { AgentDefinition } from './types'
 
 export const cursor: AgentDefinition = {
   name: 'cursor',
@@ -8,18 +8,15 @@ export const cursor: AgentDefinition = {
   homepage: 'https://cursor.com/docs/cli',
   package: '',
   binaryName: 'agent',
-  installMethods: [
-    {
-      type: 'binary',
-      command: (platform: Platform) => {
-        switch (platform) {
-          case 'windows': return 'irm \'https://cursor.com/install?win32=true\' | iex'
-          case 'macos': return 'curl https://cursor.com/install -fsS | bash'
-          case 'linux': return 'curl https://cursor.com/install -fsS | bash'
-        }
-      },
-      supportedPlatforms: ['windows', 'macos', 'linux'],
-      priority: 1,
-    },
-  ],
+  platforms: {
+    windows: [
+      { type: 'binary', command: 'irm \'https://cursor.com/install?win32=true\' | iex', priority: 1 },
+    ],
+    macos: [
+      { type: 'binary', command: 'curl https://cursor.com/install -fsS | bash', priority: 1 },
+    ],
+    linux: [
+      { type: 'binary', command: 'curl https://cursor.com/install -fsS | bash', priority: 1 },
+    ],
+  },
 }

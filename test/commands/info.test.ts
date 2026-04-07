@@ -26,9 +26,10 @@ const testAgent = {
   homepage: 'https://example.com',
   package: 'test-pkg',
   binaryName: 'test-bin',
-  installMethods: [
-    { type: 'bun' as const, command: 'bun add -g test-pkg', supportedPlatforms: ['linux' as const], priority: 1 },
-  ],
+  platforms: {
+    linux: [{ type: 'bun' as const, command: 'bun add -g test-pkg', priority: 1 }],
+    windows: [{ type: 'bun' as const, command: 'bun add -g test-pkg', priority: 1 }],
+  },
 }
 
 describe('infoCommand', () => {

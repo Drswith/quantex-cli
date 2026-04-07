@@ -1,4 +1,4 @@
-import type { AgentDefinition, Platform } from './types'
+import type { AgentDefinition } from './types'
 
 export const gemini: AgentDefinition = {
   name: 'gemini',
@@ -8,30 +8,20 @@ export const gemini: AgentDefinition = {
   homepage: 'https://geminicli.com',
   package: '@google/gemini-cli',
   binaryName: 'gemini',
-  installMethods: [
-    {
-      type: 'bun',
-      command: 'bun add -g @google/gemini-cli',
-      supportedPlatforms: ['windows', 'macos', 'linux'],
-      priority: 1,
-    },
-    {
-      type: 'npm',
-      command: 'npm i -g @google/gemini-cli',
-      supportedPlatforms: ['windows', 'macos', 'linux'],
-      priority: 2,
-    },
-    {
-      type: 'binary',
-      command: (platform: Platform) => {
-        switch (platform) {
-          case 'macos': return 'brew install gemini-cli'
-          case 'linux': return 'brew install gemini-cli'
-          case 'windows': return ''
-        }
-      },
-      supportedPlatforms: ['macos', 'linux'],
-      priority: 3,
-    },
-  ],
+  platforms: {
+    windows: [
+      { type: 'bun', command: 'bun add -g @google/gemini-cli', priority: 1 },
+      { type: 'npm', command: 'npm i -g @google/gemini-cli', priority: 2 },
+    ],
+    macos: [
+      { type: 'bun', command: 'bun add -g @google/gemini-cli', priority: 1 },
+      { type: 'npm', command: 'npm i -g @google/gemini-cli', priority: 2 },
+      { type: 'binary', command: 'brew install gemini-cli', priority: 3 },
+    ],
+    linux: [
+      { type: 'bun', command: 'bun add -g @google/gemini-cli', priority: 1 },
+      { type: 'npm', command: 'npm i -g @google/gemini-cli', priority: 2 },
+      { type: 'binary', command: 'brew install gemini-cli', priority: 3 },
+    ],
+  },
 }

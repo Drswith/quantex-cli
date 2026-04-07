@@ -4,15 +4,16 @@ import { runBinaryInstall } from './binary'
 import * as bunPm from './bun'
 import * as npmPm from './npm'
 
-function getAvailableMethods(methods: InstallMethod[]): InstallMethod[] {
+function getPlatformMethods(agent: AgentDefinition): InstallMethod[] {
   const platform = getPlatform()
-  return [...methods]
-    .filter(m => m.supportedPlatforms.includes(platform))
-    .sort((a, b) => a.priority - b.priority)
+  const methods = agent.platforms[platform]
+  if (!methods)
+    return []
+  return [...methods].sort((a, b) => a.priority - b.priority)
 }
 
 export async function installAgent(agent: AgentDefinition): Promise<boolean> {
-  const methods = getAvailableMethods(agent.installMethods)
+  const methods = getPlatformMethods(agent)
 
   for (const method of methods) {
     if (method.type === 'bun') {
@@ -37,7 +38,7 @@ export async function installAgent(agent: AgentDefinition): Promise<boolean> {
 }
 
 export async function updateAgent(agent: AgentDefinition): Promise<boolean> {
-  const methods = getAvailableMethods(agent.installMethods)
+  const methods = getPlatformMethods(agent)
 
   for (const method of methods) {
     if (method.type === 'bun') {
