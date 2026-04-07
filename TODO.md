@@ -19,9 +19,10 @@
 |-------|------|------|
 | Claude Code | `@anthropic-ai/claude-code` | Anthropic 官方 CLI |
 | Codex CLI | `@openai/codex` | OpenAI 官方 CLI |
+| Copilot | `@github/copilot` | GitHub Copilot 命令行 |
+| Cursor | - | Cursor AI 命令行（二进制安装） |
 | Droid | `droid` | Factory AI 软件工程 Agent |
-| Gemini CLI | `@google/gemini-cli` | Google 开源 CLI |
-| GitHub Copilot CLI | `@github/copilot` | GitHub Copilot 命令行 |
+| Gemini | `@google/gemini-cli` | Google 开源 CLI |
 | OpenCode | `opencode-ai` | 开源 AI 编程 CLI |
 | Pi | `@mariozechner/pi-coding-agent` | 极简可扩展终端 Agent |
 

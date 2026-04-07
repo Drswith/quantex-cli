@@ -1,8 +1,8 @@
 import type { AgentDefinition, Platform } from './types'
 
-export const geminiCli: AgentDefinition = {
-  name: 'gemini-cli',
-  aliases: ['gemini'],
+export const gemini: AgentDefinition = {
+  name: 'gemini',
+  aliases: [],
   displayName: 'Gemini CLI',
   description: 'Google 开源 AI 编程助手 CLI',
   homepage: 'https://geminicli.com',

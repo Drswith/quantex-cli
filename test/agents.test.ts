@@ -3,16 +3,17 @@ import { describe, expect, it } from 'vitest'
 import { getAgentByNameOrAlias, getAllAgents } from '../src/agents'
 import { claudeCode } from '../src/agents/claude-code'
 import { codex } from '../src/agents/codex'
+import { copilot } from '../src/agents/copilot'
+import { cursor } from '../src/agents/cursor'
 import { droid } from '../src/agents/droid'
-import { geminiCli } from '../src/agents/gemini-cli'
-import { githubCopilotCli } from '../src/agents/github-copilot-cli'
+import { gemini } from '../src/agents/gemini'
 import { opencode } from '../src/agents/opencode'
 import { pi } from '../src/agents/pi'
 
 describe('agent registry', () => {
-  it('returns array with at least 7 agents', () => {
+  it('returns array with at least 8 agents', () => {
     const agents = getAllAgents()
-    expect(agents.length).toBeGreaterThanOrEqual(7)
+    expect(agents.length).toBeGreaterThanOrEqual(8)
   })
 
   it('finds agent by name', () => {
@@ -38,7 +39,7 @@ function validateAgent(agent: AgentDefinition): void {
   expect(agent.displayName).toBeTruthy()
   expect(agent.description).toBeTruthy()
   expect(agent.homepage).toMatch(/^https:\/\//)
-  expect(agent.package).toBeTruthy()
+  expect(agent.package).toBeDefined()
   expect(agent.binaryName).toBeTruthy()
   expect(agent.installMethods.length).toBeGreaterThan(0)
 
@@ -114,6 +115,64 @@ describe('codex', () => {
   })
 })
 
+describe('copilot', () => {
+  it('has valid structure', () => {
+    validateAgent(copilot)
+    expect(copilot.name).toBe('copilot')
+    expect(copilot.displayName).toBe('GitHub Copilot CLI')
+    expect(copilot.package).toBe('@github/copilot')
+    expect(copilot.binaryName).toBe('copilot')
+    expect(copilot.aliases).toContain('gh-copilot')
+  })
+
+  it('script install returns correct strings per platform', () => {
+    const binaryMethods = copilot.installMethods.filter(m => m.type === 'binary')
+    const scriptMethod = binaryMethods.find((m) => {
+      const fn = m.command as (p: Platform) => string
+      return fn('macos').includes('curl')
+    })
+    expect(scriptMethod).toBeDefined()
+    const fn = scriptMethod!.command as (platform: Platform) => string
+
+    expect(fn('windows')).toContain('winget')
+    expect(fn('macos')).toContain('gh.io/copilot-install')
+    expect(fn('linux')).toContain('gh.io/copilot-install')
+  })
+
+  it('brew install returns correct strings per platform', () => {
+    const binaryMethods = copilot.installMethods.filter(m => m.type === 'binary')
+    const brewMethod = binaryMethods.find((m) => {
+      const fn = m.command as (p: Platform) => string
+      return fn('macos').includes('brew')
+    })
+    expect(brewMethod).toBeDefined()
+    const fn = brewMethod!.command as (platform: Platform) => string
+
+    expect(fn('macos')).toBe('brew install copilot-cli')
+    expect(fn('linux')).toBe('brew install copilot-cli')
+    expect(brewMethod!.supportedPlatforms).not.toContain('windows')
+  })
+})
+
+describe('cursor', () => {
+  it('has valid structure', () => {
+    validateAgent(cursor)
+    expect(cursor.name).toBe('cursor')
+    expect(cursor.displayName).toBe('Cursor CLI')
+    expect(cursor.binaryName).toBe('agent')
+  })
+
+  it('binary install returns correct strings per platform', () => {
+    const binaryMethod = cursor.installMethods.find(m => m.type === 'binary')
+    expect(binaryMethod).toBeDefined()
+    const fn = binaryMethod!.command as (platform: Platform) => string
+
+    expect(fn('macos')).toContain('cursor.com/install')
+    expect(fn('linux')).toContain('cursor.com/install')
+    expect(fn('windows')).toContain('cursor.com/install')
+  })
+})
+
 describe('droid', () => {
   it('has valid structure', () => {
     validateAgent(droid)
@@ -152,63 +211,24 @@ describe('droid', () => {
   })
 })
 
-describe('gemini-cli', () => {
+describe('gemini', () => {
   it('has valid structure', () => {
-    validateAgent(geminiCli)
-    expect(geminiCli.name).toBe('gemini-cli')
-    expect(geminiCli.displayName).toBe('Gemini CLI')
-    expect(geminiCli.package).toBe('@google/gemini-cli')
-    expect(geminiCli.binaryName).toBe('gemini')
-    expect(geminiCli.aliases).toContain('gemini')
+    validateAgent(gemini)
+    expect(gemini.name).toBe('gemini')
+    expect(gemini.displayName).toBe('Gemini CLI')
+    expect(gemini.package).toBe('@google/gemini-cli')
+    expect(gemini.binaryName).toBe('gemini')
+    expect(gemini.aliases).toEqual([])
   })
 
   it('brew install returns correct strings per platform', () => {
-    const binaryMethod = geminiCli.installMethods.find(m => m.type === 'binary')
+    const binaryMethod = gemini.installMethods.find(m => m.type === 'binary')
     expect(binaryMethod).toBeDefined()
     expect(binaryMethod!.supportedPlatforms).not.toContain('windows')
     const fn = binaryMethod!.command as (platform: Platform) => string
 
     expect(fn('macos')).toBe('brew install gemini-cli')
     expect(fn('linux')).toBe('brew install gemini-cli')
-  })
-})
-
-describe('github-copilot-cli', () => {
-  it('has valid structure', () => {
-    validateAgent(githubCopilotCli)
-    expect(githubCopilotCli.name).toBe('github-copilot-cli')
-    expect(githubCopilotCli.displayName).toBe('GitHub Copilot CLI')
-    expect(githubCopilotCli.package).toBe('@github/copilot')
-    expect(githubCopilotCli.binaryName).toBe('copilot')
-    expect(githubCopilotCli.aliases).toContain('copilot')
-  })
-
-  it('script install returns correct strings per platform', () => {
-    const binaryMethods = githubCopilotCli.installMethods.filter(m => m.type === 'binary')
-    const scriptMethod = binaryMethods.find((m) => {
-      const fn = m.command as (p: Platform) => string
-      return fn('macos').includes('curl')
-    })
-    expect(scriptMethod).toBeDefined()
-    const fn = scriptMethod!.command as (platform: Platform) => string
-
-    expect(fn('windows')).toContain('winget')
-    expect(fn('macos')).toContain('gh.io/copilot-install')
-    expect(fn('linux')).toContain('gh.io/copilot-install')
-  })
-
-  it('brew install returns correct strings per platform', () => {
-    const binaryMethods = githubCopilotCli.installMethods.filter(m => m.type === 'binary')
-    const brewMethod = binaryMethods.find((m) => {
-      const fn = m.command as (p: Platform) => string
-      return fn('macos').includes('brew')
-    })
-    expect(brewMethod).toBeDefined()
-    const fn = brewMethod!.command as (platform: Platform) => string
-
-    expect(fn('macos')).toBe('brew install copilot-cli')
-    expect(fn('linux')).toBe('brew install copilot-cli')
-    expect(brewMethod!.supportedPlatforms).not.toContain('windows')
   })
 })
 
