@@ -16,7 +16,7 @@ Silver CLI — 统一的 AI Agent CLI 管理工具，支持安装、更新、卸
 
 ```bash
 bun install              # 安装依赖
-bun run src/cli.ts       # 开发运行
+bun run dev              # 开发运行（bun run src/cli.ts）
 bun test                 # 运行测试
 bun run lint             # ESLint 检查
 bun run typecheck        # TypeScript 类型检查

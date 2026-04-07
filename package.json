@@ -29,13 +29,13 @@
   ],
   "scripts": {
     "build": "tsdown",
-    "dev": "bun run src/cli.ts",
+    "lint:fix": "eslint --fix",
     "lint": "eslint",
     "prepublishOnly": "bun run build",
     "release": "bumpp",
-    "start": "bun run src/cli.ts",
+    "dev": "bun run src/cli.ts",
     "test": "bun test",
-    "typecheck": "tsc",
+    "typecheck": "tsc --noEmit",
     "prepare": "simple-git-hooks"
   },
   "dependencies": {
