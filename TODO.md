@@ -248,6 +248,38 @@ interface AgentDefinition {
 - [ ] CI/CD 自动发布（GitHub Actions）
 - [ ] 编写 README 与使用文档
 - [ ] npm 发布
+- [ ] 二进制产物构建（`bun build --compile`）
+
+## 二进制构建
+
+使用 `bun build --compile` 交叉编译为独立可执行文件，无需目标机器安装运行时。
+
+### 支持的 Target
+
+| Target | 平台 | 架构 | 说明 |
+|--------|------|------|------|
+| `bun-linux-x64` | Linux | x64 | 默认 |
+| `bun-linux-x64-baseline` | Linux | x64 | 兼容 2013 年前的 CPU (nehalem) |
+| `bun-linux-x64-modern` | Linux | x64 | 2013+ CPU (haswell)，更快 |
+| `bun-linux-arm64` | Linux | ARM64 | Graviton / Raspberry Pi |
+| `bun-windows-x64` | Windows | x64 | 默认 |
+| `bun-windows-x64-baseline` | Windows | x64 | 兼容旧 CPU |
+| `bun-windows-x64-modern` | Windows | x64 | 更快 |
+| `bun-windows-arm64` | Windows | ARM64 | |
+| `bun-darwin-arm64` | macOS | ARM64 | Apple Silicon |
+| `bun-darwin-x64` | macOS | x64 | Intel Mac |
+
+### 构建命令
+
+```bash
+# 构建全部平台
+bun run build:bin
+
+# 单平台构建
+bun build --compile ./src/cli.ts --target=bun-linux-x64-modern --outfile=dist/silver-linux-x64
+bun build --compile ./src/cli.ts --target=bun-darwin-arm64 --outfile=dist/silver-darwin-arm64
+bun build --compile ./src/cli.ts --target=bun-windows-x64-modern --outfile=dist/silver-windows-x64
+```
 
 ## 注意事项
 
