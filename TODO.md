@@ -15,16 +15,16 @@
 
 ## 支持的 AI Agent
 
-| Agent | 包名 | 说明 |
-|-------|------|------|
-| Claude Code | `@anthropic-ai/claude-code` | Anthropic 官方 CLI |
-| Codex CLI | `@openai/codex` | OpenAI 官方 CLI |
-| Copilot | `@github/copilot` | GitHub Copilot 命令行 |
-| Cursor | - | Cursor AI 命令行（二进制安装） |
-| Droid | `droid` | Factory AI 软件工程 Agent |
-| Gemini | `@google/gemini-cli` | Google 开源 CLI |
-| OpenCode | `opencode-ai` | 开源 AI 编程 CLI |
-| Pi | `@mariozechner/pi-coding-agent` | 极简可扩展终端 Agent |
+| Agent | name | 包名 | 别名 | binaryName |
+|-------|------|------|------|------------|
+| Claude Code | `claude` | `@anthropic-ai/claude-code` | - | `claude` |
+| Codex CLI | `codex` | `@openai/codex` | - | `codex` |
+| Copilot | `copilot` | `@github/copilot` | - | `copilot` |
+| Cursor | `cursor` | - | `agent` | `agent` |
+| Droid | `droid` | `droid` | - | `droid` |
+| Gemini | `gemini` | `@google/gemini-cli` | - | `gemini` |
+| OpenCode | `opencode` | `opencode-ai` | - | `opencode` |
+| Pi | `pi` | `@mariozechner/pi-coding-agent` | - | `pi` |
 
 ## 配置系统
 
@@ -41,7 +41,7 @@
 {
   "defaultPackageManager": "bun",
   "agents": {
-    "claude-code": {
+    "claude": {
       "packageManager": "bun",
       "package": "@anthropic-ai/claude-code",
       "autoUpdate": false
@@ -117,19 +117,11 @@ silver <agent> [args...]  # 直接启动 agent，透传所有参数
 silver claude --dangerously-skip-permissions
 silver codex --model o4-mini
 silver opencode
+silver agent              # 即 cursor
 ```
 
-默认 Agent 别名映射:
-
-| 快捷名 | 实际命令 |
-|--------|---------|
-| `silver claude` | `claude`（即 claude-code） |
-| `silver codex` | `codex`（即 openai codex） |
-| `silver opencode` | `opencode` |
-| `silver aider` | `aider` |
-
 行为规则:
-- 如果第一个参数匹配已注册的 agent 名称，则作为代理启动该 agent
+- 如果第一个参数匹配已注册的 agent 名称或别名，则作为代理启动该 agent
 - 后续所有参数原样透传给 agent 进程（`stdio: inherit`）
 - agent 未安装时，提示是否自动安装后再启动
 - 如果第一个参数不匹配任何 agent，则走正常的 CLI 命令路由
@@ -138,7 +130,7 @@ silver opencode
 
 ```
 silver doctor             # 检查环境（bun/npm/node 版本、已安装 agent 等）
-silver which <agent>      # 查看 agent 可执行文件路径
+silver which <agent>      # 查看 agent 可执行文件路径（未实现）
 ```
 
 ## 技术架构
@@ -158,7 +150,7 @@ silver which <agent>      # 查看 agent 可执行文件路径
 > - `fetch`（Bun 内置）替代 ofetch（查询 npm registry 版本信息）
 > - Bun 原生 TS 支持替代 tsx（直接运行 TypeScript）
 
-### 目录结构（规划）
+### 目录结构
 
 ```
 src/
@@ -176,9 +168,14 @@ src/
 ├── agents/               # Agent 定义与注册
 │   ├── index.ts          # Agent 注册表
 │   ├── types.ts          # Agent 类型定义
-│   ├── claude-code.ts
+│   ├── claude.ts
 │   ├── codex.ts
+│   ├── copilot.ts
+│   ├── cursor.ts
+│   ├── droid.ts
+│   ├── gemini.ts
 │   ├── opencode.ts
+│   ├── pi.ts
 │   └── ...
 ├── package-manager/      # 包管理器抽象
 │   ├── index.ts
@@ -192,9 +189,11 @@ src/
     ├── detect.ts         # 环境检测（OS、包管理器可用性）
     ├── exec.ts           # 命令执行封装
     └── version.ts        # 版本查询与比较
+scripts/
+└── build-bin.ts          # 二进制交叉编译脚本
 ```
 
-### Agent 类型定义（草案）
+### Agent 类型定义
 
 ```typescript
 type Platform = 'windows' | 'macos' | 'linux'
@@ -207,8 +206,8 @@ interface InstallMethod {
 }
 
 interface AgentDefinition {
-  name: string                 // 唯一标识，如 "claude-code"
-  aliases: string[]            // 快捷启动名，如 ["claude"]
+  name: string                 // 唯一标识，如 "claude"
+  aliases: string[]            // 快捷启动别名，如 ["agent"]
   displayName: string
   description: string
   homepage: string
@@ -221,32 +220,32 @@ interface AgentDefinition {
 ## 开发计划
 
 ### Phase 1 - 基础框架
-- [ ] 初始化 CLI 框架（commander）
-- [ ] `package.json` 添加 `bin` 字段指向 CLI 入口
-- [ ] 定义 Agent 类型与注册表
-- [ ] 实现配置系统（c12）
-- [ ] 实现环境检测（OS、bun/npm 可用性）
-- [ ] 实现 `silver list` 命令
+- [x] 初始化 CLI 框架（commander）
+- [x] `package.json` 添加 `bin` 字段指向 CLI 入口
+- [x] 定义 Agent 类型与注册表
+- [x] 实现配置系统（c12）
+- [x] 实现环境检测（OS、bun/npm 可用性）
+- [x] 实现 `silver list` 命令
 
 ### Phase 2 - 核心功能
-- [ ] 实现包管理器抽象层（bun/npm/binary）
-- [ ] 实现 `silver install <agent>` 命令
-- [ ] 实现 `silver update <agent>` 命令
-- [ ] 实现 `silver uninstall <agent>` 命令
-- [ ] 实现 `silver info <agent>` 命令
-- [ ] 实现 `silver <agent> [args...]` 快捷启动（参数透传、未安装提示）
+- [x] 实现包管理器抽象层（bun/npm/binary）
+- [x] 实现 `silver install <agent>` 命令
+- [x] 实现 `silver update <agent>` 命令
+- [x] 实现 `silver uninstall <agent>` 命令
+- [x] 实现 `silver info <agent>` 命令
+- [x] 实现 `silver <agent> [args...]` 快捷启动（参数透传、未安装提示）
 
 ### Phase 3 - 体验优化
-- [ ] 实现 `silver doctor` 环境检查
-- [ ] 实现 `silver config` 配置管理
-- [ ] 彩色输出与交互式提示
+- [x] 实现 `silver doctor` 环境检查
+- [x] 实现 `silver config` 配置管理
+- [x] 彩色输出与交互式提示
 - [ ] 进度条与安装动画
 - [ ] 错误处理与友好提示
 
 ### Phase 4 - 发布与完善
 - [ ] 完善测试覆盖率
 - [ ] CI/CD 自动发布（GitHub Actions）
-- [ ] 编写 README 与使用文档
+- [x] 编写 README 与使用文档
 - [ ] npm 发布
 - [ ] 二进制产物构建（`bun build --compile`）
 
