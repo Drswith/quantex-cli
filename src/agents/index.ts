@@ -1,5 +1,5 @@
 import type { AgentDefinition } from './types'
-import { claudeCode } from './claude-code'
+import { claude } from './claude'
 import { codex } from './codex'
 import { copilot } from './copilot'
 import { cursor } from './cursor'
@@ -9,7 +9,7 @@ import { opencode } from './opencode'
 import { pi } from './pi'
 
 const agents: AgentDefinition[] = [
-  claudeCode,
+  claude,
   codex,
   copilot,
   cursor,
@@ -27,5 +27,5 @@ export function getAgentByNameOrAlias(name: string): AgentDefinition | undefined
   return agents.find(a => a.name === name || a.aliases.includes(name))
 }
 
-export { claudeCode, codex, copilot, cursor, droid, gemini, opencode, pi }
+export { claude, codex, copilot, cursor, droid, gemini, opencode, pi }
 export type { AgentDefinition, InstallMethod, Platform } from './types'

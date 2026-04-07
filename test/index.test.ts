@@ -4,19 +4,13 @@ import { getAgentByNameOrAlias, getAllAgents } from '../src/index'
 describe('agent registry', () => {
   it('returns all agents', () => {
     const agents = getAllAgents()
-    expect(agents.length).toBeGreaterThanOrEqual(3)
+    expect(agents.length).toBeGreaterThanOrEqual(8)
   })
 
   it('finds agent by name', () => {
-    const agent = getAgentByNameOrAlias('claude-code')
-    expect(agent).toBeDefined()
-    expect(agent!.name).toBe('claude-code')
-  })
-
-  it('finds agent by alias', () => {
     const agent = getAgentByNameOrAlias('claude')
     expect(agent).toBeDefined()
-    expect(agent!.name).toBe('claude-code')
+    expect(agent!.name).toBe('claude')
   })
 
   it('returns undefined for unknown agent', () => {
@@ -26,13 +20,12 @@ describe('agent registry', () => {
 })
 
 describe('agent definitions', () => {
-  it('claude-code has correct structure', () => {
-    const agent = getAgentByNameOrAlias('claude-code')
+  it('claude has correct structure', () => {
+    const agent = getAgentByNameOrAlias('claude')
     expect(agent).toBeDefined()
     expect(agent!.displayName).toBe('Claude Code')
     expect(agent!.package).toBe('@anthropic-ai/claude-code')
     expect(agent!.binaryName).toBe('claude')
-    expect(agent!.aliases).toContain('claude')
     expect(Object.keys(agent!.platforms).length).toBeGreaterThan(0)
   })
 
