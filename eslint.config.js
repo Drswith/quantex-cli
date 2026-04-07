@@ -6,4 +6,10 @@ export default antfu(
     type: 'lib',
     markdown: false,
   },
+  {
+    files: ['src/commands/**', 'src/cli.ts'],
+    rules: {
+      'no-console': 'off',
+    },
+  },
 )

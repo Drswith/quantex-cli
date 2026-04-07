@@ -1,2 +1,8 @@
-export const one = 1
-export const two = 2
+export { claudeCode, codex, getAgentByNameOrAlias, getAllAgents, opencode } from './agents'
+export type { AgentDefinition, InstallMethod, Platform } from './agents'
+export { getConfigDir, loadConfig } from './config'
+export type { SilverConfig } from './config'
+export { installAgent, uninstallAgent, updateAgent } from './package-manager'
+export { getPlatform, isBinaryInPath, isBunAvailable, isNpmAvailable } from './utils/detect'
+export { execCommand } from './utils/exec'
+export { getBinaryPath, getInstalledVersion, getLatestVersion } from './utils/version'
