@@ -1,6 +1,6 @@
-import { afterEach, beforeEach, describe, expect, it, jest } from 'bun:test'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
-const mockSpawn = jest.fn()
+const mockSpawn = vi.fn()
 let originalSpawn: typeof Bun.spawn
 
 beforeEach(() => {

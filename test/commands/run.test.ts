@@ -1,23 +1,21 @@
-import { afterAll, afterEach, beforeEach, describe, expect, it, jest } from 'bun:test'
+import { afterAll, afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import * as agents from '../../src/agents'
 import { runCommand } from '../../src/commands/run'
 import * as pm from '../../src/package-manager'
 import * as detect from '../../src/utils/detect'
 
-const agentSpy = jest.spyOn(agents, 'getAgentByNameOrAlias')
-const installSpy = jest.spyOn(pm, 'installAgent')
-const binaryInPathSpy = jest.spyOn(detect, 'isBinaryInPath')
+const mockPrompts = vi.fn()
 
-const mockSpawn = jest.fn()
+vi.mock('prompts', () => ({
+  default: (...args: any[]) => mockPrompts(...args),
+}))
+
+const agentSpy = vi.spyOn(agents, 'getAgentByNameOrAlias')
+const installSpy = vi.spyOn(pm, 'installAgent')
+const binaryInPathSpy = vi.spyOn(detect, 'isBinaryInPath')
+
+const mockSpawn = vi.fn()
 let originalSpawn: typeof Bun.spawn
-
-const mockPrompts = jest.fn<() => Promise<{ install: boolean }>>()
-
-afterAll(() => {
-  agentSpy.mockRestore()
-  installSpy.mockRestore()
-  binaryInPathSpy.mockRestore()
-})
 
 const testAgent = {
   name: 'test-agent',
@@ -43,11 +41,17 @@ afterEach(() => {
   Bun.spawn = originalSpawn
 })
 
+afterAll(() => {
+  agentSpy.mockRestore()
+  installSpy.mockRestore()
+  binaryInPathSpy.mockRestore()
+})
+
 describe('runCommand', () => {
-  let logSpy: ReturnType<typeof jest.spyOn>
+  let logSpy: ReturnType<typeof vi.spyOn>
 
   beforeEach(() => {
-    logSpy = jest.spyOn(console, 'log').mockImplementation(() => {})
+    logSpy = vi.spyOn(console, 'log').mockImplementation(() => {})
   })
 
   afterEach(() => {
@@ -71,41 +75,33 @@ describe('runCommand', () => {
   })
 
   it('prompts for install when not installed, then runs if confirmed', async () => {
-    const promptsSpy = jest.spyOn(await import('prompts') as any, 'default')
+    mockPrompts.mockResolvedValue({ install: true })
     agentSpy.mockReturnValue(testAgent)
     binaryInPathSpy.mockResolvedValue(false)
-    promptsSpy.mockResolvedValue({ install: true })
     installSpy.mockResolvedValue(true)
     mockSpawn.mockReturnValue({ exited: Promise.resolve(), exitCode: 0 })
     const code = await runCommand('test-agent', [])
     expect(code).toBe(0)
     expect(installSpy).toHaveBeenCalledWith(testAgent)
-    promptsSpy.mockRestore()
   })
 
   it('returns 1 when user cancels install', async () => {
-    const promptsModule = await import('prompts')
-    const promptsSpy = jest.spyOn(promptsModule as any, 'default')
+    mockPrompts.mockResolvedValue({ install: false })
     agentSpy.mockReturnValue(testAgent)
     binaryInPathSpy.mockResolvedValue(false)
-    promptsSpy.mockResolvedValue({ install: false })
     const code = await runCommand('test-agent', [])
     expect(code).toBe(1)
     expect(logSpy).toHaveBeenCalledWith(expect.stringContaining('cancelled'))
-    promptsSpy.mockRestore()
   })
 
   it('returns 1 when install fails', async () => {
-    const promptsModule = await import('prompts')
-    const promptsSpy = jest.spyOn(promptsModule as any, 'default')
+    mockPrompts.mockResolvedValue({ install: true })
     agentSpy.mockReturnValue(testAgent)
     binaryInPathSpy.mockResolvedValue(false)
-    promptsSpy.mockResolvedValue({ install: true })
     installSpy.mockResolvedValue(false)
     const code = await runCommand('test-agent', [])
     expect(code).toBe(1)
     expect(logSpy).toHaveBeenCalledWith(expect.stringContaining('Failed to install'))
-    promptsSpy.mockRestore()
   })
 
   it('returns 1 when spawn fails', async () => {

@@ -1,15 +1,15 @@
-import { afterAll, afterEach, beforeEach, describe, expect, it, jest } from 'bun:test'
+import { afterAll, afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import * as agents from '../../src/agents'
 import { doctorCommand } from '../../src/commands/doctor'
 import * as detect from '../../src/utils/detect'
 import * as version from '../../src/utils/version'
 
-const allAgentsSpy = jest.spyOn(agents, 'getAllAgents')
-const isBunSpy = jest.spyOn(detect, 'isBunAvailable')
-const isNpmSpy = jest.spyOn(detect, 'isNpmAvailable')
-const binaryInPathSpy = jest.spyOn(detect, 'isBinaryInPath')
-const installedVerSpy = jest.spyOn(version, 'getInstalledVersion')
-const latestVerSpy = jest.spyOn(version, 'getLatestVersion')
+const allAgentsSpy = vi.spyOn(agents, 'getAllAgents')
+const isBunSpy = vi.spyOn(detect, 'isBunAvailable')
+const isNpmSpy = vi.spyOn(detect, 'isNpmAvailable')
+const binaryInPathSpy = vi.spyOn(detect, 'isBinaryInPath')
+const installedVerSpy = vi.spyOn(version, 'getInstalledVersion')
+const latestVerSpy = vi.spyOn(version, 'getLatestVersion')
 
 afterAll(() => {
   allAgentsSpy.mockRestore()
@@ -31,10 +31,10 @@ const testAgent = {
 }
 
 describe('doctorCommand', () => {
-  let logSpy: ReturnType<typeof jest.spyOn>
+  let logSpy: ReturnType<typeof vi.spyOn>
 
   beforeEach(() => {
-    logSpy = jest.spyOn(console, 'log').mockImplementation(() => {})
+    logSpy = vi.spyOn(console, 'log').mockImplementation(() => {})
     allAgentsSpy.mockClear()
     isBunSpy.mockClear()
     isNpmSpy.mockClear()

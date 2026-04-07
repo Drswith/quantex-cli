@@ -1,5 +1,5 @@
 import type { AgentDefinition } from '../src/agents/types'
-import { describe, expect, it } from 'bun:test'
+import { describe, expect, it } from 'vitest'
 import { getAgentByNameOrAlias, getAllAgents } from '../src/agents'
 import { claudeCode } from '../src/agents/claude-code'
 import { codex } from '../src/agents/codex'

@@ -1,10 +1,10 @@
-import { afterAll, afterEach, beforeEach, describe, expect, it, jest } from 'bun:test'
+import { afterAll, afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import * as agents from '../../src/agents'
 import { uninstallCommand } from '../../src/commands/uninstall'
 import * as pm from '../../src/package-manager'
 
-const agentSpy = jest.spyOn(agents, 'getAgentByNameOrAlias')
-const uninstallSpy = jest.spyOn(pm, 'uninstallAgent')
+const agentSpy = vi.spyOn(agents, 'getAgentByNameOrAlias')
+const uninstallSpy = vi.spyOn(pm, 'uninstallAgent')
 
 afterAll(() => {
   agentSpy.mockRestore()
@@ -22,10 +22,10 @@ const testAgent = {
 }
 
 describe('uninstallCommand', () => {
-  let logSpy: ReturnType<typeof jest.spyOn>
+  let logSpy: ReturnType<typeof vi.spyOn>
 
   beforeEach(() => {
-    logSpy = jest.spyOn(console, 'log').mockImplementation(() => {})
+    logSpy = vi.spyOn(console, 'log').mockImplementation(() => {})
     agentSpy.mockClear()
     uninstallSpy.mockClear()
   })
