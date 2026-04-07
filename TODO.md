@@ -19,10 +19,11 @@
 |-------|------|------|
 | Claude Code | `@anthropic-ai/claude-code` | Anthropic 官方 CLI |
 | Codex CLI | `@openai/codex` | OpenAI 官方 CLI |
-| OpenCode | `opencode` | 开源 AI 编程 CLI |
-| Gemini CLI | `@anthropic-ai/gemini-cli` | Google Gemini CLI |
-| Aider | `aider-chat` | 开源 AI 结对编程工具 |
-| Cursor | - | IDE 内置，通过二进制安装 |
+| Droid | `droid` | Factory AI 软件工程 Agent |
+| Gemini CLI | `@google/gemini-cli` | Google 开源 CLI |
+| GitHub Copilot CLI | `@github/copilot` | GitHub Copilot 命令行 |
+| OpenCode | `opencode-ai` | 开源 AI 编程 CLI |
+| Pi | `@mariozechner/pi-coding-agent` | 极简可扩展终端 Agent |
 
 ## 配置系统
 
