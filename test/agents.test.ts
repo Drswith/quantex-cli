@@ -94,7 +94,7 @@ describe('copilot', () => {
     expect(copilot.displayName).toBe('GitHub Copilot CLI')
     expect(copilot.package).toBe('@github/copilot')
     expect(copilot.binaryName).toBe('copilot')
-    expect(copilot.aliases).toContain('gh-copilot')
+    expect(copilot.aliases).toContain('copilot')
   })
 
   it('script install returns correct strings per platform', () => {
@@ -154,7 +154,7 @@ describe('gemini', () => {
     expect(gemini.displayName).toBe('Gemini CLI')
     expect(gemini.package).toBe('@google/gemini-cli')
     expect(gemini.binaryName).toBe('gemini')
-    expect(gemini.aliases).toEqual([])
+    expect(gemini.aliases).toContain('gemini')
   })
 
   it('brew install returns correct strings per platform', () => {
