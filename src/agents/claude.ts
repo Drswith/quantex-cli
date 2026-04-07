@@ -1,8 +1,8 @@
 import type { AgentDefinition } from './types'
 
-export const claudeCode: AgentDefinition = {
-  name: 'claude-code',
-  aliases: ['claude'],
+export const claude: AgentDefinition = {
+  name: 'claude',
+  aliases: [],
   displayName: 'Claude Code',
   description: 'Anthropic 官方 AI 编程助手 CLI',
   homepage: 'https://code.claude.com/docs',

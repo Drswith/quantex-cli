@@ -1,4 +1,4 @@
-export { claudeCode, codex, getAgentByNameOrAlias, getAllAgents, opencode } from './agents'
+export { claude, codex, getAgentByNameOrAlias, getAllAgents, opencode } from './agents'
 export type { AgentDefinition, InstallMethod, Platform } from './agents'
 export { getConfigDir, loadConfig } from './config'
 export type { SilverConfig } from './config'

@@ -1,7 +1,7 @@
 import type { AgentDefinition } from '../src/agents/types'
 import { describe, expect, it } from 'vitest'
 import { getAgentByNameOrAlias, getAllAgents } from '../src/agents'
-import { claudeCode } from '../src/agents/claude-code'
+import { claude } from '../src/agents/claude'
 import { codex } from '../src/agents/codex'
 import { copilot } from '../src/agents/copilot'
 import { cursor } from '../src/agents/cursor'
@@ -17,15 +17,9 @@ describe('agent registry', () => {
   })
 
   it('finds agent by name', () => {
-    const agent = getAgentByNameOrAlias('claude-code')
-    expect(agent).toBeDefined()
-    expect(agent!.name).toBe('claude-code')
-  })
-
-  it('finds agent by alias', () => {
     const agent = getAgentByNameOrAlias('claude')
     expect(agent).toBeDefined()
-    expect(agent!.name).toBe('claude-code')
+    expect(agent!.name).toBe('claude')
   })
 
   it('returns undefined for unknown agent', () => {
@@ -55,26 +49,25 @@ function validateAgent(agent: AgentDefinition): void {
   }
 }
 
-describe('claude-code', () => {
+describe('claude', () => {
   it('has valid structure', () => {
-    validateAgent(claudeCode)
-    expect(claudeCode.name).toBe('claude-code')
-    expect(claudeCode.displayName).toBe('Claude Code')
-    expect(claudeCode.package).toBe('@anthropic-ai/claude-code')
-    expect(claudeCode.binaryName).toBe('claude')
-    expect(claudeCode.aliases).toContain('claude')
+    validateAgent(claude)
+    expect(claude.name).toBe('claude')
+    expect(claude.displayName).toBe('Claude Code')
+    expect(claude.package).toBe('@anthropic-ai/claude-code')
+    expect(claude.binaryName).toBe('claude')
   })
 
   it('curl install returns correct strings per platform', () => {
-    expect(claudeCode.platforms.windows!.find(m => m.type === 'binary' && m.command.includes('claude.ai/install.ps1'))).toBeDefined()
-    expect(claudeCode.platforms.macos!.find(m => m.type === 'binary' && m.command.includes('claude.ai/install.sh'))).toBeDefined()
-    expect(claudeCode.platforms.linux!.find(m => m.type === 'binary' && m.command.includes('claude.ai/install.sh'))).toBeDefined()
+    expect(claude.platforms.windows!.find(m => m.type === 'binary' && m.command.includes('claude.ai/install.ps1'))).toBeDefined()
+    expect(claude.platforms.macos!.find(m => m.type === 'binary' && m.command.includes('claude.ai/install.sh'))).toBeDefined()
+    expect(claude.platforms.linux!.find(m => m.type === 'binary' && m.command.includes('claude.ai/install.sh'))).toBeDefined()
   })
 
   it('package manager install returns correct strings per platform', () => {
-    expect(claudeCode.platforms.windows!.find(m => m.type === 'binary' && m.command.includes('winget'))).toBeDefined()
-    expect(claudeCode.platforms.macos!.find(m => m.type === 'binary' && m.command.includes('brew'))).toBeDefined()
-    expect(claudeCode.platforms.linux!.find(m => m.type === 'binary' && m.command.includes('brew'))).toBeDefined()
+    expect(claude.platforms.windows!.find(m => m.type === 'binary' && m.command.includes('winget'))).toBeDefined()
+    expect(claude.platforms.macos!.find(m => m.type === 'binary' && m.command.includes('brew'))).toBeDefined()
+    expect(claude.platforms.linux!.find(m => m.type === 'binary' && m.command.includes('brew'))).toBeDefined()
   })
 })
 
