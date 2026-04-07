@@ -48,7 +48,7 @@ describe('agent definitions', () => {
     const agent = getAgentByNameOrAlias('opencode')
     expect(agent).toBeDefined()
     expect(agent!.displayName).toBe('OpenCode')
-    expect(agent!.package).toBe('opencode')
+    expect(agent!.package).toBe('opencode-ai')
     expect(agent!.binaryName).toBe('opencode')
   })
 })

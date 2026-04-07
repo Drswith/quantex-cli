@@ -24,13 +24,25 @@ export const claudeCode: AgentDefinition = {
       type: 'binary',
       command: (platform: Platform) => {
         switch (platform) {
-          case 'windows': return 'irm https://claude-setup.com/install.ps1 | iex'
-          case 'macos': return 'brew install --cask claude-code'
-          case 'linux': return 'curl -fsSL https://claude-setup.com/install.sh | sh'
+          case 'windows': return 'irm https://claude.ai/install.ps1 | iex'
+          case 'macos': return 'curl -fsSL https://claude.ai/install.sh | bash'
+          case 'linux': return 'curl -fsSL https://claude.ai/install.sh | bash'
         }
       },
       supportedPlatforms: ['windows', 'macos', 'linux'],
       priority: 3,
+    },
+    {
+      type: 'binary',
+      command: (platform: Platform) => {
+        switch (platform) {
+          case 'windows': return 'winget install Anthropic.ClaudeCode'
+          case 'macos': return 'brew install --cask claude-code'
+          case 'linux': return 'brew install --cask claude-code'
+        }
+      },
+      supportedPlatforms: ['windows', 'macos', 'linux'],
+      priority: 4,
     },
   ],
 }
