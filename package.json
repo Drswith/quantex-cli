@@ -28,7 +28,7 @@
     "dist"
   ],
   "scripts": {
-    "build": "bun run build.ts",
+    "build": "tsdown",
     "dev": "bun run src/cli.ts",
     "lint": "eslint",
     "prepublishOnly": "bun run build",
@@ -53,6 +53,7 @@
     "eslint": "^9.39.2",
     "lint-staged": "^16.2.7",
     "simple-git-hooks": "^2.13.1",
+    "tsdown": "^0.21.7",
     "typescript": "^5.9.3"
   },
   "simple-git-hooks": {

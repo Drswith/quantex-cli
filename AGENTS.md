@@ -6,7 +6,8 @@ Silver CLI — 统一的 AI Agent CLI 管理工具，支持安装、更新、卸
 
 ## Tech Stack
 
-- **Runtime**: Bun（运行时、包管理器、打包、测试）
+- **Runtime**: Bun（运行时、包管理器、测试）
+- **Build**: tsdown（基于 rolldown）
 - **Language**: TypeScript (strict mode)
 - **Lint**: @antfu/eslint-config
 - **Dependencies**: commander, c12, picocolors, prompts
@@ -19,7 +20,7 @@ bun run src/cli.ts       # 开发运行
 bun test                 # 运行测试
 bun run lint             # ESLint 检查
 bun run typecheck        # TypeScript 类型检查
-bun run build            # 打包（bun build）
+bun run build            # 打包（tsdown）
 ```
 
 Run `bun run lint` and `bun run typecheck` after making changes.
@@ -32,7 +33,6 @@ Prefer Bun built-in capabilities over external dependencies:
 - `Bun.file` / `Bun.write` — 文件操作（替代 fs-extra）
 - `fetch` — HTTP 请求（替代 ofetch/axios）
 - `bun test` — 测试运行器（替代 vitest/jest）
-- `bun build` — 打包（替代 tsdown/esbuild）
 
 ## Code Style
 
