@@ -1,4 +1,4 @@
-import type { AgentDefinition, Platform } from './types'
+import type { AgentDefinition } from './types'
 
 export const codex: AgentDefinition = {
   name: 'codex',
@@ -8,30 +8,20 @@ export const codex: AgentDefinition = {
   homepage: 'https://developers.openai.com/codex',
   package: '@openai/codex',
   binaryName: 'codex',
-  installMethods: [
-    {
-      type: 'bun',
-      command: 'bun add -g @openai/codex',
-      supportedPlatforms: ['windows', 'macos', 'linux'],
-      priority: 1,
-    },
-    {
-      type: 'npm',
-      command: 'npm i -g @openai/codex',
-      supportedPlatforms: ['windows', 'macos', 'linux'],
-      priority: 2,
-    },
-    {
-      type: 'binary',
-      command: (platform: Platform) => {
-        switch (platform) {
-          case 'macos': return 'brew install codex'
-          case 'linux': return 'brew install codex'
-          case 'windows': return ''
-        }
-      },
-      supportedPlatforms: ['macos', 'linux'],
-      priority: 3,
-    },
-  ],
+  platforms: {
+    windows: [
+      { type: 'bun', command: 'bun add -g @openai/codex', priority: 1 },
+      { type: 'npm', command: 'npm i -g @openai/codex', priority: 2 },
+    ],
+    macos: [
+      { type: 'bun', command: 'bun add -g @openai/codex', priority: 1 },
+      { type: 'npm', command: 'npm i -g @openai/codex', priority: 2 },
+      { type: 'binary', command: 'brew install codex', priority: 3 },
+    ],
+    linux: [
+      { type: 'bun', command: 'bun add -g @openai/codex', priority: 1 },
+      { type: 'npm', command: 'npm i -g @openai/codex', priority: 2 },
+      { type: 'binary', command: 'brew install codex', priority: 3 },
+    ],
+  },
 }

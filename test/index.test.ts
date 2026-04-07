@@ -33,7 +33,7 @@ describe('agent definitions', () => {
     expect(agent!.package).toBe('@anthropic-ai/claude-code')
     expect(agent!.binaryName).toBe('claude')
     expect(agent!.aliases).toContain('claude')
-    expect(agent!.installMethods.length).toBeGreaterThanOrEqual(2)
+    expect(Object.keys(agent!.platforms).length).toBeGreaterThan(0)
   })
 
   it('codex has correct structure', () => {

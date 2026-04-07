@@ -1,9 +1,10 @@
 export type Platform = 'windows' | 'macos' | 'linux'
 
+export type InstallType = 'bun' | 'npm' | 'binary'
+
 export interface InstallMethod {
-  type: 'bun' | 'npm' | 'binary'
-  command: string | ((platform: Platform) => string)
-  supportedPlatforms: Platform[]
+  type: InstallType
+  command: string
   priority: number
 }
 
@@ -14,6 +15,6 @@ export interface AgentDefinition {
   description: string
   homepage: string
   package: string
-  installMethods: InstallMethod[]
+  platforms: Partial<Record<Platform, InstallMethod[]>>
   binaryName: string
 }

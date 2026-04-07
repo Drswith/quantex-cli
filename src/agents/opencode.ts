@@ -1,4 +1,4 @@
-import type { AgentDefinition, Platform } from './types'
+import type { AgentDefinition } from './types'
 
 export const opencode: AgentDefinition = {
   name: 'opencode',
@@ -8,42 +8,22 @@ export const opencode: AgentDefinition = {
   homepage: 'https://opencode.ai',
   package: 'opencode-ai',
   binaryName: 'opencode',
-  installMethods: [
-    {
-      type: 'bun',
-      command: 'bun add -g opencode-ai',
-      supportedPlatforms: ['windows', 'macos', 'linux'],
-      priority: 1,
-    },
-    {
-      type: 'npm',
-      command: 'npm i -g opencode-ai',
-      supportedPlatforms: ['windows', 'macos', 'linux'],
-      priority: 2,
-    },
-    {
-      type: 'binary',
-      command: (platform: Platform) => {
-        switch (platform) {
-          case 'macos': return 'curl -fsSL https://opencode.ai/install | bash'
-          case 'linux': return 'curl -fsSL https://opencode.ai/install | bash'
-          case 'windows': return ''
-        }
-      },
-      supportedPlatforms: ['macos', 'linux'],
-      priority: 3,
-    },
-    {
-      type: 'binary',
-      command: (platform: Platform) => {
-        switch (platform) {
-          case 'macos': return 'brew install anomalyco/tap/opencode'
-          case 'linux': return 'brew install anomalyco/tap/opencode'
-          case 'windows': return ''
-        }
-      },
-      supportedPlatforms: ['macos', 'linux'],
-      priority: 4,
-    },
-  ],
+  platforms: {
+    windows: [
+      { type: 'bun', command: 'bun add -g opencode-ai', priority: 1 },
+      { type: 'npm', command: 'npm i -g opencode-ai', priority: 2 },
+    ],
+    macos: [
+      { type: 'bun', command: 'bun add -g opencode-ai', priority: 1 },
+      { type: 'npm', command: 'npm i -g opencode-ai', priority: 2 },
+      { type: 'binary', command: 'curl -fsSL https://opencode.ai/install | bash', priority: 3 },
+      { type: 'binary', command: 'brew install anomalyco/tap/opencode', priority: 4 },
+    ],
+    linux: [
+      { type: 'bun', command: 'bun add -g opencode-ai', priority: 1 },
+      { type: 'npm', command: 'npm i -g opencode-ai', priority: 2 },
+      { type: 'binary', command: 'curl -fsSL https://opencode.ai/install | bash', priority: 3 },
+      { type: 'binary', command: 'brew install anomalyco/tap/opencode', priority: 4 },
+    ],
+  },
 }

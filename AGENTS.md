@@ -63,6 +63,10 @@ src/
 │   ├── types.ts
 │   ├── claude-code.ts
 │   ├── codex.ts
+│   ├── copilot.ts
+│   ├── cursor.ts
+│   ├── droid.ts
+│   ├── gemini.ts
 │   └── opencode.ts
 ├── package-manager/      # 包管理器抽象
 │   ├── index.ts
@@ -81,21 +85,24 @@ src/
 ## Key Types
 
 ```typescript
+type Platform = 'windows' | 'macos' | 'linux'
+type InstallType = 'bun' | 'npm' | 'binary'
+
+interface InstallMethod {
+  type: InstallType
+  command: string
+  priority: number
+}
+
 interface AgentDefinition {
   name: string
   aliases: string[]
   displayName: string
   description: string
+  homepage: string
   package: string
-  installMethods: InstallMethod[]
+  platforms: Partial<Record<Platform, InstallMethod[]>>
   binaryName: string
-}
-
-type InstallMethod = {
-  type: 'bun' | 'npm' | 'binary'
-  command: string | ((platform: Platform) => string)
-  supportedPlatforms: Platform[]
-  priority: number
 }
 ```
 
