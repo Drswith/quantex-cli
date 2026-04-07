@@ -2,7 +2,7 @@ import type { AgentDefinition } from './types'
 
 export const gemini: AgentDefinition = {
   name: 'gemini',
-  aliases: [],
+  aliases: ['gemini'],
   displayName: 'Gemini CLI',
   description: 'Google 开源 AI 编程助手 CLI',
   homepage: 'https://geminicli.com',

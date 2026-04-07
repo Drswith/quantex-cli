@@ -2,7 +2,7 @@ import type { AgentDefinition } from './types'
 
 export const claude: AgentDefinition = {
   name: 'claude',
-  aliases: [],
+  aliases: ['claude'],
   displayName: 'Claude Code',
   description: 'Anthropic 官方 AI 编程助手 CLI',
   homepage: 'https://code.claude.com/docs',

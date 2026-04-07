@@ -2,7 +2,7 @@ import type { AgentDefinition } from './types'
 
 export const copilot: AgentDefinition = {
   name: 'copilot',
-  aliases: ['gh-copilot'],
+  aliases: ['copilot'],
   displayName: 'GitHub Copilot CLI',
   description: 'GitHub Copilot 命令行工具',
   homepage: 'https://github.com/features/copilot/cli',

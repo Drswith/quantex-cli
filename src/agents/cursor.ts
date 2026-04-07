@@ -2,7 +2,7 @@ import type { AgentDefinition } from './types'
 
 export const cursor: AgentDefinition = {
   name: 'cursor',
-  aliases: [],
+  aliases: ['cursor', 'agent'],
   displayName: 'Cursor CLI',
   description: 'Cursor AI 编程助手命令行工具',
   homepage: 'https://cursor.com/docs/cli',
