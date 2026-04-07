@@ -29,6 +29,7 @@
   ],
   "scripts": {
     "build": "tsdown",
+    "build:bin": "bun run scripts/build-bin.ts",
     "lint:fix": "eslint --fix",
     "lint": "eslint",
     "prepublishOnly": "bun run build",
