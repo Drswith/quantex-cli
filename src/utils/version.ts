@@ -7,7 +7,8 @@ export async function getInstalledVersion(binaryName: string): Promise<string | 
     if (proc.exitCode !== 0)
       return undefined
     const text = await new Response(proc.stdout).text()
-    return text.trim() || undefined
+    // 只取第一行，避免其他信息影响输出格式
+    return text.trim().split('\n')[0] || undefined
   }
   catch {
     return undefined
