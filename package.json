@@ -22,7 +22,8 @@
   "module": "./dist/index.mjs",
   "types": "./dist/index.d.mts",
   "bin": {
-    "quantex": "./dist/cli.mjs"
+    "quantex": "./dist/cli.mjs",
+    "qtx": "./dist/cli.mjs"
   },
   "files": [
     "dist"
