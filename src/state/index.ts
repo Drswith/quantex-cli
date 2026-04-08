@@ -1,4 +1,4 @@
-import type { InstallType } from '../agents/types'
+import type { InstallType, PackageTargetKind } from '../agents/types'
 import { mkdir } from 'node:fs/promises'
 import { join } from 'node:path'
 import { getConfigDir } from '../config'
@@ -7,6 +7,7 @@ export interface InstalledAgentState {
   agentName: string
   installType: InstallType
   packageName?: string
+  packageTargetKind?: PackageTargetKind
   command?: string
 }
 

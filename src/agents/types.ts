@@ -1,11 +1,15 @@
 export type Platform = 'windows' | 'macos' | 'linux'
 
-export type InstallType = 'bun' | 'npm' | 'binary'
+export type ManagedInstallType = 'bun' | 'npm' | 'brew' | 'winget'
+export type InstallType = ManagedInstallType | 'script' | 'binary'
+export type PackageTargetKind = 'package' | 'cask' | 'id'
 
 export interface InstallMethod {
   type: InstallType
   command: string
   priority: number
+  packageName?: string
+  packageTargetKind?: PackageTargetKind
 }
 
 export interface AgentDefinition {

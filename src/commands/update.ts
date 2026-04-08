@@ -1,5 +1,5 @@
 import type { AgentDefinition } from '../agents'
-import type { ManagedInstallType } from '../package-manager'
+import type { ManagedInstallType, ManagedPackageSpec } from '../package-manager'
 import type { InstalledAgentState } from '../state'
 import pc from 'picocolors'
 import { getAgentByNameOrAlias, getAllAgents } from '../agents'
@@ -37,6 +37,8 @@ async function updateAllAgents(): Promise<void> {
   const groupedUpdates: Record<ManagedInstallType, PendingUpdate[]> = {
     bun: [],
     npm: [],
+    brew: [],
+    winget: [],
   }
   const fallbackUpdates: PendingUpdate[] = []
 
@@ -54,7 +56,12 @@ async function updateAllAgents(): Promise<void> {
     console.log(pc.cyan(`Updating ${agent.displayName}...${updateCheck.versionHint}`))
 
     const installedState = await getInstalledAgentState(agent.name)
-    if (installedState?.packageName && (installedState.installType === 'bun' || installedState.installType === 'npm')) {
+    if (installedState?.packageName && (
+      installedState.installType === 'bun'
+      || installedState.installType === 'npm'
+      || installedState.installType === 'brew'
+      || installedState.installType === 'winget'
+    )) {
       groupedUpdates[installedState.installType].push({ agent, state: installedState })
       continue
     }
@@ -64,6 +71,8 @@ async function updateAllAgents(): Promise<void> {
 
   await updateGroupedAgents('bun', groupedUpdates.bun)
   await updateGroupedAgents('npm', groupedUpdates.npm)
+  await updateGroupedAgents('brew', groupedUpdates.brew)
+  await updateGroupedAgents('winget', groupedUpdates.winget)
 
   for (const { agent, state } of fallbackUpdates)
     await performUpdate(agent, state, false)
@@ -73,7 +82,12 @@ async function updateGroupedAgents(type: ManagedInstallType, updates: PendingUpd
   if (updates.length === 0)
     return
 
-  const success = await updateAgentsByType(type, updates.map(item => item.state!.packageName!))
+  const packages: ManagedPackageSpec[] = updates.map(item => ({
+    packageName: item.state!.packageName!,
+    packageTargetKind: item.state!.packageTargetKind,
+  }))
+
+  const success = await updateAgentsByType(type, packages)
 
   if (success) {
     for (const { agent } of updates)

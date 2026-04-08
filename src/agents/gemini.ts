@@ -16,12 +16,12 @@ export const gemini: AgentDefinition = {
     macos: [
       { type: 'bun', command: 'bun add -g @google/gemini-cli', priority: 1 },
       { type: 'npm', command: 'npm i -g @google/gemini-cli', priority: 2 },
-      { type: 'binary', command: 'brew install gemini-cli', priority: 3 },
+      { type: 'brew', command: 'brew install gemini-cli', packageName: 'gemini-cli', priority: 3 },
     ],
     linux: [
       { type: 'bun', command: 'bun add -g @google/gemini-cli', priority: 1 },
       { type: 'npm', command: 'npm i -g @google/gemini-cli', priority: 2 },
-      { type: 'binary', command: 'brew install gemini-cli', priority: 3 },
+      { type: 'brew', command: 'brew install gemini-cli', packageName: 'gemini-cli', priority: 3 },
     ],
   },
 }

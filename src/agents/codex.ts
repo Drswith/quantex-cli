@@ -16,12 +16,12 @@ export const codex: AgentDefinition = {
     macos: [
       { type: 'bun', command: 'bun add -g @openai/codex', priority: 1 },
       { type: 'npm', command: 'npm i -g @openai/codex', priority: 2 },
-      { type: 'binary', command: 'brew install codex', priority: 3 },
+      { type: 'brew', command: 'brew install codex', packageName: 'codex', priority: 3 },
     ],
     linux: [
       { type: 'bun', command: 'bun add -g @openai/codex', priority: 1 },
       { type: 'npm', command: 'npm i -g @openai/codex', priority: 2 },
-      { type: 'binary', command: 'brew install codex', priority: 3 },
+      { type: 'brew', command: 'brew install codex', packageName: 'codex', priority: 3 },
     ],
   },
 }

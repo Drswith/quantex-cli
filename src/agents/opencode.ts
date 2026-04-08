@@ -16,14 +16,14 @@ export const opencode: AgentDefinition = {
     macos: [
       { type: 'bun', command: 'bun add -g opencode-ai', priority: 1 },
       { type: 'npm', command: 'npm i -g opencode-ai', priority: 2 },
-      { type: 'binary', command: 'curl -fsSL https://opencode.ai/install | bash', priority: 3 },
-      { type: 'binary', command: 'brew install anomalyco/tap/opencode', priority: 4 },
+      { type: 'script', command: 'curl -fsSL https://opencode.ai/install | bash', priority: 3 },
+      { type: 'brew', command: 'brew install anomalyco/tap/opencode', packageName: 'anomalyco/tap/opencode', priority: 4 },
     ],
     linux: [
       { type: 'bun', command: 'bun add -g opencode-ai', priority: 1 },
       { type: 'npm', command: 'npm i -g opencode-ai', priority: 2 },
-      { type: 'binary', command: 'curl -fsSL https://opencode.ai/install | bash', priority: 3 },
-      { type: 'binary', command: 'brew install anomalyco/tap/opencode', priority: 4 },
+      { type: 'script', command: 'curl -fsSL https://opencode.ai/install | bash', priority: 3 },
+      { type: 'brew', command: 'brew install anomalyco/tap/opencode', packageName: 'anomalyco/tap/opencode', priority: 4 },
     ],
   },
 }

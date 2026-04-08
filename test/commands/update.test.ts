@@ -103,7 +103,7 @@ describe('updateCommand', () => {
     updateAgentsByTypeSpy.mockResolvedValue(true)
     updateSpy.mockResolvedValue({ success: true })
     await updateCommand(undefined, true)
-    expect(updateAgentsByTypeSpy).toHaveBeenCalledWith('bun', ['test-pkg'])
+    expect(updateAgentsByTypeSpy).toHaveBeenCalledWith('bun', [{ packageName: 'test-pkg', packageTargetKind: undefined }])
     expect(updateSpy).toHaveBeenCalledTimes(1)
     expect(updateSpy).toHaveBeenCalledWith(agent2, undefined)
   })
