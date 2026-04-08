@@ -5,38 +5,12 @@ import { program } from 'commander'
 import { getAgentByNameOrAlias } from './agents'
 import { runCommand } from './commands/run'
 
-const firstArg = process.argv[2]
-const knownCommands = new Set([
-  'install',
-  'i',
-  'update',
-  'u',
-  'uninstall',
-  'rm',
-  'list',
-  'ls',
-  'info',
-  'config',
-  'doctor',
-  'help',
-  '--help',
-  '--version',
-  '-v',
-])
-
-if (firstArg && !firstArg.startsWith('-') && !knownCommands.has(firstArg)) {
-  const agent = getAgentByNameOrAlias(firstArg)
-  if (agent) {
-    const args = process.argv.slice(3)
-    const code = await runCommand(firstArg, args)
-    process.exit(code)
-  }
-}
+const packageJson = await Bun.file(new URL('../package.json', import.meta.url)).json() as { version?: string }
 
 program
   .name('quantex')
   .description('统一的 AI Agent CLI 管理工具')
-  .version('0.0.0')
+  .version(packageJson.version ?? '0.0.0')
 
 program
   .command('install <agent>')
@@ -102,5 +76,24 @@ program
     const { doctorCommand } = await import('./commands/doctor')
     await doctorCommand()
   })
+
+const firstArg = process.argv[2]
+const knownCommands = new Set([
+  ...program.commands.map(command => command.name()),
+  ...program.commands.flatMap(command => command.aliases()),
+  'help',
+  '--help',
+  '--version',
+  '-v',
+])
+
+if (firstArg && !firstArg.startsWith('-') && !knownCommands.has(firstArg)) {
+  const agent = getAgentByNameOrAlias(firstArg)
+  if (agent) {
+    const args = process.argv.slice(3)
+    const code = await runCommand(firstArg, args)
+    process.exit(code)
+  }
+}
 
 program.parse()

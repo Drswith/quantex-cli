@@ -1,24 +1,25 @@
-import { existsSync, mkdirSync, readFileSync, rmSync } from 'node:fs'
+import { existsSync, readFileSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterAll, afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { configCommand } from '../../src/commands/config'
 import * as config from '../../src/config'
 
-const tempDir = join(tmpdir(), `quantex-test-${Date.now()}`)
-const getConfigDirSpy = vi.spyOn(config, 'getConfigDir').mockReturnValue(tempDir)
+const tempHome = join(tmpdir(), `quantex-test-${Date.now()}`)
+const tempDir = join(tempHome, '.quantex')
 const loadConfigSpy = vi.spyOn(config, 'loadConfig')
+const originalHome = process.env.HOME
 
 afterAll(() => {
-  getConfigDirSpy.mockRestore()
   loadConfigSpy.mockRestore()
+  process.env.HOME = originalHome
 })
 
 describe('configCommand', () => {
   let logSpy: ReturnType<typeof vi.spyOn>
 
   beforeEach(() => {
-    mkdirSync(tempDir, { recursive: true })
+    process.env.HOME = tempHome
     logSpy = vi.spyOn(console, 'log').mockImplementation(() => {})
     loadConfigSpy.mockClear()
   })
