@@ -1,12 +1,12 @@
 import process from 'node:process'
 
 const targets = [
-  { target: 'bun-linux-x64-modern' as const, outfile: 'dist/bin/silver-linux-x64' },
-  { target: 'bun-linux-arm64' as const, outfile: 'dist/bin/silver-linux-arm64' },
-  { target: 'bun-darwin-arm64' as const, outfile: 'dist/bin/silver-darwin-arm64' },
-  { target: 'bun-darwin-x64' as const, outfile: 'dist/bin/silver-darwin-x64' },
-  { target: 'bun-windows-x64-modern' as const, outfile: 'dist/bin/silver-windows-x64' },
-  { target: 'bun-windows-arm64' as const, outfile: 'dist/bin/silver-windows-arm64' },
+  { target: 'bun-linux-x64-modern' as const, outfile: 'dist/bin/quantex-linux-x64' },
+  { target: 'bun-linux-arm64' as const, outfile: 'dist/bin/quantex-linux-arm64' },
+  { target: 'bun-darwin-arm64' as const, outfile: 'dist/bin/quantex-darwin-arm64' },
+  { target: 'bun-darwin-x64' as const, outfile: 'dist/bin/quantex-darwin-x64' },
+  { target: 'bun-windows-x64-modern' as const, outfile: 'dist/bin/quantex-windows-x64' },
+  { target: 'bun-windows-arm64' as const, outfile: 'dist/bin/quantex-windows-arm64' },
 ]
 
 async function buildBin(): Promise<void> {

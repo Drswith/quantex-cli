@@ -1,4 +1,4 @@
-# Silver CLI - AI Agent CLI 管理工具
+# Quantex CLI - AI Agent CLI 管理工具
 
 ## 项目简介
 
@@ -28,10 +28,10 @@
 
 ## 配置系统
 
-- 配置文件路径: `~/.silver/config.json`
+- 配置文件路径: `~/.quantex/config.json`
 - 使用 [c12](https://unjs.io/packages/c12) 实现配置加载，支持:
   - 默认配置（内置）
-  - 用户配置（`~/.silver/config.json`）
+  - 用户配置（`~/.quantex/config.json`）
   - 环境变量覆盖
   - 配置合并
 
@@ -81,43 +81,43 @@ npm i -g @anthropic-ai/claude-code
 ### 基础命令
 
 ```
-silver                    # 显示帮助信息
-silver --version          # 显示版本号
-silver help <command>     # 显示命令帮助
+quantex                    # 显示帮助信息
+quantex --version          # 显示版本号
+quantex help <command>     # 显示命令帮助
 ```
 
 ### Agent 管理
 
 ```
-silver install <agent>    # 安装指定 agent（别名: silver i）
-silver update <agent>     # 更新指定 agent（别名: silver u）
-silver update --all       # 更新所有已安装的 agent
-silver uninstall <agent>  # 卸载指定 agent（别名: silver rm）
-silver list               # 列出所有支持的 agent 及状态（别名: silver ls）
-silver info <agent>       # 查看 agent 详细信息（版本、安装方式等）
+quantex install <agent>    # 安装指定 agent（别名: quantex i）
+quantex update <agent>     # 更新指定 agent（别名: quantex u）
+quantex update --all       # 更新所有已安装的 agent
+quantex uninstall <agent>  # 卸载指定 agent（别名: quantex rm）
+quantex list               # 列出所有支持的 agent 及状态（别名: quantex ls）
+quantex info <agent>       # 查看 agent 详细信息（版本、安装方式等）
 ```
 
 ### 配置管理
 
 ```
-silver config             # 显示当前配置
-silver config set <key> <value>   # 设置配置项
-silver config get <key>           # 获取配置项
-silver config reset               # 重置为默认配置
+quantex config             # 显示当前配置
+quantex config set <key> <value>   # 设置配置项
+quantex config get <key>           # 获取配置项
+quantex config reset               # 重置为默认配置
 ```
 
 ### 快捷启动 Agent
 
 ```
-silver <agent> [args...]  # 直接启动 agent，透传所有参数
+quantex <agent> [args...]  # 直接启动 agent，透传所有参数
 ```
 
 示例:
 ```bash
-silver claude --dangerously-skip-permissions
-silver codex --model o4-mini
-silver opencode
-silver agent              # 即 cursor
+quantex claude --dangerously-skip-permissions
+quantex codex --model o4-mini
+quantex opencode
+quantex agent              # 即 cursor
 ```
 
 行为规则:
@@ -129,8 +129,8 @@ silver agent              # 即 cursor
 ### 其他
 
 ```
-silver doctor             # 检查环境（bun/npm/node 版本、已安装 agent 等）
-silver which <agent>      # 查看 agent 可执行文件路径（未实现）
+quantex doctor             # 检查环境（bun/npm/node 版本、已安装 agent 等）
+quantex which <agent>      # 查看 agent 可执行文件路径（未实现）
 ```
 
 ## 技术架构
@@ -275,9 +275,9 @@ interface AgentDefinition {
 bun run build:bin
 
 # 单平台构建
-bun build --compile ./src/cli.ts --target=bun-linux-x64-modern --outfile=dist/silver-linux-x64
-bun build --compile ./src/cli.ts --target=bun-darwin-arm64 --outfile=dist/silver-darwin-arm64
-bun build --compile ./src/cli.ts --target=bun-windows-x64-modern --outfile=dist/silver-windows-x64
+bun build --compile ./src/cli.ts --target=bun-linux-x64-modern --outfile=dist/quantex-linux-x64
+bun build --compile ./src/cli.ts --target=bun-darwin-arm64 --outfile=dist/quantex-darwin-arm64
+bun build --compile ./src/cli.ts --target=bun-windows-x64-modern --outfile=dist/quantex-windows-x64
 ```
 
 ## 注意事项

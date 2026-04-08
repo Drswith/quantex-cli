@@ -34,7 +34,7 @@ if (firstArg && !firstArg.startsWith('-') && !knownCommands.has(firstArg)) {
 }
 
 program
-  .name('silver')
+  .name('quantex')
   .description('统一的 AI Agent CLI 管理工具')
   .version('0.0.0')
 

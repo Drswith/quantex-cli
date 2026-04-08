@@ -1,4 +1,4 @@
-# Silver CLI
+# Quantex CLI
 
 <div align="center">
 
@@ -15,23 +15,23 @@
 
 | Agent | 命令 | 别名 | 描述 |
 |-------|------|------|------|
-| **Claude Code** | `silver claude` | - | Anthropic 官方 AI 编程助手 CLI |
-| **Codex** | `silver codex` | - | OpenAI 官方 AI 编程助手 CLI |
-| **Copilot** | `silver copilot` | - | GitHub Copilot 命令行工具 |
-| **Cursor** | `silver cursor` | `agent` | Cursor AI 编程助手命令行工具 |
-| **Droid** | `silver droid` | - | Factory AI 软件工程 Agent CLI |
-| **Gemini** | `silver gemini` | - | Google 开源 AI 编程助手 CLI |
-| **OpenCode** | `silver opencode` | - | 开源 AI 编程 CLI |
-| **Pi** | `silver pi` | - | 极简可扩展的终端编程 Agent |
+| **Claude Code** | `quantex claude` | - | Anthropic 官方 AI 编程助手 CLI |
+| **Codex** | `quantex codex` | - | OpenAI 官方 AI 编程助手 CLI |
+| **Copilot** | `quantex copilot` | - | GitHub Copilot 命令行工具 |
+| **Cursor** | `quantex cursor` | `agent` | Cursor AI 编程助手命令行工具 |
+| **Droid** | `quantex droid` | - | Factory AI 软件工程 Agent CLI |
+| **Gemini** | `quantex gemini` | - | Google 开源 AI 编程助手 CLI |
+| **OpenCode** | `quantex opencode` | - | 开源 AI 编程 CLI |
+| **Pi** | `quantex pi` | - | 极简可扩展的终端编程 Agent |
 
 ## 安装
 
 ```bash
 # 使用 Bun
-bun add -g silver-cli
+bun add -g quantex-cli
 
 # 使用 npm
-npm i -g silver-cli
+npm i -g quantex-cli
 ```
 
 ## 使用
@@ -39,75 +39,75 @@ npm i -g silver-cli
 ### 安装 Agent
 
 ```bash
-silver install claude
-silver i claude
+quantex install claude
+quantex i claude
 ```
 
 ### 更新 Agent
 
 ```bash
-silver update claude
-silver u claude
+quantex update claude
+quantex u claude
 
 # 更新所有已安装的 agent
-silver update --all
+quantex update --all
 ```
 
 ### 卸载 Agent
 
 ```bash
-silver uninstall claude
-silver rm claude
+quantex uninstall claude
+quantex rm claude
 ```
 
 ### 列出所有 Agent
 
 ```bash
-silver list
-silver ls
+quantex list
+quantex ls
 ```
 
 ### 查看 Agent 详情
 
 ```bash
-silver info claude
+quantex info claude
 ```
 
 ### 快捷启动 Agent
 
 ```bash
 # 直接启动 agent（参数透传）
-silver claude --dangerously-skip-permissions
+quantex claude --dangerously-skip-permissions
 
 # 使用别名启动
-silver agent --help
+quantex agent --help
 ```
 
 ### 配置管理
 
 ```bash
 # 查看配置
-silver config
+quantex config
 
 # 获取配置项
-silver config get defaultPackageManager
+quantex config get defaultPackageManager
 
 # 设置配置项
-silver config set defaultPackageManager npm
+quantex config set defaultPackageManager npm
 
 # 重置为默认配置
-silver config reset
+quantex config reset
 ```
 
 ### 环境检查
 
 ```bash
-silver doctor
+quantex doctor
 ```
 
 ## 配置
 
-配置文件位于 `~/.silver/config.json`，支持以下配置项：
+配置文件位于 `~/.quantex/config.json`，支持以下配置项：
 
 ```json
 {
@@ -133,11 +133,11 @@ bun run build            # 构建
 
 <!-- Badges -->
 
-[npm-version-src]: https://img.shields.io/npm/v/silver-cli?style=flat&colorA=080f12&colorB=1fa669
-[npm-version-href]: https://npmjs.com/package/silver-cli
-[npm-downloads-src]: https://img.shields.io/npm/dm/silver-cli?style=flat&colorA=080f12&colorB=1fa669
-[npm-downloads-href]: https://npmjs.com/package/silver-cli
-[bundle-src]: https://img.shields.io/bundlephobia/minzip/silver-cli?style=flat&colorA=080f12&colorB=1fa669&label=minzip
-[bundle-href]: https://bundlephobia.com/result?p=silver-cli
-[license-src]: https://img.shields.io/github/license/Drswith/silver-cli.svg?style=flat&colorA=080f12&colorB=1fa669
-[license-href]: https://github.com/Drswith/silver-cli/blob/main/LICENSE
+[npm-version-src]: https://img.shields.io/npm/v/quantex-cli?style=flat&colorA=080f12&colorB=1fa669
+[npm-version-href]: https://npmjs.com/package/quantex-cli
+[npm-downloads-src]: https://img.shields.io/npm/dm/quantex-cli?style=flat&colorA=080f12&colorB=1fa669
+[npm-downloads-href]: https://npmjs.com/package/quantex-cli
+[bundle-src]: https://img.shields.io/bundlephobia/minzip/quantex-cli?style=flat&colorA=080f12&colorB=1fa669&label=minzip
+[bundle-href]: https://bundlephobia.com/result?p=quantex-cli
+[license-src]: https://img.shields.io/github/license/Drswith/quantex-cli.svg?style=flat&colorA=080f12&colorB=1fa669
+[license-href]: https://github.com/Drswith/quantex-cli/blob/main/LICENSE
