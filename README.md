@@ -56,6 +56,14 @@ quantex u claude
 quantex update --all
 ```
 
+`quantex update --all` 会优先使用 Quantex 记录的安装来源进行批量更新：
+
+- 通过 Bun 安装的 agent 会合并为一条 `bun update -g ...`
+- 通过 npm 安装的 agent 会合并为一条 `npm update -g ...`
+- 通过脚本、二进制或尚未记录安装来源的 agent 会保留逐个更新
+
+这意味着混合安装场景仍然安全，不会把通过其他方式安装的 agent 错误地塞进 Bun 或 npm 的批量更新命令。
+
 ### 卸载 Agent
 
 ```bash
@@ -120,6 +128,18 @@ quantex doctor
   "defaultPackageManager": "bun"
 }
 ```
+
+## 状态文件
+
+除了配置文件外，Quantex 还会在 `~/.quantex/state.json` 中记录运行时状态，例如 agent 的实际安装来源。
+
+这个状态文件主要用于：
+
+- 让 `update --all` 按 Bun、npm、binary/script 分组更新
+- 在混合安装场景下避免误用错误的更新方式
+- 为后续的卸载、诊断和迁移能力保留扩展空间
+
+如果某个 agent 是在旧版本 Quantex 中安装的，或者不是通过 Quantex 安装的，首次更新时可能仍会走逐个更新；一旦 Quantex 成功更新并记录来源，后续 `update --all` 就可以复用批量更新路径。
 
 ## 开发
 
