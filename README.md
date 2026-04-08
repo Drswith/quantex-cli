@@ -15,14 +15,14 @@
 
 | Agent | 命令 | 别名 | 描述 |
 |-------|------|------|------|
-| **Claude Code** | `quantex claude` | - | Anthropic 官方 AI 编程助手 CLI |
-| **Codex** | `quantex codex` | - | OpenAI 官方 AI 编程助手 CLI |
-| **Copilot** | `quantex copilot` | - | GitHub Copilot 命令行工具 |
-| **Cursor** | `quantex cursor` | `agent` | Cursor AI 编程助手命令行工具 |
-| **Droid** | `quantex droid` | - | Factory AI 软件工程 Agent CLI |
-| **Gemini** | `quantex gemini` | - | Google 开源 AI 编程助手 CLI |
-| **OpenCode** | `quantex opencode` | - | 开源 AI 编程 CLI |
-| **Pi** | `quantex pi` | - | 极简可扩展的终端编程 Agent |
+| **Claude Code** | `quantex claude` / `qtx claude` | - | Anthropic 官方 AI 编程助手 CLI |
+| **Codex** | `quantex codex` / `qtx codex` | - | OpenAI 官方 AI 编程助手 CLI |
+| **Copilot** | `quantex copilot` / `qtx copilot` | - | GitHub Copilot 命令行工具 |
+| **Cursor** | `quantex cursor` / `qtx cursor` | `agent` | Cursor AI 编程助手命令行工具 |
+| **Droid** | `quantex droid` / `qtx droid` | - | Factory AI 软件工程 Agent CLI |
+| **Gemini** | `quantex gemini` / `qtx gemini` | - | Google 开源 AI 编程助手 CLI |
+| **OpenCode** | `quantex opencode` / `qtx opencode` | - | 开源 AI 编程 CLI |
+| **Pi** | `quantex pi` / `qtx pi` | - | 极简可扩展的终端编程 Agent |
 
 ## 安装
 
@@ -34,13 +34,16 @@ bun add -g quantex-cli
 npm i -g quantex-cli
 ```
 
+安装后可使用 `quantex` 或短别名 `qtx` 命令。
+
 ## 使用
 
 ### 安装 Agent
 
 ```bash
 quantex install claude
-quantex i claude
+# 或使用短别名
+qtx i claude
 ```
 
 ### 更新 Agent
@@ -79,7 +82,10 @@ quantex info claude
 # 直接启动 agent（参数透传）
 quantex claude --dangerously-skip-permissions
 
-# 使用别名启动
+# 使用短别名启动
+qtx claude --dangerously-skip-permissions
+
+# 使用 agent 别名启动
 quantex agent --help
 ```
 
