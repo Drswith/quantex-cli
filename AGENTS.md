@@ -2,7 +2,7 @@
 
 ## Project
 
-Silver CLI — 统一的 AI Agent CLI 管理工具，支持安装、更新、卸载、查询、快捷启动主流 AI 编程助手。
+Quantex CLI — 统一的 AI Agent CLI 管理工具，支持安装、更新、卸载、查询、快捷启动主流 AI 编程助手。
 
 ## Tech Stack
 
@@ -110,22 +110,22 @@ interface AgentDefinition {
 
 | Command | Description |
 |---------|-------------|
-| `silver install <agent>` / `silver i` | 安装 agent |
-| `silver update <agent>` / `silver u` | 更新 agent |
-| `silver uninstall <agent>` / `silver rm` | 卸载 agent |
-| `silver list` / `silver ls` | 列出所有 agent |
-| `silver info <agent>` | 查看 agent 详情 |
-| `silver <agent> [args...]` | 快捷启动 agent（参数透传） |
-| `silver config` | 配置管理 |
-| `silver doctor` | 环境检查 |
+| `quantex install <agent>` / `quantex i` | 安装 agent |
+| `quantex update <agent>` / `quantex u` | 更新 agent |
+| `quantex uninstall <agent>` / `quantex rm` | 卸载 agent |
+| `quantex list` / `quantex ls` | 列出所有 agent |
+| `quantex info <agent>` | 查看 agent 详情 |
+| `quantex <agent> [args...]` | 快捷启动 agent（参数透传） |
+| `quantex config` | 配置管理 |
+| `quantex doctor` | 环境检查 |
 
 ## Config
 
-- Path: `~/.silver/config.json`
+- Path: `~/.quantex/config.json`
 - Loaded via c12 with defaults → user config → env override merging
 
 ## Notes
 
 - Windows 平台需特别处理 PowerShell 安装脚本
-- `silver <agent>` 快捷启动时，未安装的 agent 应提示自动安装
+- `quantex <agent>` 快捷启动时，未安装的 agent 应提示自动安装
 - `Bun.spawn` 使用 `stdio: 'inherit'` 透传 agent 进程 IO

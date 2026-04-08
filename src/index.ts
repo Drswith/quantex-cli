@@ -1,7 +1,7 @@
 export { claude, codex, getAgentByNameOrAlias, getAllAgents, opencode } from './agents'
 export type { AgentDefinition, InstallMethod, Platform } from './agents'
 export { getConfigDir, loadConfig } from './config'
-export type { SilverConfig } from './config'
+export type { QuantexConfig } from './config'
 export { installAgent, uninstallAgent, updateAgent } from './package-manager'
 export { getPlatform, isBinaryInPath, isBunAvailable, isNpmAvailable } from './utils/detect'
 export { execCommand } from './utils/exec'

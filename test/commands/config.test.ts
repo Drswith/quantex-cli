@@ -5,7 +5,7 @@ import { afterAll, afterEach, beforeEach, describe, expect, it, vi } from 'vites
 import { configCommand } from '../../src/commands/config'
 import * as config from '../../src/config'
 
-const tempDir = join(tmpdir(), `silver-test-${Date.now()}`)
+const tempDir = join(tmpdir(), `quantex-test-${Date.now()}`)
 const getConfigDirSpy = vi.spyOn(config, 'getConfigDir').mockReturnValue(tempDir)
 const loadConfigSpy = vi.spyOn(config, 'loadConfig')
 

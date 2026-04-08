@@ -1,17 +1,17 @@
 {
-  "name": "silver-cli",
+  "name": "quantex-cli",
   "type": "module",
   "version": "0.0.1-beta.2",
   "packageManager": "bun@1.3.11",
   "description": "统一的 AI Agent CLI 管理工具，支持安装、更新、卸载、查询、快捷启动主流 AI 编程助手",
   "author": "Drswith <drswith@outlook.com>",
   "license": "MIT",
-  "homepage": "https://github.com/Drswith/silver-cli#readme",
+  "homepage": "https://github.com/Drswith/quantex-cli#readme",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/Drswith/silver-cli.git"
+    "url": "git+https://github.com/Drswith/quantex-cli.git"
   },
-  "bugs": "https://github.com/Drswith/silver-cli/issues",
+  "bugs": "https://github.com/Drswith/quantex-cli/issues",
   "keywords": [],
   "sideEffects": false,
   "exports": {
@@ -22,7 +22,7 @@
   "module": "./dist/index.mjs",
   "types": "./dist/index.d.mts",
   "bin": {
-    "silver": "./dist/cli.mjs"
+    "quantex": "./dist/cli.mjs"
   },
   "files": [
     "dist"

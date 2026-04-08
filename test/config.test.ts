@@ -14,10 +14,10 @@ describe('defaultConfig', () => {
 })
 
 describe('getConfigDir', () => {
-  it('returns path ending with .silver', async () => {
+  it('returns path ending with .quantex', async () => {
     const { getConfigDir } = await import('../src/config/index')
     const dir = getConfigDir()
-    expect(dir.endsWith('.silver')).toBe(true)
+    expect(dir.endsWith('.quantex')).toBe(true)
   })
 })
 
