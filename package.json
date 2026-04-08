@@ -1,5 +1,5 @@
 {
-  "name": "quantex-cli",
+  "name": "quantex",
   "type": "module",
   "version": "0.0.1-beta.2",
   "packageManager": "bun@1.3.11",
