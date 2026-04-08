@@ -29,32 +29,37 @@
 ## 配置系统
 
 - 配置文件路径: `~/.quantex/config.json`
+- 状态文件路径: `~/.quantex/state.json`
 - 使用 [c12](https://unjs.io/packages/c12) 实现配置加载，支持:
   - 默认配置（内置）
   - 用户配置（`~/.quantex/config.json`）
   - 环境变量覆盖
   - 配置合并
 
-### 配置文件结构（草案）
+### 配置文件结构
 
 ```json
 {
-  "defaultPackageManager": "bun",
-  "agents": {
+  "defaultPackageManager": "bun"
+}
+```
+
+### 状态文件结构
+
+```json
+{
+  "installedAgents": {
     "claude": {
-      "packageManager": "bun",
-      "package": "@anthropic-ai/claude-code",
-      "autoUpdate": false
-    },
-    "codex": {
-      "packageManager": "npm",
-      "package": "@openai/codex"
+      "agentName": "claude",
+      "installType": "bun",
+      "packageName": "@anthropic-ai/claude-code",
+      "command": "bun add -g @anthropic-ai/claude-code"
     }
   }
 }
 ```
 
-## 安装方式
+## 安装与更新方式
 
 每个 Agent 支持以下安装方式（按优先级）:
 
@@ -76,6 +81,15 @@ npm i -g @anthropic-ai/claude-code
 | Codex | npm/bun | npm/bun | npm/bun |
 | OpenCode | npm/bun | npm/bun | npm/bun |
 
+安装成功后，Quantex 会把实际采用的安装方式写入 `~/.quantex/state.json`。
+
+`quantex update --all` 的行为：
+
+- 已记录为 `bun` 的 agent 会合并成一条 `bun update -g ...`
+- 已记录为 `npm` 的 agent 会合并成一条 `npm update -g ...`
+- `binary`、脚本安装或未记录来源的 agent 继续逐个更新
+- 混合安装场景下不会把其他来源的 agent 错误并入 Bun/npm 批量命令
+
 ## CLI 命令设计
 
 ### 基础命令
@@ -91,7 +105,7 @@ quantex help <command>     # 显示命令帮助
 ```
 quantex install <agent>    # 安装指定 agent（别名: quantex i）
 quantex update <agent>     # 更新指定 agent（别名: quantex u）
-quantex update --all       # 更新所有已安装的 agent
+quantex update --all       # 更新所有已安装的 agent，按安装来源分组批量更新
 quantex uninstall <agent>  # 卸载指定 agent（别名: quantex rm）
 quantex list               # 列出所有支持的 agent 及状态（别名: quantex ls）
 quantex info <agent>       # 查看 agent 详细信息（版本、安装方式等）
@@ -182,6 +196,8 @@ src/
 │   ├── bun.ts
 │   ├── npm.ts
 │   └── binary.ts         # 二进制安装方式
+├── state/                # 运行时状态（安装来源等）
+│   └── index.ts
 ├── config/               # 配置管理
 │   ├── default.ts        # 默认配置
 │   └── index.ts          # 配置加载（c12）
@@ -224,20 +240,22 @@ interface AgentDefinition {
 - [x] `package.json` 添加 `bin` 字段指向 CLI 入口
 - [x] 定义 Agent 类型与注册表
 - [x] 实现配置系统（c12）
+- [x] 实现运行时状态系统（安装来源记录）
 - [x] 实现环境检测（OS、bun/npm 可用性）
-- [x] 实现 `silver list` 命令
+- [x] 实现 `quantex list` 命令
 
 ### Phase 2 - 核心功能
 - [x] 实现包管理器抽象层（bun/npm/binary）
-- [x] 实现 `silver install <agent>` 命令
-- [x] 实现 `silver update <agent>` 命令
-- [x] 实现 `silver uninstall <agent>` 命令
-- [x] 实现 `silver info <agent>` 命令
-- [x] 实现 `silver <agent> [args...]` 快捷启动（参数透传、未安装提示）
+- [x] 实现 `quantex install <agent>` 命令
+- [x] 实现 `quantex update <agent>` 命令
+- [x] 实现 `quantex update --all` 按安装来源分组批量更新
+- [x] 实现 `quantex uninstall <agent>` 命令
+- [x] 实现 `quantex info <agent>` 命令
+- [x] 实现 `quantex <agent> [args...]` 快捷启动（参数透传、未安装提示）
 
 ### Phase 3 - 体验优化
-- [x] 实现 `silver doctor` 环境检查
-- [x] 实现 `silver config` 配置管理
+- [x] 实现 `quantex doctor` 环境检查
+- [x] 实现 `quantex config` 配置管理
 - [x] 彩色输出与交互式提示
 - [ ] 进度条与安装动画
 - [ ] 错误处理与友好提示

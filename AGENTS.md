@@ -73,6 +73,8 @@ src/
 │   ├── bun.ts
 │   ├── npm.ts
 │   └── binary.ts
+├── state/                # 运行时状态管理
+│   └── index.ts
 ├── config/               # 配置管理
 │   ├── default.ts
 │   └── index.ts          # c12 加载
@@ -112,6 +114,7 @@ interface AgentDefinition {
 |---------|-------------|
 | `quantex install <agent>` / `quantex i` | 安装 agent |
 | `quantex update <agent>` / `quantex u` | 更新 agent |
+| `quantex update --all` | 更新所有已安装的 agent，按安装来源分组批量更新 |
 | `quantex uninstall <agent>` / `quantex rm` | 卸载 agent |
 | `quantex list` / `quantex ls` | 列出所有 agent |
 | `quantex info <agent>` | 查看 agent 详情 |
@@ -124,8 +127,15 @@ interface AgentDefinition {
 - Path: `~/.quantex/config.json`
 - Loaded via c12 with defaults → user config → env override merging
 
+## State
+
+- Path: `~/.quantex/state.json`
+- Stores runtime state such as each agent's actual install source
+- Used by `quantex update --all` to batch Bun/npm updates while keeping binary/script installs on the fallback path
+
 ## Notes
 
 - Windows 平台需特别处理 PowerShell 安装脚本
 - `quantex <agent>` 快捷启动时，未安装的 agent 应提示自动安装
+- `quantex update --all` 不应仅依赖 agent 定义中的候选安装方式，而应优先使用已记录的实际安装来源
 - `Bun.spawn` 使用 `stdio: 'inherit'` 透传 agent 进程 IO
