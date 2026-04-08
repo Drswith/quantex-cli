@@ -46,7 +46,6 @@ function validateAgent(agent: AgentDefinition): void {
         expect(typeof method.command).toBe('string')
         expect(method.command.length).toBeGreaterThan(0)
       }
-      expect(typeof method.priority).toBe('number')
     }
   }
 }

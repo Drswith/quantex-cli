@@ -21,19 +21,6 @@ async function getPreferredManagedInstallType(): Promise<ManagedInstallType | un
   return config.defaultPackageManager
 }
 
-function compareInstallMethods(
-  preferredType: ManagedInstallType | undefined,
-  left: InstallMethod,
-  right: InstallMethod,
-): number {
-  const leftPreferred = left.type === preferredType
-  const rightPreferred = right.type === preferredType
-  if (leftPreferred !== rightPreferred)
-    return leftPreferred ? -1 : 1
-
-  return left.priority - right.priority
-}
-
 export async function getOrderedInstallMethods(agent: AgentDefinition): Promise<InstallMethod[]> {
   const platform = getPlatform()
   const methods = agent.platforms[platform]
@@ -41,7 +28,13 @@ export async function getOrderedInstallMethods(agent: AgentDefinition): Promise<
     return []
 
   const preferredType = await getPreferredManagedInstallType()
-  return [...methods].sort((left, right) => compareInstallMethods(preferredType, left, right))
+  if (!preferredType)
+    return [...methods]
+
+  return [
+    ...methods.filter(method => method.type === preferredType),
+    ...methods.filter(method => method.type !== preferredType),
+  ]
 }
 
 async function executeManagedMethod(

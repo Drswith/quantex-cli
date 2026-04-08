@@ -13,18 +13,18 @@ export const gemini: AgentDefinition = {
   binaryName: 'gemini',
   platforms: {
     windows: [
-      bunInstall(1),
-      npmInstall(2),
+      bunInstall(),
+      npmInstall(),
     ],
     macos: [
-      bunInstall(1),
-      npmInstall(2),
-      brewInstall(3, 'gemini-cli'),
+      bunInstall(),
+      npmInstall(),
+      brewInstall('gemini-cli'),
     ],
     linux: [
-      bunInstall(1),
-      npmInstall(2),
-      brewInstall(3, 'gemini-cli'),
+      bunInstall(),
+      npmInstall(),
+      brewInstall('gemini-cli'),
     ],
   },
 }

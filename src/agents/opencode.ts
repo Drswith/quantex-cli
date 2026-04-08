@@ -13,20 +13,20 @@ export const opencode: AgentDefinition = {
   binaryName: 'opencode',
   platforms: {
     windows: [
-      bunInstall(1),
-      npmInstall(2),
+      bunInstall(),
+      npmInstall(),
     ],
     macos: [
-      bunInstall(1),
-      npmInstall(2),
-      scriptInstall(3, 'curl -fsSL https://opencode.ai/install | bash'),
-      brewInstall(4, 'anomalyco/tap/opencode'),
+      bunInstall(),
+      npmInstall(),
+      scriptInstall('curl -fsSL https://opencode.ai/install | bash'),
+      brewInstall('anomalyco/tap/opencode'),
     ],
     linux: [
-      bunInstall(1),
-      npmInstall(2),
-      scriptInstall(3, 'curl -fsSL https://opencode.ai/install | bash'),
-      brewInstall(4, 'anomalyco/tap/opencode'),
+      bunInstall(),
+      npmInstall(),
+      scriptInstall('curl -fsSL https://opencode.ai/install | bash'),
+      brewInstall('anomalyco/tap/opencode'),
     ],
   },
 }
