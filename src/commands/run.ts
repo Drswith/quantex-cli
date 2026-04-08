@@ -1,8 +1,8 @@
 import pc from 'picocolors'
 import prompts from 'prompts'
 import { getAgentByNameOrAlias } from '../agents'
+import { inspectAgent } from '../agents/inspection'
 import { installAgent } from '../package-manager'
-import { isBinaryInPath } from '../utils/detect'
 
 export async function runCommand(agentName: string, args: string[]): Promise<number> {
   const agent = getAgentByNameOrAlias(agentName)
@@ -11,9 +11,9 @@ export async function runCommand(agentName: string, args: string[]): Promise<num
     return 1
   }
 
-  const inPath = await isBinaryInPath(agent.binaryName)
+  const inspection = await inspectAgent(agent)
 
-  if (!inPath) {
+  if (!inspection.inPath) {
     const response = await prompts({
       type: 'confirm',
       name: 'install',

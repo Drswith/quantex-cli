@@ -1,8 +1,9 @@
 export { claude, codex, getAgentByNameOrAlias, getAllAgents, opencode } from './agents'
 export type { AgentDefinition, InstallMethod, InstallType, ManagedInstallType, PackageTargetKind, Platform } from './agents'
-export { getConfigDir, loadConfig } from './config'
+export { groupInspectionsForUpdate, inspectAgent, inspectAllAgents } from './agents/inspection'
+export { getConfigDir, getConfigFilePath, loadConfig, saveConfig } from './config'
 export type { QuantexConfig } from './config'
-export { installAgent, uninstallAgent, updateAgent, updateAgentsByType } from './package-manager'
+export { getOrderedInstallMethods, installAgent, uninstallAgent, updateAgent, updateAgentsByType } from './package-manager'
 export type { AgentOperationResult, ManagedPackageSpec } from './package-manager'
 export {
   getInstalledAgentState,

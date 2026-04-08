@@ -174,14 +174,18 @@ describe('updateAgentsByType', () => {
 })
 
 describe('uninstallAgent', () => {
-  it('tries both bun and npm', async () => {
+  it('uninstalls only the tracked installer source', async () => {
+    getInstalledAgentStateSpy.mockResolvedValue({
+      agentName: 'test-agent',
+      installType: 'bun',
+      packageName: 'test-pkg',
+      command: 'bun add -g test-pkg',
+    })
     isBunSpy.mockResolvedValue(true)
-    isNpmSpy.mockResolvedValue(true)
     bunUninstallSpy.mockResolvedValue(true)
-    npmUninstallSpy.mockResolvedValue(false)
     expect(await uninstallAgent(testAgent)).toBe(true)
     expect(bunUninstallSpy).toHaveBeenCalledWith('test-pkg')
-    expect(npmUninstallSpy).toHaveBeenCalledWith('test-pkg')
+    expect(npmUninstallSpy).not.toHaveBeenCalled()
     expect(removeInstalledAgentStateSpy).toHaveBeenCalledWith('test-agent')
   })
 })

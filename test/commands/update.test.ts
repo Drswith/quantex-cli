@@ -34,7 +34,11 @@ const testAgent = {
   homepage: 'https://example.com',
   package: 'test-pkg',
   binaryName: 'test-bin',
-  platforms: {},
+  platforms: {
+    linux: [{ type: 'bun' as const, command: 'bun add -g test-pkg', priority: 1 }],
+    macos: [{ type: 'bun' as const, command: 'bun add -g test-pkg', priority: 1 }],
+    windows: [{ type: 'bun' as const, command: 'bun add -g test-pkg', priority: 1 }],
+  },
 }
 
 describe('updateCommand', () => {
@@ -64,6 +68,7 @@ describe('updateCommand', () => {
 
   it('shows up to date when versions match', async () => {
     agentSpy.mockReturnValue(testAgent)
+    binaryInPathSpy.mockResolvedValue(true)
     installedVerSpy.mockResolvedValue('1.0.0')
     latestVerSpy.mockResolvedValue('1.0.0')
     await updateCommand('test-agent', false)
@@ -73,6 +78,7 @@ describe('updateCommand', () => {
 
   it('updates and shows success when version differs', async () => {
     agentSpy.mockReturnValue(testAgent)
+    binaryInPathSpy.mockResolvedValue(true)
     installedVerSpy.mockResolvedValue('1.0.0')
     latestVerSpy.mockResolvedValue('2.0.0')
     installedStateSpy.mockResolvedValue(undefined)

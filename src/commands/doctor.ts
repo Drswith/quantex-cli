@@ -1,12 +1,10 @@
 import pc from 'picocolors'
 import { getAllAgents } from '../agents'
-import { getInstalledAgentState } from '../state'
-import { isBinaryInPath, isBrewAvailable, isBunAvailable, isNpmAvailable, isWingetAvailable } from '../utils/detect'
-import { formatInstalledSource, getInstallLifecycle } from '../utils/install'
-import { getInstalledVersion, getLatestVersion } from '../utils/version'
+import { inspectAllAgents } from '../agents/inspection'
+import { isBrewAvailable, isBunAvailable, isNpmAvailable, isWingetAvailable } from '../utils/detect'
 
 export async function doctorCommand(): Promise<void> {
-  console.log(pc.bold('\nSilver CLI Environment Check\n'))
+  console.log(pc.bold('\nQuantex CLI Environment Check\n'))
 
   console.log(pc.bold('Managed Installers:'))
 
@@ -23,21 +21,15 @@ export async function doctorCommand(): Promise<void> {
   console.log(`  winget:${wingetAvailable ? pc.green('available') : pc.red('not found')}`)
 
   console.log(`\n${pc.bold('Installed Agents:')}`)
-  const agents = getAllAgents()
+  const inspections = await inspectAllAgents(getAllAgents())
   let anyInstalled = false
 
-  for (const agent of agents) {
-    const inPath = await isBinaryInPath(agent.binaryName)
-    if (inPath) {
+  for (const inspection of inspections) {
+    if (inspection.inPath) {
       anyInstalled = true
-      const installedState = await getInstalledAgentState(agent.name)
-      const version = await getInstalledVersion(agent.binaryName)
-      const latest = await getLatestVersion(agent.package)
-      const outdated = version && latest && version !== latest
-      const source = formatInstalledSource(installedState)
-      const lifecycle = installedState ? getInstallLifecycle(installedState.installType) : 'unmanaged'
+      const outdated = inspection.installedVersion && inspection.latestVersion && inspection.installedVersion !== inspection.latestVersion
 
-      console.log(`  ${agent.displayName}: ${version ?? 'unknown'} [${lifecycle}; ${source}]${outdated ? pc.yellow(` (update available: ${latest})`) : ''}`)
+      console.log(`  ${inspection.agent.displayName}: ${inspection.installedVersion ?? 'unknown'} [${inspection.lifecycle}; ${inspection.sourceLabel}]${outdated ? pc.yellow(` (update available: ${inspection.latestVersion})`) : ''}`)
     }
   }
 

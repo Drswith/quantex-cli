@@ -1,6 +1,5 @@
-import { join } from 'node:path'
 import pc from 'picocolors'
-import { getConfigDir, loadConfig } from '../config'
+import { loadConfig, saveConfig } from '../config'
 import { defaultConfig } from '../config/default'
 
 export async function configCommand(action?: string, key?: string, value?: string): Promise<void> {
@@ -28,27 +27,20 @@ export async function configCommand(action?: string, key?: string, value?: strin
         console.log(pc.red('Please specify both key and value'))
         return
       }
-      const configDir = getConfigDir()
-      const configPath = join(configDir, 'config.json')
-
       let existing: Record<string, unknown> = {}
       try {
-        const file = Bun.file(configPath)
-        existing = await file.json()
+        existing = await loadConfig()
       }
       catch {
-        // file doesn't exist yet
       }
 
       existing[key] = value
-      await Bun.write(configPath, JSON.stringify(existing, null, 2))
+      await saveConfig(existing)
       console.log(pc.green(`Set ${key} = ${value}`))
       break
     }
     case 'reset': {
-      const configDir = getConfigDir()
-      const configPath = join(configDir, 'config.json')
-      await Bun.write(configPath, JSON.stringify(defaultConfig, null, 2))
+      await saveConfig(defaultConfig)
       console.log(pc.green('Configuration reset to defaults.'))
       break
     }

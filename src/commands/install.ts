@@ -1,7 +1,7 @@
 import pc from 'picocolors'
 import { getAgentByNameOrAlias } from '../agents'
+import { inspectAgent } from '../agents/inspection'
 import { installAgent } from '../package-manager'
-import { isBinaryInPath } from '../utils/detect'
 
 export async function installCommand(agentName: string): Promise<void> {
   const agent = getAgentByNameOrAlias(agentName)
@@ -10,8 +10,8 @@ export async function installCommand(agentName: string): Promise<void> {
     return
   }
 
-  const inPath = await isBinaryInPath(agent.binaryName)
-  if (inPath) {
+  const inspection = await inspectAgent(agent)
+  if (inspection.inPath) {
     console.log(pc.yellow(`${agent.displayName} is already installed.`))
     return
   }

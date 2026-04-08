@@ -1,7 +1,9 @@
 import type { AgentDefinition, InstallMethod, ManagedInstallType } from '../agents/types'
 import type { InstalledAgentState } from '../state'
+import { loadConfig } from '../config'
 import { getInstalledAgentState, removeInstalledAgentState, setInstalledAgentState } from '../state'
 import { getPlatform, isBrewAvailable, isBunAvailable, isNpmAvailable, isWingetAvailable } from '../utils/detect'
+import { canUpdateInstallType, getManagedPackageName, isManagedInstallType } from '../utils/install'
 import { runBinaryInstall } from './binary'
 import * as brewPm from './brew'
 import * as bunPm from './bun'
@@ -20,20 +22,32 @@ export interface ManagedPackageSpec {
   packageTargetKind?: InstalledAgentState['packageTargetKind']
 }
 
-function getPlatformMethods(agent: AgentDefinition): InstallMethod[] {
+async function getPreferredManagedInstallType(): Promise<ManagedInstallType | undefined> {
+  const config = await loadConfig()
+  return config.defaultPackageManager
+}
+
+function compareInstallMethods(
+  preferredType: ManagedInstallType | undefined,
+  left: InstallMethod,
+  right: InstallMethod,
+): number {
+  const leftPreferred = left.type === preferredType
+  const rightPreferred = right.type === preferredType
+  if (leftPreferred !== rightPreferred)
+    return leftPreferred ? -1 : 1
+
+  return left.priority - right.priority
+}
+
+export async function getOrderedInstallMethods(agent: AgentDefinition): Promise<InstallMethod[]> {
   const platform = getPlatform()
   const methods = agent.platforms[platform]
   if (!methods)
     return []
-  return [...methods].sort((a, b) => a.priority - b.priority)
-}
 
-function isManagedInstallType(type: InstallMethod['type'] | InstalledAgentState['installType']): type is ManagedInstallType {
-  return type === 'bun' || type === 'npm' || type === 'brew' || type === 'winget'
-}
-
-function getManagedPackageName(agent: AgentDefinition, method: InstallMethod): string | undefined {
-  return method.packageName || agent.package || undefined
+  const preferredType = await getPreferredManagedInstallType()
+  return [...methods].sort((left, right) => compareInstallMethods(preferredType, left, right))
 }
 
 async function executeManagedMethod(
@@ -91,6 +105,9 @@ async function executeMethod(agent: AgentDefinition, method: InstallMethod, acti
     return executeManagedMethod(method.type, packageName, method.packageTargetKind, action)
   }
 
+  if (action === 'update' && !canUpdateInstallType(method.type))
+    return false
+
   return runBinaryInstall(method.command)
 }
 
@@ -102,7 +119,7 @@ async function executeInstalledState(state: InstalledAgentState, action: 'instal
     return executeManagedMethod(state.installType, state.packageName, state.packageTargetKind, action)
   }
 
-  if (action === 'uninstall' || !state.command)
+  if (action !== 'install' || !state.command)
     return false
 
   return runBinaryInstall(state.command)
@@ -122,7 +139,7 @@ async function persistInstalledState(agent: AgentDefinition, method: InstallMeth
 }
 
 export async function installAgent(agent: AgentDefinition): Promise<AgentOperationResult> {
-  const methods = getPlatformMethods(agent)
+  const methods = await getOrderedInstallMethods(agent)
 
   for (const method of methods) {
     if (await executeMethod(agent, method, 'install')) {
@@ -145,7 +162,7 @@ export async function updateAgent(agent: AgentDefinition, preferredState?: Insta
     }
   }
 
-  const methods = getPlatformMethods(agent)
+  const methods = await getOrderedInstallMethods(agent)
 
   for (const method of methods) {
     if (await executeMethod(agent, method, 'update')) {
@@ -190,29 +207,11 @@ export async function updateAgentsByType(type: ManagedInstallType, packages: Man
 
 export async function uninstallAgent(agent: AgentDefinition): Promise<boolean> {
   const installedState = await getInstalledAgentState(agent.name)
-  if (installedState) {
-    const success = await executeInstalledState(installedState, 'uninstall')
-    if (success)
-      await removeInstalledAgentState(agent.name)
-    return success
-  }
+  if (!installedState)
+    return false
 
-  let anySuccess = false
-
-  for (const method of getPlatformMethods(agent)) {
-    if (!isManagedInstallType(method.type))
-      continue
-
-    const packageName = getManagedPackageName(agent, method)
-    if (!packageName)
-      continue
-
-    const result = await executeManagedMethod(method.type, packageName, method.packageTargetKind, 'uninstall')
-    anySuccess = anySuccess || result
-  }
-
-  if (anySuccess)
+  const success = await executeInstalledState(installedState, 'uninstall')
+  if (success)
     await removeInstalledAgentState(agent.name)
-
-  return anySuccess
+  return success
 }
