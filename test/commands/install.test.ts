@@ -56,7 +56,7 @@ describe('installCommand', () => {
   it('calls installAgent and shows success', async () => {
     agentSpy.mockReturnValue(testAgent)
     binaryInPathSpy.mockResolvedValue(false)
-    installSpy.mockResolvedValue(true)
+    installSpy.mockResolvedValue({ success: true })
     await installCommand('test-agent')
     expect(installSpy).toHaveBeenCalledWith(testAgent)
     expect(logSpy).toHaveBeenCalledWith(expect.stringContaining('installed successfully'))
@@ -65,7 +65,7 @@ describe('installCommand', () => {
   it('shows failure message when installAgent returns false', async () => {
     agentSpy.mockReturnValue(testAgent)
     binaryInPathSpy.mockResolvedValue(false)
-    installSpy.mockResolvedValue(false)
+    installSpy.mockResolvedValue({ success: false })
     await installCommand('test-agent')
     expect(logSpy).toHaveBeenCalledWith(expect.stringContaining('Failed to install'))
   })

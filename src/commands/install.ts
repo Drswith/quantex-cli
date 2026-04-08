@@ -17,9 +17,9 @@ export async function installCommand(agentName: string): Promise<void> {
   }
 
   console.log(pc.cyan(`Installing ${agent.displayName}...`))
-  const success = await installAgent(agent)
+  const result = await installAgent(agent)
 
-  if (success) {
+  if (result.success) {
     console.log(pc.green(`${agent.displayName} installed successfully!`))
   }
   else {
