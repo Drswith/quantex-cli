@@ -1,13 +1,17 @@
 import { afterAll, afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import * as agents from '../../src/agents'
 import { doctorCommand } from '../../src/commands/doctor'
+import * as state from '../../src/state'
 import * as detect from '../../src/utils/detect'
 import * as version from '../../src/utils/version'
 
 const allAgentsSpy = vi.spyOn(agents, 'getAllAgents')
 const isBunSpy = vi.spyOn(detect, 'isBunAvailable')
 const isNpmSpy = vi.spyOn(detect, 'isNpmAvailable')
+const isBrewSpy = vi.spyOn(detect, 'isBrewAvailable')
+const isWingetSpy = vi.spyOn(detect, 'isWingetAvailable')
 const binaryInPathSpy = vi.spyOn(detect, 'isBinaryInPath')
+const installedStateSpy = vi.spyOn(state, 'getInstalledAgentState')
 const installedVerSpy = vi.spyOn(version, 'getInstalledVersion')
 const latestVerSpy = vi.spyOn(version, 'getLatestVersion')
 
@@ -15,7 +19,10 @@ afterAll(() => {
   allAgentsSpy.mockRestore()
   isBunSpy.mockRestore()
   isNpmSpy.mockRestore()
+  isBrewSpy.mockRestore()
+  isWingetSpy.mockRestore()
   binaryInPathSpy.mockRestore()
+  installedStateSpy.mockRestore()
   installedVerSpy.mockRestore()
   latestVerSpy.mockRestore()
 })
@@ -39,9 +46,15 @@ describe('doctorCommand', () => {
     allAgentsSpy.mockClear()
     isBunSpy.mockClear()
     isNpmSpy.mockClear()
+    isBrewSpy.mockClear()
+    isWingetSpy.mockClear()
     binaryInPathSpy.mockClear()
+    installedStateSpy.mockClear()
     installedVerSpy.mockClear()
     latestVerSpy.mockClear()
+    isBrewSpy.mockResolvedValue(false)
+    isWingetSpy.mockResolvedValue(false)
+    installedStateSpy.mockResolvedValue(undefined)
   })
 
   afterEach(() => {
@@ -56,6 +69,8 @@ describe('doctorCommand', () => {
     const output = logSpy.mock.calls.map((c: any[]) => c[0]).join('\n')
     expect(output).toContain('Bun')
     expect(output).toContain('npm')
+    expect(output).toContain('brew')
+    expect(output).toContain('winget')
     expect(output).toContain('available')
   })
 
@@ -64,12 +79,20 @@ describe('doctorCommand', () => {
     isNpmSpy.mockResolvedValue(false)
     allAgentsSpy.mockReturnValue([testAgent])
     binaryInPathSpy.mockResolvedValue(true)
+    installedStateSpy.mockResolvedValue({
+      agentName: 'test-agent',
+      installType: 'bun',
+      packageName: 'test-pkg',
+      command: 'bun add -g test-pkg',
+    })
     installedVerSpy.mockResolvedValue('1.0.0')
     latestVerSpy.mockResolvedValue('1.0.0')
     await doctorCommand()
     const output = logSpy.mock.calls.map((c: any[]) => c[0]).join('\n')
     expect(output).toContain('Test Agent')
     expect(output).toContain('1.0.0')
+    expect(output).toContain('managed')
+    expect(output).toContain('managed via bun (test-pkg)')
   })
 
   it('shows no agents installed when none found', async () => {
@@ -88,6 +111,6 @@ describe('doctorCommand', () => {
     allAgentsSpy.mockReturnValue([])
     await doctorCommand()
     const output = logSpy.mock.calls.map((c: any[]) => c[0]).join('\n')
-    expect(output).toContain('No package manager found')
+    expect(output).toContain('No managed installer found')
   })
 })
