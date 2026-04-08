@@ -23,9 +23,13 @@ const testAgent = {
   displayName: 'Test Agent',
   description: 'test',
   homepage: 'https://example.com',
-  package: 'test-pkg',
+  packages: { npm: 'test-pkg' },
   binaryName: 'test-bin',
-  platforms: {},
+  platforms: {
+    linux: [{ type: 'bun' as const, priority: 1 }],
+    macos: [{ type: 'bun' as const, priority: 1 }],
+    windows: [{ type: 'bun' as const, priority: 1 }],
+  },
 }
 
 beforeEach(() => {

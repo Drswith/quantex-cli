@@ -28,4 +28,15 @@ export function getAgentByNameOrAlias(name: string): AgentDefinition | undefined
 }
 
 export { claude, codex, copilot, cursor, droid, gemini, opencode, pi }
-export type { AgentDefinition, InstallMethod, InstallType, ManagedInstallType, PackageTargetKind, Platform } from './types'
+export type {
+  AgentDefinition,
+  AgentPackageMetadata,
+  BinaryInstallMethod,
+  InstallMethod,
+  InstallType,
+  ManagedInstallMethod,
+  ManagedInstallType,
+  PackageTargetKind,
+  Platform,
+  ScriptInstallMethod,
+} from './types'

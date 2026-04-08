@@ -16,7 +16,7 @@ export async function infoCommand(agentName: string): Promise<void> {
   console.log(`  Name:         ${agent.name}`)
   console.log(`  Aliases:      ${agent.aliases.join(', ')}`)
   console.log(`  Description:  ${agent.description}`)
-  console.log(`  Package:      ${agent.package}`)
+  console.log(`  Package:      ${agent.packages?.npm ?? '-'}`)
   console.log(`  Binary:       ${agent.binaryName}`)
   console.log(`  Installed:    ${inspection.inPath ? pc.green('Yes') : pc.red('No')}`)
   if (inspection.inPath)

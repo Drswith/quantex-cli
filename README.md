@@ -62,9 +62,9 @@ quantex update --all
 - 通过 npm 安装的 agent 会合并为一条 `npm update -g ...`
 - 通过 Homebrew 安装的 agent 会按 `brew` 记录的包名逐个更新
 - 通过 winget 安装的 agent 会按 `winget` 记录的包 ID 逐个更新
-- 通过脚本、直装二进制或尚未记录安装来源的 agent 会保留逐个更新
+- 通过脚本、直装二进制或仅在 PATH 中探测到的 agent 不会被自动更新
 
-这意味着混合安装场景仍然安全，不会把通过其他方式安装的 agent 错误地塞进 Bun、npm、brew 或 winget 的更新命令。
+这意味着混合安装场景仍然安全，不会把通过其他方式安装的 agent 错误地塞进 Bun、npm、brew 或 winget 的更新命令；对非托管来源，Quantex 会明确提示需要手动更新。
 
 ### 卸载 Agent
 
@@ -83,7 +83,7 @@ quantex ls
 `list` 会显示每个 agent 的安装状态、当前版本、是否支持托管更新，以及安装来源。例如：
 
 - `managed update` 表示 Quantex 能按记录的安装器执行更新
-- `manual update` 表示当前只能视为手动更新
+- `manual update` 表示当前来源不支持自动更新
 - `managed via bun (...)`、`managed via brew (...)` 表示有明确的来源记录
 - `detected in PATH` 表示命令存在，但不是由当前 Quantex 状态文件追踪到的安装
 
@@ -165,7 +165,7 @@ quantex doctor
 
 这个状态文件主要用于：
 
-- 让 `update --all` 按 Bun、npm、brew、winget、script/binary 分别处理
+- 让 `update --all` 先生成更新计划，再按 Bun、npm、brew、winget 分组执行
 - 在混合安装场景下避免误用错误的更新方式
 - 支撑 `list`、`info`、`doctor` 输出安装来源和是否可托管更新
 - 为后续的卸载、诊断和迁移能力保留扩展空间

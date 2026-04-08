@@ -4,12 +4,32 @@ export type ManagedInstallType = 'bun' | 'npm' | 'brew' | 'winget'
 export type InstallType = ManagedInstallType | 'script' | 'binary'
 export type PackageTargetKind = 'package' | 'cask' | 'id'
 
-export interface InstallMethod {
-  type: InstallType
-  command: string
-  priority: number
+interface BaseInstallMethod {
+  command?: string
   packageName?: string
   packageTargetKind?: PackageTargetKind
+  priority: number
+}
+
+export interface ManagedInstallMethod extends BaseInstallMethod {
+  command?: never
+  type: ManagedInstallType
+}
+
+export interface ScriptInstallMethod extends BaseInstallMethod {
+  command: string
+  type: 'script'
+}
+
+export interface BinaryInstallMethod extends BaseInstallMethod {
+  command: string
+  type: 'binary'
+}
+
+export type InstallMethod = ManagedInstallMethod | ScriptInstallMethod | BinaryInstallMethod
+
+export interface AgentPackageMetadata {
+  npm?: string
 }
 
 export interface AgentDefinition {
@@ -18,7 +38,7 @@ export interface AgentDefinition {
   displayName: string
   description: string
   homepage: string
-  package: string
+  packages?: AgentPackageMetadata
   platforms: Partial<Record<Platform, InstallMethod[]>>
   binaryName: string
 }

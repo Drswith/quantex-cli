@@ -1,4 +1,5 @@
 import type { AgentDefinition } from './types'
+import { scriptInstall } from './methods'
 
 export const cursor: AgentDefinition = {
   name: 'cursor',
@@ -6,17 +7,16 @@ export const cursor: AgentDefinition = {
   displayName: 'Cursor CLI',
   description: 'Cursor AI 编程助手命令行工具',
   homepage: 'https://cursor.com/docs/cli',
-  package: '',
   binaryName: 'agent',
   platforms: {
     windows: [
-      { type: 'script', command: 'irm \'https://cursor.com/install?win32=true\' | iex', priority: 1 },
+      scriptInstall(1, 'irm \'https://cursor.com/install?win32=true\' | iex'),
     ],
     macos: [
-      { type: 'script', command: 'curl https://cursor.com/install -fsS | bash', priority: 1 },
+      scriptInstall(1, 'curl https://cursor.com/install -fsS | bash'),
     ],
     linux: [
-      { type: 'script', command: 'curl https://cursor.com/install -fsS | bash', priority: 1 },
+      scriptInstall(1, 'curl https://cursor.com/install -fsS | bash'),
     ],
   },
 }

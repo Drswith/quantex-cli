@@ -32,12 +32,12 @@ const testAgent = {
   displayName: 'Test Agent',
   description: 'test',
   homepage: 'https://example.com',
-  package: 'test-pkg',
+  packages: { npm: 'test-pkg' },
   binaryName: 'test-bin',
   platforms: {
-    linux: [{ type: 'bun' as const, command: 'bun add -g test-pkg', priority: 1 }],
-    macos: [{ type: 'bun' as const, command: 'bun add -g test-pkg', priority: 1 }],
-    windows: [{ type: 'bun' as const, command: 'bun add -g test-pkg', priority: 1 }],
+    linux: [{ type: 'bun' as const, priority: 1 }],
+    macos: [{ type: 'bun' as const, priority: 1 }],
+    windows: [{ type: 'bun' as const, priority: 1 }],
   },
 }
 
@@ -89,7 +89,7 @@ describe('updateCommand', () => {
   })
 
   it('batches known package-manager updates for --all', async () => {
-    const agent2 = { ...testAgent, name: 'agent2', binaryName: 'bin2', package: 'pkg2', displayName: 'Agent 2' }
+    const agent2 = { ...testAgent, name: 'agent2', binaryName: 'bin2', packages: { npm: 'pkg2' }, displayName: 'Agent 2' }
     allAgentsSpy.mockReturnValue([testAgent, agent2])
     binaryInPathSpy.mockResolvedValue(true)
     installedVerSpy.mockResolvedValue('1.0.0')

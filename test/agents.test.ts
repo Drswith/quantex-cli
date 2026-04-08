@@ -9,6 +9,7 @@ import { droid } from '../src/agents/droid'
 import { gemini } from '../src/agents/gemini'
 import { opencode } from '../src/agents/opencode'
 import { pi } from '../src/agents/pi'
+import { formatInstallMethodCommand } from '../src/utils/install'
 
 describe('agent registry', () => {
   it('returns array with at least 8 agents', () => {
@@ -33,7 +34,6 @@ function validateAgent(agent: AgentDefinition): void {
   expect(agent.displayName).toBeTruthy()
   expect(agent.description).toBeTruthy()
   expect(agent.homepage).toMatch(/^https:\/\//)
-  expect(agent.package).toBeDefined()
   expect(agent.binaryName).toBeTruthy()
   expect(Object.keys(agent.platforms).length).toBeGreaterThan(0)
 
@@ -42,8 +42,10 @@ function validateAgent(agent: AgentDefinition): void {
     expect(methods!.length).toBeGreaterThan(0)
     for (const method of methods!) {
       expect(['bun', 'npm', 'brew', 'winget', 'script', 'binary']).toContain(method.type)
-      expect(typeof method.command).toBe('string')
-      expect(method.command.length).toBeGreaterThan(0)
+      if (method.type === 'script' || method.type === 'binary') {
+        expect(typeof method.command).toBe('string')
+        expect(method.command.length).toBeGreaterThan(0)
+      }
       expect(typeof method.priority).toBe('number')
     }
   }
@@ -54,7 +56,7 @@ describe('claude', () => {
     validateAgent(claude)
     expect(claude.name).toBe('claude')
     expect(claude.displayName).toBe('Claude Code')
-    expect(claude.package).toBe('@anthropic-ai/claude-code')
+    expect(claude.packages?.npm).toBe('@anthropic-ai/claude-code')
     expect(claude.binaryName).toBe('claude')
   })
 
@@ -65,9 +67,9 @@ describe('claude', () => {
   })
 
   it('package manager install returns correct strings per platform', () => {
-    expect(claude.platforms.windows!.find(m => m.type === 'winget' && m.command.includes('winget'))).toBeDefined()
-    expect(claude.platforms.macos!.find(m => m.type === 'brew' && m.command.includes('brew'))).toBeDefined()
-    expect(claude.platforms.linux!.find(m => m.type === 'brew' && m.command.includes('brew'))).toBeDefined()
+    expect(claude.platforms.windows!.find(m => m.type === 'winget' && m.packageName === 'Anthropic.ClaudeCode')).toBeDefined()
+    expect(claude.platforms.macos!.find(m => m.type === 'brew' && m.packageName === 'claude-code')).toBeDefined()
+    expect(claude.platforms.linux!.find(m => m.type === 'brew' && m.packageName === 'claude-code')).toBeDefined()
   })
 })
 
@@ -76,13 +78,13 @@ describe('codex', () => {
     validateAgent(codex)
     expect(codex.name).toBe('codex')
     expect(codex.displayName).toBe('Codex CLI')
-    expect(codex.package).toBe('@openai/codex')
+    expect(codex.packages?.npm).toBe('@openai/codex')
     expect(codex.binaryName).toBe('codex')
   })
 
   it('binary command returns correct strings per platform', () => {
-    expect(codex.platforms.macos!.find(m => m.command === 'brew install codex')).toBeDefined()
-    expect(codex.platforms.linux!.find(m => m.command === 'brew install codex')).toBeDefined()
+    expect(codex.platforms.macos!.find(m => m.type === 'brew' && m.packageName === 'codex')).toBeDefined()
+    expect(codex.platforms.linux!.find(m => m.type === 'brew' && m.packageName === 'codex')).toBeDefined()
     expect(codex.platforms.windows!.find(m => m.type === 'brew')).toBeUndefined()
   })
 })
@@ -92,21 +94,21 @@ describe('copilot', () => {
     validateAgent(copilot)
     expect(copilot.name).toBe('copilot')
     expect(copilot.displayName).toBe('GitHub Copilot CLI')
-    expect(copilot.package).toBe('@github/copilot')
+    expect(copilot.packages?.npm).toBe('@github/copilot')
     expect(copilot.binaryName).toBe('copilot')
     expect(copilot.aliases).toContain('copilot')
   })
 
   it('script install returns correct strings per platform', () => {
-    expect(copilot.platforms.windows!.find(m => m.type === 'winget' && m.command.includes('winget'))).toBeDefined()
+    expect(copilot.platforms.windows!.find(m => m.type === 'winget' && m.packageName === 'GitHub.Copilot')).toBeDefined()
     expect(copilot.platforms.macos!.find(m => m.type === 'script' && m.command.includes('curl'))).toBeDefined()
     expect(copilot.platforms.linux!.find(m => m.type === 'script' && m.command.includes('curl'))).toBeDefined()
   })
 
   it('brew install returns correct strings per platform', () => {
-    expect(copilot.platforms.macos!.find(m => m.command === 'brew install copilot-cli')).toBeDefined()
-    expect(copilot.platforms.linux!.find(m => m.command === 'brew install copilot-cli')).toBeDefined()
-    expect(copilot.platforms.windows!.find(m => m.command.includes('brew'))).toBeUndefined()
+    expect(copilot.platforms.macos!.find(m => m.type === 'brew' && m.packageName === 'copilot-cli')).toBeDefined()
+    expect(copilot.platforms.linux!.find(m => m.type === 'brew' && m.packageName === 'copilot-cli')).toBeDefined()
+    expect(copilot.platforms.windows!.find(m => m.type === 'brew')).toBeUndefined()
   })
 })
 
@@ -119,9 +121,9 @@ describe('cursor', () => {
   })
 
   it('binary install returns correct strings per platform', () => {
-    expect(cursor.platforms.macos!.find(m => m.command.includes('cursor.com/install'))).toBeDefined()
-    expect(cursor.platforms.linux!.find(m => m.command.includes('cursor.com/install'))).toBeDefined()
-    expect(cursor.platforms.windows!.find(m => m.command.includes('cursor.com/install'))).toBeDefined()
+    expect(cursor.platforms.macos!.find(m => (m.command ?? '').includes('cursor.com/install'))).toBeDefined()
+    expect(cursor.platforms.linux!.find(m => (m.command ?? '').includes('cursor.com/install'))).toBeDefined()
+    expect(cursor.platforms.windows!.find(m => (m.command ?? '').includes('cursor.com/install'))).toBeDefined()
   })
 })
 
@@ -130,7 +132,7 @@ describe('droid', () => {
     validateAgent(droid)
     expect(droid.name).toBe('droid')
     expect(droid.displayName).toBe('Droid')
-    expect(droid.package).toBe('droid')
+    expect(droid.packages?.npm).toBe('droid')
     expect(droid.binaryName).toBe('droid')
   })
 
@@ -141,9 +143,9 @@ describe('droid', () => {
   })
 
   it('brew install returns correct strings per platform', () => {
-    expect(droid.platforms.macos!.find(m => m.command === 'brew install --cask droid')).toBeDefined()
-    expect(droid.platforms.linux!.find(m => m.command === 'brew install --cask droid')).toBeDefined()
-    expect(droid.platforms.windows!.find(m => m.command.includes('brew'))).toBeUndefined()
+    expect(droid.platforms.macos!.find(m => m.type === 'brew' && m.packageName === 'droid' && m.packageTargetKind === 'cask')).toBeDefined()
+    expect(droid.platforms.linux!.find(m => m.type === 'brew' && m.packageName === 'droid' && m.packageTargetKind === 'cask')).toBeDefined()
+    expect(droid.platforms.windows!.find(m => m.type === 'brew')).toBeUndefined()
   })
 })
 
@@ -152,14 +154,14 @@ describe('gemini', () => {
     validateAgent(gemini)
     expect(gemini.name).toBe('gemini')
     expect(gemini.displayName).toBe('Gemini CLI')
-    expect(gemini.package).toBe('@google/gemini-cli')
+    expect(gemini.packages?.npm).toBe('@google/gemini-cli')
     expect(gemini.binaryName).toBe('gemini')
     expect(gemini.aliases).toContain('gemini')
   })
 
   it('brew install returns correct strings per platform', () => {
-    expect(gemini.platforms.macos!.find(m => m.command === 'brew install gemini-cli')).toBeDefined()
-    expect(gemini.platforms.linux!.find(m => m.command === 'brew install gemini-cli')).toBeDefined()
+    expect(gemini.platforms.macos!.find(m => m.type === 'brew' && m.packageName === 'gemini-cli')).toBeDefined()
+    expect(gemini.platforms.linux!.find(m => m.type === 'brew' && m.packageName === 'gemini-cli')).toBeDefined()
     expect(gemini.platforms.windows!.find(m => m.type === 'brew')).toBeUndefined()
   })
 })
@@ -169,7 +171,7 @@ describe('opencode', () => {
     validateAgent(opencode)
     expect(opencode.name).toBe('opencode')
     expect(opencode.displayName).toBe('OpenCode')
-    expect(opencode.package).toBe('opencode-ai')
+    expect(opencode.packages?.npm).toBe('opencode-ai')
     expect(opencode.binaryName).toBe('opencode')
   })
 
@@ -180,9 +182,9 @@ describe('opencode', () => {
   })
 
   it('brew install returns correct strings per platform', () => {
-    expect(opencode.platforms.macos!.find(m => m.command === 'brew install anomalyco/tap/opencode')).toBeDefined()
-    expect(opencode.platforms.linux!.find(m => m.command === 'brew install anomalyco/tap/opencode')).toBeDefined()
-    expect(opencode.platforms.windows!.find(m => m.command.includes('brew'))).toBeUndefined()
+    expect(opencode.platforms.macos!.find(m => m.type === 'brew' && m.packageName === 'anomalyco/tap/opencode')).toBeDefined()
+    expect(opencode.platforms.linux!.find(m => m.type === 'brew' && m.packageName === 'anomalyco/tap/opencode')).toBeDefined()
+    expect(opencode.platforms.windows!.find(m => m.type === 'brew')).toBeUndefined()
   })
 })
 
@@ -191,7 +193,7 @@ describe('pi', () => {
     validateAgent(pi)
     expect(pi.name).toBe('pi')
     expect(pi.displayName).toBe('Pi')
-    expect(pi.package).toBe('@mariozechner/pi-coding-agent')
+    expect(pi.packages?.npm).toBe('@mariozechner/pi-coding-agent')
     expect(pi.binaryName).toBe('pi')
   })
 
@@ -201,6 +203,14 @@ describe('pi', () => {
         expect(['bun', 'npm']).toContain(method.type)
       }
     }
+  })
+})
+
+describe('install command formatting', () => {
+  it('renders managed install commands from structured methods', () => {
+    expect(formatInstallMethodCommand(codex, codex.platforms.macos![0]!)).toBe('bun add -g @openai/codex')
+    expect(formatInstallMethodCommand(codex, codex.platforms.macos![2]!)).toBe('brew install codex')
+    expect(formatInstallMethodCommand(claude, claude.platforms.macos![3]!)).toBe('brew install --cask claude-code')
   })
 })
 

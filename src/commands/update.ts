@@ -3,7 +3,8 @@ import type { ManagedInstallType, ManagedPackageSpec } from '../package-manager'
 import type { InstalledAgentState } from '../state'
 import pc from 'picocolors'
 import { getAgentByNameOrAlias, getAllAgents } from '../agents'
-import { groupInspectionsForUpdate, inspectAgent, inspectAllAgents } from '../agents/inspection'
+import { inspectAgent, inspectAllAgents } from '../agents/inspection'
+import { createUpdatePlan, isInspectionUpdateAvailable } from '../agents/update-plan'
 import { updateAgent, updateAgentsByType } from '../package-manager'
 import { canUpdateInstalledState } from '../utils/install'
 
@@ -34,31 +35,23 @@ interface PendingUpdate {
 
 async function updateAllAgents(): Promise<void> {
   const inspections = await inspectAllAgents(getAllAgents())
-  const pending = inspections
-    .filter(inspection => inspection.inPath)
-    .filter(inspection => isUpdateAvailable(inspection))
+  const plan = createUpdatePlan(inspections)
 
-  for (const inspection of inspections) {
-    if (!inspection.inPath)
-      continue
+  for (const inspection of plan.upToDate)
+    console.log(pc.green(`${inspection.agent.displayName} is up to date (${inspection.installedVersion ?? 'unknown'})`))
 
-    if (!isUpdateAvailable(inspection)) {
-      console.log(pc.green(`${inspection.agent.displayName} is up to date (${inspection.installedVersion ?? 'unknown'})`))
-      continue
-    }
-
+  for (const entry of plan.entries) {
+    const inspection = entry.inspection
     console.log(pc.cyan(`Updating ${inspection.agent.displayName}...${getVersionHint(inspection.installedVersion, inspection.latestVersion)}`))
   }
 
-  const grouped = groupInspectionsForUpdate(pending)
+  await updateGroupedAgents('bun', plan.grouped.bun.map(entry => toPendingUpdate(entry.inspection)))
+  await updateGroupedAgents('npm', plan.grouped.npm.map(entry => toPendingUpdate(entry.inspection)))
+  await updateGroupedAgents('brew', plan.grouped.brew.map(entry => toPendingUpdate(entry.inspection)))
+  await updateGroupedAgents('winget', plan.grouped.winget.map(entry => toPendingUpdate(entry.inspection)))
 
-  await updateGroupedAgents('bun', grouped.managed.bun.map(toPendingUpdate))
-  await updateGroupedAgents('npm', grouped.managed.npm.map(toPendingUpdate))
-  await updateGroupedAgents('brew', grouped.managed.brew.map(toPendingUpdate))
-  await updateGroupedAgents('winget', grouped.managed.winget.map(toPendingUpdate))
-
-  for (const inspection of grouped.manual)
-    await performUpdate(inspection.agent, inspection.installedState, false)
+  for (const entry of plan.manual)
+    await performUpdate(entry.inspection.agent, entry.inspection.installedState, false)
 }
 
 async function updateGroupedAgents(type: ManagedInstallType, updates: PendingUpdate[]): Promise<void> {
@@ -90,7 +83,7 @@ async function updateSingleAgent(agent: AgentDefinition): Promise<void> {
     return
   }
 
-  if (!isUpdateAvailable(inspection)) {
+  if (!isInspectionUpdateAvailable(inspection)) {
     console.log(pc.green(`${agent.displayName} is up to date (${inspection.installedVersion ?? 'unknown'})`))
     return
   }
@@ -118,16 +111,6 @@ async function performUpdate(agent: AgentDefinition, installedState?: InstalledA
   else {
     console.log(pc.red(`Failed to update ${agent.displayName}.`))
   }
-}
-
-function isUpdateAvailable(inspection: {
-  installedVersion?: string
-  latestVersion?: string
-}): boolean {
-  if (inspection.installedVersion && inspection.latestVersion)
-    return inspection.installedVersion !== inspection.latestVersion
-
-  return true
 }
 
 function getVersionHint(installed?: string, latest?: string): string {
