@@ -60,9 +60,11 @@ quantex update --all
 
 - 通过 Bun 安装的 agent 会合并为一条 `bun update -g ...`
 - 通过 npm 安装的 agent 会合并为一条 `npm update -g ...`
-- 通过脚本、二进制或尚未记录安装来源的 agent 会保留逐个更新
+- 通过 Homebrew 安装的 agent 会按 `brew` 记录的包名逐个更新
+- 通过 winget 安装的 agent 会按 `winget` 记录的包 ID 逐个更新
+- 通过脚本、直装二进制或尚未记录安装来源的 agent 会保留逐个更新
 
-这意味着混合安装场景仍然安全，不会把通过其他方式安装的 agent 错误地塞进 Bun 或 npm 的批量更新命令。
+这意味着混合安装场景仍然安全，不会把通过其他方式安装的 agent 错误地塞进 Bun、npm、brew 或 winget 的更新命令。
 
 ### 卸载 Agent
 
@@ -78,11 +80,26 @@ quantex list
 quantex ls
 ```
 
+`list` 会显示每个 agent 的安装状态、当前版本、是否支持托管更新，以及安装来源。例如：
+
+- `managed update` 表示 Quantex 能按记录的安装器执行更新
+- `manual update` 表示当前只能视为手动更新
+- `managed via bun (...)`、`managed via brew (...)` 表示有明确的来源记录
+- `detected in PATH` 表示命令存在，但不是由当前 Quantex 状态文件追踪到的安装
+
 ### 查看 Agent 详情
 
 ```bash
 quantex info claude
 ```
+
+`info` 会按当前平台列出安装方式，并明确区分：
+
+- `managed/<installer>`，例如 `managed/bun`、`managed/brew`
+- `unmanaged/script`，例如 `curl | bash`、`irm | iex`
+- `unmanaged/binary`，保留给未来真正的二进制直装场景
+
+如果 agent 已安装，`info` 还会显示当前记录的 `Source` 和 `Lifecycle`。
 
 ### 快捷启动 Agent
 
@@ -119,6 +136,13 @@ quantex config reset
 quantex doctor
 ```
 
+`doctor` 会检查：
+
+- `bun`、`npm`、`brew`、`winget` 这些托管安装器是否可用
+- 已安装 agent 的版本状态
+- 已安装 agent 的生命周期和来源，例如 `managed; managed via bun (...)`
+- 当前环境是否缺少任何可用于托管安装/更新的安装器
+
 ## 配置
 
 配置文件位于 `~/.quantex/config.json`，支持以下配置项：
@@ -133,10 +157,17 @@ quantex doctor
 
 除了配置文件外，Quantex 还会在 `~/.quantex/state.json` 中记录运行时状态，例如 agent 的实际安装来源。
 
+当前安装来源会区分为：
+
+- 托管安装器：`bun`、`npm`、`brew`、`winget`
+- 非托管安装：`script`
+- 预留类型：`binary`
+
 这个状态文件主要用于：
 
-- 让 `update --all` 按 Bun、npm、binary/script 分组更新
+- 让 `update --all` 按 Bun、npm、brew、winget、script/binary 分别处理
 - 在混合安装场景下避免误用错误的更新方式
+- 支撑 `list`、`info`、`doctor` 输出安装来源和是否可托管更新
 - 为后续的卸载、诊断和迁移能力保留扩展空间
 
 如果某个 agent 是在旧版本 Quantex 中安装的，或者不是通过 Quantex 安装的，首次更新时可能仍会走逐个更新；一旦 Quantex 成功更新并记录来源，后续 `update --all` 就可以复用批量更新路径。
