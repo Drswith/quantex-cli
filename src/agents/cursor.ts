@@ -10,13 +10,13 @@ export const cursor: AgentDefinition = {
   binaryName: 'agent',
   platforms: {
     windows: [
-      { type: 'binary', command: 'irm \'https://cursor.com/install?win32=true\' | iex', priority: 1 },
+      { type: 'script', command: 'irm \'https://cursor.com/install?win32=true\' | iex', priority: 1 },
     ],
     macos: [
-      { type: 'binary', command: 'curl https://cursor.com/install -fsS | bash', priority: 1 },
+      { type: 'script', command: 'curl https://cursor.com/install -fsS | bash', priority: 1 },
     ],
     linux: [
-      { type: 'binary', command: 'curl https://cursor.com/install -fsS | bash', priority: 1 },
+      { type: 'script', command: 'curl https://cursor.com/install -fsS | bash', priority: 1 },
     ],
   },
 }

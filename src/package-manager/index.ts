@@ -1,16 +1,23 @@
-import type { AgentDefinition, InstallMethod, InstallType } from '../agents/types'
+import type { AgentDefinition, InstallMethod, ManagedInstallType } from '../agents/types'
 import type { InstalledAgentState } from '../state'
-import { removeInstalledAgentState, setInstalledAgentState } from '../state'
-import { getPlatform, isBunAvailable, isNpmAvailable } from '../utils/detect'
+import { getInstalledAgentState, removeInstalledAgentState, setInstalledAgentState } from '../state'
+import { getPlatform, isBrewAvailable, isBunAvailable, isNpmAvailable, isWingetAvailable } from '../utils/detect'
 import { runBinaryInstall } from './binary'
+import * as brewPm from './brew'
 import * as bunPm from './bun'
 import * as npmPm from './npm'
+import * as wingetPm from './winget'
 
-export type ManagedInstallType = Extract<InstallType, 'bun' | 'npm'>
+export type { ManagedInstallType } from '../agents/types'
 
 export interface AgentOperationResult {
   success: boolean
   installedState?: InstalledAgentState
+}
+
+export interface ManagedPackageSpec {
+  packageName: string
+  packageTargetKind?: InstalledAgentState['packageTargetKind']
 }
 
 function getPlatformMethods(agent: AgentDefinition): InstallMethod[] {
@@ -21,44 +28,81 @@ function getPlatformMethods(agent: AgentDefinition): InstallMethod[] {
   return [...methods].sort((a, b) => a.priority - b.priority)
 }
 
-async function executeMethod(agent: AgentDefinition, method: InstallMethod, action: 'install' | 'update'): Promise<boolean> {
-  if (method.type === 'bun') {
-    if (!agent.package || !await isBunAvailable())
+function isManagedInstallType(type: InstallMethod['type'] | InstalledAgentState['installType']): type is ManagedInstallType {
+  return type === 'bun' || type === 'npm' || type === 'brew' || type === 'winget'
+}
+
+function getManagedPackageName(agent: AgentDefinition, method: InstallMethod): string | undefined {
+  return method.packageName || agent.package || undefined
+}
+
+async function executeManagedMethod(
+  type: ManagedInstallType,
+  packageName: string,
+  packageTargetKind: InstalledAgentState['packageTargetKind'],
+  action: 'install' | 'update' | 'uninstall',
+): Promise<boolean> {
+  if (type === 'bun') {
+    if (!await isBunAvailable())
       return false
     return action === 'install'
-      ? bunPm.install(agent.package)
-      : bunPm.update(agent.package)
+      ? bunPm.install(packageName)
+      : action === 'update'
+        ? bunPm.update(packageName)
+        : bunPm.uninstall(packageName)
   }
 
-  if (method.type === 'npm') {
-    if (!agent.package || !await isNpmAvailable())
+  if (type === 'npm') {
+    if (!await isNpmAvailable())
       return false
     return action === 'install'
-      ? npmPm.install(agent.package)
-      : npmPm.update(agent.package)
+      ? npmPm.install(packageName)
+      : action === 'update'
+        ? npmPm.update(packageName)
+        : npmPm.uninstall(packageName)
+  }
+
+  if (type === 'brew') {
+    if (!await isBrewAvailable())
+      return false
+    return action === 'install'
+      ? brewPm.install(packageName, packageTargetKind)
+      : action === 'update'
+        ? brewPm.update(packageName, packageTargetKind)
+        : brewPm.uninstall(packageName, packageTargetKind)
+  }
+
+  if (!await isWingetAvailable())
+    return false
+
+  return action === 'install'
+    ? wingetPm.install(packageName)
+    : action === 'update'
+      ? wingetPm.update(packageName)
+      : wingetPm.uninstall(packageName)
+}
+
+async function executeMethod(agent: AgentDefinition, method: InstallMethod, action: 'install' | 'update'): Promise<boolean> {
+  if (isManagedInstallType(method.type)) {
+    const packageName = getManagedPackageName(agent, method)
+    if (!packageName)
+      return false
+
+    return executeManagedMethod(method.type, packageName, method.packageTargetKind, action)
   }
 
   return runBinaryInstall(method.command)
 }
 
-async function executeInstalledState(agent: AgentDefinition, state: InstalledAgentState, action: 'install' | 'update'): Promise<boolean> {
-  if (state.installType === 'bun') {
-    if (!state.packageName || !await isBunAvailable())
+async function executeInstalledState(state: InstalledAgentState, action: 'install' | 'update' | 'uninstall'): Promise<boolean> {
+  if (isManagedInstallType(state.installType)) {
+    if (!state.packageName)
       return false
-    return action === 'install'
-      ? bunPm.install(state.packageName)
-      : bunPm.update(state.packageName)
+
+    return executeManagedMethod(state.installType, state.packageName, state.packageTargetKind, action)
   }
 
-  if (state.installType === 'npm') {
-    if (!state.packageName || !await isNpmAvailable())
-      return false
-    return action === 'install'
-      ? npmPm.install(state.packageName)
-      : npmPm.update(state.packageName)
-  }
-
-  if (!state.command)
+  if (action === 'uninstall' || !state.command)
     return false
 
   return runBinaryInstall(state.command)
@@ -68,7 +112,8 @@ async function persistInstalledState(agent: AgentDefinition, method: InstallMeth
   const installedState: InstalledAgentState = {
     agentName: agent.name,
     installType: method.type,
-    packageName: agent.package || undefined,
+    packageName: getManagedPackageName(agent, method),
+    packageTargetKind: method.packageTargetKind,
     command: method.command,
   }
 
@@ -92,7 +137,7 @@ export async function installAgent(agent: AgentDefinition): Promise<AgentOperati
 }
 
 export async function updateAgent(agent: AgentDefinition, preferredState?: InstalledAgentState): Promise<AgentOperationResult> {
-  if (preferredState && await executeInstalledState(agent, preferredState, 'update')) {
+  if (preferredState && await executeInstalledState(preferredState, 'update')) {
     await setInstalledAgentState(preferredState)
     return {
       success: true,
@@ -114,31 +159,55 @@ export async function updateAgent(agent: AgentDefinition, preferredState?: Insta
   return { success: false }
 }
 
-export async function updateAgentsByType(type: ManagedInstallType, packageNames: string[]): Promise<boolean> {
-  const uniquePackages = [...new Set(packageNames.filter(Boolean))]
+export async function updateAgentsByType(type: ManagedInstallType, packages: ManagedPackageSpec[]): Promise<boolean> {
+  const uniquePackages = [...new Map(packages
+    .filter(pkg => pkg.packageName)
+    .map(pkg => [`${pkg.packageTargetKind ?? 'package'}:${pkg.packageName}`, pkg])).values()]
 
   if (type === 'bun') {
     if (!await isBunAvailable())
       return false
-    return bunPm.updateMany(uniquePackages)
+    return bunPm.updateMany(uniquePackages.map(pkg => pkg.packageName))
   }
 
-  if (!await isNpmAvailable())
+  if (type === 'npm') {
+    if (!await isNpmAvailable())
+      return false
+    return npmPm.updateMany(uniquePackages.map(pkg => pkg.packageName))
+  }
+
+  if (type === 'brew') {
+    if (!await isBrewAvailable())
+      return false
+    return brewPm.updateMany(uniquePackages)
+  }
+
+  if (!await isWingetAvailable())
     return false
 
-  return npmPm.updateMany(uniquePackages)
+  return wingetPm.updateMany(uniquePackages.map(pkg => ({ packageName: pkg.packageName })))
 }
 
 export async function uninstallAgent(agent: AgentDefinition): Promise<boolean> {
-  let anySuccess = false
-
-  if (await isBunAvailable()) {
-    const result = await bunPm.uninstall(agent.package)
-    anySuccess = anySuccess || result
+  const installedState = await getInstalledAgentState(agent.name)
+  if (installedState) {
+    const success = await executeInstalledState(installedState, 'uninstall')
+    if (success)
+      await removeInstalledAgentState(agent.name)
+    return success
   }
 
-  if (await isNpmAvailable()) {
-    const result = await npmPm.uninstall(agent.package)
+  let anySuccess = false
+
+  for (const method of getPlatformMethods(agent)) {
+    if (!isManagedInstallType(method.type))
+      continue
+
+    const packageName = getManagedPackageName(agent, method)
+    if (!packageName)
+      continue
+
+    const result = await executeManagedMethod(method.type, packageName, method.packageTargetKind, 'uninstall')
     anySuccess = anySuccess || result
   }
 

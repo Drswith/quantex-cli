@@ -41,7 +41,7 @@ function validateAgent(agent: AgentDefinition): void {
     expect(['windows', 'macos', 'linux']).toContain(platform)
     expect(methods!.length).toBeGreaterThan(0)
     for (const method of methods!) {
-      expect(['bun', 'npm', 'binary']).toContain(method.type)
+      expect(['bun', 'npm', 'brew', 'winget', 'script', 'binary']).toContain(method.type)
       expect(typeof method.command).toBe('string')
       expect(method.command.length).toBeGreaterThan(0)
       expect(typeof method.priority).toBe('number')
@@ -59,15 +59,15 @@ describe('claude', () => {
   })
 
   it('curl install returns correct strings per platform', () => {
-    expect(claude.platforms.windows!.find(m => m.type === 'binary' && m.command.includes('claude.ai/install.ps1'))).toBeDefined()
-    expect(claude.platforms.macos!.find(m => m.type === 'binary' && m.command.includes('claude.ai/install.sh'))).toBeDefined()
-    expect(claude.platforms.linux!.find(m => m.type === 'binary' && m.command.includes('claude.ai/install.sh'))).toBeDefined()
+    expect(claude.platforms.windows!.find(m => m.type === 'script' && m.command.includes('claude.ai/install.ps1'))).toBeDefined()
+    expect(claude.platforms.macos!.find(m => m.type === 'script' && m.command.includes('claude.ai/install.sh'))).toBeDefined()
+    expect(claude.platforms.linux!.find(m => m.type === 'script' && m.command.includes('claude.ai/install.sh'))).toBeDefined()
   })
 
   it('package manager install returns correct strings per platform', () => {
-    expect(claude.platforms.windows!.find(m => m.type === 'binary' && m.command.includes('winget'))).toBeDefined()
-    expect(claude.platforms.macos!.find(m => m.type === 'binary' && m.command.includes('brew'))).toBeDefined()
-    expect(claude.platforms.linux!.find(m => m.type === 'binary' && m.command.includes('brew'))).toBeDefined()
+    expect(claude.platforms.windows!.find(m => m.type === 'winget' && m.command.includes('winget'))).toBeDefined()
+    expect(claude.platforms.macos!.find(m => m.type === 'brew' && m.command.includes('brew'))).toBeDefined()
+    expect(claude.platforms.linux!.find(m => m.type === 'brew' && m.command.includes('brew'))).toBeDefined()
   })
 })
 
@@ -83,7 +83,7 @@ describe('codex', () => {
   it('binary command returns correct strings per platform', () => {
     expect(codex.platforms.macos!.find(m => m.command === 'brew install codex')).toBeDefined()
     expect(codex.platforms.linux!.find(m => m.command === 'brew install codex')).toBeDefined()
-    expect(codex.platforms.windows!.find(m => m.type === 'binary')).toBeUndefined()
+    expect(codex.platforms.windows!.find(m => m.type === 'brew')).toBeUndefined()
   })
 })
 
@@ -98,9 +98,9 @@ describe('copilot', () => {
   })
 
   it('script install returns correct strings per platform', () => {
-    expect(copilot.platforms.windows!.find(m => m.type === 'binary' && m.command.includes('winget'))).toBeDefined()
-    expect(copilot.platforms.macos!.find(m => m.type === 'binary' && m.command.includes('curl'))).toBeDefined()
-    expect(copilot.platforms.linux!.find(m => m.type === 'binary' && m.command.includes('curl'))).toBeDefined()
+    expect(copilot.platforms.windows!.find(m => m.type === 'winget' && m.command.includes('winget'))).toBeDefined()
+    expect(copilot.platforms.macos!.find(m => m.type === 'script' && m.command.includes('curl'))).toBeDefined()
+    expect(copilot.platforms.linux!.find(m => m.type === 'script' && m.command.includes('curl'))).toBeDefined()
   })
 
   it('brew install returns correct strings per platform', () => {
@@ -135,9 +135,9 @@ describe('droid', () => {
   })
 
   it('curl install returns correct strings per platform', () => {
-    expect(droid.platforms.windows!.find(m => m.type === 'binary' && m.command.includes('irm'))).toBeDefined()
-    expect(droid.platforms.macos!.find(m => m.type === 'binary' && m.command.includes('app.factory.ai/cli'))).toBeDefined()
-    expect(droid.platforms.linux!.find(m => m.type === 'binary' && m.command.includes('app.factory.ai/cli'))).toBeDefined()
+    expect(droid.platforms.windows!.find(m => m.type === 'script' && m.command.includes('irm'))).toBeDefined()
+    expect(droid.platforms.macos!.find(m => m.type === 'script' && m.command.includes('app.factory.ai/cli'))).toBeDefined()
+    expect(droid.platforms.linux!.find(m => m.type === 'script' && m.command.includes('app.factory.ai/cli'))).toBeDefined()
   })
 
   it('brew install returns correct strings per platform', () => {
@@ -160,7 +160,7 @@ describe('gemini', () => {
   it('brew install returns correct strings per platform', () => {
     expect(gemini.platforms.macos!.find(m => m.command === 'brew install gemini-cli')).toBeDefined()
     expect(gemini.platforms.linux!.find(m => m.command === 'brew install gemini-cli')).toBeDefined()
-    expect(gemini.platforms.windows!.find(m => m.type === 'binary')).toBeUndefined()
+    expect(gemini.platforms.windows!.find(m => m.type === 'brew')).toBeUndefined()
   })
 })
 
@@ -174,9 +174,9 @@ describe('opencode', () => {
   })
 
   it('curl install returns correct strings per platform', () => {
-    expect(opencode.platforms.macos!.find(m => m.type === 'binary' && m.command.includes('opencode.ai/install'))).toBeDefined()
-    expect(opencode.platforms.linux!.find(m => m.type === 'binary' && m.command.includes('opencode.ai/install'))).toBeDefined()
-    expect(opencode.platforms.windows!.find(m => m.type === 'binary')).toBeUndefined()
+    expect(opencode.platforms.macos!.find(m => m.type === 'script' && m.command.includes('opencode.ai/install'))).toBeDefined()
+    expect(opencode.platforms.linux!.find(m => m.type === 'script' && m.command.includes('opencode.ai/install'))).toBeDefined()
+    expect(opencode.platforms.windows!.find(m => m.type === 'script')).toBeUndefined()
   })
 
   it('brew install returns correct strings per platform', () => {

@@ -18,6 +18,7 @@ const binarySpy = vi.spyOn(binaryPm, 'runBinaryInstall')
 const getPlatformSpy = vi.spyOn(detectUtils, 'getPlatform')
 const isBunSpy = vi.spyOn(detectUtils, 'isBunAvailable')
 const isNpmSpy = vi.spyOn(detectUtils, 'isNpmAvailable')
+const getInstalledAgentStateSpy = vi.spyOn(state, 'getInstalledAgentState')
 const setInstalledAgentStateSpy = vi.spyOn(state, 'setInstalledAgentState')
 const removeInstalledAgentStateSpy = vi.spyOn(state, 'removeInstalledAgentState')
 
@@ -50,9 +51,12 @@ beforeEach(() => {
   getPlatformSpy.mockClear()
   isBunSpy.mockClear()
   isNpmSpy.mockClear()
+  getInstalledAgentStateSpy.mockClear()
   setInstalledAgentStateSpy.mockClear()
   removeInstalledAgentStateSpy.mockClear()
   getPlatformSpy.mockReturnValue('linux')
+  getInstalledAgentStateSpy.mockResolvedValue(undefined)
+  removeInstalledAgentStateSpy.mockResolvedValue()
 })
 
 afterAll(() => {
@@ -68,6 +72,7 @@ afterAll(() => {
   getPlatformSpy.mockRestore()
   isBunSpy.mockRestore()
   isNpmSpy.mockRestore()
+  getInstalledAgentStateSpy.mockRestore()
   setInstalledAgentStateSpy.mockRestore()
   removeInstalledAgentStateSpy.mockRestore()
 })
@@ -159,7 +164,11 @@ describe('updateAgentsByType', () => {
     isBunSpy.mockResolvedValue(true)
     bunUpdateManySpy.mockResolvedValue(true)
 
-    expect(await updateAgentsByType('bun', ['test-pkg', 'test-pkg', 'other-pkg'])).toBe(true)
+    expect(await updateAgentsByType('bun', [
+      { packageName: 'test-pkg' },
+      { packageName: 'test-pkg' },
+      { packageName: 'other-pkg' },
+    ])).toBe(true)
     expect(bunUpdateManySpy).toHaveBeenCalledWith(['test-pkg', 'other-pkg'])
   })
 })
