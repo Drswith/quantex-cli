@@ -1,4 +1,4 @@
-export { claude, codex, getAgentByNameOrAlias, getAllAgents, opencode } from './agents'
+export { claude, codex, copilot, cursor, droid, gemini, getAgentByNameOrAlias, getAllAgents, opencode, pi } from './agents'
 export type {
   AgentDefinition,
   AgentPackageMetadata,
@@ -12,7 +12,9 @@ export type {
   ScriptInstallMethod,
 } from './agents'
 export { inspectAgent, inspectAllAgents } from './agents/inspection'
+export type { AgentInspection } from './agents/inspection'
 export { createUpdatePlan, isInspectionUpdateAvailable } from './agents/update-plan'
+export type { UpdatePlan, UpdatePlanEntry } from './agents/update-plan'
 export { getConfigDir, getConfigFilePath, loadConfig, saveConfig } from './config'
 export type { QuantexConfig } from './config'
 export { getOrderedInstallMethods, installAgent, uninstallAgent, updateAgent, updateAgentsByType } from './package-manager'
