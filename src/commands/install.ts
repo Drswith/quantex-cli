@@ -1,16 +1,15 @@
 import pc from 'picocolors'
-import { getAgentByNameOrAlias } from '../agents'
-import { inspectAgent } from '../agents/inspection'
 import { installAgent } from '../package-manager'
+import { resolveAgentInspection } from '../services/agents'
 
 export async function installCommand(agentName: string): Promise<void> {
-  const agent = getAgentByNameOrAlias(agentName)
-  if (!agent) {
+  const resolved = await resolveAgentInspection(agentName)
+  if (!resolved) {
     console.log(pc.red(`Unknown agent: ${agentName}`))
     return
   }
 
-  const inspection = await inspectAgent(agent)
+  const { agent, inspection } = resolved
   if (inspection.inPath) {
     console.log(pc.yellow(`${agent.displayName} is already installed.`))
     return

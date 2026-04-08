@@ -1,17 +1,16 @@
 import pc from 'picocolors'
 import prompts from 'prompts'
-import { getAgentByNameOrAlias } from '../agents'
-import { inspectAgent } from '../agents/inspection'
 import { installAgent } from '../package-manager'
+import { resolveAgentInspection } from '../services/agents'
 
 export async function runCommand(agentName: string, args: string[]): Promise<number> {
-  const agent = getAgentByNameOrAlias(agentName)
-  if (!agent) {
+  const resolved = await resolveAgentInspection(agentName)
+  if (!resolved) {
     console.log(pc.red(`Unknown agent: ${agentName}`))
     return 1
   }
 
-  const inspection = await inspectAgent(agent)
+  const { agent, inspection } = resolved
 
   if (!inspection.inPath) {
     const response = await prompts({

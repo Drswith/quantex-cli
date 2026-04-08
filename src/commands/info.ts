@@ -1,16 +1,15 @@
 import pc from 'picocolors'
-import { getAgentByNameOrAlias } from '../agents'
-import { inspectAgent } from '../agents/inspection'
+import { resolveAgentInspection } from '../services/agents'
 import { formatInstallMethodCommand, formatInstallMethodLabel } from '../utils/install'
 
 export async function infoCommand(agentName: string): Promise<void> {
-  const agent = getAgentByNameOrAlias(agentName)
-  if (!agent) {
+  const resolved = await resolveAgentInspection(agentName)
+  if (!resolved) {
     console.log(pc.red(`Unknown agent: ${agentName}`))
     return
   }
 
-  const inspection = await inspectAgent(agent)
+  const { agent, inspection } = resolved
 
   console.log(pc.bold(`\n${agent.displayName}\n`))
   console.log(`  Name:         ${agent.name}`)

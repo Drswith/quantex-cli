@@ -1,6 +1,5 @@
 import pc from 'picocolors'
-import { getAllAgents } from '../agents'
-import { inspectAllAgents } from '../agents/inspection'
+import { inspectRegisteredAgents } from '../services/agents'
 import { isBrewAvailable, isBunAvailable, isNpmAvailable, isWingetAvailable } from '../utils/detect'
 
 export async function doctorCommand(): Promise<void> {
@@ -21,7 +20,7 @@ export async function doctorCommand(): Promise<void> {
   console.log(`  winget:${wingetAvailable ? pc.green('available') : pc.red('not found')}`)
 
   console.log(`\n${pc.bold('Installed Agents:')}`)
-  const inspections = await inspectAllAgents(getAllAgents())
+  const inspections = await inspectRegisteredAgents()
   let anyInstalled = false
 
   for (const inspection of inspections) {
