@@ -44,3 +44,10 @@ export function formatInstalledSource(state?: Pick<InstalledAgentState, 'install
 
   return 'binary installer'
 }
+
+export function formatUpdateManagement(state?: Pick<InstalledAgentState, 'installType'>): string {
+  if (!state)
+    return 'manual update'
+
+  return isManagedInstallType(state.installType) ? 'managed update' : 'manual update'
+}
