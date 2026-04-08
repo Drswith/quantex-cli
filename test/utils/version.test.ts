@@ -33,11 +33,46 @@ function createMockProcess(exitCode: number, stdout = '') {
 }
 
 describe('getInstalledVersion', () => {
-  it('returns trimmed version string on success', async () => {
+  it('extracts pure version number', async () => {
     const { getInstalledVersion } = await import('../../src/utils/version')
     mockSpawn.mockReturnValue(createMockProcess(0, '1.2.3\n'))
     const version = await getInstalledVersion('claude')
     expect(version).toBe('1.2.3')
+  })
+
+  it('extracts version with v prefix', async () => {
+    const { getInstalledVersion } = await import('../../src/utils/version')
+    mockSpawn.mockReturnValue(createMockProcess(0, 'v1.2.3\n'))
+    const version = await getInstalledVersion('cli')
+    expect(version).toBe('1.2.3')
+  })
+
+  it('extracts version from name prefixed output', async () => {
+    const { getInstalledVersion } = await import('../../src/utils/version')
+    mockSpawn.mockReturnValue(createMockProcess(0, 'codex-cli 0.118.0\n'))
+    const version = await getInstalledVersion('codex')
+    expect(version).toBe('0.118.0')
+  })
+
+  it('extracts version from multi-line output (first line)', async () => {
+    const { getInstalledVersion } = await import('../../src/utils/version')
+    mockSpawn.mockReturnValue(createMockProcess(0, 'GitHub Copilot CLI 1.0.20.\nRun \'copilot update\' to check for updates.\n'))
+    const version = await getInstalledVersion('copilot')
+    expect(version).toBe('1.0.20')
+  })
+
+  it('extracts calendar version format', async () => {
+    const { getInstalledVersion } = await import('../../src/utils/version')
+    mockSpawn.mockReturnValue(createMockProcess(0, '2026.03.30-a5d3e17\n'))
+    const version = await getInstalledVersion('cursor')
+    expect(version).toBe('2026.03.30-a5d3e17')
+  })
+
+  it('extracts prerelease version', async () => {
+    const { getInstalledVersion } = await import('../../src/utils/version')
+    mockSpawn.mockReturnValue(createMockProcess(0, 'v1.0.0-alpha.1\n'))
+    const version = await getInstalledVersion('cli')
+    expect(version).toBe('1.0.0-alpha.1')
   })
 
   it('returns undefined on non-zero exit', async () => {

@@ -58,6 +58,16 @@ describe('listCommand', () => {
     expect(versionCall).toBeDefined()
   })
 
+  it('shows not installed when binary exists but version cannot be obtained', async () => {
+    allAgentsSpy.mockReturnValue([testAgent])
+    binaryInPathSpy.mockResolvedValue(true)
+    installedVerSpy.mockResolvedValue(undefined)
+    await listCommand()
+    const calls = logSpy.mock.calls.map((c: any[]) => c[0])
+    const notInstalledCall = calls.find((c: string) => c.includes('not installed'))
+    expect(notInstalledCall).toBeDefined()
+  })
+
   it('shows not installed for missing agents', async () => {
     allAgentsSpy.mockReturnValue([testAgent])
     binaryInPathSpy.mockResolvedValue(false)
