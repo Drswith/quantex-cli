@@ -1,5 +1,8 @@
 import process from 'node:process'
 
+// 通用版本号提取正则，匹配 v1.2.3 或 1.2.3 等格式
+const VERSION_PATTERN = /v?(\d+\.\d+\.\d+(?:-[a-z0-9.]+)?)/i
+
 export async function getInstalledVersion(binaryName: string): Promise<string | undefined> {
   try {
     const proc = Bun.spawn([binaryName, '--version'], { stdout: 'pipe', stderr: 'pipe' })
@@ -7,8 +10,11 @@ export async function getInstalledVersion(binaryName: string): Promise<string | 
     if (proc.exitCode !== 0)
       return undefined
     const text = await new Response(proc.stdout).text()
-    // 只取第一行，避免其他信息影响输出格式
-    return text.trim().split('\n')[0] || undefined
+    const firstLine = text.trim().split('\n')[0]
+
+    // 尝试提取版本号，失败则返回第一行原始内容
+    const match = firstLine.match(VERSION_PATTERN)
+    return match ? match[1] : (firstLine || undefined)
   }
   catch {
     return undefined
