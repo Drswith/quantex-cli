@@ -1,11 +1,10 @@
-import type { AgentDefinition } from '../agents'
-import type { ManagedInstallType, ManagedPackageSpec } from '../package-manager'
+import type { AgentDefinition, ManagedInstallType } from '../agents'
+import type { ManagedPackageSpec } from '../package-manager'
 import type { InstalledAgentState } from '../state'
 import pc from 'picocolors'
-import { getAgentByNameOrAlias, getAllAgents } from '../agents'
-import { inspectAgent, inspectAllAgents } from '../agents/inspection'
-import { createUpdatePlan, isInspectionUpdateAvailable } from '../agents/update-plan'
 import { updateAgent, updateAgentsByType } from '../package-manager'
+import { resolveAgent } from '../services/agents'
+import { getSingleAgentUpdateStatus, planAgentUpdates } from '../services/update'
 import { canUpdateInstalledState } from '../utils/install'
 
 export async function updateCommand(agentName: string | undefined, all: boolean): Promise<void> {
@@ -19,7 +18,7 @@ export async function updateCommand(agentName: string | undefined, all: boolean)
     return
   }
 
-  const agent = getAgentByNameOrAlias(agentName)
+  const agent = resolveAgent(agentName)
   if (!agent) {
     console.log(pc.red(`Unknown agent: ${agentName}`))
     return
@@ -28,14 +27,8 @@ export async function updateCommand(agentName: string | undefined, all: boolean)
   await updateSingleAgent(agent)
 }
 
-interface PendingUpdate {
-  agent: AgentDefinition
-  state?: InstalledAgentState
-}
-
 async function updateAllAgents(): Promise<void> {
-  const inspections = await inspectAllAgents(getAllAgents())
-  const plan = createUpdatePlan(inspections)
+  const plan = await planAgentUpdates()
 
   for (const inspection of plan.upToDate)
     console.log(pc.green(`${inspection.agent.displayName} is up to date (${inspection.installedVersion ?? 'unknown'})`))
@@ -45,23 +38,20 @@ async function updateAllAgents(): Promise<void> {
     console.log(pc.cyan(`Updating ${inspection.agent.displayName}...${getVersionHint(inspection.installedVersion, inspection.latestVersion)}`))
   }
 
-  await updateGroupedAgents('bun', plan.grouped.bun.map(entry => toPendingUpdate(entry.inspection)))
-  await updateGroupedAgents('npm', plan.grouped.npm.map(entry => toPendingUpdate(entry.inspection)))
-  await updateGroupedAgents('brew', plan.grouped.brew.map(entry => toPendingUpdate(entry.inspection)))
-  await updateGroupedAgents('winget', plan.grouped.winget.map(entry => toPendingUpdate(entry.inspection)))
+  for (const bucket of plan.grouped)
+    await updateGroupedAgents(bucket.type, bucket.packages, bucket.updates)
 
   for (const entry of plan.manual)
-    await performUpdate(entry.inspection.agent, entry.inspection.installedState, false)
+    await performUpdate(entry.agent, entry.state, false)
 }
 
-async function updateGroupedAgents(type: ManagedInstallType, updates: PendingUpdate[]): Promise<void> {
+async function updateGroupedAgents(
+  type: ManagedInstallType,
+  packages: ManagedPackageSpec[],
+  updates: Array<{ agent: AgentDefinition, state?: InstalledAgentState }>,
+): Promise<void> {
   if (updates.length === 0)
     return
-
-  const packages: ManagedPackageSpec[] = updates.map(item => ({
-    packageName: item.state!.packageName!,
-    packageTargetKind: item.state!.packageTargetKind,
-  }))
 
   const success = await updateAgentsByType(type, packages)
 
@@ -76,14 +66,14 @@ async function updateGroupedAgents(type: ManagedInstallType, updates: PendingUpd
 }
 
 async function updateSingleAgent(agent: AgentDefinition): Promise<void> {
-  const inspection = await inspectAgent(agent)
+  const { inspection, updateAvailable } = await getSingleAgentUpdateStatus(agent)
 
   if (!inspection.inPath) {
     console.log(pc.red(`${agent.displayName} is not installed.`))
     return
   }
 
-  if (!isInspectionUpdateAvailable(inspection)) {
+  if (!updateAvailable) {
     console.log(pc.green(`${agent.displayName} is up to date (${inspection.installedVersion ?? 'unknown'})`))
     return
   }
@@ -94,7 +84,7 @@ async function updateSingleAgent(agent: AgentDefinition): Promise<void> {
 
 async function performUpdate(agent: AgentDefinition, installedState?: InstalledAgentState, withStartLog = true): Promise<void> {
   if (withStartLog) {
-    const inspection = await inspectAgent(agent)
+    const { inspection } = await getSingleAgentUpdateStatus(agent)
     console.log(pc.cyan(`Updating ${agent.displayName}...${getVersionHint(inspection.installedVersion, inspection.latestVersion)}`))
   }
 
@@ -115,14 +105,4 @@ async function performUpdate(agent: AgentDefinition, installedState?: InstalledA
 
 function getVersionHint(installed?: string, latest?: string): string {
   return installed ? ` (${installed} -> ${latest ?? 'latest'})` : ''
-}
-
-function toPendingUpdate(inspection: {
-  agent: AgentDefinition
-  installedState?: InstalledAgentState
-}): PendingUpdate {
-  return {
-    agent: inspection.agent,
-    state: inspection.installedState,
-  }
 }

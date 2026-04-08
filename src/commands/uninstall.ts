@@ -1,9 +1,9 @@
 import pc from 'picocolors'
-import { getAgentByNameOrAlias } from '../agents'
 import { uninstallAgent } from '../package-manager'
+import { resolveAgent } from '../services/agents'
 
 export async function uninstallCommand(agentName: string): Promise<void> {
-  const agent = getAgentByNameOrAlias(agentName)
+  const agent = resolveAgent(agentName)
   if (!agent) {
     console.log(pc.red(`Unknown agent: ${agentName}`))
     return

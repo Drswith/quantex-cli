@@ -27,6 +27,16 @@ export {
   getInstallLifecycle,
   isManagedInstallType,
 } from './package-manager/capabilities'
+export { getManagedInstaller } from './package-manager/installers'
+export type { ManagedInstaller } from './package-manager/installers'
+export { getSingleAgentUpdateStatus, inspectRegisteredAgents, planAgentUpdates, resolveAgent, resolveAgentInspection } from './services'
+export type {
+  ManagedUpdateBucket,
+  PendingAgentUpdate,
+  PlannedAgentUpdates,
+  ResolvedAgentInspection,
+  SingleAgentUpdateStatus,
+} from './services'
 export {
   getInstalledAgentState,
   getStateFilePath,

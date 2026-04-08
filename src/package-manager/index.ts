@@ -1,25 +1,19 @@
 import type { AgentDefinition, InstallMethod, ManagedInstallType } from '../agents/types'
 import type { InstalledAgentState } from '../state'
+import type { ManagedPackageSpec } from './installers'
 import { loadConfig } from '../config'
 import { getInstalledAgentState, removeInstalledAgentState, setInstalledAgentState } from '../state'
-import { getPlatform, isBrewAvailable, isBunAvailable, isNpmAvailable, isWingetAvailable } from '../utils/detect'
+import { getPlatform } from '../utils/detect'
 import { canUpdateInstallType, getManagedPackageName, isManagedInstallType } from '../utils/install'
 import { runBinaryInstall } from './binary'
-import * as brewPm from './brew'
-import * as bunPm from './bun'
-import * as npmPm from './npm'
-import * as wingetPm from './winget'
+import { getManagedInstaller } from './installers'
 
 export type { ManagedInstallType } from '../agents/types'
+export type { ManagedPackageSpec } from './installers'
 
 export interface AgentOperationResult {
   success: boolean
   installedState?: InstalledAgentState
-}
-
-export interface ManagedPackageSpec {
-  packageName: string
-  packageTargetKind?: InstalledAgentState['packageTargetKind']
 }
 
 async function getPreferredManagedInstallType(): Promise<ManagedInstallType | undefined> {
@@ -56,44 +50,17 @@ async function executeManagedMethod(
   packageTargetKind: InstalledAgentState['packageTargetKind'],
   action: 'install' | 'update' | 'uninstall',
 ): Promise<boolean> {
-  if (type === 'bun') {
-    if (!await isBunAvailable())
-      return false
-    return action === 'install'
-      ? bunPm.install(packageName)
-      : action === 'update'
-        ? bunPm.update(packageName)
-        : bunPm.uninstall(packageName)
-  }
-
-  if (type === 'npm') {
-    if (!await isNpmAvailable())
-      return false
-    return action === 'install'
-      ? npmPm.install(packageName)
-      : action === 'update'
-        ? npmPm.update(packageName)
-        : npmPm.uninstall(packageName)
-  }
-
-  if (type === 'brew') {
-    if (!await isBrewAvailable())
-      return false
-    return action === 'install'
-      ? brewPm.install(packageName, packageTargetKind)
-      : action === 'update'
-        ? brewPm.update(packageName, packageTargetKind)
-        : brewPm.uninstall(packageName, packageTargetKind)
-  }
-
-  if (!await isWingetAvailable())
+  const installer = getManagedInstaller(type)
+  if (!await installer.isAvailable())
     return false
 
-  return action === 'install'
-    ? wingetPm.install(packageName)
-    : action === 'update'
-      ? wingetPm.update(packageName)
-      : wingetPm.uninstall(packageName)
+  if (action === 'install')
+    return installer.install(packageName, packageTargetKind)
+
+  if (action === 'update')
+    return installer.update(packageName, packageTargetKind)
+
+  return installer.uninstall(packageName, packageTargetKind)
 }
 
 async function executeMethod(agent: AgentDefinition, method: InstallMethod, action: 'install' | 'update'): Promise<boolean> {
@@ -183,29 +150,10 @@ export async function updateAgentsByType(type: ManagedInstallType, packages: Man
   const uniquePackages = [...new Map(packages
     .filter(pkg => pkg.packageName)
     .map(pkg => [`${pkg.packageTargetKind ?? 'package'}:${pkg.packageName}`, pkg])).values()]
-
-  if (type === 'bun') {
-    if (!await isBunAvailable())
-      return false
-    return bunPm.updateMany(uniquePackages.map(pkg => pkg.packageName))
-  }
-
-  if (type === 'npm') {
-    if (!await isNpmAvailable())
-      return false
-    return npmPm.updateMany(uniquePackages.map(pkg => pkg.packageName))
-  }
-
-  if (type === 'brew') {
-    if (!await isBrewAvailable())
-      return false
-    return brewPm.updateMany(uniquePackages)
-  }
-
-  if (!await isWingetAvailable())
+  const installer = getManagedInstaller(type)
+  if (!await installer.isAvailable())
     return false
-
-  return wingetPm.updateMany(uniquePackages.map(pkg => ({ packageName: pkg.packageName })))
+  return installer.updateMany(uniquePackages)
 }
 
 export async function uninstallAgent(agent: AgentDefinition): Promise<boolean> {

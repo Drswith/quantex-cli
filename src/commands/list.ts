@@ -1,9 +1,8 @@
 import pc from 'picocolors'
-import { getAllAgents } from '../agents'
-import { inspectAllAgents } from '../agents/inspection'
+import { inspectRegisteredAgents } from '../services/agents'
 
 export async function listCommand(): Promise<void> {
-  const inspections = await inspectAllAgents(getAllAgents())
+  const inspections = await inspectRegisteredAgents()
 
   console.log(pc.bold('\nAI Agents:\n'))
 
