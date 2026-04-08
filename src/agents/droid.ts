@@ -13,21 +13,21 @@ export const droid: AgentDefinition = {
   binaryName: 'droid',
   platforms: {
     windows: [
-      bunInstall(1),
-      npmInstall(2),
-      scriptInstall(3, 'irm https://app.factory.ai/cli/windows | iex'),
+      bunInstall(),
+      npmInstall(),
+      scriptInstall('irm https://app.factory.ai/cli/windows | iex'),
     ],
     macos: [
-      bunInstall(1),
-      npmInstall(2),
-      scriptInstall(3, 'curl -fsSL https://app.factory.ai/cli | sh'),
-      brewInstall(4, 'droid', 'cask'),
+      bunInstall(),
+      npmInstall(),
+      scriptInstall('curl -fsSL https://app.factory.ai/cli | sh'),
+      brewInstall('droid', 'cask'),
     ],
     linux: [
-      bunInstall(1),
-      npmInstall(2),
-      scriptInstall(3, 'curl -fsSL https://app.factory.ai/cli | sh'),
-      brewInstall(4, 'droid', 'cask'),
+      bunInstall(),
+      npmInstall(),
+      scriptInstall('curl -fsSL https://app.factory.ai/cli | sh'),
+      brewInstall('droid', 'cask'),
     ],
   },
 }

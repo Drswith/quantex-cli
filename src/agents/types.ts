@@ -8,7 +8,6 @@ interface BaseInstallMethod {
   command?: string
   packageName?: string
   packageTargetKind?: PackageTargetKind
-  priority: number
 }
 
 export interface ManagedInstallMethod extends BaseInstallMethod {

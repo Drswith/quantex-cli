@@ -36,9 +36,9 @@ const testAgent = {
   packages: { npm: 'test-pkg' },
   binaryName: 'test-bin',
   platforms: {
-    linux: [{ type: 'bun' as const, priority: 1 }],
-    macos: [{ type: 'bun' as const, priority: 1 }],
-    windows: [{ type: 'bun' as const, priority: 1 }],
+    linux: [{ type: 'bun' as const }],
+    macos: [{ type: 'bun' as const }],
+    windows: [{ type: 'bun' as const }],
   },
 }
 

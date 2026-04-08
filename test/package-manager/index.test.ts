@@ -32,8 +32,8 @@ const testAgent = {
   binaryName: 'test-bin',
   platforms: {
     linux: [
-      { type: 'bun' as const, priority: 1 },
-      { type: 'npm' as const, priority: 2 },
+      { type: 'bun' as const },
+      { type: 'npm' as const },
     ],
   },
 }
@@ -78,7 +78,7 @@ afterAll(() => {
 })
 
 describe('installAgent', () => {
-  it('tries methods by priority, returns true on first success', async () => {
+  it('tries methods by definition order, returns true on first success', async () => {
     isBunSpy.mockResolvedValue(true)
     bunInstallSpy.mockResolvedValue(true)
     setInstalledAgentStateSpy.mockResolvedValue()
@@ -132,7 +132,7 @@ describe('installAgent', () => {
 })
 
 describe('updateAgent', () => {
-  it('follows same priority pattern', async () => {
+  it('follows the definition order', async () => {
     isBunSpy.mockResolvedValue(true)
     bunUpdateSpy.mockResolvedValue(true)
     setInstalledAgentStateSpy.mockResolvedValue()

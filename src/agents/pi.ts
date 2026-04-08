@@ -13,16 +13,16 @@ export const pi: AgentDefinition = {
   binaryName: 'pi',
   platforms: {
     windows: [
-      bunInstall(1),
-      npmInstall(2),
+      bunInstall(),
+      npmInstall(),
     ],
     macos: [
-      bunInstall(1),
-      npmInstall(2),
+      bunInstall(),
+      npmInstall(),
     ],
     linux: [
-      bunInstall(1),
-      npmInstall(2),
+      bunInstall(),
+      npmInstall(),
     ],
   },
 }

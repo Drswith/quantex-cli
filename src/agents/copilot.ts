@@ -13,19 +13,19 @@ export const copilot: AgentDefinition = {
   binaryName: 'copilot',
   platforms: {
     windows: [
-      wingetInstall(3, 'GitHub.Copilot'),
+      wingetInstall('GitHub.Copilot'),
     ],
     macos: [
-      bunInstall(1),
-      npmInstall(2),
-      scriptInstall(3, 'curl -fsSL https://gh.io/copilot-install | bash'),
-      brewInstall(4, 'copilot-cli'),
+      bunInstall(),
+      npmInstall(),
+      scriptInstall('curl -fsSL https://gh.io/copilot-install | bash'),
+      brewInstall('copilot-cli'),
     ],
     linux: [
-      bunInstall(1),
-      npmInstall(2),
-      scriptInstall(3, 'curl -fsSL https://gh.io/copilot-install | bash'),
-      brewInstall(4, 'copilot-cli'),
+      bunInstall(),
+      npmInstall(),
+      scriptInstall('curl -fsSL https://gh.io/copilot-install | bash'),
+      brewInstall('copilot-cli'),
     ],
   },
 }

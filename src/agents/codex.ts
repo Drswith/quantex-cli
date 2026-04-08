@@ -13,18 +13,18 @@ export const codex: AgentDefinition = {
   binaryName: 'codex',
   platforms: {
     windows: [
-      bunInstall(1),
-      npmInstall(2),
+      bunInstall(),
+      npmInstall(),
     ],
     macos: [
-      bunInstall(1),
-      npmInstall(2),
-      brewInstall(3, 'codex'),
+      bunInstall(),
+      npmInstall(),
+      brewInstall('codex'),
     ],
     linux: [
-      bunInstall(1),
-      npmInstall(2),
-      brewInstall(3, 'codex'),
+      bunInstall(),
+      npmInstall(),
+      brewInstall('codex'),
     ],
   },
 }
