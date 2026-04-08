@@ -28,10 +28,10 @@
 
 ```bash
 # 使用 Bun
-bun add -g quantex-cli
+bun add -g quantex
 
 # 使用 npm
-npm i -g quantex-cli
+npm i -g quantex
 ```
 
 安装后可使用 `quantex` 或短别名 `qtx` 命令。
@@ -139,11 +139,11 @@ bun run build            # 构建
 
 <!-- Badges -->
 
-[npm-version-src]: https://img.shields.io/npm/v/quantex-cli?style=flat&colorA=080f12&colorB=1fa669
-[npm-version-href]: https://npmjs.com/package/quantex-cli
-[npm-downloads-src]: https://img.shields.io/npm/dm/quantex-cli?style=flat&colorA=080f12&colorB=1fa669
-[npm-downloads-href]: https://npmjs.com/package/quantex-cli
-[bundle-src]: https://img.shields.io/bundlephobia/minzip/quantex-cli?style=flat&colorA=080f12&colorB=1fa669&label=minzip
-[bundle-href]: https://bundlephobia.com/result?p=quantex-cli
+[npm-version-src]: https://img.shields.io/npm/v/quantex?style=flat&colorA=080f12&colorB=1fa669
+[npm-version-href]: https://npmjs.com/package/quantex
+[npm-downloads-src]: https://img.shields.io/npm/dm/quantex?style=flat&colorA=080f12&colorB=1fa669
+[npm-downloads-href]: https://npmjs.com/package/quantex
+[bundle-src]: https://img.shields.io/bundlephobia/minzip/quantex?style=flat&colorA=080f12&colorB=1fa669&label=minzip
+[bundle-href]: https://bundlephobia.com/result?p=quantex
 [license-src]: https://img.shields.io/github/license/Drswith/quantex-cli.svg?style=flat&colorA=080f12&colorB=1fa669
 [license-href]: https://github.com/Drswith/quantex-cli/blob/main/LICENSE
