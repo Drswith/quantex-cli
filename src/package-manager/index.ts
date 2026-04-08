@@ -108,6 +108,9 @@ async function executeMethod(agent: AgentDefinition, method: InstallMethod, acti
   if (action === 'update' && !canUpdateInstallType(method.type))
     return false
 
+  if (!method.command)
+    return false
+
   return runBinaryInstall(method.command)
 }
 
@@ -131,7 +134,7 @@ async function persistInstalledState(agent: AgentDefinition, method: InstallMeth
     installType: method.type,
     packageName: getManagedPackageName(agent, method),
     packageTargetKind: method.packageTargetKind,
-    command: method.command,
+    command: 'command' in method ? method.command : undefined,
   }
 
   await setInstalledAgentState(installedState)

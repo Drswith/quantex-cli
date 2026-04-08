@@ -1,4 +1,5 @@
 import type { AgentDefinition } from './types'
+import { brewInstall, bunInstall, npmInstall } from './methods'
 
 export const gemini: AgentDefinition = {
   name: 'gemini',
@@ -6,22 +7,24 @@ export const gemini: AgentDefinition = {
   displayName: 'Gemini CLI',
   description: 'Google 开源 AI 编程助手 CLI',
   homepage: 'https://geminicli.com',
-  package: '@google/gemini-cli',
+  packages: {
+    npm: '@google/gemini-cli',
+  },
   binaryName: 'gemini',
   platforms: {
     windows: [
-      { type: 'bun', command: 'bun add -g @google/gemini-cli', priority: 1 },
-      { type: 'npm', command: 'npm i -g @google/gemini-cli', priority: 2 },
+      bunInstall(1),
+      npmInstall(2),
     ],
     macos: [
-      { type: 'bun', command: 'bun add -g @google/gemini-cli', priority: 1 },
-      { type: 'npm', command: 'npm i -g @google/gemini-cli', priority: 2 },
-      { type: 'brew', command: 'brew install gemini-cli', packageName: 'gemini-cli', priority: 3 },
+      bunInstall(1),
+      npmInstall(2),
+      brewInstall(3, 'gemini-cli'),
     ],
     linux: [
-      { type: 'bun', command: 'bun add -g @google/gemini-cli', priority: 1 },
-      { type: 'npm', command: 'npm i -g @google/gemini-cli', priority: 2 },
-      { type: 'brew', command: 'brew install gemini-cli', packageName: 'gemini-cli', priority: 3 },
+      bunInstall(1),
+      npmInstall(2),
+      brewInstall(3, 'gemini-cli'),
     ],
   },
 }

@@ -27,12 +27,12 @@ const testAgent = {
   displayName: 'Test Agent',
   description: 'A test agent',
   homepage: 'https://example.com',
-  package: 'test-pkg',
+  packages: { npm: 'test-pkg' },
   binaryName: 'test-bin',
   platforms: {
-    linux: [{ type: 'bun' as const, command: 'bun add -g test-pkg', priority: 1 }],
-    macos: [{ type: 'bun' as const, command: 'bun add -g test-pkg', priority: 1 }],
-    windows: [{ type: 'bun' as const, command: 'bun add -g test-pkg', priority: 1 }],
+    linux: [{ type: 'bun' as const, priority: 1 }],
+    macos: [{ type: 'bun' as const, priority: 1 }],
+    windows: [{ type: 'bun' as const, priority: 1 }],
   },
 }
 

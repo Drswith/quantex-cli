@@ -1,4 +1,5 @@
 import type { AgentDefinition } from './types'
+import { brewInstall, bunInstall, npmInstall } from './methods'
 
 export const codex: AgentDefinition = {
   name: 'codex',
@@ -6,22 +7,24 @@ export const codex: AgentDefinition = {
   displayName: 'Codex CLI',
   description: 'OpenAI 官方 AI 编程助手 CLI',
   homepage: 'https://developers.openai.com/codex',
-  package: '@openai/codex',
+  packages: {
+    npm: '@openai/codex',
+  },
   binaryName: 'codex',
   platforms: {
     windows: [
-      { type: 'bun', command: 'bun add -g @openai/codex', priority: 1 },
-      { type: 'npm', command: 'npm i -g @openai/codex', priority: 2 },
+      bunInstall(1),
+      npmInstall(2),
     ],
     macos: [
-      { type: 'bun', command: 'bun add -g @openai/codex', priority: 1 },
-      { type: 'npm', command: 'npm i -g @openai/codex', priority: 2 },
-      { type: 'brew', command: 'brew install codex', packageName: 'codex', priority: 3 },
+      bunInstall(1),
+      npmInstall(2),
+      brewInstall(3, 'codex'),
     ],
     linux: [
-      { type: 'bun', command: 'bun add -g @openai/codex', priority: 1 },
-      { type: 'npm', command: 'npm i -g @openai/codex', priority: 2 },
-      { type: 'brew', command: 'brew install codex', packageName: 'codex', priority: 3 },
+      bunInstall(1),
+      npmInstall(2),
+      brewInstall(3, 'codex'),
     ],
   },
 }

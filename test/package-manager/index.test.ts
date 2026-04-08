@@ -28,12 +28,12 @@ const testAgent = {
   displayName: 'Test Agent',
   description: 'A test agent',
   homepage: 'https://example.com',
-  package: 'test-pkg',
+  packages: { npm: 'test-pkg' },
   binaryName: 'test-bin',
   platforms: {
     linux: [
-      { type: 'bun' as const, command: 'bun add -g test-pkg', priority: 1 },
-      { type: 'npm' as const, command: 'npm i -g test-pkg', priority: 2 },
+      { type: 'bun' as const, priority: 1 },
+      { type: 'npm' as const, priority: 2 },
     ],
   },
 }
@@ -88,7 +88,6 @@ describe('installAgent', () => {
         agentName: 'test-agent',
         installType: 'bun',
         packageName: 'test-pkg',
-        command: 'bun add -g test-pkg',
       },
     })
     expect(bunInstallSpy).toHaveBeenCalledWith('test-pkg')
@@ -106,7 +105,6 @@ describe('installAgent', () => {
         agentName: 'test-agent',
         installType: 'npm',
         packageName: 'test-pkg',
-        command: 'npm i -g test-pkg',
       },
     })
     expect(bunInstallSpy).not.toHaveBeenCalled()
@@ -151,7 +149,6 @@ describe('updateAgent', () => {
       agentName: 'test-agent',
       installType: 'bun',
       packageName: 'test-pkg',
-      command: 'bun add -g test-pkg',
     })).toMatchObject({ success: true })
 
     expect(bunUpdateSpy).toHaveBeenCalledWith('test-pkg')
@@ -179,7 +176,6 @@ describe('uninstallAgent', () => {
       agentName: 'test-agent',
       installType: 'bun',
       packageName: 'test-pkg',
-      command: 'bun add -g test-pkg',
     })
     isBunSpy.mockResolvedValue(true)
     bunUninstallSpy.mockResolvedValue(true)

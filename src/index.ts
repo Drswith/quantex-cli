@@ -1,10 +1,30 @@
 export { claude, codex, getAgentByNameOrAlias, getAllAgents, opencode } from './agents'
-export type { AgentDefinition, InstallMethod, InstallType, ManagedInstallType, PackageTargetKind, Platform } from './agents'
-export { groupInspectionsForUpdate, inspectAgent, inspectAllAgents } from './agents/inspection'
+export type {
+  AgentDefinition,
+  AgentPackageMetadata,
+  BinaryInstallMethod,
+  InstallMethod,
+  InstallType,
+  ManagedInstallMethod,
+  ManagedInstallType,
+  PackageTargetKind,
+  Platform,
+  ScriptInstallMethod,
+} from './agents'
+export { inspectAgent, inspectAllAgents } from './agents/inspection'
+export { createUpdatePlan, isInspectionUpdateAvailable } from './agents/update-plan'
 export { getConfigDir, getConfigFilePath, loadConfig, saveConfig } from './config'
 export type { QuantexConfig } from './config'
 export { getOrderedInstallMethods, installAgent, uninstallAgent, updateAgent, updateAgentsByType } from './package-manager'
 export type { AgentOperationResult, ManagedPackageSpec } from './package-manager'
+export {
+  canLookupLatestVersionForInstallType,
+  canUninstallInstallType,
+  canUpdateInstallType,
+  getInstallerCapabilities,
+  getInstallLifecycle,
+  isManagedInstallType,
+} from './package-manager/capabilities'
 export {
   getInstalledAgentState,
   getStateFilePath,
