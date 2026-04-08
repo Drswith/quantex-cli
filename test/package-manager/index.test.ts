@@ -1,20 +1,25 @@
 import { afterAll, beforeEach, describe, expect, it, vi } from 'vitest'
 import * as binaryPm from '../../src/package-manager/binary'
 import * as bunPm from '../../src/package-manager/bun'
-import { installAgent, uninstallAgent, updateAgent } from '../../src/package-manager/index'
+import { installAgent, uninstallAgent, updateAgent, updateAgentsByType } from '../../src/package-manager/index'
 import * as npmPm from '../../src/package-manager/npm'
+import * as state from '../../src/state'
 import * as detectUtils from '../../src/utils/detect'
 
 const bunInstallSpy = vi.spyOn(bunPm, 'install')
 const bunUpdateSpy = vi.spyOn(bunPm, 'update')
+const bunUpdateManySpy = vi.spyOn(bunPm, 'updateMany')
 const bunUninstallSpy = vi.spyOn(bunPm, 'uninstall')
 const npmInstallSpy = vi.spyOn(npmPm, 'install')
 const npmUpdateSpy = vi.spyOn(npmPm, 'update')
+const npmUpdateManySpy = vi.spyOn(npmPm, 'updateMany')
 const npmUninstallSpy = vi.spyOn(npmPm, 'uninstall')
 const binarySpy = vi.spyOn(binaryPm, 'runBinaryInstall')
 const getPlatformSpy = vi.spyOn(detectUtils, 'getPlatform')
 const isBunSpy = vi.spyOn(detectUtils, 'isBunAvailable')
 const isNpmSpy = vi.spyOn(detectUtils, 'isNpmAvailable')
+const setInstalledAgentStateSpy = vi.spyOn(state, 'setInstalledAgentState')
+const removeInstalledAgentStateSpy = vi.spyOn(state, 'removeInstalledAgentState')
 
 const testAgent = {
   name: 'test-agent',
@@ -35,35 +40,52 @@ const testAgent = {
 beforeEach(() => {
   bunInstallSpy.mockClear()
   bunUpdateSpy.mockClear()
+  bunUpdateManySpy.mockClear()
   bunUninstallSpy.mockClear()
   npmInstallSpy.mockClear()
   npmUpdateSpy.mockClear()
+  npmUpdateManySpy.mockClear()
   npmUninstallSpy.mockClear()
   binarySpy.mockClear()
   getPlatformSpy.mockClear()
   isBunSpy.mockClear()
   isNpmSpy.mockClear()
+  setInstalledAgentStateSpy.mockClear()
+  removeInstalledAgentStateSpy.mockClear()
   getPlatformSpy.mockReturnValue('linux')
 })
 
 afterAll(() => {
   bunInstallSpy.mockRestore()
   bunUpdateSpy.mockRestore()
+  bunUpdateManySpy.mockRestore()
   bunUninstallSpy.mockRestore()
   npmInstallSpy.mockRestore()
   npmUpdateSpy.mockRestore()
+  npmUpdateManySpy.mockRestore()
   npmUninstallSpy.mockRestore()
   binarySpy.mockRestore()
   getPlatformSpy.mockRestore()
   isBunSpy.mockRestore()
   isNpmSpy.mockRestore()
+  setInstalledAgentStateSpy.mockRestore()
+  removeInstalledAgentStateSpy.mockRestore()
 })
 
 describe('installAgent', () => {
   it('tries methods by priority, returns true on first success', async () => {
     isBunSpy.mockResolvedValue(true)
     bunInstallSpy.mockResolvedValue(true)
-    expect(await installAgent(testAgent)).toBe(true)
+    setInstalledAgentStateSpy.mockResolvedValue()
+    expect(await installAgent(testAgent)).toEqual({
+      success: true,
+      installedState: {
+        agentName: 'test-agent',
+        installType: 'bun',
+        packageName: 'test-pkg',
+        command: 'bun add -g test-pkg',
+      },
+    })
     expect(bunInstallSpy).toHaveBeenCalledWith('test-pkg')
     expect(npmInstallSpy).not.toHaveBeenCalled()
   })
@@ -72,7 +94,16 @@ describe('installAgent', () => {
     isBunSpy.mockResolvedValue(false)
     isNpmSpy.mockResolvedValue(true)
     npmInstallSpy.mockResolvedValue(true)
-    expect(await installAgent(testAgent)).toBe(true)
+    setInstalledAgentStateSpy.mockResolvedValue()
+    expect(await installAgent(testAgent)).toEqual({
+      success: true,
+      installedState: {
+        agentName: 'test-agent',
+        installType: 'npm',
+        packageName: 'test-pkg',
+        command: 'npm i -g test-pkg',
+      },
+    })
     expect(bunInstallSpy).not.toHaveBeenCalled()
     expect(npmInstallSpy).toHaveBeenCalledWith('test-pkg')
   })
@@ -82,7 +113,8 @@ describe('installAgent', () => {
     isNpmSpy.mockResolvedValue(true)
     bunInstallSpy.mockResolvedValue(false)
     npmInstallSpy.mockResolvedValue(true)
-    expect(await installAgent(testAgent)).toBe(true)
+    setInstalledAgentStateSpy.mockResolvedValue()
+    expect(await installAgent(testAgent)).toMatchObject({ success: true })
     expect(bunInstallSpy).toHaveBeenCalledWith('test-pkg')
     expect(npmInstallSpy).toHaveBeenCalledWith('test-pkg')
   })
@@ -92,7 +124,7 @@ describe('installAgent', () => {
     isNpmSpy.mockResolvedValue(true)
     bunInstallSpy.mockResolvedValue(false)
     npmInstallSpy.mockResolvedValue(false)
-    expect(await installAgent(testAgent)).toBe(false)
+    expect(await installAgent(testAgent)).toEqual({ success: false })
   })
 })
 
@@ -100,8 +132,35 @@ describe('updateAgent', () => {
   it('follows same priority pattern', async () => {
     isBunSpy.mockResolvedValue(true)
     bunUpdateSpy.mockResolvedValue(true)
-    expect(await updateAgent(testAgent)).toBe(true)
+    setInstalledAgentStateSpy.mockResolvedValue()
+    expect(await updateAgent(testAgent)).toMatchObject({ success: true })
     expect(bunUpdateSpy).toHaveBeenCalledWith('test-pkg')
+  })
+
+  it('uses preferred installed state before falling back', async () => {
+    isBunSpy.mockResolvedValue(true)
+    bunUpdateSpy.mockResolvedValue(true)
+    setInstalledAgentStateSpy.mockResolvedValue()
+
+    expect(await updateAgent(testAgent, {
+      agentName: 'test-agent',
+      installType: 'bun',
+      packageName: 'test-pkg',
+      command: 'bun add -g test-pkg',
+    })).toMatchObject({ success: true })
+
+    expect(bunUpdateSpy).toHaveBeenCalledWith('test-pkg')
+    expect(npmUpdateSpy).not.toHaveBeenCalled()
+  })
+})
+
+describe('updateAgentsByType', () => {
+  it('batches bun updates', async () => {
+    isBunSpy.mockResolvedValue(true)
+    bunUpdateManySpy.mockResolvedValue(true)
+
+    expect(await updateAgentsByType('bun', ['test-pkg', 'test-pkg', 'other-pkg'])).toBe(true)
+    expect(bunUpdateManySpy).toHaveBeenCalledWith(['test-pkg', 'other-pkg'])
   })
 })
 
@@ -114,5 +173,6 @@ describe('uninstallAgent', () => {
     expect(await uninstallAgent(testAgent)).toBe(true)
     expect(bunUninstallSpy).toHaveBeenCalledWith('test-pkg')
     expect(npmUninstallSpy).toHaveBeenCalledWith('test-pkg')
+    expect(removeInstalledAgentStateSpy).toHaveBeenCalledWith('test-agent')
   })
 })
