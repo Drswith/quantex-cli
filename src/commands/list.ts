@@ -12,7 +12,7 @@ export async function listCommand(): Promise<void> {
     const inPath = await isBinaryInPath(agent.binaryName)
     const version = inPath ? await getInstalledVersion(agent.binaryName) : undefined
 
-    const nameStr = agent.displayName.padEnd(16)
+    const nameStr = agent.displayName.padEnd(18)
     const statusStr = inPath ? pc.green('installed') : pc.gray('not installed')
     const versionStr = version ? pc.dim(version) : ''
 
