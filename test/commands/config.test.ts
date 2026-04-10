@@ -9,10 +9,16 @@ const tempHome = join(tmpdir(), `quantex-test-${Date.now()}`)
 const tempDir = join(tempHome, '.quantex')
 const loadConfigSpy = vi.spyOn(config, 'loadConfig')
 const originalHome = process.env.HOME
+const originalUserProfile = process.env.USERPROFILE
+const originalHomeDrive = process.env.HOMEDRIVE
+const originalHomePath = process.env.HOMEPATH
 
 afterAll(() => {
   loadConfigSpy.mockRestore()
   process.env.HOME = originalHome
+  process.env.USERPROFILE = originalUserProfile
+  process.env.HOMEDRIVE = originalHomeDrive
+  process.env.HOMEPATH = originalHomePath
 })
 
 describe('configCommand', () => {
@@ -20,6 +26,7 @@ describe('configCommand', () => {
 
   beforeEach(() => {
     process.env.HOME = tempHome
+    process.env.USERPROFILE = tempHome
     logSpy = vi.spyOn(console, 'log').mockImplementation(() => {})
     loadConfigSpy.mockClear()
   })
