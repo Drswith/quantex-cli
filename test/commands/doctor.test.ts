@@ -1,6 +1,7 @@
 import { afterAll, afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import * as agents from '../../src/agents'
 import { doctorCommand } from '../../src/commands/doctor'
+import * as selfModule from '../../src/self'
 import * as state from '../../src/state'
 import * as detect from '../../src/utils/detect'
 import * as version from '../../src/utils/version'
@@ -14,6 +15,7 @@ const binaryInPathSpy = vi.spyOn(detect, 'isBinaryInPath')
 const installedStateSpy = vi.spyOn(state, 'getInstalledAgentState')
 const installedVerSpy = vi.spyOn(version, 'getInstalledVersion')
 const latestVerSpy = vi.spyOn(version, 'getLatestVersion')
+const inspectSelfSpy = vi.spyOn(selfModule, 'inspectSelf')
 
 afterAll(() => {
   allAgentsSpy.mockRestore()
@@ -25,6 +27,7 @@ afterAll(() => {
   installedStateSpy.mockRestore()
   installedVerSpy.mockRestore()
   latestVerSpy.mockRestore()
+  inspectSelfSpy.mockRestore()
 })
 
 const testAgent = {
@@ -56,9 +59,18 @@ describe('doctorCommand', () => {
     installedStateSpy.mockClear()
     installedVerSpy.mockClear()
     latestVerSpy.mockClear()
+    inspectSelfSpy.mockClear()
     isBrewSpy.mockResolvedValue(false)
     isWingetSpy.mockResolvedValue(false)
     installedStateSpy.mockResolvedValue(undefined)
+    inspectSelfSpy.mockResolvedValue({
+      canAutoUpdate: true,
+      currentVersion: '1.0.0',
+      installSource: 'npm',
+      latestVersion: '1.0.0',
+      packageRoot: '/tmp/quantex',
+      recommendedUpgradeCommand: 'quantex upgrade',
+    })
   })
 
   afterEach(() => {
@@ -76,6 +88,8 @@ describe('doctorCommand', () => {
     expect(output).toContain('brew')
     expect(output).toContain('winget')
     expect(output).toContain('available')
+    expect(output).toContain('Quantex CLI')
+    expect(output).toContain('Auto-update')
   })
 
   it('shows installed agents with versions', async () => {

@@ -1,4 +1,5 @@
 import pc from 'picocolors'
+import { inspectSelf } from '../self'
 import { inspectRegisteredAgents } from '../services/agents'
 import { isBrewAvailable, isBunAvailable, isNpmAvailable, isWingetAvailable } from '../utils/detect'
 
@@ -18,6 +19,17 @@ export async function doctorCommand(): Promise<void> {
 
   const wingetAvailable = await isWingetAvailable()
   console.log(`  winget:${wingetAvailable ? pc.green('available') : pc.red('not found')}`)
+
+  const selfInspection = await inspectSelf()
+  const selfOutdated = selfInspection.latestVersion && selfInspection.latestVersion !== selfInspection.currentVersion
+
+  console.log(`\n${pc.bold('Quantex CLI:')}`)
+  console.log(`  Version:      ${selfInspection.currentVersion}`)
+  console.log(`  Source:       ${selfInspection.installSource}`)
+  console.log(`  Auto-update:  ${selfInspection.canAutoUpdate ? pc.green('supported') : pc.yellow('unsupported')}`)
+  if (selfInspection.latestVersion) {
+    console.log(`  Latest:       ${selfInspection.latestVersion}${selfOutdated ? pc.yellow(' (update available)') : ''}`)
+  }
 
   console.log(`\n${pc.bold('Installed Agents:')}`)
   const inspections = await inspectRegisteredAgents()

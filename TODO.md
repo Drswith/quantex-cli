@@ -106,6 +106,7 @@ quantex help <command>     # 显示命令帮助
 quantex install <agent>    # 安装指定 agent（别名: quantex i）
 quantex update <agent>     # 更新指定 agent（别名: quantex u）
 quantex update --all       # 更新所有已安装的 agent，按安装来源分组批量更新
+quantex upgrade            # 升级 Quantex CLI 自身
 quantex uninstall <agent>  # 卸载指定 agent（别名: quantex rm）
 quantex list               # 列出所有支持的 agent 及状态（别名: quantex ls）
 quantex info <agent>       # 查看 agent 详细信息（版本、安装方式等）

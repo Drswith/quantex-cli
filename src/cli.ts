@@ -70,6 +70,14 @@ program
   })
 
 program
+  .command('upgrade')
+  .description('升级 Quantex CLI')
+  .action(async () => {
+    const { upgradeCommand } = await import('./commands/upgrade')
+    await upgradeCommand()
+  })
+
+program
   .command('doctor')
   .description('检查环境')
   .action(async () => {

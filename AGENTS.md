@@ -133,6 +133,7 @@ interface AgentDefinition {
 | `quantex install <agent>` / `quantex i` | 安装 agent |
 | `quantex update <agent>` / `quantex u` | 更新 agent |
 | `quantex update --all` | 更新所有已安装的 agent，按安装来源分组批量更新 |
+| `quantex upgrade` | 升级 Quantex CLI 自身 |
 | `quantex uninstall <agent>` / `quantex rm` | 卸载 agent |
 | `quantex list` / `quantex ls` | 列出所有 agent |
 | `quantex info <agent>` | 查看 agent 详情 |
