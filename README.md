@@ -66,6 +66,19 @@ quantex update --all
 
 这意味着混合安装场景仍然安全，不会把通过其他方式安装的 agent 错误地塞进 Bun、npm、brew 或 winget 的更新命令；对非托管来源，Quantex 会明确提示需要手动更新。
 
+### 升级 Quantex CLI
+
+```bash
+quantex upgrade
+```
+
+当前自身升级支持：
+
+- 通过 Bun 全局安装的 `quantex-cli`
+- 通过 npm 全局安装的 `quantex-cli`
+
+如果当前是源码工作区运行或其他非托管来源，`upgrade` 会明确提示当前来源不支持自动升级。
+
 ### 卸载 Agent
 
 ```bash
@@ -139,6 +152,7 @@ quantex doctor
 `doctor` 会检查：
 
 - `bun`、`npm`、`brew`、`winget` 这些托管安装器是否可用
+- Quantex CLI 自身的当前版本、安装来源、是否支持自动升级
 - 已安装 agent 的版本状态
 - 已安装 agent 的生命周期和来源，例如 `managed; managed via bun (...)`
 - 当前环境是否缺少任何可用于托管安装/更新的安装器
