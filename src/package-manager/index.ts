@@ -1,6 +1,7 @@
 import type { AgentDefinition, InstallMethod, ManagedInstallType } from '../agents/types'
+import type { NpmBunUpdateStrategy } from '../config'
 import type { InstalledAgentState } from '../state'
-import type { ManagedPackageSpec } from './installers'
+import type { ManagedInstallerUpdateOptions, ManagedPackageSpec } from './installers'
 import { loadConfig } from '../config'
 import { getInstalledAgentState, removeInstalledAgentState, setInstalledAgentState } from '../state'
 import { getPlatform } from '../utils/detect'
@@ -19,6 +20,13 @@ export interface AgentOperationResult {
 async function getPreferredManagedInstallType(): Promise<ManagedInstallType | undefined> {
   const config = await loadConfig()
   return config.defaultPackageManager
+}
+
+async function getManagedUpdateOptions(): Promise<ManagedInstallerUpdateOptions> {
+  const config = await loadConfig()
+  return {
+    npmBunUpdateStrategy: config.npmBunUpdateStrategy,
+  }
 }
 
 export async function getOrderedInstallMethods(agent: AgentDefinition): Promise<InstallMethod[]> {
@@ -42,6 +50,7 @@ async function executeManagedMethod(
   packageName: string,
   packageTargetKind: InstalledAgentState['packageTargetKind'],
   action: 'install' | 'update' | 'uninstall',
+  updateStrategy?: NpmBunUpdateStrategy,
 ): Promise<boolean> {
   const installer = getManagedInstaller(type)
   if (!await installer.isAvailable())
@@ -51,18 +60,23 @@ async function executeManagedMethod(
     return installer.install(packageName, packageTargetKind)
 
   if (action === 'update')
-    return installer.update(packageName, packageTargetKind)
+    return installer.update(packageName, packageTargetKind, { npmBunUpdateStrategy: updateStrategy })
 
   return installer.uninstall(packageName, packageTargetKind)
 }
 
-async function executeMethod(agent: AgentDefinition, method: InstallMethod, action: 'install' | 'update'): Promise<boolean> {
+async function executeMethod(
+  agent: AgentDefinition,
+  method: InstallMethod,
+  action: 'install' | 'update',
+  updateStrategy?: NpmBunUpdateStrategy,
+): Promise<boolean> {
   if (isManagedInstallType(method.type)) {
     const packageName = getManagedPackageName(agent, method)
     if (!packageName)
       return false
 
-    return executeManagedMethod(method.type, packageName, method.packageTargetKind, action)
+    return executeManagedMethod(method.type, packageName, method.packageTargetKind, action, updateStrategy)
   }
 
   if (action === 'update' && !canUpdateInstallType(method.type))
@@ -74,12 +88,16 @@ async function executeMethod(agent: AgentDefinition, method: InstallMethod, acti
   return runBinaryInstall(method.command)
 }
 
-async function executeInstalledState(state: InstalledAgentState, action: 'install' | 'update' | 'uninstall'): Promise<boolean> {
+async function executeInstalledState(
+  state: InstalledAgentState,
+  action: 'install' | 'update' | 'uninstall',
+  updateStrategy?: NpmBunUpdateStrategy,
+): Promise<boolean> {
   if (isManagedInstallType(state.installType)) {
     if (!state.packageName)
       return false
 
-    return executeManagedMethod(state.installType, state.packageName, state.packageTargetKind, action)
+    return executeManagedMethod(state.installType, state.packageName, state.packageTargetKind, action, updateStrategy)
   }
 
   if (action !== 'install' || !state.command)
@@ -117,7 +135,9 @@ export async function installAgent(agent: AgentDefinition): Promise<AgentOperati
 }
 
 export async function updateAgent(agent: AgentDefinition, preferredState?: InstalledAgentState): Promise<AgentOperationResult> {
-  if (preferredState && await executeInstalledState(preferredState, 'update')) {
+  const { npmBunUpdateStrategy } = await getManagedUpdateOptions()
+
+  if (preferredState && await executeInstalledState(preferredState, 'update', npmBunUpdateStrategy)) {
     await setInstalledAgentState(preferredState)
     return {
       success: true,
@@ -128,7 +148,7 @@ export async function updateAgent(agent: AgentDefinition, preferredState?: Insta
   const methods = await getOrderedInstallMethods(agent)
 
   for (const method of methods) {
-    if (await executeMethod(agent, method, 'update')) {
+    if (await executeMethod(agent, method, 'update', npmBunUpdateStrategy)) {
       return {
         success: true,
         installedState: await persistInstalledState(agent, method),
@@ -146,7 +166,7 @@ export async function updateAgentsByType(type: ManagedInstallType, packages: Man
   const installer = getManagedInstaller(type)
   if (!await installer.isAvailable())
     return false
-  return installer.updateMany(uniquePackages)
+  return installer.updateMany(uniquePackages, await getManagedUpdateOptions())
 }
 
 export async function uninstallAgent(agent: AgentDefinition): Promise<boolean> {

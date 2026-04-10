@@ -1,3 +1,5 @@
+export type RegistryUpdateStrategy = 'latest-major' | 'respect-semver'
+
 export async function install(packageName: string): Promise<boolean> {
   try {
     const proc = Bun.spawn(['bun', 'add', '-g', packageName], {
@@ -11,9 +13,9 @@ export async function install(packageName: string): Promise<boolean> {
   }
 }
 
-export async function update(packageName: string): Promise<boolean> {
+export async function update(packageName: string, strategy: RegistryUpdateStrategy = 'latest-major'): Promise<boolean> {
   try {
-    const proc = Bun.spawn(['bun', 'update', '-g', packageName], {
+    const proc = Bun.spawn(['bun', 'update', '-g', ...(strategy === 'latest-major' ? ['--latest'] : []), packageName], {
       stdio: ['inherit', 'inherit', 'inherit'] as const,
     })
     await proc.exited
@@ -24,12 +26,12 @@ export async function update(packageName: string): Promise<boolean> {
   }
 }
 
-export async function updateMany(packageNames: string[]): Promise<boolean> {
+export async function updateMany(packageNames: string[], strategy: RegistryUpdateStrategy = 'latest-major'): Promise<boolean> {
   if (packageNames.length === 0)
     return true
 
   try {
-    const proc = Bun.spawn(['bun', 'update', '-g', ...packageNames], {
+    const proc = Bun.spawn(['bun', 'update', '-g', ...(strategy === 'latest-major' ? ['--latest'] : []), ...packageNames], {
       stdio: ['inherit', 'inherit', 'inherit'] as const,
     })
     await proc.exited

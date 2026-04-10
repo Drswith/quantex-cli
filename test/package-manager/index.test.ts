@@ -1,4 +1,5 @@
 import { afterAll, beforeEach, describe, expect, it, vi } from 'vitest'
+import * as config from '../../src/config'
 import * as binaryPm from '../../src/package-manager/binary'
 import * as bunPm from '../../src/package-manager/bun'
 import { installAgent, uninstallAgent, updateAgent, updateAgentsByType } from '../../src/package-manager/index'
@@ -15,6 +16,7 @@ const npmUpdateSpy = vi.spyOn(npmPm, 'update')
 const npmUpdateManySpy = vi.spyOn(npmPm, 'updateMany')
 const npmUninstallSpy = vi.spyOn(npmPm, 'uninstall')
 const binarySpy = vi.spyOn(binaryPm, 'runBinaryInstall')
+const loadConfigSpy = vi.spyOn(config, 'loadConfig')
 const getPlatformSpy = vi.spyOn(detectUtils, 'getPlatform')
 const isBunSpy = vi.spyOn(detectUtils, 'isBunAvailable')
 const isNpmSpy = vi.spyOn(detectUtils, 'isNpmAvailable')
@@ -48,6 +50,7 @@ beforeEach(() => {
   npmUpdateManySpy.mockClear()
   npmUninstallSpy.mockClear()
   binarySpy.mockClear()
+  loadConfigSpy.mockClear()
   getPlatformSpy.mockClear()
   isBunSpy.mockClear()
   isNpmSpy.mockClear()
@@ -55,6 +58,10 @@ beforeEach(() => {
   setInstalledAgentStateSpy.mockClear()
   removeInstalledAgentStateSpy.mockClear()
   getPlatformSpy.mockReturnValue('linux')
+  loadConfigSpy.mockResolvedValue({
+    defaultPackageManager: 'bun',
+    npmBunUpdateStrategy: 'latest-major',
+  })
   getInstalledAgentStateSpy.mockResolvedValue(undefined)
   removeInstalledAgentStateSpy.mockResolvedValue()
 })
@@ -69,6 +76,7 @@ afterAll(() => {
   npmUpdateManySpy.mockRestore()
   npmUninstallSpy.mockRestore()
   binarySpy.mockRestore()
+  loadConfigSpy.mockRestore()
   getPlatformSpy.mockRestore()
   isBunSpy.mockRestore()
   isNpmSpy.mockRestore()
@@ -137,7 +145,7 @@ describe('updateAgent', () => {
     bunUpdateSpy.mockResolvedValue(true)
     setInstalledAgentStateSpy.mockResolvedValue()
     expect(await updateAgent(testAgent)).toMatchObject({ success: true })
-    expect(bunUpdateSpy).toHaveBeenCalledWith('test-pkg')
+    expect(bunUpdateSpy).toHaveBeenCalledWith('test-pkg', 'latest-major')
   })
 
   it('uses preferred installed state before falling back', async () => {
@@ -151,8 +159,21 @@ describe('updateAgent', () => {
       packageName: 'test-pkg',
     })).toMatchObject({ success: true })
 
-    expect(bunUpdateSpy).toHaveBeenCalledWith('test-pkg')
+    expect(bunUpdateSpy).toHaveBeenCalledWith('test-pkg', 'latest-major')
     expect(npmUpdateSpy).not.toHaveBeenCalled()
+  })
+
+  it('passes respect-semver from config to registry installers', async () => {
+    loadConfigSpy.mockResolvedValue({
+      defaultPackageManager: 'bun',
+      npmBunUpdateStrategy: 'respect-semver',
+    })
+    isBunSpy.mockResolvedValue(true)
+    bunUpdateSpy.mockResolvedValue(true)
+    setInstalledAgentStateSpy.mockResolvedValue()
+
+    expect(await updateAgent(testAgent)).toMatchObject({ success: true })
+    expect(bunUpdateSpy).toHaveBeenCalledWith('test-pkg', 'respect-semver')
   })
 })
 
@@ -166,7 +187,7 @@ describe('updateAgentsByType', () => {
       { packageName: 'test-pkg' },
       { packageName: 'other-pkg' },
     ])).toBe(true)
-    expect(bunUpdateManySpy).toHaveBeenCalledWith(['test-pkg', 'other-pkg'])
+    expect(bunUpdateManySpy).toHaveBeenCalledWith(['test-pkg', 'other-pkg'], 'latest-major')
   })
 })
 

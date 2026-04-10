@@ -32,20 +32,29 @@ describe('configCommand', () => {
   })
 
   it('shows current config when no action', async () => {
-    loadConfigSpy.mockResolvedValue({ defaultPackageManager: 'bun' })
+    loadConfigSpy.mockResolvedValue({
+      defaultPackageManager: 'bun',
+      npmBunUpdateStrategy: 'latest-major',
+    })
     await configCommand()
     expect(loadConfigSpy).toHaveBeenCalled()
     expect(logSpy).toHaveBeenCalledWith(expect.stringContaining('Configuration'))
   })
 
   it('gets a specific config key', async () => {
-    loadConfigSpy.mockResolvedValue({ defaultPackageManager: 'bun' })
+    loadConfigSpy.mockResolvedValue({
+      defaultPackageManager: 'bun',
+      npmBunUpdateStrategy: 'latest-major',
+    })
     await configCommand('get', 'defaultPackageManager')
     expect(logSpy).toHaveBeenCalledWith('bun')
   })
 
   it('shows not set for missing key', async () => {
-    loadConfigSpy.mockResolvedValue({ defaultPackageManager: 'bun' })
+    loadConfigSpy.mockResolvedValue({
+      defaultPackageManager: 'bun',
+      npmBunUpdateStrategy: 'latest-major',
+    })
     await configCommand('get', 'nonexistent')
     expect(logSpy).toHaveBeenCalledWith(expect.stringContaining('not set'))
   })
@@ -63,7 +72,26 @@ describe('configCommand', () => {
     const configPath = join(tempDir, 'config.json')
     const content = JSON.parse(readFileSync(configPath, 'utf8'))
     expect(content.defaultPackageManager).toBe('bun')
+    expect(content.npmBunUpdateStrategy).toBe('latest-major')
     expect(logSpy).toHaveBeenCalledWith(expect.stringContaining('reset to defaults'))
+  })
+
+  it('sets npmBunUpdateStrategy', async () => {
+    loadConfigSpy.mockResolvedValue({
+      defaultPackageManager: 'bun',
+      npmBunUpdateStrategy: 'latest-major',
+    })
+    await configCommand('set', 'npmBunUpdateStrategy', 'respect-semver')
+    const configPath = join(tempDir, 'config.json')
+    const content = JSON.parse(readFileSync(configPath, 'utf8'))
+    expect(content.npmBunUpdateStrategy).toBe('respect-semver')
+    expect(logSpy).toHaveBeenCalledWith(expect.stringContaining('Set npmBunUpdateStrategy = respect-semver'))
+  })
+
+  it('rejects invalid npmBunUpdateStrategy', async () => {
+    await configCommand('set', 'npmBunUpdateStrategy', 'invalid')
+    expect(logSpy).toHaveBeenCalledWith(expect.stringContaining('npmBunUpdateStrategy must be latest-major or respect-semver'))
+    expect(existsSync(join(tempDir, 'config.json'))).toBe(false)
   })
 
   it('shows error for unknown action', async () => {

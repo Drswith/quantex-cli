@@ -39,7 +39,8 @@
 
 ```json
 {
-  "defaultPackageManager": "bun"
+  "defaultPackageManager": "bun",
+  "npmBunUpdateStrategy": "latest-major"
 }
 ```
 
@@ -61,6 +62,11 @@
 ## 安装与更新方式
 
 每个 Agent 支持一组安装方式，默认按定义顺序回退；如果设置了 `defaultPackageManager`，则匹配的托管安装器会被优先尝试。
+
+`npmBunUpdateStrategy` 控制通过 npm / Bun 安装的 agent 在更新时的策略：
+
+- `latest-major`：直接升级到 registry 最新版本
+- `respect-semver`：遵循包管理器默认的 semver 更新规则
 
 ### 1. bun
 ```bash
@@ -84,8 +90,9 @@ npm i -g @anthropic-ai/claude-code
 
 `quantex update --all` 的行为：
 
-- 已记录为 `bun` 的 agent 会合并成一条 `bun update -g ...`
-- 已记录为 `npm` 的 agent 会合并成一条 `npm update -g ...`
+- 已记录为 `bun` 的 agent 会合并成一条 `bun update -g --latest ...`
+- 已记录为 `npm` 的 agent 会合并成一条 `npm install -g ...@latest`
+- 如果把 `npmBunUpdateStrategy` 设为 `respect-semver`，则分别退回 `bun update -g ...` 和 `npm update -g ...`
 - `brew`、`winget` 会按记录的安装器标识逐个更新
 - `binary`、脚本安装或未记录来源的 agent 不会被自动更新
 - 混合安装场景下不会把其他来源的 agent 错误并入 Bun/npm 批量命令
