@@ -1,5 +1,5 @@
-import type { AgentDefinition } from './types'
-import { brewInstall, bunInstall, npmInstall, scriptInstall } from './methods'
+import type { AgentDefinition } from '../types'
+import { brewInstall, bunInstall, npmInstall, scriptInstall } from '../methods'
 
 export const droid: AgentDefinition = {
   name: 'droid',

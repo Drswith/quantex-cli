@@ -1,5 +1,5 @@
-import type { AgentDefinition } from './types'
-import { bunInstall, npmInstall } from './methods'
+import type { AgentDefinition } from '../types'
+import { bunInstall, npmInstall } from '../methods'
 
 export const pi: AgentDefinition = {
   name: 'pi',

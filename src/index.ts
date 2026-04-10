@@ -11,12 +11,10 @@ export type {
   Platform,
   ScriptInstallMethod,
 } from './agents'
-export { inspectAgent, inspectAllAgents } from './agents/inspection'
-export type { AgentInspection } from './agents/inspection'
-export { createUpdatePlan, isInspectionUpdateAvailable } from './agents/update-plan'
-export type { UpdatePlan, UpdatePlanEntry } from './agents/update-plan'
 export { getConfigDir, getConfigFilePath, loadConfig, saveConfig } from './config'
 export type { QuantexConfig } from './config'
+export { inspectAgent, inspectAllAgents } from './inspection'
+export type { AgentInspection } from './inspection'
 export { getOrderedInstallMethods, installAgent, uninstallAgent, updateAgent, updateAgentsByType } from './package-manager'
 export type { AgentOperationResult, ManagedPackageSpec } from './package-manager'
 export {
@@ -29,6 +27,8 @@ export {
 } from './package-manager/capabilities'
 export { getManagedInstaller } from './package-manager/installers'
 export type { ManagedInstaller } from './package-manager/installers'
+export { createUpdatePlan, isInspectionUpdateAvailable } from './planning'
+export type { UpdatePlan, UpdatePlanEntry } from './planning'
 export { getSingleAgentUpdateStatus, inspectRegisteredAgents, planAgentUpdates, resolveAgent, resolveAgentInspection } from './services'
 export type {
   ManagedUpdateBucket,

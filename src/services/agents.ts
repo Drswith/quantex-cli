@@ -1,7 +1,7 @@
 import type { AgentDefinition } from '../agents'
-import type { AgentInspection } from '../agents/inspection'
+import type { AgentInspection } from '../inspection'
 import * as agentRegistry from '../agents'
-import * as inspectionService from '../agents/inspection'
+import * as inspectionService from '../inspection'
 
 export interface ResolvedAgentInspection {
   agent: AgentDefinition

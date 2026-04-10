@@ -62,16 +62,18 @@ src/
 │   ├── index.ts
 │   ├── types.ts
 │   ├── methods.ts
-│   ├── inspection.ts
-│   ├── update-plan.ts
-│   ├── claude.ts
-│   ├── codex.ts
-│   ├── copilot.ts
-│   ├── cursor.ts
-│   ├── droid.ts
-│   ├── gemini.ts
-│   ├── opencode.ts
-│   └── pi.ts
+│   └── definitions/
+│       ├── claude.ts
+│       ├── codex.ts
+│       ├── copilot.ts
+│       ├── cursor.ts
+│       ├── droid.ts
+│       ├── gemini.ts
+│       ├── opencode.ts
+│       └── pi.ts
+├── inspection/           # Agent 运行期探测与聚合
+│   ├── index.ts
+│   └── agents.ts
 ├── package-manager/      # 包管理器抽象
 │   ├── index.ts
 │   ├── installers.ts
@@ -81,6 +83,9 @@ src/
 │   ├── brew.ts
 │   ├── winget.ts
 │   └── binary.ts
+├── planning/             # 更新计划生成
+│   ├── index.ts
+│   └── updates.ts
 ├── services/             # Application service 层
 │   ├── index.ts
 │   ├── agents.ts

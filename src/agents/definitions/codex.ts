@@ -1,5 +1,5 @@
-import type { AgentDefinition } from './types'
-import { brewInstall, bunInstall, npmInstall } from './methods'
+import type { AgentDefinition } from '../types'
+import { brewInstall, bunInstall, npmInstall } from '../methods'
 
 export const codex: AgentDefinition = {
   name: 'codex',
