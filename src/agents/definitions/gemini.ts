@@ -3,7 +3,6 @@ import { brewInstall, bunInstall, npmInstall } from '../methods'
 
 export const gemini: AgentDefinition = {
   name: 'gemini',
-  aliases: ['gemini'],
   displayName: 'Gemini CLI',
   description: 'Google 开源 AI 编程助手 CLI',
   homepage: 'https://geminicli.com',

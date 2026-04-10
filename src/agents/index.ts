@@ -23,8 +23,12 @@ export function getAllAgents(): AgentDefinition[] {
   return agents
 }
 
+export function getAgentByLookupName(name: string): AgentDefinition | undefined {
+  return agents.find(agent => agent.name === name || (agent.lookupAliases?.includes(name) ?? false))
+}
+
 export function getAgentByNameOrAlias(name: string): AgentDefinition | undefined {
-  return agents.find(a => a.name === name || a.aliases.includes(name))
+  return getAgentByLookupName(name)
 }
 
 export { claude, codex, copilot, cursor, droid, gemini, opencode, pi }

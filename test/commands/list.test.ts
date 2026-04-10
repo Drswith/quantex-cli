@@ -19,7 +19,7 @@ afterAll(() => {
 
 const testAgent = {
   name: 'test-agent',
-  aliases: ['ta'],
+  lookupAliases: ['ta'],
   displayName: 'Test Agent',
   description: 'test',
   homepage: 'https://example.com',

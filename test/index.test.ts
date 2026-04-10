@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { codex, copilot, createUpdatePlan, cursor, droid, gemini, getAgentByNameOrAlias, getAllAgents, inspectAgent, opencode, pi } from '../src/index'
+import { codex, copilot, createUpdatePlan, cursor, droid, gemini, getAgentByLookupName, getAgentByNameOrAlias, getAllAgents, inspectAgent, opencode, pi } from '../src/index'
 
 describe('agent registry', () => {
   it('returns all agents', () => {
@@ -16,6 +16,11 @@ describe('agent registry', () => {
   it('returns undefined for unknown agent', () => {
     const agent = getAgentByNameOrAlias('unknown-agent')
     expect(agent).toBeUndefined()
+  })
+
+  it('re-exports lookup-based resolution', () => {
+    const agent = getAgentByLookupName('agent')
+    expect(agent?.name).toBe('cursor')
   })
 })
 
