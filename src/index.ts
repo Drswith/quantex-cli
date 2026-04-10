@@ -1,4 +1,4 @@
-export { claude, codex, copilot, cursor, droid, gemini, getAgentByNameOrAlias, getAllAgents, opencode, pi } from './agents'
+export { claude, codex, copilot, cursor, droid, gemini, getAgentByLookupName, getAgentByNameOrAlias, getAllAgents, opencode, pi } from './agents'
 export type {
   AgentDefinition,
   AgentPackageMetadata,

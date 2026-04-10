@@ -1,6 +1,6 @@
 import type { AgentDefinition } from '../src/agents/types'
 import { describe, expect, it } from 'vitest'
-import { getAgentByNameOrAlias, getAllAgents } from '../src/agents'
+import { getAgentByLookupName, getAgentByNameOrAlias, getAllAgents } from '../src/agents'
 import { claude } from '../src/agents/definitions/claude'
 import { codex } from '../src/agents/definitions/codex'
 import { copilot } from '../src/agents/definitions/copilot'
@@ -26,11 +26,17 @@ describe('agent registry', () => {
   it('returns undefined for unknown agent', () => {
     expect(getAgentByNameOrAlias('unknown-agent')).toBeUndefined()
   })
+
+  it('finds agent by lookup alias', () => {
+    const agent = getAgentByLookupName('agent')
+    expect(agent).toBeDefined()
+    expect(agent!.name).toBe('cursor')
+  })
 })
 
 function validateAgent(agent: AgentDefinition): void {
   expect(agent.name).toBeTruthy()
-  expect(agent.aliases).toBeInstanceOf(Array)
+  expect(agent.lookupAliases ?? []).toBeInstanceOf(Array)
   expect(agent.displayName).toBeTruthy()
   expect(agent.description).toBeTruthy()
   expect(agent.homepage).toMatch(/^https:\/\//)
@@ -95,7 +101,7 @@ describe('copilot', () => {
     expect(copilot.displayName).toBe('GitHub Copilot CLI')
     expect(copilot.packages?.npm).toBe('@github/copilot')
     expect(copilot.binaryName).toBe('copilot')
-    expect(copilot.aliases).toContain('copilot')
+    expect(copilot.lookupAliases).toBeUndefined()
   })
 
   it('script install returns correct strings per platform', () => {
@@ -155,7 +161,7 @@ describe('gemini', () => {
     expect(gemini.displayName).toBe('Gemini CLI')
     expect(gemini.packages?.npm).toBe('@google/gemini-cli')
     expect(gemini.binaryName).toBe('gemini')
-    expect(gemini.aliases).toContain('gemini')
+    expect(gemini.lookupAliases).toBeUndefined()
   })
 
   it('brew install returns correct strings per platform', () => {
@@ -214,11 +220,11 @@ describe('install command formatting', () => {
 })
 
 describe('agent identifiers', () => {
-  it('has no duplicate names or aliases across agents', () => {
+  it('has no duplicate names or lookup aliases across agents', () => {
     const agents = getAllAgents()
     const seen = new Map<string, string>()
     for (const agent of agents) {
-      const identifiers = [agent.name, ...agent.aliases]
+      const identifiers = [agent.name, ...(agent.lookupAliases ?? [])]
       for (const id of identifiers) {
         const existingAgent = seen.get(id)
         if (existingAgent && existingAgent !== agent.name) {
@@ -232,6 +238,12 @@ describe('agent identifiers', () => {
   it('agent names are lowercase', () => {
     for (const agent of getAllAgents()) {
       expect(agent.name).toBe(agent.name.toLowerCase())
+    }
+  })
+
+  it('lookup aliases do not repeat the canonical name', () => {
+    for (const agent of getAllAgents()) {
+      expect(agent.lookupAliases ?? []).not.toContain(agent.name)
     }
   })
 

@@ -3,7 +3,6 @@ import { brewInstall, bunInstall, npmInstall, scriptInstall } from '../methods'
 
 export const droid: AgentDefinition = {
   name: 'droid',
-  aliases: ['droid'],
   displayName: 'Droid',
   description: 'Factory AI 软件工程 Agent CLI',
   homepage: 'https://docs.factory.ai/cli/getting-started/overview',

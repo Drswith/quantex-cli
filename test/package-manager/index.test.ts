@@ -24,7 +24,7 @@ const removeInstalledAgentStateSpy = vi.spyOn(state, 'removeInstalledAgentState'
 
 const testAgent = {
   name: 'test-agent',
-  aliases: [] as string[],
+  lookupAliases: [] as string[],
   displayName: 'Test Agent',
   description: 'A test agent',
   homepage: 'https://example.com',

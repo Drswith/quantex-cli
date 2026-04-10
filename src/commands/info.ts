@@ -13,7 +13,7 @@ export async function infoCommand(agentName: string): Promise<void> {
 
   console.log(pc.bold(`\n${agent.displayName}\n`))
   console.log(`  Name:         ${agent.name}`)
-  console.log(`  Aliases:      ${agent.aliases.join(', ')}`)
+  console.log(`  Aliases:      ${agent.lookupAliases?.join(', ') ?? '-'}`)
   console.log(`  Description:  ${agent.description}`)
   console.log(`  Package:      ${agent.packages?.npm ?? '-'}`)
   console.log(`  Binary:       ${agent.binaryName}`)

@@ -33,7 +33,7 @@ export interface AgentPackageMetadata {
 
 export interface AgentDefinition {
   name: string
-  aliases: string[]
+  lookupAliases?: string[]
   displayName: string
   description: string
   homepage: string
