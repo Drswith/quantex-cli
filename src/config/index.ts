@@ -1,6 +1,8 @@
-import { mkdir } from 'node:fs/promises'
+import type { Jiti } from 'jiti'
+import { mkdir, readFile } from 'node:fs/promises'
 import { homedir } from 'node:os'
 import { join } from 'node:path'
+import { pathToFileURL } from 'node:url'
 import { loadConfig as c12LoadConfig } from 'c12'
 import { defaultConfig } from './default'
 
@@ -21,10 +23,22 @@ export function getConfigFilePath(): string {
 }
 
 export async function loadConfig(): Promise<QuantexConfig> {
+  const jiti = {
+    import: async (id: string, options?: { default?: boolean }) => {
+      if (id.endsWith('.json')) {
+        return JSON.parse(await readFile(id, 'utf8'))
+      }
+
+      const module = await import(id.startsWith('file:') ? id : pathToFileURL(id).href)
+      return options?.default ? (module.default ?? module) : module
+    },
+  } as unknown as Jiti
+
   const { config } = await c12LoadConfig({
     name: 'quantex',
     defaults: defaultConfig,
     configFile: getConfigFilePath(),
+    jiti,
   })
   const normalizedConfig = config as Record<string, unknown>
   return {
