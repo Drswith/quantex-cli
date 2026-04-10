@@ -11,11 +11,10 @@
 - **Build**: [tsdown](https://github.com/nicepkg/tsdown) — 基于 rolldown 的打包工具
 - **Test**: [Vitest](https://vitest.dev) — Vite 生态测试框架
 - **Lint**: @antfu/eslint-config
-- **Run**: Bun 原生支持 TypeScript，无需 tsx
 
 ## 支持的 AI Agent
 
-| Agent | name | 包名 | 别名 | binaryName |
+| Agent | name | npm 包名 | lookupAliases | binaryName |
 |-------|------|------|------|------------|
 | Claude Code | `claude` | `@anthropic-ai/claude-code` | - | `claude` |
 | Codex CLI | `codex` | `@openai/codex` | - | `codex` |
@@ -61,9 +60,9 @@
 
 ## 安装与更新方式
 
-每个 Agent 支持以下安装方式（按优先级）:
+每个 Agent 支持一组安装方式，默认按定义顺序回退；如果设置了 `defaultPackageManager`，则匹配的托管安装器会被优先尝试。
 
-### 1. bun（优先）
+### 1. bun
 ```bash
 bun add -g @anthropic-ai/claude-code
 ```
@@ -87,7 +86,8 @@ npm i -g @anthropic-ai/claude-code
 
 - 已记录为 `bun` 的 agent 会合并成一条 `bun update -g ...`
 - 已记录为 `npm` 的 agent 会合并成一条 `npm update -g ...`
-- `binary`、脚本安装或未记录来源的 agent 继续逐个更新
+- `brew`、`winget` 会按记录的安装器标识逐个更新
+- `binary`、脚本安装或未记录来源的 agent 不会被自动更新
 - 混合安装场景下不会把其他来源的 agent 错误并入 Bun/npm 批量命令
 
 ## CLI 命令设计
@@ -135,7 +135,7 @@ quantex agent              # 即 cursor
 ```
 
 行为规则:
-- 如果第一个参数匹配已注册的 agent 名称或别名，则作为代理启动该 agent
+- 如果第一个参数匹配已注册的 agent 名称或 lookup alias，则作为代理启动该 agent
 - 后续所有参数原样透传给 agent 进程（`stdio: inherit`）
 - agent 未安装时，提示是否自动安装后再启动
 - 如果第一个参数不匹配任何 agent，则走正常的 CLI 命令路由
@@ -158,12 +158,6 @@ quantex which <agent>      # 查看 agent 可执行文件路径（未实现）
 | [picocolors](https://github.com/alexeyraspopov/picocolors) | 终端彩色输出（极轻量） |
 | [prompts](https://github.com/terkelg/prompts) | 交互式提示（安装确认等） |
 
-> **利用 Bun 内置能力替代的依赖:**
-> - `Bun.spawn` 替代 execa（子进程执行）
-> - `Bun.file` / `Bun.write` 替代 fs-extra（文件操作）
-> - `fetch`（Bun 内置）替代 ofetch（查询 npm registry 版本信息）
-> - Bun 原生 TS 支持替代 tsx（直接运行 TypeScript）
-
 ### 目录结构
 
 ```
@@ -179,59 +173,85 @@ src/
 │   ├── run.ts            # 快捷启动 agent（透传参数）
 │   ├── config.ts
 │   └── doctor.ts
-├── agents/               # Agent 定义与注册
-│   ├── index.ts          # Agent 注册表
-│   ├── types.ts          # Agent 类型定义
-│   ├── claude.ts
-│   ├── codex.ts
-│   ├── copilot.ts
-│   ├── cursor.ts
-│   ├── droid.ts
-│   ├── gemini.ts
-│   ├── opencode.ts
-│   ├── pi.ts
-│   └── ...
+├── agents/               # Agent catalog 与静态定义模型
+│   ├── index.ts
+│   ├── types.ts
+│   ├── methods.ts
+│   └── definitions/
+│       ├── claude.ts
+│       ├── codex.ts
+│       ├── copilot.ts
+│       ├── cursor.ts
+│       ├── droid.ts
+│       ├── gemini.ts
+│       ├── opencode.ts
+│       └── pi.ts
+├── inspection/           # Agent 运行期探测
+│   ├── index.ts
+│   └── agents.ts
 ├── package-manager/      # 包管理器抽象
 │   ├── index.ts
+│   ├── installers.ts
+│   ├── capabilities.ts
 │   ├── bun.ts
 │   ├── npm.ts
-│   └── binary.ts         # 二进制安装方式
-├── state/                # 运行时状态（安装来源等）
+│   ├── brew.ts
+│   ├── winget.ts
+│   └── binary.ts
+├── planning/             # 更新计划生成
+│   ├── index.ts
+│   └── updates.ts
+├── services/             # Application service 层
+│   ├── index.ts
+│   ├── agents.ts
+│   └── update.ts
+├── state/                # 运行时状态导出
 │   └── index.ts
+├── state.ts              # 状态模型与持久化实现
 ├── config/               # 配置管理
 │   ├── default.ts        # 默认配置
 │   └── index.ts          # 配置加载（c12）
 └── utils/                # 工具函数
     ├── detect.ts         # 环境检测（OS、包管理器可用性）
     ├── exec.ts           # 命令执行封装
+    ├── install.ts        # 安装来源与展示辅助
     └── version.ts        # 版本查询与比较
-scripts/
-└── build-bin.ts          # 二进制交叉编译脚本
 ```
 
 ### Agent 类型定义
 
 ```typescript
 type Platform = 'windows' | 'macos' | 'linux'
-type InstallType = 'bun' | 'npm' | 'binary'
+type ManagedInstallType = 'bun' | 'npm' | 'brew' | 'winget'
+type InstallType = ManagedInstallType | 'script' | 'binary'
+type PackageTargetKind = 'package' | 'cask' | 'id'
 
 interface InstallMethod {
   type: InstallType
-  command: string              // 始终为字符串，声明式
-  priority: number             // 越小越优先
+  command?: string
+  packageName?: string
+  packageTargetKind?: PackageTargetKind
 }
 
 interface AgentDefinition {
-  name: string                 // 唯一标识，如 "claude"
-  aliases: string[]            // 快捷启动别名，如 ["agent"]
+  name: string                 // canonical id
+  lookupAliases?: string[]     // 额外可解析名称，如 ["agent"]
   displayName: string
   description: string
   homepage: string
-  package: string
+  packages?: {
+    npm?: string               // npm 包名
+  }
   platforms: Partial<Record<Platform, InstallMethod[]>>
-  binaryName: string           // 安装后的可执行文件名，如 "claude"
+  binaryName: string           // 安装后的实际可执行文件名
 }
 ```
+
+补充约定：
+
+- `packages.npm` 专指 npm 包名
+- `InstallMethod.packageName` 是安装器专用标识：npm/bun 用包名，brew 用 formula/cask 标识，winget 用 package ID
+- `name`、`lookupAliases`、`binaryName` 的职责分离
 
 ## 开发计划
 
@@ -304,7 +324,6 @@ bun build --compile ./src/cli.ts --target=bun-windows-x64-modern --outfile=dist/
   - `Bun.spawn` 处理子进程（安装/更新/启动 agent）
   - `Bun.file` / `Bun.write` 处理文件读写
   - `fetch` 查询 npm registry 版本信息
-  - 直接运行 `.ts` 文件，无需 tsx 编译
 - `packageManager` 字段锁定 Bun 版本
 - 遵循 `@antfu/eslint-config` 代码规范
 - `package.json` 需添加 `bin` 字段指向 CLI 入口

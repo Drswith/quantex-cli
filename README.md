@@ -60,7 +60,7 @@ quantex update --all
 
 - 通过 Bun 安装的 agent 会合并为一条 `bun update -g ...`
 - 通过 npm 安装的 agent 会合并为一条 `npm update -g ...`
-- 通过 Homebrew 安装的 agent 会按 `brew` 记录的包名逐个更新
+- 通过 Homebrew 安装的 agent 会按记录的 formula/cask 标识逐个更新
 - 通过 winget 安装的 agent 会按 `winget` 记录的包 ID 逐个更新
 - 通过脚本、直装二进制或仅在 PATH 中探测到的 agent 不会被自动更新
 
@@ -155,6 +155,8 @@ quantex doctor
 
 `defaultPackageManager` 会影响托管安装方式的尝试顺序。比如某个 agent 同时支持 Bun 和 npm 时，设置为 `npm` 后，Quantex 会先尝试 npm，再按 agent 定义中的其余安装方式顺序回退。
 
+这里的 `defaultPackageManager` 只影响托管安装器的选择顺序，不影响 `script` / `binary` 这类非托管安装方式。
+
 ## 状态文件
 
 除了配置文件外，Quantex 还会在 `~/.quantex/state.json` 中记录运行时状态，例如 agent 的实际安装来源。
@@ -171,6 +173,11 @@ quantex doctor
 - 在混合安装场景下避免误用错误的更新方式
 - 支撑 `list`、`info`、`doctor` 输出安装来源和是否可托管更新
 - 为后续的卸载、诊断和迁移能力保留扩展空间
+
+术语约定：
+
+- `packages.npm` 指 agent 对应的 npm 包名
+- 安装方法里的 `packageName` 指安装器专用标识；对 npm/bun 是包名，对 Homebrew 是 formula/cask 标识，对 winget 是 package ID
 
 如果某个 agent 是在旧版本 Quantex 中安装的，或者不是通过 Quantex 安装的，首次更新时可能仍会走逐个更新；一旦 Quantex 成功更新并记录来源，后续 `update --all` 就可以复用批量更新路径。
 
