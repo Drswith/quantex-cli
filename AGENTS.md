@@ -61,26 +61,40 @@ src/
 ├── agents/               # Agent 定义与注册
 │   ├── index.ts
 │   ├── types.ts
-│   ├── claude-code.ts
+│   ├── methods.ts
+│   ├── inspection.ts
+│   ├── update-plan.ts
+│   ├── claude.ts
 │   ├── codex.ts
 │   ├── copilot.ts
 │   ├── cursor.ts
 │   ├── droid.ts
 │   ├── gemini.ts
-│   └── opencode.ts
+│   ├── opencode.ts
+│   └── pi.ts
 ├── package-manager/      # 包管理器抽象
 │   ├── index.ts
+│   ├── installers.ts
+│   ├── capabilities.ts
 │   ├── bun.ts
 │   ├── npm.ts
+│   ├── brew.ts
+│   ├── winget.ts
 │   └── binary.ts
-├── state/                # 运行时状态管理
+├── services/             # Application service 层
+│   ├── index.ts
+│   ├── agents.ts
+│   └── update.ts
+├── state/                # 运行时状态导出
 │   └── index.ts
+├── state.ts              # 状态模型与持久化实现
 ├── config/               # 配置管理
 │   ├── default.ts
 │   └── index.ts          # c12 加载
 └── utils/
     ├── detect.ts         # 环境检测
     ├── exec.ts           # 命令执行封装
+    ├── install.ts        # 安装来源/展示辅助
     └── version.ts        # 版本查询
 ```
 
@@ -88,12 +102,15 @@ src/
 
 ```typescript
 type Platform = 'windows' | 'macos' | 'linux'
-type InstallType = 'bun' | 'npm' | 'binary'
+type ManagedInstallType = 'bun' | 'npm' | 'brew' | 'winget'
+type InstallType = ManagedInstallType | 'script' | 'binary'
+type PackageTargetKind = 'package' | 'cask' | 'id'
 
 interface InstallMethod {
   type: InstallType
-  command: string
-  priority: number
+  command?: string
+  packageName?: string
+  packageTargetKind?: PackageTargetKind
 }
 
 interface AgentDefinition {
@@ -102,7 +119,9 @@ interface AgentDefinition {
   displayName: string
   description: string
   homepage: string
-  package: string
+  packages?: {
+    npm?: string
+  }
   platforms: Partial<Record<Platform, InstallMethod[]>>
   binaryName: string
 }
@@ -132,6 +151,11 @@ interface AgentDefinition {
 - Path: `~/.quantex/state.json`
 - Stores runtime state such as each agent's actual install source
 - Used by `quantex update --all` to batch Bun/npm updates while keeping binary/script installs on the fallback path
+
+## Ordering Semantics
+
+- Agent 安装方式按定义数组顺序表达回退顺序
+- `defaultPackageManager` 只会把匹配的托管安装器前置，不再依赖单独的 `priority` 字段
 
 ## Notes
 
