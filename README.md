@@ -58,8 +58,8 @@ quantex update --all
 
 `quantex update --all` 会优先使用 Quantex 记录的安装来源进行批量更新：
 
-- 通过 Bun 安装的 agent 会合并为一条 `bun update -g ...`
-- 通过 npm 安装的 agent 会合并为一条 `npm update -g ...`
+- 通过 Bun 安装的 agent 会合并为一条 `bun update -g --latest ...`
+- 通过 npm 安装的 agent 会合并为一条 `npm install -g ...@latest`
 - 通过 Homebrew 安装的 agent 会按记录的 formula/cask 标识逐个更新
 - 通过 winget 安装的 agent 会按 `winget` 记录的包 ID 逐个更新
 - 通过脚本、直装二进制或仅在 PATH 中探测到的 agent 不会被自动更新
@@ -138,6 +138,7 @@ quantex config get defaultPackageManager
 
 # 设置配置项
 quantex config set defaultPackageManager npm
+quantex config set npmBunUpdateStrategy respect-semver
 
 # 重置为默认配置
 quantex config reset
@@ -163,13 +164,19 @@ quantex doctor
 
 ```json
 {
-  "defaultPackageManager": "bun"
+  "defaultPackageManager": "bun",
+  "npmBunUpdateStrategy": "latest-major"
 }
 ```
 
 `defaultPackageManager` 会影响托管安装方式的尝试顺序。比如某个 agent 同时支持 Bun 和 npm 时，设置为 `npm` 后，Quantex 会先尝试 npm，再按 agent 定义中的其余安装方式顺序回退。
 
 这里的 `defaultPackageManager` 只影响托管安装器的选择顺序，不影响 `script` / `binary` 这类非托管安装方式。
+
+`npmBunUpdateStrategy` 控制通过 npm / Bun 安装的 agent 在更新时的版本策略：
+
+- `latest-major`：始终升级到 registry 上的最新版本，默认值
+- `respect-semver`：遵循包管理器已有的 semver 更新语义
 
 ## 状态文件
 

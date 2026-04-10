@@ -4,8 +4,11 @@ import { join } from 'node:path'
 import { loadConfig as c12LoadConfig } from 'c12'
 import { defaultConfig } from './default'
 
+export type NpmBunUpdateStrategy = 'latest-major' | 'respect-semver'
+
 export interface QuantexConfig {
   defaultPackageManager: 'bun' | 'npm'
+  npmBunUpdateStrategy: NpmBunUpdateStrategy
   [key: string]: unknown
 }
 
@@ -23,7 +26,16 @@ export async function loadConfig(): Promise<QuantexConfig> {
     defaults: defaultConfig,
     configFile: getConfigFilePath(),
   })
-  return config as QuantexConfig
+  const normalizedConfig = config as Record<string, unknown>
+  return {
+    ...normalizedConfig,
+    defaultPackageManager: normalizedConfig.defaultPackageManager === 'npm' ? 'npm' : 'bun',
+    npmBunUpdateStrategy: normalizedConfig.npmBunUpdateStrategy === 'respect-semver' ? 'respect-semver' : 'latest-major',
+  } as QuantexConfig
+}
+
+export function isNpmBunUpdateStrategy(value: string): value is NpmBunUpdateStrategy {
+  return value === 'latest-major' || value === 'respect-semver'
 }
 
 export async function saveConfig(config: Record<string, unknown>): Promise<void> {

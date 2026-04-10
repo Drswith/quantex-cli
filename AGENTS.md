@@ -145,6 +145,8 @@ interface AgentDefinition {
 
 - Path: `~/.quantex/config.json`
 - Loaded via c12 with defaults → user config → env override merging
+- `defaultPackageManager`: 控制托管安装器的优先尝试顺序
+- `npmBunUpdateStrategy`: 控制 npm / Bun 更新时是直接升到最新版本，还是遵循 semver 约束
 
 ## State
 
@@ -156,6 +158,7 @@ interface AgentDefinition {
 
 - Agent 安装方式按定义数组顺序表达回退顺序
 - `defaultPackageManager` 只会把匹配的托管安装器前置，不再依赖单独的 `priority` 字段
+- `npmBunUpdateStrategy` 默认是 `latest-major`，会让 npm / Bun 更新直接升到 registry 最新版本；`respect-semver` 则保留包管理器默认更新语义
 
 ## Notes
 

@@ -1,5 +1,5 @@
 import pc from 'picocolors'
-import { loadConfig, saveConfig } from '../config'
+import { isNpmBunUpdateStrategy, loadConfig, saveConfig } from '../config'
 import { defaultConfig } from '../config/default'
 
 export async function configCommand(action?: string, key?: string, value?: string): Promise<void> {
@@ -25,6 +25,14 @@ export async function configCommand(action?: string, key?: string, value?: strin
     case 'set': {
       if (!key || value === undefined) {
         console.log(pc.red('Please specify both key and value'))
+        return
+      }
+      if (key === 'defaultPackageManager' && value !== 'bun' && value !== 'npm') {
+        console.log(pc.red('defaultPackageManager must be bun or npm'))
+        return
+      }
+      if (key === 'npmBunUpdateStrategy' && !isNpmBunUpdateStrategy(value)) {
+        console.log(pc.red('npmBunUpdateStrategy must be latest-major or respect-semver'))
         return
       }
       let existing: Record<string, unknown> = {}
