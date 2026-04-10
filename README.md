@@ -153,7 +153,7 @@ quantex doctor
 }
 ```
 
-`defaultPackageManager` 会影响托管安装方式的优先级排序。比如某个 agent 同时支持 Bun 和 npm 时，设置为 `npm` 后，Quantex 会优先尝试 npm。
+`defaultPackageManager` 会影响托管安装方式的尝试顺序。比如某个 agent 同时支持 Bun 和 npm 时，设置为 `npm` 后，Quantex 会先尝试 npm，再按 agent 定义中的其余安装方式顺序回退。
 
 ## 状态文件
 
