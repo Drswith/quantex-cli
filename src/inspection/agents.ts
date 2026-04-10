@@ -1,5 +1,5 @@
+import type { AgentDefinition, InstallMethod } from '../agents/types'
 import type { InstalledAgentState } from '../state'
-import type { AgentDefinition, InstallMethod } from './types'
 import { getOrderedInstallMethods } from '../package-manager'
 import { getInstalledAgentState } from '../state'
 import { isBinaryInPath } from '../utils/detect'

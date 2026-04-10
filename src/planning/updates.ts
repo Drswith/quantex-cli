@@ -1,5 +1,5 @@
+import type { AgentInspection } from '../inspection'
 import type { ManagedInstallType } from '../package-manager'
-import type { AgentInspection } from './inspection'
 import { isManagedInstallType } from '../package-manager/capabilities'
 import { canUpdateInstalledState } from '../utils/install'
 

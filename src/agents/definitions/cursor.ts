@@ -1,5 +1,5 @@
-import type { AgentDefinition } from './types'
-import { scriptInstall } from './methods'
+import type { AgentDefinition } from '../types'
+import { scriptInstall } from '../methods'
 
 export const cursor: AgentDefinition = {
   name: 'cursor',

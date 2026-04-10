@@ -1,10 +1,10 @@
 import type { AgentDefinition } from '../agents'
-import type { AgentInspection } from '../agents/inspection'
 import type { ManagedInstallType } from '../agents/types'
+import type { AgentInspection } from '../inspection'
 import type { ManagedPackageSpec } from '../package-manager'
 import type { InstalledAgentState } from '../state'
-import * as inspectionService from '../agents/inspection'
-import * as updatePlanning from '../agents/update-plan'
+import * as inspectionService from '../inspection'
+import * as updatePlanning from '../planning'
 import { inspectRegisteredAgents } from './agents'
 
 export interface PendingAgentUpdate {
