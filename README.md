@@ -34,6 +34,18 @@ bun add -g quantex-cli
 npm i -g quantex-cli
 ```
 
+也可以从 GitHub Releases 下载对应平台的独立二进制，或使用安装脚本：
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/Drswith/quantex-cli/main/install.sh | sh
+```
+
+Windows PowerShell:
+
+```powershell
+irm https://raw.githubusercontent.com/Drswith/quantex-cli/main/install.ps1 | iex
+```
+
 安装后可使用 `quantex` 或短别名 `qtx` 命令。
 
 ## 使用
@@ -77,7 +89,7 @@ quantex upgrade
 - 通过 Bun 全局安装的 `quantex-cli`
 - 通过 npm 全局安装的 `quantex-cli`
 
-如果当前是源码工作区运行或其他非托管来源，`upgrade` 会明确提示当前来源不支持自动升级。
+如果当前是源码工作区运行、独立二进制安装或其他非托管来源，`upgrade` 会明确提示当前来源不支持自动升级。
 
 ### 卸载 Agent
 

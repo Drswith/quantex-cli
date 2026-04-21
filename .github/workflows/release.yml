@@ -29,11 +29,13 @@ jobs:
       - name: Build
         run: bun run build
 
-      - name: Generate GitHub Changelog
-        run: bunx changelogithub
-        continue-on-error: true
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Build binaries
+        run: bun run build:bin
+
+      - name: Generate checksums
+        run: |
+          cd dist/bin
+          sha256sum quantex-* > SHA256SUMS.txt
 
       - name: Setup Node.js (for OIDC publish)
         uses: actions/setup-node@v4
@@ -51,3 +53,10 @@ jobs:
           else
             npm publish --provenance --access public
           fi
+
+      - name: Publish GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: dist/bin/*
+          generate_release_notes: true
+          prerelease: ${{ contains(github.ref_name, '-') }}
