@@ -35,6 +35,7 @@ export { claude, codex, copilot, cursor, droid, gemini, opencode, pi }
 export type {
   AgentDefinition,
   AgentPackageMetadata,
+  AgentSelfUpdate,
   BinaryInstallMethod,
   InstallMethod,
   InstallType,

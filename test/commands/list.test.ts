@@ -116,6 +116,24 @@ describe('listCommand', () => {
     expect(manualUpdateCall).toBeDefined()
   })
 
+  it('shows command updates when the agent provides a self-update command', async () => {
+    const selfUpdatingAgent = {
+      ...testAgent,
+      update: {
+        commands: ['test-bin update'],
+      },
+    }
+
+    allAgentsSpy.mockReturnValue([selfUpdatingAgent])
+    binaryInPathSpy.mockResolvedValue(true)
+    installedVerSpy.mockResolvedValue('1.0.0')
+    installedStateSpy.mockResolvedValue(undefined)
+    await listCommand()
+    const calls = logSpy.mock.calls.map((c: any[]) => c[0])
+    const commandUpdateCall = calls.find((c: string) => c.includes('command update') && c.includes('detected in PATH'))
+    expect(commandUpdateCall).toBeDefined()
+  })
+
   it('shows not installed for missing agents', async () => {
     allAgentsSpy.mockReturnValue([testAgent])
     binaryInPathSpy.mockResolvedValue(false)

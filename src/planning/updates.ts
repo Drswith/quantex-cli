@@ -1,7 +1,7 @@
 import type { AgentInspection } from '../inspection'
 import type { ManagedInstallType } from '../package-manager'
 import { isManagedInstallType } from '../package-manager/capabilities'
-import { canUpdateInstalledState } from '../utils/install'
+import { canAutoUpdateAgent, canUpdateInstalledState } from '../utils/install'
 
 export interface UpdatePlanEntry {
   inspection: AgentInspection
@@ -76,9 +76,9 @@ export function isInspectionUpdateAvailable(inspection: Pick<AgentInspection, 'i
 }
 
 function shouldSkipUnknownManualUpdate(
-  inspection: Pick<AgentInspection, 'installedState' | 'latestVersion'>,
+  inspection: Pick<AgentInspection, 'agent' | 'installedState' | 'latestVersion'>,
 ): boolean {
-  return !inspection.latestVersion && !canUpdateInstalledState(inspection.installedState)
+  return !inspection.latestVersion && !canAutoUpdateAgent(inspection.agent, inspection.installedState)
 }
 
 function getGroupedInstallerType(inspection: AgentInspection): ManagedInstallType | undefined {

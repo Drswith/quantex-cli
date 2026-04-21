@@ -106,6 +106,18 @@ async function executeInstalledState(
   return runBinaryInstall(state.command)
 }
 
+async function executeAgentUpdateCommand(agent: AgentDefinition): Promise<boolean> {
+  if (!agent.update?.commands.length)
+    return false
+
+  for (const command of agent.update.commands) {
+    if (await runBinaryInstall(command))
+      return true
+  }
+
+  return false
+}
+
 async function persistInstalledState(agent: AgentDefinition, method: InstallMethod): Promise<InstalledAgentState> {
   const installedState: InstalledAgentState = {
     agentName: agent.name,
@@ -144,6 +156,9 @@ export async function updateAgent(agent: AgentDefinition, preferredState?: Insta
       installedState: preferredState,
     }
   }
+
+  if (await executeAgentUpdateCommand(agent))
+    return { success: true }
 
   const methods = await getOrderedInstallMethods(agent)
 
