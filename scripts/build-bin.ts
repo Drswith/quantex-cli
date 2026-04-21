@@ -6,7 +6,6 @@ const targets = [
   { target: 'bun-darwin-arm64' as const, outfile: 'dist/bin/quantex-darwin-arm64' },
   { target: 'bun-darwin-x64' as const, outfile: 'dist/bin/quantex-darwin-x64' },
   { target: 'bun-windows-x64-modern' as const, outfile: 'dist/bin/quantex-windows-x64' },
-  { target: 'bun-windows-arm64' as const, outfile: 'dist/bin/quantex-windows-arm64' },
 ]
 
 async function buildBin(): Promise<void> {

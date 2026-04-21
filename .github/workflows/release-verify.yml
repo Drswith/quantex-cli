@@ -1,0 +1,50 @@
+name: Verify Release Build
+
+on:
+  workflow_dispatch:
+
+jobs:
+  verify-release-build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: lts/*
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Lint
+        run: bun run lint
+
+      - name: Typecheck
+        run: bun run typecheck
+
+      - name: Build package
+        run: bun run build
+
+      - name: Build binaries
+        run: bun run build:bin
+
+      - name: Generate checksums
+        run: |
+          cd dist/bin
+          sha256sum quantex-* > SHA256SUMS.txt
+
+      - name: Upload release build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: quantex-release-build
+          path: |
+            dist/**
+            install.sh
+            install.ps1
