@@ -2,11 +2,7 @@ export type RegistryUpdateStrategy = 'latest-major' | 'respect-semver'
 
 export async function install(packageName: string): Promise<boolean> {
   try {
-    const proc = Bun.spawn(['bun', 'add', '-g', packageName], {
-      stdio: ['inherit', 'inherit', 'inherit'] as const,
-    })
-    await proc.exited
-    return proc.exitCode === 0
+    return await runGlobalBunCommandWithTrust(['bun', 'add', '-g', packageName], [packageName])
   }
   catch {
     return false
@@ -15,11 +11,7 @@ export async function install(packageName: string): Promise<boolean> {
 
 export async function update(packageName: string, strategy: RegistryUpdateStrategy = 'latest-major'): Promise<boolean> {
   try {
-    const proc = Bun.spawn(['bun', 'update', '-g', ...(strategy === 'latest-major' ? ['--latest'] : []), packageName], {
-      stdio: ['inherit', 'inherit', 'inherit'] as const,
-    })
-    await proc.exited
-    return proc.exitCode === 0
+    return await runGlobalBunCommandWithTrust(['bun', 'update', '-g', ...(strategy === 'latest-major' ? ['--latest'] : []), packageName], [packageName])
   }
   catch {
     return false
@@ -31,11 +23,7 @@ export async function updateMany(packageNames: string[], strategy: RegistryUpdat
     return true
 
   try {
-    const proc = Bun.spawn(['bun', 'update', '-g', ...(strategy === 'latest-major' ? ['--latest'] : []), ...packageNames], {
-      stdio: ['inherit', 'inherit', 'inherit'] as const,
-    })
-    await proc.exited
-    return proc.exitCode === 0
+    return await runGlobalBunCommandWithTrust(['bun', 'update', '-g', ...(strategy === 'latest-major' ? ['--latest'] : []), ...packageNames], packageNames)
   }
   catch {
     return false
@@ -45,7 +33,7 @@ export async function updateMany(packageNames: string[], strategy: RegistryUpdat
 export async function uninstall(packageName: string): Promise<boolean> {
   try {
     const proc = Bun.spawn(['bun', 'remove', '-g', packageName], {
-      stdio: ['inherit', 'inherit', 'inherit'] as const,
+      stdio: createInheritedStdio(),
     })
     await proc.exited
     return proc.exitCode === 0
@@ -53,4 +41,76 @@ export async function uninstall(packageName: string): Promise<boolean> {
   catch {
     return false
   }
+}
+
+async function runGlobalBunCommandWithTrust(command: string[], packageNames: string[]): Promise<boolean> {
+  const proc = Bun.spawn(command, {
+    stdio: createInheritedStdio(),
+  })
+  await proc.exited
+
+  if (proc.exitCode !== 0)
+    return false
+
+  return trustBlockedGlobalPackages(packageNames)
+}
+
+async function trustBlockedGlobalPackages(packageNames: string[]): Promise<boolean> {
+  const requestedPackages = [...new Set(packageNames)]
+  if (requestedPackages.length === 0)
+    return true
+
+  const output = await readGlobalUntrustedPackages()
+  if (!output)
+    return true
+
+  const untrustedPackages = parseUntrustedPackages(output)
+  const blockedPackages = requestedPackages.filter(packageName => untrustedPackages.has(packageName))
+
+  if (blockedPackages.length === 0)
+    return true
+
+  const proc = Bun.spawn(['bun', 'pm', '-g', 'trust', ...blockedPackages], {
+    stdio: createInheritedStdio(),
+  })
+  await proc.exited
+  return proc.exitCode === 0
+}
+
+async function readGlobalUntrustedPackages(): Promise<string | undefined> {
+  try {
+    const proc = Bun.spawn(['bun', 'pm', '-g', 'untrusted'], {
+      stdio: createPipedStdio(),
+    })
+    const output = await new Response(proc.stdout).text()
+    await proc.exited
+
+    if (proc.exitCode !== 0)
+      return undefined
+
+    return output
+  }
+  catch {
+    return undefined
+  }
+}
+
+function parseUntrustedPackages(output: string): Set<string> {
+  const packages = new Set<string>()
+
+  for (const line of output.split('\n')) {
+    const match = line.match(/^\.\/node_modules\/(.+?) @/)
+    if (match?.[1])
+      packages.add(match[1])
+  }
+
+  return packages
+}
+
+function createInheritedStdio(): ['inherit', 'inherit', 'inherit'] {
+  return ['inherit', 'inherit', 'inherit']
+}
+
+function createPipedStdio(): ['ignore', 'pipe', 'ignore'] {
+  return ['ignore', 'pipe', 'ignore']
 }
