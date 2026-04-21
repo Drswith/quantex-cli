@@ -33,6 +33,9 @@ async function updateAllAgents(): Promise<void> {
   for (const inspection of plan.upToDate)
     console.log(pc.green(`${inspection.agent.displayName} is up to date (${inspection.installedVersion ?? 'unknown'})`))
 
+  for (const inspection of plan.skippedManualCheck)
+    console.log(pc.yellow(`${inspection.agent.displayName} uses a manually managed install source. Please check for updates manually.`))
+
   for (const entry of plan.entries) {
     const inspection = entry.inspection
     console.log(pc.cyan(`Updating ${inspection.agent.displayName}...${getVersionHint(inspection.installedVersion, inspection.latestVersion)}`))

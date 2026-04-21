@@ -114,6 +114,37 @@ describe('updateCommand', () => {
     expect(updateSpy).toHaveBeenCalledWith(agent2, undefined)
   })
 
+  it('skips detected PATH installs without auto-update support for --all', async () => {
+    const manualAgent = {
+      ...testAgent,
+      name: 'manual-agent',
+      binaryName: 'manual-bin',
+      displayName: 'Manual Agent',
+      packages: undefined,
+      platforms: {
+        linux: [{ type: 'script' as const, command: 'curl https://example.com/install | bash' }],
+        macos: [{ type: 'script' as const, command: 'curl https://example.com/install | bash' }],
+        windows: [{ type: 'script' as const, command: 'irm https://example.com/install | iex' }],
+      },
+    }
+
+    allAgentsSpy.mockReturnValue([manualAgent])
+    binaryInPathSpy.mockResolvedValue(true)
+    installedVerSpy.mockResolvedValue('1.0.0')
+    latestVerSpy.mockResolvedValue(undefined)
+    installedStateSpy.mockResolvedValue(undefined)
+
+    await updateCommand(undefined, true)
+
+    expect(updateAgentsByTypeSpy).not.toHaveBeenCalled()
+    expect(updateSpy).not.toHaveBeenCalled()
+
+    const output = logSpy.mock.calls.map((c: any[]) => c[0]).join('\n')
+    expect(output).toContain('Manual Agent uses a manually managed install source')
+    expect(output).not.toContain('Updating Manual Agent')
+    expect(output).not.toContain('Failed to update Manual Agent')
+  })
+
   it('shows error when no agent specified and no --all flag', async () => {
     await updateCommand(undefined, false)
     expect(logSpy).toHaveBeenCalledWith(expect.stringContaining('Please specify'))
