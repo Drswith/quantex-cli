@@ -28,6 +28,13 @@ export function canUpdateInstalledState(state?: Pick<InstalledAgentState, 'insta
   return canUpdateInstallType(state.installType)
 }
 
+export function canAutoUpdateAgent(
+  agent: Pick<AgentDefinition, 'update'>,
+  state?: Pick<InstalledAgentState, 'installType'>,
+): boolean {
+  return canUpdateInstalledState(state) || !!agent.update?.commands.length
+}
+
 export function canLookupLatestVersionForState(state?: Pick<InstalledAgentState, 'installType'>): boolean {
   return !!state && canLookupLatestVersionForInstallType(state.installType)
 }
@@ -59,8 +66,17 @@ export function formatInstalledSource(state?: Pick<InstalledAgentState, 'install
   return 'binary installer'
 }
 
-export function formatUpdateManagement(state?: Pick<InstalledAgentState, 'installType'>): string {
-  return canUpdateInstalledState(state) ? 'managed update' : 'manual update'
+export function formatUpdateManagement(
+  agent: Pick<AgentDefinition, 'update'>,
+  state?: Pick<InstalledAgentState, 'installType'>,
+): string {
+  if (canUpdateInstalledState(state))
+    return 'managed update'
+
+  if (agent.update?.commands.length)
+    return 'command update'
+
+  return 'manual update'
 }
 
 export function formatInstallMethodCommand(agent: Pick<AgentDefinition, 'packages'>, method: InstallMethod): string {

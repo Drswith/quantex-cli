@@ -1,11 +1,11 @@
-import type { AgentDefinition, ManagedInstallType } from '../agents'
+import type { AgentDefinition, InstallMethod, ManagedInstallType } from '../agents'
 import type { ManagedPackageSpec } from '../package-manager'
 import type { InstalledAgentState } from '../state'
 import pc from 'picocolors'
 import { updateAgent, updateAgentsByType } from '../package-manager'
 import { resolveAgent } from '../services/agents'
 import { getSingleAgentUpdateStatus, planAgentUpdates } from '../services/update'
-import { canUpdateInstalledState } from '../utils/install'
+import { canAutoUpdateAgent, canUpdateInstallType } from '../utils/install'
 
 export async function updateCommand(agentName: string | undefined, all: boolean): Promise<void> {
   if (all) {
@@ -45,7 +45,7 @@ async function updateAllAgents(): Promise<void> {
     await updateGroupedAgents(bucket.type, bucket.packages, bucket.updates)
 
   for (const entry of plan.manual)
-    await performUpdate(entry.agent, entry.state, false)
+    await performUpdate(entry.agent, entry.state, entry.inspection.methods, false)
 }
 
 async function updateGroupedAgents(
@@ -65,7 +65,7 @@ async function updateGroupedAgents(
   }
 
   for (const { agent, state } of updates)
-    await performUpdate(agent, state, false)
+    await performUpdate(agent, state, undefined, false)
 }
 
 async function updateSingleAgent(agent: AgentDefinition): Promise<void> {
@@ -82,16 +82,22 @@ async function updateSingleAgent(agent: AgentDefinition): Promise<void> {
   }
 
   console.log(pc.cyan(`Updating ${agent.displayName}...${getVersionHint(inspection.installedVersion, inspection.latestVersion)}`))
-  await performUpdate(agent, inspection.installedState, false)
+  await performUpdate(agent, inspection.installedState, inspection.methods, false)
 }
 
-async function performUpdate(agent: AgentDefinition, installedState?: InstalledAgentState, withStartLog = true): Promise<void> {
+async function performUpdate(
+  agent: AgentDefinition,
+  installedState?: InstalledAgentState,
+  methods?: InstallMethod[],
+  withStartLog = true,
+): Promise<void> {
   if (withStartLog) {
     const { inspection } = await getSingleAgentUpdateStatus(agent)
     console.log(pc.cyan(`Updating ${agent.displayName}...${getVersionHint(inspection.installedVersion, inspection.latestVersion)}`))
+    methods = inspection.methods
   }
 
-  if (installedState && !canUpdateInstalledState(installedState)) {
+  if (!canAutoUpdateAgent(agent, installedState) && !methods?.some(method => canUpdateInstallType(method.type))) {
     console.log(pc.yellow(`${agent.displayName} uses an unmanaged install source and cannot be updated automatically.`))
     return
   }

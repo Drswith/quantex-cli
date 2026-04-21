@@ -41,7 +41,7 @@ export async function inspectAgent(agent: AgentDefinition): Promise<AgentInspect
     latestVersion,
     binaryPath,
     sourceLabel: formatInstalledSource(installedState),
-    updateLabel: formatUpdateManagement(installedState),
+    updateLabel: formatUpdateManagement(agent, installedState),
     lifecycle: installedState ? getInstallLifecycle(installedState.installType) : 'unmanaged',
   }
 }

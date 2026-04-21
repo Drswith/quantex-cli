@@ -2,6 +2,7 @@ export { claude, codex, copilot, cursor, droid, gemini, getAgentByLookupName, ge
 export type {
   AgentDefinition,
   AgentPackageMetadata,
+  AgentSelfUpdate,
   BinaryInstallMethod,
   InstallMethod,
   InstallType,

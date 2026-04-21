@@ -31,6 +31,10 @@ export interface AgentPackageMetadata {
   npm?: string
 }
 
+export interface AgentSelfUpdate {
+  commands: string[]
+}
+
 export interface AgentDefinition {
   name: string
   lookupAliases?: string[]
@@ -40,4 +44,5 @@ export interface AgentDefinition {
   packages?: AgentPackageMetadata
   platforms: Partial<Record<Platform, InstallMethod[]>>
   binaryName: string
+  update?: AgentSelfUpdate
 }

@@ -145,6 +145,39 @@ describe('updateCommand', () => {
     expect(output).not.toContain('Failed to update Manual Agent')
   })
 
+  it('updates detected PATH installs through the agent update command for --all', async () => {
+    const selfUpdatingAgent = {
+      ...testAgent,
+      name: 'self-updating-agent',
+      binaryName: 'self-updating-bin',
+      displayName: 'Self Updating Agent',
+      packages: undefined,
+      update: {
+        commands: ['self-updating-bin update'],
+      },
+      platforms: {
+        linux: [{ type: 'script' as const, command: 'curl https://example.com/install | bash' }],
+        macos: [{ type: 'script' as const, command: 'curl https://example.com/install | bash' }],
+        windows: [{ type: 'script' as const, command: 'irm https://example.com/install | iex' }],
+      },
+    }
+
+    allAgentsSpy.mockReturnValue([selfUpdatingAgent])
+    binaryInPathSpy.mockResolvedValue(true)
+    installedVerSpy.mockResolvedValue('1.0.0')
+    latestVerSpy.mockResolvedValue(undefined)
+    installedStateSpy.mockResolvedValue(undefined)
+    updateSpy.mockResolvedValue({ success: true })
+
+    await updateCommand(undefined, true)
+
+    expect(updateSpy).toHaveBeenCalledWith(selfUpdatingAgent, undefined)
+
+    const output = logSpy.mock.calls.map((c: any[]) => c[0]).join('\n')
+    expect(output).toContain('Updating Self Updating Agent... (1.0.0 -> latest)')
+    expect(output).toContain('Self Updating Agent updated successfully')
+  })
+
   it('shows error when no agent specified and no --all flag', async () => {
     await updateCommand(undefined, false)
     expect(logSpy).toHaveBeenCalledWith(expect.stringContaining('Please specify'))

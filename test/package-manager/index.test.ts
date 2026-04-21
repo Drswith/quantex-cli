@@ -175,6 +175,49 @@ describe('updateAgent', () => {
     expect(await updateAgent(testAgent)).toMatchObject({ success: true })
     expect(bunUpdateSpy).toHaveBeenCalledWith('test-pkg', 'respect-semver')
   })
+
+  it('uses agent-defined update command for non-managed installs', async () => {
+    const selfUpdatingAgent = {
+      ...testAgent,
+      packages: undefined,
+      update: {
+        commands: ['test-bin update'],
+      },
+      platforms: {
+        linux: [
+          { type: 'script' as const, command: 'curl https://example.com/install | bash' },
+        ],
+      },
+    }
+
+    binarySpy.mockResolvedValue(true)
+
+    expect(await updateAgent(selfUpdatingAgent)).toMatchObject({ success: true })
+    expect(binarySpy).toHaveBeenCalledWith('test-bin update')
+    expect(bunUpdateSpy).not.toHaveBeenCalled()
+    expect(npmUpdateSpy).not.toHaveBeenCalled()
+  })
+
+  it('falls back to the next agent-defined update command when the first fails', async () => {
+    const selfUpdatingAgent = {
+      ...testAgent,
+      packages: undefined,
+      update: {
+        commands: ['test-bin update', 'test-bin upgrade'],
+      },
+      platforms: {
+        linux: [
+          { type: 'script' as const, command: 'curl https://example.com/install | bash' },
+        ],
+      },
+    }
+
+    binarySpy.mockResolvedValueOnce(false).mockResolvedValueOnce(true)
+
+    expect(await updateAgent(selfUpdatingAgent)).toMatchObject({ success: true })
+    expect(binarySpy).toHaveBeenNthCalledWith(1, 'test-bin update')
+    expect(binarySpy).toHaveBeenNthCalledWith(2, 'test-bin upgrade')
+  })
 })
 
 describe('updateAgentsByType', () => {
