@@ -23,6 +23,7 @@ export interface PlannedAgentUpdates {
   entries: PendingAgentUpdate[]
   grouped: ManagedUpdateBucket[]
   manual: PendingAgentUpdate[]
+  skippedManualCheck: AgentInspection[]
   upToDate: AgentInspection[]
 }
 
@@ -55,6 +56,7 @@ export async function planAgentUpdates(): Promise<PlannedAgentUpdates> {
     entries: plan.entries.map(entry => toPendingAgentUpdate(entry.inspection)),
     grouped,
     manual: plan.manual.map(entry => toPendingAgentUpdate(entry.inspection)),
+    skippedManualCheck: plan.skippedManualCheck,
     upToDate: plan.upToDate,
   }
 }

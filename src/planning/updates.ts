@@ -13,6 +13,7 @@ export interface UpdatePlan {
   entries: UpdatePlanEntry[]
   grouped: Record<ManagedInstallType, UpdatePlanEntry[]>
   manual: UpdatePlanEntry[]
+  skippedManualCheck: AgentInspection[]
   upToDate: AgentInspection[]
 }
 
@@ -24,11 +25,17 @@ export function createUpdatePlan(inspections: AgentInspection[]): UpdatePlan {
     winget: [],
   }
   const manual: UpdatePlanEntry[] = []
+  const skippedManualCheck: AgentInspection[] = []
   const upToDate: AgentInspection[] = []
 
   for (const inspection of inspections) {
     if (!inspection.inPath)
       continue
+
+    if (shouldSkipUnknownManualUpdate(inspection)) {
+      skippedManualCheck.push(inspection)
+      continue
+    }
 
     if (!isInspectionUpdateAvailable(inspection)) {
       upToDate.push(inspection)
@@ -56,6 +63,7 @@ export function createUpdatePlan(inspections: AgentInspection[]): UpdatePlan {
     entries: [...grouped.bun, ...grouped.npm, ...grouped.brew, ...grouped.winget, ...manual],
     grouped,
     manual,
+    skippedManualCheck,
     upToDate,
   }
 }
@@ -65,6 +73,12 @@ export function isInspectionUpdateAvailable(inspection: Pick<AgentInspection, 'i
     return inspection.installedVersion !== inspection.latestVersion
 
   return true
+}
+
+function shouldSkipUnknownManualUpdate(
+  inspection: Pick<AgentInspection, 'installedState' | 'latestVersion'>,
+): boolean {
+  return !inspection.latestVersion && !canUpdateInstalledState(inspection.installedState)
 }
 
 function getGroupedInstallerType(inspection: AgentInspection): ManagedInstallType | undefined {
