@@ -238,6 +238,15 @@ quantex capabilities --json
 - `capabilities`：回答“当前环境能做什么”
 - `doctor`：回答“当前哪里有问题，以及怎么修”
 
+### 查看命令目录
+
+```bash
+quantex commands
+quantex commands --json
+```
+
+`commands` 会返回当前支持的稳定命令、摘要以及常用 flag，适合作为上层 agent 做 command discovery 的入口。
+
 ## 配置
 
 配置文件位于 `~/.quantex/config.json`，当前支持：

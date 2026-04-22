@@ -18,6 +18,7 @@ export type {
 export { getCliContext, resetCliContext, resolveCliContext, setCliContext } from './cli-context'
 export type { CliContext, CliContextOptions, OutputMode } from './cli-context'
 export { capabilitiesCommand } from './commands/capabilities'
+export { commandsCommand } from './commands/commands'
 export { ensureCommand } from './commands/ensure'
 export type { ExecCommandOptions, ExecInstallPolicy } from './commands/exec'
 export { inspectCommand } from './commands/inspect'
