@@ -11,9 +11,9 @@ const repositoryUrl = typeof packageJson.repository === 'string'
   : packageJson.repository?.url
 
 const content = [
-  `export const BUILD_PACKAGE_NAME = ${JSON.stringify(packageJson.name ?? 'quantex-cli')}`,
-  `export const BUILD_REPOSITORY_URL = ${JSON.stringify(normalizeRepositoryUrl(repositoryUrl) ?? '')}`,
-  `export const BUILD_VERSION = ${JSON.stringify(packageJson.version ?? '0.0.0')}`,
+  `export const BUILD_PACKAGE_NAME = '${escapeSingleQuotedString(packageJson.name ?? 'quantex-cli')}'`,
+  `export const BUILD_REPOSITORY_URL = '${escapeSingleQuotedString(normalizeRepositoryUrl(repositoryUrl) ?? '')}'`,
+  `export const BUILD_VERSION = '${escapeSingleQuotedString(packageJson.version ?? '0.0.0')}'`,
   '',
 ].join('\n')
 
@@ -30,4 +30,8 @@ function normalizeRepositoryUrl(repositoryUrl?: string): string | undefined {
     return repositoryUrl.replace('git@github.com:', 'https://github.com/').replace(/\.git$/, '')
 
   return repositoryUrl.replace(/\.git$/, '')
+}
+
+function escapeSingleQuotedString(value: string): string {
+  return value.replaceAll('\\', '\\\\').replaceAll('\'', '\\\'')
 }
