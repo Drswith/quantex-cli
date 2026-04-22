@@ -4,7 +4,7 @@ import type { ManagedPackageSpec } from '../package-manager'
 import type { InstalledAgentState } from '../state'
 import pc from 'picocolors'
 import { getAgentUpdateFailureHint, getAgentUpdateStrategy, getManualAgentUpdateMessage } from '../agent-update'
-import { createErrorResult, createSuccessResult, emitCommandResult } from '../output'
+import { createErrorResult, createSuccessResult, emitCommandEvent, emitCommandResult } from '../output'
 import { updateAgent, updateAgentsByType } from '../package-manager'
 import { resolveAgent } from '../services/agents'
 import { planAgentUpdates, planSingleAgentUpdate } from '../services/update'
@@ -67,6 +67,17 @@ export async function updateCommand(agentName: string | undefined, all: boolean)
 }
 
 async function updateAllAgents(): Promise<CommandResult<UpdateCommandData>> {
+  emitCommandEvent({
+    action: 'update',
+    data: {
+      scope: 'all',
+    },
+    target: {
+      kind: 'agent',
+    },
+    type: 'started',
+  })
+
   const plan = await planAgentUpdates()
   const execution = await executePlannedUpdates(plan)
 
@@ -100,6 +111,19 @@ async function updateAllAgents(): Promise<CommandResult<UpdateCommandData>> {
 }
 
 async function updateSingleAgent(agent: AgentDefinition): Promise<CommandResult<UpdateCommandData>> {
+  emitCommandEvent({
+    action: 'update',
+    data: {
+      agent: agent.name,
+      scope: 'single',
+    },
+    target: {
+      kind: 'agent',
+      name: agent.name,
+    },
+    type: 'started',
+  })
+
   const { inspection, plan } = await planSingleAgentUpdate(agent)
 
   if (!inspection.inPath) {
@@ -153,7 +177,7 @@ async function executePlannedUpdates(plan: Awaited<ReturnType<typeof planAgentUp
   const results: UpdateResultItem[] = []
 
   for (const inspection of plan.upToDate) {
-    results.push({
+    pushUpdateResult(results, {
       displayName: inspection.agent.displayName,
       installedVersion: inspection.installedVersion,
       latestVersion: inspection.latestVersion,
@@ -163,7 +187,7 @@ async function executePlannedUpdates(plan: Awaited<ReturnType<typeof planAgentUp
   }
 
   for (const inspection of plan.skippedManualCheck) {
-    results.push({
+    pushUpdateResult(results, {
       displayName: inspection.agent.displayName,
       message: getManualAgentUpdateMessage(inspection.agent),
       name: inspection.agent.name,
@@ -172,17 +196,32 @@ async function executePlannedUpdates(plan: Awaited<ReturnType<typeof planAgentUp
   }
 
   for (const bucket of plan.grouped) {
-    results.push(...await updateGroupedAgents(bucket.type, bucket.packages, bucket.updates))
+    const groupResults = await updateGroupedAgents(bucket.type, bucket.packages, bucket.updates)
+    for (const result of groupResults)
+      pushUpdateResult(results, result)
   }
 
   for (const entry of plan.manual) {
-    results.push(await performUpdate(entry.agent, entry.state, entry.inspection.methods, entry.inspection))
+    pushUpdateResult(results, await performUpdate(entry.agent, entry.state, entry.inspection.methods, entry.inspection))
   }
 
   return {
     hasFailures: results.some(result => result.status === 'failed'),
     results,
   }
+}
+
+function pushUpdateResult(results: UpdateResultItem[], result: UpdateResultItem): void {
+  results.push(result)
+  emitCommandEvent({
+    action: 'update',
+    data: result,
+    target: {
+      kind: 'agent',
+      name: result.name,
+    },
+    type: 'progress',
+  })
 }
 
 async function updateGroupedAgents(

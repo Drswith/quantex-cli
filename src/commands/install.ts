@@ -1,6 +1,6 @@
 import type { CommandResult } from '../output/types'
 import pc from 'picocolors'
-import { createErrorResult, createSuccessResult, emitCommandResult } from '../output'
+import { createErrorResult, createSuccessResult, emitCommandEvent, emitCommandResult } from '../output'
 import { installAgent } from '../package-manager'
 import { resolveAgentInspection } from '../services/agents'
 
@@ -60,6 +60,21 @@ export async function installCommand(agentName: string): Promise<CommandResult<I
       ],
     }), renderInstallHuman)
   }
+
+  emitCommandEvent({
+    action: 'install',
+    data: {
+      agent: {
+        displayName: agent.displayName,
+        name: agent.name,
+      },
+    },
+    target: {
+      kind: 'agent',
+      name: agent.name,
+    },
+    type: 'started',
+  })
 
   const result = await installAgent(agent)
 

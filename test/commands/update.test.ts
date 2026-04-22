@@ -1,5 +1,6 @@
 import { afterAll, afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import * as agents from '../../src/agents'
+import { setCliContext } from '../../src/cli-context'
 import { updateCommand } from '../../src/commands/update'
 import * as pm from '../../src/package-manager'
 import * as state from '../../src/state'
@@ -221,5 +222,32 @@ describe('updateCommand', () => {
   it('shows error when no agent specified and no --all flag', async () => {
     await updateCommand(undefined, false)
     expect(logSpy).toHaveBeenCalledWith(expect.stringContaining('Please specify'))
+  })
+
+  it('emits ndjson progress events for streamed updates', async () => {
+    setCliContext({
+      interactive: false,
+      outputMode: 'ndjson',
+      runId: 'update-run-id',
+    })
+    agentSpy.mockReturnValue(testAgent)
+    binaryInPathSpy.mockResolvedValue(true)
+    installedVerSpy.mockResolvedValue('1.0.0')
+    latestVerSpy.mockResolvedValue('2.0.0')
+    installedStateSpy.mockResolvedValue(undefined)
+    updateAgentsByTypeSpy.mockResolvedValue(true)
+
+    await updateCommand('test-agent', false)
+
+    const startedEvent = JSON.parse(logSpy.mock.calls[0][0])
+    const progressEvent = JSON.parse(logSpy.mock.calls[1][0])
+    const resultEvent = JSON.parse(logSpy.mock.calls[2][0])
+    expect(startedEvent.type).toBe('started')
+    expect(startedEvent.data.scope).toBe('single')
+    expect(progressEvent.type).toBe('progress')
+    expect(progressEvent.data.status).toBe('updated')
+    expect(resultEvent.type).toBe('result')
+    expect(resultEvent.data.ok).toBe(true)
+    expect(resultEvent.meta.runId).toBe('update-run-id')
   })
 })

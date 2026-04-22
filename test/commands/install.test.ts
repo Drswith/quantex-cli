@@ -102,4 +102,32 @@ describe('installCommand', () => {
     expect(payload.meta.runId).toBe('test-run-id')
     expect(payload.meta.schemaVersion).toBe('1')
   })
+
+  it('emits ndjson lifecycle events when requested', async () => {
+    setCliContext({
+      interactive: false,
+      outputMode: 'ndjson',
+      runId: 'test-run-id',
+    })
+    agentSpy.mockReturnValue(testAgent)
+    binaryInPathSpy.mockResolvedValue(false)
+    installSpy.mockResolvedValue({
+      installedState: {
+        agentName: 'test-agent',
+        installType: 'bun',
+        packageName: 'test-pkg',
+      },
+      success: true,
+    })
+
+    await installCommand('test-agent')
+
+    const startedEvent = JSON.parse(logSpy.mock.calls[0][0])
+    const resultEvent = JSON.parse(logSpy.mock.calls[1][0])
+    expect(startedEvent.type).toBe('started')
+    expect(startedEvent.action).toBe('install')
+    expect(resultEvent.type).toBe('result')
+    expect(resultEvent.data.ok).toBe(true)
+    expect(resultEvent.meta.mode).toBe('ndjson')
+  })
 })

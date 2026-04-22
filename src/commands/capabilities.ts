@@ -76,7 +76,7 @@ export async function capabilitiesCommand(): Promise<CommandResult<CapabilitiesD
           reason: wingetAvailable ? undefined : getUnavailableReason('winget'),
         },
       },
-      outputModes: ['human', 'json'],
+      outputModes: ['human', 'json', 'ndjson'],
       platform: {
         arch: process.arch,
         os: getPlatform(),

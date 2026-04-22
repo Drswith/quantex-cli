@@ -15,6 +15,7 @@ interface SchemaDocument {
   description: string
   envelopeSchema: JsonSchema
   name: string
+  ndjsonEventSchema?: JsonSchema
 }
 
 interface SchemaCommandData {
@@ -75,6 +76,38 @@ const baseEnvelopeSchema: JsonSchema = {
   type: 'object',
 }
 
+const baseNdjsonEventSchema: JsonSchema = {
+  additionalProperties: false,
+  properties: {
+    action: { type: 'string' },
+    data: { type: 'object' },
+    meta: {
+      additionalProperties: false,
+      properties: {
+        mode: { type: 'string' },
+        runId: { type: 'string' },
+        schemaVersion: { type: 'string' },
+        timestamp: { type: 'string' },
+        version: { type: 'string' },
+      },
+      required: ['mode', 'runId', 'schemaVersion', 'timestamp', 'version'],
+      type: 'object',
+    },
+    target: {
+      additionalProperties: false,
+      properties: {
+        kind: { type: 'string' },
+        name: { type: 'string' },
+      },
+      required: ['kind'],
+      type: 'object',
+    },
+    type: { type: 'string' },
+  },
+  required: ['action', 'meta', 'type'],
+  type: 'object',
+}
+
 const schemaCatalog: SchemaDocument[] = [
   {
     dataSchema: {
@@ -113,6 +146,7 @@ const schemaCatalog: SchemaDocument[] = [
     description: 'Environment and surface capabilities',
     envelopeSchema: baseEnvelopeSchema,
     name: 'capabilities',
+    ndjsonEventSchema: baseNdjsonEventSchema,
   },
   {
     dataSchema: {
@@ -140,6 +174,7 @@ const schemaCatalog: SchemaDocument[] = [
     description: 'Stable command catalog',
     envelopeSchema: baseEnvelopeSchema,
     name: 'commands',
+    ndjsonEventSchema: baseNdjsonEventSchema,
   },
   {
     dataSchema: {
@@ -156,6 +191,7 @@ const schemaCatalog: SchemaDocument[] = [
     description: 'Ensure result for an agent',
     envelopeSchema: baseEnvelopeSchema,
     name: 'ensure',
+    ndjsonEventSchema: baseNdjsonEventSchema,
   },
   {
     dataSchema: {
@@ -171,6 +207,7 @@ const schemaCatalog: SchemaDocument[] = [
     description: 'Structured inspection result for an agent',
     envelopeSchema: baseEnvelopeSchema,
     name: 'inspect',
+    ndjsonEventSchema: baseNdjsonEventSchema,
   },
   {
     dataSchema: {
@@ -184,6 +221,7 @@ const schemaCatalog: SchemaDocument[] = [
               description: { type: 'string' },
               envelopeSchema: { type: 'object' },
               name: { type: 'string' },
+              ndjsonEventSchema: { type: 'object' },
             },
             required: ['dataSchema', 'description', 'envelopeSchema', 'name'],
             type: 'object',
@@ -197,6 +235,7 @@ const schemaCatalog: SchemaDocument[] = [
     description: 'Structured schema catalog',
     envelopeSchema: baseEnvelopeSchema,
     name: 'schema',
+    ndjsonEventSchema: baseNdjsonEventSchema,
   },
 ]
 

@@ -27,4 +27,10 @@ describe('resolveCliContext', () => {
 
     expect(context.runId).toBe('explicit-run-id')
   })
+
+  it('resolves ndjson output mode when requested explicitly', () => {
+    const context = resolveCliContext({ output: 'ndjson' })
+
+    expect(context.outputMode).toBe('ndjson')
+  })
 })

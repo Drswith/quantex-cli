@@ -101,7 +101,7 @@ describe('capabilitiesCommand', () => {
     expect(payload.action).toBe('capabilities')
     expect(payload.data.agents).toEqual(['claude', 'codex'])
     expect(payload.data.features.execInstallPolicies).toEqual(['never', 'if-missing', 'always'])
-    expect(payload.data.outputModes).toEqual(['human', 'json'])
+    expect(payload.data.outputModes).toEqual(['human', 'json', 'ndjson'])
     expect(payload.meta.runId).toBe('cap-run-id')
   })
 })
