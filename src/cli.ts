@@ -4,13 +4,12 @@ import process from 'node:process'
 import { program } from 'commander'
 import { getAgentByNameOrAlias } from './agents'
 import { runCommand } from './commands/run'
-
-const packageJson = await Bun.file(new URL('../package.json', import.meta.url)).json() as { version?: string }
+import { getSelfVersion } from './self'
 
 program
   .name('quantex')
   .description('统一的 AI Agent CLI 管理工具')
-  .version(packageJson.version ?? '0.0.0')
+  .version(getSelfVersion())
 
 program
   .command('install <agent>')

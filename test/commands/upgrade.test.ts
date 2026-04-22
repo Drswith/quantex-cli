@@ -27,6 +27,7 @@ describe('upgradeCommand', () => {
     inspectSelfSpy.mockResolvedValue({
       canAutoUpdate: true,
       currentVersion: '1.0.0',
+      executablePath: '/tmp/quantex',
       installSource: 'npm',
       latestVersion: '1.0.0',
       packageRoot: '/tmp/quantex',
@@ -43,6 +44,7 @@ describe('upgradeCommand', () => {
     inspectSelfSpy.mockResolvedValue({
       canAutoUpdate: false,
       currentVersion: '1.0.0',
+      executablePath: '/tmp/quantex',
       installSource: 'source',
       latestVersion: '1.1.0',
       packageRoot: '/tmp/quantex',
@@ -58,6 +60,7 @@ describe('upgradeCommand', () => {
     const inspection = {
       canAutoUpdate: true,
       currentVersion: '1.0.0',
+      executablePath: '/tmp/quantex',
       installSource: 'npm' as const,
       latestVersion: '1.1.0',
       packageRoot: '/tmp/quantex',

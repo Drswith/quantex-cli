@@ -29,8 +29,9 @@
     "dist"
   ],
   "scripts": {
+    "prebuild": "bun run scripts/write-build-metadata.ts",
     "build": "tsdown",
-    "build:bin": "bun run scripts/build-bin.ts",
+    "build:bin": "bun run scripts/write-build-metadata.ts && bun run scripts/build-bin.ts",
     "lint:fix": "eslint --fix",
     "lint": "eslint",
     "prepublishOnly": "bun run build",
