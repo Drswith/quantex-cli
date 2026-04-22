@@ -54,8 +54,17 @@ export const binarySelfUpgradeProvider: SelfUpgradeProvider = {
       }
     }
 
-    const result = await upgradeStandaloneBinary(downloadUrl, inspection.executablePath, checksum)
+    const result = await upgradeStandaloneBinary(
+      downloadUrl,
+      inspection.executablePath,
+      checksum,
+      inspection.latestVersion,
+    )
 
-    return { ...result, installSource: inspection.installSource }
+    return {
+      ...result,
+      installSource: inspection.installSource,
+      newVersion: result.success ? inspection.latestVersion : undefined,
+    }
   },
 }

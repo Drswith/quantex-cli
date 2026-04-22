@@ -75,6 +75,30 @@ describe('upgradeStandaloneBinary', () => {
     }
   })
 
+  it('verifies the replaced executable and removes the backup on success', async () => {
+    const tempRoot = await mkdtemp(join(tmpdir(), 'quantex-binary-verify-success-'))
+    const executablePath = join(tempRoot, 'qtx')
+    const replacement = '#!/bin/sh\necho 1.1.0\n'
+
+    await writeFile(executablePath, '#!/bin/sh\necho old\n', 'utf8')
+    await chmod(executablePath, 0o755)
+
+    globalThis.fetch = vi.fn().mockResolvedValue(new Response(Buffer.from(replacement), { status: 200 })) as unknown as typeof fetch
+    const checksum = createHash('sha256').update(replacement).digest('hex')
+
+    try {
+      expect(await upgradeStandaloneBinary('https://example.com/qtx', executablePath, checksum, '1.1.0')).toEqual({
+        success: true,
+      })
+      expect(await readFile(executablePath, 'utf8')).toBe(replacement)
+      expect((await stat(executablePath)).mode & 0o111).toBeGreaterThan(0)
+      expect(await Bun.file(`${executablePath}.bak`).exists()).toBe(false)
+    }
+    finally {
+      await rm(tempRoot, { recursive: true, force: true })
+    }
+  })
+
   it('returns a network error when the download request fails', async () => {
     globalThis.fetch = vi.fn().mockRejectedValue(new Error('offline')) as unknown as typeof fetch
 
@@ -98,6 +122,30 @@ describe('upgradeStandaloneBinary', () => {
       expect(result.success).toBe(false)
       expect(result.error?.kind).toBe('checksum')
       expect(await readFile(executablePath, 'utf8')).toBe('old-binary')
+    }
+    finally {
+      await rm(tempRoot, { recursive: true, force: true })
+    }
+  })
+
+  it('rolls back to the previous executable when verification fails', async () => {
+    const tempRoot = await mkdtemp(join(tmpdir(), 'quantex-binary-verify-fail-'))
+    const executablePath = join(tempRoot, 'qtx')
+    const original = '#!/bin/sh\necho old\n'
+    const replacement = '#!/bin/sh\nexit 1\n'
+
+    await writeFile(executablePath, original, 'utf8')
+    await chmod(executablePath, 0o755)
+    globalThis.fetch = vi.fn().mockResolvedValue(new Response(Buffer.from(replacement), { status: 200 })) as unknown as typeof fetch
+    const checksum = createHash('sha256').update(replacement).digest('hex')
+
+    try {
+      const result = await upgradeStandaloneBinary('https://example.com/qtx', executablePath, checksum, '1.1.0')
+
+      expect(result.success).toBe(false)
+      expect(result.error?.kind).toBe('verify')
+      expect(await readFile(executablePath, 'utf8')).toBe(original)
+      expect(await Bun.file(`${executablePath}.bak`).exists()).toBe(false)
     }
     finally {
       await rm(tempRoot, { recursive: true, force: true })
