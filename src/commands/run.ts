@@ -1,93 +1,121 @@
 import type { SpawnHandle } from '../utils/child-process'
 import type { ExecInstallPolicy } from './exec'
 import process from 'node:process'
-import pc from 'picocolors'
 import prompts from 'prompts'
 import { cancelCliContextOperations, getCliContext } from '../cli-context'
 import { getExitCodeForError } from '../errors'
 import { installAgent } from '../package-manager'
 import { resolveAgentInspection } from '../services/agents'
 import { spawnWithQuantexStdio, waitForSpawnedCommand } from '../utils/child-process'
+import { pc } from '../utils/color'
 import { isResourceLockError } from '../utils/lock'
+import { isAssumeYesEnabled, isDryRunEnabled, printError, printInfo, printWarn, writeDirectOutput } from '../utils/user-output'
 
 export async function runCommand(
   agentName: string,
   args: string[],
   options: {
+    assumeYes?: boolean
+    dryRun?: boolean
     install?: ExecInstallPolicy | 'prompt'
     nonInteractive?: boolean
   } = {},
 ): Promise<number> {
   const resolved = await resolveAgentInspection(agentName)
   if (!resolved) {
-    console.log(pc.red(`Unknown agent: ${agentName}`))
+    printError(pc.red(`Unknown agent: ${agentName}`))
     return getExitCodeForError('AGENT_NOT_FOUND')
   }
 
   const { agent, inspection } = resolved
   const interactive = options.nonInteractive ? false : getCliContext().interactive
+  const assumeYes = options.assumeYes ?? isAssumeYesEnabled()
+  const dryRun = options.dryRun ?? isDryRunEnabled()
   const installPolicy = options.install ?? 'prompt'
 
   if (!inspection.inPath) {
     if (installPolicy === 'never') {
-      console.log(pc.red(`${agent.displayName} is not installed.`))
+      printError(pc.red(`${agent.displayName} is not installed.`))
       return getExitCodeForError('AGENT_NOT_INSTALLED')
     }
 
     if (installPolicy === 'if-missing' || installPolicy === 'always') {
-      console.log(pc.cyan(`Installing ${agent.displayName}...`))
-      const result = await tryInstallForRun(agent)
+      if (dryRun) {
+        writeDirectOutput(pc.cyan(`Dry run: would install ${agent.displayName}.`))
+      }
+      else {
+        printInfo(pc.cyan(`Installing ${agent.displayName}...`))
+      }
+      const result = await tryInstallForRun(agent, dryRun)
       if (!result.success) {
-        console.log(pc.red(`Failed to install ${agent.displayName}.`))
+        printError(pc.red(`Failed to install ${agent.displayName}.`))
         return 1
       }
     }
     else if (!interactive) {
-      console.log(pc.red(`${agent.displayName} is not installed and interactive installation is disabled.`))
+      printError(pc.red(`${agent.displayName} is not installed and interactive installation is disabled.`))
       return getExitCodeForError('INTERACTION_REQUIRED')
     }
     else {
-      const response = await prompts({
-        type: 'confirm',
-        name: 'install',
-        message: `${agent.displayName} is not installed. Would you like to install it?`,
-        initial: true,
-      })
+      const response = assumeYes || dryRun
+        ? { install: true }
+        : await prompts({
+            type: 'confirm',
+            name: 'install',
+            message: `${agent.displayName} is not installed. Would you like to install it?`,
+            initial: true,
+          })
 
       if (!response.install) {
-        console.log(pc.yellow('Installation cancelled.'))
+        printWarn(pc.yellow('Installation cancelled.'))
         return 1
       }
 
-      console.log(pc.cyan(`Installing ${agent.displayName}...`))
-      const result = await tryInstallForRun(agent)
+      if (dryRun) {
+        writeDirectOutput(pc.cyan(`Dry run: would install ${agent.displayName}.`))
+      }
+      else {
+        printInfo(pc.cyan(`Installing ${agent.displayName}...`))
+      }
+      const result = await tryInstallForRun(agent, dryRun)
       if (!result.success) {
-        console.log(pc.red(`Failed to install ${agent.displayName}.`))
+        printError(pc.red(`Failed to install ${agent.displayName}.`))
         return 1
       }
     }
+  }
+
+  if (dryRun) {
+    writeDirectOutput(pc.cyan(`Dry run: would run ${[agent.binaryName, ...args].join(' ')}`))
+    return 0
   }
 
   try {
     return await runSpawnedAgentProcess(spawnWithQuantexStdio([agent.binaryName, ...args]), agent.displayName)
   }
   catch (e) {
-    console.log(pc.red(`Failed to launch ${agent.displayName}: ${e instanceof Error ? e.message : String(e)}`))
+    printError(pc.red(`Failed to launch ${agent.displayName}: ${e instanceof Error ? e.message : String(e)}`))
     return 1
   }
 }
 
-async function tryInstallForRun(agent: { displayName: string } & Parameters<typeof installAgent>[0]): Promise<Awaited<ReturnType<typeof installAgent>>> {
+async function tryInstallForRun(
+  agent: { displayName: string } & Parameters<typeof installAgent>[0],
+  dryRun: boolean = isDryRunEnabled(),
+): Promise<Awaited<ReturnType<typeof installAgent>>> {
+  if (dryRun)
+    return { success: true }
+
   try {
     return await installAgent(agent)
   }
   catch (error) {
     if (isResourceLockError(error)) {
-      console.log(pc.red(error.message))
+      printError(pc.red(error.message))
       return { success: false }
     }
 
-    console.log(pc.red(`Failed to install ${agent.displayName}: ${error instanceof Error ? error.message : String(error)}`))
+    printError(pc.red(`Failed to install ${agent.displayName}: ${error instanceof Error ? error.message : String(error)}`))
     return { success: false }
   }
 }
@@ -101,7 +129,7 @@ async function runSpawnedAgentProcess(handle: SpawnHandle, displayName: string):
     const signalPromise = new Promise<number>((resolve) => {
       const handleSignal = (signal: NodeJS.Signals): void => {
         cancelCliContextOperations()
-        console.log(pc.red(`${displayName} was cancelled by ${signal}.`))
+        printError(pc.red(`${displayName} was cancelled by ${signal}.`))
         resolve(getExitCodeForError('CANCELLED'))
       }
 
@@ -120,7 +148,7 @@ async function runSpawnedAgentProcess(handle: SpawnHandle, displayName: string):
       : new Promise<number>((resolve) => {
           timeoutId = setTimeout(() => {
             cancelCliContextOperations()
-            console.log(pc.red(`${displayName} timed out after ${timeoutMs}ms.`))
+            printError(pc.red(`${displayName} timed out after ${timeoutMs}ms.`))
             resolve(getExitCodeForError('TIMEOUT'))
           }, timeoutMs)
         })

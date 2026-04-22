@@ -55,20 +55,23 @@ afterAll(() => {
 
 describe('runCommand', () => {
   let logSpy: ReturnType<typeof vi.spyOn>
+  let stdoutWriteSpy: ReturnType<typeof vi.spyOn>
 
   beforeEach(() => {
     logSpy = vi.spyOn(console, 'log').mockImplementation(() => {})
+    stdoutWriteSpy = vi.spyOn(process.stdout, 'write').mockReturnValue(true)
   })
 
   afterEach(() => {
     logSpy.mockRestore()
+    stdoutWriteSpy.mockRestore()
   })
 
   it('shows error for unknown agent', async () => {
     agentSpy.mockReturnValue(undefined)
     const code = await runCommand('unknown', [])
     expect(code).toBe(3)
-    expect(logSpy).toHaveBeenCalledWith(expect.stringContaining('Unknown agent'))
+    expect(stdoutWriteSpy).toHaveBeenCalledWith(expect.stringContaining('Unknown agent'))
   })
 
   it('runs agent directly if installed, returns exit code', async () => {
@@ -97,7 +100,7 @@ describe('runCommand', () => {
     binaryInPathSpy.mockResolvedValue(false)
     const code = await runCommand('test-agent', [])
     expect(code).toBe(1)
-    expect(logSpy).toHaveBeenCalledWith(expect.stringContaining('cancelled'))
+    expect(stdoutWriteSpy).toHaveBeenCalledWith(expect.stringContaining('cancelled'))
   })
 
   it('returns 1 when install fails', async () => {
@@ -107,7 +110,7 @@ describe('runCommand', () => {
     installSpy.mockResolvedValue({ success: false })
     const code = await runCommand('test-agent', [])
     expect(code).toBe(1)
-    expect(logSpy).toHaveBeenCalledWith(expect.stringContaining('Failed to install'))
+    expect(stdoutWriteSpy).toHaveBeenCalledWith(expect.stringContaining('Failed to install'))
   })
 
   it('returns 1 when spawn fails', async () => {
@@ -118,7 +121,7 @@ describe('runCommand', () => {
     })
     const code = await runCommand('test-agent', [])
     expect(code).toBe(1)
-    expect(logSpy).toHaveBeenCalledWith(expect.stringContaining('Failed to launch'))
+    expect(stdoutWriteSpy).toHaveBeenCalledWith(expect.stringContaining('Failed to launch'))
   })
 
   it('does not prompt in non-interactive mode when install is required', async () => {
@@ -129,7 +132,7 @@ describe('runCommand', () => {
 
     expect(code).toBe(7)
     expect(mockPrompts).not.toHaveBeenCalled()
-    expect(logSpy).toHaveBeenCalledWith(expect.stringContaining('interactive installation is disabled'))
+    expect(stdoutWriteSpy).toHaveBeenCalledWith(expect.stringContaining('interactive installation is disabled'))
   })
 
   it('returns agent-not-installed when install policy is never', async () => {
@@ -141,7 +144,7 @@ describe('runCommand', () => {
     expect(code).toBe(4)
     expect(mockPrompts).not.toHaveBeenCalled()
     expect(installSpy).not.toHaveBeenCalled()
-    expect(logSpy).toHaveBeenCalledWith(expect.stringContaining('is not installed'))
+    expect(stdoutWriteSpy).toHaveBeenCalledWith(expect.stringContaining('is not installed'))
   })
 
   it('installs automatically when install policy is if-missing', async () => {
@@ -156,6 +159,37 @@ describe('runCommand', () => {
     expect(mockPrompts).not.toHaveBeenCalled()
     expect(installSpy).toHaveBeenCalledWith(testAgent)
     expect(mockSpawn).toHaveBeenCalledWith(['test-bin', '--help'], expect.any(Object))
+  })
+
+  it('accepts the install prompt automatically when assumeYes is enabled', async () => {
+    agentSpy.mockReturnValue(testAgent)
+    binaryInPathSpy.mockResolvedValue(false)
+    installSpy.mockResolvedValue({ success: true })
+    mockSpawn.mockReturnValue({ exited: Promise.resolve(), exitCode: 0 })
+
+    const code = await runCommand('test-agent', ['--help'], { assumeYes: true })
+
+    expect(code).toBe(0)
+    expect(mockPrompts).not.toHaveBeenCalled()
+    expect(installSpy).toHaveBeenCalledWith(testAgent)
+  })
+
+  it('returns a dry-run success without installing or spawning', async () => {
+    setCliContext({
+      dryRun: true,
+      interactive: false,
+      outputMode: 'human',
+      runId: 'dry-run-id',
+    })
+    agentSpy.mockReturnValue(testAgent)
+    binaryInPathSpy.mockResolvedValue(false)
+
+    const code = await runCommand('test-agent', ['--help'], { dryRun: true, install: 'if-missing', nonInteractive: true })
+
+    expect(code).toBe(0)
+    expect(mockPrompts).not.toHaveBeenCalled()
+    expect(installSpy).not.toHaveBeenCalled()
+    expect(mockSpawn).not.toHaveBeenCalled()
   })
 
   it('returns timeout when the spawned agent exceeds the configured limit', async () => {
@@ -204,7 +238,7 @@ describe('runCommand', () => {
 
     expect(code).toBe(10)
     expect(proc.kill).toHaveBeenCalledWith('SIGTERM')
-    expect(logSpy).toHaveBeenCalledWith(expect.stringContaining('timed out'))
+    expect(stdoutWriteSpy).toHaveBeenCalledWith(expect.stringContaining('timed out'))
   })
 
   it('returns cancelled when the spawned agent receives a termination signal', async () => {
@@ -253,6 +287,6 @@ describe('runCommand', () => {
 
     expect(code).toBe(11)
     expect(proc.kill).toHaveBeenCalledWith('SIGTERM')
-    expect(logSpy).toHaveBeenCalledWith(expect.stringContaining('cancelled by SIGTERM'))
+    expect(stdoutWriteSpy).toHaveBeenCalledWith(expect.stringContaining('cancelled by SIGTERM'))
   })
 })

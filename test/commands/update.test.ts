@@ -45,9 +45,11 @@ const testAgent = {
 
 describe('updateCommand', () => {
   let logSpy: ReturnType<typeof vi.spyOn>
+  let stdoutWriteSpy: ReturnType<typeof vi.spyOn>
 
   beforeEach(() => {
     logSpy = vi.spyOn(console, 'log').mockImplementation(() => {})
+    stdoutWriteSpy = vi.spyOn(process.stdout, 'write').mockReturnValue(true)
     agentSpy.mockClear()
     allAgentsSpy.mockClear()
     updateSpy.mockClear()
@@ -60,12 +62,13 @@ describe('updateCommand', () => {
 
   afterEach(() => {
     logSpy.mockRestore()
+    stdoutWriteSpy.mockRestore()
   })
 
   it('shows error for unknown agent', async () => {
     agentSpy.mockReturnValue(undefined)
     await updateCommand('unknown', false)
-    expect(logSpy).toHaveBeenCalledWith(expect.stringContaining('Unknown agent'))
+    expect(stdoutWriteSpy).toHaveBeenCalledWith(expect.stringContaining('Unknown agent'))
   })
 
   it('shows up to date when versions match', async () => {
@@ -74,7 +77,7 @@ describe('updateCommand', () => {
     installedVerSpy.mockResolvedValue('1.0.0')
     latestVerSpy.mockResolvedValue('1.0.0')
     await updateCommand('test-agent', false)
-    expect(logSpy).toHaveBeenCalledWith(expect.stringContaining('up to date'))
+    expect(stdoutWriteSpy).toHaveBeenCalledWith(expect.stringContaining('up to date'))
     expect(updateSpy).not.toHaveBeenCalled()
   })
 
@@ -89,8 +92,8 @@ describe('updateCommand', () => {
     await updateCommand('test-agent', false)
     expect(updateAgentsByTypeSpy).toHaveBeenCalledWith('bun', [{ packageName: 'test-pkg', packageTargetKind: undefined }])
     expect(updateSpy).not.toHaveBeenCalled()
-    expect(logSpy).toHaveBeenCalledWith(expect.stringContaining('Updating Test Agent via managed/bun... (1.0.0 -> 2.0.0)'))
-    expect(logSpy).toHaveBeenCalledWith(expect.stringContaining('updated successfully'))
+    expect(stdoutWriteSpy).toHaveBeenCalledWith(expect.stringContaining('Updating Test Agent via managed/bun... (1.0.0 -> 2.0.0)'))
+    expect(stdoutWriteSpy).toHaveBeenCalledWith(expect.stringContaining('updated successfully'))
   })
 
   it('batches known package-manager updates for --all', async () => {
@@ -119,7 +122,7 @@ describe('updateCommand', () => {
       { packageName: 'pkg2', packageTargetKind: undefined },
     ])
     expect(updateSpy).not.toHaveBeenCalled()
-    const output = logSpy.mock.calls.map((c: any[]) => c[0]).join('\n')
+    const output = stdoutWriteSpy.mock.calls.map((c: any[]) => c[0]).join('\n')
     expect(output).toContain('Updating Test Agent via managed/bun... (1.0.0 -> 2.0.0)')
     expect(output).toContain('Updating Agent 2 via managed/bun... (1.0.0 -> 2.0.0)')
   })
@@ -149,7 +152,7 @@ describe('updateCommand', () => {
     expect(updateAgentsByTypeSpy).not.toHaveBeenCalled()
     expect(updateSpy).not.toHaveBeenCalled()
 
-    const output = logSpy.mock.calls.map((c: any[]) => c[0]).join('\n')
+    const output = stdoutWriteSpy.mock.calls.map((c: any[]) => c[0]).join('\n')
     expect(output).toContain('Manual Agent uses a manually managed install source')
     expect(output).not.toContain('Updating Manual Agent')
     expect(output).not.toContain('Failed to update Manual Agent')
@@ -183,7 +186,7 @@ describe('updateCommand', () => {
 
     expect(updateSpy).toHaveBeenCalledWith(selfUpdatingAgent, undefined)
 
-    const output = logSpy.mock.calls.map((c: any[]) => c[0]).join('\n')
+    const output = stdoutWriteSpy.mock.calls.map((c: any[]) => c[0]).join('\n')
     expect(output).toContain('Updating Self Updating Agent via self-update... (1.0.0 -> latest)')
     expect(output).toContain('Self Updating Agent updated successfully')
   })
@@ -215,7 +218,7 @@ describe('updateCommand', () => {
 
     await updateCommand('self-updating-agent', false)
 
-    const output = logSpy.mock.calls.map((c: any[]) => c[0]).join('\n')
+    const output = stdoutWriteSpy.mock.calls.map((c: any[]) => c[0]).join('\n')
     expect(output).toContain('Failed to update Self Updating Agent.')
     expect(output).toContain('Try running self-updating-bin update directly.')
   })
@@ -247,12 +250,33 @@ describe('updateCommand', () => {
     const result = await updateCommand('self-updating-agent', false)
 
     expect(result.error?.code).toBe('RESOURCE_LOCKED')
-    expect(logSpy).toHaveBeenCalledWith(expect.stringContaining('agent lifecycle lock'))
+    expect(stdoutWriteSpy).toHaveBeenCalledWith(expect.stringContaining('agent lifecycle lock'))
+  })
+
+  it('returns a dry-run plan without invoking update executors', async () => {
+    setCliContext({
+      dryRun: true,
+      interactive: false,
+      outputMode: 'json',
+      runId: 'dry-run-id',
+    })
+    agentSpy.mockReturnValue(testAgent)
+    binaryInPathSpy.mockResolvedValue(true)
+    installedVerSpy.mockResolvedValue('1.0.0')
+    latestVerSpy.mockResolvedValue('2.0.0')
+    installedStateSpy.mockResolvedValue(undefined)
+
+    const result = await updateCommand('test-agent', false)
+
+    expect(result.ok).toBe(true)
+    expect(result.data?.results[0]?.status).toBe('planned')
+    expect(updateAgentsByTypeSpy).not.toHaveBeenCalled()
+    expect(updateSpy).not.toHaveBeenCalled()
   })
 
   it('shows error when no agent specified and no --all flag', async () => {
     await updateCommand(undefined, false)
-    expect(logSpy).toHaveBeenCalledWith(expect.stringContaining('Please specify'))
+    expect(stdoutWriteSpy).toHaveBeenCalledWith(expect.stringContaining('Please specify'))
   })
 
   it('emits ndjson progress events for streamed updates', async () => {

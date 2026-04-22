@@ -1,8 +1,9 @@
 import type { CommandResult } from '../output/types'
 import type { SelfUpdateChannel } from '../self'
-import pc from 'picocolors'
 import { createErrorResult, createSuccessResult, emitCommandResult } from '../output'
 import { getSelfUpgradeRecoveryHintForInspection, inspectSelf, upgradeSelf } from '../self'
+import { pc } from '../utils/color'
+import { isDryRunEnabled, printError, printInfo, printWarn } from '../utils/user-output'
 
 interface UpgradeCommandData {
   canAutoUpdate: boolean
@@ -16,6 +17,7 @@ interface UpgradeCommandData {
 
 export async function upgradeCommand(options: { channel?: SelfUpdateChannel, check?: boolean } = {}): Promise<CommandResult<UpgradeCommandData>> {
   const inspection = await inspectSelf({ updateChannel: options.channel })
+  const dryRun = isDryRunEnabled()
 
   if (inspection.latestVersion && inspection.latestVersion === inspection.currentVersion) {
     return emitCommandResult(createSuccessResult<UpgradeCommandData>({
@@ -35,7 +37,7 @@ export async function upgradeCommand(options: { channel?: SelfUpdateChannel, che
     }), renderUpgradeHuman)
   }
 
-  if (options.check) {
+  if (options.check || dryRun) {
     if (inspection.latestVersion) {
       return emitCommandResult(createSuccessResult<UpgradeCommandData>({
         action: 'upgrade',
@@ -47,11 +49,17 @@ export async function upgradeCommand(options: { channel?: SelfUpdateChannel, che
           latestVersion: inspection.latestVersion,
           status: 'update-available',
         },
-        exitCode: 1,
+        exitCode: options.check ? 1 : undefined,
         target: {
           kind: 'self',
           name: 'quantex',
         },
+        warnings: dryRun
+          ? [{
+              code: 'DRY_RUN',
+              message: 'Dry run: would upgrade Quantex CLI.',
+            }]
+          : [],
       }), renderUpgradeHuman)
     }
 
@@ -156,30 +164,33 @@ export async function upgradeCommand(options: { channel?: SelfUpdateChannel, che
 function renderUpgradeHuman(result: { data?: UpgradeCommandData, error: { code?: string, message: string } | null, warnings: Array<{ message: string }> }): void {
   if (!result.data) {
     if (result.error)
-      console.log(pc.red(result.error.message))
+      printError(pc.red(result.error.message))
     return
   }
 
   if (result.data.status === 'up-to-date') {
-    console.log(pc.green(`Quantex CLI is already up to date (${result.data.currentVersion}).`))
+    printInfo(pc.green(`Quantex CLI is already up to date (${result.data.currentVersion}).`))
     return
   }
 
   if (result.data.status === 'update-available') {
-    console.log(pc.yellow(`Update available for Quantex CLI: ${result.data.currentVersion} -> ${result.data.latestVersion} (${result.data.channel}).`))
+    const prefix = result.warnings.some(warning => warning.message.includes('Dry run'))
+      ? 'Dry run: '
+      : ''
+    printWarn(pc.yellow(`${prefix}Update available for Quantex CLI: ${result.data.currentVersion} -> ${result.data.latestVersion} (${result.data.channel}).`))
     return
   }
 
   if (result.data.status === 'check-unavailable') {
     if (result.error)
-      console.log(pc.yellow(result.error.message))
+      printWarn(pc.yellow(result.error.message))
     return
   }
 
   if (result.data.status === 'manual-required' && result.error?.code === 'MANUAL_ACTION_REQUIRED') {
-    console.log(pc.yellow(result.error.message))
+    printWarn(pc.yellow(result.error.message))
     if (result.data.recoveryHint)
-      console.log(pc.cyan(`Manual upgrade: ${result.data.recoveryHint}`))
+      printWarn(pc.cyan(`Manual upgrade: ${result.data.recoveryHint}`))
     return
   }
 
@@ -187,15 +198,15 @@ function renderUpgradeHuman(result: { data?: UpgradeCommandData, error: { code?:
     ? ` (${result.data.currentVersion} -> ${result.data.latestVersion})`
     : ` (${result.data.currentVersion})`
 
-  console.log(pc.cyan(`Upgrading Quantex CLI...${versionHint}`))
+  printInfo(pc.cyan(`Upgrading Quantex CLI...${versionHint}`))
 
   if (!result.error) {
-    console.log(pc.green('Quantex CLI upgraded successfully.'))
+    printInfo(pc.green('Quantex CLI upgraded successfully.'))
     return
   }
 
-  console.log(pc.red('Failed to upgrade Quantex CLI.'))
-  console.log(pc.yellow(`Reason: ${result.error.message}`))
+  printError(pc.red('Failed to upgrade Quantex CLI.'))
+  printWarn(pc.yellow(`Reason: ${result.error.message}`))
   for (const warning of result.warnings)
-    console.log(pc.cyan(warning.message))
+    printWarn(pc.cyan(warning.message))
 }

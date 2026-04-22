@@ -2,16 +2,17 @@ import type { AgentDefinition, InstallMethod, ManagedInstallType } from '../agen
 import type { CommandResult } from '../output/types'
 import type { ManagedPackageSpec } from '../package-manager'
 import type { InstalledAgentState } from '../state'
-import pc from 'picocolors'
 import { getAgentUpdateFailureHint, getAgentUpdateStrategy, getManualAgentUpdateMessage } from '../agent-update'
 import { createErrorResult, createSuccessResult, emitCommandEvent, emitCommandResult } from '../output'
 import { updateAgent, updateAgentsByType } from '../package-manager'
 import { resolveAgent } from '../services/agents'
 import { planAgentUpdates, planSingleAgentUpdate } from '../services/update'
+import { pc } from '../utils/color'
 import { canAutoUpdateAgent, canUpdateInstallType } from '../utils/install'
 import { isResourceLockError } from '../utils/lock'
+import { isDryRunEnabled, printError, printInfo, printWarn } from '../utils/user-output'
 
-type UpdateStatus = 'failed' | 'locked' | 'manual-required' | 'up-to-date' | 'updated'
+type UpdateStatus = 'failed' | 'locked' | 'manual-required' | 'planned' | 'up-to-date' | 'updated'
 
 interface UpdateCommandData {
   results: UpdateResultItem[]
@@ -258,6 +259,18 @@ async function updateGroupedAgents(
   if (updates.length === 0)
     return []
 
+  if (isDryRunEnabled()) {
+    return updates.map(({ agent, inspection, strategy }) => ({
+      displayName: agent.displayName,
+      installedVersion: inspection.installedVersion,
+      latestVersion: inspection.latestVersion,
+      message: `Dry run: would update ${agent.displayName}.`,
+      name: agent.name,
+      status: 'planned',
+      strategy: strategy === 'managed' ? `managed/${type}` : strategy,
+    }))
+  }
+
   try {
     const success = await updateAgentsByType(type, packages)
 
@@ -318,6 +331,18 @@ async function performUpdate(
     }
   }
 
+  if (isDryRunEnabled()) {
+    return {
+      displayName: agent.displayName,
+      installedVersion,
+      latestVersion,
+      message: `Dry run: would update ${agent.displayName}.`,
+      name: agent.name,
+      status: 'planned',
+      strategy,
+    }
+  }
+
   let result
   try {
     result = await updateAgent(agent, installedState)
@@ -371,37 +396,40 @@ function getSingleLockedResult(results: UpdateResultItem[]): UpdateResultItem | 
 function renderUpdateHuman(result: { data?: UpdateCommandData, error: { code: string, message: string } | null }): void {
   if (!result.data) {
     if (result.error)
-      console.log(pc.red(result.error.message))
+      printError(pc.red(result.error.message))
     return
   }
 
   for (const item of result.data.results) {
     switch (item.status) {
       case 'up-to-date':
-        console.log(pc.green(`${item.displayName} is up to date (${item.installedVersion ?? 'unknown'})`))
+        printInfo(pc.green(`${item.displayName} is up to date (${item.installedVersion ?? 'unknown'})`))
         break
       case 'manual-required':
         if (item.message)
-          console.log(pc.yellow(item.message))
+          printWarn(pc.yellow(item.message))
+        break
+      case 'planned':
+        printWarn(pc.cyan(`Would update ${item.displayName}${item.strategy ? ` via ${item.strategy}` : ''}${getVersionHint(item.installedVersion, item.latestVersion)}`))
         break
       case 'updated':
-        console.log(pc.cyan(`Updating ${item.displayName}${item.strategy ? ` via ${item.strategy}` : ''}...${getVersionHint(item.installedVersion, item.latestVersion)}`))
-        console.log(pc.green(`${item.displayName} updated successfully!`))
+        printInfo(pc.cyan(`Updating ${item.displayName}${item.strategy ? ` via ${item.strategy}` : ''}...${getVersionHint(item.installedVersion, item.latestVersion)}`))
+        printInfo(pc.green(`${item.displayName} updated successfully!`))
         break
       case 'failed':
-        console.log(pc.cyan(`Updating ${item.displayName}${item.strategy ? ` via ${item.strategy}` : ''}...${getVersionHint(item.installedVersion, item.latestVersion)}`))
-        console.log(pc.red(`Failed to update ${item.displayName}.`))
+        printInfo(pc.cyan(`Updating ${item.displayName}${item.strategy ? ` via ${item.strategy}` : ''}...${getVersionHint(item.installedVersion, item.latestVersion)}`))
+        printError(pc.red(`Failed to update ${item.displayName}.`))
         if (item.hint)
-          console.log(pc.yellow(item.hint))
+          printWarn(pc.yellow(item.hint))
         break
       case 'locked':
-        console.log(pc.yellow(item.message ?? `Another quantex process is already updating ${item.displayName}.`))
+        printWarn(pc.yellow(item.message ?? `Another quantex process is already updating ${item.displayName}.`))
         break
     }
   }
 
   if (!result.data.results.length && result.error)
-    console.log(pc.red(result.error.message))
+    printError(pc.red(result.error.message))
 }
 
 function getVersionHint(installed?: string, latest?: string): string {

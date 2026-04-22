@@ -1,7 +1,7 @@
 import type { CommandResult } from '../output/types'
-import pc from 'picocolors'
 import { createSuccessResult, emitCommandResult } from '../output'
 import { inspectRegisteredAgents } from '../services/agents'
+import { pc } from '../utils/color'
 
 interface ListedAgent {
   binaryName: string

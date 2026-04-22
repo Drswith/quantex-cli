@@ -1,9 +1,9 @@
 import type { CommandResult, CommandTarget } from './output/types'
 import process from 'node:process'
-import pc from 'picocolors'
 import { cancelCliContextOperations, getCliContext } from './cli-context'
 import { loadIdempotencyRecord, saveIdempotencyRecord } from './idempotency'
 import { createErrorResult, emitCommandEvent, emitCommandResult } from './output'
+import { pc } from './utils/color'
 
 interface ExecuteCommandOptions<T> {
   action: string

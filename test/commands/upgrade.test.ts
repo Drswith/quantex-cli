@@ -13,15 +13,18 @@ afterAll(() => {
 
 describe('upgradeCommand', () => {
   let logSpy: ReturnType<typeof vi.spyOn>
+  let stdoutWriteSpy: ReturnType<typeof vi.spyOn>
 
   beforeEach(() => {
     logSpy = vi.spyOn(console, 'log').mockImplementation(() => {})
+    stdoutWriteSpy = vi.spyOn(process.stdout, 'write').mockReturnValue(true)
     inspectSelfSpy.mockClear()
     upgradeSelfSpy.mockClear()
   })
 
   afterEach(() => {
     logSpy.mockRestore()
+    stdoutWriteSpy.mockRestore()
   })
 
   it('shows up to date when latest version matches current version', async () => {
@@ -39,7 +42,7 @@ describe('upgradeCommand', () => {
     await expect(upgradeCommand()).resolves.toMatchObject({ ok: true })
 
     expect(upgradeSelfSpy).not.toHaveBeenCalled()
-    expect(logSpy).toHaveBeenCalledWith(expect.stringContaining('already up to date'))
+    expect(stdoutWriteSpy).toHaveBeenCalledWith(expect.stringContaining('already up to date'))
   })
 
   it('refuses to auto-update from unsupported install sources', async () => {
@@ -61,7 +64,7 @@ describe('upgradeCommand', () => {
     })
 
     expect(upgradeSelfSpy).not.toHaveBeenCalled()
-    expect(logSpy).toHaveBeenCalledWith(expect.stringContaining('cannot auto-update'))
+    expect(stdoutWriteSpy).toHaveBeenCalledWith(expect.stringContaining('cannot auto-update'))
   })
 
   it('shows manual recovery for bun installs when self-upgrade fails', async () => {
@@ -92,9 +95,9 @@ describe('upgradeCommand', () => {
       ok: false,
     })
 
-    expect(logSpy).toHaveBeenCalledWith(expect.stringContaining('Failed to upgrade Quantex CLI'))
-    expect(logSpy).toHaveBeenCalledWith(expect.stringContaining('Reason: Failed to update quantex-cli through Bun.'))
-    expect(logSpy).toHaveBeenCalledWith(expect.stringContaining('bun add -g quantex-cli@latest'))
+    expect(stdoutWriteSpy).toHaveBeenCalledWith(expect.stringContaining('Failed to upgrade Quantex CLI'))
+    expect(stdoutWriteSpy).toHaveBeenCalledWith(expect.stringContaining('Reason: Failed to update quantex-cli through Bun.'))
+    expect(stdoutWriteSpy).toHaveBeenCalledWith(expect.stringContaining('bun add -g quantex-cli@latest'))
   })
 
   it('shows manual recovery for npm installs when self-upgrade fails', async () => {
@@ -125,7 +128,7 @@ describe('upgradeCommand', () => {
       ok: false,
     })
 
-    expect(logSpy).toHaveBeenCalledWith(expect.stringContaining('npm install -g quantex-cli@latest'))
+    expect(stdoutWriteSpy).toHaveBeenCalledWith(expect.stringContaining('npm install -g quantex-cli@latest'))
   })
 
   it('shows manual recovery for binary installs when self-upgrade fails', async () => {
@@ -157,8 +160,8 @@ describe('upgradeCommand', () => {
       ok: false,
     })
 
-    expect(logSpy).toHaveBeenCalledWith(expect.stringContaining('Manual recovery:'))
-    expect(logSpy).toHaveBeenCalledWith(expect.stringContaining('download and replace the binary'))
+    expect(stdoutWriteSpy).toHaveBeenCalledWith(expect.stringContaining('Manual recovery:'))
+    expect(stdoutWriteSpy).toHaveBeenCalledWith(expect.stringContaining('download and replace the binary'))
   })
 
   it('shows a retry hint when another self upgrade already holds the lock', async () => {
@@ -189,8 +192,8 @@ describe('upgradeCommand', () => {
       ok: false,
     })
 
-    expect(logSpy).toHaveBeenCalledWith(expect.stringContaining('Another qtx upgrade is already running.'))
-    expect(logSpy).toHaveBeenCalledWith(expect.stringContaining('already running; wait for it to finish and retry'))
+    expect(stdoutWriteSpy).toHaveBeenCalledWith(expect.stringContaining('Another qtx upgrade is already running.'))
+    expect(stdoutWriteSpy).toHaveBeenCalledWith(expect.stringContaining('already running; wait for it to finish and retry'))
   })
 
   it('runs self upgrade when a managed source is detected', async () => {
@@ -213,8 +216,8 @@ describe('upgradeCommand', () => {
     await expect(upgradeCommand()).resolves.toMatchObject({ ok: true })
 
     expect(upgradeSelfSpy).toHaveBeenCalledWith(inspection)
-    expect(logSpy).toHaveBeenCalledWith(expect.stringContaining('Upgrading Quantex CLI'))
-    expect(logSpy).toHaveBeenCalledWith(expect.stringContaining('upgraded successfully'))
+    expect(stdoutWriteSpy).toHaveBeenCalledWith(expect.stringContaining('Upgrading Quantex CLI'))
+    expect(stdoutWriteSpy).toHaveBeenCalledWith(expect.stringContaining('upgraded successfully'))
   })
 
   it('supports --check mode when an update is available', async () => {
@@ -235,8 +238,8 @@ describe('upgradeCommand', () => {
     })
 
     expect(upgradeSelfSpy).not.toHaveBeenCalled()
-    expect(logSpy).toHaveBeenCalledWith(expect.stringContaining('Update available'))
-    expect(logSpy).toHaveBeenCalledWith(expect.stringContaining('(beta)'))
+    expect(stdoutWriteSpy).toHaveBeenCalledWith(expect.stringContaining('Update available'))
+    expect(stdoutWriteSpy).toHaveBeenCalledWith(expect.stringContaining('(beta)'))
   })
 
   it('emits a structured envelope in json mode', async () => {
@@ -264,5 +267,31 @@ describe('upgradeCommand', () => {
     expect(payload.exitCode).toBe(1)
     expect(payload.data.status).toBe('update-available')
     expect(payload.meta.runId).toBe('test-run-id')
+  })
+
+  it('returns a dry-run upgrade plan without invoking the upgrader', async () => {
+    setCliContext({
+      dryRun: true,
+      interactive: false,
+      outputMode: 'json',
+      runId: 'dry-run-id',
+    })
+    inspectSelfSpy.mockResolvedValue({
+      canAutoUpdate: true,
+      currentVersion: '1.0.0',
+      executablePath: '/tmp/quantex',
+      installSource: 'npm',
+      latestVersion: '1.1.0',
+      packageRoot: '/tmp/quantex',
+      recommendedUpgradeCommand: 'quantex upgrade',
+      updateChannel: 'stable',
+    })
+
+    const result = await upgradeCommand()
+
+    expect(result.ok).toBe(true)
+    expect(result.data?.status).toBe('update-available')
+    expect(result.warnings[0]?.code).toBe('DRY_RUN')
+    expect(upgradeSelfSpy).not.toHaveBeenCalled()
   })
 })

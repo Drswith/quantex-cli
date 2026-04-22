@@ -5,6 +5,8 @@ import { parseDurationToMs } from './utils/duration'
 export type OutputMode = 'human' | 'json' | 'ndjson'
 export type CacheMode = 'default' | 'no-cache' | 'refresh'
 export type FreshnessSource = 'cache' | 'network'
+export type ColorMode = 'always' | 'auto' | 'never'
+export type LogLevel = 'debug' | 'error' | 'info' | 'silent' | 'warn'
 
 export interface CliFreshness {
   fetchedAt: string
@@ -13,12 +15,17 @@ export interface CliFreshness {
 }
 
 export interface CliContext {
+  assumeYes?: boolean
   cacheMode?: CacheMode
   cancelled?: boolean
+  colorMode?: ColorMode
+  dryRun?: boolean
   freshness?: CliFreshness
   idempotencyKey?: string
   interactive: boolean
+  logLevel?: LogLevel
   outputMode: OutputMode
+  quiet?: boolean
   runId: string
   timeoutMs?: number
 }
@@ -29,9 +36,14 @@ export interface CliContextOptions {
   noCache?: boolean
   nonInteractive?: boolean
   output?: string
+  color?: string
+  dryRun?: boolean
+  logLevel?: string
+  quiet?: boolean
   refresh?: boolean
   runId?: string
   timeout?: string
+  yes?: boolean
 }
 
 let currentContext: CliContext | undefined
@@ -65,6 +77,8 @@ export function resolveCliContext(options: CliContextOptions = {}): CliContext {
       ? 'ndjson'
       : 'human'
   const timeoutMs = options.timeout === undefined ? undefined : parseDurationToMs(options.timeout)
+  const colorMode = resolveColorMode(options.color)
+  const logLevel = resolveLogLevel(options.logLevel)
 
   if (options.timeout !== undefined && timeoutMs === undefined)
     throw new Error(`Invalid timeout value: ${options.timeout}`)
@@ -72,11 +86,16 @@ export function resolveCliContext(options: CliContextOptions = {}): CliContext {
     throw new Error('Cannot combine --refresh with --no-cache.')
 
   return {
+    assumeYes: options.yes,
     cacheMode: options.noCache ? 'no-cache' : options.refresh ? 'refresh' : 'default',
     cancelled: false,
+    colorMode,
+    dryRun: options.dryRun,
     idempotencyKey: options.idempotencyKey,
     interactive: !options.nonInteractive && stdinInteractive && stdoutInteractive,
+    logLevel,
     outputMode,
+    quiet: options.quiet,
     runId: options.runId ?? process.env.QUANTEX_RUN_ID ?? randomUUID(),
     timeoutMs,
   }
@@ -118,4 +137,24 @@ export function recordCliFreshness(freshness: CliFreshness): void {
 
 function createDefaultCliContext(): CliContext {
   return resolveCliContext()
+}
+
+function resolveColorMode(value: string | undefined): ColorMode {
+  if (value === undefined || value === 'auto')
+    return 'auto'
+  if (value === 'always')
+    return 'always'
+  if (value === 'never')
+    return 'never'
+
+  throw new Error(`Invalid color mode: ${value}`)
+}
+
+function resolveLogLevel(value: string | undefined): LogLevel {
+  if (value === undefined || value === 'info')
+    return 'info'
+  if (value === 'silent' || value === 'error' || value === 'warn' || value === 'debug')
+    return value
+
+  throw new Error(`Invalid log level: ${value}`)
 }

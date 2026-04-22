@@ -1,6 +1,6 @@
 import type { CommandResult } from '../output/types'
-import pc from 'picocolors'
 import { createErrorResult, createSuccessResult, emitCommandResult } from '../output'
+import { pc } from '../utils/color'
 
 interface JsonSchema {
   additionalProperties?: boolean
@@ -126,17 +126,21 @@ const schemaCatalog: SchemaDocument[] = [
         features: {
           additionalProperties: false,
           properties: {
+            assumeYes: { type: 'boolean' },
             cacheBypass: { type: 'boolean' },
             cacheRefresh: { type: 'boolean' },
             channels: { items: { type: 'string' }, type: 'array' },
+            colorModes: { items: { type: 'string' }, type: 'array' },
             dryRun: { type: 'boolean' },
             execInstallPolicies: { items: { type: 'string' }, type: 'array' },
             freshnessMetadata: { type: 'boolean' },
             idempotencyKey: { type: 'boolean' },
+            logLevels: { items: { type: 'string' }, type: 'array' },
+            quietLogs: { type: 'boolean' },
             selfUpgrade: { type: 'boolean' },
             timeout: { type: 'boolean' },
           },
-          required: ['cacheBypass', 'cacheRefresh', 'channels', 'dryRun', 'execInstallPolicies', 'freshnessMetadata', 'idempotencyKey', 'selfUpgrade', 'timeout'],
+          required: ['assumeYes', 'cacheBypass', 'cacheRefresh', 'channels', 'colorModes', 'dryRun', 'execInstallPolicies', 'freshnessMetadata', 'idempotencyKey', 'logLevels', 'quietLogs', 'selfUpgrade', 'timeout'],
           type: 'object',
         },
         installers: { type: 'object' },
