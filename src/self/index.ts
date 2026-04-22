@@ -4,6 +4,7 @@ import { basename, dirname, join } from 'node:path'
 import process from 'node:process'
 import { fileURLToPath } from 'node:url'
 import { BUILD_PACKAGE_NAME, BUILD_VERSION } from '../generated/build-meta'
+import { getSelfState, setSelfInstallSource } from '../state'
 import { getLatestVersion } from '../utils/version'
 import { getSelfUpgradeProvider } from './providers'
 
@@ -15,9 +16,11 @@ export async function inspectSelf(): Promise<SelfInspection> {
   const metadata = await resolveSelfPackageMetadata()
   const latestVersion = await getLatestVersion(CLI_NPM_PACKAGE_NAME)
   const executablePath = process.execPath
-  const installSource = metadata.foundPackageJson
+  const detectedInstallSource = metadata.foundPackageJson
     ? detectSelfInstallSource(metadata.packageRoot)
     : detectSelfInstallSource('', executablePath)
+  const state = await getSelfState()
+  const installSource = await resolveSelfInstallSource(state.installSource, detectedInstallSource)
 
   return {
     canAutoUpdate: canAutoUpdateSelf(installSource),
@@ -37,6 +40,18 @@ export async function upgradeSelf(inspection?: SelfInspection): Promise<SelfUpda
 
 export function canAutoUpdateSelf(installSource: SelfInstallSource): boolean {
   return installSource === 'binary' || installSource === 'bun' || installSource === 'npm'
+}
+
+async function resolveSelfInstallSource(
+  storedInstallSource: SelfInstallSource | undefined,
+  detectedInstallSource: SelfInstallSource,
+): Promise<SelfInstallSource> {
+  if (detectedInstallSource !== 'unknown' && storedInstallSource !== detectedInstallSource) {
+    await setSelfInstallSource(detectedInstallSource)
+    return detectedInstallSource
+  }
+
+  return storedInstallSource ?? detectedInstallSource
 }
 
 export function detectSelfInstallSource(packageRoot: string, executablePath: string = process.execPath): SelfInstallSource {

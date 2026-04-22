@@ -1,0 +1,47 @@
+import { existsSync, mkdirSync, readFileSync, rmSync } from 'node:fs'
+import { tmpdir } from 'node:os'
+import { join } from 'node:path'
+import { afterAll, afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import * as config from '../src/config'
+import * as version from '../src/utils/version'
+
+const latestVersionSpy = vi.spyOn(version, 'getLatestVersion')
+const getConfigDirSpy = vi.spyOn(config, 'getConfigDir')
+const tempHome = join(tmpdir(), `quantex-self-state-test-${Date.now()}`)
+const tempDir = join(tempHome, '.quantex')
+
+afterAll(() => {
+  latestVersionSpy.mockRestore()
+  getConfigDirSpy.mockRestore()
+})
+
+describe('self state reconciliation', () => {
+  beforeEach(() => {
+    getConfigDirSpy.mockReturnValue(tempDir)
+    latestVersionSpy.mockClear()
+    latestVersionSpy.mockResolvedValue('9.9.9')
+  })
+
+  afterEach(() => {
+    if (existsSync(tempDir))
+      rmSync(tempDir, { recursive: true, force: true })
+  })
+
+  it('refreshes stored self install source when runtime detection disagrees', async () => {
+    const stateFilePath = join(tempDir, 'state.json')
+    mkdirSync(tempDir, { recursive: true })
+    await Bun.write(stateFilePath, `${JSON.stringify({
+      installedAgents: {},
+      self: {
+        installSource: 'bun',
+      },
+    }, null, 2)}\n`)
+
+    const { inspectSelf } = await import('../src/self')
+    const inspection = await inspectSelf()
+
+    expect(inspection.installSource).toBe('source')
+    const savedState = JSON.parse(readFileSync(stateFilePath, 'utf8'))
+    expect(savedState.self?.installSource).toBe('source')
+  })
+})
