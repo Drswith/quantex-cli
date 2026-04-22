@@ -153,6 +153,7 @@ export async function installAgent(agent: AgentDefinition): Promise<AgentOperati
 
 export async function updateAgent(agent: AgentDefinition, preferredState?: InstalledAgentState): Promise<AgentOperationResult> {
   const { npmBunUpdateStrategy } = await getManagedUpdateOptions()
+  const methods = await getOrderedInstallMethods(agent)
 
   if (preferredState && await executeInstalledState(preferredState, 'update', npmBunUpdateStrategy)) {
     await setInstalledAgentState(preferredState)
@@ -162,16 +163,27 @@ export async function updateAgent(agent: AgentDefinition, preferredState?: Insta
     }
   }
 
+  if (!preferredState) {
+    for (const method of methods) {
+      if (await executeMethod(agent, method, 'update', npmBunUpdateStrategy)) {
+        return {
+          success: true,
+          installedState: await persistInstalledState(agent, method),
+        }
+      }
+    }
+  }
+
   if (await executeAgentUpdateCommand(agent))
     return { success: true }
 
-  const methods = await getOrderedInstallMethods(agent)
-
-  for (const method of methods) {
-    if (await executeMethod(agent, method, 'update', npmBunUpdateStrategy)) {
-      return {
-        success: true,
-        installedState: await persistInstalledState(agent, method),
+  if (preferredState) {
+    for (const method of methods) {
+      if (await executeMethod(agent, method, 'update', npmBunUpdateStrategy)) {
+        return {
+          success: true,
+          installedState: await persistInstalledState(agent, method),
+        }
       }
     }
   }

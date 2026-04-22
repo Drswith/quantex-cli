@@ -227,6 +227,45 @@ describe('updateAgent', () => {
     expect(binarySpy).toHaveBeenNthCalledWith(1, 'test-bin update')
     expect(binarySpy).toHaveBeenNthCalledWith(2, 'test-bin upgrade')
   })
+
+  it('prefers managed update methods before self-update when no installed state exists', async () => {
+    const dualModeAgent = {
+      ...testAgent,
+      selfUpdate: {
+        command: ['test-bin', 'update'],
+      },
+    }
+
+    isBunSpy.mockResolvedValue(true)
+    bunUpdateSpy.mockResolvedValue(true)
+    binarySpy.mockResolvedValue(true)
+    setInstalledAgentStateSpy.mockResolvedValue()
+
+    expect(await updateAgent(dualModeAgent)).toMatchObject({ success: true })
+    expect(bunUpdateSpy).toHaveBeenCalledWith('test-pkg', 'latest-major')
+    expect(binarySpy).not.toHaveBeenCalled()
+  })
+
+  it('falls back to self-update after preferred managed state fails', async () => {
+    const dualModeAgent = {
+      ...testAgent,
+      selfUpdate: {
+        command: ['test-bin', 'update'],
+      },
+    }
+
+    isBunSpy.mockResolvedValue(true)
+    bunUpdateSpy.mockResolvedValue(false)
+    binarySpy.mockResolvedValue(true)
+
+    expect(await updateAgent(dualModeAgent, {
+      agentName: 'test-agent',
+      installType: 'bun',
+      packageName: 'test-pkg',
+    })).toMatchObject({ success: true })
+    expect(bunUpdateSpy).toHaveBeenCalledWith('test-pkg', 'latest-major')
+    expect(binarySpy).toHaveBeenCalledWith('test-bin update')
+  })
 })
 
 describe('updateAgentsByType', () => {

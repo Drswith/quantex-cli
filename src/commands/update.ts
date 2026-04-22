@@ -2,7 +2,7 @@ import type { AgentDefinition, InstallMethod, ManagedInstallType } from '../agen
 import type { ManagedPackageSpec } from '../package-manager'
 import type { InstalledAgentState } from '../state'
 import pc from 'picocolors'
-import { getAgentUpdateStrategy } from '../agent-update'
+import { getAgentUpdateFailureHint, getAgentUpdateStrategy, getManualAgentUpdateMessage } from '../agent-update'
 import { updateAgent, updateAgentsByType } from '../package-manager'
 import { resolveAgent } from '../services/agents'
 import { getSingleAgentUpdateStatus, planAgentUpdates, planSingleAgentUpdate } from '../services/update'
@@ -38,7 +38,7 @@ async function runPlannedUpdates(plan: Awaited<ReturnType<typeof planAgentUpdate
     console.log(pc.green(`${inspection.agent.displayName} is up to date (${inspection.installedVersion ?? 'unknown'})`))
 
   for (const inspection of plan.skippedManualCheck)
-    console.log(pc.yellow(`${inspection.agent.displayName} uses a manually managed install source. Please check for updates manually.`))
+    console.log(pc.yellow(getManualAgentUpdateMessage(inspection.agent)))
 
   for (const entry of plan.entries)
     console.log(pc.cyan(`Updating ${entry.agent.displayName} via ${getStrategyLabel(entry)}...${getVersionHint(entry.inspection.installedVersion, entry.inspection.latestVersion)}`))
@@ -84,7 +84,7 @@ async function updateSingleAgent(agent: AgentDefinition): Promise<void> {
   }
 
   if (plan.skippedManualCheck.length > 0) {
-    console.log(pc.yellow(`${agent.displayName} uses a manually managed install source. Please check for updates manually.`))
+    console.log(pc.yellow(getManualAgentUpdateMessage(agent)))
     return
   }
 
@@ -110,7 +110,7 @@ async function performUpdate(
   })
 
   if (strategy === 'manual-hint' && !canAutoUpdateAgent(agent, installedState) && !methods?.some(method => canUpdateInstallType(method.type))) {
-    console.log(pc.yellow(`${agent.displayName} uses an unmanaged install source and cannot be updated automatically.`))
+    console.log(pc.yellow(getManualAgentUpdateMessage(agent)))
     return
   }
 
@@ -121,6 +121,9 @@ async function performUpdate(
   }
   else {
     console.log(pc.red(`Failed to update ${agent.displayName}.`))
+    const hint = getAgentUpdateFailureHint(agent, strategy)
+    if (hint)
+      console.log(pc.yellow(hint))
   }
 }
 
