@@ -1,5 +1,6 @@
 import type { Platform } from '../agents/types'
 import process from 'node:process'
+import { spawnWithQuantexStdio, waitForSpawnedCommand } from '../utils/child-process'
 import { getPlatform } from '../utils/detect'
 
 export async function runBinaryInstall(commandOrFn: string | ((platform: Platform) => string)): Promise<boolean> {
@@ -7,19 +8,11 @@ export async function runBinaryInstall(commandOrFn: string | ((platform: Platfor
   const command = typeof commandOrFn === 'function' ? commandOrFn(platform) : commandOrFn
 
   try {
-    let proc: ReturnType<typeof Bun.spawn>
     if (process.platform === 'win32') {
-      proc = Bun.spawn(['powershell.exe', '-Command', command], {
-        stdio: ['inherit', 'inherit', 'inherit'] as const,
-      })
+      return (await waitForSpawnedCommand(spawnWithQuantexStdio(['powershell.exe', '-Command', command]))) === 0
     }
-    else {
-      proc = Bun.spawn(['sh', '-c', command], {
-        stdio: ['inherit', 'inherit', 'inherit'] as const,
-      })
-    }
-    await proc.exited
-    return proc.exitCode === 0
+
+    return (await waitForSpawnedCommand(spawnWithQuantexStdio(['sh', '-c', command]))) === 0
   }
   catch {
     return false

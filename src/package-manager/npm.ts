@@ -1,12 +1,9 @@
 import type { RegistryUpdateStrategy } from './bun'
+import { spawnWithQuantexStdio, waitForSpawnedCommand } from '../utils/child-process'
 
 export async function install(packageName: string): Promise<boolean> {
   try {
-    const proc = Bun.spawn(['npm', 'i', '-g', packageName], {
-      stdio: ['inherit', 'inherit', 'inherit'] as const,
-    })
-    await proc.exited
-    return proc.exitCode === 0
+    return (await waitForSpawnedCommand(spawnWithQuantexStdio(['npm', 'i', '-g', packageName]))) === 0
   }
   catch {
     return false
@@ -19,16 +16,11 @@ export async function update(
   distTag: string = 'latest',
 ): Promise<boolean> {
   try {
-    const proc = Bun.spawn(
+    return (await waitForSpawnedCommand(spawnWithQuantexStdio(
       strategy === 'latest-major'
         ? ['npm', 'install', '-g', `${packageName}@${distTag}`]
         : ['npm', 'update', '-g', packageName],
-      {
-        stdio: ['inherit', 'inherit', 'inherit'] as const,
-      },
-    )
-    await proc.exited
-    return proc.exitCode === 0
+    ))) === 0
   }
   catch {
     return false
@@ -40,16 +32,11 @@ export async function updateMany(packageNames: string[], strategy: RegistryUpdat
     return true
 
   try {
-    const proc = Bun.spawn(
+    return (await waitForSpawnedCommand(spawnWithQuantexStdio(
       strategy === 'latest-major'
         ? ['npm', 'install', '-g', ...packageNames.map(packageName => `${packageName}@latest`)]
         : ['npm', 'update', '-g', ...packageNames],
-      {
-        stdio: ['inherit', 'inherit', 'inherit'] as const,
-      },
-    )
-    await proc.exited
-    return proc.exitCode === 0
+    ))) === 0
   }
   catch {
     return false
@@ -58,11 +45,7 @@ export async function updateMany(packageNames: string[], strategy: RegistryUpdat
 
 export async function uninstall(packageName: string): Promise<boolean> {
   try {
-    const proc = Bun.spawn(['npm', 'uninstall', '-g', packageName], {
-      stdio: ['inherit', 'inherit', 'inherit'] as const,
-    })
-    await proc.exited
-    return proc.exitCode === 0
+    return (await waitForSpawnedCommand(spawnWithQuantexStdio(['npm', 'uninstall', '-g', packageName]))) === 0
   }
   catch {
     return false
