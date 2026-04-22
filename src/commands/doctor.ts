@@ -1,8 +1,8 @@
 import type { CommandResult } from '../output/types'
-import pc from 'picocolors'
 import { createSuccessResult, emitCommandResult } from '../output'
 import { getSelfUpgradeRecoveryHintForInspection, inspectSelf } from '../self'
 import { inspectRegisteredAgents } from '../services/agents'
+import { pc } from '../utils/color'
 import { isBrewAvailable, isBunAvailable, isNpmAvailable, isWingetAvailable } from '../utils/detect'
 
 interface DoctorIssue {

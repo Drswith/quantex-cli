@@ -55,4 +55,16 @@ describe('resolveCliContext', () => {
   it('rejects conflicting refresh flags', () => {
     expect(() => resolveCliContext({ noCache: true, refresh: true })).toThrow('Cannot combine --refresh with --no-cache.')
   })
+
+  it('parses color mode when provided', () => {
+    const context = resolveCliContext({ color: 'never' })
+
+    expect(context.colorMode).toBe('never')
+  })
+
+  it('parses log level when provided', () => {
+    const context = resolveCliContext({ logLevel: 'warn' })
+
+    expect(context.logLevel).toBe('warn')
+  })
 })

@@ -1,8 +1,8 @@
 import type { CommandResult } from '../output/types'
-import pc from 'picocolors'
 import { isNpmBunUpdateStrategy, loadConfig, saveConfig } from '../config'
 import { defaultConfig } from '../config/default'
 import { createErrorResult, createSuccessResult, emitCommandResult } from '../output'
+import { pc } from '../utils/color'
 
 interface ConfigCommandData {
   action: 'get' | 'list' | 'reset' | 'set'

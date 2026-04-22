@@ -3,13 +3,13 @@
 import type { CommandResult, CommandTarget } from './output/types'
 import process from 'node:process'
 import { program } from 'commander'
-import pc from 'picocolors'
 import { getAgentByNameOrAlias } from './agents'
 import { resetCliContext, resolveCliContext, setCliContext } from './cli-context'
 import { executeCommandWithRuntime } from './command-runtime'
 import { runCommand } from './commands/run'
 import { getExitCodeForResult } from './errors'
 import { getSelfVersion } from './self'
+import { pc } from './utils/color'
 
 program
   .name('quantex')
@@ -17,6 +17,11 @@ program
   .option('--json', 'Output structured JSON')
   .option('--output <mode>', 'Output mode: human, json, or ndjson')
   .option('--non-interactive', 'Disable interactive prompts and confirmations')
+  .option('--yes', 'Automatically accept safe default confirmations')
+  .option('--quiet', 'Suppress non-essential human logs')
+  .option('--color <mode>', 'Color mode: auto, always, or never')
+  .option('--log-level <level>', 'Log level: silent, error, warn, info, or debug')
+  .option('--dry-run', 'Show what would happen without making changes')
   .option('--refresh', 'Refresh cached version metadata before returning results')
   .option('--no-cache', 'Bypass the local version cache for this command')
   .option('--run-id <id>', 'Attach a run id to structured output and logs')
@@ -263,12 +268,17 @@ if (shortcutInvocation) {
   if (agent) {
     try {
       setCliContext(resolveCliContext({
+        color: shortcutInvocation.color,
+        dryRun: shortcutInvocation.dryRun,
         idempotencyKey: shortcutInvocation.idempotencyKey,
+        logLevel: shortcutInvocation.logLevel,
         noCache: shortcutInvocation.noCache,
         nonInteractive: shortcutInvocation.nonInteractive,
+        quiet: shortcutInvocation.quiet,
         refresh: shortcutInvocation.refresh,
         runId: shortcutInvocation.runId,
         timeout: shortcutInvocation.timeout,
+        yes: shortcutInvocation.yes,
       }))
     }
     catch (error) {
@@ -277,6 +287,8 @@ if (shortcutInvocation) {
     }
     try {
       const code = await runCommand(shortcutInvocation.agentName, shortcutInvocation.agentArgs, {
+        assumeYes: shortcutInvocation.yes,
+        dryRun: shortcutInvocation.dryRun,
         nonInteractive: shortcutInvocation.nonInteractive,
       })
       process.exit(code)
@@ -292,13 +304,18 @@ program.parse()
 interface ShortcutInvocation {
   agentArgs: string[]
   agentName: string
+  color?: string
+  dryRun?: boolean
   error?: string
   idempotencyKey?: string
+  logLevel?: string
   noCache?: boolean
   nonInteractive?: boolean
+  quiet?: boolean
   refresh?: boolean
   runId?: string
   timeout?: string
+  yes?: boolean
 }
 
 function extractExecPassthroughArgs(command: { args: string[], processedArgs: string[] }): string[] {
@@ -310,15 +327,20 @@ function extractExecPassthroughArgs(command: { args: string[], processedArgs: st
 }
 
 function resolveShortcutInvocation(argv: string[], knownCommandNames: Set<string>): ShortcutInvocation | undefined {
+  let color: string | undefined
+  let dryRun = false
   let index = 0
   let idempotencyKey: string | undefined
   let jsonOutputRequested = false
+  let logLevel: string | undefined
   let noCache = false
   let nonInteractive = false
   let outputMode: string | undefined
+  let quiet = false
   let refresh = false
   let runId: string | undefined
   let timeout: string | undefined
+  let yes = false
 
   while (index < argv.length) {
     const arg = argv[index]
@@ -340,6 +362,42 @@ function resolveShortcutInvocation(argv: string[], knownCommandNames: Set<string
 
     if (arg === '--non-interactive') {
       nonInteractive = true
+      index += 1
+      continue
+    }
+
+    if (arg === '--yes') {
+      yes = true
+      index += 1
+      continue
+    }
+
+    if (arg === '--quiet') {
+      quiet = true
+      index += 1
+      continue
+    }
+
+    if (arg === '--color') {
+      const value = argv[index + 1]
+      if (!value)
+        return { agentArgs: [], agentName: '', error: '--color requires a value' }
+      color = value
+      index += 2
+      continue
+    }
+
+    if (arg === '--log-level') {
+      const value = argv[index + 1]
+      if (!value)
+        return { agentArgs: [], agentName: '', error: '--log-level requires a value' }
+      logLevel = value
+      index += 2
+      continue
+    }
+
+    if (arg === '--dry-run') {
+      dryRun = true
       index += 1
       continue
     }
@@ -395,12 +453,17 @@ function resolveShortcutInvocation(argv: string[], knownCommandNames: Set<string
     return {
       agentArgs: argv.slice(index + 1),
       agentName: arg,
+      color,
+      dryRun,
       idempotencyKey,
+      logLevel,
       noCache,
       nonInteractive,
+      quiet,
       refresh,
       runId,
       timeout,
+      yes,
     }
   }
 

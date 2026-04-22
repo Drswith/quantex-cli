@@ -33,9 +33,11 @@ const testAgent = {
 
 describe('installCommand', () => {
   let logSpy: ReturnType<typeof vi.spyOn>
+  let stdoutWriteSpy: ReturnType<typeof vi.spyOn>
 
   beforeEach(() => {
     logSpy = vi.spyOn(console, 'log').mockImplementation(() => {})
+    stdoutWriteSpy = vi.spyOn(process.stdout, 'write').mockReturnValue(true)
     agentSpy.mockClear()
     installSpy.mockClear()
     binaryInPathSpy.mockClear()
@@ -43,19 +45,20 @@ describe('installCommand', () => {
 
   afterEach(() => {
     logSpy.mockRestore()
+    stdoutWriteSpy.mockRestore()
   })
 
   it('shows error for unknown agent', async () => {
     agentSpy.mockReturnValue(undefined)
     await installCommand('unknown')
-    expect(logSpy).toHaveBeenCalledWith(expect.stringContaining('Unknown agent'))
+    expect(stdoutWriteSpy).toHaveBeenCalledWith(expect.stringContaining('Unknown agent'))
   })
 
   it('shows already installed when binary exists', async () => {
     agentSpy.mockReturnValue(testAgent)
     binaryInPathSpy.mockResolvedValue(true)
     await installCommand('test-agent')
-    expect(logSpy).toHaveBeenCalledWith(expect.stringContaining('already installed'))
+    expect(stdoutWriteSpy).toHaveBeenCalledWith(expect.stringContaining('already installed'))
     expect(installSpy).not.toHaveBeenCalled()
   })
 
@@ -65,7 +68,7 @@ describe('installCommand', () => {
     installSpy.mockResolvedValue({ success: true })
     await installCommand('test-agent')
     expect(installSpy).toHaveBeenCalledWith(testAgent)
-    expect(logSpy).toHaveBeenCalledWith(expect.stringContaining('installed successfully'))
+    expect(stdoutWriteSpy).toHaveBeenCalledWith(expect.stringContaining('installed successfully'))
   })
 
   it('shows failure message when installAgent returns false', async () => {
@@ -73,7 +76,7 @@ describe('installCommand', () => {
     binaryInPathSpy.mockResolvedValue(false)
     installSpy.mockResolvedValue({ success: false })
     await installCommand('test-agent')
-    expect(logSpy).toHaveBeenCalledWith(expect.stringContaining('Failed to install'))
+    expect(stdoutWriteSpy).toHaveBeenCalledWith(expect.stringContaining('Failed to install'))
   })
 
   it('returns a stable conflict when another lifecycle operation already holds the lock', async () => {
@@ -84,7 +87,41 @@ describe('installCommand', () => {
     const result = await installCommand('test-agent')
 
     expect(result.error?.code).toBe('RESOURCE_LOCKED')
-    expect(logSpy).toHaveBeenCalledWith(expect.stringContaining('agent lifecycle lock'))
+    expect(stdoutWriteSpy).toHaveBeenCalledWith(expect.stringContaining('agent lifecycle lock'))
+  })
+
+  it('returns a dry-run plan without invoking installAgent', async () => {
+    setCliContext({
+      dryRun: true,
+      interactive: false,
+      outputMode: 'json',
+      runId: 'dry-run-id',
+    })
+    agentSpy.mockReturnValue(testAgent)
+    binaryInPathSpy.mockResolvedValue(false)
+
+    const result = await installCommand('test-agent')
+
+    expect(result.ok).toBe(true)
+    expect(result.data?.changed).toBe(false)
+    expect(result.warnings[0]?.code).toBe('DRY_RUN')
+    expect(installSpy).not.toHaveBeenCalled()
+  })
+
+  it('suppresses informational success logs in quiet mode', async () => {
+    setCliContext({
+      interactive: false,
+      outputMode: 'human',
+      quiet: true,
+      runId: 'quiet-run-id',
+    })
+    agentSpy.mockReturnValue(testAgent)
+    binaryInPathSpy.mockResolvedValue(false)
+    installSpy.mockResolvedValue({ success: true })
+
+    await installCommand('test-agent')
+
+    expect(stdoutWriteSpy).not.toHaveBeenCalled()
   })
 
   it('emits a structured result in json mode', async () => {

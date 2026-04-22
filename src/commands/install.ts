@@ -1,10 +1,11 @@
 import type { CommandResult } from '../output/types'
-import pc from 'picocolors'
 import { createErrorResult, createSuccessResult, emitCommandEvent, emitCommandResult } from '../output'
 import { installAgent } from '../package-manager'
 import { resolveAgentInspection } from '../services/agents'
+import { pc } from '../utils/color'
 import { createResourceLockedError } from '../utils/lifecycle-errors'
 import { isResourceLockError } from '../utils/lock'
+import { isDryRunEnabled, printError, printInfo, printWarn } from '../utils/user-output'
 
 interface InstallCommandData {
   agent: {
@@ -58,6 +59,30 @@ export async function installCommand(agentName: string): Promise<CommandResult<I
         {
           code: 'ALREADY_INSTALLED',
           message: `${agent.displayName} is already installed.`,
+        },
+      ],
+    }), renderInstallHuman)
+  }
+
+  if (isDryRunEnabled()) {
+    return emitCommandResult(createSuccessResult<InstallCommandData>({
+      action: 'install',
+      data: {
+        agent: {
+          displayName: agent.displayName,
+          name: agent.name,
+        },
+        changed: false,
+        installed: false,
+      },
+      target: {
+        kind: 'agent',
+        name: agent.name,
+      },
+      warnings: [
+        {
+          code: 'DRY_RUN',
+          message: `Dry run: would install ${agent.displayName}.`,
         },
       ],
     }), renderInstallHuman)
@@ -151,7 +176,7 @@ export async function installCommand(agentName: string): Promise<CommandResult<I
 
 function renderInstallHuman(result: { data?: InstallCommandData, error: { message: string } | null, warnings: Array<{ message: string }> }): void {
   if (result.error) {
-    console.log(pc.red(result.error.message))
+    printError(pc.red(result.error.message))
     return
   }
 
@@ -160,10 +185,10 @@ function renderInstallHuman(result: { data?: InstallCommandData, error: { messag
 
   if (result.warnings.length > 0) {
     for (const warning of result.warnings)
-      console.log(pc.yellow(warning.message))
+      printWarn(pc.yellow(warning.message))
     return
   }
 
-  console.log(pc.cyan(`Installing ${result.data.agent.displayName}...`))
-  console.log(pc.green(`${result.data.agent.displayName} installed successfully!`))
+  printInfo(pc.cyan(`Installing ${result.data.agent.displayName}...`))
+  printInfo(pc.green(`${result.data.agent.displayName} installed successfully!`))
 }

@@ -1,7 +1,7 @@
 import type { CommandResult } from '../output/types'
-import pc from 'picocolors'
 import { createErrorResult, createSuccessResult, emitCommandResult } from '../output'
 import { resolveAgentInspection } from '../services/agents'
+import { pc } from '../utils/color'
 
 interface ResolveCommandData {
   agent: {

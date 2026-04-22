@@ -32,9 +32,11 @@ const testAgent = {
 
 describe('ensureCommand', () => {
   let logSpy: ReturnType<typeof vi.spyOn>
+  let stdoutWriteSpy: ReturnType<typeof vi.spyOn>
 
   beforeEach(() => {
     logSpy = vi.spyOn(console, 'log').mockImplementation(() => {})
+    stdoutWriteSpy = vi.spyOn(process.stdout, 'write').mockReturnValue(true)
     agentSpy.mockClear()
     installSpy.mockClear()
     binaryInPathSpy.mockClear()
@@ -42,12 +44,13 @@ describe('ensureCommand', () => {
 
   afterEach(() => {
     logSpy.mockRestore()
+    stdoutWriteSpy.mockRestore()
   })
 
   it('shows error for unknown agent', async () => {
     agentSpy.mockReturnValue(undefined)
     await ensureCommand('unknown')
-    expect(logSpy).toHaveBeenCalledWith(expect.stringContaining('Unknown agent'))
+    expect(stdoutWriteSpy).toHaveBeenCalledWith(expect.stringContaining('Unknown agent'))
   })
 
   it('returns already installed without reinstalling', async () => {
@@ -57,7 +60,7 @@ describe('ensureCommand', () => {
     await ensureCommand('test-agent')
 
     expect(installSpy).not.toHaveBeenCalled()
-    expect(logSpy).toHaveBeenCalledWith(expect.stringContaining('already installed'))
+    expect(stdoutWriteSpy).toHaveBeenCalledWith(expect.stringContaining('already installed'))
   })
 
   it('installs the agent when missing', async () => {
@@ -75,7 +78,7 @@ describe('ensureCommand', () => {
     await ensureCommand('test-agent')
 
     expect(installSpy).toHaveBeenCalledWith(testAgent)
-    const output = logSpy.mock.calls.map((c: any[]) => c[0]).join('\n')
+    const output = stdoutWriteSpy.mock.calls.map((c: any[]) => c[0]).join('\n')
     expect(output).toContain('Installing Test Agent')
     expect(output).toContain('now installed')
   })

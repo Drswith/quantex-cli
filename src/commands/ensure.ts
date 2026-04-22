@@ -1,10 +1,11 @@
 import type { CommandResult } from '../output/types'
-import pc from 'picocolors'
 import { createErrorResult, createSuccessResult, emitCommandEvent, emitCommandResult } from '../output'
 import { installAgent } from '../package-manager'
 import { resolveAgentInspection } from '../services/agents'
+import { pc } from '../utils/color'
 import { createResourceLockedError } from '../utils/lifecycle-errors'
 import { isResourceLockError } from '../utils/lock'
+import { isDryRunEnabled, printError, printInfo, printWarn } from '../utils/user-output'
 
 interface EnsureCommandData {
   agent: {
@@ -58,6 +59,30 @@ export async function ensureCommand(agentName: string): Promise<CommandResult<En
         {
           code: 'ALREADY_INSTALLED',
           message: `${agent.displayName} is already installed.`,
+        },
+      ],
+    }), renderEnsureHuman)
+  }
+
+  if (isDryRunEnabled()) {
+    return emitCommandResult(createSuccessResult<EnsureCommandData>({
+      action: 'ensure',
+      data: {
+        agent: {
+          displayName: agent.displayName,
+          name: agent.name,
+        },
+        changed: false,
+        installed: false,
+      },
+      target: {
+        kind: 'agent',
+        name: agent.name,
+      },
+      warnings: [
+        {
+          code: 'DRY_RUN',
+          message: `Dry run: would install ${agent.displayName}.`,
         },
       ],
     }), renderEnsureHuman)
@@ -151,7 +176,7 @@ export async function ensureCommand(agentName: string): Promise<CommandResult<En
 
 function renderEnsureHuman(result: { data?: EnsureCommandData, error: { message: string } | null, warnings: Array<{ message: string }> }): void {
   if (result.error) {
-    console.log(pc.red(result.error.message))
+    printError(pc.red(result.error.message))
     return
   }
 
@@ -160,15 +185,15 @@ function renderEnsureHuman(result: { data?: EnsureCommandData, error: { message:
 
   if (result.warnings.length > 0) {
     for (const warning of result.warnings)
-      console.log(pc.yellow(warning.message))
+      printWarn(pc.yellow(warning.message))
     return
   }
 
   if (result.data.changed) {
-    console.log(pc.cyan(`Installing ${result.data.agent.displayName}...`))
-    console.log(pc.green(`${result.data.agent.displayName} is now installed.`))
+    printInfo(pc.cyan(`Installing ${result.data.agent.displayName}...`))
+    printInfo(pc.green(`${result.data.agent.displayName} is now installed.`))
     return
   }
 
-  console.log(pc.green(`${result.data.agent.displayName} is already installed.`))
+  printInfo(pc.green(`${result.data.agent.displayName} is already installed.`))
 }
