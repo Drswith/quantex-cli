@@ -226,6 +226,18 @@ quantex doctor
 - 已安装 agent 的版本状态
 - 当前环境是否缺少任何可用于托管安装/更新的安装器
 
+### 查看能力探测结果
+
+```bash
+quantex capabilities
+quantex capabilities --json
+```
+
+`capabilities` 和 `doctor` 的边界不同：
+
+- `capabilities`：回答“当前环境能做什么”
+- `doctor`：回答“当前哪里有问题，以及怎么修”
+
 ## 配置
 
 配置文件位于 `~/.quantex/config.json`，当前支持：
