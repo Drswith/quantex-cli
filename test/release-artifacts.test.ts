@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import {
   createReleaseManifest,
+  formatChecksums,
   normalizeRepositoryUrl,
   parseBinaryTarget,
   parseChecksums,
@@ -27,6 +28,13 @@ describe('release artifacts helpers', () => {
       ['quantex-darwin-arm64', 'abc'],
       ['quantex-linux-x64', '123'],
     ]))
+  })
+
+  it('formats checksum files deterministically', () => {
+    expect(formatChecksums([
+      { checksum: 'b', name: 'quantex-linux-x64' },
+      { checksum: 'a', name: 'quantex-darwin-arm64' },
+    ])).toBe('a  quantex-darwin-arm64\nb  quantex-linux-x64\n')
   })
 
   it('resolves release channel from version', () => {
