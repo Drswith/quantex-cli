@@ -148,6 +148,7 @@ describe('self helpers', () => {
       const metadata = await resolveSelfPackageMetadata(pathToFileURL(join(packageRoot, 'dist', 'self-abc123.mjs')).href)
 
       expect(metadata).toEqual({
+        foundPackageJson: true,
         packageJsonPath,
         packageRoot,
         version: '1.2.3',

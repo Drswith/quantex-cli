@@ -26,6 +26,7 @@ export interface SelfUpdateResult {
 }
 
 export interface SelfPackageMetadata {
+  foundPackageJson: boolean
   packageJsonPath: string
   packageRoot: string
   version: string
@@ -39,7 +40,9 @@ export async function inspectSelf(): Promise<SelfInspection> {
   const metadata = await resolveSelfPackageMetadata()
   const latestVersion = await getLatestVersion(CLI_NPM_PACKAGE_NAME)
   const executablePath = process.execPath
-  const installSource = detectSelfInstallSource(metadata.packageRoot, executablePath)
+  const installSource = metadata.foundPackageJson
+    ? detectSelfInstallSource(metadata.packageRoot)
+    : detectSelfInstallSource('', executablePath)
 
   return {
     canAutoUpdate: canAutoUpdateSelf(installSource),
@@ -99,11 +102,11 @@ export function detectSelfInstallSource(packageRoot: string, executablePath: str
   if (normalizedPath.includes(NODE_MODULES_SEGMENT))
     return 'npm'
 
-  if (isStandaloneBinaryExecutable(executablePath))
-    return 'binary'
-
   if (normalizedPath)
     return 'source'
+
+  if (isStandaloneBinaryExecutable(executablePath))
+    return 'binary'
 
   return 'unknown'
 }
@@ -118,6 +121,7 @@ export async function resolveSelfPackageMetadata(moduleUrl: string = import.meta
 
     if (packageJson?.name === CLI_NPM_PACKAGE_NAME) {
       return {
+        foundPackageJson: true,
         packageJsonPath,
         packageRoot: currentDir,
         version: packageJson.version ?? BUILD_VERSION,
@@ -131,6 +135,7 @@ export async function resolveSelfPackageMetadata(moduleUrl: string = import.meta
   }
 
   return {
+    foundPackageJson: false,
     packageJsonPath: join(dirname(modulePath), 'package.json'),
     packageRoot: dirname(modulePath),
     version: BUILD_VERSION,
