@@ -1,10 +1,12 @@
 import { existsSync, mkdirSync, readFileSync, rmSync } from 'node:fs'
+import { tmpdir } from 'node:os'
+import { join } from 'node:path'
 import { afterEach, describe, expect, it } from 'vitest'
 import { getIdempotencyDir, getIdempotencyFilePath, loadIdempotencyRecord, saveIdempotencyRecord } from '../src/idempotency'
 import { createSuccessResult } from '../src/output'
 
 describe('idempotency storage', () => {
-  const tempHome = '/tmp/quantex-idempotency-test'
+  const tempHome = join(tmpdir(), 'quantex-idempotency-test')
 
   afterEach(() => {
     delete process.env.HOME
@@ -33,7 +35,7 @@ describe('idempotency storage', () => {
       },
     })
 
-    expect(getIdempotencyDir()).toBe(`${tempHome}/.quantex/idempotency`)
+    expect(getIdempotencyDir()).toBe(join(tempHome, '.quantex', 'idempotency'))
     expect(existsSync(getIdempotencyFilePath('install-codex'))).toBe(true)
     expect(readFileSync(getIdempotencyFilePath('install-codex'), 'utf8')).toContain('"action": "install"')
   })
