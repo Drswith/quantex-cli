@@ -68,6 +68,10 @@ describe('upgradeCommand', () => {
     }
     inspectSelfSpy.mockResolvedValue(inspection)
     upgradeSelfSpy.mockResolvedValue({
+      error: {
+        kind: 'unknown',
+        message: 'Failed to update quantex-cli through Bun.',
+      },
       installSource: 'bun',
       success: false,
     })
@@ -75,6 +79,7 @@ describe('upgradeCommand', () => {
     await upgradeCommand()
 
     expect(logSpy).toHaveBeenCalledWith(expect.stringContaining('Failed to upgrade Quantex CLI'))
+    expect(logSpy).toHaveBeenCalledWith(expect.stringContaining('Reason: Failed to update quantex-cli through Bun.'))
     expect(logSpy).toHaveBeenCalledWith(expect.stringContaining('bun add -g quantex-cli@latest'))
   })
 
@@ -90,6 +95,10 @@ describe('upgradeCommand', () => {
     }
     inspectSelfSpy.mockResolvedValue(inspection)
     upgradeSelfSpy.mockResolvedValue({
+      error: {
+        kind: 'unknown',
+        message: 'Failed to update quantex-cli through npm.',
+      },
       installSource: 'npm',
       success: false,
     })
@@ -111,13 +120,17 @@ describe('upgradeCommand', () => {
     }
     inspectSelfSpy.mockResolvedValue(inspection)
     upgradeSelfSpy.mockResolvedValue({
+      error: {
+        kind: 'permission',
+        message: 'Failed to replace the current Quantex binary.',
+      },
       installSource: 'binary',
       success: false,
     })
 
     await upgradeCommand()
 
-    expect(logSpy).toHaveBeenCalledWith(expect.stringContaining('/releases/latest/download/quantex-darwin-arm64'))
+    expect(logSpy).toHaveBeenCalledWith(expect.stringContaining('check write permission'))
   })
 
   it('runs self upgrade when a managed source is detected', async () => {

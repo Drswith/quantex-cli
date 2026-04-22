@@ -2,7 +2,7 @@ import type { SelfInspection, SelfInstallSource, SelfUpdateResult } from '../typ
 
 export interface SelfUpgradeProvider {
   canHandle: (inspection: SelfInspection) => boolean
-  getManualUpgradeCommand: (inspection: SelfInspection) => string | undefined
+  getRecoveryHint: (inspection: SelfInspection, result?: SelfUpdateResult) => string | undefined
   upgrade: (inspection: SelfInspection) => Promise<SelfUpdateResult>
   source: SelfInstallSource
 }

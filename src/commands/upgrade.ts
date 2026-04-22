@@ -1,5 +1,5 @@
 import pc from 'picocolors'
-import { getManualSelfUpgradeCommand, inspectSelf, upgradeSelf } from '../self'
+import { getSelfUpgradeRecoveryHintForInspection, inspectSelf, upgradeSelf } from '../self'
 
 export async function upgradeCommand(): Promise<void> {
   const inspection = await inspectSelf()
@@ -11,7 +11,7 @@ export async function upgradeCommand(): Promise<void> {
 
   if (!inspection.canAutoUpdate) {
     console.log(pc.yellow(`Quantex CLI cannot auto-update from the current install source: ${inspection.installSource}.`))
-    const manualCommand = getManualSelfUpgradeCommand(inspection.installSource, inspection.executablePath)
+    const manualCommand = getSelfUpgradeRecoveryHintForInspection(inspection)
     if (manualCommand)
       console.log(pc.cyan(`Manual upgrade: ${manualCommand}`))
     return
@@ -29,7 +29,9 @@ export async function upgradeCommand(): Promise<void> {
   }
   else {
     console.log(pc.red('Failed to upgrade Quantex CLI.'))
-    const manualCommand = getManualSelfUpgradeCommand(inspection.installSource, inspection.executablePath)
+    if (result.error?.message)
+      console.log(pc.yellow(`Reason: ${result.error.message}`))
+    const manualCommand = getSelfUpgradeRecoveryHintForInspection(inspection, result)
     if (manualCommand)
       console.log(pc.cyan(`Manual recovery: ${manualCommand}`))
   }

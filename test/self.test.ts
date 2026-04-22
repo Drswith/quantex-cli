@@ -82,6 +82,7 @@ describe('self helpers', () => {
     })
 
     expect(result).toEqual({
+      error: undefined,
       installSource: 'bun',
       success: true,
     })
@@ -103,6 +104,7 @@ describe('self helpers', () => {
     })
 
     expect(result).toEqual({
+      error: undefined,
       installSource: 'npm',
       success: true,
     })
@@ -122,14 +124,18 @@ describe('self helpers', () => {
     })
 
     expect(result).toEqual({
+      error: {
+        kind: 'unsupported',
+        message: 'Install source "source" does not support auto-update.',
+      },
       installSource: 'source',
       success: false,
     })
   })
 
   it('upgrades standalone binaries through release downloads', async () => {
-    const { upgradeSelf } = await import('../src/self')
-    binaryUpgradeSpy.mockResolvedValue(true)
+    const { getSelfUpgradeRecoveryHint, upgradeSelf } = await import('../src/self')
+    binaryUpgradeSpy.mockResolvedValue({ success: true })
 
     const result = await upgradeSelf({
       canAutoUpdate: true,
@@ -142,13 +148,21 @@ describe('self helpers', () => {
     })
 
     expect(result).toEqual({
-      installSource: 'binary',
       success: true,
+      installSource: 'binary',
     })
     expect(binaryUpgradeSpy).toHaveBeenCalledWith(
       'https://github.com/Drswith/quantex-cli/releases/latest/download/quantex-darwin-arm64',
       '/usr/local/bin/qtx',
     )
+    expect(getSelfUpgradeRecoveryHint('binary', '/usr/local/bin/qtx', {
+      error: {
+        kind: 'network',
+        message: 'offline',
+      },
+      installSource: 'binary',
+      success: false,
+    })).toContain('check network access')
   })
 
   it('resolves package metadata from bundled dist chunks', async () => {

@@ -1,5 +1,5 @@
 import pc from 'picocolors'
-import { getManualSelfUpgradeCommand, inspectSelf } from '../self'
+import { getSelfUpgradeRecoveryHintForInspection, inspectSelf } from '../self'
 import { inspectRegisteredAgents } from '../services/agents'
 import { isBrewAvailable, isBunAvailable, isNpmAvailable, isWingetAvailable } from '../utils/detect'
 
@@ -31,7 +31,7 @@ export async function doctorCommand(): Promise<void> {
     console.log(`  Latest:       ${selfInspection.latestVersion}${selfOutdated ? pc.yellow(' (update available)') : ''}`)
   }
   if (selfOutdated) {
-    const manualCommand = getManualSelfUpgradeCommand(selfInspection.installSource, selfInspection.executablePath)
+    const manualCommand = getSelfUpgradeRecoveryHintForInspection(selfInspection)
     if (manualCommand)
       console.log(`  Recovery:     ${manualCommand}`)
   }

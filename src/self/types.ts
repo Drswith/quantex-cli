@@ -10,8 +10,18 @@ export interface SelfInspection {
   recommendedUpgradeCommand?: string
 }
 
+export type SelfUpgradeErrorKind = 'checksum' | 'locked' | 'network' | 'permission' | 'unknown' | 'unsupported' | 'verify'
+
+export interface SelfUpgradeError {
+  detail?: unknown
+  kind: SelfUpgradeErrorKind
+  message: string
+}
+
 export interface SelfUpdateResult {
+  error?: SelfUpgradeError
   installSource: SelfInstallSource
+  newVersion?: string
   success: boolean
 }
 
