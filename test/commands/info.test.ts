@@ -29,6 +29,9 @@ const testAgent = {
   homepage: 'https://example.com',
   packages: { npm: 'test-pkg' },
   binaryName: 'test-bin',
+  selfUpdate: {
+    command: ['test-bin', 'update'],
+  },
   platforms: {
     linux: [{ type: 'bun' as const }],
     macos: [{ type: 'bun' as const }],
@@ -77,6 +80,7 @@ describe('infoCommand', () => {
     expect(output).toContain('ta')
     expect(output).toContain('test-pkg')
     expect(output).toContain('test-bin')
+    expect(output).toContain('test-bin update')
     expect(output).toContain('managed via bun (test-pkg)')
     expect(output).toContain('managed')
     expect(output).toContain('1.0.0')

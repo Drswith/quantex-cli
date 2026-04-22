@@ -10,8 +10,9 @@ export const claude: AgentDefinition = {
     npm: '@anthropic-ai/claude-code',
   },
   binaryName: 'claude',
-  update: {
-    commands: ['claude update', 'claude upgrade'],
+  selfUpdate: {
+    command: ['claude', 'update'],
+    fallbackCommands: [['claude', 'upgrade']],
   },
   platforms: {
     windows: [

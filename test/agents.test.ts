@@ -41,10 +41,15 @@ function validateAgent(agent: AgentDefinition): void {
   expect(agent.description).toBeTruthy()
   expect(agent.homepage).toMatch(/^https:\/\//)
   expect(agent.binaryName).toBeTruthy()
-  if (agent.update) {
-    expect(agent.update.commands.length).toBeGreaterThan(0)
-    for (const command of agent.update.commands)
-      expect(command).toBeTruthy()
+  if (agent.selfUpdate) {
+    expect(agent.selfUpdate.command.length).toBeGreaterThan(0)
+    for (const part of agent.selfUpdate.command)
+      expect(part).toBeTruthy()
+    for (const fallback of agent.selfUpdate.fallbackCommands ?? []) {
+      expect(fallback.length).toBeGreaterThan(0)
+      for (const part of fallback)
+        expect(part).toBeTruthy()
+    }
   }
   expect(Object.keys(agent.platforms).length).toBeGreaterThan(0)
 
@@ -68,7 +73,8 @@ describe('claude', () => {
     expect(claude.displayName).toBe('Claude Code')
     expect(claude.packages?.npm).toBe('@anthropic-ai/claude-code')
     expect(claude.binaryName).toBe('claude')
-    expect(claude.update?.commands).toEqual(['claude update', 'claude upgrade'])
+    expect(claude.selfUpdate?.command).toEqual(['claude', 'update'])
+    expect(claude.selfUpdate?.fallbackCommands).toEqual([['claude', 'upgrade']])
   })
 
   it('curl install returns correct strings per platform', () => {
@@ -129,7 +135,8 @@ describe('cursor', () => {
     expect(cursor.name).toBe('cursor')
     expect(cursor.displayName).toBe('Cursor CLI')
     expect(cursor.binaryName).toBe('agent')
-    expect(cursor.update?.commands).toEqual(['agent update'])
+    expect(cursor.selfUpdate?.command).toEqual(['agent', 'update'])
+    expect(cursor.versionProbe?.command).toEqual(['agent', '--version'])
   })
 
   it('binary install returns correct strings per platform', () => {

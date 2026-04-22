@@ -18,8 +18,8 @@ describe('agent update providers', () => {
   it('resolves self-update when only update commands are available', () => {
     const provider = resolveAgentUpdateProvider({
       agent: {
-        update: {
-          commands: ['test-agent update'],
+        selfUpdate: {
+          command: ['test-agent', 'update'],
         },
       },
       installedState: undefined,

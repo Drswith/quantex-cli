@@ -8,8 +8,11 @@ export const cursor: AgentDefinition = {
   description: 'Cursor AI 编程助手命令行工具',
   homepage: 'https://cursor.com/docs/cli',
   binaryName: 'agent',
-  update: {
-    commands: ['agent update'],
+  selfUpdate: {
+    command: ['agent', 'update'],
+  },
+  versionProbe: {
+    command: ['agent', '--version'],
   },
   platforms: {
     windows: [

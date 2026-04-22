@@ -27,7 +27,7 @@ export async function inspectAgent(agent: AgentDefinition): Promise<AgentInspect
   ])
 
   const [installedVersion, binaryPath, latestVersion] = await Promise.all([
-    inPath ? getInstalledVersion(agent.binaryName) : Promise.resolve(undefined),
+    inPath ? getInstalledVersion(agent.binaryName, agent.versionProbe) : Promise.resolve(undefined),
     inPath ? getBinaryPath(agent.binaryName) : Promise.resolve(undefined),
     getLatestVersionForAgent(agent, installedState, methods),
   ])

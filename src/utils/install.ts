@@ -30,10 +30,10 @@ export function canUpdateInstalledState(state?: Pick<InstalledAgentState, 'insta
 }
 
 export function canAutoUpdateAgent(
-  agent: Pick<AgentDefinition, 'update'>,
+  agent: Pick<AgentDefinition, 'selfUpdate'>,
   state?: Pick<InstalledAgentState, 'installType'>,
 ): boolean {
-  return canUpdateInstalledState(state) || !!agent.update?.commands.length
+  return canUpdateInstalledState(state) || !!agent.selfUpdate
 }
 
 export function canLookupLatestVersionForState(state?: Pick<InstalledAgentState, 'installType'>): boolean {
@@ -68,7 +68,7 @@ export function formatInstalledSource(state?: Pick<InstalledAgentState, 'install
 }
 
 export function formatUpdateManagement(
-  agent: Pick<AgentDefinition, 'update'>,
+  agent: Pick<AgentDefinition, 'selfUpdate'>,
   state?: Pick<InstalledAgentState, 'installType'>,
 ): string {
   const strategy = getAgentUpdateStrategy({

@@ -94,6 +94,25 @@ describe('getInstalledVersion', () => {
     expect(version).toBe('1.0.0-alpha.1')
   })
 
+  it('supports custom version probe commands', async () => {
+    const { getInstalledVersion } = await import('../../src/utils/version')
+    mockSpawn.mockReturnValue(createMockProcess(0, 'agent: 2026.03.30-a5d3e17\n'))
+    const version = await getInstalledVersion('agent', {
+      command: ['agent', 'version'],
+    })
+    expect(version).toBe('2026.03.30-a5d3e17')
+    expect(mockSpawn).toHaveBeenCalledWith(['agent', 'version'], expect.any(Object))
+  })
+
+  it('supports custom version parsers', async () => {
+    const { getInstalledVersion } = await import('../../src/utils/version')
+    mockSpawn.mockReturnValue(createMockProcess(0, 'release=2026.04.01\nbuild=abc\n'))
+    const version = await getInstalledVersion('agent', {
+      parser: output => output.split('\n')[0]?.split('=')[1],
+    })
+    expect(version).toBe('2026.04.01')
+  })
+
   it('returns undefined on non-zero exit', async () => {
     const { getInstalledVersion } = await import('../../src/utils/version')
     mockSpawn.mockReturnValue(createMockProcess(1, ''))
