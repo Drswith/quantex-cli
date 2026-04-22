@@ -6,6 +6,7 @@ import { fileURLToPath } from 'node:url'
 import { BUILD_PACKAGE_NAME, BUILD_VERSION } from '../generated/build-meta'
 import { getSelfState, setSelfInstallSource } from '../state'
 import { getLatestVersion } from '../utils/version'
+import { acquireSelfUpgradeLock } from './lock'
 import { getSelfUpgradeProvider } from './providers'
 import { getSelfUpgradeRecoveryHint } from './recovery'
 
@@ -36,7 +37,25 @@ export async function inspectSelf(): Promise<SelfInspection> {
 
 export async function upgradeSelf(inspection?: SelfInspection): Promise<SelfUpdateResult> {
   const resolvedInspection = inspection ?? await inspectSelf()
-  return getSelfUpgradeProvider(resolvedInspection).upgrade(resolvedInspection)
+  const releaseLock = await acquireSelfUpgradeLock()
+
+  if (!releaseLock) {
+    return {
+      error: {
+        kind: 'locked',
+        message: 'Another qtx upgrade is already running.',
+      },
+      installSource: resolvedInspection.installSource,
+      success: false,
+    }
+  }
+
+  try {
+    return await getSelfUpgradeProvider(resolvedInspection).upgrade(resolvedInspection)
+  }
+  finally {
+    await releaseLock()
+  }
 }
 
 export function canAutoUpdateSelf(installSource: SelfInstallSource): boolean {
@@ -142,6 +161,7 @@ function resolveModulePath(moduleUrl: string): string {
   }
 }
 
+export { acquireSelfUpgradeLock, getSelfUpgradeLockPath } from './lock'
 export { getSelfUpgradeRecoveryHint, getSelfUpgradeRecoveryHintForInspection } from './recovery'
 export {
   fetchBinaryReleaseChecksum,
