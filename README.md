@@ -192,7 +192,7 @@ quantex doctor
 
 ## 状态文件
 
-除了配置文件外，Quantex 还会在 `~/.quantex/state.json` 中记录运行时状态，例如 agent 的实际安装来源。
+除了配置文件外，Quantex 还会在 `~/.quantex/state.json` 中记录运行时状态，例如 agent 的实际安装来源，以及 Quantex CLI 自身的安装来源。
 
 当前安装来源会区分为：
 
@@ -205,6 +205,7 @@ quantex doctor
 - 让 `update --all` 先生成更新计划，再按 Bun、npm、brew、winget 分组执行
 - 在混合安装场景下避免误用错误的更新方式
 - 支撑 `list`、`info`、`doctor` 输出安装来源和是否可托管更新
+- 让 `upgrade` / `doctor` 优先读取 Quantex CLI 自身的安装来源，再用运行时路径做兜底与校正
 - 为后续的卸载、诊断和迁移能力保留扩展空间
 
 术语约定：

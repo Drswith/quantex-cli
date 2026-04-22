@@ -1,4 +1,5 @@
 import type { InstallType, PackageTargetKind } from '../agents/types'
+import type { SelfInstallSource } from '../self/types'
 import { mkdir } from 'node:fs/promises'
 import { join } from 'node:path'
 import { getConfigDir } from '../config'
@@ -11,12 +12,18 @@ export interface InstalledAgentState {
   command?: string
 }
 
+export interface SelfState {
+  installSource?: SelfInstallSource
+}
+
 export interface QuantexState {
   installedAgents: Record<string, InstalledAgentState>
+  self: SelfState
 }
 
 const defaultState: QuantexState = {
   installedAgents: {},
+  self: {},
 }
 
 export function getStateFilePath(): string {
@@ -28,6 +35,7 @@ export async function loadState(): Promise<QuantexState> {
     const data = await Bun.file(getStateFilePath()).json() as Partial<QuantexState>
     return {
       installedAgents: data.installedAgents ?? {},
+      self: data.self ?? {},
     }
   }
   catch {
@@ -54,5 +62,16 @@ export async function setInstalledAgentState(agentState: InstalledAgentState): P
 export async function removeInstalledAgentState(agentName: string): Promise<void> {
   const state = await loadState()
   delete state.installedAgents[agentName]
+  await saveState(state)
+}
+
+export async function getSelfState(): Promise<SelfState> {
+  const state = await loadState()
+  return state.self
+}
+
+export async function setSelfInstallSource(installSource: SelfInstallSource): Promise<void> {
+  const state = await loadState()
+  state.self.installSource = installSource
   await saveState(state)
 }

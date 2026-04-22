@@ -41,6 +41,8 @@ tmp_dir="$(mktemp -d)"
 trap 'rm -rf "$tmp_dir"' EXIT INT TERM
 
 tmp_file="$tmp_dir/quantex"
+state_dir="${XDG_CONFIG_HOME:-$HOME/.quantex}"
+state_file="$state_dir/state.json"
 
 if command -v curl >/dev/null 2>&1; then
   curl -fsSL "$download_url" -o "$tmp_file"
@@ -54,6 +56,50 @@ fi
 chmod +x "$tmp_file"
 mv "$tmp_file" "$INSTALL_DIR/quantex"
 ln -sf "$INSTALL_DIR/quantex" "$INSTALL_DIR/qtx"
+
+mkdir -p "$state_dir"
+
+if command -v python3 >/dev/null 2>&1; then
+  python3 - "$state_file" <<'PY'
+import json
+import sys
+from pathlib import Path
+
+state_path = Path(sys.argv[1])
+state = {"installedAgents": {}, "self": {}}
+
+if state_path.exists():
+    try:
+        state = json.loads(state_path.read_text())
+    except Exception:
+        pass
+
+state.setdefault("installedAgents", {})
+state.setdefault("self", {})
+state["self"]["installSource"] = "binary"
+state_path.write_text(json.dumps(state, indent=2) + "\n")
+PY
+elif command -v python >/dev/null 2>&1; then
+  python - "$state_file" <<'PY'
+import json
+import sys
+from pathlib import Path
+
+state_path = Path(sys.argv[1])
+state = {"installedAgents": {}, "self": {}}
+
+if state_path.exists():
+    try:
+        state = json.loads(state_path.read_text())
+    except Exception:
+        pass
+
+state.setdefault("installedAgents", {})
+state.setdefault("self", {})
+state["self"]["installSource"] = "binary"
+state_path.write_text(json.dumps(state, indent=2) + "\n")
+PY
+fi
 
 echo "Installed quantex to $INSTALL_DIR/quantex"
 echo "Installed qtx symlink to $INSTALL_DIR/qtx"

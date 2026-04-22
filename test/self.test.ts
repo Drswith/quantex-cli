@@ -3,17 +3,21 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { pathToFileURL } from 'node:url'
 import { afterAll, beforeEach, describe, expect, it, vi } from 'vitest'
+import * as config from '../src/config'
 import * as bunPm from '../src/package-manager/bun'
 import * as npmPm from '../src/package-manager/npm'
 import * as binarySelf from '../src/self/binary'
 import * as version from '../src/utils/version'
 
+const getConfigDirSpy = vi.spyOn(config, 'getConfigDir')
 const bunUpdateSpy = vi.spyOn(bunPm, 'update')
 const npmUpdateSpy = vi.spyOn(npmPm, 'update')
 const binaryUpgradeSpy = vi.spyOn(binarySelf, 'upgradeStandaloneBinary')
 const latestVersionSpy = vi.spyOn(version, 'getLatestVersion')
+const tempConfigDir = join(tmpdir(), `quantex-self-test-${Date.now()}`)
 
 afterAll(() => {
+  getConfigDirSpy.mockRestore()
   bunUpdateSpy.mockRestore()
   npmUpdateSpy.mockRestore()
   binaryUpgradeSpy.mockRestore()
@@ -22,6 +26,7 @@ afterAll(() => {
 
 describe('self helpers', () => {
   beforeEach(() => {
+    getConfigDirSpy.mockReturnValue(tempConfigDir)
     bunUpdateSpy.mockClear()
     npmUpdateSpy.mockClear()
     binaryUpgradeSpy.mockClear()
