@@ -327,6 +327,7 @@ function extractExecPassthroughArgs(command: { args: string[], processedArgs: st
 }
 
 function resolveShortcutInvocation(argv: string[], knownCommandNames: Set<string>): ShortcutInvocation | undefined {
+  const autoAgentFriendly = process.stdin.isTTY === false || process.stdout.isTTY === false
   let color: string | undefined
   let dryRun = false
   let index = 0
@@ -447,7 +448,7 @@ function resolveShortcutInvocation(argv: string[], knownCommandNames: Set<string
     if (knownCommandNames.has(arg))
       return undefined
 
-    if (jsonOutputRequested || outputMode === 'json' || outputMode === 'ndjson')
+    if (jsonOutputRequested || outputMode === 'json' || outputMode === 'ndjson' || (autoAgentFriendly && outputMode !== 'human'))
       return { agentArgs: [], agentName: '', error: 'Structured output is not supported for shortcut agent execution yet. Use a management command instead.' }
 
     return {
