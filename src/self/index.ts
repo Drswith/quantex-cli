@@ -143,5 +143,11 @@ function resolveModulePath(moduleUrl: string): string {
 }
 
 export { getSelfUpgradeRecoveryHint, getSelfUpgradeRecoveryHintForInspection } from './recovery'
-export { getBinaryReleaseAssetName, getBinaryReleaseDownloadUrl } from './release'
+export {
+  fetchBinaryReleaseChecksum,
+  getBinaryReleaseAssetName,
+  getBinaryReleaseChecksumUrl,
+  getBinaryReleaseDownloadUrl,
+  parseBinaryReleaseChecksum,
+} from './release'
 export type { SelfInspection, SelfInstallSource, SelfPackageMetadata, SelfUpdateResult } from './types'
