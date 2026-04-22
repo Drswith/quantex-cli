@@ -13,6 +13,7 @@ interface CapabilitiesData {
     dryRun: boolean
     execInstallPolicies: string[]
     selfUpgrade: boolean
+    timeout: boolean
   }
   installers: {
     brew: {
@@ -57,6 +58,7 @@ export async function capabilitiesCommand(): Promise<CommandResult<CapabilitiesD
         dryRun: true,
         execInstallPolicies: ['never', 'if-missing', 'always'],
         selfUpgrade: selfInspection.canAutoUpdate,
+        timeout: true,
       },
       installers: {
         brew: {
@@ -117,6 +119,7 @@ function renderCapabilitiesHuman(result: { data?: CapabilitiesData }): void {
   console.log(pc.bold('\n  Features:'))
   console.log(`    dry-run:              ${result.data.features.dryRun ? 'yes' : 'no'}`)
   console.log(`    self-upgrade:         ${result.data.features.selfUpgrade ? 'yes' : 'no'}`)
+  console.log(`    timeout:              ${result.data.features.timeout ? 'yes' : 'no'}`)
   console.log(`    channels:             ${result.data.features.channels.join(', ')}`)
   console.log(`    exec-install-policy:  ${result.data.features.execInstallPolicies.join(', ')}`)
   console.log()

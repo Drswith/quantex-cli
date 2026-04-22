@@ -29,8 +29,14 @@ export function createErrorResult<T>(options: Omit<CreateResultOptions<T>, 'ok'>
   })
 }
 
-export function emitCommandResult<T>(result: CommandResult<T>, renderHuman: HumanRenderer<T>): CommandResult<T> {
+interface EmitBehaviorOptions {
+  force?: boolean
+}
+
+export function emitCommandResult<T>(result: CommandResult<T>, renderHuman: HumanRenderer<T>, behavior: EmitBehaviorOptions = {}): CommandResult<T> {
   const context = getCliContext()
+  if (context.cancelled && !behavior.force)
+    return result
 
   if (context.outputMode === 'json')
     console.log(JSON.stringify(result, null, 2))
@@ -49,8 +55,10 @@ interface EmitCommandEventOptions<T> {
   type: CommandEvent['type']
 }
 
-export function emitCommandEvent<T>(options: EmitCommandEventOptions<T>): CommandEvent<T> | undefined {
+export function emitCommandEvent<T>(options: EmitCommandEventOptions<T>, behavior: EmitBehaviorOptions = {}): CommandEvent<T> | undefined {
   const context = getCliContext()
+  if (context.cancelled && !behavior.force)
+    return undefined
   if (context.outputMode !== 'ndjson')
     return undefined
 

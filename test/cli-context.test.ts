@@ -33,4 +33,10 @@ describe('resolveCliContext', () => {
 
     expect(context.outputMode).toBe('ndjson')
   })
+
+  it('parses timeout values into milliseconds', () => {
+    const context = resolveCliContext({ timeout: '30s' })
+
+    expect(context.timeoutMs).toBe(30000)
+  })
 })

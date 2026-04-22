@@ -8,6 +8,7 @@ export const cliErrorCodes = [
   'INVALID_ARGUMENT',
   'MANUAL_ACTION_REQUIRED',
   'NETWORK_ERROR',
+  'TIMEOUT',
   'UNINSTALL_FAILED',
   'UPDATE_FAILED',
   'UPGRADE_FAILED',
@@ -29,6 +30,8 @@ export function getExitCodeForError(code: CliErrorCode): number {
       return 7
     case 'MANUAL_ACTION_REQUIRED':
       return 8
+    case 'TIMEOUT':
+      return 10
     default:
       return 1
   }
