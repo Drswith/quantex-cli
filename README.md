@@ -62,6 +62,18 @@ quantex install claude
 qtx i claude
 ```
 
+### 确保 Agent 已安装
+
+```bash
+quantex ensure claude
+```
+
+`ensure` 是面向自动化和 agent orchestration 的幂等入口：
+
+- 已安装则直接成功
+- 未安装时才执行安装
+- 配合 `--json` 时会返回 `changed` 字段，便于上层判断是否发生变更
+
 ### 更新 Agent
 
 ```bash
@@ -149,6 +161,20 @@ quantex info claude
 - 当前记录的安装来源与生命周期
 - 当前版本和可检测到的最新版本
 - agent 自带的自更新命令
+
+### 查看 Agent 结构化状态
+
+```bash
+quantex inspect claude
+quantex inspect claude --json
+```
+
+`inspect` 更偏 agent-friendly，会集中返回：
+
+- 安装状态、版本、路径、来源
+- 当前 update mode
+- 当前平台可用安装方式
+- `auto-install` / `self-update` / `runnable` 等能力摘要
 
 ### 快捷启动 Agent
 
