@@ -39,4 +39,20 @@ describe('resolveCliContext', () => {
 
     expect(context.timeoutMs).toBe(30000)
   })
+
+  it('enables refresh mode when requested', () => {
+    const context = resolveCliContext({ refresh: true })
+
+    expect(context.cacheMode).toBe('refresh')
+  })
+
+  it('enables no-cache mode when requested', () => {
+    const context = resolveCliContext({ noCache: true })
+
+    expect(context.cacheMode).toBe('no-cache')
+  })
+
+  it('rejects conflicting refresh flags', () => {
+    expect(() => resolveCliContext({ noCache: true, refresh: true })).toThrow('Cannot combine --refresh with --no-cache.')
+  })
 })

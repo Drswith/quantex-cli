@@ -39,6 +39,9 @@ describe('schemaCommand', () => {
     expect(payload.data.commands).toHaveLength(1)
     expect(payload.data.commands[0].name).toBe('inspect')
     expect(payload.data.commands[0].ndjsonEventSchema).toBeDefined()
+    expect(payload.data.commands[0].envelopeSchema.properties.meta.properties.source).toBeDefined()
+    expect(payload.data.commands[0].envelopeSchema.properties.meta.properties.fetchedAt).toBeDefined()
+    expect(payload.data.commands[0].envelopeSchema.properties.meta.properties.staleAfter).toBeDefined()
     expect(payload.meta.runId).toBe('schema-run-id')
   })
 

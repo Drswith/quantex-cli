@@ -17,6 +17,8 @@ program
   .option('--json', 'Output structured JSON')
   .option('--output <mode>', 'Output mode: human, json, or ndjson')
   .option('--non-interactive', 'Disable interactive prompts and confirmations')
+  .option('--refresh', 'Refresh cached version metadata before returning results')
+  .option('--no-cache', 'Bypass the local version cache for this command')
   .option('--run-id <id>', 'Attach a run id to structured output and logs')
   .option('--idempotency-key <key>', 'Deduplicate repeated mutating requests by client-supplied key')
   .option('--timeout <duration>', 'Abort a command after the given duration, e.g. 500ms, 30s, 5m')
@@ -262,7 +264,9 @@ if (shortcutInvocation) {
     try {
       setCliContext(resolveCliContext({
         idempotencyKey: shortcutInvocation.idempotencyKey,
+        noCache: shortcutInvocation.noCache,
         nonInteractive: shortcutInvocation.nonInteractive,
+        refresh: shortcutInvocation.refresh,
         runId: shortcutInvocation.runId,
         timeout: shortcutInvocation.timeout,
       }))
@@ -290,7 +294,9 @@ interface ShortcutInvocation {
   agentName: string
   error?: string
   idempotencyKey?: string
+  noCache?: boolean
   nonInteractive?: boolean
+  refresh?: boolean
   runId?: string
   timeout?: string
 }
@@ -307,8 +313,10 @@ function resolveShortcutInvocation(argv: string[], knownCommandNames: Set<string
   let index = 0
   let idempotencyKey: string | undefined
   let jsonOutputRequested = false
+  let noCache = false
   let nonInteractive = false
   let outputMode: string | undefined
+  let refresh = false
   let runId: string | undefined
   let timeout: string | undefined
 
@@ -332,6 +340,18 @@ function resolveShortcutInvocation(argv: string[], knownCommandNames: Set<string
 
     if (arg === '--non-interactive') {
       nonInteractive = true
+      index += 1
+      continue
+    }
+
+    if (arg === '--refresh') {
+      refresh = true
+      index += 1
+      continue
+    }
+
+    if (arg === '--no-cache') {
+      noCache = true
       index += 1
       continue
     }
@@ -376,7 +396,9 @@ function resolveShortcutInvocation(argv: string[], knownCommandNames: Set<string
       agentArgs: argv.slice(index + 1),
       agentName: arg,
       idempotencyKey,
+      noCache,
       nonInteractive,
+      refresh,
       runId,
       timeout,
     }

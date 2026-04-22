@@ -2,6 +2,7 @@ import { existsSync, readFileSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { getCliContext, setCliContext } from '../../src/cli-context'
 import * as config from '../../src/config'
 
 const mockSpawn = vi.fn()
@@ -176,6 +177,79 @@ describe('getLatestVersion', () => {
 
     expect(await getLatestVersion('retry-package')).toBe('3.0.0')
     expect(mockFetch).toHaveBeenCalledTimes(2)
+  })
+
+  it('records network freshness metadata after a live fetch', async () => {
+    const { getLatestVersion } = await import('../../src/utils/version')
+    setCliContext({
+      cacheMode: 'default',
+      interactive: false,
+      outputMode: 'json',
+      runId: 'version-run-id',
+    })
+    mockFetch.mockResolvedValue(new Response(JSON.stringify({ version: '2.0.0' }), { status: 200 }))
+
+    expect(await getLatestVersion('network-package')).toBe('2.0.0')
+    expect(getCliContext().freshness?.source).toBe('network')
+    expect(getCliContext().freshness?.fetchedAt).toBeTruthy()
+    expect(getCliContext().freshness?.staleAfter).toBeTruthy()
+  })
+
+  it('records cache freshness metadata on cache hits', async () => {
+    const { getLatestVersion } = await import('../../src/utils/version')
+    mockFetch.mockResolvedValueOnce(new Response(JSON.stringify({ version: '2.0.0' }), { status: 200 }))
+
+    expect(await getLatestVersion('cached-package')).toBe('2.0.0')
+
+    setCliContext({
+      cacheMode: 'default',
+      interactive: false,
+      outputMode: 'json',
+      runId: 'cache-run-id',
+    })
+
+    expect(await getLatestVersion('cached-package')).toBe('2.0.0')
+    expect(mockFetch).toHaveBeenCalledTimes(1)
+    expect(getCliContext().freshness?.source).toBe('cache')
+  })
+
+  it('forces a network refresh when refresh mode is enabled', async () => {
+    const { getLatestVersion } = await import('../../src/utils/version')
+    mockFetch.mockResolvedValueOnce(new Response(JSON.stringify({ version: '2.0.0' }), { status: 200 }))
+
+    expect(await getLatestVersion('refresh-package')).toBe('2.0.0')
+
+    setCliContext({
+      cacheMode: 'refresh',
+      interactive: false,
+      outputMode: 'json',
+      runId: 'refresh-run-id',
+    })
+    mockFetch.mockResolvedValueOnce(new Response(JSON.stringify({ version: '2.1.0' }), { status: 200 }))
+
+    expect(await getLatestVersion('refresh-package')).toBe('2.1.0')
+    expect(mockFetch).toHaveBeenCalledTimes(2)
+    expect(getCliContext().freshness?.source).toBe('network')
+  })
+
+  it('bypasses cache writes when no-cache mode is enabled', async () => {
+    const { getLatestVersion } = await import('../../src/utils/version')
+    mockFetch.mockResolvedValueOnce(new Response(JSON.stringify({ version: '2.0.0' }), { status: 200 }))
+
+    expect(await getLatestVersion('no-cache-package')).toBe('2.0.0')
+    const cachedFileBefore = readFileSync(join(tempConfigDir, 'cache', 'versions.json'), 'utf8')
+
+    setCliContext({
+      cacheMode: 'no-cache',
+      interactive: false,
+      outputMode: 'json',
+      runId: 'no-cache-run-id',
+    })
+    mockFetch.mockResolvedValueOnce(new Response(JSON.stringify({ version: '3.0.0' }), { status: 200 }))
+
+    expect(await getLatestVersion('no-cache-package')).toBe('3.0.0')
+    expect(mockFetch).toHaveBeenCalledTimes(2)
+    expect(readFileSync(join(tempConfigDir, 'cache', 'versions.json'), 'utf8')).toBe(cachedFileBefore)
   })
 })
 
