@@ -1,5 +1,5 @@
 import type { CliErrorCode } from '../errors'
-import type { OutputMode } from '../cli-context'
+import type { FreshnessSource, OutputMode } from '../cli-context'
 
 export interface CommandTarget {
   kind: 'agent' | 'config' | 'self' | 'system'
@@ -19,9 +19,12 @@ export interface CommandError {
 }
 
 export interface CommandMeta {
+  fetchedAt?: string
   mode: OutputMode
   runId: string
   schemaVersion: string
+  source?: FreshnessSource
+  staleAfter?: string
   timestamp: string
   version: string
 }

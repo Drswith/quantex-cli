@@ -1,11 +1,13 @@
 import { mkdir, readFile, writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
+import { getCliContext, recordCliFreshness } from '../cli-context'
 import { getConfigDir, loadConfig } from '../config'
 
 interface CachedResponseEntry {
   body: string
   etag?: string
   expiresAt: number
+  fetchedAt?: number
 }
 
 interface CachedResponseStore {
@@ -27,34 +29,46 @@ export async function fetchJsonWithCache<T>(url: string, cacheKey: string): Prom
 
 export async function fetchTextWithCache(url: string, cacheKey: string, mode: 'json' | 'text' = 'text'): Promise<string | undefined> {
   const config = await loadConfig()
-  const cache = await loadResponseCache()
+  const ttlMs = config.versionCacheTtlHours * 60 * 60 * 1000
+  const cacheMode = getCliContext().cacheMode
+  const cache = cacheMode === 'no-cache' ? { entries: {} } : await loadResponseCache()
   const cachedEntry = cache.entries[cacheKey]
   const now = Date.now()
 
-  if (cachedEntry && cachedEntry.expiresAt > now)
+  if (cacheMode === 'default' && cachedEntry && cachedEntry.expiresAt > now) {
+    recordCachedEntryFreshness(cachedEntry, ttlMs)
     return cachedEntry.body
+  }
 
   const response = await fetchWithRetries(url, {
-    headers: cachedEntry?.etag ? { 'If-None-Match': cachedEntry.etag } : undefined,
+    headers: cacheMode !== 'no-cache' && cachedEntry?.etag ? { 'If-None-Match': cachedEntry.etag } : undefined,
     retries: config.networkRetries,
     timeoutMs: config.networkTimeoutMs,
   })
 
   if (!response) {
+    if (cachedEntry)
+      recordCachedEntryFreshness(cachedEntry, ttlMs)
     return cachedEntry?.body
   }
 
   if (response.status === 304 && cachedEntry) {
     cache.entries[cacheKey] = {
       ...cachedEntry,
-      expiresAt: now + config.versionCacheTtlHours * 60 * 60 * 1000,
+      expiresAt: now + ttlMs,
+      fetchedAt: now,
     }
-    await saveResponseCache(cache)
+    if (cacheMode !== 'no-cache')
+      await saveResponseCache(cache)
+    recordNetworkFreshness(now, now + ttlMs)
     return cachedEntry.body
   }
 
-  if (!response.ok)
+  if (!response.ok) {
+    if (cachedEntry)
+      recordCachedEntryFreshness(cachedEntry, ttlMs)
     return cachedEntry?.body
+  }
 
   const body = await response.text()
 
@@ -63,16 +77,23 @@ export async function fetchTextWithCache(url: string, cacheKey: string, mode: 'j
       JSON.parse(body)
     }
     catch {
+      if (cachedEntry)
+        recordCachedEntryFreshness(cachedEntry, ttlMs)
       return cachedEntry?.body
     }
   }
 
-  cache.entries[cacheKey] = {
+  const entry = {
     body,
     etag: response.headers.get('etag') ?? undefined,
-    expiresAt: now + config.versionCacheTtlHours * 60 * 60 * 1000,
+    expiresAt: now + ttlMs,
+    fetchedAt: now,
   }
-  await saveResponseCache(cache)
+  if (cacheMode !== 'no-cache') {
+    cache.entries[cacheKey] = entry
+    await saveResponseCache(cache)
+  }
+  recordNetworkFreshness(now, now + ttlMs)
 
   return body
 }
@@ -119,4 +140,21 @@ async function saveResponseCache(cache: CachedResponseStore): Promise<void> {
 
 function getCacheFilePath(): string {
   return join(getConfigDir(), 'cache', 'versions.json')
+}
+
+function recordCachedEntryFreshness(entry: CachedResponseEntry, ttlMs: number): void {
+  const fetchedAtMs = entry.fetchedAt ?? Math.max(0, entry.expiresAt - ttlMs)
+  recordCliFreshness({
+    fetchedAt: new Date(fetchedAtMs).toISOString(),
+    source: 'cache',
+    staleAfter: new Date(entry.expiresAt).toISOString(),
+  })
+}
+
+function recordNetworkFreshness(fetchedAt: number, staleAfter: number): void {
+  recordCliFreshness({
+    fetchedAt: new Date(fetchedAt).toISOString(),
+    source: 'network',
+    staleAfter: new Date(staleAfter).toISOString(),
+  })
 }

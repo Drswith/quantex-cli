@@ -9,10 +9,13 @@ import { getPlatform, isBrewAvailable, isBunAvailable, isNpmAvailable, isWingetA
 interface CapabilitiesData {
   agents: string[]
   features: {
+    cacheBypass: boolean
+    cacheRefresh: boolean
     channels: string[]
     dryRun: boolean
     execInstallPolicies: string[]
     idempotencyKey: boolean
+    freshnessMetadata: boolean
     selfUpgrade: boolean
     timeout: boolean
   }
@@ -55,9 +58,12 @@ export async function capabilitiesCommand(): Promise<CommandResult<CapabilitiesD
     data: {
       agents: getAllAgents().map(agent => agent.name),
       features: {
+        cacheBypass: true,
+        cacheRefresh: true,
         channels: ['stable', 'beta'],
         dryRun: true,
         execInstallPolicies: ['never', 'if-missing', 'always'],
+        freshnessMetadata: true,
         idempotencyKey: true,
         selfUpgrade: selfInspection.canAutoUpdate,
         timeout: true,
@@ -119,7 +125,10 @@ function renderCapabilitiesHuman(result: { data?: CapabilitiesData }): void {
   console.log(`    winget: ${formatCapabilityAvailability(result.data.installers.winget)}`)
 
   console.log(pc.bold('\n  Features:'))
+  console.log(`    cache-refresh:        ${result.data.features.cacheRefresh ? 'yes' : 'no'}`)
+  console.log(`    no-cache:             ${result.data.features.cacheBypass ? 'yes' : 'no'}`)
   console.log(`    dry-run:              ${result.data.features.dryRun ? 'yes' : 'no'}`)
+  console.log(`    freshness-metadata:   ${result.data.features.freshnessMetadata ? 'yes' : 'no'}`)
   console.log(`    self-upgrade:         ${result.data.features.selfUpgrade ? 'yes' : 'no'}`)
   console.log(`    idempotency-key:      ${result.data.features.idempotencyKey ? 'yes' : 'no'}`)
   console.log(`    timeout:              ${result.data.features.timeout ? 'yes' : 'no'}`)
