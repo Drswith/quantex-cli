@@ -1,36 +1,11 @@
+import type { SelfInspection, SelfInstallSource, SelfPackageMetadata, SelfUpdateResult } from './types'
 import { readFile } from 'node:fs/promises'
 import { basename, dirname, join } from 'node:path'
 import process from 'node:process'
 import { fileURLToPath } from 'node:url'
-import { BUILD_PACKAGE_NAME, BUILD_REPOSITORY_URL, BUILD_VERSION } from '../generated/build-meta'
-import * as bunPm from '../package-manager/bun'
-import * as npmPm from '../package-manager/npm'
+import { BUILD_PACKAGE_NAME, BUILD_VERSION } from '../generated/build-meta'
 import { getLatestVersion } from '../utils/version'
-import { upgradeStandaloneBinary } from './binary'
-
-export type SelfInstallSource = 'binary' | 'bun' | 'npm' | 'source' | 'unknown'
-
-export interface SelfInspection {
-  canAutoUpdate: boolean
-  currentVersion: string
-  executablePath: string
-  installSource: SelfInstallSource
-  latestVersion?: string
-  packageRoot: string
-  recommendedUpgradeCommand?: string
-}
-
-export interface SelfUpdateResult {
-  installSource: SelfInstallSource
-  success: boolean
-}
-
-export interface SelfPackageMetadata {
-  foundPackageJson: boolean
-  packageJsonPath: string
-  packageRoot: string
-  version: string
-}
+import { getSelfUpgradeProvider } from './providers'
 
 const CLI_NPM_PACKAGE_NAME = BUILD_PACKAGE_NAME
 const BUN_GLOBAL_PATH_SEGMENT = '/.bun/install/global/'
@@ -57,36 +32,7 @@ export async function inspectSelf(): Promise<SelfInspection> {
 
 export async function upgradeSelf(inspection?: SelfInspection): Promise<SelfUpdateResult> {
   const resolvedInspection = inspection ?? await inspectSelf()
-
-  if (resolvedInspection.installSource === 'bun') {
-    return {
-      installSource: resolvedInspection.installSource,
-      success: await bunPm.update(CLI_NPM_PACKAGE_NAME),
-    }
-  }
-
-  if (resolvedInspection.installSource === 'npm') {
-    return {
-      installSource: resolvedInspection.installSource,
-      success: await npmPm.update(CLI_NPM_PACKAGE_NAME),
-    }
-  }
-
-  if (resolvedInspection.installSource === 'binary') {
-    const downloadUrl = getBinaryReleaseDownloadUrl(resolvedInspection.executablePath)
-
-    return {
-      installSource: resolvedInspection.installSource,
-      success: downloadUrl
-        ? await upgradeStandaloneBinary(downloadUrl, resolvedInspection.executablePath)
-        : false,
-    }
-  }
-
-  return {
-    installSource: resolvedInspection.installSource,
-    success: false,
-  }
+  return getSelfUpgradeProvider(resolvedInspection).upgrade(resolvedInspection)
 }
 
 export function canAutoUpdateSelf(installSource: SelfInstallSource): boolean {
@@ -150,42 +96,15 @@ export function getManualSelfUpgradeCommand(
   installSource: SelfInstallSource,
   executablePath: string = process.execPath,
 ): string | undefined {
-  if (installSource === 'bun')
-    return `bun add -g ${CLI_NPM_PACKAGE_NAME}@latest`
-
-  if (installSource === 'npm')
-    return `npm install -g ${CLI_NPM_PACKAGE_NAME}@latest`
-
-  if (installSource === 'binary') {
-    const downloadUrl = getBinaryReleaseDownloadUrl(executablePath)
-    return downloadUrl ? `download and replace the binary from ${downloadUrl}` : undefined
+  const inspection: SelfInspection = {
+    canAutoUpdate: canAutoUpdateSelf(installSource),
+    currentVersion: BUILD_VERSION,
+    executablePath,
+    installSource,
+    packageRoot: '',
   }
 
-  return undefined
-}
-
-export function getBinaryReleaseAssetName(executablePath: string = process.execPath): string | undefined {
-  const normalizedPath = normalizePath(executablePath)
-  const executableName = basename(normalizedPath)
-
-  if (executableName.endsWith('.exe'))
-    return 'quantex-windows-x64.exe'
-
-  if (process.platform === 'darwin')
-    return process.arch === 'arm64' ? 'quantex-darwin-arm64' : 'quantex-darwin-x64'
-
-  if (process.platform === 'linux')
-    return process.arch === 'arm64' ? 'quantex-linux-arm64' : 'quantex-linux-x64'
-
-  return undefined
-}
-
-export function getBinaryReleaseDownloadUrl(executablePath: string = process.execPath): string | undefined {
-  const assetName = getBinaryReleaseAssetName(executablePath)
-  if (!assetName || !BUILD_REPOSITORY_URL)
-    return undefined
-
-  return `${BUILD_REPOSITORY_URL}/releases/latest/download/${assetName}`
+  return getSelfUpgradeProvider(inspection).getManualUpgradeCommand(inspection)
 }
 
 async function readPackageJson(packageJsonPath: string): Promise<{ name?: string, version?: string } | undefined> {
@@ -214,3 +133,6 @@ function resolveModulePath(moduleUrl: string): string {
     return process.execPath
   }
 }
+
+export { getBinaryReleaseAssetName, getBinaryReleaseDownloadUrl } from './release'
+export type { SelfInspection, SelfInstallSource, SelfPackageMetadata, SelfUpdateResult } from './types'
