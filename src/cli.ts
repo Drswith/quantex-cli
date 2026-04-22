@@ -27,6 +27,14 @@ program.hook('postAction', () => {
 })
 
 program
+  .command('capabilities')
+  .description('查看当前环境与 surface 能力')
+  .action(async () => {
+    const { capabilitiesCommand } = await import('./commands/capabilities')
+    process.exitCode = getExitCodeForResult(await capabilitiesCommand())
+  })
+
+program
   .command('inspect <agent>')
   .description('查看 agent 结构化状态')
   .action(async (agent: string) => {
