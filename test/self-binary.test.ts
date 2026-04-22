@@ -1,5 +1,6 @@
 import { Buffer } from 'node:buffer'
 import { createHash } from 'node:crypto'
+import { existsSync } from 'node:fs'
 import { chmod, mkdtemp, readFile, rm, stat, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
@@ -10,6 +11,7 @@ import { upgradeStandaloneBinary } from '../src/self/binary'
 const originalFetch = globalThis.fetch
 const originalPlatform = process.platform
 const originalSpawn = Bun.spawn
+const encoder = new TextEncoder()
 
 afterEach(() => {
   globalThis.fetch = originalFetch
@@ -79,10 +81,15 @@ describe('upgradeStandaloneBinary', () => {
     const tempRoot = await mkdtemp(join(tmpdir(), 'quantex-binary-verify-success-'))
     const executablePath = join(tempRoot, 'qtx')
     const replacement = '#!/bin/sh\necho 1.1.0\n'
+    const mockSpawn = vi.fn().mockReturnValue({
+      exited: Promise.resolve(0),
+      stdout: createByteStream('1.1.0\n'),
+    })
 
     await writeFile(executablePath, '#!/bin/sh\necho old\n', 'utf8')
     await chmod(executablePath, 0o755)
 
+    Bun.spawn = mockSpawn as typeof Bun.spawn
     globalThis.fetch = vi.fn().mockResolvedValue(new Response(Buffer.from(replacement), { status: 200 })) as unknown as typeof fetch
     const checksum = createHash('sha256').update(replacement).digest('hex')
 
@@ -92,7 +99,7 @@ describe('upgradeStandaloneBinary', () => {
       })
       expect(await readFile(executablePath, 'utf8')).toBe(replacement)
       expect((await stat(executablePath)).mode & 0o111).toBeGreaterThan(0)
-      expect(await Bun.file(`${executablePath}.bak`).exists()).toBe(false)
+      expect(existsSync(`${executablePath}.bak`)).toBe(false)
     }
     finally {
       await rm(tempRoot, { recursive: true, force: true })
@@ -133,9 +140,14 @@ describe('upgradeStandaloneBinary', () => {
     const executablePath = join(tempRoot, 'qtx')
     const original = '#!/bin/sh\necho old\n'
     const replacement = '#!/bin/sh\nexit 1\n'
+    const mockSpawn = vi.fn().mockReturnValue({
+      exited: Promise.resolve(1),
+      stdout: createByteStream(''),
+    })
 
     await writeFile(executablePath, original, 'utf8')
     await chmod(executablePath, 0o755)
+    Bun.spawn = mockSpawn as typeof Bun.spawn
     globalThis.fetch = vi.fn().mockResolvedValue(new Response(Buffer.from(replacement), { status: 200 })) as unknown as typeof fetch
     const checksum = createHash('sha256').update(replacement).digest('hex')
 
@@ -145,10 +157,19 @@ describe('upgradeStandaloneBinary', () => {
       expect(result.success).toBe(false)
       expect(result.error?.kind).toBe('verify')
       expect(await readFile(executablePath, 'utf8')).toBe(original)
-      expect(await Bun.file(`${executablePath}.bak`).exists()).toBe(false)
+      expect(existsSync(`${executablePath}.bak`)).toBe(false)
     }
     finally {
       await rm(tempRoot, { recursive: true, force: true })
     }
   })
 })
+
+function createByteStream(content: string): ReadableStream<Uint8Array> {
+  return new ReadableStream<Uint8Array>({
+    start(controller) {
+      controller.enqueue(encoder.encode(content))
+      controller.close()
+    },
+  })
+}
