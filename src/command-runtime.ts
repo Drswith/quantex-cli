@@ -1,4 +1,5 @@
 import type { CommandResult, CommandTarget } from './output/types'
+import process from 'node:process'
 import pc from 'picocolors'
 import { getCliContext, markCliContextCancelled } from './cli-context'
 import { loadIdempotencyRecord, saveIdempotencyRecord } from './idempotency'
@@ -16,8 +17,9 @@ export async function executeCommandWithRuntime<T>(options: ExecuteCommandOption
     return replayedResult
 
   const timeoutMs = getCliContext().timeoutMs
+
   if (timeoutMs === undefined)
-    return storeIdempotentResult(options.action, options.target, await options.run())
+    return withSignalCancellation(options, () => options.run().then(result => storeIdempotentResult(options.action, options.target, result)))
 
   let timeoutId: ReturnType<typeof setTimeout> | undefined
 
@@ -49,10 +51,10 @@ export async function executeCommandWithRuntime<T>(options: ExecuteCommandOption
       }, timeoutMs)
     })
 
-    return await Promise.race([
+    return await withSignalCancellation(options, () => Promise.race([
       options.run().then(result => storeIdempotentResult(options.action, options.target, result)),
       timeoutPromise,
-    ])
+    ]))
   }
   finally {
     if (timeoutId)
@@ -109,4 +111,51 @@ async function storeIdempotentResult<T>(action: string, target: CommandTarget | 
     await saveIdempotencyRecord(context.idempotencyKey, { action, result, target })
 
   return result
+}
+
+async function withSignalCancellation<T>(options: ExecuteCommandOptions<T>, run: () => Promise<CommandResult<T>>): Promise<CommandResult<T>> {
+  let cleanup: (() => void) | undefined
+
+  try {
+    const signalPromise = new Promise<CommandResult<T>>((resolve) => {
+      const handleSignal = (signal: NodeJS.Signals): void => {
+        markCliContextCancelled()
+        emitCommandEvent({
+          action: options.action,
+          data: {
+            reason: 'signal',
+            signal,
+          },
+          target: options.target,
+          type: 'cancelled',
+        }, { force: true })
+
+        resolve(emitCommandResult(createErrorResult<T>({
+          action: options.action,
+          error: {
+            code: 'CANCELLED',
+            details: {
+              signal,
+            },
+            message: `Command cancelled by ${signal}.`,
+          },
+          target: options.target,
+        }), renderTimeoutHuman, { force: true }))
+      }
+
+      const sigintHandler = (): void => handleSignal('SIGINT')
+      const sigtermHandler = (): void => handleSignal('SIGTERM')
+      process.once('SIGINT', sigintHandler)
+      process.once('SIGTERM', sigtermHandler)
+      cleanup = (): void => {
+        process.off('SIGINT', sigintHandler)
+        process.off('SIGTERM', sigtermHandler)
+      }
+    })
+
+    return await Promise.race([run(), signalPromise])
+  }
+  finally {
+    cleanup?.()
+  }
 }
