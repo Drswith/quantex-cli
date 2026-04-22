@@ -41,7 +41,7 @@ tmp_dir="$(mktemp -d)"
 trap 'rm -rf "$tmp_dir"' EXIT INT TERM
 
 tmp_file="$tmp_dir/quantex"
-state_dir="${XDG_CONFIG_HOME:-$HOME/.quantex}"
+state_dir="$HOME/.quantex"
 state_file="$state_dir/state.json"
 
 if command -v curl >/dev/null 2>&1; then

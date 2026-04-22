@@ -26,7 +26,8 @@
     "qtx": "./dist/cli.mjs"
   },
   "files": [
-    "dist"
+    "dist",
+    "scripts/postinstall.cjs"
   ],
   "scripts": {
     "prebuild": "bun run scripts/write-build-metadata.ts",
@@ -35,6 +36,7 @@
     "lint:fix": "eslint --fix",
     "lint": "eslint",
     "prepublishOnly": "bun run build",
+    "postinstall": "node scripts/postinstall.cjs",
     "release": "bumpp",
     "dev": "bun run src/cli.ts",
     "test": "vitest run",
