@@ -2,6 +2,7 @@ export {
   getInstalledAgentState,
   getSelfState,
   getStateFilePath,
+  getStateLockPath,
   loadState,
   removeInstalledAgentState,
   saveState,

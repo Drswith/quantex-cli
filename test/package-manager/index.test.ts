@@ -1,3 +1,6 @@
+import { existsSync, rmSync } from 'node:fs'
+import { tmpdir } from 'node:os'
+import { join } from 'node:path'
 import { afterAll, beforeEach, describe, expect, it, vi } from 'vitest'
 import * as config from '../../src/config'
 import * as binaryPm from '../../src/package-manager/binary'
@@ -23,6 +26,8 @@ const isNpmSpy = vi.spyOn(detectUtils, 'isNpmAvailable')
 const getInstalledAgentStateSpy = vi.spyOn(state, 'getInstalledAgentState')
 const setInstalledAgentStateSpy = vi.spyOn(state, 'setInstalledAgentState')
 const removeInstalledAgentStateSpy = vi.spyOn(state, 'removeInstalledAgentState')
+const getConfigDirSpy = vi.spyOn(config, 'getConfigDir')
+const tempDir = join(tmpdir(), `quantex-package-manager-test-${Date.now()}`)
 
 const testAgent = {
   name: 'test-agent',
@@ -58,6 +63,7 @@ beforeEach(() => {
   setInstalledAgentStateSpy.mockClear()
   removeInstalledAgentStateSpy.mockClear()
   getPlatformSpy.mockReturnValue('linux')
+  getConfigDirSpy.mockReturnValue(tempDir)
   loadConfigSpy.mockResolvedValue({
     defaultPackageManager: 'bun',
     networkRetries: 2,
@@ -68,6 +74,11 @@ beforeEach(() => {
   })
   getInstalledAgentStateSpy.mockResolvedValue(undefined)
   removeInstalledAgentStateSpy.mockResolvedValue()
+})
+
+beforeEach(() => {
+  if (existsSync(tempDir))
+    rmSync(tempDir, { force: true, recursive: true })
 })
 
 afterAll(() => {
@@ -87,6 +98,7 @@ afterAll(() => {
   getInstalledAgentStateSpy.mockRestore()
   setInstalledAgentStateSpy.mockRestore()
   removeInstalledAgentStateSpy.mockRestore()
+  getConfigDirSpy.mockRestore()
 })
 
 describe('installAgent', () => {

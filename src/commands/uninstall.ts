@@ -3,6 +3,8 @@ import pc from 'picocolors'
 import { createErrorResult, createSuccessResult, emitCommandResult } from '../output'
 import { uninstallAgent } from '../package-manager'
 import { resolveAgent } from '../services/agents'
+import { createResourceLockedError } from '../utils/lifecycle-errors'
+import { isResourceLockError } from '../utils/lock'
 
 interface UninstallCommandData {
   agent: {
@@ -31,7 +33,30 @@ export async function uninstallCommand(agentName: string): Promise<CommandResult
     }), renderUninstallHuman)
   }
 
-  const success = await uninstallAgent(agent)
+  let success
+  try {
+    success = await uninstallAgent(agent)
+  }
+  catch (error) {
+    if (isResourceLockError(error)) {
+      return emitCommandResult(createErrorResult<UninstallCommandData>({
+        action: 'uninstall',
+        data: {
+          agent: {
+            displayName: agent.displayName,
+            name: agent.name,
+          },
+          changed: false,
+        },
+        ...createResourceLockedError(error, {
+          kind: 'agent',
+          name: agent.name,
+        }),
+      }), renderUninstallHuman)
+    }
+
+    throw error
+  }
 
   if (success) {
     return emitCommandResult(createSuccessResult<UninstallCommandData>({

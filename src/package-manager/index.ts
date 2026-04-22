@@ -6,6 +6,7 @@ import { loadConfig } from '../config'
 import { getInstalledAgentState, removeInstalledAgentState, setInstalledAgentState } from '../state'
 import { getPlatform } from '../utils/detect'
 import { canUpdateInstallType, getManagedPackageName, isManagedInstallType } from '../utils/install'
+import { withResourceLock } from '../utils/lock'
 import { runBinaryInstall } from './binary'
 import { getManagedInstaller } from './installers'
 
@@ -16,6 +17,11 @@ export interface AgentOperationResult {
   success: boolean
   installedState?: InstalledAgentState
 }
+
+const lifecycleLock = {
+  resource: 'agent lifecycle',
+  scope: ['agent-lifecycle'],
+} as const
 
 async function getPreferredManagedInstallType(): Promise<ManagedInstallType | undefined> {
   const config = await loadConfig()
@@ -137,77 +143,85 @@ async function persistInstalledState(agent: AgentDefinition, method: InstallMeth
 }
 
 export async function installAgent(agent: AgentDefinition): Promise<AgentOperationResult> {
-  const methods = await getOrderedInstallMethods(agent)
+  return withResourceLock(lifecycleLock, async () => {
+    const methods = await getOrderedInstallMethods(agent)
 
-  for (const method of methods) {
-    if (await executeMethod(agent, method, 'install')) {
-      return {
-        success: true,
-        installedState: await persistInstalledState(agent, method),
+    for (const method of methods) {
+      if (await executeMethod(agent, method, 'install')) {
+        return {
+          success: true,
+          installedState: await persistInstalledState(agent, method),
+        }
       }
     }
-  }
 
-  return { success: false }
+    return { success: false }
+  })
 }
 
 export async function updateAgent(agent: AgentDefinition, preferredState?: InstalledAgentState): Promise<AgentOperationResult> {
-  const { npmBunUpdateStrategy } = await getManagedUpdateOptions()
-  const methods = await getOrderedInstallMethods(agent)
+  return withResourceLock(lifecycleLock, async () => {
+    const { npmBunUpdateStrategy } = await getManagedUpdateOptions()
+    const methods = await getOrderedInstallMethods(agent)
 
-  if (preferredState && await executeInstalledState(preferredState, 'update', npmBunUpdateStrategy)) {
-    await setInstalledAgentState(preferredState)
-    return {
-      success: true,
-      installedState: preferredState,
+    if (preferredState && await executeInstalledState(preferredState, 'update', npmBunUpdateStrategy)) {
+      await setInstalledAgentState(preferredState)
+      return {
+        success: true,
+        installedState: preferredState,
+      }
     }
-  }
 
-  if (!preferredState) {
-    for (const method of methods) {
-      if (await executeMethod(agent, method, 'update', npmBunUpdateStrategy)) {
-        return {
-          success: true,
-          installedState: await persistInstalledState(agent, method),
+    if (!preferredState) {
+      for (const method of methods) {
+        if (await executeMethod(agent, method, 'update', npmBunUpdateStrategy)) {
+          return {
+            success: true,
+            installedState: await persistInstalledState(agent, method),
+          }
         }
       }
     }
-  }
 
-  if (await executeAgentUpdateCommand(agent))
-    return { success: true }
+    if (await executeAgentUpdateCommand(agent))
+      return { success: true }
 
-  if (preferredState) {
-    for (const method of methods) {
-      if (await executeMethod(agent, method, 'update', npmBunUpdateStrategy)) {
-        return {
-          success: true,
-          installedState: await persistInstalledState(agent, method),
+    if (preferredState) {
+      for (const method of methods) {
+        if (await executeMethod(agent, method, 'update', npmBunUpdateStrategy)) {
+          return {
+            success: true,
+            installedState: await persistInstalledState(agent, method),
+          }
         }
       }
     }
-  }
 
-  return { success: false }
+    return { success: false }
+  })
 }
 
 export async function updateAgentsByType(type: ManagedInstallType, packages: ManagedPackageSpec[]): Promise<boolean> {
-  const uniquePackages = [...new Map(packages
-    .filter(pkg => pkg.packageName)
-    .map(pkg => [`${pkg.packageTargetKind ?? 'package'}:${pkg.packageName}`, pkg])).values()]
-  const installer = getManagedInstaller(type)
-  if (!await installer.isAvailable())
-    return false
-  return installer.updateMany(uniquePackages, await getManagedUpdateOptions())
+  return withResourceLock(lifecycleLock, async () => {
+    const uniquePackages = [...new Map(packages
+      .filter(pkg => pkg.packageName)
+      .map(pkg => [`${pkg.packageTargetKind ?? 'package'}:${pkg.packageName}`, pkg])).values()]
+    const installer = getManagedInstaller(type)
+    if (!await installer.isAvailable())
+      return false
+    return installer.updateMany(uniquePackages, await getManagedUpdateOptions())
+  })
 }
 
 export async function uninstallAgent(agent: AgentDefinition): Promise<boolean> {
-  const installedState = await getInstalledAgentState(agent.name)
-  if (!installedState)
-    return false
+  return withResourceLock(lifecycleLock, async () => {
+    const installedState = await getInstalledAgentState(agent.name)
+    if (!installedState)
+      return false
 
-  const success = await executeInstalledState(installedState, 'uninstall')
-  if (success)
-    await removeInstalledAgentState(agent.name)
-  return success
+    const success = await executeInstalledState(installedState, 'uninstall')
+    if (success)
+      await removeInstalledAgentState(agent.name)
+    return success
+  })
 }

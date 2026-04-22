@@ -3,6 +3,8 @@ import pc from 'picocolors'
 import { createErrorResult, createSuccessResult, emitCommandEvent, emitCommandResult } from '../output'
 import { installAgent } from '../package-manager'
 import { resolveAgentInspection } from '../services/agents'
+import { createResourceLockedError } from '../utils/lifecycle-errors'
+import { isResourceLockError } from '../utils/lock'
 
 interface EnsureCommandData {
   agent: {
@@ -76,7 +78,32 @@ export async function ensureCommand(agentName: string): Promise<CommandResult<En
     type: 'started',
   })
 
-  const result = await installAgent(agent)
+  let result
+  try {
+    result = await installAgent(agent)
+  }
+  catch (error) {
+    if (isResourceLockError(error)) {
+      return emitCommandResult(createErrorResult<EnsureCommandData>({
+        action: 'ensure',
+        data: {
+          agent: {
+            displayName: agent.displayName,
+            name: agent.name,
+          },
+          changed: false,
+          installed: false,
+        },
+        ...createResourceLockedError(error, {
+          kind: 'agent',
+          name: agent.name,
+        }),
+      }), renderEnsureHuman)
+    }
+
+    throw error
+  }
+
   if (result.success) {
     return emitCommandResult(createSuccessResult<EnsureCommandData>({
       action: 'ensure',

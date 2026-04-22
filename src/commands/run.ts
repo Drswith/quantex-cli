@@ -8,6 +8,7 @@ import { getExitCodeForError } from '../errors'
 import { installAgent } from '../package-manager'
 import { resolveAgentInspection } from '../services/agents'
 import { spawnWithQuantexStdio, waitForSpawnedCommand } from '../utils/child-process'
+import { isResourceLockError } from '../utils/lock'
 
 export async function runCommand(
   agentName: string,
@@ -35,7 +36,7 @@ export async function runCommand(
 
     if (installPolicy === 'if-missing' || installPolicy === 'always') {
       console.log(pc.cyan(`Installing ${agent.displayName}...`))
-      const result = await installAgent(agent)
+      const result = await tryInstallForRun(agent)
       if (!result.success) {
         console.log(pc.red(`Failed to install ${agent.displayName}.`))
         return 1
@@ -59,7 +60,7 @@ export async function runCommand(
       }
 
       console.log(pc.cyan(`Installing ${agent.displayName}...`))
-      const result = await installAgent(agent)
+      const result = await tryInstallForRun(agent)
       if (!result.success) {
         console.log(pc.red(`Failed to install ${agent.displayName}.`))
         return 1
@@ -73,6 +74,21 @@ export async function runCommand(
   catch (e) {
     console.log(pc.red(`Failed to launch ${agent.displayName}: ${e instanceof Error ? e.message : String(e)}`))
     return 1
+  }
+}
+
+async function tryInstallForRun(agent: { displayName: string } & Parameters<typeof installAgent>[0]): Promise<Awaited<ReturnType<typeof installAgent>>> {
+  try {
+    return await installAgent(agent)
+  }
+  catch (error) {
+    if (isResourceLockError(error)) {
+      console.log(pc.red(error.message))
+      return { success: false }
+    }
+
+    console.log(pc.red(`Failed to install ${agent.displayName}: ${error instanceof Error ? error.message : String(error)}`))
+    return { success: false }
   }
 }
 

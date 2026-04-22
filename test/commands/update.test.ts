@@ -5,6 +5,7 @@ import { updateCommand } from '../../src/commands/update'
 import * as pm from '../../src/package-manager'
 import * as state from '../../src/state'
 import * as detect from '../../src/utils/detect'
+import { ResourceLockError } from '../../src/utils/lock'
 import * as version from '../../src/utils/version'
 
 const agentSpy = vi.spyOn(agents, 'getAgentByNameOrAlias')
@@ -217,6 +218,36 @@ describe('updateCommand', () => {
     const output = logSpy.mock.calls.map((c: any[]) => c[0]).join('\n')
     expect(output).toContain('Failed to update Self Updating Agent.')
     expect(output).toContain('Try running self-updating-bin update directly.')
+  })
+
+  it('returns a stable conflict when another lifecycle operation already holds the lock', async () => {
+    const selfUpdatingAgent = {
+      ...testAgent,
+      name: 'self-updating-agent',
+      binaryName: 'self-updating-bin',
+      displayName: 'Self Updating Agent',
+      packages: undefined,
+      selfUpdate: {
+        command: ['self-updating-bin', 'update'],
+      },
+      platforms: {
+        linux: [{ type: 'script' as const, command: 'curl https://example.com/install | bash' }],
+        macos: [{ type: 'script' as const, command: 'curl https://example.com/install | bash' }],
+        windows: [{ type: 'script' as const, command: 'irm https://example.com/install | iex' }],
+      },
+    }
+
+    agentSpy.mockReturnValue(selfUpdatingAgent)
+    binaryInPathSpy.mockResolvedValue(true)
+    installedVerSpy.mockResolvedValue('1.0.0')
+    latestVerSpy.mockResolvedValue(undefined)
+    installedStateSpy.mockResolvedValue(undefined)
+    updateSpy.mockRejectedValue(new ResourceLockError('agent lifecycle', '/tmp/agent-lifecycle.lock'))
+
+    const result = await updateCommand('self-updating-agent', false)
+
+    expect(result.error?.code).toBe('RESOURCE_LOCKED')
+    expect(logSpy).toHaveBeenCalledWith(expect.stringContaining('agent lifecycle lock'))
   })
 
   it('shows error when no agent specified and no --all flag', async () => {

@@ -3,6 +3,8 @@ import pc from 'picocolors'
 import { createErrorResult, createSuccessResult, emitCommandEvent, emitCommandResult } from '../output'
 import { installAgent } from '../package-manager'
 import { resolveAgentInspection } from '../services/agents'
+import { createResourceLockedError } from '../utils/lifecycle-errors'
+import { isResourceLockError } from '../utils/lock'
 
 interface InstallCommandData {
   agent: {
@@ -76,7 +78,31 @@ export async function installCommand(agentName: string): Promise<CommandResult<I
     type: 'started',
   })
 
-  const result = await installAgent(agent)
+  let result
+  try {
+    result = await installAgent(agent)
+  }
+  catch (error) {
+    if (isResourceLockError(error)) {
+      return emitCommandResult(createErrorResult<InstallCommandData>({
+        action: 'install',
+        data: {
+          agent: {
+            displayName: agent.displayName,
+            name: agent.name,
+          },
+          changed: false,
+          installed: false,
+        },
+        ...createResourceLockedError(error, {
+          kind: 'agent',
+          name: agent.name,
+        }),
+      }), renderInstallHuman)
+    }
+
+    throw error
+  }
 
   if (result.success) {
     return emitCommandResult(createSuccessResult<InstallCommandData>({

@@ -2,6 +2,7 @@ import { afterAll, afterEach, beforeEach, describe, expect, it, vi } from 'vites
 import * as agents from '../../src/agents'
 import { uninstallCommand } from '../../src/commands/uninstall'
 import * as pm from '../../src/package-manager'
+import { ResourceLockError } from '../../src/utils/lock'
 
 const agentSpy = vi.spyOn(agents, 'getAgentByNameOrAlias')
 const uninstallSpy = vi.spyOn(pm, 'uninstallAgent')
@@ -58,5 +59,15 @@ describe('uninstallCommand', () => {
     uninstallSpy.mockResolvedValue(false)
     await uninstallCommand('test-agent')
     expect(logSpy).toHaveBeenCalledWith(expect.stringContaining('Failed to uninstall'))
+  })
+
+  it('returns a stable conflict when another lifecycle operation already holds the lock', async () => {
+    agentSpy.mockReturnValue(testAgent)
+    uninstallSpy.mockRejectedValue(new ResourceLockError('agent lifecycle', '/tmp/agent-lifecycle.lock'))
+
+    const result = await uninstallCommand('test-agent')
+
+    expect(result.error?.code).toBe('RESOURCE_LOCKED')
+    expect(logSpy).toHaveBeenCalledWith(expect.stringContaining('agent lifecycle lock'))
   })
 })
