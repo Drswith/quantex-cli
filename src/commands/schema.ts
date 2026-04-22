@@ -172,6 +172,32 @@ const schemaCatalog: SchemaDocument[] = [
     envelopeSchema: baseEnvelopeSchema,
     name: 'inspect',
   },
+  {
+    dataSchema: {
+      additionalProperties: false,
+      properties: {
+        commands: {
+          items: {
+            additionalProperties: false,
+            properties: {
+              dataSchema: { type: 'object' },
+              description: { type: 'string' },
+              envelopeSchema: { type: 'object' },
+              name: { type: 'string' },
+            },
+            required: ['dataSchema', 'description', 'envelopeSchema', 'name'],
+            type: 'object',
+          },
+          type: 'array',
+        },
+      },
+      required: ['commands'],
+      type: 'object',
+    },
+    description: 'Structured schema catalog',
+    envelopeSchema: baseEnvelopeSchema,
+    name: 'schema',
+  },
 ]
 
 export async function schemaCommand(commandName?: string): Promise<CommandResult<SchemaCommandData>> {
