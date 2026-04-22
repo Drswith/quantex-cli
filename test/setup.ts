@@ -1,4 +1,6 @@
 import { readFileSync, writeFileSync } from 'node:fs'
+import { afterEach } from 'vitest'
+import { resetCliContext } from '../src/cli-context'
 
 if (!globalThis.Bun) {
   (globalThis as any).Bun = {
@@ -15,3 +17,7 @@ if (!globalThis.Bun) {
     }),
   }
 }
+
+afterEach(() => {
+  resetCliContext()
+})

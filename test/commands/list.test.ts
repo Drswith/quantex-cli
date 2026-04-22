@@ -1,5 +1,6 @@
 import { afterAll, afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import * as agents from '../../src/agents'
+import { setCliContext } from '../../src/cli-context'
 import { listCommand } from '../../src/commands/list'
 import * as state from '../../src/state'
 import * as detect from '../../src/utils/detect'
@@ -142,5 +143,35 @@ describe('listCommand', () => {
     const notInstalledCall = calls.find((c: string) => c.includes('not installed'))
     expect(notInstalledCall).toBeDefined()
     expect(installedVerSpy).not.toHaveBeenCalled()
+  })
+
+  it('emits structured agent rows in json mode', async () => {
+    setCliContext({
+      interactive: false,
+      outputMode: 'json',
+      runId: 'test-run-id',
+    })
+    allAgentsSpy.mockReturnValue([testAgent])
+    binaryInPathSpy.mockResolvedValue(true)
+    installedStateSpy.mockResolvedValue({
+      agentName: 'test-agent',
+      installType: 'bun',
+      packageName: 'test-pkg',
+      command: 'bun add -g test-pkg',
+    })
+    installedVerSpy.mockResolvedValue('1.2.3')
+
+    await listCommand()
+
+    const payload = JSON.parse(logSpy.mock.calls[0][0])
+    expect(payload.ok).toBe(true)
+    expect(payload.action).toBe('list')
+    expect(payload.data.agents).toHaveLength(1)
+    expect(payload.data.agents[0]).toMatchObject({
+      displayName: 'Test Agent',
+      installed: true,
+      installedVersion: '1.2.3',
+      name: 'test-agent',
+    })
   })
 })

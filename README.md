@@ -11,6 +11,11 @@
 
 </div>
 
+## 设计文档
+
+- [Human + Agent 双模 CLI 设计](./HUMAN_AGENT_DUAL_MODE_CLI.md)
+- [Human + Agent 双模 CLI Implementation Checklist / Issue Backlog](./HUMAN_AGENT_DUAL_MODE_CLI_IMPLEMENTATION_BACKLOG.md)
+
 ## 支持的 Agent
 
 | Agent | 命令 | 别名 | 描述 |

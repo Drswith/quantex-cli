@@ -15,10 +15,16 @@ export type {
   Platform,
   ScriptInstallMethod,
 } from './agents'
+export { getCliContext, resetCliContext, resolveCliContext, setCliContext } from './cli-context'
+export type { CliContext, CliContextOptions, OutputMode } from './cli-context'
 export { getConfigDir, getConfigFilePath, loadConfig, saveConfig } from './config'
 export type { QuantexConfig } from './config'
+export { getExitCodeForError, getExitCodeForResult } from './errors'
+export type { CliErrorCode } from './errors'
 export { inspectAgent, inspectAllAgents } from './inspection'
 export type { AgentInspection } from './inspection'
+export { createErrorResult, createSuccessResult, emitCommandResult } from './output'
+export type { CommandError, CommandMeta, CommandResult, CommandTarget, CommandWarning, HumanRenderer } from './output/types'
 export { getOrderedInstallMethods, installAgent, uninstallAgent, updateAgent, updateAgentsByType } from './package-manager'
 export type { AgentOperationResult, ManagedPackageSpec } from './package-manager'
 export {

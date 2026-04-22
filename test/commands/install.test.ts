@@ -1,5 +1,6 @@
 import { afterAll, afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import * as agents from '../../src/agents'
+import { setCliContext } from '../../src/cli-context'
 import { installCommand } from '../../src/commands/install'
 import * as pm from '../../src/package-manager'
 import * as detect from '../../src/utils/detect'
@@ -72,5 +73,33 @@ describe('installCommand', () => {
     installSpy.mockResolvedValue({ success: false })
     await installCommand('test-agent')
     expect(logSpy).toHaveBeenCalledWith(expect.stringContaining('Failed to install'))
+  })
+
+  it('emits a structured result in json mode', async () => {
+    setCliContext({
+      interactive: false,
+      outputMode: 'json',
+      runId: 'test-run-id',
+    })
+    agentSpy.mockReturnValue(testAgent)
+    binaryInPathSpy.mockResolvedValue(false)
+    installSpy.mockResolvedValue({
+      installedState: {
+        agentName: 'test-agent',
+        installType: 'bun',
+        packageName: 'test-pkg',
+      },
+      success: true,
+    })
+
+    await installCommand('test-agent')
+
+    const payload = JSON.parse(logSpy.mock.calls[0][0])
+    expect(payload.ok).toBe(true)
+    expect(payload.action).toBe('install')
+    expect(payload.data.agent.name).toBe('test-agent')
+    expect(payload.data.changed).toBe(true)
+    expect(payload.meta.runId).toBe('test-run-id')
+    expect(payload.meta.schemaVersion).toBe('1')
   })
 })
