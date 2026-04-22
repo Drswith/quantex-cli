@@ -38,7 +38,7 @@ export function resolveCliContext(options: CliContextOptions = {}): CliContext {
   return {
     interactive: !options.nonInteractive && stdinInteractive && stdoutInteractive,
     outputMode: options.json || options.output === 'json' ? 'json' : 'human',
-    runId: options.runId ?? randomUUID(),
+    runId: options.runId ?? process.env.QUANTEX_RUN_ID ?? randomUUID(),
   }
 }
 
