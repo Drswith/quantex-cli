@@ -2,14 +2,29 @@
 
 import process from 'node:process'
 import { program } from 'commander'
+import pc from 'picocolors'
 import { getAgentByNameOrAlias } from './agents'
+import { resetCliContext, resolveCliContext, setCliContext } from './cli-context'
 import { runCommand } from './commands/run'
+import { getExitCodeForResult } from './errors'
 import { getSelfVersion } from './self'
 
 program
   .name('quantex')
   .description('统一的 AI Agent CLI 管理工具')
+  .option('--json', 'Output structured JSON')
+  .option('--output <mode>', 'Output mode: human or json')
+  .option('--non-interactive', 'Disable interactive prompts and confirmations')
+  .option('--run-id <id>', 'Attach a run id to structured output and logs')
   .version(getSelfVersion())
+
+program.hook('preAction', (_command, actionCommand) => {
+  setCliContext(resolveCliContext(actionCommand.optsWithGlobals()))
+})
+
+program.hook('postAction', () => {
+  resetCliContext()
+})
 
 program
   .command('install <agent>')
@@ -17,7 +32,7 @@ program
   .description('安装指定 agent')
   .action(async (agent: string) => {
     const { installCommand } = await import('./commands/install')
-    await installCommand(agent)
+    process.exitCode = getExitCodeForResult(await installCommand(agent))
   })
 
 program
@@ -28,7 +43,7 @@ program
   .description('更新指定 agent')
   .action(async (agent: string | undefined, options: { all?: boolean }) => {
     const { updateCommand } = await import('./commands/update')
-    await updateCommand(agent, options.all ?? false)
+    process.exitCode = getExitCodeForResult(await updateCommand(agent, options.all ?? false))
   })
 
 program
@@ -37,7 +52,7 @@ program
   .description('卸载指定 agent')
   .action(async (agent: string) => {
     const { uninstallCommand } = await import('./commands/uninstall')
-    await uninstallCommand(agent)
+    process.exitCode = getExitCodeForResult(await uninstallCommand(agent))
   })
 
 program
@@ -46,7 +61,7 @@ program
   .description('列出所有支持的 agent')
   .action(async () => {
     const { listCommand } = await import('./commands/list')
-    await listCommand()
+    process.exitCode = getExitCodeForResult(await listCommand())
   })
 
 program
@@ -54,7 +69,7 @@ program
   .description('查看 agent 详细信息')
   .action(async (agent: string) => {
     const { infoCommand } = await import('./commands/info')
-    await infoCommand(agent)
+    process.exitCode = getExitCodeForResult(await infoCommand(agent))
   })
 
 program
@@ -65,7 +80,7 @@ program
   .description('配置管理')
   .action(async (action?: string, key?: string, value?: string) => {
     const { configCommand } = await import('./commands/config')
-    await configCommand(action, key, value)
+    process.exitCode = getExitCodeForResult(await configCommand(action, key, value))
   })
 
 program
@@ -75,11 +90,11 @@ program
   .option('--check', 'Only check whether an update is available')
   .action(async (options: { channel?: string, check?: boolean }) => {
     const { upgradeCommand } = await import('./commands/upgrade')
-    const exitCode = await upgradeCommand({
+    const result = await upgradeCommand({
       channel: options.channel === 'beta' ? 'beta' : undefined,
       check: options.check ?? false,
     })
-    process.exitCode = exitCode
+    process.exitCode = getExitCodeForResult(result)
   })
 
 program
@@ -87,10 +102,9 @@ program
   .description('检查环境')
   .action(async () => {
     const { doctorCommand } = await import('./commands/doctor')
-    await doctorCommand()
+    process.exitCode = getExitCodeForResult(await doctorCommand())
   })
 
-const firstArg = process.argv[2]
 const knownCommands = new Set([
   ...program.commands.map(command => command.name()),
   ...program.commands.flatMap(command => command.aliases()),
@@ -100,13 +114,98 @@ const knownCommands = new Set([
   '-v',
 ])
 
-if (firstArg && !firstArg.startsWith('-') && !knownCommands.has(firstArg)) {
-  const agent = getAgentByNameOrAlias(firstArg)
+const shortcutInvocation = resolveShortcutInvocation(process.argv.slice(2), knownCommands)
+
+if (shortcutInvocation?.error) {
+  console.log(pc.red(shortcutInvocation.error))
+  process.exit(2)
+}
+
+if (shortcutInvocation) {
+  const agent = getAgentByNameOrAlias(shortcutInvocation.agentName)
   if (agent) {
-    const args = process.argv.slice(3)
-    const code = await runCommand(firstArg, args)
-    process.exit(code)
+    setCliContext(resolveCliContext({
+      nonInteractive: shortcutInvocation.nonInteractive,
+      runId: shortcutInvocation.runId,
+    }))
+    try {
+      const code = await runCommand(shortcutInvocation.agentName, shortcutInvocation.agentArgs, {
+        nonInteractive: shortcutInvocation.nonInteractive,
+      })
+      process.exit(code)
+    }
+    finally {
+      resetCliContext()
+    }
   }
 }
 
 program.parse()
+
+interface ShortcutInvocation {
+  agentArgs: string[]
+  agentName: string
+  error?: string
+  nonInteractive?: boolean
+  runId?: string
+}
+
+function resolveShortcutInvocation(argv: string[], knownCommandNames: Set<string>): ShortcutInvocation | undefined {
+  let index = 0
+  let jsonOutputRequested = false
+  let nonInteractive = false
+  let outputMode: string | undefined
+  let runId: string | undefined
+
+  while (index < argv.length) {
+    const arg = argv[index]
+
+    if (arg === '--json') {
+      jsonOutputRequested = true
+      index += 1
+      continue
+    }
+
+    if (arg === '--output') {
+      const value = argv[index + 1]
+      if (!value)
+        return { agentArgs: [], agentName: '', error: '--output requires a value' }
+      outputMode = value
+      index += 2
+      continue
+    }
+
+    if (arg === '--non-interactive') {
+      nonInteractive = true
+      index += 1
+      continue
+    }
+
+    if (arg === '--run-id') {
+      const value = argv[index + 1]
+      if (!value)
+        return { agentArgs: [], agentName: '', error: '--run-id requires a value' }
+      runId = value
+      index += 2
+      continue
+    }
+
+    if (arg.startsWith('-'))
+      return undefined
+
+    if (knownCommandNames.has(arg))
+      return undefined
+
+    if (jsonOutputRequested || outputMode === 'json')
+      return { agentArgs: [], agentName: '', error: 'Structured output is not supported for shortcut agent execution yet. Use a management command instead.' }
+
+    return {
+      agentArgs: argv.slice(index + 1),
+      agentName: arg,
+      nonInteractive,
+      runId,
+    }
+  }
+
+  return undefined
+}

@@ -66,7 +66,7 @@ describe('runCommand', () => {
   it('shows error for unknown agent', async () => {
     agentSpy.mockReturnValue(undefined)
     const code = await runCommand('unknown', [])
-    expect(code).toBe(1)
+    expect(code).toBe(3)
     expect(logSpy).toHaveBeenCalledWith(expect.stringContaining('Unknown agent'))
   })
 
@@ -118,5 +118,16 @@ describe('runCommand', () => {
     const code = await runCommand('test-agent', [])
     expect(code).toBe(1)
     expect(logSpy).toHaveBeenCalledWith(expect.stringContaining('Failed to launch'))
+  })
+
+  it('does not prompt in non-interactive mode when install is required', async () => {
+    agentSpy.mockReturnValue(testAgent)
+    binaryInPathSpy.mockResolvedValue(false)
+
+    const code = await runCommand('test-agent', [], { nonInteractive: true })
+
+    expect(code).toBe(7)
+    expect(mockPrompts).not.toHaveBeenCalled()
+    expect(logSpy).toHaveBeenCalledWith(expect.stringContaining('interactive installation is disabled'))
   })
 })
