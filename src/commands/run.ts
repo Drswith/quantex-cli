@@ -1,10 +1,13 @@
+import type { SpawnHandle } from '../utils/child-process'
 import type { ExecInstallPolicy } from './exec'
+import process from 'node:process'
 import pc from 'picocolors'
 import prompts from 'prompts'
-import { getCliContext } from '../cli-context'
+import { cancelCliContextOperations, getCliContext } from '../cli-context'
 import { getExitCodeForError } from '../errors'
 import { installAgent } from '../package-manager'
 import { resolveAgentInspection } from '../services/agents'
+import { spawnWithQuantexStdio, waitForSpawnedCommand } from '../utils/child-process'
 
 export async function runCommand(
   agentName: string,
@@ -65,14 +68,56 @@ export async function runCommand(
   }
 
   try {
-    const proc = Bun.spawn([agent.binaryName, ...args], {
-      stdio: ['inherit', 'inherit', 'inherit'] as const,
-    })
-    await proc.exited
-    return proc.exitCode ?? 1
+    return await runSpawnedAgentProcess(spawnWithQuantexStdio([agent.binaryName, ...args]), agent.displayName)
   }
   catch (e) {
     console.log(pc.red(`Failed to launch ${agent.displayName}: ${e instanceof Error ? e.message : String(e)}`))
     return 1
+  }
+}
+
+async function runSpawnedAgentProcess(handle: SpawnHandle, displayName: string): Promise<number> {
+  const { timeoutMs } = getCliContext()
+  let cleanup: (() => void) | undefined
+  let timeoutId: ReturnType<typeof setTimeout> | undefined
+
+  try {
+    const signalPromise = new Promise<number>((resolve) => {
+      const handleSignal = (signal: NodeJS.Signals): void => {
+        cancelCliContextOperations()
+        console.log(pc.red(`${displayName} was cancelled by ${signal}.`))
+        resolve(getExitCodeForError('CANCELLED'))
+      }
+
+      const sigintHandler = (): void => handleSignal('SIGINT')
+      const sigtermHandler = (): void => handleSignal('SIGTERM')
+      process.once('SIGINT', sigintHandler)
+      process.once('SIGTERM', sigtermHandler)
+      cleanup = (): void => {
+        process.off('SIGINT', sigintHandler)
+        process.off('SIGTERM', sigtermHandler)
+      }
+    })
+
+    const timeoutPromise = timeoutMs === undefined
+      ? undefined
+      : new Promise<number>((resolve) => {
+          timeoutId = setTimeout(() => {
+            cancelCliContextOperations()
+            console.log(pc.red(`${displayName} timed out after ${timeoutMs}ms.`))
+            resolve(getExitCodeForError('TIMEOUT'))
+          }, timeoutMs)
+        })
+
+    return await Promise.race([
+      waitForSpawnedCommand(handle),
+      signalPromise,
+      ...(timeoutPromise ? [timeoutPromise] : []),
+    ])
+  }
+  finally {
+    if (timeoutId)
+      clearTimeout(timeoutId)
+    cleanup?.()
   }
 }

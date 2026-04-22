@@ -1,5 +1,6 @@
 import { afterAll, afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import * as agents from '../../src/agents'
+import { setCliContext } from '../../src/cli-context'
 import { runCommand } from '../../src/commands/run'
 import * as pm from '../../src/package-manager'
 import * as detect from '../../src/utils/detect'
@@ -155,5 +156,103 @@ describe('runCommand', () => {
     expect(mockPrompts).not.toHaveBeenCalled()
     expect(installSpy).toHaveBeenCalledWith(testAgent)
     expect(mockSpawn).toHaveBeenCalledWith(['test-bin', '--help'], expect.any(Object))
+  })
+
+  it('returns timeout when the spawned agent exceeds the configured limit', async () => {
+    let resolveExited: (() => void) | undefined
+    const proc: any = {
+      exitCode: null,
+      exited: new Promise<void>((resolve) => {
+        resolveExited = resolve
+      }),
+      kill: vi.fn(() => {
+        proc.exitCode = 143
+        resolveExited?.()
+      }),
+    }
+
+    setCliContext({
+      interactive: false,
+      outputMode: 'human',
+      runId: 'run-timeout-id',
+      timeoutMs: 1,
+    })
+    agentSpy.mockReturnValue(testAgent)
+    binaryInPathSpy.mockResolvedValue(true)
+    mockSpawn.mockImplementation((command: string[]) => {
+      if (command[1] === '--help')
+        return proc
+
+      if (command[1] === '--version') {
+        return {
+          exitCode: 0,
+          exited: Promise.resolve(),
+          stderr: '',
+          stdout: 'test-bin 1.0.0\n',
+        }
+      }
+
+      return {
+        exitCode: 0,
+        exited: Promise.resolve(),
+        stderr: '',
+        stdout: '/tmp/test-bin\n',
+      }
+    })
+
+    const code = await runCommand('test-agent', ['--help'])
+
+    expect(code).toBe(10)
+    expect(proc.kill).toHaveBeenCalledWith('SIGTERM')
+    expect(logSpy).toHaveBeenCalledWith(expect.stringContaining('timed out'))
+  })
+
+  it('returns cancelled when the spawned agent receives a termination signal', async () => {
+    let resolveExited: (() => void) | undefined
+    const proc: any = {
+      exitCode: null,
+      exited: new Promise<void>((resolve) => {
+        resolveExited = resolve
+      }),
+      kill: vi.fn(() => {
+        proc.exitCode = 143
+        resolveExited?.()
+      }),
+    }
+
+    agentSpy.mockReturnValue(testAgent)
+    binaryInPathSpy.mockResolvedValue(true)
+    mockSpawn.mockImplementation((command: string[]) => {
+      if (command[1] === '--help')
+        return proc
+
+      if (command[1] === '--version') {
+        return {
+          exitCode: 0,
+          exited: Promise.resolve(),
+          stderr: '',
+          stdout: 'test-bin 1.0.0\n',
+        }
+      }
+
+      return {
+        exitCode: 0,
+        exited: Promise.resolve(),
+        stderr: '',
+        stdout: '/tmp/test-bin\n',
+      }
+    })
+
+    const execution = runCommand('test-agent', ['--help'])
+    await vi.waitFor(() => {
+      expect(mockSpawn).toHaveBeenCalledWith(['test-bin', '--help'], expect.any(Object))
+    })
+    process.emit('SIGTERM')
+
+    const code = await execution
+
+    expect(code).toBe(11)
+    expect(proc.kill).toHaveBeenCalledWith('SIGTERM')
+    expect(logSpy).toHaveBeenCalledWith(expect.stringContaining('cancelled by SIGTERM'))
   })
 })
