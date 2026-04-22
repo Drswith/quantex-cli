@@ -32,7 +32,9 @@ describe('upgradeStandaloneBinary', () => {
     globalThis.fetch = vi.fn().mockResolvedValue(new Response(Buffer.from('new-binary'), { status: 200 })) as unknown as typeof fetch
 
     try {
-      expect(await upgradeStandaloneBinary('https://example.com/qtx.exe', executablePath)).toBe(true)
+      expect(await upgradeStandaloneBinary('https://example.com/qtx.exe', executablePath)).toEqual({
+        success: true,
+      })
 
       const [command, options] = mockSpawn.mock.calls[0] as [string[], Record<string, unknown>]
       expect(command[0]).toBe('powershell.exe')
@@ -59,12 +61,23 @@ describe('upgradeStandaloneBinary', () => {
     globalThis.fetch = vi.fn().mockResolvedValue(new Response(Buffer.from('new-binary'), { status: 200 })) as unknown as typeof fetch
 
     try {
-      expect(await upgradeStandaloneBinary('https://example.com/qtx', executablePath)).toBe(true)
+      expect(await upgradeStandaloneBinary('https://example.com/qtx', executablePath)).toEqual({
+        success: true,
+      })
       expect((await readFile(executablePath, 'utf8'))).toBe('new-binary')
       expect(((await stat(executablePath)).mode & 0o111) > 0).toBe(true)
     }
     finally {
       await rm(tempRoot, { recursive: true, force: true })
     }
+  })
+
+  it('returns a network error when the download request fails', async () => {
+    globalThis.fetch = vi.fn().mockRejectedValue(new Error('offline')) as unknown as typeof fetch
+
+    const result = await upgradeStandaloneBinary('https://example.com/qtx', '/tmp/qtx')
+
+    expect(result.success).toBe(false)
+    expect(result.error?.kind).toBe('network')
   })
 })

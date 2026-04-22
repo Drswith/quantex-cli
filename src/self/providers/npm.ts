@@ -6,11 +6,18 @@ import * as npmPm from '../../package-manager/npm'
 export const npmSelfUpgradeProvider: SelfUpgradeProvider = {
   source: 'npm',
   canHandle: inspection => inspection.installSource === 'npm',
-  getManualUpgradeCommand: () => `npm install -g ${BUILD_PACKAGE_NAME}@latest`,
+  getRecoveryHint: () => `npm install -g ${BUILD_PACKAGE_NAME}@latest`,
   async upgrade(inspection: SelfInspection): Promise<SelfUpdateResult> {
+    const success = await npmPm.update(BUILD_PACKAGE_NAME)
     return {
+      error: success
+        ? undefined
+        : {
+            kind: 'unknown',
+            message: `Failed to update ${BUILD_PACKAGE_NAME} through npm.`,
+          },
       installSource: inspection.installSource,
-      success: await npmPm.update(BUILD_PACKAGE_NAME),
+      success,
     }
   },
 }

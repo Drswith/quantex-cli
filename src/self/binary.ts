@@ -1,12 +1,24 @@
+import type { SelfUpdateResult, SelfUpgradeErrorKind } from './types'
 import { Buffer } from 'node:buffer'
 import { chmod, mkdtemp, rename, rm, stat, writeFile } from 'node:fs/promises'
 import { basename, dirname, join } from 'node:path'
 import process from 'node:process'
 
-export async function upgradeStandaloneBinary(downloadUrl: string, executablePath: string): Promise<boolean> {
-  const response = await fetch(downloadUrl)
-  if (!response.ok)
-    return false
+type BinaryUpgradeResult = Omit<SelfUpdateResult, 'installSource'>
+
+export async function upgradeStandaloneBinary(downloadUrl: string, executablePath: string): Promise<BinaryUpgradeResult> {
+  let response: Response
+
+  try {
+    response = await fetch(downloadUrl)
+  }
+  catch (error) {
+    return createBinaryFailure('network', `Failed to download ${downloadUrl}.`, error)
+  }
+
+  if (!response.ok) {
+    return createBinaryFailure('network', `Failed to download ${downloadUrl}: HTTP ${response.status}.`)
+  }
 
   const tempDir = await mkdtemp(join(dirname(executablePath), '.quantex-upgrade-'))
   const tempPath = join(tempDir, basename(executablePath))
@@ -23,10 +35,12 @@ export async function upgradeStandaloneBinary(downloadUrl: string, executablePat
     await chmod(tempPath, executableMode)
     await rename(tempPath, executablePath)
 
-    return true
+    return {
+      success: true,
+    }
   }
-  catch {
-    return false
+  catch (error) {
+    return createBinaryFailure(resolveBinaryErrorKind(error), 'Failed to replace the current Quantex binary.', error)
   }
   finally {
     if (process.platform !== 'win32')
@@ -43,7 +57,7 @@ async function resolveExecutableMode(executablePath: string): Promise<number> {
   }
 }
 
-function scheduleWindowsBinaryReplacement(tempPath: string, executablePath: string, tempDir: string): boolean {
+function scheduleWindowsBinaryReplacement(tempPath: string, executablePath: string, tempDir: string): BinaryUpgradeResult {
   try {
     const command = createWindowsReplacementCommand(tempPath, executablePath, tempDir, process.pid)
     const proc = Bun.spawn([
@@ -62,10 +76,12 @@ function scheduleWindowsBinaryReplacement(tempPath: string, executablePath: stri
     })
 
     proc.unref?.()
-    return true
+    return {
+      success: true,
+    }
   }
-  catch {
-    return false
+  catch (error) {
+    return createBinaryFailure('locked', 'Failed to schedule Windows binary replacement.', error)
   }
 }
 
@@ -96,4 +112,31 @@ function createWindowsReplacementCommand(tempPath: string, executablePath: strin
 
 function escapePowerShellString(value: string): string {
   return value.replaceAll('\'', '\'\'')
+}
+
+function createBinaryFailure(
+  kind: SelfUpgradeErrorKind,
+  message: string,
+  detail?: unknown,
+): BinaryUpgradeResult {
+  return {
+    error: {
+      detail,
+      kind,
+      message,
+    },
+    success: false,
+  }
+}
+
+function resolveBinaryErrorKind(error: unknown): SelfUpgradeErrorKind {
+  const code = typeof error === 'object' && error && 'code' in error ? String((error as { code?: unknown }).code) : ''
+
+  if (code === 'EACCES' || code === 'EPERM')
+    return 'permission'
+
+  if (code === 'EBUSY')
+    return 'locked'
+
+  return 'unknown'
 }

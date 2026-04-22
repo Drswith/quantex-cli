@@ -36,6 +36,8 @@ export {
   getBinaryReleaseAssetName,
   getBinaryReleaseDownloadUrl,
   getManualSelfUpgradeCommand,
+  getSelfUpgradeRecoveryHint,
+  getSelfUpgradeRecoveryHintForInspection,
   getSelfVersion,
   inspectSelf,
   upgradeSelf,

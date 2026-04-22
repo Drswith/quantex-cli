@@ -7,6 +7,7 @@ import { BUILD_PACKAGE_NAME, BUILD_VERSION } from '../generated/build-meta'
 import { getSelfState, setSelfInstallSource } from '../state'
 import { getLatestVersion } from '../utils/version'
 import { getSelfUpgradeProvider } from './providers'
+import { getSelfUpgradeRecoveryHint } from './recovery'
 
 const CLI_NPM_PACKAGE_NAME = BUILD_PACKAGE_NAME
 const BUN_GLOBAL_PATH_SEGMENT = '/.bun/install/global/'
@@ -111,15 +112,7 @@ export function getManualSelfUpgradeCommand(
   installSource: SelfInstallSource,
   executablePath: string = process.execPath,
 ): string | undefined {
-  const inspection: SelfInspection = {
-    canAutoUpdate: canAutoUpdateSelf(installSource),
-    currentVersion: BUILD_VERSION,
-    executablePath,
-    installSource,
-    packageRoot: '',
-  }
-
-  return getSelfUpgradeProvider(inspection).getManualUpgradeCommand(inspection)
+  return getSelfUpgradeRecoveryHint(installSource, executablePath)
 }
 
 async function readPackageJson(packageJsonPath: string): Promise<{ name?: string, version?: string } | undefined> {
@@ -149,5 +142,6 @@ function resolveModulePath(moduleUrl: string): string {
   }
 }
 
+export { getSelfUpgradeRecoveryHint, getSelfUpgradeRecoveryHintForInspection } from './recovery'
 export { getBinaryReleaseAssetName, getBinaryReleaseDownloadUrl } from './release'
 export type { SelfInspection, SelfInstallSource, SelfPackageMetadata, SelfUpdateResult } from './types'
