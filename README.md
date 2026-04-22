@@ -228,7 +228,7 @@ bun run build            # 构建
 
 ## License
 
-[MIT](./LICENSE) License © [Drswith](https://github.com/Drswith)
+[Apache License 2.0](./LICENSE) © [Drswith](https://github.com/Drswith)
 
 <!-- Badges -->
 
