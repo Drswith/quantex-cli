@@ -37,6 +37,7 @@ describe('schemaCommand', () => {
     expect(payload.action).toBe('schema')
     expect(payload.data.commands).toHaveLength(1)
     expect(payload.data.commands[0].name).toBe('inspect')
+    expect(payload.data.commands[0].ndjsonEventSchema).toBeDefined()
     expect(payload.meta.runId).toBe('schema-run-id')
   })
 

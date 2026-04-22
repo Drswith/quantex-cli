@@ -26,6 +26,10 @@ export interface CommandMeta {
   version: string
 }
 
+export interface CommandEventMeta extends CommandMeta {
+  mode: 'ndjson'
+}
+
 export interface CommandResult<T = unknown> {
   action: string
   data?: T
@@ -35,6 +39,14 @@ export interface CommandResult<T = unknown> {
   ok: boolean
   target?: CommandTarget
   warnings: CommandWarning[]
+}
+
+export interface CommandEvent<T = unknown> {
+  action: string
+  data?: T
+  meta: CommandEventMeta
+  target?: CommandTarget
+  type: 'progress' | 'result' | 'started'
 }
 
 export type HumanRenderer<T> = (result: CommandResult<T>) => void

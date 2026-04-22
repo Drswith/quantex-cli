@@ -1,4 +1,4 @@
-import type { CommandError, CommandResult, CommandTarget, CommandWarning, HumanRenderer } from './types'
+import type { CommandError, CommandEvent, CommandResult, CommandTarget, CommandWarning, HumanRenderer } from './types'
 import { getCliContext } from '../cli-context'
 import { getSelfVersion } from '../self'
 
@@ -34,10 +34,27 @@ export function emitCommandResult<T>(result: CommandResult<T>, renderHuman: Huma
 
   if (context.outputMode === 'json')
     console.log(JSON.stringify(result, null, 2))
+  else if (context.outputMode === 'ndjson')
+    emitNdjsonEvent<CommandResult<T>>({ action: result.action, data: result, target: result.target, type: 'result' })
   else
     renderHuman(result)
 
   return result
+}
+
+interface EmitCommandEventOptions<T> {
+  action: string
+  data?: T
+  target?: CommandTarget
+  type: CommandEvent['type']
+}
+
+export function emitCommandEvent<T>(options: EmitCommandEventOptions<T>): CommandEvent<T> | undefined {
+  const context = getCliContext()
+  if (context.outputMode !== 'ndjson')
+    return undefined
+
+  return emitNdjsonEvent(options)
 }
 
 function createCommandResult<T>(options: CreateResultOptions<T>): CommandResult<T> {
@@ -59,4 +76,28 @@ function createCommandResult<T>(options: CreateResultOptions<T>): CommandResult<
     target: options.target,
     warnings: options.warnings ?? [],
   }
+}
+
+function createCommandEvent<T>(options: EmitCommandEventOptions<T>): CommandEvent<T> {
+  const context = getCliContext()
+
+  return {
+    action: options.action,
+    data: options.data,
+    meta: {
+      mode: 'ndjson',
+      runId: context.runId,
+      schemaVersion: SCHEMA_VERSION,
+      timestamp: new Date().toISOString(),
+      version: getSelfVersion(),
+    },
+    target: options.target,
+    type: options.type,
+  }
+}
+
+function emitNdjsonEvent<T>(options: EmitCommandEventOptions<T>): CommandEvent<T> {
+  const event = createCommandEvent(options)
+  console.log(JSON.stringify(event))
+  return event
 }

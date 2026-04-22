@@ -1,7 +1,7 @@
 import { randomUUID } from 'node:crypto'
 import process from 'node:process'
 
-export type OutputMode = 'human' | 'json'
+export type OutputMode = 'human' | 'json' | 'ndjson'
 
 export interface CliContext {
   interactive: boolean
@@ -34,10 +34,15 @@ export function resetCliContext(): void {
 export function resolveCliContext(options: CliContextOptions = {}): CliContext {
   const stdinInteractive = process.stdin.isTTY !== false
   const stdoutInteractive = process.stdout.isTTY !== false
+  const outputMode = options.json || options.output === 'json'
+    ? 'json'
+    : options.output === 'ndjson'
+      ? 'ndjson'
+      : 'human'
 
   return {
     interactive: !options.nonInteractive && stdinInteractive && stdoutInteractive,
-    outputMode: options.json || options.output === 'json' ? 'json' : 'human',
+    outputMode,
     runId: options.runId ?? process.env.QUANTEX_RUN_ID ?? randomUUID(),
   }
 }

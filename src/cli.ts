@@ -13,7 +13,7 @@ program
   .name('quantex')
   .description('统一的 AI Agent CLI 管理工具')
   .option('--json', 'Output structured JSON')
-  .option('--output <mode>', 'Output mode: human or json')
+  .option('--output <mode>', 'Output mode: human, json, or ndjson')
   .option('--non-interactive', 'Disable interactive prompts and confirmations')
   .option('--run-id <id>', 'Attach a run id to structured output and logs')
   .version(getSelfVersion())
@@ -266,7 +266,7 @@ function resolveShortcutInvocation(argv: string[], knownCommandNames: Set<string
     if (knownCommandNames.has(arg))
       return undefined
 
-    if (jsonOutputRequested || outputMode === 'json')
+    if (jsonOutputRequested || outputMode === 'json' || outputMode === 'ndjson')
       return { agentArgs: [], agentName: '', error: 'Structured output is not supported for shortcut agent execution yet. Use a management command instead.' }
 
     return {
