@@ -1,3 +1,4 @@
+import { existsSync } from 'node:fs'
 import { mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
@@ -72,7 +73,7 @@ describe('self helpers', () => {
   })
 
   it('upgrades through bun when bun is the detected install source', async () => {
-    const { upgradeSelf } = await import('../src/self')
+    const { getSelfUpgradeLockPath, upgradeSelf } = await import('../src/self')
     bunUpdateSpy.mockResolvedValue(true)
 
     const result = await upgradeSelf({
@@ -91,6 +92,7 @@ describe('self helpers', () => {
       success: true,
     })
     expect(bunUpdateSpy).toHaveBeenCalledWith('quantex-cli')
+    expect(existsSync(getSelfUpgradeLockPath())).toBe(false)
   })
 
   it('upgrades through npm when npm is the detected install source', async () => {
@@ -116,7 +118,7 @@ describe('self helpers', () => {
   })
 
   it('reports source installs as unsupported for auto-update', async () => {
-    const { upgradeSelf } = await import('../src/self')
+    const { getSelfUpgradeLockPath, upgradeSelf } = await import('../src/self')
 
     const result = await upgradeSelf({
       canAutoUpdate: false,
@@ -135,6 +137,7 @@ describe('self helpers', () => {
       installSource: 'source',
       success: false,
     })
+    expect(existsSync(getSelfUpgradeLockPath())).toBe(false)
   })
 
   it('upgrades standalone binaries through release downloads', async () => {
@@ -171,6 +174,38 @@ describe('self helpers', () => {
     })).toContain('check network access')
     expect(parseBinaryReleaseChecksum(`abc123  quantex-darwin-arm64\n`, 'quantex-darwin-arm64')).toBeUndefined()
     expect(parseBinaryReleaseChecksum(`${'a'.repeat(64)}  quantex-darwin-arm64\n`, 'quantex-darwin-arm64')).toBe('a'.repeat(64))
+  })
+
+  it('returns a locked error when another self upgrade is already running', async () => {
+    const { getSelfUpgradeLockPath, upgradeSelf } = await import('../src/self')
+    const lockPath = getSelfUpgradeLockPath()
+
+    await mkdir(lockPath, { recursive: true })
+
+    try {
+      const result = await upgradeSelf({
+        canAutoUpdate: true,
+        currentVersion: '1.0.0',
+        executablePath: '/Users/test/.bun/bin/quantex',
+        installSource: 'bun',
+        latestVersion: '1.1.0',
+        packageRoot: '/Users/test/.bun/install/global/node_modules/quantex-cli',
+        recommendedUpgradeCommand: 'quantex upgrade',
+      })
+
+      expect(result).toEqual({
+        error: {
+          kind: 'locked',
+          message: 'Another qtx upgrade is already running.',
+        },
+        installSource: 'bun',
+        success: false,
+      })
+      expect(bunUpdateSpy).not.toHaveBeenCalled()
+    }
+    finally {
+      await rm(lockPath, { recursive: true, force: true })
+    }
   })
 
   it('resolves package metadata from bundled dist chunks', async () => {

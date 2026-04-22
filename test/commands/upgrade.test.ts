@@ -133,6 +133,32 @@ describe('upgradeCommand', () => {
     expect(logSpy).toHaveBeenCalledWith(expect.stringContaining('check write permission'))
   })
 
+  it('shows a retry hint when another self upgrade already holds the lock', async () => {
+    const inspection = {
+      canAutoUpdate: true,
+      currentVersion: '1.0.0',
+      executablePath: '/usr/local/bin/qtx',
+      installSource: 'npm' as const,
+      latestVersion: '1.1.0',
+      packageRoot: '/usr/local/lib/node_modules/quantex-cli',
+      recommendedUpgradeCommand: 'quantex upgrade',
+    }
+    inspectSelfSpy.mockResolvedValue(inspection)
+    upgradeSelfSpy.mockResolvedValue({
+      error: {
+        kind: 'locked',
+        message: 'Another qtx upgrade is already running.',
+      },
+      installSource: 'npm',
+      success: false,
+    })
+
+    await upgradeCommand()
+
+    expect(logSpy).toHaveBeenCalledWith(expect.stringContaining('Another qtx upgrade is already running.'))
+    expect(logSpy).toHaveBeenCalledWith(expect.stringContaining('already running; wait for it to finish and retry'))
+  })
+
   it('runs self upgrade when a managed source is detected', async () => {
     const inspection = {
       canAutoUpdate: true,
