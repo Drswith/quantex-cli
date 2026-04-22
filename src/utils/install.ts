@@ -1,5 +1,6 @@
 import type { AgentDefinition, InstallMethod, PackageTargetKind } from '../agents/types'
 import type { InstalledAgentState } from '../state'
+import { getAgentUpdateStrategy } from '../agent-update'
 import { canLookupLatestVersionForInstallType, canUpdateInstallType, getInstallLifecycle, isManagedInstallType } from '../package-manager/capabilities'
 
 function formatPackageTarget(packageName?: string, packageTargetKind?: PackageTargetKind): string {
@@ -70,10 +71,16 @@ export function formatUpdateManagement(
   agent: Pick<AgentDefinition, 'update'>,
   state?: Pick<InstalledAgentState, 'installType'>,
 ): string {
-  if (canUpdateInstalledState(state))
+  const strategy = getAgentUpdateStrategy({
+    agent,
+    installedState: state,
+    methods: [],
+  })
+
+  if (strategy === 'managed')
     return 'managed update'
 
-  if (agent.update?.commands.length)
+  if (strategy === 'self-update')
     return 'command update'
 
   return 'manual update'

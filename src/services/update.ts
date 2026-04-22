@@ -1,8 +1,10 @@
+import type { AgentUpdateStrategy } from '../agent-update'
 import type { AgentDefinition } from '../agents'
 import type { ManagedInstallType } from '../agents/types'
 import type { AgentInspection } from '../inspection'
 import type { ManagedPackageSpec } from '../package-manager'
 import type { InstalledAgentState } from '../state'
+import { getAgentUpdateStrategy } from '../agent-update'
 import * as inspectionService from '../inspection'
 import * as updatePlanning from '../planning'
 import { inspectRegisteredAgents } from './agents'
@@ -11,6 +13,7 @@ export interface PendingAgentUpdate {
   agent: AgentDefinition
   inspection: AgentInspection
   state?: InstalledAgentState
+  strategy: AgentUpdateStrategy
 }
 
 export interface ManagedUpdateBucket {
@@ -89,5 +92,10 @@ function toPendingAgentUpdate(inspection: AgentInspection): PendingAgentUpdate {
     agent: inspection.agent,
     inspection,
     state: inspection.installedState,
+    strategy: getAgentUpdateStrategy({
+      agent: inspection.agent,
+      installedState: inspection.installedState,
+      methods: inspection.methods,
+    }),
   }
 }
