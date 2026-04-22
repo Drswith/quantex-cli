@@ -5,7 +5,7 @@ import pc from 'picocolors'
 import { getAgentUpdateStrategy } from '../agent-update'
 import { updateAgent, updateAgentsByType } from '../package-manager'
 import { resolveAgent } from '../services/agents'
-import { getSingleAgentUpdateStatus, planAgentUpdates } from '../services/update'
+import { getSingleAgentUpdateStatus, planAgentUpdates, planSingleAgentUpdate } from '../services/update'
 import { canAutoUpdateAgent, canUpdateInstallType } from '../utils/install'
 
 export async function updateCommand(agentName: string | undefined, all: boolean): Promise<void> {
@@ -30,17 +30,18 @@ export async function updateCommand(agentName: string | undefined, all: boolean)
 
 async function updateAllAgents(): Promise<void> {
   const plan = await planAgentUpdates()
+  await runPlannedUpdates(plan)
+}
 
+async function runPlannedUpdates(plan: Awaited<ReturnType<typeof planAgentUpdates>>): Promise<void> {
   for (const inspection of plan.upToDate)
     console.log(pc.green(`${inspection.agent.displayName} is up to date (${inspection.installedVersion ?? 'unknown'})`))
 
   for (const inspection of plan.skippedManualCheck)
     console.log(pc.yellow(`${inspection.agent.displayName} uses a manually managed install source. Please check for updates manually.`))
 
-  for (const entry of plan.entries) {
-    const inspection = entry.inspection
-    console.log(pc.cyan(`Updating ${inspection.agent.displayName}...${getVersionHint(inspection.installedVersion, inspection.latestVersion)}`))
-  }
+  for (const entry of plan.entries)
+    console.log(pc.cyan(`Updating ${entry.agent.displayName} via ${getStrategyLabel(entry)}...${getVersionHint(entry.inspection.installedVersion, entry.inspection.latestVersion)}`))
 
   for (const bucket of plan.grouped)
     await updateGroupedAgents(bucket.type, bucket.packages, bucket.updates)
@@ -70,20 +71,24 @@ async function updateGroupedAgents(
 }
 
 async function updateSingleAgent(agent: AgentDefinition): Promise<void> {
-  const { inspection, updateAvailable } = await getSingleAgentUpdateStatus(agent)
+  const { inspection, plan } = await planSingleAgentUpdate(agent)
 
   if (!inspection.inPath) {
     console.log(pc.red(`${agent.displayName} is not installed.`))
     return
   }
 
-  if (!updateAvailable) {
+  if (plan.upToDate.length > 0) {
     console.log(pc.green(`${agent.displayName} is up to date (${inspection.installedVersion ?? 'unknown'})`))
     return
   }
 
-  console.log(pc.cyan(`Updating ${agent.displayName}...${getVersionHint(inspection.installedVersion, inspection.latestVersion)}`))
-  await performUpdate(agent, inspection.installedState, inspection.methods, false)
+  if (plan.skippedManualCheck.length > 0) {
+    console.log(pc.yellow(`${agent.displayName} uses a manually managed install source. Please check for updates manually.`))
+    return
+  }
+
+  await runPlannedUpdates(plan)
 }
 
 async function performUpdate(
@@ -121,4 +126,14 @@ async function performUpdate(
 
 function getVersionHint(installed?: string, latest?: string): string {
   return installed ? ` (${installed} -> ${latest ?? 'latest'})` : ''
+}
+
+function getStrategyLabel(entry: { installerType?: ManagedInstallType, strategy: 'managed' | 'manual-hint' | 'self-update', state?: InstalledAgentState }): string {
+  if (entry.strategy === 'managed')
+    return `managed/${entry.installerType ?? entry.state?.installType ?? 'unknown'}`
+
+  if (entry.strategy === 'self-update')
+    return 'self-update'
+
+  return 'manual-hint'
 }

@@ -1,16 +1,24 @@
+import type { ManagedInstallType } from '../agents/types'
 import type { AgentUpdateContext, AgentUpdateProvider } from './types'
-import { isManagedInstallType } from '../package-manager/capabilities'
+import { canUpdateInstallType, isManagedInstallType } from '../package-manager/capabilities'
 import { canAutoUpdateAgent, canUpdateInstalledState } from '../utils/install'
+
+function getManagedInstallerTypeFromContext(context: AgentUpdateContext): ManagedInstallType | undefined {
+  if (context.installedState && isManagedInstallType(context.installedState.installType))
+    return context.installedState.installType
+
+  for (const method of context.methods) {
+    if (isManagedInstallType(method.type) && canUpdateInstallType(method.type))
+      return method.type
+  }
+
+  return undefined
+}
 
 const managedAgentUpdateProvider: AgentUpdateProvider = {
   strategy: 'managed',
-  canHandle: context => canUpdateInstalledState(context.installedState),
-  getManagedInstallerType: (context) => {
-    if (context.installedState && isManagedInstallType(context.installedState.installType))
-      return context.installedState.installType
-
-    return undefined
-  },
+  canHandle: context => !!getManagedInstallerTypeFromContext(context),
+  getManagedInstallerType: context => getManagedInstallerTypeFromContext(context),
 }
 
 const selfUpdatingAgentUpdateProvider: AgentUpdateProvider = {
