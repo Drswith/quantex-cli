@@ -11,6 +11,7 @@ export async function upgradeStandaloneBinary(
   downloadUrl: string,
   executablePath: string,
   expectedChecksum: string,
+  expectedVersion?: string,
 ): Promise<BinaryUpgradeResult> {
   let response: Response
 
@@ -27,6 +28,7 @@ export async function upgradeStandaloneBinary(
 
   const tempDir = await mkdtemp(join(dirname(executablePath), '.quantex-upgrade-'))
   const tempPath = join(tempDir, basename(executablePath))
+  const backupPath = `${executablePath}.bak`
 
   try {
     const binary = Buffer.from(await response.arrayBuffer())
@@ -43,10 +45,21 @@ export async function upgradeStandaloneBinary(
     await writeFile(tempPath, binary)
 
     if (process.platform === 'win32')
-      return scheduleWindowsBinaryReplacement(tempPath, executablePath, tempDir)
+      return scheduleWindowsBinaryReplacement(tempPath, executablePath, backupPath, tempDir, expectedVersion)
 
     await chmod(tempPath, executableMode)
+    await rm(backupPath, { force: true })
+    await rename(executablePath, backupPath)
     await rename(tempPath, executablePath)
+
+    const verifyResult = await verifyStandaloneBinary(executablePath, expectedVersion)
+
+    if (!verifyResult.success) {
+      await restoreStandaloneBinary(backupPath, executablePath)
+      return verifyResult
+    }
+
+    await rm(backupPath, { force: true })
 
     return {
       success: true,
@@ -70,9 +83,15 @@ async function resolveExecutableMode(executablePath: string): Promise<number> {
   }
 }
 
-function scheduleWindowsBinaryReplacement(tempPath: string, executablePath: string, tempDir: string): BinaryUpgradeResult {
+function scheduleWindowsBinaryReplacement(
+  tempPath: string,
+  executablePath: string,
+  backupPath: string,
+  tempDir: string,
+  expectedVersion?: string,
+): BinaryUpgradeResult {
   try {
-    const command = createWindowsReplacementCommand(tempPath, executablePath, tempDir, process.pid)
+    const command = createWindowsReplacementCommand(tempPath, executablePath, backupPath, tempDir, process.pid, expectedVersion)
     const proc = Bun.spawn([
       'powershell.exe',
       '-NoProfile',
@@ -98,20 +117,32 @@ function scheduleWindowsBinaryReplacement(tempPath: string, executablePath: stri
   }
 }
 
-function createWindowsReplacementCommand(tempPath: string, executablePath: string, tempDir: string, pid: number): string {
+function createWindowsReplacementCommand(
+  tempPath: string,
+  executablePath: string,
+  backupPath: string,
+  tempDir: string,
+  pid: number,
+  expectedVersion?: string,
+): string {
   const escapedTempPath = escapePowerShellString(tempPath)
   const escapedExecutablePath = escapePowerShellString(executablePath)
+  const escapedBackupPath = escapePowerShellString(backupPath)
   const escapedTempDir = escapePowerShellString(tempDir)
+  const escapedExpectedVersion = escapePowerShellString(expectedVersion ?? '')
 
   return [
     `$pidToWait = ${pid}`,
     `$tempPath = '${escapedTempPath}'`,
     `$targetPath = '${escapedExecutablePath}'`,
+    `$backupPath = '${escapedBackupPath}'`,
     `$tempDir = '${escapedTempDir}'`,
+    `$expectedVersion = '${escapedExpectedVersion}'`,
     `while (Get-Process -Id $pidToWait -ErrorAction SilentlyContinue) { Start-Sleep -Milliseconds 200 }`,
     `for ($attempt = 0; $attempt -lt 50; $attempt++) {`,
     `  try {`,
-    `    Remove-Item -LiteralPath $targetPath -Force -ErrorAction Stop`,
+    `    if (Test-Path -LiteralPath $backupPath) { Remove-Item -LiteralPath $backupPath -Force -ErrorAction SilentlyContinue }`,
+    `    Move-Item -LiteralPath $targetPath -Destination $backupPath -Force -ErrorAction Stop`,
     `    break`,
     `  }`,
     `  catch {`,
@@ -119,6 +150,16 @@ function createWindowsReplacementCommand(tempPath: string, executablePath: strin
     `  }`,
     `}`,
     `Move-Item -LiteralPath $tempPath -Destination $targetPath -Force`,
+    `if ($expectedVersion -ne '') {`,
+    `  $output = & $targetPath --version 2>$null`,
+    `  if ($LASTEXITCODE -ne 0 -or ($output -notmatch [regex]::Escape($expectedVersion))) {`,
+    `    Remove-Item -LiteralPath $targetPath -Force -ErrorAction SilentlyContinue`,
+    `    Move-Item -LiteralPath $backupPath -Destination $targetPath -Force`,
+    `    Remove-Item -LiteralPath $tempDir -Force -Recurse -ErrorAction SilentlyContinue`,
+    `    exit 1`,
+    `  }`,
+    `}`,
+    `Remove-Item -LiteralPath $backupPath -Force -ErrorAction SilentlyContinue`,
     `Remove-Item -LiteralPath $tempDir -Force -Recurse -ErrorAction SilentlyContinue`,
   ].join('; ')
 }
@@ -152,6 +193,39 @@ function resolveBinaryErrorKind(error: unknown): SelfUpgradeErrorKind {
     return 'locked'
 
   return 'unknown'
+}
+
+async function restoreStandaloneBinary(backupPath: string, executablePath: string): Promise<void> {
+  await rm(executablePath, { force: true })
+  await rename(backupPath, executablePath)
+}
+
+async function verifyStandaloneBinary(executablePath: string, expectedVersion?: string): Promise<BinaryUpgradeResult> {
+  if (!expectedVersion)
+    return { success: true }
+
+  try {
+    const proc = Bun.spawn([executablePath, '--version'], {
+      stdio: ['ignore', 'pipe', 'ignore'] as const,
+    })
+    const stdout = proc.stdout ? await new Response(proc.stdout).text() : ''
+    const exitCode = await proc.exited
+
+    if (exitCode !== 0) {
+      return createBinaryFailure('verify', `The upgraded Quantex binary exited with code ${exitCode} during verification.`)
+    }
+
+    if (!stdout.includes(expectedVersion)) {
+      return createBinaryFailure('verify', `The upgraded Quantex binary reported an unexpected version during verification.`)
+    }
+
+    return {
+      success: true,
+    }
+  }
+  catch (error) {
+    return createBinaryFailure('verify', 'Failed to execute the upgraded Quantex binary for verification.', error)
+  }
 }
 
 function getSha256(binary: Buffer): string {

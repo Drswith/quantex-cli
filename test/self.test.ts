@@ -158,11 +158,13 @@ describe('self helpers', () => {
     expect(result).toEqual({
       success: true,
       installSource: 'binary',
+      newVersion: '1.1.0',
     })
     expect(binaryUpgradeSpy).toHaveBeenCalledWith(
       'https://github.com/Drswith/quantex-cli/releases/latest/download/quantex-darwin-arm64',
       '/usr/local/bin/qtx',
       'abc123',
+      '1.1.0',
     )
     expect(getSelfUpgradeRecoveryHint('binary', '/usr/local/bin/qtx', {
       error: {
