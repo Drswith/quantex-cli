@@ -67,6 +67,13 @@ src/
 │   ├── uninstall.ts
 │   ├── list.ts
 │   ├── info.ts
+│   ├── inspect.ts
+│   ├── ensure.ts
+│   ├── resolve.ts
+│   ├── exec.ts
+│   ├── capabilities.ts
+│   ├── commands.ts
+│   ├── schema.ts
 │   ├── run.ts
 │   ├── config.ts
 │   └── doctor.ts
@@ -188,6 +195,13 @@ type AgentUpdateStrategy = 'managed' | 'self-update' | 'manual-hint'
 | `quantex uninstall <agent>` / `quantex rm` | 卸载 agent |
 | `quantex list` / `quantex ls` | 列出所有 agent |
 | `quantex info <agent>` | 查看 agent 详情 |
+| `quantex inspect <agent>` | 查看 agent 结构化状态 |
+| `quantex ensure <agent>` | 确保 agent 已安装 |
+| `quantex resolve <agent>` | 解析 agent 可执行入口 |
+| `quantex exec <agent> -- [args...]` | 以显式策略运行 agent |
+| `quantex capabilities` | 查看当前环境与 surface 能力 |
+| `quantex commands` | 查看稳定命令目录 |
+| `quantex schema` | 查看结构化输出 schema |
 | `quantex <agent> [args...]` | 快捷启动 agent |
 | `quantex config` | 配置管理 |
 | `quantex doctor` | 环境检查 |

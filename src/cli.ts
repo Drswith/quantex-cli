@@ -86,6 +86,18 @@ program
   })
 
 program
+  .command('resolve <agent>')
+  .description('解析 agent 可执行入口')
+  .action(async (agent: string) => {
+    const { resolveCommand } = await import('./commands/resolve')
+    process.exitCode = await executeCliCommand({
+      action: 'resolve',
+      run: () => resolveCommand(agent),
+      target: { kind: 'agent', name: agent },
+    })
+  })
+
+program
   .command('install <agent>')
   .alias('i')
   .description('安装指定 agent')
