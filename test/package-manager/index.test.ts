@@ -60,8 +60,11 @@ beforeEach(() => {
   getPlatformSpy.mockReturnValue('linux')
   loadConfigSpy.mockResolvedValue({
     defaultPackageManager: 'bun',
+    networkRetries: 2,
+    networkTimeoutMs: 10000,
     npmBunUpdateStrategy: 'latest-major',
     selfUpdateChannel: 'stable',
+    versionCacheTtlHours: 6,
   })
   getInstalledAgentStateSpy.mockResolvedValue(undefined)
   removeInstalledAgentStateSpy.mockResolvedValue()
@@ -167,8 +170,11 @@ describe('updateAgent', () => {
   it('passes respect-semver from config to registry installers', async () => {
     loadConfigSpy.mockResolvedValue({
       defaultPackageManager: 'bun',
+      networkRetries: 2,
+      networkTimeoutMs: 10000,
       npmBunUpdateStrategy: 'respect-semver',
       selfUpdateChannel: 'stable',
+      versionCacheTtlHours: 6,
     })
     isBunSpy.mockResolvedValue(true)
     bunUpdateSpy.mockResolvedValue(true)

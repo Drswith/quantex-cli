@@ -38,8 +38,11 @@ describe('configCommand', () => {
   it('shows current config when no action', async () => {
     loadConfigSpy.mockResolvedValue({
       defaultPackageManager: 'bun',
+      networkRetries: 2,
+      networkTimeoutMs: 10000,
       npmBunUpdateStrategy: 'latest-major',
       selfUpdateChannel: 'stable',
+      versionCacheTtlHours: 6,
     })
     await configCommand()
     expect(loadConfigSpy).toHaveBeenCalled()
@@ -49,8 +52,11 @@ describe('configCommand', () => {
   it('gets a specific config key', async () => {
     loadConfigSpy.mockResolvedValue({
       defaultPackageManager: 'bun',
+      networkRetries: 2,
+      networkTimeoutMs: 10000,
       npmBunUpdateStrategy: 'latest-major',
       selfUpdateChannel: 'stable',
+      versionCacheTtlHours: 6,
     })
     await configCommand('get', 'defaultPackageManager')
     expect(logSpy).toHaveBeenCalledWith('bun')
@@ -59,8 +65,11 @@ describe('configCommand', () => {
   it('shows not set for missing key', async () => {
     loadConfigSpy.mockResolvedValue({
       defaultPackageManager: 'bun',
+      networkRetries: 2,
+      networkTimeoutMs: 10000,
       npmBunUpdateStrategy: 'latest-major',
       selfUpdateChannel: 'stable',
+      versionCacheTtlHours: 6,
     })
     await configCommand('get', 'nonexistent')
     expect(logSpy).toHaveBeenCalledWith(expect.stringContaining('not set'))
@@ -79,16 +88,22 @@ describe('configCommand', () => {
     const configPath = join(tempDir, 'config.json')
     const content = JSON.parse(readFileSync(configPath, 'utf8'))
     expect(content.defaultPackageManager).toBe('bun')
+    expect(content.networkRetries).toBe(2)
+    expect(content.networkTimeoutMs).toBe(10000)
     expect(content.npmBunUpdateStrategy).toBe('latest-major')
     expect(content.selfUpdateChannel).toBe('stable')
+    expect(content.versionCacheTtlHours).toBe(6)
     expect(logSpy).toHaveBeenCalledWith(expect.stringContaining('reset to defaults'))
   })
 
   it('sets npmBunUpdateStrategy', async () => {
     loadConfigSpy.mockResolvedValue({
       defaultPackageManager: 'bun',
+      networkRetries: 2,
+      networkTimeoutMs: 10000,
       npmBunUpdateStrategy: 'latest-major',
       selfUpdateChannel: 'stable',
+      versionCacheTtlHours: 6,
     })
     await configCommand('set', 'npmBunUpdateStrategy', 'respect-semver')
     const configPath = join(tempDir, 'config.json')
@@ -106,8 +121,11 @@ describe('configCommand', () => {
   it('sets selfUpdateChannel', async () => {
     loadConfigSpy.mockResolvedValue({
       defaultPackageManager: 'bun',
+      networkRetries: 2,
+      networkTimeoutMs: 10000,
       npmBunUpdateStrategy: 'latest-major',
       selfUpdateChannel: 'stable',
+      versionCacheTtlHours: 6,
     })
     await configCommand('set', 'selfUpdateChannel', 'beta')
     const configPath = join(tempDir, 'config.json')
@@ -119,6 +137,28 @@ describe('configCommand', () => {
   it('rejects invalid selfUpdateChannel', async () => {
     await configCommand('set', 'selfUpdateChannel', 'nightly')
     expect(logSpy).toHaveBeenCalledWith(expect.stringContaining('selfUpdateChannel must be stable or beta'))
+    expect(existsSync(join(tempDir, 'config.json'))).toBe(false)
+  })
+
+  it('sets networkTimeoutMs', async () => {
+    loadConfigSpy.mockResolvedValue({
+      defaultPackageManager: 'bun',
+      networkRetries: 2,
+      networkTimeoutMs: 10000,
+      npmBunUpdateStrategy: 'latest-major',
+      selfUpdateChannel: 'stable',
+      versionCacheTtlHours: 6,
+    })
+    await configCommand('set', 'networkTimeoutMs', '15000')
+    const configPath = join(tempDir, 'config.json')
+    const content = JSON.parse(readFileSync(configPath, 'utf8'))
+    expect(content.networkTimeoutMs).toBe(15000)
+    expect(logSpy).toHaveBeenCalledWith(expect.stringContaining('Set networkTimeoutMs = 15000'))
+  })
+
+  it('rejects invalid versionCacheTtlHours', async () => {
+    await configCommand('set', 'versionCacheTtlHours', '0')
+    expect(logSpy).toHaveBeenCalledWith(expect.stringContaining('versionCacheTtlHours must be a positive integer'))
     expect(existsSync(join(tempDir, 'config.json'))).toBe(false)
   })
 

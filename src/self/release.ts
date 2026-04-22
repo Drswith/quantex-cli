@@ -2,6 +2,7 @@ import type { SelfUpdateChannel } from './types'
 import { basename } from 'node:path'
 import process from 'node:process'
 import { BUILD_REPOSITORY_URL } from '../generated/build-meta'
+import { fetchJsonWithCache, fetchTextWithCache } from '../utils/network'
 
 export interface BinaryReleaseAsset {
   arch: 'arm64' | 'x64'
@@ -87,12 +88,11 @@ export async function fetchBinaryReleaseChecksum(assetName: string): Promise<str
   if (!checksumUrl)
     throw new Error('No checksum file is available for the current release source.')
 
-  const response = await fetch(checksumUrl)
+  const checksumContents = await fetchTextWithCache(checksumUrl, 'self:checksum')
+  if (!checksumContents)
+    throw new Error('Failed to download checksum file.')
 
-  if (!response.ok)
-    throw new Error(`Failed to download checksum file: HTTP ${response.status}.`)
-
-  const checksum = parseBinaryReleaseChecksum(await response.text(), assetName)
+  const checksum = parseBinaryReleaseChecksum(checksumContents, assetName)
 
   if (!checksum)
     throw new Error(`No checksum entry was found for ${assetName}.`)
@@ -102,12 +102,12 @@ export async function fetchBinaryReleaseChecksum(assetName: string): Promise<str
 
 export async function fetchBinaryReleaseManifest(channel: SelfUpdateChannel): Promise<BinaryReleaseManifest> {
   const manifestUrl = await resolveBinaryReleaseManifestUrl(channel)
-  const response = await fetch(manifestUrl)
+  const manifest = await fetchJsonWithCache<BinaryReleaseManifest>(manifestUrl, `self:manifest:${channel}`)
 
-  if (!response.ok)
-    throw new Error(`Failed to download release manifest: HTTP ${response.status}.`)
+  if (!manifest)
+    throw new Error('Failed to download release manifest.')
 
-  return await response.json() as BinaryReleaseManifest
+  return manifest
 }
 
 export async function resolveBinaryReleaseManifestUrl(channel: SelfUpdateChannel): Promise<string> {
@@ -132,12 +132,14 @@ export async function fetchGitHubReleaseSummary(channel: SelfUpdateChannel): Pro
   if (!repositorySlug)
     throw new Error('Failed to resolve the GitHub repository slug for Quantex releases.')
 
-  const response = await fetch(`https://api.github.com/repos/${repositorySlug}/releases?per_page=20`)
+  const releases = await fetchJsonWithCache<GitHubReleaseSummary[]>(
+    `https://api.github.com/repos/${repositorySlug}/releases?per_page=20`,
+    'self:github-releases',
+  )
 
-  if (!response.ok)
-    throw new Error(`Failed to query GitHub releases: HTTP ${response.status}.`)
+  if (!releases)
+    throw new Error('Failed to query GitHub releases.')
 
-  const releases = await response.json() as GitHubReleaseSummary[]
   const release = releases.find(item => channel === 'beta' ? item.prerelease : !item.prerelease)
 
   if (!release)

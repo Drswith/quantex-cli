@@ -1,14 +1,30 @@
+import { existsSync, readFileSync, rmSync } from 'node:fs'
+import { tmpdir } from 'node:os'
+import { join } from 'node:path'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import * as config from '../../src/config'
 
 const mockSpawn = vi.fn()
 let originalSpawn: typeof Bun.spawn
 const originalFetch = globalThis.fetch
 const mockFetch = vi.fn()
+const getConfigDirSpy = vi.spyOn(config, 'getConfigDir')
+const loadConfigSpy = vi.spyOn(config, 'loadConfig')
+const tempConfigDir = join(tmpdir(), `quantex-version-cache-${Date.now()}`)
 
 beforeEach(() => {
   originalSpawn = Bun.spawn
   Bun.spawn = mockSpawn as any
   globalThis.fetch = mockFetch as any
+  getConfigDirSpy.mockReturnValue(tempConfigDir)
+  loadConfigSpy.mockResolvedValue({
+    defaultPackageManager: 'bun',
+    networkRetries: 2,
+    networkTimeoutMs: 10000,
+    npmBunUpdateStrategy: 'latest-major',
+    selfUpdateChannel: 'stable',
+    versionCacheTtlHours: 6,
+  })
 })
 
 afterEach(() => {
@@ -16,6 +32,9 @@ afterEach(() => {
   globalThis.fetch = originalFetch
   mockSpawn.mockClear()
   mockFetch.mockClear()
+  loadConfigSpy.mockClear()
+  if (existsSync(tempConfigDir))
+    rmSync(tempConfigDir, { recursive: true, force: true })
 })
 
 function createMockProcess(exitCode: number, stdout = '') {
@@ -95,10 +114,7 @@ describe('getInstalledVersion', () => {
 describe('getLatestVersion', () => {
   it('returns version from npm registry on success', async () => {
     const { getLatestVersion } = await import('../../src/utils/version')
-    mockFetch.mockResolvedValue({
-      ok: true,
-      json: () => Promise.resolve({ version: '2.0.0' }),
-    })
+    mockFetch.mockResolvedValue(new Response(JSON.stringify({ version: '2.0.0' }), { status: 200 }))
     const version = await getLatestVersion('some-package')
     expect(version).toBe('2.0.0')
   })
@@ -118,6 +134,29 @@ describe('getLatestVersion', () => {
     mockFetch.mockRejectedValue(new Error('network error'))
     const version = await getLatestVersion('some-package')
     expect(version).toBeUndefined()
+  })
+
+  it('caches npm registry responses to disk', async () => {
+    const { getLatestVersion } = await import('../../src/utils/version')
+    mockFetch.mockResolvedValueOnce(new Response(JSON.stringify({ version: '2.0.0' }), {
+      headers: { etag: '"abc"' },
+      status: 200,
+    }))
+
+    expect(await getLatestVersion('some-package')).toBe('2.0.0')
+    expect(await getLatestVersion('some-package')).toBe('2.0.0')
+    expect(mockFetch).toHaveBeenCalledTimes(1)
+    expect(readFileSync(join(tempConfigDir, 'cache', 'versions.json'), 'utf8')).toContain('"npm:some-package:latest"')
+  })
+
+  it('retries failed version requests before succeeding', async () => {
+    const { getLatestVersion } = await import('../../src/utils/version')
+    mockFetch
+      .mockRejectedValueOnce(new Error('timeout'))
+      .mockResolvedValueOnce(new Response(JSON.stringify({ version: '3.0.0' }), { status: 200 }))
+
+    expect(await getLatestVersion('retry-package')).toBe('3.0.0')
+    expect(mockFetch).toHaveBeenCalledTimes(2)
   })
 })
 
