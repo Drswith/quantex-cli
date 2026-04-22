@@ -33,6 +33,8 @@ export { getManagedInstaller } from './package-manager/installers'
 export type { ManagedInstaller } from './package-manager/installers'
 export { createUpdatePlan, isInspectionUpdateAvailable } from './planning'
 export type { UpdatePlan, UpdatePlanEntry } from './planning'
+export { createReleaseManifest, normalizeRepositoryUrl, parseBinaryTarget, parseChecksums, resolveReleaseChannel, validateReleaseManifest } from './release-artifacts'
+export type { ReleaseArtifactTarget, ReleaseChannel, ReleaseManifest, ReleaseManifestAsset } from './release-artifacts'
 export {
   canAutoUpdateSelf,
   detectSelfInstallSource,
