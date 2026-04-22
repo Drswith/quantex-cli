@@ -54,7 +54,6 @@ irm https://raw.githubusercontent.com/Drswith/quantex-cli/main/install.ps1 | iex
 
 ```bash
 quantex install claude
-# 或使用短别名
 qtx i claude
 ```
 
@@ -64,32 +63,52 @@ qtx i claude
 quantex update claude
 quantex u claude
 
-# 更新所有已安装的 agent
 quantex update --all
 ```
 
-`quantex update --all` 会优先使用 Quantex 记录的安装来源进行批量更新：
+`quantex update` 和 `quantex update --all` 现在共用同一套更新策略层：
 
-- 通过 Bun 安装的 agent 会合并为一条 `bun update -g --latest ...`
-- 通过 npm 安装的 agent 会合并为一条 `npm install -g ...@latest`
-- 通过 Homebrew 安装的 agent 会按记录的 formula/cask 标识逐个更新
-- 通过 winget 安装的 agent 会按 `winget` 记录的包 ID 逐个更新
-- 通过脚本、直装二进制或仅在 PATH 中探测到的 agent 不会被自动更新
+- `managed`：优先按 Quantex 已记录的安装来源更新
+- `self-update`：使用 agent 自带的更新命令
+- `manual-hint`：不自动更新，只给出明确提示
 
-这意味着混合安装场景仍然安全，不会把通过其他方式安装的 agent 错误地塞进 Bun、npm、brew 或 winget 的更新命令；对非托管来源，Quantex 会明确提示需要手动更新。
+`quantex update --all` 会优先使用 `~/.quantex/state.json` 里记录的实际安装来源进行批量更新：
+
+- `bun` 会批量合并为一条 `bun update -g --latest ...`
+- `npm` 会批量合并为一条 `npm install -g ...@latest`
+- `brew`、`winget` 会按记录的安装器标识逐个更新
+- `script`、`binary` 或仅在 PATH 中探测到但没有可自动更新能力的 agent 不会被错误并入托管更新命令
+
+对于支持自更新的 agent，`list`、`info`、`update` 输出会明确显示 `command update` 或 `self-update`。
 
 ### 升级 Quantex CLI
 
 ```bash
 quantex upgrade
+
+# 只检查是否有更新
+quantex upgrade --check
+
+# 使用 beta channel
+quantex upgrade --channel beta
 ```
 
 当前自身升级支持：
 
 - 通过 Bun 全局安装的 `quantex-cli`
 - 通过 npm 全局安装的 `quantex-cli`
+- 通过独立二进制安装的 `quantex`
 
-如果当前是源码工作区运行、独立二进制安装或其他非托管来源，`upgrade` 会明确提示当前来源不支持自动升级。
+Binary 自升级具备：
+
+- release manifest 解析
+- SHA256 checksum 校验
+- 升级锁
+- post-upgrade verify
+- `.bak` 最小回滚
+- Windows 延迟替换
+
+如果升级失败，`upgrade` 和 `doctor` 都会给出与安装来源匹配的恢复方式。
 
 ### 卸载 Agent
 
@@ -102,15 +121,16 @@ quantex rm claude
 
 ```bash
 quantex list
-quantex ls
+qtx ls
 ```
 
-`list` 会显示每个 agent 的安装状态、当前版本、是否支持托管更新，以及安装来源。例如：
+`list` 会显示每个 agent 的安装状态、当前版本、更新方式和安装来源。例如：
 
 - `managed update` 表示 Quantex 能按记录的安装器执行更新
+- `command update` 表示当前 agent 支持自更新
 - `manual update` 表示当前来源不支持自动更新
-- `managed via bun (...)`、`managed via brew (...)` 表示有明确的来源记录
-- `detected in PATH` 表示命令存在，但不是由当前 Quantex 状态文件追踪到的安装
+- `managed via bun (...)`、`managed via brew (...)` 表示有明确来源记录
+- `detected in PATH` 表示命令存在，但不是由当前 Quantex 状态追踪到的安装
 
 ### 查看 Agent 详情
 
@@ -118,41 +138,31 @@ quantex ls
 quantex info claude
 ```
 
-`info` 会按当前平台列出安装方式，并明确区分：
+`info` 会显示：
 
-- `managed/<installer>`，例如 `managed/bun`、`managed/brew`
-- `unmanaged/script`，例如 `curl | bash`、`irm | iex`
-- `unmanaged/binary`，保留给未来真正的二进制直装场景
-
-如果 agent 已安装，`info` 还会显示当前记录的 `Source` 和 `Lifecycle`。
+- 当前平台可用的安装方式
+- 当前记录的安装来源与生命周期
+- 当前版本和可检测到的最新版本
+- agent 自带的自更新命令
 
 ### 快捷启动 Agent
 
 ```bash
-# 直接启动 agent（参数透传）
 quantex claude --dangerously-skip-permissions
-
-# 使用短别名启动
 qtx claude --dangerously-skip-permissions
-
-# 使用 agent 别名启动
 quantex agent --help
 ```
+
+如果 agent 未安装，Quantex 会提示是否先安装再启动。
 
 ### 配置管理
 
 ```bash
-# 查看配置
 quantex config
-
-# 获取配置项
 quantex config get defaultPackageManager
-
-# 设置配置项
 quantex config set defaultPackageManager npm
 quantex config set npmBunUpdateStrategy respect-semver
-
-# 重置为默认配置
+quantex config set selfUpdateChannel beta
 quantex config reset
 ```
 
@@ -164,68 +174,70 @@ quantex doctor
 
 `doctor` 会检查：
 
-- `bun`、`npm`、`brew`、`winget` 这些托管安装器是否可用
-- Quantex CLI 自身的当前版本、安装来源、是否支持自动升级
+- `bun`、`npm`、`brew`、`winget` 是否可用
+- Quantex CLI 自身的版本、安装来源、是否支持自动升级
+- Quantex CLI 是否有新版本以及对应恢复方式
 - 已安装 agent 的版本状态
-- 已安装 agent 的生命周期和来源，例如 `managed; managed via bun (...)`
 - 当前环境是否缺少任何可用于托管安装/更新的安装器
 
 ## 配置
 
-配置文件位于 `~/.quantex/config.json`，支持以下配置项：
+配置文件位于 `~/.quantex/config.json`，当前支持：
 
 ```json
 {
   "defaultPackageManager": "bun",
-  "npmBunUpdateStrategy": "latest-major"
+  "npmBunUpdateStrategy": "latest-major",
+  "selfUpdateChannel": "stable",
+  "networkRetries": 2,
+  "networkTimeoutMs": 10000,
+  "versionCacheTtlHours": 6
 }
 ```
 
-`defaultPackageManager` 会影响托管安装方式的尝试顺序。比如某个 agent 同时支持 Bun 和 npm 时，设置为 `npm` 后，Quantex 会先尝试 npm，再按 agent 定义中的其余安装方式顺序回退。
+配置项说明：
 
-这里的 `defaultPackageManager` 只影响托管安装器的选择顺序，不影响 `script` / `binary` 这类非托管安装方式。
-
-`npmBunUpdateStrategy` 控制通过 npm / Bun 安装的 agent 在更新时的版本策略：
-
-- `latest-major`：始终升级到 registry 上的最新版本，默认值
-- `respect-semver`：遵循包管理器已有的 semver 更新语义
+- `defaultPackageManager`：控制托管安装器的优先尝试顺序
+- `npmBunUpdateStrategy`：
+  - `latest-major`：升级到 registry 最新版本，默认值
+  - `respect-semver`：保留包管理器默认的 semver 更新语义
+- `selfUpdateChannel`：Quantex CLI 自升级默认 channel，支持 `stable` / `beta`
+- `networkRetries`：版本查询和 release 元数据请求重试次数
+- `networkTimeoutMs`：网络请求超时时间
+- `versionCacheTtlHours`：版本与 release 元数据缓存 TTL
 
 ## 状态文件
 
-除了配置文件外，Quantex 还会在 `~/.quantex/state.json` 中记录运行时状态，例如 agent 的实际安装来源，以及 Quantex CLI 自身的安装来源。
+Quantex 会在 `~/.quantex/state.json` 中记录运行时状态，例如：
 
-当前安装来源会区分为：
-
-- 托管安装器：`bun`、`npm`、`brew`、`winget`
-- 非托管安装：`script`
-- 预留类型：`binary`
+- agent 的实际安装来源
+- Quantex CLI 自身的安装来源
 
 这个状态文件主要用于：
 
-- 让 `update --all` 先生成更新计划，再按 Bun、npm、brew、winget 分组执行
-- 在混合安装场景下避免误用错误的更新方式
-- 支撑 `list`、`info`、`doctor` 输出安装来源和是否可托管更新
-- 让 `upgrade` / `doctor` 优先读取 Quantex CLI 自身的安装来源，再用运行时路径做兜底与校正
-- 为后续的卸载、诊断和迁移能力保留扩展空间
-
-术语约定：
-
-- `packages.npm` 指 agent 对应的 npm 包名
-- 安装方法里的 `packageName` 指安装器专用标识；对 npm/bun 是包名，对 Homebrew 是 formula/cask 标识，对 winget 是 package ID
-
-如果某个 agent 是在旧版本 Quantex 中安装的，或者不是通过 Quantex 安装的，首次更新时可能仍会走逐个更新；一旦 Quantex 成功更新并记录来源，后续 `update --all` 就可以复用批量更新路径。
+- 让 `update --all` 能先生成更新计划，再按安装来源分组执行
+- 避免混合安装场景下误用错误的更新方式
+- 支撑 `list`、`info`、`doctor`、`upgrade` 的来源判断和恢复提示
 
 ## 开发
 
 ```bash
-bun install              # 安装依赖
-bun run dev              # 开发运行
-bun run test             # 运行测试
-bun run test:watch       # 监听模式运行测试
-bun run lint             # 代码检查
-bun run typecheck        # 类型检查
-bun run build            # 构建
+bun install
+bun run dev
+bun run test
+bun run test:watch
+bun run lint
+bun run lint:fix
+bun run typecheck
+bun run build
+bun run build:bin
+bun run release:artifacts
 ```
+
+`release:artifacts` 会统一生成并校验：
+
+- `dist/bin/SHA256SUMS.txt`
+- `dist/bin/manifest.json`
 
 ## License
 
