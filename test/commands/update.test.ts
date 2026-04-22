@@ -82,9 +82,12 @@ describe('updateCommand', () => {
     installedVerSpy.mockResolvedValue('1.0.0')
     latestVerSpy.mockResolvedValue('2.0.0')
     installedStateSpy.mockResolvedValue(undefined)
+    updateAgentsByTypeSpy.mockResolvedValue(true)
     updateSpy.mockResolvedValue({ success: true })
     await updateCommand('test-agent', false)
-    expect(updateSpy).toHaveBeenCalledWith(testAgent, undefined)
+    expect(updateAgentsByTypeSpy).toHaveBeenCalledWith('bun', [{ packageName: 'test-pkg', packageTargetKind: undefined }])
+    expect(updateSpy).not.toHaveBeenCalled()
+    expect(logSpy).toHaveBeenCalledWith(expect.stringContaining('Updating Test Agent via managed/bun... (1.0.0 -> 2.0.0)'))
     expect(logSpy).toHaveBeenCalledWith(expect.stringContaining('updated successfully'))
   })
 
@@ -109,9 +112,14 @@ describe('updateCommand', () => {
     updateAgentsByTypeSpy.mockResolvedValue(true)
     updateSpy.mockResolvedValue({ success: true })
     await updateCommand(undefined, true)
-    expect(updateAgentsByTypeSpy).toHaveBeenCalledWith('bun', [{ packageName: 'test-pkg', packageTargetKind: undefined }])
-    expect(updateSpy).toHaveBeenCalledTimes(1)
-    expect(updateSpy).toHaveBeenCalledWith(agent2, undefined)
+    expect(updateAgentsByTypeSpy).toHaveBeenCalledWith('bun', [
+      { packageName: 'test-pkg', packageTargetKind: undefined },
+      { packageName: 'pkg2', packageTargetKind: undefined },
+    ])
+    expect(updateSpy).not.toHaveBeenCalled()
+    const output = logSpy.mock.calls.map((c: any[]) => c[0]).join('\n')
+    expect(output).toContain('Updating Test Agent via managed/bun... (1.0.0 -> 2.0.0)')
+    expect(output).toContain('Updating Agent 2 via managed/bun... (1.0.0 -> 2.0.0)')
   })
 
   it('skips detected PATH installs without auto-update support for --all', async () => {
@@ -174,7 +182,7 @@ describe('updateCommand', () => {
     expect(updateSpy).toHaveBeenCalledWith(selfUpdatingAgent, undefined)
 
     const output = logSpy.mock.calls.map((c: any[]) => c[0]).join('\n')
-    expect(output).toContain('Updating Self Updating Agent... (1.0.0 -> latest)')
+    expect(output).toContain('Updating Self Updating Agent via self-update... (1.0.0 -> latest)')
     expect(output).toContain('Self Updating Agent updated successfully')
   })
 

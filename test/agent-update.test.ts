@@ -15,6 +15,20 @@ describe('agent update providers', () => {
     expect(strategy).toBe('managed')
   })
 
+  it('resolves managed updates from supported install methods when state is missing', () => {
+    const strategy = getAgentUpdateStrategy({
+      agent: {
+        packages: {
+          npm: 'test-pkg',
+        },
+      },
+      installedState: undefined,
+      methods: [{ type: 'bun' }],
+    })
+
+    expect(strategy).toBe('managed')
+  })
+
   it('resolves self-update when only update commands are available', () => {
     const provider = resolveAgentUpdateProvider({
       agent: {
@@ -23,7 +37,7 @@ describe('agent update providers', () => {
         },
       },
       installedState: undefined,
-      methods: [{ type: 'script' }],
+      methods: [{ type: 'script', command: 'curl https://example.com/install | bash' }],
     })
 
     expect(provider.strategy).toBe('self-update')
@@ -33,7 +47,7 @@ describe('agent update providers', () => {
     const provider = resolveAgentUpdateProvider({
       agent: {},
       installedState: undefined,
-      methods: [{ type: 'script' }],
+      methods: [{ type: 'script', command: 'curl https://example.com/install | bash' }],
     })
 
     expect(provider.strategy).toBe('manual-hint')

@@ -1,8 +1,7 @@
 import type { AgentInspection } from '../inspection'
 import type { ManagedInstallType } from '../package-manager'
 import { resolveAgentUpdateProvider } from '../agent-update'
-import { isManagedInstallType } from '../package-manager/capabilities'
-import { canAutoUpdateAgent, canUpdateInstalledState } from '../utils/install'
+import { canAutoUpdateAgent } from '../utils/install'
 
 export interface UpdatePlanEntry {
   inspection: AgentInspection
@@ -50,7 +49,11 @@ export function createUpdatePlan(inspections: AgentInspection[]): UpdatePlan {
     })
 
     const installerType = strategy.strategy === 'managed'
-      ? getGroupedInstallerType(inspection)
+      ? strategy.getManagedInstallerType?.({
+          agent: inspection.agent,
+          installedState: inspection.installedState,
+          methods: inspection.methods,
+        })
       : undefined
     if (installerType) {
       const entry: UpdatePlanEntry = {
@@ -88,17 +91,4 @@ function shouldSkipUnknownManualUpdate(
   inspection: Pick<AgentInspection, 'agent' | 'installedState' | 'latestVersion'>,
 ): boolean {
   return !inspection.latestVersion && !canAutoUpdateAgent(inspection.agent, inspection.installedState)
-}
-
-function getGroupedInstallerType(inspection: AgentInspection): ManagedInstallType | undefined {
-  if (!inspection.installedState || !inspection.installedState.packageName)
-    return undefined
-
-  if (!canUpdateInstalledState(inspection.installedState))
-    return undefined
-
-  if (!isManagedInstallType(inspection.installedState.installType))
-    return undefined
-
-  return inspection.installedState.installType
 }
