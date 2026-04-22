@@ -1,10 +1,12 @@
 #!/usr/bin/env bun
 
+import type { CommandResult, CommandTarget } from './output/types'
 import process from 'node:process'
 import { program } from 'commander'
 import pc from 'picocolors'
 import { getAgentByNameOrAlias } from './agents'
 import { resetCliContext, resolveCliContext, setCliContext } from './cli-context'
+import { executeCommandWithRuntime } from './command-runtime'
 import { runCommand } from './commands/run'
 import { getExitCodeForResult } from './errors'
 import { getSelfVersion } from './self'
@@ -16,10 +18,17 @@ program
   .option('--output <mode>', 'Output mode: human, json, or ndjson')
   .option('--non-interactive', 'Disable interactive prompts and confirmations')
   .option('--run-id <id>', 'Attach a run id to structured output and logs')
+  .option('--timeout <duration>', 'Abort a command after the given duration, e.g. 500ms, 30s, 5m')
   .version(getSelfVersion())
 
 program.hook('preAction', (_command, actionCommand) => {
-  setCliContext(resolveCliContext(actionCommand.optsWithGlobals()))
+  try {
+    setCliContext(resolveCliContext(actionCommand.optsWithGlobals()))
+  }
+  catch (error) {
+    console.log(pc.red(error instanceof Error ? error.message : String(error)))
+    process.exit(2)
+  }
 })
 
 program.hook('postAction', () => {
@@ -32,7 +41,11 @@ program
   .description('查看结构化输出 schema')
   .action(async (command?: string) => {
     const { schemaCommand } = await import('./commands/schema')
-    process.exitCode = getExitCodeForResult(await schemaCommand(command))
+    process.exitCode = await executeCliCommand({
+      action: 'schema',
+      run: () => schemaCommand(command),
+      target: { kind: 'system', name: 'schema' },
+    })
   })
 
 program
@@ -40,7 +53,11 @@ program
   .description('查看命令目录与稳定能力')
   .action(async () => {
     const { commandsCommand } = await import('./commands/commands')
-    process.exitCode = getExitCodeForResult(await commandsCommand())
+    process.exitCode = await executeCliCommand({
+      action: 'commands',
+      run: () => commandsCommand(),
+      target: { kind: 'system', name: 'commands' },
+    })
   })
 
 program
@@ -48,7 +65,11 @@ program
   .description('查看当前环境与 surface 能力')
   .action(async () => {
     const { capabilitiesCommand } = await import('./commands/capabilities')
-    process.exitCode = getExitCodeForResult(await capabilitiesCommand())
+    process.exitCode = await executeCliCommand({
+      action: 'capabilities',
+      run: () => capabilitiesCommand(),
+      target: { kind: 'system', name: 'capabilities' },
+    })
   })
 
 program
@@ -56,7 +77,11 @@ program
   .description('查看 agent 结构化状态')
   .action(async (agent: string) => {
     const { inspectCommand } = await import('./commands/inspect')
-    process.exitCode = getExitCodeForResult(await inspectCommand(agent))
+    process.exitCode = await executeCliCommand({
+      action: 'inspect',
+      run: () => inspectCommand(agent),
+      target: { kind: 'agent', name: agent },
+    })
   })
 
 program
@@ -65,7 +90,11 @@ program
   .description('安装指定 agent')
   .action(async (agent: string) => {
     const { installCommand } = await import('./commands/install')
-    process.exitCode = getExitCodeForResult(await installCommand(agent))
+    process.exitCode = await executeCliCommand({
+      action: 'install',
+      run: () => installCommand(agent),
+      target: { kind: 'agent', name: agent },
+    })
   })
 
 program
@@ -73,7 +102,11 @@ program
   .description('确保指定 agent 已安装')
   .action(async (agent: string) => {
     const { ensureCommand } = await import('./commands/ensure')
-    process.exitCode = getExitCodeForResult(await ensureCommand(agent))
+    process.exitCode = await executeCliCommand({
+      action: 'ensure',
+      run: () => ensureCommand(agent),
+      target: { kind: 'agent', name: agent },
+    })
   })
 
 program
@@ -105,7 +138,11 @@ program
   .description('更新指定 agent')
   .action(async (agent: string | undefined, options: { all?: boolean }) => {
     const { updateCommand } = await import('./commands/update')
-    process.exitCode = getExitCodeForResult(await updateCommand(agent, options.all ?? false))
+    process.exitCode = await executeCliCommand({
+      action: 'update',
+      run: () => updateCommand(agent, options.all ?? false),
+      target: { kind: 'agent', name: agent },
+    })
   })
 
 program
@@ -114,7 +151,11 @@ program
   .description('卸载指定 agent')
   .action(async (agent: string) => {
     const { uninstallCommand } = await import('./commands/uninstall')
-    process.exitCode = getExitCodeForResult(await uninstallCommand(agent))
+    process.exitCode = await executeCliCommand({
+      action: 'uninstall',
+      run: () => uninstallCommand(agent),
+      target: { kind: 'agent', name: agent },
+    })
   })
 
 program
@@ -123,7 +164,11 @@ program
   .description('列出所有支持的 agent')
   .action(async () => {
     const { listCommand } = await import('./commands/list')
-    process.exitCode = getExitCodeForResult(await listCommand())
+    process.exitCode = await executeCliCommand({
+      action: 'list',
+      run: () => listCommand(),
+      target: { kind: 'system', name: 'agents' },
+    })
   })
 
 program
@@ -131,7 +176,11 @@ program
   .description('查看 agent 详细信息')
   .action(async (agent: string) => {
     const { infoCommand } = await import('./commands/info')
-    process.exitCode = getExitCodeForResult(await infoCommand(agent))
+    process.exitCode = await executeCliCommand({
+      action: 'info',
+      run: () => infoCommand(agent),
+      target: { kind: 'agent', name: agent },
+    })
   })
 
 program
@@ -142,7 +191,11 @@ program
   .description('配置管理')
   .action(async (action?: string, key?: string, value?: string) => {
     const { configCommand } = await import('./commands/config')
-    process.exitCode = getExitCodeForResult(await configCommand(action, key, value))
+    process.exitCode = await executeCliCommand({
+      action: 'config',
+      run: () => configCommand(action, key, value),
+      target: { kind: 'config', name: key },
+    })
   })
 
 program
@@ -152,11 +205,14 @@ program
   .option('--check', 'Only check whether an update is available')
   .action(async (options: { channel?: string, check?: boolean }) => {
     const { upgradeCommand } = await import('./commands/upgrade')
-    const result = await upgradeCommand({
-      channel: options.channel === 'beta' ? 'beta' : undefined,
-      check: options.check ?? false,
+    process.exitCode = await executeCliCommand({
+      action: 'upgrade',
+      run: () => upgradeCommand({
+        channel: options.channel === 'beta' ? 'beta' : undefined,
+        check: options.check ?? false,
+      }),
+      target: { kind: 'self', name: 'quantex' },
     })
-    process.exitCode = getExitCodeForResult(result)
   })
 
 program
@@ -164,7 +220,11 @@ program
   .description('检查环境')
   .action(async () => {
     const { doctorCommand } = await import('./commands/doctor')
-    process.exitCode = getExitCodeForResult(await doctorCommand())
+    process.exitCode = await executeCliCommand({
+      action: 'doctor',
+      run: () => doctorCommand(),
+      target: { kind: 'system', name: 'doctor' },
+    })
   })
 
 const knownCommands = new Set([
@@ -186,10 +246,17 @@ if (shortcutInvocation?.error) {
 if (shortcutInvocation) {
   const agent = getAgentByNameOrAlias(shortcutInvocation.agentName)
   if (agent) {
-    setCliContext(resolveCliContext({
-      nonInteractive: shortcutInvocation.nonInteractive,
-      runId: shortcutInvocation.runId,
-    }))
+    try {
+      setCliContext(resolveCliContext({
+        nonInteractive: shortcutInvocation.nonInteractive,
+        runId: shortcutInvocation.runId,
+        timeout: shortcutInvocation.timeout,
+      }))
+    }
+    catch (error) {
+      console.log(pc.red(error instanceof Error ? error.message : String(error)))
+      process.exit(2)
+    }
     try {
       const code = await runCommand(shortcutInvocation.agentName, shortcutInvocation.agentArgs, {
         nonInteractive: shortcutInvocation.nonInteractive,
@@ -210,6 +277,7 @@ interface ShortcutInvocation {
   error?: string
   nonInteractive?: boolean
   runId?: string
+  timeout?: string
 }
 
 function extractExecPassthroughArgs(command: { args: string[], processedArgs: string[] }): string[] {
@@ -226,6 +294,7 @@ function resolveShortcutInvocation(argv: string[], knownCommandNames: Set<string
   let nonInteractive = false
   let outputMode: string | undefined
   let runId: string | undefined
+  let timeout: string | undefined
 
   while (index < argv.length) {
     const arg = argv[index]
@@ -260,6 +329,15 @@ function resolveShortcutInvocation(argv: string[], knownCommandNames: Set<string
       continue
     }
 
+    if (arg === '--timeout') {
+      const value = argv[index + 1]
+      if (!value)
+        return { agentArgs: [], agentName: '', error: '--timeout requires a value' }
+      timeout = value
+      index += 2
+      continue
+    }
+
     if (arg.startsWith('-'))
       return undefined
 
@@ -274,8 +352,14 @@ function resolveShortcutInvocation(argv: string[], knownCommandNames: Set<string
       agentName: arg,
       nonInteractive,
       runId,
+      timeout,
     }
   }
 
   return undefined
+}
+
+async function executeCliCommand<T>(options: { action: string, run: () => Promise<CommandResult<T>>, target?: CommandTarget }): Promise<number> {
+  const result = await executeCommandWithRuntime(options)
+  return getExitCodeForResult(result)
 }

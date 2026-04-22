@@ -15,20 +15,20 @@ interface CommandsCommandData {
 }
 
 const commandCatalog: CommandDescriptor[] = [
-  { flags: ['--json', '--output', '--non-interactive'], name: 'capabilities', outputSchemaRef: '#/commands/capabilities', stability: 'stable', summary: 'Return environment and surface capabilities' },
-  { flags: ['--json', '--output'], name: 'commands', outputSchemaRef: '#/commands/commands', stability: 'stable', summary: 'Return the stable command catalog' },
-  { flags: ['get', 'set', 'reset', '--json', '--output'], name: 'config', outputSchemaRef: '#/commands/config', stability: 'stable', summary: 'Read and modify Quantex configuration' },
-  { flags: ['--json', '--output'], name: 'doctor', outputSchemaRef: '#/commands/doctor', stability: 'stable', summary: 'Diagnose the current environment and installed tools' },
-  { flags: ['--install', '--non-interactive', '--output'], name: 'exec', outputSchemaRef: '#/commands/exec', stability: 'stable', summary: 'Run an agent with explicit install policy' },
-  { flags: ['--json', '--output'], name: 'ensure', outputSchemaRef: '#/commands/ensure', stability: 'stable', summary: 'Ensure an agent is installed' },
-  { flags: ['--json', '--output'], name: 'info', outputSchemaRef: '#/commands/info', stability: 'stable', summary: 'Show human-friendly agent details' },
-  { flags: ['--json', '--output'], name: 'inspect', outputSchemaRef: '#/commands/inspect', stability: 'stable', summary: 'Return structured agent state' },
-  { flags: ['--json', '--output'], name: 'install', outputSchemaRef: '#/commands/install', stability: 'stable', summary: 'Install an agent' },
-  { flags: ['--json', '--output'], name: 'list', outputSchemaRef: '#/commands/list', stability: 'stable', summary: 'List supported agents' },
-  { flags: ['--json', '--output'], name: 'schema', outputSchemaRef: '#/commands/schema', stability: 'stable', summary: 'Return structured output schemas' },
-  { flags: ['--all', '--json', '--output'], name: 'update', outputSchemaRef: '#/commands/update', stability: 'stable', summary: 'Update one or all agents' },
-  { flags: ['--json', '--output'], name: 'uninstall', outputSchemaRef: '#/commands/uninstall', stability: 'stable', summary: 'Uninstall an agent' },
-  { flags: ['--check', '--channel', '--json', '--output'], name: 'upgrade', outputSchemaRef: '#/commands/upgrade', stability: 'stable', summary: 'Upgrade Quantex CLI itself' },
+  { flags: ['--json', '--output', '--non-interactive', '--timeout'], name: 'capabilities', outputSchemaRef: '#/commands/capabilities', stability: 'stable', summary: 'Return environment and surface capabilities' },
+  { flags: ['--json', '--output', '--timeout'], name: 'commands', outputSchemaRef: '#/commands/commands', stability: 'stable', summary: 'Return the stable command catalog' },
+  { flags: ['get', 'set', 'reset', '--json', '--output', '--timeout'], name: 'config', outputSchemaRef: '#/commands/config', stability: 'stable', summary: 'Read and modify Quantex configuration' },
+  { flags: ['--json', '--output', '--timeout'], name: 'doctor', outputSchemaRef: '#/commands/doctor', stability: 'stable', summary: 'Diagnose the current environment and installed tools' },
+  { flags: ['--install', '--non-interactive', '--output', '--timeout'], name: 'exec', outputSchemaRef: '#/commands/exec', stability: 'stable', summary: 'Run an agent with explicit install policy' },
+  { flags: ['--json', '--output', '--timeout'], name: 'ensure', outputSchemaRef: '#/commands/ensure', stability: 'stable', summary: 'Ensure an agent is installed' },
+  { flags: ['--json', '--output', '--timeout'], name: 'info', outputSchemaRef: '#/commands/info', stability: 'stable', summary: 'Show human-friendly agent details' },
+  { flags: ['--json', '--output', '--timeout'], name: 'inspect', outputSchemaRef: '#/commands/inspect', stability: 'stable', summary: 'Return structured agent state' },
+  { flags: ['--json', '--output', '--timeout'], name: 'install', outputSchemaRef: '#/commands/install', stability: 'stable', summary: 'Install an agent' },
+  { flags: ['--json', '--output', '--timeout'], name: 'list', outputSchemaRef: '#/commands/list', stability: 'stable', summary: 'List supported agents' },
+  { flags: ['--json', '--output', '--timeout'], name: 'schema', outputSchemaRef: '#/commands/schema', stability: 'stable', summary: 'Return structured output schemas' },
+  { flags: ['--all', '--json', '--output', '--timeout'], name: 'update', outputSchemaRef: '#/commands/update', stability: 'stable', summary: 'Update one or all agents' },
+  { flags: ['--json', '--output', '--timeout'], name: 'uninstall', outputSchemaRef: '#/commands/uninstall', stability: 'stable', summary: 'Uninstall an agent' },
+  { flags: ['--check', '--channel', '--json', '--output', '--timeout'], name: 'upgrade', outputSchemaRef: '#/commands/upgrade', stability: 'stable', summary: 'Upgrade Quantex CLI itself' },
 ]
 
 export async function commandsCommand(): Promise<CommandResult<CommandsCommandData>> {

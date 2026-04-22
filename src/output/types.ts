@@ -46,7 +46,7 @@ export interface CommandEvent<T = unknown> {
   data?: T
   meta: CommandEventMeta
   target?: CommandTarget
-  type: 'progress' | 'result' | 'started'
+  type: 'cancelled' | 'progress' | 'result' | 'started'
 }
 
 export type HumanRenderer<T> = (result: CommandResult<T>) => void
