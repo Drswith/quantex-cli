@@ -1,7 +1,7 @@
 {
   "name": "quantex-cli",
   "type": "module",
-  "version": "0.0.1-beta.13",
+  "version": "0.0.1",
   "packageManager": "bun@1.3.11",
   "description": "统一的 AI Agent CLI 管理工具，支持安装、更新、卸载、查询、快捷启动主流 AI 编程助手",
   "author": "Drswith <drswith@outlook.com>",
