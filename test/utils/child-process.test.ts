@@ -1,6 +1,6 @@
 import process from 'node:process'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { setCliContext } from '../../src/cli-context'
+import { cancelCliContextOperations, setCliContext } from '../../src/cli-context'
 import { spawnWithQuantexStdio, waitForSpawnedCommand } from '../../src/utils/child-process'
 
 const mockSpawn = vi.fn()
@@ -64,5 +64,26 @@ describe('spawnWithQuantexStdio', () => {
     }))
     expect(stderrWriteSpy).toHaveBeenCalledWith('installer stdout')
     expect(stderrWriteSpy).toHaveBeenCalledWith('installer stderr')
+  })
+
+  it('kills registered child processes when the cli context is cancelled', () => {
+    setCliContext({
+      interactive: false,
+      outputMode: 'json',
+      runId: 'json-run-id',
+    })
+    const kill = vi.fn()
+    mockSpawn.mockReturnValue({
+      exited: new Promise(() => {}),
+      exitCode: null,
+      kill,
+      stderr: '',
+      stdout: '',
+    })
+
+    spawnWithQuantexStdio(['npm', '--version'])
+    cancelCliContextOperations()
+
+    expect(kill).toHaveBeenCalledWith('SIGTERM')
   })
 })

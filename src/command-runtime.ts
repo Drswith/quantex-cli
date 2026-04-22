@@ -1,7 +1,7 @@
 import type { CommandResult, CommandTarget } from './output/types'
 import process from 'node:process'
 import pc from 'picocolors'
-import { getCliContext, markCliContextCancelled } from './cli-context'
+import { cancelCliContextOperations, getCliContext } from './cli-context'
 import { loadIdempotencyRecord, saveIdempotencyRecord } from './idempotency'
 import { createErrorResult, emitCommandEvent, emitCommandResult } from './output'
 
@@ -26,7 +26,7 @@ export async function executeCommandWithRuntime<T>(options: ExecuteCommandOption
   try {
     const timeoutPromise = new Promise<CommandResult<T>>((resolve) => {
       timeoutId = setTimeout(() => {
-        markCliContextCancelled()
+        cancelCliContextOperations()
         emitCommandEvent({
           action: options.action,
           data: {
@@ -119,7 +119,7 @@ async function withSignalCancellation<T>(options: ExecuteCommandOptions<T>, run:
   try {
     const signalPromise = new Promise<CommandResult<T>>((resolve) => {
       const handleSignal = (signal: NodeJS.Signals): void => {
-        markCliContextCancelled()
+        cancelCliContextOperations()
         emitCommandEvent({
           action: options.action,
           data: {

@@ -23,6 +23,7 @@ export interface CliContextOptions {
 }
 
 let currentContext: CliContext | undefined
+let cancellationHandlers = new Set<() => void>()
 
 export function getCliContext(): CliContext {
   currentContext ??= createDefaultCliContext()
@@ -30,6 +31,7 @@ export function getCliContext(): CliContext {
 }
 
 export function setCliContext(context: CliContext): void {
+  cancellationHandlers = new Set()
   currentContext = {
     cancelled: false,
     ...context,
@@ -38,6 +40,7 @@ export function setCliContext(context: CliContext): void {
 
 export function resetCliContext(): void {
   currentContext = undefined
+  cancellationHandlers = new Set()
 }
 
 export function resolveCliContext(options: CliContextOptions = {}): CliContext {
@@ -66,6 +69,20 @@ export function resolveCliContext(options: CliContextOptions = {}): CliContext {
 export function markCliContextCancelled(): void {
   if (currentContext)
     currentContext.cancelled = true
+}
+
+export function cancelCliContextOperations(): void {
+  markCliContextCancelled()
+  for (const handler of cancellationHandlers)
+    handler()
+  cancellationHandlers.clear()
+}
+
+export function registerCliCancellationHandler(handler: () => void): () => void {
+  cancellationHandlers.add(handler)
+  return () => {
+    cancellationHandlers.delete(handler)
+  }
 }
 
 function createDefaultCliContext(): CliContext {
