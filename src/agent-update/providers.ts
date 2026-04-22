@@ -15,7 +15,7 @@ const managedAgentUpdateProvider: AgentUpdateProvider = {
 
 const selfUpdatingAgentUpdateProvider: AgentUpdateProvider = {
   strategy: 'self-update',
-  canHandle: context => !canUpdateInstalledState(context.installedState) && !!context.agent.update?.commands.length,
+  canHandle: context => !canUpdateInstalledState(context.installedState) && !!context.agent.selfUpdate,
 }
 
 const manualAgentUpdateProvider: AgentUpdateProvider = {

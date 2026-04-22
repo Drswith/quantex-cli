@@ -152,8 +152,8 @@ describe('updateCommand', () => {
       binaryName: 'self-updating-bin',
       displayName: 'Self Updating Agent',
       packages: undefined,
-      update: {
-        commands: ['self-updating-bin update'],
+      selfUpdate: {
+        command: ['self-updating-bin', 'update'],
       },
       platforms: {
         linux: [{ type: 'script' as const, command: 'curl https://example.com/install | bash' }],

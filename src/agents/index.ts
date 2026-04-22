@@ -36,6 +36,7 @@ export type {
   AgentDefinition,
   AgentPackageMetadata,
   AgentSelfUpdate,
+  AgentVersionProbe,
   BinaryInstallMethod,
   InstallMethod,
   InstallType,

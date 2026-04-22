@@ -107,11 +107,16 @@ async function executeInstalledState(
 }
 
 async function executeAgentUpdateCommand(agent: AgentDefinition): Promise<boolean> {
-  if (!agent.update?.commands.length)
+  if (!agent.selfUpdate)
     return false
 
-  for (const command of agent.update.commands) {
-    if (await runBinaryInstall(command))
+  const commands = [
+    agent.selfUpdate.command,
+    ...(agent.selfUpdate.fallbackCommands ?? []),
+  ]
+
+  for (const command of commands) {
+    if (await runBinaryInstall(command.join(' ')))
       return true
   }
 

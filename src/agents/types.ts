@@ -32,7 +32,14 @@ export interface AgentPackageMetadata {
 }
 
 export interface AgentSelfUpdate {
-  commands: string[]
+  command: string[]
+  fallbackCommands?: string[][]
+  versionAfter?: 'same-process' | 'respawn'
+}
+
+export interface AgentVersionProbe {
+  command?: string[]
+  parser?: (stdout: string) => string | undefined
 }
 
 export interface AgentDefinition {
@@ -44,5 +51,6 @@ export interface AgentDefinition {
   packages?: AgentPackageMetadata
   platforms: Partial<Record<Platform, InstallMethod[]>>
   binaryName: string
-  update?: AgentSelfUpdate
+  selfUpdate?: AgentSelfUpdate
+  versionProbe?: AgentVersionProbe
 }

@@ -188,8 +188,8 @@ describe('updateAgent', () => {
     const selfUpdatingAgent = {
       ...testAgent,
       packages: undefined,
-      update: {
-        commands: ['test-bin update'],
+      selfUpdate: {
+        command: ['test-bin', 'update'],
       },
       platforms: {
         linux: [
@@ -210,8 +210,9 @@ describe('updateAgent', () => {
     const selfUpdatingAgent = {
       ...testAgent,
       packages: undefined,
-      update: {
-        commands: ['test-bin update', 'test-bin upgrade'],
+      selfUpdate: {
+        command: ['test-bin', 'update'],
+        fallbackCommands: [['test-bin', 'upgrade']],
       },
       platforms: {
         linux: [

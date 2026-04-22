@@ -1,21 +1,29 @@
+import type { AgentVersionProbe } from '../agents'
 import process from 'node:process'
 import { fetchJsonWithCache } from './network'
 
 // 通用版本号提取正则，匹配 v1.2.3 或 1.2.3 等格式
 const VERSION_PATTERN = /v?(\d+\.\d+\.\d+(?:-[a-z0-9.]+)?)/i
 
-export async function getInstalledVersion(binaryName: string): Promise<string | undefined> {
+function parseInstalledVersionOutput(text: string, parser?: AgentVersionProbe['parser']): string | undefined {
+  if (parser)
+    return parser(text)
+
+  const firstLine = text.trim().split('\n')[0]
+  const match = firstLine.match(VERSION_PATTERN)
+  return match ? match[1] : (firstLine || undefined)
+}
+
+export async function getInstalledVersion(binaryName: string, versionProbe?: AgentVersionProbe): Promise<string | undefined> {
+  const command = versionProbe?.command ?? [binaryName, '--version']
+
   try {
-    const proc = Bun.spawn([binaryName, '--version'], { stdout: 'pipe', stderr: 'pipe' })
+    const proc = Bun.spawn(command, { stdout: 'pipe', stderr: 'pipe' })
     await proc.exited
     if (proc.exitCode !== 0)
       return undefined
     const text = await new Response(proc.stdout).text()
-    const firstLine = text.trim().split('\n')[0]
-
-    // 尝试提取版本号，失败则返回第一行原始内容
-    const match = firstLine.match(VERSION_PATTERN)
-    return match ? match[1] : (firstLine || undefined)
+    return parseInstalledVersionOutput(text, versionProbe?.parser)
   }
   catch {
     return undefined

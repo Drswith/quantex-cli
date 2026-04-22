@@ -119,8 +119,8 @@ describe('listCommand', () => {
   it('shows command updates when the agent provides a self-update command', async () => {
     const selfUpdatingAgent = {
       ...testAgent,
-      update: {
-        commands: ['test-bin update'],
+      selfUpdate: {
+        command: ['test-bin', 'update'],
       },
     }
 
