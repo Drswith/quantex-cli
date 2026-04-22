@@ -1,14 +1,19 @@
+import process from 'node:process'
 import { afterEach, describe, expect, it } from 'vitest'
 import { resetCliContext, resolveCliContext } from '../src/cli-context'
 
 describe('resolveCliContext', () => {
   const previousRunId = process.env.QUANTEX_RUN_ID
+  const originalStdinIsTTY = process.stdin.isTTY
+  const originalStdoutIsTTY = process.stdout.isTTY
 
   afterEach(() => {
     if (previousRunId === undefined)
       delete process.env.QUANTEX_RUN_ID
     else
       process.env.QUANTEX_RUN_ID = previousRunId
+    Object.defineProperty(process.stdin, 'isTTY', { configurable: true, value: originalStdinIsTTY })
+    Object.defineProperty(process.stdout, 'isTTY', { configurable: true, value: originalStdoutIsTTY })
     resetCliContext()
   })
 
@@ -66,5 +71,32 @@ describe('resolveCliContext', () => {
     const context = resolveCliContext({ logLevel: 'warn' })
 
     expect(context.logLevel).toBe('warn')
+  })
+
+  it('switches to agent-friendly defaults when stdout is not a tty', () => {
+    Object.defineProperty(process.stdout, 'isTTY', { configurable: true, value: false })
+
+    const context = resolveCliContext()
+
+    expect(context.outputMode).toBe('json')
+    expect(context.interactive).toBe(false)
+  })
+
+  it('switches to agent-friendly defaults when stdin is not a tty', () => {
+    Object.defineProperty(process.stdin, 'isTTY', { configurable: true, value: false })
+
+    const context = resolveCliContext()
+
+    expect(context.outputMode).toBe('json')
+    expect(context.interactive).toBe(false)
+  })
+
+  it('preserves explicit human output when requested in non-tty environments', () => {
+    Object.defineProperty(process.stdout, 'isTTY', { configurable: true, value: false })
+
+    const context = resolveCliContext({ output: 'human' })
+
+    expect(context.outputMode).toBe('human')
+    expect(context.interactive).toBe(false)
   })
 })

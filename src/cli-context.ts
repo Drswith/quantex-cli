@@ -71,11 +71,16 @@ export function resetCliContext(): void {
 export function resolveCliContext(options: CliContextOptions = {}): CliContext {
   const stdinInteractive = process.stdin.isTTY !== false
   const stdoutInteractive = process.stdout.isTTY !== false
+  const autoAgentFriendly = !stdinInteractive || !stdoutInteractive
   const outputMode = options.json || options.output === 'json'
     ? 'json'
     : options.output === 'ndjson'
       ? 'ndjson'
-      : 'human'
+      : options.output === 'human'
+        ? 'human'
+        : autoAgentFriendly
+          ? 'json'
+          : 'human'
   const timeoutMs = options.timeout === undefined ? undefined : parseDurationToMs(options.timeout)
   const colorMode = resolveColorMode(options.color)
   const logLevel = resolveLogLevel(options.logLevel)
@@ -92,7 +97,7 @@ export function resolveCliContext(options: CliContextOptions = {}): CliContext {
     colorMode,
     dryRun: options.dryRun,
     idempotencyKey: options.idempotencyKey,
-    interactive: !options.nonInteractive && stdinInteractive && stdoutInteractive,
+    interactive: !options.nonInteractive && !autoAgentFriendly && stdinInteractive && stdoutInteractive,
     logLevel,
     outputMode,
     quiet: options.quiet,
