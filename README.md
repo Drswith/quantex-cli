@@ -18,6 +18,27 @@
 - [Human + Agent 双模 CLI 设计](./HUMAN_AGENT_DUAL_MODE_CLI.md)
 - [Human + Agent 双模 CLI Implementation Checklist / Issue Backlog](./HUMAN_AGENT_DUAL_MODE_CLI_IMPLEMENTATION_BACKLOG.md)
 
+## Agent Skill
+
+仓库内置了一份面向 Codex / agent 使用的 Quantex skill：
+
+- [skills/quantex-cli/SKILL.md](./skills/quantex-cli/SKILL.md)
+- [skills/quantex-cli/references/command-recipes.md](./skills/quantex-cli/references/command-recipes.md)
+- [skills/quantex-cli/references/automation-playbook.md](./skills/quantex-cli/references/automation-playbook.md)
+- [skills/quantex-cli/references/output-contracts.md](./skills/quantex-cli/references/output-contracts.md)
+- [skills/quantex-cli/references/troubleshooting.md](./skills/quantex-cli/references/troubleshooting.md)
+- [skills/quantex-cli/scripts/smoke-check.sh](./skills/quantex-cli/scripts/smoke-check.sh)
+
+这份 skill 会引导 agent 以 Quantex 的 lifecycle CLI 方式工作，优先使用 `inspect` / `ensure` / `resolve` / `exec` / `capabilities` / `commands` / `schema`，并遵循结构化输出、非交互和自动化契约。
+
+如果你在维护 Quantex 的命令面或 skill 本身，可以运行：
+
+```bash
+skills/quantex-cli/scripts/smoke-check.sh
+```
+
+它会对 `capabilities`、`commands`、`schema`、`inspect` 以及可选的 `resolve` 做一轮轻量结构化 smoke check。
+
 ## 支持的 Agent
 
 | Agent | 命令 | 别名 | 描述 |
@@ -240,6 +261,28 @@ quantex exec claude --install if-missing --yes -- --help
 - `--run-id`
 - `--idempotency-key`
 - `--timeout`
+
+当 `stdin` 或 `stdout` 不是 TTY 时，Quantex 现在会自动切到 agent-friendly 默认行为：
+
+- 自动关闭交互
+- 默认改为结构化输出
+
+不过在自动化里，仍然更建议显式传 `--json`、`--output`、`--non-interactive`，这样契约更清晰。
+
+结构化输出的 stream contract 也已经固定下来：
+
+- `human`：面向人类阅读
+- `--json`：`stdout` 只输出最终 JSON envelope
+- `--output ndjson`：`stdout` 只输出事件流
+- `stderr`：日志、警告和底层安装器输出
+
+如果你需要精确查看输出结构，优先使用：
+
+```bash
+quantex commands --json
+quantex schema --json
+quantex schema inspect --json
+```
 
 对于版本与 release 元数据查询，结构化结果的 `meta` 现在会附带：
 

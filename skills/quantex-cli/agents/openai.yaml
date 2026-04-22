@@ -1,0 +1,10 @@
+interface:
+  display_name: Quantex CLI
+  short_description: Operate AI agent CLIs through Quantex
+  icon_small: ./assets/quantex-cli-small.svg
+  icon_large: ./assets/quantex-cli-large.svg
+  brand_color: '#1FA669'
+  default_prompt: 'Use $quantex-cli to inspect, ensure, resolve, update, or execute supported AI agent CLIs through Quantex with structured, non-interactive commands.'
+
+policy:
+  allow_implicit_invocation: true

@@ -1,0 +1,9 @@
+<svg width="640" height="240" viewBox="0 0 640 240" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect width="640" height="240" rx="36" fill="#0B141A"/>
+  <rect x="32" y="32" width="176" height="176" rx="32" fill="#1FA669"/>
+  <path d="M85 82H129C147.225 82 162 96.7746 162 115V133C162 151.225 147.225 166 129 166H112" stroke="#0F1720" stroke-width="16" stroke-linecap="round"/>
+  <path d="M136 149L167 180" stroke="#0F1720" stroke-width="16" stroke-linecap="round"/>
+  <path d="M69 124L91 142L69 160" stroke="white" stroke-width="12" stroke-linecap="round" stroke-linejoin="round"/>
+  <text x="246" y="116" fill="white" font-family="ui-sans-serif, system-ui, sans-serif" font-size="54" font-weight="700">Quantex CLI</text>
+  <text x="246" y="160" fill="#9CCFB9" font-family="ui-sans-serif, system-ui, sans-serif" font-size="24">Human-friendly and agent-friendly lifecycle surface</text>
+</svg>
