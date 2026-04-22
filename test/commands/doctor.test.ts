@@ -117,16 +117,17 @@ describe('doctorCommand', () => {
   })
 
   it('shows manual recovery for outdated binary installs', async () => {
+    const executablePath = process.platform === 'win32' ? 'C:\\Program Files\\Quantex\\qtx.exe' : '/usr/local/bin/qtx'
     isBunSpy.mockResolvedValue(true)
     isNpmSpy.mockResolvedValue(false)
     allAgentsSpy.mockReturnValue([])
     inspectSelfSpy.mockResolvedValue({
       canAutoUpdate: true,
       currentVersion: '1.0.0',
-      executablePath: '/usr/local/bin/qtx',
+      executablePath,
       installSource: 'binary',
       latestVersion: '1.1.0',
-      packageRoot: '/usr/local/bin',
+      packageRoot: process.platform === 'win32' ? 'C:\\Program Files\\Quantex' : '/usr/local/bin',
       recommendedUpgradeCommand: 'quantex upgrade',
       updateChannel: 'stable',
     })

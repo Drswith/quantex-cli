@@ -22,6 +22,13 @@ afterEach(() => {
   vi.restoreAllMocks()
 })
 
+function expectExecutableBits(mode: number): void {
+  if (originalPlatform === 'win32')
+    return
+
+  expect(mode & 0o111).toBeGreaterThan(0)
+}
+
 describe('upgradeStandaloneBinary', () => {
   it('schedules delayed replacement on Windows', async () => {
     const tempRoot = await mkdtemp(join(tmpdir(), 'quantex-binary-win-'))
@@ -74,7 +81,7 @@ describe('upgradeStandaloneBinary', () => {
         success: true,
       })
       expect((await readFile(executablePath, 'utf8'))).toBe('new-binary')
-      expect(((await stat(executablePath)).mode & 0o111) > 0).toBe(true)
+      expectExecutableBits((await stat(executablePath)).mode)
     }
     finally {
       await rm(tempRoot, { recursive: true, force: true })
@@ -104,7 +111,7 @@ describe('upgradeStandaloneBinary', () => {
         success: true,
       })
       expect(await readFile(executablePath, 'utf8')).toBe(replacement)
-      expect((await stat(executablePath)).mode & 0o111).toBeGreaterThan(0)
+      expectExecutableBits((await stat(executablePath)).mode)
       expect(existsSync(`${executablePath}.bak`)).toBe(false)
     }
     finally {
