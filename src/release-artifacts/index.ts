@@ -18,6 +18,13 @@ export interface ReleaseManifest {
   version: string
 }
 
+export function formatChecksums(entries: Array<{ checksum: string, name: string }>): string {
+  return `${entries
+    .sort((left, right) => left.name.localeCompare(right.name))
+    .map(entry => `${entry.checksum}  ${entry.name}`)
+    .join('\n')}\n`
+}
+
 export function parseChecksums(contents: string): Map<string, string> {
   const checksums = new Map<string, string>()
 

@@ -38,7 +38,7 @@
     "prepublishOnly": "bun run build",
     "postinstall": "node scripts/postinstall.cjs",
     "release": "bumpp",
-    "release:artifacts": "bun run scripts/generate-release-manifest.ts && bun run scripts/verify-release-artifacts.ts",
+    "release:artifacts": "bun run scripts/write-release-checksums.ts && bun run scripts/generate-release-manifest.ts && bun run scripts/verify-release-artifacts.ts",
     "dev": "bun run src/cli.ts",
     "test": "vitest run",
     "test:watch": "vitest",

@@ -32,12 +32,7 @@ jobs:
       - name: Build binaries
         run: bun run build:bin
 
-      - name: Generate checksums
-        run: |
-          cd dist/bin
-          sha256sum quantex-* > SHA256SUMS.txt
-
-      - name: Generate release manifest
+      - name: Generate release artifacts
         run: bun run release:artifacts
 
       - name: Setup Node.js (for OIDC publish)
