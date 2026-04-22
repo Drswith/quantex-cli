@@ -1,15 +1,22 @@
+import { mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises'
+import { tmpdir } from 'node:os'
+import { join } from 'node:path'
+import { pathToFileURL } from 'node:url'
 import { afterAll, beforeEach, describe, expect, it, vi } from 'vitest'
 import * as bunPm from '../src/package-manager/bun'
 import * as npmPm from '../src/package-manager/npm'
+import * as binarySelf from '../src/self/binary'
 import * as version from '../src/utils/version'
 
 const bunUpdateSpy = vi.spyOn(bunPm, 'update')
 const npmUpdateSpy = vi.spyOn(npmPm, 'update')
+const binaryUpgradeSpy = vi.spyOn(binarySelf, 'upgradeStandaloneBinary')
 const latestVersionSpy = vi.spyOn(version, 'getLatestVersion')
 
 afterAll(() => {
   bunUpdateSpy.mockRestore()
   npmUpdateSpy.mockRestore()
+  binaryUpgradeSpy.mockRestore()
   latestVersionSpy.mockRestore()
 })
 
@@ -17,6 +24,7 @@ describe('self helpers', () => {
   beforeEach(() => {
     bunUpdateSpy.mockClear()
     npmUpdateSpy.mockClear()
+    binaryUpgradeSpy.mockClear()
     latestVersionSpy.mockClear()
   })
 
@@ -28,6 +36,11 @@ describe('self helpers', () => {
   it('detects npm global installations from the package root path', async () => {
     const { detectSelfInstallSource } = await import('../src/self')
     expect(detectSelfInstallSource('/usr/local/lib/node_modules/quantex-cli')).toBe('npm')
+  })
+
+  it('detects standalone binaries from the executable path', async () => {
+    const { detectSelfInstallSource } = await import('../src/self')
+    expect(detectSelfInstallSource('', '/usr/local/bin/qtx')).toBe('binary')
   })
 
   it('treats non-installed package roots as source checkouts', async () => {
@@ -42,6 +55,7 @@ describe('self helpers', () => {
     const result = await upgradeSelf({
       canAutoUpdate: true,
       currentVersion: '1.0.0',
+      executablePath: '/Users/test/.bun/bin/quantex',
       installSource: 'bun',
       latestVersion: '1.1.0',
       packageRoot: '/Users/test/.bun/install/global/node_modules/quantex-cli',
@@ -62,6 +76,7 @@ describe('self helpers', () => {
     const result = await upgradeSelf({
       canAutoUpdate: true,
       currentVersion: '1.0.0',
+      executablePath: '/usr/local/bin/quantex',
       installSource: 'npm',
       latestVersion: '1.1.0',
       packageRoot: '/usr/local/lib/node_modules/quantex-cli',
@@ -81,6 +96,7 @@ describe('self helpers', () => {
     const result = await upgradeSelf({
       canAutoUpdate: false,
       currentVersion: '1.0.0',
+      executablePath: '/Users/test/workspaces/quantex-cli/node_modules/.bin/bun',
       installSource: 'source',
       latestVersion: '1.1.0',
       packageRoot: '/Users/test/workspaces/quantex-cli',
@@ -92,6 +108,56 @@ describe('self helpers', () => {
     })
   })
 
+  it('upgrades standalone binaries through release downloads', async () => {
+    const { upgradeSelf } = await import('../src/self')
+    binaryUpgradeSpy.mockResolvedValue(true)
+
+    const result = await upgradeSelf({
+      canAutoUpdate: true,
+      currentVersion: '1.0.0',
+      executablePath: '/usr/local/bin/qtx',
+      installSource: 'binary',
+      latestVersion: '1.1.0',
+      packageRoot: '/usr/local/bin',
+      recommendedUpgradeCommand: 'quantex upgrade',
+    })
+
+    expect(result).toEqual({
+      installSource: 'binary',
+      success: true,
+    })
+    expect(binaryUpgradeSpy).toHaveBeenCalledWith(
+      'https://github.com/Drswith/quantex-cli/releases/latest/download/quantex-darwin-arm64',
+      '/usr/local/bin/qtx',
+    )
+  })
+
+  it('resolves package metadata from bundled dist chunks', async () => {
+    const { resolveSelfPackageMetadata } = await import('../src/self')
+    const tempRoot = await mkdtemp(join(tmpdir(), 'quantex-self-'))
+    const packageRoot = join(tempRoot, 'node_modules', 'quantex-cli')
+    const packageJsonPath = join(packageRoot, 'package.json')
+
+    await mkdir(join(packageRoot, 'dist'), { recursive: true })
+    await writeFile(packageJsonPath, JSON.stringify({
+      name: 'quantex-cli',
+      version: '1.2.3',
+    }))
+
+    try {
+      const metadata = await resolveSelfPackageMetadata(pathToFileURL(join(packageRoot, 'dist', 'self-abc123.mjs')).href)
+
+      expect(metadata).toEqual({
+        packageJsonPath,
+        packageRoot,
+        version: '1.2.3',
+      })
+    }
+    finally {
+      await rm(tempRoot, { recursive: true, force: true })
+    }
+  })
+
   it('inspects the current CLI and resolves latest version metadata', async () => {
     const { inspectSelf } = await import('../src/self')
     latestVersionSpy.mockResolvedValue('9.9.9')
@@ -101,6 +167,7 @@ describe('self helpers', () => {
     expect(inspection.currentVersion).toBeTruthy()
     expect(inspection.installSource).toBe('source')
     expect(inspection.canAutoUpdate).toBe(false)
+    expect(inspection.executablePath).toBeTruthy()
     expect(inspection.latestVersion).toBe('9.9.9')
   })
 })

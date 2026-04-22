@@ -30,7 +30,15 @@ export { getManagedInstaller } from './package-manager/installers'
 export type { ManagedInstaller } from './package-manager/installers'
 export { createUpdatePlan, isInspectionUpdateAvailable } from './planning'
 export type { UpdatePlan, UpdatePlanEntry } from './planning'
-export { canAutoUpdateSelf, detectSelfInstallSource, inspectSelf, upgradeSelf } from './self'
+export {
+  canAutoUpdateSelf,
+  detectSelfInstallSource,
+  getBinaryReleaseAssetName,
+  getBinaryReleaseDownloadUrl,
+  getSelfVersion,
+  inspectSelf,
+  upgradeSelf,
+} from './self'
 export type { SelfInspection, SelfInstallSource, SelfUpdateResult } from './self'
 export { getSingleAgentUpdateStatus, inspectRegisteredAgents, planAgentUpdates, resolveAgent, resolveAgentInspection } from './services'
 export type {

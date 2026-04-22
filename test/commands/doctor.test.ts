@@ -66,6 +66,7 @@ describe('doctorCommand', () => {
     inspectSelfSpy.mockResolvedValue({
       canAutoUpdate: true,
       currentVersion: '1.0.0',
+      executablePath: '/tmp/quantex',
       installSource: 'npm',
       latestVersion: '1.0.0',
       packageRoot: '/tmp/quantex',
