@@ -186,6 +186,38 @@ describe('updateCommand', () => {
     expect(output).toContain('Self Updating Agent updated successfully')
   })
 
+  it('shows a self-update recovery hint when self-update fails', async () => {
+    const selfUpdatingAgent = {
+      ...testAgent,
+      name: 'self-updating-agent',
+      binaryName: 'self-updating-bin',
+      displayName: 'Self Updating Agent',
+      homepage: 'https://example.com/self-updating-agent',
+      packages: undefined,
+      selfUpdate: {
+        command: ['self-updating-bin', 'update'],
+      },
+      platforms: {
+        linux: [{ type: 'script' as const, command: 'curl https://example.com/install | bash' }],
+        macos: [{ type: 'script' as const, command: 'curl https://example.com/install | bash' }],
+        windows: [{ type: 'script' as const, command: 'irm https://example.com/install | iex' }],
+      },
+    }
+
+    agentSpy.mockReturnValue(selfUpdatingAgent)
+    binaryInPathSpy.mockResolvedValue(true)
+    installedVerSpy.mockResolvedValue('1.0.0')
+    latestVerSpy.mockResolvedValue(undefined)
+    installedStateSpy.mockResolvedValue(undefined)
+    updateSpy.mockResolvedValue({ success: false })
+
+    await updateCommand('self-updating-agent', false)
+
+    const output = logSpy.mock.calls.map((c: any[]) => c[0]).join('\n')
+    expect(output).toContain('Failed to update Self Updating Agent.')
+    expect(output).toContain('Try running self-updating-bin update directly.')
+  })
+
   it('shows error when no agent specified and no --all flag', async () => {
     await updateCommand(undefined, false)
     expect(logSpy).toHaveBeenCalledWith(expect.stringContaining('Please specify'))
