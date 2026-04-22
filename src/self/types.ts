@@ -1,4 +1,5 @@
 export type SelfInstallSource = 'binary' | 'bun' | 'npm' | 'source' | 'unknown'
+export type SelfUpdateChannel = 'beta' | 'stable'
 
 export interface SelfInspection {
   canAutoUpdate: boolean
@@ -8,6 +9,7 @@ export interface SelfInspection {
   latestVersion?: string
   packageRoot: string
   recommendedUpgradeCommand?: string
+  updateChannel: SelfUpdateChannel
 }
 
 export type SelfUpgradeErrorKind = 'checksum' | 'locked' | 'network' | 'permission' | 'unknown' | 'unsupported' | 'verify'

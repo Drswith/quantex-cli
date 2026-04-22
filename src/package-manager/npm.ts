@@ -13,11 +13,15 @@ export async function install(packageName: string): Promise<boolean> {
   }
 }
 
-export async function update(packageName: string, strategy: RegistryUpdateStrategy = 'latest-major'): Promise<boolean> {
+export async function update(
+  packageName: string,
+  strategy: RegistryUpdateStrategy = 'latest-major',
+  distTag: string = 'latest',
+): Promise<boolean> {
   try {
     const proc = Bun.spawn(
       strategy === 'latest-major'
-        ? ['npm', 'install', '-g', `${packageName}@latest`]
+        ? ['npm', 'install', '-g', `${packageName}@${distTag}`]
         : ['npm', 'update', '-g', packageName],
       {
         stdio: ['inherit', 'inherit', 'inherit'] as const,

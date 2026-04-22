@@ -35,6 +35,10 @@ export async function configCommand(action?: string, key?: string, value?: strin
         console.log(pc.red('npmBunUpdateStrategy must be latest-major or respect-semver'))
         return
       }
+      if (key === 'selfUpdateChannel' && value !== 'stable' && value !== 'beta') {
+        console.log(pc.red('selfUpdateChannel must be stable or beta'))
+        return
+      }
       let existing: Record<string, unknown> = {}
       try {
         existing = await loadConfig()

@@ -14,6 +14,7 @@ describe('defaultConfig', () => {
     const { defaultConfig } = await import('../src/config/default')
     expect(defaultConfig.defaultPackageManager).toBe('bun')
     expect(defaultConfig.npmBunUpdateStrategy).toBe('latest-major')
+    expect(defaultConfig.selfUpdateChannel).toBe('stable')
   })
 })
 
@@ -31,5 +32,6 @@ describe('loadConfig', () => {
     const config = await loadConfig()
     expect(config.defaultPackageManager).toBe('bun')
     expect(config.npmBunUpdateStrategy).toBe('latest-major')
+    expect(config.selfUpdateChannel).toBe('stable')
   })
 })

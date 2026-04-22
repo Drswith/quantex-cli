@@ -1,7 +1,9 @@
 import type { Jiti } from 'jiti'
+import type { SelfUpdateChannel } from '../self/types'
 import { mkdir, readFile } from 'node:fs/promises'
 import { homedir } from 'node:os'
 import { join } from 'node:path'
+import process from 'node:process'
 import { pathToFileURL } from 'node:url'
 import { loadConfig as c12LoadConfig } from 'c12'
 import { defaultConfig } from './default'
@@ -11,11 +13,12 @@ export type NpmBunUpdateStrategy = 'latest-major' | 'respect-semver'
 export interface QuantexConfig {
   defaultPackageManager: 'bun' | 'npm'
   npmBunUpdateStrategy: NpmBunUpdateStrategy
+  selfUpdateChannel: SelfUpdateChannel
   [key: string]: unknown
 }
 
 export function getConfigDir(): string {
-  return join(homedir(), '.quantex')
+  return join(process.env.HOME || process.env.USERPROFILE || homedir(), '.quantex')
 }
 
 export function getConfigFilePath(): string {
@@ -45,6 +48,7 @@ export async function loadConfig(): Promise<QuantexConfig> {
     ...normalizedConfig,
     defaultPackageManager: normalizedConfig.defaultPackageManager === 'npm' ? 'npm' : 'bun',
     npmBunUpdateStrategy: normalizedConfig.npmBunUpdateStrategy === 'respect-semver' ? 'respect-semver' : 'latest-major',
+    selfUpdateChannel: normalizedConfig.selfUpdateChannel === 'beta' ? 'beta' : 'stable',
   } as QuantexConfig
 }
 

@@ -6,9 +6,9 @@ import * as bunPm from '../../package-manager/bun'
 export const bunSelfUpgradeProvider: SelfUpgradeProvider = {
   source: 'bun',
   canHandle: inspection => inspection.installSource === 'bun',
-  getRecoveryHint: () => `bun add -g ${BUILD_PACKAGE_NAME}@latest`,
+  getRecoveryHint: inspection => `bun add -g ${BUILD_PACKAGE_NAME}@${inspection.updateChannel === 'beta' ? 'beta' : 'latest'}`,
   async upgrade(inspection: SelfInspection): Promise<SelfUpdateResult> {
-    const success = await bunPm.update(BUILD_PACKAGE_NAME)
+    const success = await bunPm.update(BUILD_PACKAGE_NAME, 'latest-major', inspection.updateChannel === 'beta' ? 'beta' : 'latest')
     return {
       error: success
         ? undefined
@@ -17,6 +17,7 @@ export const bunSelfUpgradeProvider: SelfUpgradeProvider = {
             message: `Failed to update ${BUILD_PACKAGE_NAME} through Bun.`,
           },
       installSource: inspection.installSource,
+      newVersion: success ? inspection.latestVersion : undefined,
       success,
     }
   },

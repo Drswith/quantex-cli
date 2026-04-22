@@ -9,9 +9,14 @@ export async function install(packageName: string): Promise<boolean> {
   }
 }
 
-export async function update(packageName: string, strategy: RegistryUpdateStrategy = 'latest-major'): Promise<boolean> {
+export async function update(
+  packageName: string,
+  strategy: RegistryUpdateStrategy = 'latest-major',
+  distTag: string = 'latest',
+): Promise<boolean> {
   try {
-    return await runGlobalBunCommandWithTrust(['bun', 'update', '-g', ...(strategy === 'latest-major' ? ['--latest'] : []), packageName], [packageName])
+    const targetPackage = distTag === 'latest' ? packageName : `${packageName}@${distTag}`
+    return await runGlobalBunCommandWithTrust(['bun', 'update', '-g', ...(strategy === 'latest-major' ? ['--latest'] : []), targetPackage], [packageName])
   }
   catch {
     return false
