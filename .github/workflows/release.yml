@@ -38,7 +38,7 @@ jobs:
           sha256sum quantex-* > SHA256SUMS.txt
 
       - name: Generate release manifest
-        run: bun run scripts/generate-release-manifest.ts
+        run: bun run release:artifacts
 
       - name: Setup Node.js (for OIDC publish)
         uses: actions/setup-node@v4

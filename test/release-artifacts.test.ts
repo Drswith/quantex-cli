@@ -1,0 +1,101 @@
+import { describe, expect, it } from 'vitest'
+import {
+  createReleaseManifest,
+  normalizeRepositoryUrl,
+  parseBinaryTarget,
+  parseChecksums,
+  resolveReleaseChannel,
+  validateReleaseManifest,
+} from '../src/release-artifacts'
+
+describe('release artifacts helpers', () => {
+  it('normalizes repository URLs', () => {
+    expect(normalizeRepositoryUrl('git+https://github.com/Drswith/quantex-cli.git')).toBe('https://github.com/Drswith/quantex-cli')
+    expect(normalizeRepositoryUrl('git@github.com:Drswith/quantex-cli.git')).toBe('https://github.com/Drswith/quantex-cli')
+    expect(normalizeRepositoryUrl(undefined)).toBe('https://github.com/Drswith/quantex-cli')
+  })
+
+  it('parses binary targets from release filenames', () => {
+    expect(parseBinaryTarget('quantex-darwin-arm64')).toEqual({ arch: 'arm64', platform: 'darwin' })
+    expect(parseBinaryTarget('quantex-linux-x64')).toEqual({ arch: 'x64', platform: 'linux' })
+    expect(parseBinaryTarget('quantex-windows-x64.exe')).toEqual({ arch: 'x64', platform: 'win32' })
+    expect(parseBinaryTarget('manifest.json')).toBeUndefined()
+  })
+
+  it('parses checksum files', () => {
+    expect(parseChecksums(`abc  quantex-darwin-arm64\n123 *quantex-linux-x64\n`)).toEqual(new Map([
+      ['quantex-darwin-arm64', 'abc'],
+      ['quantex-linux-x64', '123'],
+    ]))
+  })
+
+  it('resolves release channel from version', () => {
+    expect(resolveReleaseChannel('1.0.0')).toBe('stable')
+    expect(resolveReleaseChannel('1.0.0-beta.1')).toBe('beta')
+  })
+
+  it('creates a release manifest from binaries and checksums', () => {
+    const manifest = createReleaseManifest({
+      checksums: new Map([
+        ['quantex-darwin-arm64', 'a'.repeat(64)],
+        ['quantex-linux-x64', 'b'.repeat(64)],
+      ]),
+      files: [
+        { name: 'quantex-linux-x64', size: 22 },
+        { name: 'quantex-darwin-arm64', size: 11 },
+        { name: 'manifest.json', size: 5 },
+      ],
+      repositoryUrl: 'git+https://github.com/Drswith/quantex-cli.git',
+      version: '1.2.3-beta.1',
+    })
+
+    expect(manifest).toEqual({
+      assets: [
+        {
+          arch: 'arm64',
+          checksum: 'a'.repeat(64),
+          downloadUrl: 'https://github.com/Drswith/quantex-cli/releases/download/v1.2.3-beta.1/quantex-darwin-arm64',
+          name: 'quantex-darwin-arm64',
+          platform: 'darwin',
+          size: 11,
+        },
+        {
+          arch: 'x64',
+          checksum: 'b'.repeat(64),
+          downloadUrl: 'https://github.com/Drswith/quantex-cli/releases/download/v1.2.3-beta.1/quantex-linux-x64',
+          name: 'quantex-linux-x64',
+          platform: 'linux',
+          size: 22,
+        },
+      ],
+      channel: 'beta',
+      version: '1.2.3-beta.1',
+    })
+  })
+
+  it('fails manifest generation when a checksum is missing', () => {
+    expect(() => createReleaseManifest({
+      checksums: new Map(),
+      files: [{ name: 'quantex-darwin-arm64', size: 11 }],
+      version: '1.2.3',
+    })).toThrow('Missing checksum entry for quantex-darwin-arm64.')
+  })
+
+  it('validates manifest/checksum consistency', () => {
+    const manifest = createReleaseManifest({
+      checksums: new Map([
+        ['quantex-darwin-arm64', 'a'.repeat(64)],
+      ]),
+      files: [{ name: 'quantex-darwin-arm64', size: 11 }],
+      version: '1.2.3',
+    })
+
+    expect(() => validateReleaseManifest(manifest, new Map([
+      ['quantex-darwin-arm64', 'a'.repeat(64)],
+    ]))).not.toThrow()
+
+    expect(() => validateReleaseManifest(manifest, new Map([
+      ['quantex-darwin-arm64', 'b'.repeat(64)],
+    ]))).toThrow('manifest.json checksum mismatch for quantex-darwin-arm64.')
+  })
+})
