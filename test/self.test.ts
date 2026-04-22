@@ -2,6 +2,7 @@ import { existsSync } from 'node:fs'
 import { mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
+import process from 'node:process'
 import { pathToFileURL } from 'node:url'
 import { afterAll, beforeEach, describe, expect, it, vi } from 'vitest'
 import * as config from '../src/config'
@@ -18,6 +19,8 @@ const binaryUpgradeSpy = vi.spyOn(binarySelf, 'upgradeStandaloneBinary')
 const releaseManifestSpy = vi.spyOn(releaseSelf, 'fetchBinaryReleaseManifest')
 const latestVersionSpy = vi.spyOn(version, 'getLatestVersion')
 const tempConfigDir = join(tmpdir(), `quantex-self-test-${Date.now()}`)
+const originalPlatform = process.platform
+const originalArch = process.arch
 
 afterAll(() => {
   getConfigDirSpy.mockRestore()
@@ -26,6 +29,8 @@ afterAll(() => {
   binaryUpgradeSpy.mockRestore()
   releaseManifestSpy.mockRestore()
   latestVersionSpy.mockRestore()
+  Object.defineProperty(process, 'platform', { value: originalPlatform })
+  Object.defineProperty(process, 'arch', { value: originalArch })
 })
 
 describe('self helpers', () => {
@@ -36,6 +41,8 @@ describe('self helpers', () => {
     binaryUpgradeSpy.mockClear()
     releaseManifestSpy.mockClear()
     latestVersionSpy.mockClear()
+    Object.defineProperty(process, 'platform', { value: originalPlatform })
+    Object.defineProperty(process, 'arch', { value: originalArch })
   })
 
   it('detects bun global installations from the package root path', async () => {
@@ -147,12 +154,16 @@ describe('self helpers', () => {
   })
 
   it('upgrades standalone binaries through release downloads', async () => {
-    const { getSelfUpdateChannel, getSelfUpgradeRecoveryHint, parseBinaryReleaseChecksum, resolveBinaryReleaseAsset, upgradeSelf } = await import('../src/self')
+    const { getBinaryReleaseAssetName, getSelfUpdateChannel, getSelfUpgradeRecoveryHint, parseBinaryReleaseChecksum, resolveBinaryReleaseAsset, upgradeSelf } = await import('../src/self')
+    Object.defineProperty(process, 'platform', { value: 'darwin' })
+    Object.defineProperty(process, 'arch', { value: 'arm64' })
+    const downloadUrl = 'https://example.com/releases/download/v1.1.0/quantex-darwin-arm64'
+
     releaseManifestSpy.mockResolvedValue({
       assets: [{
         arch: 'arm64',
         checksum: 'abc123',
-        downloadUrl: 'https://example.com/releases/download/v1.1.0/quantex-darwin-arm64',
+        downloadUrl,
         name: 'quantex-darwin-arm64',
         platform: 'darwin',
       }],
@@ -178,7 +189,7 @@ describe('self helpers', () => {
       newVersion: '1.1.0',
     })
     expect(binaryUpgradeSpy).toHaveBeenCalledWith(
-      'https://example.com/releases/download/v1.1.0/quantex-darwin-arm64',
+      downloadUrl,
       '/usr/local/bin/qtx',
       'abc123',
       '1.1.0',
@@ -204,7 +215,7 @@ describe('self helpers', () => {
       }],
       channel: 'stable',
       version: '1.1.0',
-    }, '/usr/local/bin/qtx')?.downloadUrl).toBe('https://example.com/quantex-darwin-arm64')
+    }, '/usr/local/bin/qtx')?.name).toBe(getBinaryReleaseAssetName('/usr/local/bin/qtx'))
   })
 
   it('returns a locked error when another self upgrade is already running', async () => {

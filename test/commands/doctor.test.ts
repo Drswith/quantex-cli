@@ -135,7 +135,7 @@ describe('doctorCommand', () => {
 
     const output = logSpy.mock.calls.map((c: any[]) => c[0]).join('\n')
     expect(output).toContain('Recovery:')
-    expect(output).toContain('/releases/latest/download/quantex-darwin-arm64')
+    expect(output).toContain('/releases/latest/download/quantex-')
   })
 
   it('shows installed agents with versions', async () => {

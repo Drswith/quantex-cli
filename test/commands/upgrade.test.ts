@@ -113,13 +113,14 @@ describe('upgradeCommand', () => {
   })
 
   it('shows manual recovery for binary installs when self-upgrade fails', async () => {
+    const executablePath = process.platform === 'win32' ? 'C:\\Program Files\\Quantex\\qtx.exe' : '/usr/local/bin/qtx'
     const inspection = {
       canAutoUpdate: true,
       currentVersion: '1.0.0',
-      executablePath: '/usr/local/bin/qtx',
+      executablePath,
       installSource: 'binary' as const,
       latestVersion: '1.1.0',
-      packageRoot: '/usr/local/bin',
+      packageRoot: process.platform === 'win32' ? 'C:\\Program Files\\Quantex' : '/usr/local/bin',
       recommendedUpgradeCommand: 'quantex upgrade',
       updateChannel: 'stable' as const,
     }
@@ -135,7 +136,8 @@ describe('upgradeCommand', () => {
 
     await expect(upgradeCommand()).resolves.toBe(2)
 
-    expect(logSpy).toHaveBeenCalledWith(expect.stringContaining('check write permission'))
+    expect(logSpy).toHaveBeenCalledWith(expect.stringContaining('Manual recovery:'))
+    expect(logSpy).toHaveBeenCalledWith(expect.stringContaining('download and replace the binary'))
   })
 
   it('shows a retry hint when another self upgrade already holds the lock', async () => {
