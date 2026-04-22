@@ -1,3 +1,4 @@
+import type { ExecInstallPolicy } from './exec'
 import pc from 'picocolors'
 import prompts from 'prompts'
 import { getCliContext } from '../cli-context'
@@ -5,7 +6,14 @@ import { getExitCodeForError } from '../errors'
 import { installAgent } from '../package-manager'
 import { resolveAgentInspection } from '../services/agents'
 
-export async function runCommand(agentName: string, args: string[], options: { nonInteractive?: boolean } = {}): Promise<number> {
+export async function runCommand(
+  agentName: string,
+  args: string[],
+  options: {
+    install?: ExecInstallPolicy | 'prompt'
+    nonInteractive?: boolean
+  } = {},
+): Promise<number> {
   const resolved = await resolveAgentInspection(agentName)
   if (!resolved) {
     console.log(pc.red(`Unknown agent: ${agentName}`))
@@ -14,30 +22,45 @@ export async function runCommand(agentName: string, args: string[], options: { n
 
   const { agent, inspection } = resolved
   const interactive = options.nonInteractive ? false : getCliContext().interactive
+  const installPolicy = options.install ?? 'prompt'
 
   if (!inspection.inPath) {
-    if (!interactive) {
+    if (installPolicy === 'never') {
+      console.log(pc.red(`${agent.displayName} is not installed.`))
+      return getExitCodeForError('AGENT_NOT_INSTALLED')
+    }
+
+    if (installPolicy === 'if-missing' || installPolicy === 'always') {
+      console.log(pc.cyan(`Installing ${agent.displayName}...`))
+      const result = await installAgent(agent)
+      if (!result.success) {
+        console.log(pc.red(`Failed to install ${agent.displayName}.`))
+        return 1
+      }
+    }
+    else if (!interactive) {
       console.log(pc.red(`${agent.displayName} is not installed and interactive installation is disabled.`))
       return getExitCodeForError('INTERACTION_REQUIRED')
     }
+    else {
+      const response = await prompts({
+        type: 'confirm',
+        name: 'install',
+        message: `${agent.displayName} is not installed. Would you like to install it?`,
+        initial: true,
+      })
 
-    const response = await prompts({
-      type: 'confirm',
-      name: 'install',
-      message: `${agent.displayName} is not installed. Would you like to install it?`,
-      initial: true,
-    })
+      if (!response.install) {
+        console.log(pc.yellow('Installation cancelled.'))
+        return 1
+      }
 
-    if (!response.install) {
-      console.log(pc.yellow('Installation cancelled.'))
-      return 1
-    }
-
-    console.log(pc.cyan(`Installing ${agent.displayName}...`))
-    const result = await installAgent(agent)
-    if (!result.success) {
-      console.log(pc.red(`Failed to install ${agent.displayName}.`))
-      return 1
+      console.log(pc.cyan(`Installing ${agent.displayName}...`))
+      const result = await installAgent(agent)
+      if (!result.success) {
+        console.log(pc.red(`Failed to install ${agent.displayName}.`))
+        return 1
+      }
     }
   }
 

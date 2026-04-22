@@ -52,6 +52,27 @@ program
   })
 
 program
+  .command('exec <agent>')
+  .description('以显式策略启动 agent')
+  .allowUnknownOption()
+  .option('--install <policy>', 'Install policy: never, if-missing, always', 'never')
+  .argument('[args...]', 'Arguments passed through to the agent')
+  .action(async (agent: string, args: string[], options: { install?: string }, command) => {
+    const installPolicy = options.install
+    if (installPolicy !== 'never' && installPolicy !== 'if-missing' && installPolicy !== 'always') {
+      console.log(pc.red(`Unknown install policy: ${installPolicy}`))
+      process.exitCode = 2
+      return
+    }
+
+    const passthroughArgs = extractExecPassthroughArgs(command)
+    process.exitCode = await runCommand(agent, passthroughArgs.length > 0 ? passthroughArgs : args, {
+      install: installPolicy,
+      nonInteractive: command.optsWithGlobals().nonInteractive,
+    })
+  })
+
+program
   .command('update')
   .argument('[agent]', 'Agent name or alias')
   .option('--all', '更新所有已安装的 agent')
@@ -164,6 +185,14 @@ interface ShortcutInvocation {
   error?: string
   nonInteractive?: boolean
   runId?: string
+}
+
+function extractExecPassthroughArgs(command: { args: string[], processedArgs: string[] }): string[] {
+  const rawArgs = command.processedArgs.at(-1)
+  if (Array.isArray(rawArgs))
+    return rawArgs
+
+  return command.args.slice(1)
 }
 
 function resolveShortcutInvocation(argv: string[], knownCommandNames: Set<string>): ShortcutInvocation | undefined {

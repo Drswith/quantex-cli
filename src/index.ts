@@ -18,6 +18,7 @@ export type {
 export { getCliContext, resetCliContext, resolveCliContext, setCliContext } from './cli-context'
 export type { CliContext, CliContextOptions, OutputMode } from './cli-context'
 export { ensureCommand } from './commands/ensure'
+export type { ExecCommandOptions, ExecInstallPolicy } from './commands/exec'
 export { inspectCommand } from './commands/inspect'
 export { getConfigDir, getConfigFilePath, loadConfig, saveConfig } from './config'
 export type { QuantexConfig } from './config'
