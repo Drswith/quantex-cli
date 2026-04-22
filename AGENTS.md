@@ -124,10 +124,14 @@ src/
 │   ├── default.ts
 │   └── index.ts
 └── utils/
+    ├── color.ts
     ├── detect.ts
     ├── exec.ts
     ├── install.ts
+    ├── lock.ts
+    ├── lifecycle-errors.ts
     ├── network.ts
+    ├── user-output.ts
     └── version.ts
 ```
 
@@ -257,3 +261,5 @@ type AgentUpdateStrategy = 'managed' | 'self-update' | 'manual-hint'
 - `quantex update --all` 优先使用已记录的实际安装来源，而不是只看 agent 定义中的候选安装方式
 - `Bun.spawn` 使用 `stdio: 'inherit'` 透传 agent 进程 IO
 - self binary upgrade 已包含 checksum、lock、verify、`.bak` rollback 与 Windows 延迟替换
+- 全局 dual-mode surface 当前还包括 `--yes`、`--quiet`、`--color`、`--log-level`、`--dry-run`、`--refresh`、`--no-cache`
+- 结构化 `meta` 当前可附带 `fetchedAt`、`staleAfter`、`source`
