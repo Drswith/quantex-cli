@@ -247,6 +247,15 @@ quantex commands --json
 
 `commands` 会返回当前支持的稳定命令、摘要以及常用 flag，适合作为上层 agent 做 command discovery 的入口。
 
+### 查看输出 Schema
+
+```bash
+quantex schema
+quantex schema inspect --json
+```
+
+`schema` 用来导出稳定命令的结构化输出定义，适合作为 agent、SDK 或未来 MCP surface 的类型参考。
+
 ## 配置
 
 配置文件位于 `~/.quantex/config.json`，当前支持：

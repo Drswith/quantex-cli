@@ -27,6 +27,15 @@ program.hook('postAction', () => {
 })
 
 program
+  .command('schema')
+  .argument('[command]', 'Optional command name')
+  .description('查看结构化输出 schema')
+  .action(async (command?: string) => {
+    const { schemaCommand } = await import('./commands/schema')
+    process.exitCode = getExitCodeForResult(await schemaCommand(command))
+  })
+
+program
   .command('commands')
   .description('查看命令目录与稳定能力')
   .action(async () => {
