@@ -1,10 +1,10 @@
+import { spawnWithQuantexStdio, waitForSpawnedCommand } from './child-process'
+
 export async function execCommand(command: string, args: string[]): Promise<{ success: boolean, exitCode: number }> {
   try {
-    const proc = Bun.spawn([command, ...args], {
-      stdio: ['inherit', 'inherit', 'inherit'] as const,
-    })
-    await proc.exited
-    return { success: proc.exitCode === 0, exitCode: proc.exitCode ?? 1 }
+    const handle = spawnWithQuantexStdio([command, ...args])
+    const exitCode = await waitForSpawnedCommand(handle)
+    return { success: exitCode === 0, exitCode }
   }
   catch {
     return { success: false, exitCode: 1 }

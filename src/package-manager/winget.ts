@@ -1,10 +1,8 @@
+import { spawnWithQuantexStdio, waitForSpawnedCommand } from '../utils/child-process'
+
 async function runWingetCommand(action: 'install' | 'upgrade' | 'uninstall', packageName: string): Promise<boolean> {
   try {
-    const proc = Bun.spawn(['winget', action, '--id', packageName, '-e'], {
-      stdio: ['inherit', 'inherit', 'inherit'] as const,
-    })
-    await proc.exited
-    return proc.exitCode === 0
+    return (await waitForSpawnedCommand(spawnWithQuantexStdio(['winget', action, '--id', packageName, '-e']))) === 0
   }
   catch {
     return false

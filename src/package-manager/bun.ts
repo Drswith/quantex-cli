@@ -1,3 +1,5 @@
+import { spawnWithQuantexStdio, waitForSpawnedCommand } from '../utils/child-process'
+
 export type RegistryUpdateStrategy = 'latest-major' | 'respect-semver'
 
 export async function install(packageName: string): Promise<boolean> {
@@ -37,11 +39,7 @@ export async function updateMany(packageNames: string[], strategy: RegistryUpdat
 
 export async function uninstall(packageName: string): Promise<boolean> {
   try {
-    const proc = Bun.spawn(['bun', 'remove', '-g', packageName], {
-      stdio: createInheritedStdio(),
-    })
-    await proc.exited
-    return proc.exitCode === 0
+    return (await waitForSpawnedCommand(spawnWithQuantexStdio(['bun', 'remove', '-g', packageName]))) === 0
   }
   catch {
     return false
@@ -49,12 +47,9 @@ export async function uninstall(packageName: string): Promise<boolean> {
 }
 
 async function runGlobalBunCommandWithTrust(command: string[], packageNames: string[]): Promise<boolean> {
-  const proc = Bun.spawn(command, {
-    stdio: createInheritedStdio(),
-  })
-  await proc.exited
+  const exitCode = await waitForSpawnedCommand(spawnWithQuantexStdio(command))
 
-  if (proc.exitCode !== 0)
+  if (exitCode !== 0)
     return false
 
   return trustBlockedGlobalPackages(packageNames)
@@ -75,11 +70,7 @@ async function trustBlockedGlobalPackages(packageNames: string[]): Promise<boole
   if (blockedPackages.length === 0)
     return true
 
-  const proc = Bun.spawn(['bun', 'pm', '-g', 'trust', ...blockedPackages], {
-    stdio: createInheritedStdio(),
-  })
-  await proc.exited
-  return proc.exitCode === 0
+  return (await waitForSpawnedCommand(spawnWithQuantexStdio(['bun', 'pm', '-g', 'trust', ...blockedPackages]))) === 0
 }
 
 async function readGlobalUntrustedPackages(): Promise<string | undefined> {
@@ -110,10 +101,6 @@ function parseUntrustedPackages(output: string): Set<string> {
   }
 
   return packages
-}
-
-function createInheritedStdio(): ['inherit', 'inherit', 'inherit'] {
-  return ['inherit', 'inherit', 'inherit']
 }
 
 function createPipedStdio(): ['ignore', 'pipe', 'ignore'] {

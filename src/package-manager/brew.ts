@@ -1,4 +1,5 @@
 import type { PackageTargetKind } from '../agents/types'
+import { spawnWithQuantexStdio, waitForSpawnedCommand } from '../utils/child-process'
 
 function getTargetArgs(packageTargetKind?: PackageTargetKind): string[] {
   return packageTargetKind === 'cask' ? ['--cask'] : []
@@ -6,11 +7,7 @@ function getTargetArgs(packageTargetKind?: PackageTargetKind): string[] {
 
 async function runBrewCommand(action: 'install' | 'upgrade' | 'uninstall', packageName: string, packageTargetKind?: PackageTargetKind): Promise<boolean> {
   try {
-    const proc = Bun.spawn(['brew', action, ...getTargetArgs(packageTargetKind), packageName], {
-      stdio: ['inherit', 'inherit', 'inherit'] as const,
-    })
-    await proc.exited
-    return proc.exitCode === 0
+    return (await waitForSpawnedCommand(spawnWithQuantexStdio(['brew', action, ...getTargetArgs(packageTargetKind), packageName]))) === 0
   }
   catch {
     return false
