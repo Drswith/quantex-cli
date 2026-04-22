@@ -141,6 +141,24 @@ export function getSelfVersion(): string {
   return BUILD_VERSION
 }
 
+export function getManualSelfUpgradeCommand(
+  installSource: SelfInstallSource,
+  executablePath: string = process.execPath,
+): string | undefined {
+  if (installSource === 'bun')
+    return `bun add -g ${CLI_NPM_PACKAGE_NAME}@latest`
+
+  if (installSource === 'npm')
+    return `npm install -g ${CLI_NPM_PACKAGE_NAME}@latest`
+
+  if (installSource === 'binary') {
+    const downloadUrl = getBinaryReleaseDownloadUrl(executablePath)
+    return downloadUrl ? `download and replace the binary from ${downloadUrl}` : undefined
+  }
+
+  return undefined
+}
+
 export function getBinaryReleaseAssetName(executablePath: string = process.execPath): string | undefined {
   const normalizedPath = normalizePath(executablePath)
   const executableName = basename(normalizedPath)

@@ -93,6 +93,48 @@ describe('doctorCommand', () => {
     expect(output).toContain('Auto-update')
   })
 
+  it('shows manual recovery for outdated bun installs', async () => {
+    isBunSpy.mockResolvedValue(true)
+    isNpmSpy.mockResolvedValue(false)
+    allAgentsSpy.mockReturnValue([])
+    inspectSelfSpy.mockResolvedValue({
+      canAutoUpdate: true,
+      currentVersion: '1.0.0',
+      executablePath: '/Users/test/.bun/bin/qtx',
+      installSource: 'bun',
+      latestVersion: '1.1.0',
+      packageRoot: '/Users/test/.bun/install/global/node_modules/quantex-cli',
+      recommendedUpgradeCommand: 'quantex upgrade',
+    })
+
+    await doctorCommand()
+
+    const output = logSpy.mock.calls.map((c: any[]) => c[0]).join('\n')
+    expect(output).toContain('Recovery:')
+    expect(output).toContain('bun add -g quantex-cli@latest')
+  })
+
+  it('shows manual recovery for outdated binary installs', async () => {
+    isBunSpy.mockResolvedValue(true)
+    isNpmSpy.mockResolvedValue(false)
+    allAgentsSpy.mockReturnValue([])
+    inspectSelfSpy.mockResolvedValue({
+      canAutoUpdate: true,
+      currentVersion: '1.0.0',
+      executablePath: '/usr/local/bin/qtx',
+      installSource: 'binary',
+      latestVersion: '1.1.0',
+      packageRoot: '/usr/local/bin',
+      recommendedUpgradeCommand: 'quantex upgrade',
+    })
+
+    await doctorCommand()
+
+    const output = logSpy.mock.calls.map((c: any[]) => c[0]).join('\n')
+    expect(output).toContain('Recovery:')
+    expect(output).toContain('/releases/latest/download/quantex-darwin-arm64')
+  })
+
   it('shows installed agents with versions', async () => {
     isBunSpy.mockResolvedValue(true)
     isNpmSpy.mockResolvedValue(false)

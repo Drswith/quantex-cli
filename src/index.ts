@@ -35,6 +35,7 @@ export {
   detectSelfInstallSource,
   getBinaryReleaseAssetName,
   getBinaryReleaseDownloadUrl,
+  getManualSelfUpgradeCommand,
   getSelfVersion,
   inspectSelf,
   upgradeSelf,
