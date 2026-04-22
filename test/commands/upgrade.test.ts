@@ -56,6 +56,70 @@ describe('upgradeCommand', () => {
     expect(logSpy).toHaveBeenCalledWith(expect.stringContaining('cannot auto-update'))
   })
 
+  it('shows manual recovery for bun installs when self-upgrade fails', async () => {
+    const inspection = {
+      canAutoUpdate: true,
+      currentVersion: '1.0.0',
+      executablePath: '/Users/test/.bun/bin/qtx',
+      installSource: 'bun' as const,
+      latestVersion: '1.1.0',
+      packageRoot: '/Users/test/.bun/install/global/node_modules/quantex-cli',
+      recommendedUpgradeCommand: 'quantex upgrade',
+    }
+    inspectSelfSpy.mockResolvedValue(inspection)
+    upgradeSelfSpy.mockResolvedValue({
+      installSource: 'bun',
+      success: false,
+    })
+
+    await upgradeCommand()
+
+    expect(logSpy).toHaveBeenCalledWith(expect.stringContaining('Failed to upgrade Quantex CLI'))
+    expect(logSpy).toHaveBeenCalledWith(expect.stringContaining('bun add -g quantex-cli@latest'))
+  })
+
+  it('shows manual recovery for npm installs when self-upgrade fails', async () => {
+    const inspection = {
+      canAutoUpdate: true,
+      currentVersion: '1.0.0',
+      executablePath: '/usr/local/bin/qtx',
+      installSource: 'npm' as const,
+      latestVersion: '1.1.0',
+      packageRoot: '/usr/local/lib/node_modules/quantex-cli',
+      recommendedUpgradeCommand: 'quantex upgrade',
+    }
+    inspectSelfSpy.mockResolvedValue(inspection)
+    upgradeSelfSpy.mockResolvedValue({
+      installSource: 'npm',
+      success: false,
+    })
+
+    await upgradeCommand()
+
+    expect(logSpy).toHaveBeenCalledWith(expect.stringContaining('npm install -g quantex-cli@latest'))
+  })
+
+  it('shows manual recovery for binary installs when self-upgrade fails', async () => {
+    const inspection = {
+      canAutoUpdate: true,
+      currentVersion: '1.0.0',
+      executablePath: '/usr/local/bin/qtx',
+      installSource: 'binary' as const,
+      latestVersion: '1.1.0',
+      packageRoot: '/usr/local/bin',
+      recommendedUpgradeCommand: 'quantex upgrade',
+    }
+    inspectSelfSpy.mockResolvedValue(inspection)
+    upgradeSelfSpy.mockResolvedValue({
+      installSource: 'binary',
+      success: false,
+    })
+
+    await upgradeCommand()
+
+    expect(logSpy).toHaveBeenCalledWith(expect.stringContaining('/releases/latest/download/quantex-darwin-arm64'))
+  })
+
   it('runs self upgrade when a managed source is detected', async () => {
     const inspection = {
       canAutoUpdate: true,
