@@ -12,8 +12,11 @@ export type NpmBunUpdateStrategy = 'latest-major' | 'respect-semver'
 
 export interface QuantexConfig {
   defaultPackageManager: 'bun' | 'npm'
+  networkRetries: number
+  networkTimeoutMs: number
   npmBunUpdateStrategy: NpmBunUpdateStrategy
   selfUpdateChannel: SelfUpdateChannel
+  versionCacheTtlHours: number
   [key: string]: unknown
 }
 
@@ -47,8 +50,11 @@ export async function loadConfig(): Promise<QuantexConfig> {
   return {
     ...normalizedConfig,
     defaultPackageManager: normalizedConfig.defaultPackageManager === 'npm' ? 'npm' : 'bun',
+    networkRetries: normalizePositiveInteger(normalizedConfig.networkRetries, 2),
+    networkTimeoutMs: normalizePositiveInteger(normalizedConfig.networkTimeoutMs, 10000),
     npmBunUpdateStrategy: normalizedConfig.npmBunUpdateStrategy === 'respect-semver' ? 'respect-semver' : 'latest-major',
     selfUpdateChannel: normalizedConfig.selfUpdateChannel === 'beta' ? 'beta' : 'stable',
+    versionCacheTtlHours: normalizePositiveInteger(normalizedConfig.versionCacheTtlHours, 6),
   } as QuantexConfig
 }
 
@@ -59,4 +65,17 @@ export function isNpmBunUpdateStrategy(value: string): value is NpmBunUpdateStra
 export async function saveConfig(config: Record<string, unknown>): Promise<void> {
   await mkdir(getConfigDir(), { recursive: true })
   await Bun.write(getConfigFilePath(), `${JSON.stringify(config, null, 2)}\n`)
+}
+
+function normalizePositiveInteger(value: unknown, fallback: number): number {
+  if (typeof value === 'number' && Number.isInteger(value) && value > 0)
+    return value
+
+  if (typeof value === 'string') {
+    const parsed = Number.parseInt(value, 10)
+    if (Number.isInteger(parsed) && parsed > 0)
+      return parsed
+  }
+
+  return fallback
 }

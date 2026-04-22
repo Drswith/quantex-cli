@@ -1,4 +1,5 @@
 import process from 'node:process'
+import { fetchJsonWithCache } from './network'
 
 // 通用版本号提取正则，匹配 v1.2.3 或 1.2.3 等格式
 const VERSION_PATTERN = /v?(\d+\.\d+\.\d+(?:-[a-z0-9.]+)?)/i
@@ -23,11 +24,11 @@ export async function getInstalledVersion(binaryName: string): Promise<string | 
 
 export async function getLatestVersion(packageName: string, distTag: string = 'latest'): Promise<string | undefined> {
   try {
-    const res = await fetch(`https://registry.npmjs.org/${packageName}/${distTag}`)
-    if (!res.ok)
-      return undefined
-    const data = await res.json() as { version: string }
-    return data.version
+    const data = await fetchJsonWithCache<{ version: string }>(
+      `https://registry.npmjs.org/${packageName}/${distTag}`,
+      `npm:${packageName}:${distTag}`,
+    )
+    return data?.version
   }
   catch {
     return undefined

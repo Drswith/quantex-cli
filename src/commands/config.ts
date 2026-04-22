@@ -39,6 +39,14 @@ export async function configCommand(action?: string, key?: string, value?: strin
         console.log(pc.red('selfUpdateChannel must be stable or beta'))
         return
       }
+      if (['networkRetries', 'networkTimeoutMs', 'versionCacheTtlHours'].includes(key)) {
+        const parsed = Number.parseInt(value, 10)
+        if (!Number.isInteger(parsed) || parsed <= 0) {
+          console.log(pc.red(`${key} must be a positive integer`))
+          return
+        }
+        value = `${parsed}`
+      }
       let existing: Record<string, unknown> = {}
       try {
         existing = await loadConfig()
@@ -46,7 +54,9 @@ export async function configCommand(action?: string, key?: string, value?: strin
       catch {
       }
 
-      existing[key] = value
+      existing[key] = ['networkRetries', 'networkTimeoutMs', 'versionCacheTtlHours'].includes(key)
+        ? Number.parseInt(value, 10)
+        : value
       await saveConfig(existing)
       console.log(pc.green(`Set ${key} = ${value}`))
       break

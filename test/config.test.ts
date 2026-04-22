@@ -13,8 +13,11 @@ describe('defaultConfig', () => {
   it('has defaultPackageManager set to bun', async () => {
     const { defaultConfig } = await import('../src/config/default')
     expect(defaultConfig.defaultPackageManager).toBe('bun')
+    expect(defaultConfig.networkRetries).toBe(2)
+    expect(defaultConfig.networkTimeoutMs).toBe(10000)
     expect(defaultConfig.npmBunUpdateStrategy).toBe('latest-major')
     expect(defaultConfig.selfUpdateChannel).toBe('stable')
+    expect(defaultConfig.versionCacheTtlHours).toBe(6)
   })
 })
 
@@ -31,7 +34,10 @@ describe('loadConfig', () => {
     const { loadConfig } = await import('../src/config/index')
     const config = await loadConfig()
     expect(config.defaultPackageManager).toBe('bun')
+    expect(config.networkRetries).toBe(2)
+    expect(config.networkTimeoutMs).toBe(10000)
     expect(config.npmBunUpdateStrategy).toBe('latest-major')
     expect(config.selfUpdateChannel).toBe('stable')
+    expect(config.versionCacheTtlHours).toBe(6)
   })
 })
