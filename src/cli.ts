@@ -27,12 +27,28 @@ program.hook('postAction', () => {
 })
 
 program
+  .command('inspect <agent>')
+  .description('查看 agent 结构化状态')
+  .action(async (agent: string) => {
+    const { inspectCommand } = await import('./commands/inspect')
+    process.exitCode = getExitCodeForResult(await inspectCommand(agent))
+  })
+
+program
   .command('install <agent>')
   .alias('i')
   .description('安装指定 agent')
   .action(async (agent: string) => {
     const { installCommand } = await import('./commands/install')
     process.exitCode = getExitCodeForResult(await installCommand(agent))
+  })
+
+program
+  .command('ensure <agent>')
+  .description('确保指定 agent 已安装')
+  .action(async (agent: string) => {
+    const { ensureCommand } = await import('./commands/ensure')
+    process.exitCode = getExitCodeForResult(await ensureCommand(agent))
   })
 
 program
