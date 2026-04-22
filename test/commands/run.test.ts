@@ -130,4 +130,30 @@ describe('runCommand', () => {
     expect(mockPrompts).not.toHaveBeenCalled()
     expect(logSpy).toHaveBeenCalledWith(expect.stringContaining('interactive installation is disabled'))
   })
+
+  it('returns agent-not-installed when install policy is never', async () => {
+    agentSpy.mockReturnValue(testAgent)
+    binaryInPathSpy.mockResolvedValue(false)
+
+    const code = await runCommand('test-agent', [], { install: 'never' })
+
+    expect(code).toBe(4)
+    expect(mockPrompts).not.toHaveBeenCalled()
+    expect(installSpy).not.toHaveBeenCalled()
+    expect(logSpy).toHaveBeenCalledWith(expect.stringContaining('is not installed'))
+  })
+
+  it('installs automatically when install policy is if-missing', async () => {
+    agentSpy.mockReturnValue(testAgent)
+    binaryInPathSpy.mockResolvedValue(false)
+    installSpy.mockResolvedValue({ success: true })
+    mockSpawn.mockReturnValue({ exited: Promise.resolve(), exitCode: 0 })
+
+    const code = await runCommand('test-agent', ['--help'], { install: 'if-missing', nonInteractive: true })
+
+    expect(code).toBe(0)
+    expect(mockPrompts).not.toHaveBeenCalled()
+    expect(installSpy).toHaveBeenCalledWith(testAgent)
+    expect(mockSpawn).toHaveBeenCalledWith(['test-bin', '--help'], expect.any(Object))
+  })
 })

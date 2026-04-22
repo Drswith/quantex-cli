@@ -186,6 +186,21 @@ quantex agent --help
 
 如果 agent 未安装，Quantex 会提示是否先安装再启动。
 
+### 以显式策略启动 Agent
+
+```bash
+quantex exec claude --install if-missing -- --dangerously-skip-permissions
+quantex exec codex --install never -- --help
+```
+
+`exec` 是比快捷启动更适合自动化的入口：
+
+- `--install never`：未安装时直接失败
+- `--install if-missing`：缺失时自动安装再启动
+- `--install always`：显式要求先满足安装前置，再启动
+
+`--` 之后的参数会原样透传给下游 agent，避免与 Quantex 自己的参数冲突。
+
 ### 配置管理
 
 ```bash
