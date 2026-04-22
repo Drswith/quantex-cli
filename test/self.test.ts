@@ -7,12 +7,14 @@ import * as config from '../src/config'
 import * as bunPm from '../src/package-manager/bun'
 import * as npmPm from '../src/package-manager/npm'
 import * as binarySelf from '../src/self/binary'
+import * as releaseSelf from '../src/self/release'
 import * as version from '../src/utils/version'
 
 const getConfigDirSpy = vi.spyOn(config, 'getConfigDir')
 const bunUpdateSpy = vi.spyOn(bunPm, 'update')
 const npmUpdateSpy = vi.spyOn(npmPm, 'update')
 const binaryUpgradeSpy = vi.spyOn(binarySelf, 'upgradeStandaloneBinary')
+const releaseChecksumSpy = vi.spyOn(releaseSelf, 'fetchBinaryReleaseChecksum')
 const latestVersionSpy = vi.spyOn(version, 'getLatestVersion')
 const tempConfigDir = join(tmpdir(), `quantex-self-test-${Date.now()}`)
 
@@ -21,6 +23,7 @@ afterAll(() => {
   bunUpdateSpy.mockRestore()
   npmUpdateSpy.mockRestore()
   binaryUpgradeSpy.mockRestore()
+  releaseChecksumSpy.mockRestore()
   latestVersionSpy.mockRestore()
 })
 
@@ -30,6 +33,7 @@ describe('self helpers', () => {
     bunUpdateSpy.mockClear()
     npmUpdateSpy.mockClear()
     binaryUpgradeSpy.mockClear()
+    releaseChecksumSpy.mockClear()
     latestVersionSpy.mockClear()
   })
 
@@ -134,7 +138,8 @@ describe('self helpers', () => {
   })
 
   it('upgrades standalone binaries through release downloads', async () => {
-    const { getSelfUpgradeRecoveryHint, upgradeSelf } = await import('../src/self')
+    const { getSelfUpgradeRecoveryHint, parseBinaryReleaseChecksum, upgradeSelf } = await import('../src/self')
+    releaseChecksumSpy.mockResolvedValue('abc123')
     binaryUpgradeSpy.mockResolvedValue({ success: true })
 
     const result = await upgradeSelf({
@@ -154,6 +159,7 @@ describe('self helpers', () => {
     expect(binaryUpgradeSpy).toHaveBeenCalledWith(
       'https://github.com/Drswith/quantex-cli/releases/latest/download/quantex-darwin-arm64',
       '/usr/local/bin/qtx',
+      'abc123',
     )
     expect(getSelfUpgradeRecoveryHint('binary', '/usr/local/bin/qtx', {
       error: {
@@ -163,6 +169,8 @@ describe('self helpers', () => {
       installSource: 'binary',
       success: false,
     })).toContain('check network access')
+    expect(parseBinaryReleaseChecksum(`abc123  quantex-darwin-arm64\n`, 'quantex-darwin-arm64')).toBeUndefined()
+    expect(parseBinaryReleaseChecksum(`${'a'.repeat(64)}  quantex-darwin-arm64\n`, 'quantex-darwin-arm64')).toBe('a'.repeat(64))
   })
 
   it('resolves package metadata from bundled dist chunks', async () => {

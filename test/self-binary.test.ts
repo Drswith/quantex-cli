@@ -1,4 +1,5 @@
 import { Buffer } from 'node:buffer'
+import { createHash } from 'node:crypto'
 import { chmod, mkdtemp, readFile, rm, stat, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
@@ -30,9 +31,10 @@ describe('upgradeStandaloneBinary', () => {
 
     await writeFile(executablePath, 'old-binary', 'utf8')
     globalThis.fetch = vi.fn().mockResolvedValue(new Response(Buffer.from('new-binary'), { status: 200 })) as unknown as typeof fetch
+    const checksum = createHash('sha256').update('new-binary').digest('hex')
 
     try {
-      expect(await upgradeStandaloneBinary('https://example.com/qtx.exe', executablePath)).toEqual({
+      expect(await upgradeStandaloneBinary('https://example.com/qtx.exe', executablePath, checksum)).toEqual({
         success: true,
       })
 
@@ -59,9 +61,10 @@ describe('upgradeStandaloneBinary', () => {
     await chmod(executablePath, 0o755)
 
     globalThis.fetch = vi.fn().mockResolvedValue(new Response(Buffer.from('new-binary'), { status: 200 })) as unknown as typeof fetch
+    const checksum = createHash('sha256').update('new-binary').digest('hex')
 
     try {
-      expect(await upgradeStandaloneBinary('https://example.com/qtx', executablePath)).toEqual({
+      expect(await upgradeStandaloneBinary('https://example.com/qtx', executablePath, checksum)).toEqual({
         success: true,
       })
       expect((await readFile(executablePath, 'utf8'))).toBe('new-binary')
@@ -75,9 +78,29 @@ describe('upgradeStandaloneBinary', () => {
   it('returns a network error when the download request fails', async () => {
     globalThis.fetch = vi.fn().mockRejectedValue(new Error('offline')) as unknown as typeof fetch
 
-    const result = await upgradeStandaloneBinary('https://example.com/qtx', '/tmp/qtx')
+    const result = await upgradeStandaloneBinary('https://example.com/qtx', '/tmp/qtx', 'abc')
 
     expect(result.success).toBe(false)
     expect(result.error?.kind).toBe('network')
+  })
+
+  it('returns a checksum error and does not replace the executable when the checksum mismatches', async () => {
+    const tempRoot = await mkdtemp(join(tmpdir(), 'quantex-binary-checksum-'))
+    const executablePath = join(tempRoot, 'qtx')
+
+    await writeFile(executablePath, 'old-binary', 'utf8')
+    await chmod(executablePath, 0o755)
+    globalThis.fetch = vi.fn().mockResolvedValue(new Response(Buffer.from('new-binary'), { status: 200 })) as unknown as typeof fetch
+
+    try {
+      const result = await upgradeStandaloneBinary('https://example.com/qtx', executablePath, 'deadbeef')
+
+      expect(result.success).toBe(false)
+      expect(result.error?.kind).toBe('checksum')
+      expect(await readFile(executablePath, 'utf8')).toBe('old-binary')
+    }
+    finally {
+      await rm(tempRoot, { recursive: true, force: true })
+    }
   })
 })

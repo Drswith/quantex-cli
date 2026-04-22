@@ -1,7 +1,7 @@
 import type { SelfInspection, SelfUpdateResult } from '../types'
 import type { SelfUpgradeProvider } from './types'
 import { upgradeStandaloneBinary } from '../binary'
-import { getBinaryReleaseDownloadUrl } from '../release'
+import { fetchBinaryReleaseChecksum, getBinaryReleaseAssetName, getBinaryReleaseDownloadUrl } from '../release'
 
 export const binarySelfUpgradeProvider: SelfUpgradeProvider = {
   source: 'binary',
@@ -23,9 +23,10 @@ export const binarySelfUpgradeProvider: SelfUpgradeProvider = {
     return `download and replace the binary from ${downloadUrl}`
   },
   async upgrade(inspection: SelfInspection): Promise<SelfUpdateResult> {
+    const assetName = getBinaryReleaseAssetName(inspection.executablePath)
     const downloadUrl = getBinaryReleaseDownloadUrl(inspection.executablePath)
 
-    if (!downloadUrl) {
+    if (!assetName || !downloadUrl) {
       return {
         error: {
           kind: 'unsupported',
@@ -36,7 +37,24 @@ export const binarySelfUpgradeProvider: SelfUpgradeProvider = {
       }
     }
 
-    const result = await upgradeStandaloneBinary(downloadUrl, inspection.executablePath)
+    let checksum: string
+
+    try {
+      checksum = await fetchBinaryReleaseChecksum(assetName)
+    }
+    catch (error) {
+      return {
+        error: {
+          detail: error,
+          kind: 'checksum',
+          message: `Failed to resolve the release checksum for ${assetName}.`,
+        },
+        installSource: inspection.installSource,
+        success: false,
+      }
+    }
+
+    const result = await upgradeStandaloneBinary(downloadUrl, inspection.executablePath, checksum)
 
     return { ...result, installSource: inspection.installSource }
   },

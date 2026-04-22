@@ -1,12 +1,17 @@
 import type { SelfUpdateResult, SelfUpgradeErrorKind } from './types'
 import { Buffer } from 'node:buffer'
+import { createHash } from 'node:crypto'
 import { chmod, mkdtemp, rename, rm, stat, writeFile } from 'node:fs/promises'
 import { basename, dirname, join } from 'node:path'
 import process from 'node:process'
 
 type BinaryUpgradeResult = Omit<SelfUpdateResult, 'installSource'>
 
-export async function upgradeStandaloneBinary(downloadUrl: string, executablePath: string): Promise<BinaryUpgradeResult> {
+export async function upgradeStandaloneBinary(
+  downloadUrl: string,
+  executablePath: string,
+  expectedChecksum: string,
+): Promise<BinaryUpgradeResult> {
   let response: Response
 
   try {
@@ -26,6 +31,14 @@ export async function upgradeStandaloneBinary(downloadUrl: string, executablePat
   try {
     const binary = Buffer.from(await response.arrayBuffer())
     const executableMode = await resolveExecutableMode(executablePath)
+    const actualChecksum = getSha256(binary)
+
+    if (actualChecksum !== normalizeChecksum(expectedChecksum)) {
+      return createBinaryFailure(
+        'checksum',
+        `Checksum mismatch for ${downloadUrl}. Expected ${normalizeChecksum(expectedChecksum)}, got ${actualChecksum}.`,
+      )
+    }
 
     await writeFile(tempPath, binary)
 
@@ -139,4 +152,12 @@ function resolveBinaryErrorKind(error: unknown): SelfUpgradeErrorKind {
     return 'locked'
 
   return 'unknown'
+}
+
+function getSha256(binary: Buffer): string {
+  return createHash('sha256').update(binary).digest('hex')
+}
+
+function normalizeChecksum(checksum: string): string {
+  return checksum.trim().toLowerCase()
 }
