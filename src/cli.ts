@@ -27,6 +27,14 @@ program.hook('postAction', () => {
 })
 
 program
+  .command('commands')
+  .description('查看命令目录与稳定能力')
+  .action(async () => {
+    const { commandsCommand } = await import('./commands/commands')
+    process.exitCode = getExitCodeForResult(await commandsCommand())
+  })
+
+program
   .command('capabilities')
   .description('查看当前环境与 surface 能力')
   .action(async () => {
