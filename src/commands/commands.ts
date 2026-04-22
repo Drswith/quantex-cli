@@ -25,6 +25,7 @@ const commandCatalog: CommandDescriptor[] = [
   { flags: ['--json', '--output', '--timeout'], name: 'inspect', outputSchemaRef: '#/commands/inspect', stability: 'stable', summary: 'Return structured agent state' },
   { flags: ['--json', '--output', '--timeout', '--idempotency-key'], name: 'install', outputSchemaRef: '#/commands/install', stability: 'stable', summary: 'Install an agent' },
   { flags: ['--json', '--output', '--timeout'], name: 'list', outputSchemaRef: '#/commands/list', stability: 'stable', summary: 'List supported agents' },
+  { flags: ['--json', '--output', '--timeout'], name: 'resolve', outputSchemaRef: '#/commands/resolve', stability: 'stable', summary: 'Resolve an agent executable entrypoint' },
   { flags: ['--json', '--output', '--timeout'], name: 'schema', outputSchemaRef: '#/commands/schema', stability: 'stable', summary: 'Return structured output schemas' },
   { flags: ['--all', '--json', '--output', '--timeout', '--idempotency-key'], name: 'update', outputSchemaRef: '#/commands/update', stability: 'stable', summary: 'Update one or all agents' },
   { flags: ['--json', '--output', '--timeout', '--idempotency-key'], name: 'uninstall', outputSchemaRef: '#/commands/uninstall', stability: 'stable', summary: 'Uninstall an agent' },

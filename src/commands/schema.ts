@@ -215,6 +215,21 @@ const schemaCatalog: SchemaDocument[] = [
     dataSchema: {
       additionalProperties: false,
       properties: {
+        agent: { type: 'object' },
+        resolution: { type: 'object' },
+      },
+      required: ['agent', 'resolution'],
+      type: 'object',
+    },
+    description: 'Resolved executable entrypoint for an agent',
+    envelopeSchema: baseEnvelopeSchema,
+    name: 'resolve',
+    ndjsonEventSchema: baseNdjsonEventSchema,
+  },
+  {
+    dataSchema: {
+      additionalProperties: false,
+      properties: {
         commands: {
           items: {
             additionalProperties: false,

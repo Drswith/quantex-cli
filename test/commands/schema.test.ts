@@ -21,6 +21,7 @@ describe('schemaCommand', () => {
     expect(output).toContain('capabilities')
     expect(output).toContain('commands')
     expect(output).toContain('inspect')
+    expect(output).toContain('resolve')
   })
 
   it('filters to a specific command schema in json mode', async () => {

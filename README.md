@@ -178,6 +178,20 @@ quantex inspect claude --json
 - 当前平台可用安装方式
 - `auto-install` / `self-update` / `runnable` 等能力摘要
 
+### 解析 Agent 可执行入口
+
+```bash
+quantex resolve claude
+quantex resolve claude --json
+```
+
+`resolve` 更偏 runtime-friendly，会直接返回：
+
+- 当前可执行 binary 的绝对路径
+- 已安装版本
+- 安装来源
+- 建议启动命令
+
 ### 快捷启动 Agent
 
 ```bash
