@@ -10,6 +10,7 @@ import { upgradeStandaloneBinary } from '../src/self/binary'
 
 const originalFetch = globalThis.fetch
 const originalPlatform = process.platform
+const originalArch = process.arch
 const originalSpawn = Bun.spawn
 const encoder = new TextEncoder()
 
@@ -17,6 +18,7 @@ afterEach(() => {
   globalThis.fetch = originalFetch
   Bun.spawn = originalSpawn
   Object.defineProperty(process, 'platform', { value: originalPlatform })
+  Object.defineProperty(process, 'arch', { value: originalArch })
   vi.restoreAllMocks()
 })
 
@@ -59,6 +61,8 @@ describe('upgradeStandaloneBinary', () => {
     const tempRoot = await mkdtemp(join(tmpdir(), 'quantex-binary-'))
     const executablePath = join(tempRoot, 'qtx')
 
+    Object.defineProperty(process, 'platform', { value: 'linux' })
+
     await writeFile(executablePath, 'old-binary', 'utf8')
     await chmod(executablePath, 0o755)
 
@@ -85,6 +89,8 @@ describe('upgradeStandaloneBinary', () => {
       exited: Promise.resolve(0),
       stdout: createByteStream('1.1.0\n'),
     })
+
+    Object.defineProperty(process, 'platform', { value: 'linux' })
 
     await writeFile(executablePath, '#!/bin/sh\necho old\n', 'utf8')
     await chmod(executablePath, 0o755)
@@ -119,6 +125,8 @@ describe('upgradeStandaloneBinary', () => {
     const tempRoot = await mkdtemp(join(tmpdir(), 'quantex-binary-checksum-'))
     const executablePath = join(tempRoot, 'qtx')
 
+    Object.defineProperty(process, 'platform', { value: 'linux' })
+
     await writeFile(executablePath, 'old-binary', 'utf8')
     await chmod(executablePath, 0o755)
     globalThis.fetch = vi.fn().mockResolvedValue(new Response(Buffer.from('new-binary'), { status: 200 })) as unknown as typeof fetch
@@ -144,6 +152,8 @@ describe('upgradeStandaloneBinary', () => {
       exited: Promise.resolve(1),
       stdout: createByteStream(''),
     })
+
+    Object.defineProperty(process, 'platform', { value: 'linux' })
 
     await writeFile(executablePath, original, 'utf8')
     await chmod(executablePath, 0o755)
