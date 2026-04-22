@@ -11,6 +11,8 @@
 
 </div>
 
+> 项目定位：Quantex 是 `human-friendly + agent-friendly` 的 `agent lifecycle CLI`。主线聚焦 agent 的安装、检查、确保可用、更新、卸载、能力发现与稳定执行契约，不把自身扩张为 workflow orchestration platform。
+
 ## 设计文档
 
 - [Human + Agent 双模 CLI 设计](./HUMAN_AGENT_DUAL_MODE_CLI.md)
@@ -68,7 +70,7 @@ qtx i claude
 quantex ensure claude
 ```
 
-`ensure` 是面向自动化和 agent orchestration 的幂等入口：
+`ensure` 是面向自动化和 agent 调用的幂等入口：
 
 - 已安装则直接成功
 - 未安装时才执行安装
@@ -254,7 +256,7 @@ quantex schema
 quantex schema inspect --json
 ```
 
-`schema` 用来导出稳定命令的结构化输出定义，适合作为 agent、SDK 或未来 MCP surface 的类型参考。
+`schema` 用来导出稳定命令的结构化输出定义，适合作为 agent 或 SDK 的类型参考。
 
 ## 配置
 

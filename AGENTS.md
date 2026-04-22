@@ -4,6 +4,13 @@
 
 Quantex CLI — 统一的 AI Agent CLI 管理工具，支持安装、更新、卸载、查询、快捷启动主流 AI 编程助手。
 
+项目定位补充：
+
+- Quantex 是 `human-friendly + agent-friendly` 的 `agent lifecycle CLI`
+- 主线聚焦 agent 的安装、检查、确保可用、更新、卸载、能力发现与稳定执行契约
+- 不把主线推进成 workflow orchestration platform
+- `batch / stdin pipe / apply / daemon / MCP server` 等能力默认视为扩展议题，不作为主线目标
+
 ## Tech Stack
 
 - **Runtime**: Bun（运行时、包管理器）
@@ -38,6 +45,13 @@ Run `bun run lint` and `bun run typecheck` after making changes. If you touched 
 - TypeScript strict mode + strictNullChecks
 
 ## Architecture
+
+实现与设计原则：
+
+- `core` 负责 agent registry、inspection、services、package-manager、state/self 等生命周期能力
+- `surface` 负责 human CLI、JSON、NDJSON 等对外契约
+- 命令最终产物是 typed result object，CLI 只是 renderer 之一
+- 优先增强单次调用的可靠性、可发现性与非交互契约，不扩张为工作流编排平台
 
 ```text
 src/

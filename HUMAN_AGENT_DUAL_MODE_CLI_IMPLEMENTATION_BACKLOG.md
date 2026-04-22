@@ -7,498 +7,338 @@
 >
 > 不修改补遗文件内容；这里只做实现拆分、当前状态盘点与 issue backlog 组织。
 
-## 1. 使用方式
+## 1. 用途
 
-本文档面向两类用途：
+本文档同时服务两类场景：
 
-- 作为 implementation checklist：判断双模 CLI 目前做到哪里、下一步做什么
-- 作为 issue backlog：直接拆 Epic、子 issue、PR slice
-
-术语约定：
-
-- `core`：Quantex 的核心能力层，包括 inspection / planning / package-manager / state / self
-- `surface`：对外暴露方式，包括 human CLI、JSON、NDJSON、未来的 MCP
-- `human mode`：保留当前默认的人类友好交互
-- `agent mode`：结构化、非交互、可编排的 surface 行为
+- implementation checklist：判断主线目前做到哪里、还缺什么
+- issue backlog：把剩余主线工作拆成可执行 issue
 
 状态约定：
 
 - `[x]` 已完成
-- `[~]` 部分完成，仍需重构或补齐
+- `[~]` 部分完成，仍需补齐
 - `[ ]` 未开始
 
 优先级约定：
 
-- `P0` 阻塞主链路
-- `P1` 高价值，建议紧接落地
-- `P2` 完善体验
-- `P3` 中长期增强
+- `P0` 主线阻塞项
+- `P1` 高价值主线项
+- `P2` 主线增强项
+- `P3` 扩展议题
 
-## 2. 已确认的设计不变量
+## 2. 定位决策
 
-以下结论视为后续实现的固定前提：
+Quantex 主线明确收敛为：
 
-- [x] 默认保留 human-first CLI 体验，不改成 agent-only 工具
-- [x] 同一份 core 同时服务 human CLI、JSON、NDJSON，以及未来的 MCP / RPC surface
-- [x] 核心逻辑与 renderer 分离，命令最终产出 typed result object
-- [x] `quantex <agent>` 继续主要服务人类用户
-- [x] `quantex exec <agent> -- [args...]` 作为 agent-safe 的标准执行入口
-- [x] agent mode 下必须非交互、可稳定解析、可感知错误类别
+- `human-friendly + agent-friendly` 的 `agent lifecycle CLI`
+- 聚焦 agent 的安装、检查、确保可用、更新、卸载、能力发现与稳定执行契约
+- 默认保留 human-first CLI 体验，同时为 agent 提供非交互、可解析、可重试的 surface
+
+以下能力不纳入当前主线：
+
+- workflow orchestration
+- plan -> apply pipeline
+- batch target 协议
+- stdin / pipe 驱动的执行编排
+- daemon / HTTP / MCP server surface
+
+这些能力可以保留为 extension parking lot，但不应继续推动 Quantex 偏离轻量化 lifecycle CLI 的定位。
+
+## 3. 已确认的不变量
+
+- [x] 默认保留 human-first CLI，而不是改成 agent-only 工具
+- [x] human CLI、JSON、NDJSON 共用同一份 core 与结果模型
+- [x] 命令最终产物是 typed result object，CLI 只是 renderer 之一
+- [x] `quantex <agent>` 继续主要服务人类快捷使用
+- [x] `quantex exec <agent> -- [args...]` 作为 agent-safe 标准执行入口
+- [x] agent mode 必须非交互、可稳定解析、可感知错误类别
 - [x] 结果协议需要显式版本化，不能只依赖 CLI version
+- [x] 主线优先解决“单次调用可靠性”，不扩展成 workflow platform
 
-## 3. 当前基线
+## 4. 当前状态
 
-截至当前仓库状态，已具备的条件：
+截至当前仓库状态，主线已完成或部分完成的能力如下：
 
-- [x] Quantex 已有较完整的 core：`inspection`、`services`、`planning`、`package-manager`、`state`
-- [x] 现有命令已覆盖 `install / update / uninstall / list / info / config / upgrade / doctor / quantex <agent>`
-- [x] human-friendly 文本输出、彩色提示、快捷启动体验已经可用
-- [x] `quantex <agent>` 未安装时会交互确认安装
-- [~] `config` 已能输出 JSON，但其他命令仍主要输出人类可读文本
-- [ ] 尚无统一 `--json` / `--output ndjson` 全局协议
-- [ ] 尚无统一 `--non-interactive` / `--yes` / `--dry-run` 全局策略
-- [ ] 尚无统一 envelope / schemaVersion / error code / exit code
-- [ ] 尚无 `inspect / ensure / resolve / exec / plan update`
-- [ ] 尚无 `schema / commands / capabilities`
-- [ ] 尚无 `run-id` / `timeout` / `idempotency-key`
-- [ ] 尚无批量命令、stdin 管道、heartbeat / cancel 事件
-- [ ] 尚无面向双模 surface 的契约测试体系
+- [x] 已有统一 dual-mode 基础：`human` / `json` / `ndjson`
+- [x] 已有统一 result envelope、`schemaVersion`、`runId`、`timestamp`
+- [x] 已有稳定错误码与退出码映射
+- [x] 已支持全局 `--json`
+- [x] 已支持全局 `--output <human|json|ndjson>`
+- [x] 已支持全局 `--non-interactive`
+- [x] 已支持全局 `--run-id`
+- [x] 已支持全局 `--timeout`
+- [x] 已支持全局 `--idempotency-key`
+- [x] 已支持 `QUANTEX_RUN_ID`
+- [x] 已实现 `inspect`
+- [x] 已实现 `ensure`
+- [x] 已实现 `exec`
+- [x] 已实现 `capabilities`
+- [x] 已实现 `commands`
+- [x] 已实现 `schema`
+- [x] 已支持 timeout 错误与 signal cancel
+- [x] 已支持 idempotency replay
+- [~] `stdout` / `stderr` 契约已有基础，但还没有完全硬化
+- [~] 测试已覆盖 schema / timeout / cancel / idempotency，但契约测试体系仍未完整
+- [ ] 尚未实现 `resolve`
+- [ ] 尚未实现缓存新鲜度字段：`fetchedAt` / `staleAfter` / `source`
+- [ ] 尚未实现 `--yes` / `--quiet` / `--color` / `--log-level` / `--dry-run`
+- [ ] 尚未实现 `--refresh` / `--no-cache`
+- [ ] 尚未实现 stdout/stderr 的严格 installer log policy
+- [ ] 尚未实现 state / install / uninstall 的资源锁
+- [ ] 尚未实现 timeout / signal 对 inherited child process 的统一终止语义
 
-## 4. Phase Checklist
+## 5. Mainline Checklist
 
-### Phase 0 | Core + Surfaces 原则落地
+### 5.1 定位与文档
 
-- [ ] 在 `AGENTS.md` 的 Architecture 节写入 `core + surfaces` 原则
-- [ ] 明确 typed result object 是命令最终产物，CLI 只是 renderer 之一
-- [ ] 在 README 的设计文档入口中补上 backlog 文档链接
+- [x] README 明确 lifecycle CLI 定位
+- [x] 设计文档明确主线边界
+- [x] implementation backlog 拆成 mainline 与 extension
+- [x] AGENTS.md 补充 scope guidance
 
-### Phase 1 | 结果模型与输出层重构
+### 5.2 Surface 契约
 
-- [ ] 引入统一 result envelope
-- [ ] envelope `meta` 增加 `schemaVersion`
-- [ ] envelope `meta` 增加 `runId`、`timestamp`
-- [ ] 含网络查询的结果 `meta` 增加 `fetchedAt`、`staleAfter`、`source`
-- [ ] 抽离 human / json / ndjson renderer
-- [ ] 所有命令改为先返回 result object，再统一渲染
-- [ ] result 类型可导出为 JSON Schema
+- [x] 统一 result envelope
+- [x] `meta.schemaVersion`
+- [x] `meta.runId` / `timestamp`
+- [x] human / json / ndjson renderer
+- [x] 命令先产出 result object，再统一渲染
+- [x] schema 导出稳定命令输出定义
+- [~] `stdout` / `stderr` 契约
+- [ ] `stderr` 结构化日志与 installer log policy
+- [ ] `meta.fetchedAt` / `staleAfter` / `source`
 
-### Phase 2 | 交互策略与全局参数统一
+### 5.3 全局策略
 
-- [ ] 全局支持 `--output <human|json|ndjson>`
-- [ ] 全局支持 `--json`
-- [ ] 全局支持 `--non-interactive`
-- [ ] 全局支持 `--yes`
-- [ ] 全局支持 `--quiet`
-- [ ] 全局支持 `--color <auto|always|never>`
-- [ ] 全局支持 `--log-level <silent|error|warn|info|debug>`
-- [ ] 全局支持 `--dry-run`
-- [ ] 全局支持 `--run-id <id>`
-- [ ] 全局支持 `--timeout <duration>`
-- [ ] 全局支持 `--idempotency-key <key>`
-- [ ] 全局支持 `--refresh` / `--no-cache`
-- [ ] 检测 stdout / stdin 非 TTY 时自动切到 agent-friendly 行为
+- [x] `--json`
+- [x] `--output <human|json|ndjson>`
+- [x] `--non-interactive`
+- [x] `--run-id`
+- [x] `--timeout`
+- [x] `--idempotency-key`
+- [ ] `--yes`
+- [ ] `--quiet`
+- [ ] `--color <auto|always|never>`
+- [ ] `--log-level <silent|error|warn|info|debug>`
+- [ ] `--dry-run`
+- [ ] `--refresh` / `--no-cache`
+- [ ] stdout / stdin 非 TTY 时自动切到 agent-friendly 行为
 
-### Phase 3 | 错误码、退出码、日志契约
+### 5.4 Lifecycle Commands
 
-- [ ] 引入统一 `CliError` / `ResultError`
-- [ ] 定义稳定错误码集合
-- [ ] 定义稳定退出码映射
-- [ ] `stdout` / `stderr` 契约落地
-- [ ] `stderr` 支持带 `runId` 的结构化日志
-- [ ] NDJSON 支持 `start / plan / progress / warning / finish`
-- [ ] NDJSON 补充 `heartbeat / cancelled / deprecation`
-
-### Phase 4 | Agent-oriented 命令补齐
-
-- [ ] `quantex inspect <agent>`
-- [ ] `quantex ensure <agent>`
+- [x] `quantex inspect <agent>`
+- [x] `quantex ensure <agent>`
 - [ ] `quantex resolve <agent>`
-- [ ] `quantex exec <agent> -- [args...]`
-- [ ] `quantex plan update --all`
-- [ ] `quantex capabilities --json`
-- [ ] `quantex schema --json`
-- [ ] `quantex commands --json`
+- [x] `quantex exec <agent> -- [args...]`
+- [x] `quantex capabilities`
+- [x] `quantex commands`
+- [x] `quantex schema`
 
-### Phase 5 | 可靠性、组合能力与执行安全
+### 5.5 Reliability
 
-- [ ] 变更型命令支持 `idempotency-key`
-- [ ] `run-id` 支持 CLI 参数和环境变量 `QUANTEX_RUN_ID`
-- [ ] 统一 timeout 语义
-- [ ] 支持 SIGTERM / SIGINT 优雅取消
-- [ ] 长任务 NDJSON 增加 heartbeat
-- [ ] 支持批量 target，例如 `quantex ensure codex claude`
-- [ ] 支持 `--continue-on-error`
-- [ ] 支持 `--from-stdin` / `-` 读取 quantex schema 输出
-- [ ] 明确 plan → apply 的 schema 兼容策略
+- [x] `run-id`
+- [x] `timeout`
+- [x] `idempotency-key`
+- [x] SIGTERM / SIGINT cancel
+- [ ] state / install / uninstall 资源锁
+- [ ] inherited child process 的 timeout / signal 终止语义
+- [ ] 缓存新鲜度与 refresh policy
 
-### Phase 6 | 测试与文档
+### 5.6 Tests
 
-- [ ] human vs json snapshot test
-- [ ] non-interactive failure test
-- [ ] `stdout` / `stderr` contract test
-- [ ] error code / exit code test
-- [ ] schema contract test
-- [ ] batch / stdin / pipe test
-- [ ] timeout / cancel / heartbeat test
-- [ ] idempotency replay test
-- [ ] README 补充双模使用说明
-- [ ] README 补充 `exec` 与 `quantex <agent>` 的边界说明
+- [x] schema command tests
+- [x] timeout tests
+- [x] cancel tests
+- [x] idempotency tests
+- [x] non-interactive 行为测试
+- [ ] human vs json snapshot tests
+- [ ] `stdout` / `stderr` contract tests
+- [ ] 完整 exit code / error code matrix tests
+- [ ] schema contract drift tests
 
-### Phase 7 | MCP Surface 候选 Epic
-
-- [ ] 评估 `quantex mcp serve`
-- [ ] 复用 Phase 1 的 result model 和 schema 输出
-- [ ] 将 `inspect / ensure / resolve / exec / capabilities` 映射为 MCP tools
-
-## 5. MVP 划分
+## 6. MVP 状态
 
 ### MVP-1 | 最小可用 agent mode
 
-- [ ] 全局 `--json`
-- [ ] 全局 `--non-interactive`
-- [ ] 统一 result envelope
-- [ ] 统一 error code / exit code
-- [ ] `list / info / install / update / doctor / upgrade` 的 JSON 输出
-- [ ] `quantex <agent>` 在 non-interactive 下禁止 prompt
+- [x] 全局 `--json`
+- [x] 全局 `--non-interactive`
+- [x] 统一 result envelope
+- [x] 统一 error code / exit code
+- [x] `list / info / install / update / doctor / upgrade` 的 JSON 输出
+- [x] `quantex <agent>` 在 non-interactive 下禁止 prompt
 
-### MVP-2 | 高价值补强
+### MVP-2 | 高价值主线补强
 
-- [ ] `inspect`
-- [ ] `ensure`
-- [ ] `exec`
-- [ ] `capabilities`
-- [ ] `schema`
-- [ ] `--run-id`
-- [ ] `--timeout`
-- [ ] `update --all --output ndjson`
+- [x] `inspect`
+- [x] `ensure`
+- [x] `exec`
+- [x] `capabilities`
+- [x] `schema`
+- [x] `commands`
+- [x] `--run-id`
+- [x] `--timeout`
+- [x] `--idempotency-key`
+- [x] `update --all --output ndjson`
+- [ ] `resolve`
 
-### 暂不绑定首版
+## 7. Mainline Issue Backlog
 
-- [ ] local daemon
-- [ ] HTTP surface
-- [ ] 遥测平台
-- [ ] 多租户或远端 session 管理
-
-## 6. Issue Backlog
-
-## Core / Surface
-
-### SURFACE-01 | 抽离 result model 与 renderer
-
-- Priority: `P0`
-- Depends on: 无
-- Goal: 让命令逻辑不直接 `console.log`，而是统一返回 typed result object
-- Scope:
-  - 新建 `src/output/types.ts`
-  - 新建 `src/output/renderers.ts`
-  - 为 `human / json / ndjson` 提供统一渲染入口
-  - 改造现有 commands 先产出 result object
-- Acceptance:
-  - 命令实现不再内联大量输出逻辑
-  - 同一份结果可被 human 和 json renderer 复用
-  - 对现有 human 默认行为无回归
-
-### SURFACE-02 | 引入 CLI context 与 interaction policy
-
-- Priority: `P0`
-- Depends on: `SURFACE-01`
-- Goal: 把交互、输出、颜色、dry-run 等策略从命令逻辑中抽离
-- Scope:
-  - 新建 `src/cli-context.ts`
-  - 新建 `src/interaction/policy.ts`
-  - 统一管理 output mode、interactive、install policy、dry-run
-- Acceptance:
-  - `run` 命令不再直接写死 prompt 行为
-  - non-interactive 下不会出现隐藏交互
-  - TTY 与非 TTY 行为可测试
-
-### SURFACE-03 | Envelope、schemaVersion 与 stdout/stderr 契约
-
-- Priority: `P0`
-- Depends on: `SURFACE-01`
-- Goal: 为 agent mode 建立稳定的结构化输出协议
-- Scope:
-  - 定义 envelope
-  - 定义 `meta.schemaVersion`
-  - 定义 `stdout` / `stderr` 规则
-  - 增加 `fetchedAt` / `staleAfter` / `source`
-- Acceptance:
-  - `--json` 输出稳定且机器可解析
-  - 含缓存的结果能告诉 agent 数据新鲜度
-  - 破坏性 schema 变更有版本机制可依赖
-
-## Contracts / Discovery
-
-### DISCOVERY-01 | `capabilities` 命令
+### LIFECYCLE-01 | `resolve`
 
 - Priority: `P1`
-- Depends on: `SURFACE-03`
-- Goal: 提供纯只读、无诊断语气的 feature detection 接口
-- Scope:
-  - 新增 `quantex capabilities --json`
-  - 输出 platform、installers、agents、outputModes、features
-- Acceptance:
-  - 不依赖 `doctor` 文本解析
-  - 无副作用
-  - 默认无网络依赖，除非显式刷新
-
-### DISCOVERY-02 | `schema` 命令
-
-- Priority: `P1`
-- Depends on: `SURFACE-03`
-- Goal: 导出所有命令的输入/输出 schema，供 agent 与未来 MCP 复用
-- Scope:
-  - 新增 `quantex schema --json`
-  - 支持 `--command <name>`
-  - result 类型导出为 JSON Schema
-- Acceptance:
-  - schema 可被本地类型校验和 SDK 生成复用
-  - schema 与实际命令输出一致
-
-### DISCOVERY-03 | `commands` 命令
-
-- Priority: `P1`
-- Depends on: `DISCOVERY-02`
-- Goal: 提供命令目录与 flag 自省能力
-- Scope:
-  - 新增 `quantex commands --json`
-  - 输出命令 summary、stability、flags、outputSchemaRef
-- Acceptance:
-  - agent 可自动发现 quantex 当前支持的命令与稳定级别
-  - 无需硬编码命令目录
-
-## Commands / Execution
-
-### EXEC-01 | `inspect`
-
-- Priority: `P1`
-- Depends on: `SURFACE-03`
-- Goal: 为 agent 提供结构化 agent 状态查询，而不是解析 `info`
-- Scope:
-  - 新增 `quantex inspect <agent>`
-  - 输出 installed/version/latest/path/source/strategy/methods/capabilities
-- Acceptance:
-  - 能覆盖 `info` 现有关键信息
-  - 输出稳定、无需解析文本
-
-### EXEC-02 | `ensure`
-
-- Priority: `P1`
-- Depends on: `EXEC-01`
-- Goal: 提供目标状态式、幂等的安装命令
-- Scope:
-  - 新增 `quantex ensure <agent>`
-  - 支持 `--dry-run`
-  - 返回 `changed`
-- Acceptance:
-  - 已安装时直接成功
-  - 未安装时才执行安装
-  - 结果明确标识是否发生变更
-
-### EXEC-03 | `resolve`
-
-- Priority: `P1`
-- Depends on: `EXEC-01`
+- Status: `[ ]`
 - Goal: 提供可执行 binary 的结构化解析结果
 - Scope:
   - 新增 `quantex resolve <agent>`
-  - 输出 binaryName、binaryPath、installedVersion、installSource、suggestedLaunchCommand
+  - 输出 `binaryName`、`binaryPath`、`installedVersion`、`installSource`、`suggestedLaunchCommand`
 - Acceptance:
-  - 上游 runtime 无需自行探测 PATH
+  - 上游 runtime 无需再自行探测 PATH
   - resolve 失败时有稳定错误码
 
-### EXEC-04 | `exec`
+### CONTRACT-01 | stdout / stderr 契约硬化
 
 - Priority: `P1`
-- Depends on: `SURFACE-02`, `EXEC-02`, `EXEC-03`
-- Goal: 提供 agent-safe 的标准执行入口，并与 human shortcut 明确分工
+- Status: `[~]`
+- Goal: 让 agent mode 下的输出边界完全稳定
 - Scope:
-  - 新增 `quantex exec <agent> -- [args...]`
-  - 支持 `--install <never|if-missing|always>`
-  - 支持 `--cwd` / `--env`
-  - 明确 `--` 之后参数透传规则
+  - 明确 installer log 走向
+  - 补 `stderr` 结构化日志策略
+  - 补 contract tests
 - Acceptance:
-  - 不再与下游 agent flag 产生歧义
-  - non-interactive 下不会弹 prompt
-  - human shortcut 行为保留
+  - `--json` 时 `stdout` 只输出最终 envelope
+  - `--output ndjson` 时 `stdout` 只输出事件流
+  - installer 日志不会污染结构化结果
 
-### EXEC-05 | `plan update --all`
+### RELIABILITY-01 | inherited child process 终止语义
 
 - Priority: `P1`
-- Depends on: `SURFACE-03`
-- Goal: 让 agent 可以先规划、再决定是否执行
+- Status: `[ ]`
+- Goal: 让 timeout / cancel 不只是返回错误，还能可靠作用于底层长任务
 - Scope:
-  - 新增 `quantex plan update --all`
-  - 输出 up-to-date / managed / self-update / manual-hint / package buckets
+  - 明确 `exec` / `run` / `upgrade` 的 child process termination policy
+  - signal / timeout 时向子进程传递终止信号
 - Acceptance:
-  - 计划结果可解释且可测试
-  - 可与后续 apply / stdin 模式组合
+  - 长任务不会在 CLI 已返回取消后继续悬挂
+  - timeout / cancel 行为在主要命令上可测试
 
-## Reliability / Streaming
-
-### RELIABILITY-01 | `run-id`、`timeout`、`idempotency-key`
+### STATE-01 | state / install / uninstall 资源锁
 
 - Priority: `P1`
-- Depends on: `SURFACE-02`, `SURFACE-03`
-- Goal: 让 CLI 在 agent 编排和重试循环里可追踪、可控制、可防重入
+- Status: `[ ]`
+- Goal: 避免多个终端或多个 agent 同时调用时互相踩状态
 - Scope:
-  - 支持 `--run-id`
-  - 支持 `QUANTEX_RUN_ID`
-  - 支持 `--timeout`
-  - 支持 `--idempotency-key`
-  - 本地 idempotency 记录与 TTL
+  - `state.json` 写入锁
+  - install / uninstall / self-upgrade 互斥保护
 - Acceptance:
-  - 同一 `idempotency-key` 重试不会重复执行副作用
-  - timeout 会返回稳定错误
-  - 日志与结果里可关联 run-id
+  - 并发修改返回稳定冲突错误
+  - state 文件不会被交错写坏
 
-### RELIABILITY-02 | NDJSON heartbeat / cancel / deprecation
-
-- Priority: `P1`
-- Depends on: `SURFACE-03`
-- Goal: 让长任务不会被上游误判 hang，并支持优雅取消
-- Scope:
-  - NDJSON 增加 `heartbeat`
-  - 增加 `cancelled`
-  - 增加 `deprecation`
-  - SIGTERM / SIGINT 优雅取消
-- Acceptance:
-  - 长任务有周期性心跳
-  - 超时或信号取消后返回部分结果与稳定错误码
-
-### RELIABILITY-03 | 缓存新鲜度与 `--refresh`
+### FRESHNESS-01 | 缓存新鲜度与 refresh policy
 
 - Priority: `P2`
-- Depends on: `SURFACE-03`
-- Goal: 让 agent 知道版本数据是来自缓存还是刚查询
+- Status: `[ ]`
+- Goal: 让 agent 知道版本数据是否来自缓存、何时过期
 - Scope:
   - `meta.fetchedAt`
   - `meta.staleAfter`
   - `meta.source = cache | network`
-  - 全局 `--refresh` / `--no-cache`
+  - `--refresh` / `--no-cache`
 - Acceptance:
-  - 版本查询结果的时效性可判断
-  - agent 可以自主决定是否强刷
+  - 版本查询结果的新鲜度可判断
+  - agent 可自主决定是否强刷
 
-## Batch / Pipe
-
-### BATCH-01 | 批量 target 与 continue-on-error
+### UX-01 | 可选全局参数补齐
 
 - Priority: `P2`
-- Depends on: `EXEC-02`, `EXEC-05`
-- Goal: 降低 agent 编排的 round-trip 成本
+- Status: `[ ]`
+- Goal: 补足对人类用户友好、但不影响主线定位的辅助参数
 - Scope:
-  - `quantex ensure codex claude cursor`
-  - 批量 install / update / inspect
-  - `--continue-on-error`
-  - summary 结构
+  - `--yes`
+  - `--quiet`
+  - `--color`
+  - `--log-level`
+  - `--dry-run`
 - Acceptance:
-  - 单个失败不会让所有结构化结果丢失
-  - 成功与失败都有独立结果对象
+  - 不破坏现有默认 human-first 体验
+  - 与 agent mode 契约不冲突
 
-### BATCH-02 | stdin / pipe / apply
-
-- Priority: `P2`
-- Depends on: `EXEC-05`, `DISCOVERY-02`
-- Goal: 让 quantex 自己的计划输出能零胶水地喂给下一个命令
-- Scope:
-  - `--from-stdin` 或 `-`
-  - 读取 quantex 自身输出的 schema
-  - 规划结果可 pipe 到执行命令
-- Acceptance:
-  - schema 不兼容时返回 `SCHEMA_VERSION_UNSUPPORTED`
-  - plan → apply 管道路径可测试
-
-## Docs / Tests / MCP
-
-### DOCS-01 | README / AGENTS / examples 收敛
-
-- Priority: `P2`
-- Depends on: `SURFACE-02`, `EXEC-04`
-- Goal: 让 human-first 与 agent-friendly 的边界在文档里说清楚
-- Scope:
-  - README 增加 dual-mode 章节
-  - AGENTS.md 写入 `core + surfaces`
-  - 示例覆盖 human shortcut 与 `exec`
-- Acceptance:
-  - 文档能明确区分 human shortcut 与 agent-safe surface
-  - 不要求读源码才能理解参数边界
-
-### TEST-01 | 契约测试套件
+### TEST-01 | 契约测试收口
 
 - Priority: `P1`
-- Depends on: `SURFACE-03`, `EXEC-05`
-- Goal: 用测试保证 dual-mode 契约长期稳定
+- Status: `[~]`
+- Goal: 用测试保障 lifecycle CLI 主线长期稳定
 - Scope:
-  - snapshot tests
-  - exit code tests
-  - schema tests
-  - timeout / cancel / batch / idempotency tests
+  - human vs json snapshot
+  - stdout / stderr contract
+  - error code / exit code matrix
+  - schema drift test
 - Acceptance:
-  - 结构化输出变化需要显式更新 snapshot
-  - schema 与实现不一致时测试失败
+  - 结构化输出变化需要显式更新
+  - 契约回归能被测试及时拦下
 
-### MCP-01 | MCP Surface 候选实现
+## 8. Extension Parking Lot
+
+以下能力保留为扩展议题，不进入当前主线：
+
+### EXT-01 | `plan update --all`
 
 - Priority: `P3`
-- Depends on: `DISCOVERY-02`, `DISCOVERY-03`, `EXEC-04`
-- Goal: 基于同一份 result model 暴露 MCP tools
-- Scope:
-  - `quantex mcp serve`
-  - 映射 `inspect / ensure / resolve / exec / capabilities`
-  - 复用现有 schema 输出
-- Acceptance:
-  - MCP tool schema 与 CLI schema 同源
-  - 不复制第二套业务逻辑
+- Why deferred:
+  - 更偏“编排前计划”而不是 lifecycle CLI 的最小职责
+  - 很容易继续牵出 apply / batch / stdin pipeline
 
-## 7. 建议落地顺序
+### EXT-02 | batch targets / continue-on-error
 
-建议顺序：
+- Priority: `P3`
+- Why deferred:
+  - 更像 workflow round-trip 优化，而不是单次 lifecycle 调用的核心职责
 
-1. `SURFACE-01` result model + renderer
-2. `SURFACE-02` cli context + interaction policy
-3. `SURFACE-03` envelope + schemaVersion + stdout/stderr contract
-4. `EXEC-01` inspect
-5. `EXEC-02` ensure
-6. `EXEC-04` exec
-7. `DISCOVERY-01` capabilities
-8. `DISCOVERY-02` schema
-9. `RELIABILITY-01` run-id / timeout / idempotency-key
-10. `EXEC-05` plan update --all
-11. `RELIABILITY-02` heartbeat / cancel
-12. `BATCH-01` batch target
-13. `BATCH-02` stdin / pipe
-14. `TEST-01` 契约测试收口
-15. `MCP-01` 候选 epic
+### EXT-03 | stdin / pipe / apply
 
-## 8. 建议 PR 切分
+- Priority: `P3`
+- Why deferred:
+  - 已明显进入 plan -> apply pipeline 范畴
+  - 会把 CLI 推向 workflow platform
 
-建议按以下粒度提交，降低 review 风险：
+### EXT-04 | heartbeat / deprecation richer event protocol
 
-1. `PR-1`：`SURFACE-01`
-2. `PR-2`：`SURFACE-02` + 全局 flags
-3. `PR-3`：`SURFACE-03`
-4. `PR-4`：`EXEC-01` + `EXEC-02`
-5. `PR-5`：`EXEC-04`
-6. `PR-6`：`DISCOVERY-01` + `DISCOVERY-02`
-7. `PR-7`：`RELIABILITY-01`
-8. `PR-8`：`EXEC-05` + NDJSON events
-9. `PR-9`：`BATCH-01` + `BATCH-02`
-10. `PR-10`：`TEST-01`
-11. `PR-11`：`MCP-01`
+- Priority: `P3`
+- Why deferred:
+  - `cancelled` 已足够支撑当前主线
+  - heartbeat / deprecation 更适合作为后续流式协议扩展
 
-## 9. 最终结论
+### EXT-05 | daemon / HTTP / MCP server
 
-这条线的本质不是把 Quantex 从 human CLI 改造成 agent-only 工具，而是把它演进成：
+- Priority: `P3`
+- Why deferred:
+  - 这会把 Quantex 从 lifecycle CLI 推向长期控制面或集成平台
+  - 不应与当前主线共享优先级
+
+## 9. 建议顺序
+
+主线剩余工作的建议顺序：
+
+1. `CONTRACT-01` stdout / stderr 契约硬化
+2. `LIFECYCLE-01` resolve
+3. `RELIABILITY-01` inherited child process termination
+4. `STATE-01` 资源锁
+5. `TEST-01` 契约测试收口
+6. `FRESHNESS-01` 缓存新鲜度与 refresh
+7. `UX-01` 可选全局参数
+
+## 10. 结论
+
+Quantex 主线现在应该继续收敛为：
 
 - 默认对人类友好
 - 对 AI agent 具备稳定契约
-- 同时可作为未来 MCP / RPC surface 的共用 core
+- 专注 agent lifecycle，而不是 workflow orchestration
 
-工程上最重要的不是先加多少新命令，而是先把以下三件事收稳：
+接下来最重要的不是继续堆“更像平台”的命令，而是把以下三件事收稳：
 
-1. result model / renderer 分层
-2. 非交互与结构化输出契约
-3. 错误码、schemaVersion 与执行安全模型
+1. `resolve`，补齐 lifecycle surface
+2. `stdout / stderr` 与子进程终止语义，补齐执行契约
+3. 契约测试与资源锁，补齐长期维护性
 
-这三件事稳定之后，`inspect / ensure / exec / capabilities / schema` 才会真正成为可长期维护的 agent surface，而不是在现有 human CLI 上继续堆 option。
+这三件事完成之后，Quantex 的主线就会更像一个轻量、可信、可持续维护的 agent lifecycle CLI。
