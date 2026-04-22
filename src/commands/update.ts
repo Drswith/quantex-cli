@@ -2,6 +2,7 @@ import type { AgentDefinition, InstallMethod, ManagedInstallType } from '../agen
 import type { ManagedPackageSpec } from '../package-manager'
 import type { InstalledAgentState } from '../state'
 import pc from 'picocolors'
+import { getAgentUpdateStrategy } from '../agent-update'
 import { updateAgent, updateAgentsByType } from '../package-manager'
 import { resolveAgent } from '../services/agents'
 import { getSingleAgentUpdateStatus, planAgentUpdates } from '../services/update'
@@ -97,7 +98,13 @@ async function performUpdate(
     methods = inspection.methods
   }
 
-  if (!canAutoUpdateAgent(agent, installedState) && !methods?.some(method => canUpdateInstallType(method.type))) {
+  const strategy = getAgentUpdateStrategy({
+    agent,
+    installedState,
+    methods: methods ?? [],
+  })
+
+  if (strategy === 'manual-hint' && !canAutoUpdateAgent(agent, installedState) && !methods?.some(method => canUpdateInstallType(method.type))) {
     console.log(pc.yellow(`${agent.displayName} uses an unmanaged install source and cannot be updated automatically.`))
     return
   }

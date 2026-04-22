@@ -1,12 +1,13 @@
 import type { AgentInspection } from '../inspection'
 import type { ManagedInstallType } from '../package-manager'
+import { resolveAgentUpdateProvider } from '../agent-update'
 import { isManagedInstallType } from '../package-manager/capabilities'
 import { canAutoUpdateAgent, canUpdateInstalledState } from '../utils/install'
 
 export interface UpdatePlanEntry {
   inspection: AgentInspection
   installerType?: ManagedInstallType
-  strategy: 'grouped' | 'manual'
+  strategy: 'grouped' | 'manual' | 'self-update'
 }
 
 export interface UpdatePlan {
@@ -42,7 +43,15 @@ export function createUpdatePlan(inspections: AgentInspection[]): UpdatePlan {
       continue
     }
 
-    const installerType = getGroupedInstallerType(inspection)
+    const strategy = resolveAgentUpdateProvider({
+      agent: inspection.agent,
+      installedState: inspection.installedState,
+      methods: inspection.methods,
+    })
+
+    const installerType = strategy.strategy === 'managed'
+      ? getGroupedInstallerType(inspection)
+      : undefined
     if (installerType) {
       const entry: UpdatePlanEntry = {
         inspection,
@@ -55,7 +64,7 @@ export function createUpdatePlan(inspections: AgentInspection[]): UpdatePlan {
 
     manual.push({
       inspection,
-      strategy: 'manual',
+      strategy: strategy.strategy === 'self-update' ? 'self-update' : 'manual',
     })
   }
 
