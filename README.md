@@ -217,6 +217,38 @@ quantex exec codex --install never -- --help
 
 `--` 之后的参数会原样透传给下游 agent，避免与 Quantex 自己的参数冲突。
 
+### Agent-friendly 全局参数
+
+Quantex 现在默认保留 human-first CLI，同时补齐了一组统一的 agent-friendly 全局参数：
+
+```bash
+quantex inspect claude --json --refresh
+quantex install claude --json --dry-run
+quantex exec claude --install if-missing --yes -- --help
+```
+
+当前主线支持：
+
+- `--json` / `--output <human|json|ndjson>`
+- `--non-interactive`
+- `--yes`
+- `--quiet`
+- `--color <auto|always|never>`
+- `--log-level <silent|error|warn|info|debug>`
+- `--dry-run`
+- `--refresh` / `--no-cache`
+- `--run-id`
+- `--idempotency-key`
+- `--timeout`
+
+对于版本与 release 元数据查询，结构化结果的 `meta` 现在会附带：
+
+- `fetchedAt`
+- `staleAfter`
+- `source`
+
+这让上层 agent 可以判断结果是否来自缓存、何时应主动强刷。
+
 ### 配置管理
 
 ```bash

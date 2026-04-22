@@ -78,15 +78,15 @@ Quantex 主线明确收敛为：
 - [x] 已实现 `schema`
 - [x] 已支持 timeout 错误与 signal cancel
 - [x] 已支持 idempotency replay
-- [~] `stdout` / `stderr` 契约已有基础，但还没有完全硬化
-- [~] 测试已覆盖 schema / timeout / cancel / idempotency，但契约测试体系仍未完整
-- [ ] 尚未实现 `resolve`
-- [ ] 尚未实现缓存新鲜度字段：`fetchedAt` / `staleAfter` / `source`
-- [ ] 尚未实现 `--yes` / `--quiet` / `--color` / `--log-level` / `--dry-run`
-- [ ] 尚未实现 `--refresh` / `--no-cache`
-- [ ] 尚未实现 stdout/stderr 的严格 installer log policy
-- [ ] 尚未实现 state / install / uninstall 的资源锁
-- [ ] 尚未实现 timeout / signal 对 inherited child process 的统一终止语义
+- [x] `stdout` / `stderr` 契约已硬化到当前主线目标
+- [x] 契约测试已覆盖 schema / timeout / cancel / idempotency / exit code / catalog drift
+- [x] 已实现 `resolve`
+- [x] 已实现缓存新鲜度字段：`fetchedAt` / `staleAfter` / `source`
+- [x] 已实现 `--yes` / `--quiet` / `--color` / `--log-level` / `--dry-run`
+- [x] 已实现 `--refresh` / `--no-cache`
+- [x] 已实现 stdout/stderr 的 installer log policy
+- [x] 已实现 state / install / uninstall 的资源锁
+- [x] 已实现 timeout / signal 对 inherited child process 的统一终止语义
 
 ## 5. Mainline Checklist
 
@@ -105,9 +105,9 @@ Quantex 主线明确收敛为：
 - [x] human / json / ndjson renderer
 - [x] 命令先产出 result object，再统一渲染
 - [x] schema 导出稳定命令输出定义
-- [~] `stdout` / `stderr` 契约
-- [ ] `stderr` 结构化日志与 installer log policy
-- [ ] `meta.fetchedAt` / `staleAfter` / `source`
+- [x] `stdout` / `stderr` 契约
+- [x] installer log policy
+- [x] `meta.fetchedAt` / `staleAfter` / `source`
 
 ### 5.3 全局策略
 
@@ -117,19 +117,19 @@ Quantex 主线明确收敛为：
 - [x] `--run-id`
 - [x] `--timeout`
 - [x] `--idempotency-key`
-- [ ] `--yes`
-- [ ] `--quiet`
-- [ ] `--color <auto|always|never>`
-- [ ] `--log-level <silent|error|warn|info|debug>`
-- [ ] `--dry-run`
-- [ ] `--refresh` / `--no-cache`
+- [x] `--yes`
+- [x] `--quiet`
+- [x] `--color <auto|always|never>`
+- [x] `--log-level <silent|error|warn|info|debug>`
+- [x] `--dry-run`
+- [x] `--refresh` / `--no-cache`
 - [ ] stdout / stdin 非 TTY 时自动切到 agent-friendly 行为
 
 ### 5.4 Lifecycle Commands
 
 - [x] `quantex inspect <agent>`
 - [x] `quantex ensure <agent>`
-- [ ] `quantex resolve <agent>`
+- [x] `quantex resolve <agent>`
 - [x] `quantex exec <agent> -- [args...]`
 - [x] `quantex capabilities`
 - [x] `quantex commands`
@@ -141,9 +141,9 @@ Quantex 主线明确收敛为：
 - [x] `timeout`
 - [x] `idempotency-key`
 - [x] SIGTERM / SIGINT cancel
-- [ ] state / install / uninstall 资源锁
-- [ ] inherited child process 的 timeout / signal 终止语义
-- [ ] 缓存新鲜度与 refresh policy
+- [x] state / install / uninstall 资源锁
+- [x] inherited child process 的 timeout / signal 终止语义
+- [x] 缓存新鲜度与 refresh policy
 
 ### 5.6 Tests
 
@@ -152,10 +152,10 @@ Quantex 主线明确收敛为：
 - [x] cancel tests
 - [x] idempotency tests
 - [x] non-interactive 行为测试
-- [ ] human vs json snapshot tests
-- [ ] `stdout` / `stderr` contract tests
-- [ ] 完整 exit code / error code matrix tests
-- [ ] schema contract drift tests
+- [x] human vs json contract coverage
+- [x] `stdout` / `stderr` contract tests
+- [x] 完整 exit code / error code matrix tests
+- [x] schema / command catalog drift tests
 
 ## 6. MVP 状态
 
@@ -180,14 +180,14 @@ Quantex 主线明确收敛为：
 - [x] `--timeout`
 - [x] `--idempotency-key`
 - [x] `update --all --output ndjson`
-- [ ] `resolve`
+- [x] `resolve`
 
 ## 7. Mainline Issue Backlog
 
 ### LIFECYCLE-01 | `resolve`
 
 - Priority: `P1`
-- Status: `[ ]`
+- Status: `[x]`
 - Goal: 提供可执行 binary 的结构化解析结果
 - Scope:
   - 新增 `quantex resolve <agent>`
@@ -199,7 +199,7 @@ Quantex 主线明确收敛为：
 ### CONTRACT-01 | stdout / stderr 契约硬化
 
 - Priority: `P1`
-- Status: `[~]`
+- Status: `[x]`
 - Goal: 让 agent mode 下的输出边界完全稳定
 - Scope:
   - 明确 installer log 走向
@@ -213,7 +213,7 @@ Quantex 主线明确收敛为：
 ### RELIABILITY-01 | inherited child process 终止语义
 
 - Priority: `P1`
-- Status: `[ ]`
+- Status: `[x]`
 - Goal: 让 timeout / cancel 不只是返回错误，还能可靠作用于底层长任务
 - Scope:
   - 明确 `exec` / `run` / `upgrade` 的 child process termination policy
@@ -225,7 +225,7 @@ Quantex 主线明确收敛为：
 ### STATE-01 | state / install / uninstall 资源锁
 
 - Priority: `P1`
-- Status: `[ ]`
+- Status: `[x]`
 - Goal: 避免多个终端或多个 agent 同时调用时互相踩状态
 - Scope:
   - `state.json` 写入锁
@@ -237,7 +237,7 @@ Quantex 主线明确收敛为：
 ### FRESHNESS-01 | 缓存新鲜度与 refresh policy
 
 - Priority: `P2`
-- Status: `[ ]`
+- Status: `[x]`
 - Goal: 让 agent 知道版本数据是否来自缓存、何时过期
 - Scope:
   - `meta.fetchedAt`
@@ -251,7 +251,7 @@ Quantex 主线明确收敛为：
 ### UX-01 | 可选全局参数补齐
 
 - Priority: `P2`
-- Status: `[ ]`
+- Status: `[x]`
 - Goal: 补足对人类用户友好、但不影响主线定位的辅助参数
 - Scope:
   - `--yes`
@@ -266,7 +266,7 @@ Quantex 主线明确收敛为：
 ### TEST-01 | 契约测试收口
 
 - Priority: `P1`
-- Status: `[~]`
+- Status: `[x]`
 - Goal: 用测试保障 lifecycle CLI 主线长期稳定
 - Scope:
   - human vs json snapshot
@@ -335,10 +335,8 @@ Quantex 主线现在应该继续收敛为：
 - 对 AI agent 具备稳定契约
 - 专注 agent lifecycle，而不是 workflow orchestration
 
-接下来最重要的不是继续堆“更像平台”的命令，而是把以下三件事收稳：
+当前主线 backlog 已完成，后续更适合围绕：
 
-1. `resolve`，补齐 lifecycle surface
-2. `stdout / stderr` 与子进程终止语义，补齐执行契约
-3. 契约测试与资源锁，补齐长期维护性
-
-这三件事完成之后，Quantex 的主线就会更像一个轻量、可信、可持续维护的 agent lifecycle CLI。
+1. 保持 dual-mode surface 的稳定性
+2. 继续补强回归测试与文档同步
+3. 谨慎评估 extension parking lot，而不是重新把主线推向平台化
