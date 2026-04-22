@@ -6,6 +6,7 @@ export type OutputMode = 'human' | 'json' | 'ndjson'
 
 export interface CliContext {
   cancelled?: boolean
+  idempotencyKey?: string
   interactive: boolean
   outputMode: OutputMode
   runId: string
@@ -13,6 +14,7 @@ export interface CliContext {
 }
 
 export interface CliContextOptions {
+  idempotencyKey?: string
   json?: boolean
   nonInteractive?: boolean
   output?: string
@@ -53,6 +55,7 @@ export function resolveCliContext(options: CliContextOptions = {}): CliContext {
 
   return {
     cancelled: false,
+    idempotencyKey: options.idempotencyKey,
     interactive: !options.nonInteractive && stdinInteractive && stdoutInteractive,
     outputMode,
     runId: options.runId ?? process.env.QUANTEX_RUN_ID ?? randomUUID(),

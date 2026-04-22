@@ -1,4 +1,7 @@
 import type { CommandResult } from '../src/output/types'
+import { mkdtempSync, rmSync } from 'node:fs'
+import { tmpdir } from 'node:os'
+import { join } from 'node:path'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { setCliContext } from '../src/cli-context'
 import { executeCommandWithRuntime } from '../src/command-runtime'
@@ -6,13 +9,22 @@ import { createSuccessResult } from '../src/output'
 
 describe('executeCommandWithRuntime', () => {
   let logSpy: ReturnType<typeof vi.spyOn>
+  let tempHome: string
+  const originalHome = process.env.HOME
 
   beforeEach(() => {
     logSpy = vi.spyOn(console, 'log').mockImplementation(() => {})
+    tempHome = mkdtempSync(join(tmpdir(), 'quantex-runtime-'))
+    process.env.HOME = tempHome
   })
 
   afterEach(() => {
     logSpy.mockRestore()
+    if (originalHome === undefined)
+      delete process.env.HOME
+    else
+      process.env.HOME = originalHome
+    rmSync(tempHome, { force: true, recursive: true })
   })
 
   it('returns a timeout error when execution exceeds the configured deadline', async () => {
@@ -69,5 +81,55 @@ describe('executeCommandWithRuntime', () => {
 
     expect(result.ok).toBe(true)
     expect(logSpy).not.toHaveBeenCalled()
+  })
+
+  it('replays the stored result for a repeated idempotency key', async () => {
+    const run = vi.fn(async () => createSuccessResult({
+      action: 'install',
+      data: {
+        installed: true,
+      },
+      target: {
+        kind: 'agent',
+        name: 'codex',
+      },
+    }))
+
+    setCliContext({
+      idempotencyKey: 'install-codex',
+      interactive: false,
+      outputMode: 'json',
+      runId: 'first-run-id',
+    })
+
+    await executeCommandWithRuntime({
+      action: 'install',
+      run,
+      target: {
+        kind: 'agent',
+        name: 'codex',
+      },
+    })
+
+    setCliContext({
+      idempotencyKey: 'install-codex',
+      interactive: false,
+      outputMode: 'json',
+      runId: 'second-run-id',
+    })
+
+    const replayed = await executeCommandWithRuntime({
+      action: 'install',
+      run,
+      target: {
+        kind: 'agent',
+        name: 'codex',
+      },
+    })
+
+    expect(run).toHaveBeenCalledTimes(1)
+    expect(replayed.ok).toBe(true)
+    expect(replayed.meta.runId).toBe('second-run-id')
+    expect(logSpy).toHaveBeenCalledWith(expect.stringContaining('"runId": "second-run-id"'))
   })
 })

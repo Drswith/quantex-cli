@@ -12,6 +12,7 @@ interface CapabilitiesData {
     channels: string[]
     dryRun: boolean
     execInstallPolicies: string[]
+    idempotencyKey: boolean
     selfUpgrade: boolean
     timeout: boolean
   }
@@ -57,6 +58,7 @@ export async function capabilitiesCommand(): Promise<CommandResult<CapabilitiesD
         channels: ['stable', 'beta'],
         dryRun: true,
         execInstallPolicies: ['never', 'if-missing', 'always'],
+        idempotencyKey: true,
         selfUpgrade: selfInspection.canAutoUpdate,
         timeout: true,
       },
@@ -119,6 +121,7 @@ function renderCapabilitiesHuman(result: { data?: CapabilitiesData }): void {
   console.log(pc.bold('\n  Features:'))
   console.log(`    dry-run:              ${result.data.features.dryRun ? 'yes' : 'no'}`)
   console.log(`    self-upgrade:         ${result.data.features.selfUpgrade ? 'yes' : 'no'}`)
+  console.log(`    idempotency-key:      ${result.data.features.idempotencyKey ? 'yes' : 'no'}`)
   console.log(`    timeout:              ${result.data.features.timeout ? 'yes' : 'no'}`)
   console.log(`    channels:             ${result.data.features.channels.join(', ')}`)
   console.log(`    exec-install-policy:  ${result.data.features.execInstallPolicies.join(', ')}`)

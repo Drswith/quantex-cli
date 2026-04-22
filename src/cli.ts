@@ -18,6 +18,7 @@ program
   .option('--output <mode>', 'Output mode: human, json, or ndjson')
   .option('--non-interactive', 'Disable interactive prompts and confirmations')
   .option('--run-id <id>', 'Attach a run id to structured output and logs')
+  .option('--idempotency-key <key>', 'Deduplicate repeated mutating requests by client-supplied key')
   .option('--timeout <duration>', 'Abort a command after the given duration, e.g. 500ms, 30s, 5m')
   .version(getSelfVersion())
 
@@ -248,6 +249,7 @@ if (shortcutInvocation) {
   if (agent) {
     try {
       setCliContext(resolveCliContext({
+        idempotencyKey: shortcutInvocation.idempotencyKey,
         nonInteractive: shortcutInvocation.nonInteractive,
         runId: shortcutInvocation.runId,
         timeout: shortcutInvocation.timeout,
@@ -275,6 +277,7 @@ interface ShortcutInvocation {
   agentArgs: string[]
   agentName: string
   error?: string
+  idempotencyKey?: string
   nonInteractive?: boolean
   runId?: string
   timeout?: string
@@ -290,6 +293,7 @@ function extractExecPassthroughArgs(command: { args: string[], processedArgs: st
 
 function resolveShortcutInvocation(argv: string[], knownCommandNames: Set<string>): ShortcutInvocation | undefined {
   let index = 0
+  let idempotencyKey: string | undefined
   let jsonOutputRequested = false
   let nonInteractive = false
   let outputMode: string | undefined
@@ -317,6 +321,15 @@ function resolveShortcutInvocation(argv: string[], knownCommandNames: Set<string
     if (arg === '--non-interactive') {
       nonInteractive = true
       index += 1
+      continue
+    }
+
+    if (arg === '--idempotency-key') {
+      const value = argv[index + 1]
+      if (!value)
+        return { agentArgs: [], agentName: '', error: '--idempotency-key requires a value' }
+      idempotencyKey = value
+      index += 2
       continue
     }
 
@@ -350,6 +363,7 @@ function resolveShortcutInvocation(argv: string[], knownCommandNames: Set<string
     return {
       agentArgs: argv.slice(index + 1),
       agentName: arg,
+      idempotencyKey,
       nonInteractive,
       runId,
       timeout,
