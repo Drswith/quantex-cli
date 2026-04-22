@@ -132,4 +132,31 @@ describe('executeCommandWithRuntime', () => {
     expect(replayed.meta.runId).toBe('second-run-id')
     expect(logSpy).toHaveBeenCalledWith(expect.stringContaining('"runId": "second-run-id"'))
   })
+
+  it('returns a cancelled error when the process receives a termination signal', async () => {
+    setCliContext({
+      interactive: false,
+      outputMode: 'ndjson',
+      runId: 'signal-run-id',
+    })
+
+    const execution = executeCommandWithRuntime({
+      action: 'update',
+      run: () => new Promise<CommandResult<unknown>>(() => {}),
+      target: {
+        kind: 'agent',
+        name: 'codex',
+      },
+    })
+
+    await new Promise(resolve => setTimeout(resolve, 0))
+    process.emit('SIGTERM')
+
+    const result = await execution
+    const cancelledEvent = JSON.parse(logSpy.mock.calls[0][0])
+    expect(cancelledEvent.type).toBe('cancelled')
+    expect(cancelledEvent.data.signal).toBe('SIGTERM')
+    expect(result.ok).toBe(false)
+    expect(result.error?.code).toBe('CANCELLED')
+  })
 })

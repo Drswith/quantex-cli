@@ -3,6 +3,7 @@ import type { CommandResult } from './output/types'
 export const cliErrorCodes = [
   'AGENT_NOT_FOUND',
   'AGENT_NOT_INSTALLED',
+  'CANCELLED',
   'INSTALL_FAILED',
   'INTERACTION_REQUIRED',
   'INVALID_ARGUMENT',
@@ -32,6 +33,8 @@ export function getExitCodeForError(code: CliErrorCode): number {
       return 8
     case 'TIMEOUT':
       return 10
+    case 'CANCELLED':
+      return 11
     default:
       return 1
   }
