@@ -4,6 +4,7 @@ import { setCliContext } from '../../src/cli-context'
 import { installCommand } from '../../src/commands/install'
 import * as pm from '../../src/package-manager'
 import * as detect from '../../src/utils/detect'
+import { ResourceLockError } from '../../src/utils/lock'
 
 const agentSpy = vi.spyOn(agents, 'getAgentByNameOrAlias')
 const installSpy = vi.spyOn(pm, 'installAgent')
@@ -73,6 +74,17 @@ describe('installCommand', () => {
     installSpy.mockResolvedValue({ success: false })
     await installCommand('test-agent')
     expect(logSpy).toHaveBeenCalledWith(expect.stringContaining('Failed to install'))
+  })
+
+  it('returns a stable conflict when another lifecycle operation already holds the lock', async () => {
+    agentSpy.mockReturnValue(testAgent)
+    binaryInPathSpy.mockResolvedValue(false)
+    installSpy.mockRejectedValue(new ResourceLockError('agent lifecycle', '/tmp/agent-lifecycle.lock'))
+
+    const result = await installCommand('test-agent')
+
+    expect(result.error?.code).toBe('RESOURCE_LOCKED')
+    expect(logSpy).toHaveBeenCalledWith(expect.stringContaining('agent lifecycle lock'))
   })
 
   it('emits a structured result in json mode', async () => {

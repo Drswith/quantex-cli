@@ -3,7 +3,8 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterAll, afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import * as config from '../src/config'
-import { getSelfState, getStateFilePath, loadState, setSelfInstallSource } from '../src/state'
+import { getSelfState, getStateFilePath, getStateLockPath, loadState, saveState, setSelfInstallSource } from '../src/state'
+import { acquireResourceLock } from '../src/utils/lock'
 
 const tempHome = join(tmpdir(), `quantex-state-test-${Date.now()}`)
 const tempDir = join(tempHome, '.quantex')
@@ -50,5 +51,23 @@ describe('state helpers', () => {
 
     const writtenState = JSON.parse(readFileSync(getStateFilePath(), 'utf8'))
     expect(writtenState.self?.installSource).toBe('binary')
+  })
+
+  it('rejects writes while the state lock is already held', async () => {
+    const release = await acquireResourceLock({
+      resource: 'state',
+      scope: ['state'],
+    })
+
+    await expect(saveState({
+      installedAgents: {},
+      self: {},
+    })).rejects.toMatchObject({
+      lockPath: getStateLockPath(),
+      name: 'ResourceLockError',
+      resource: 'state',
+    })
+
+    await release()
   })
 })

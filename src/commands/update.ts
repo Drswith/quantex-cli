@@ -9,8 +9,9 @@ import { updateAgent, updateAgentsByType } from '../package-manager'
 import { resolveAgent } from '../services/agents'
 import { planAgentUpdates, planSingleAgentUpdate } from '../services/update'
 import { canAutoUpdateAgent, canUpdateInstallType } from '../utils/install'
+import { isResourceLockError } from '../utils/lock'
 
-type UpdateStatus = 'failed' | 'manual-required' | 'up-to-date' | 'updated'
+type UpdateStatus = 'failed' | 'locked' | 'manual-required' | 'up-to-date' | 'updated'
 
 interface UpdateCommandData {
   results: UpdateResultItem[]
@@ -24,6 +25,7 @@ interface UpdateResultItem {
   latestVersion?: string
   message?: string
   name: string
+  resource?: string
   status: UpdateStatus
   strategy?: string
 }
@@ -141,6 +143,30 @@ async function updateSingleAgent(agent: AgentDefinition): Promise<CommandResult<
   }
 
   const execution = await executePlannedUpdates(plan)
+  const lockedResult = getSingleLockedResult(execution.results)
+
+  if (lockedResult) {
+    return emitCommandResult(createErrorResult<UpdateCommandData>({
+      action: 'update',
+      data: {
+        results: execution.results,
+        scope: 'single',
+      },
+      error: {
+        code: 'RESOURCE_LOCKED',
+        details: lockedResult.resource
+          ? {
+              resource: lockedResult.resource,
+            }
+          : undefined,
+        message: lockedResult.message ?? `Another quantex process is already updating ${agent.displayName}.`,
+      },
+      target: {
+        kind: 'agent',
+        name: agent.name,
+      },
+    }), renderUpdateHuman)
+  }
 
   if (execution.hasFailures) {
     return emitCommandResult(createErrorResult<UpdateCommandData>({
@@ -206,7 +232,7 @@ async function executePlannedUpdates(plan: Awaited<ReturnType<typeof planAgentUp
   }
 
   return {
-    hasFailures: results.some(result => result.status === 'failed'),
+    hasFailures: results.some(result => result.status === 'failed' || result.status === 'locked'),
     results,
   }
 }
@@ -232,20 +258,37 @@ async function updateGroupedAgents(
   if (updates.length === 0)
     return []
 
-  const success = await updateAgentsByType(type, packages)
+  try {
+    const success = await updateAgentsByType(type, packages)
 
-  if (success) {
+    if (success) {
+      return updates.map(({ agent, inspection, strategy }) => ({
+        displayName: agent.displayName,
+        installedVersion: inspection.installedVersion,
+        latestVersion: inspection.latestVersion,
+        name: agent.name,
+        status: 'updated',
+        strategy: strategy === 'managed' ? `managed/${type}` : strategy,
+      }))
+    }
+
+    return await Promise.all(updates.map(({ agent, inspection, state }) => performUpdate(agent, state, inspection.methods, inspection)))
+  }
+  catch (error) {
+    if (!isResourceLockError(error))
+      throw error
+
     return updates.map(({ agent, inspection, strategy }) => ({
       displayName: agent.displayName,
       installedVersion: inspection.installedVersion,
       latestVersion: inspection.latestVersion,
+      message: error.message,
       name: agent.name,
-      status: 'updated',
+      resource: error.resource,
+      status: 'locked',
       strategy: strategy === 'managed' ? `managed/${type}` : strategy,
     }))
   }
-
-  return Promise.all(updates.map(({ agent, inspection, state }) => performUpdate(agent, state, inspection.methods, inspection)))
 }
 
 async function performUpdate(
@@ -275,7 +318,26 @@ async function performUpdate(
     }
   }
 
-  const result = await updateAgent(agent, installedState)
+  let result
+  try {
+    result = await updateAgent(agent, installedState)
+  }
+  catch (error) {
+    if (isResourceLockError(error)) {
+      return {
+        displayName: agent.displayName,
+        installedVersion,
+        latestVersion,
+        message: error.message,
+        name: agent.name,
+        resource: error.resource,
+        status: 'locked',
+        strategy,
+      }
+    }
+
+    throw error
+  }
 
   if (result.success) {
     return {
@@ -297,6 +359,13 @@ async function performUpdate(
     status: 'failed',
     strategy,
   }
+}
+
+function getSingleLockedResult(results: UpdateResultItem[]): UpdateResultItem | undefined {
+  if (results.length !== 1)
+    return undefined
+
+  return results[0]?.status === 'locked' ? results[0] : undefined
 }
 
 function renderUpdateHuman(result: { data?: UpdateCommandData, error: { code: string, message: string } | null }): void {
@@ -324,6 +393,9 @@ function renderUpdateHuman(result: { data?: UpdateCommandData, error: { code: st
         console.log(pc.red(`Failed to update ${item.displayName}.`))
         if (item.hint)
           console.log(pc.yellow(item.hint))
+        break
+      case 'locked':
+        console.log(pc.yellow(item.message ?? `Another quantex process is already updating ${item.displayName}.`))
         break
     }
   }
