@@ -48,6 +48,20 @@ describe('self helpers', () => {
     expect(detectSelfInstallSource('/Users/test/workspaces/quantex-cli')).toBe('source')
   })
 
+  it('selects the matching self upgrade provider from the registry', async () => {
+    const { getSelfUpgradeProvider } = await import('../src/self/providers')
+
+    const provider = getSelfUpgradeProvider({
+      canAutoUpdate: true,
+      currentVersion: '1.0.0',
+      executablePath: '/usr/local/bin/qtx',
+      installSource: 'binary',
+      packageRoot: '/usr/local/bin',
+    })
+
+    expect(provider.source).toBe('binary')
+  })
+
   it('upgrades through bun when bun is the detected install source', async () => {
     const { upgradeSelf } = await import('../src/self')
     bunUpdateSpy.mockResolvedValue(true)
