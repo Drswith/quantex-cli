@@ -61,6 +61,7 @@ beforeEach(() => {
   loadConfigSpy.mockResolvedValue({
     defaultPackageManager: 'bun',
     npmBunUpdateStrategy: 'latest-major',
+    selfUpdateChannel: 'stable',
   })
   getInstalledAgentStateSpy.mockResolvedValue(undefined)
   removeInstalledAgentStateSpy.mockResolvedValue()
@@ -167,6 +168,7 @@ describe('updateAgent', () => {
     loadConfigSpy.mockResolvedValue({
       defaultPackageManager: 'bun',
       npmBunUpdateStrategy: 'respect-semver',
+      selfUpdateChannel: 'stable',
     })
     isBunSpy.mockResolvedValue(true)
     bunUpdateSpy.mockResolvedValue(true)

@@ -1,6 +1,7 @@
 import { existsSync, readFileSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
+import process from 'node:process'
 import { afterAll, afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { configCommand } from '../../src/commands/config'
 import * as config from '../../src/config'
@@ -10,15 +11,11 @@ const tempDir = join(tempHome, '.quantex')
 const loadConfigSpy = vi.spyOn(config, 'loadConfig')
 const originalHome = process.env.HOME
 const originalUserProfile = process.env.USERPROFILE
-const originalHomeDrive = process.env.HOMEDRIVE
-const originalHomePath = process.env.HOMEPATH
 
 afterAll(() => {
   loadConfigSpy.mockRestore()
   process.env.HOME = originalHome
   process.env.USERPROFILE = originalUserProfile
-  process.env.HOMEDRIVE = originalHomeDrive
-  process.env.HOMEPATH = originalHomePath
 })
 
 describe('configCommand', () => {
@@ -42,6 +39,7 @@ describe('configCommand', () => {
     loadConfigSpy.mockResolvedValue({
       defaultPackageManager: 'bun',
       npmBunUpdateStrategy: 'latest-major',
+      selfUpdateChannel: 'stable',
     })
     await configCommand()
     expect(loadConfigSpy).toHaveBeenCalled()
@@ -52,6 +50,7 @@ describe('configCommand', () => {
     loadConfigSpy.mockResolvedValue({
       defaultPackageManager: 'bun',
       npmBunUpdateStrategy: 'latest-major',
+      selfUpdateChannel: 'stable',
     })
     await configCommand('get', 'defaultPackageManager')
     expect(logSpy).toHaveBeenCalledWith('bun')
@@ -61,6 +60,7 @@ describe('configCommand', () => {
     loadConfigSpy.mockResolvedValue({
       defaultPackageManager: 'bun',
       npmBunUpdateStrategy: 'latest-major',
+      selfUpdateChannel: 'stable',
     })
     await configCommand('get', 'nonexistent')
     expect(logSpy).toHaveBeenCalledWith(expect.stringContaining('not set'))
@@ -80,6 +80,7 @@ describe('configCommand', () => {
     const content = JSON.parse(readFileSync(configPath, 'utf8'))
     expect(content.defaultPackageManager).toBe('bun')
     expect(content.npmBunUpdateStrategy).toBe('latest-major')
+    expect(content.selfUpdateChannel).toBe('stable')
     expect(logSpy).toHaveBeenCalledWith(expect.stringContaining('reset to defaults'))
   })
 
@@ -87,6 +88,7 @@ describe('configCommand', () => {
     loadConfigSpy.mockResolvedValue({
       defaultPackageManager: 'bun',
       npmBunUpdateStrategy: 'latest-major',
+      selfUpdateChannel: 'stable',
     })
     await configCommand('set', 'npmBunUpdateStrategy', 'respect-semver')
     const configPath = join(tempDir, 'config.json')
@@ -98,6 +100,25 @@ describe('configCommand', () => {
   it('rejects invalid npmBunUpdateStrategy', async () => {
     await configCommand('set', 'npmBunUpdateStrategy', 'invalid')
     expect(logSpy).toHaveBeenCalledWith(expect.stringContaining('npmBunUpdateStrategy must be latest-major or respect-semver'))
+    expect(existsSync(join(tempDir, 'config.json'))).toBe(false)
+  })
+
+  it('sets selfUpdateChannel', async () => {
+    loadConfigSpy.mockResolvedValue({
+      defaultPackageManager: 'bun',
+      npmBunUpdateStrategy: 'latest-major',
+      selfUpdateChannel: 'stable',
+    })
+    await configCommand('set', 'selfUpdateChannel', 'beta')
+    const configPath = join(tempDir, 'config.json')
+    const content = JSON.parse(readFileSync(configPath, 'utf8'))
+    expect(content.selfUpdateChannel).toBe('beta')
+    expect(logSpy).toHaveBeenCalledWith(expect.stringContaining('Set selfUpdateChannel = beta'))
+  })
+
+  it('rejects invalid selfUpdateChannel', async () => {
+    await configCommand('set', 'selfUpdateChannel', 'nightly')
+    expect(logSpy).toHaveBeenCalledWith(expect.stringContaining('selfUpdateChannel must be stable or beta'))
     expect(existsSync(join(tempDir, 'config.json'))).toBe(false)
   })
 

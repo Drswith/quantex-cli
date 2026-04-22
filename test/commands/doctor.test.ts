@@ -71,6 +71,7 @@ describe('doctorCommand', () => {
       latestVersion: '1.0.0',
       packageRoot: '/tmp/quantex',
       recommendedUpgradeCommand: 'quantex upgrade',
+      updateChannel: 'stable',
     })
   })
 
@@ -105,6 +106,7 @@ describe('doctorCommand', () => {
       latestVersion: '1.1.0',
       packageRoot: '/Users/test/.bun/install/global/node_modules/quantex-cli',
       recommendedUpgradeCommand: 'quantex upgrade',
+      updateChannel: 'stable',
     })
 
     await doctorCommand()
@@ -126,6 +128,7 @@ describe('doctorCommand', () => {
       latestVersion: '1.1.0',
       packageRoot: '/usr/local/bin',
       recommendedUpgradeCommand: 'quantex upgrade',
+      updateChannel: 'stable',
     })
 
     await doctorCommand()

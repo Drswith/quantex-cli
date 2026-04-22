@@ -71,9 +71,15 @@ program
 program
   .command('upgrade')
   .description('升级 Quantex CLI')
-  .action(async () => {
+  .option('--channel <channel>', 'Update channel: stable or beta')
+  .option('--check', 'Only check whether an update is available')
+  .action(async (options: { channel?: string, check?: boolean }) => {
     const { upgradeCommand } = await import('./commands/upgrade')
-    await upgradeCommand()
+    const exitCode = await upgradeCommand({
+      channel: options.channel === 'beta' ? 'beta' : undefined,
+      check: options.check ?? false,
+    })
+    process.exitCode = exitCode
   })
 
 program

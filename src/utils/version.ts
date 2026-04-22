@@ -21,9 +21,9 @@ export async function getInstalledVersion(binaryName: string): Promise<string | 
   }
 }
 
-export async function getLatestVersion(packageName: string): Promise<string | undefined> {
+export async function getLatestVersion(packageName: string, distTag: string = 'latest'): Promise<string | undefined> {
   try {
-    const res = await fetch(`https://registry.npmjs.org/${packageName}/latest`)
+    const res = await fetch(`https://registry.npmjs.org/${packageName}/${distTag}`)
     if (!res.ok)
       return undefined
     const data = await res.json() as { version: string }

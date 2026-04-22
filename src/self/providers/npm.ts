@@ -6,9 +6,9 @@ import * as npmPm from '../../package-manager/npm'
 export const npmSelfUpgradeProvider: SelfUpgradeProvider = {
   source: 'npm',
   canHandle: inspection => inspection.installSource === 'npm',
-  getRecoveryHint: () => `npm install -g ${BUILD_PACKAGE_NAME}@latest`,
+  getRecoveryHint: inspection => `npm install -g ${BUILD_PACKAGE_NAME}@${inspection.updateChannel === 'beta' ? 'beta' : 'latest'}`,
   async upgrade(inspection: SelfInspection): Promise<SelfUpdateResult> {
-    const success = await npmPm.update(BUILD_PACKAGE_NAME)
+    const success = await npmPm.update(BUILD_PACKAGE_NAME, 'latest-major', inspection.updateChannel === 'beta' ? 'beta' : 'latest')
     return {
       error: success
         ? undefined
@@ -17,6 +17,7 @@ export const npmSelfUpgradeProvider: SelfUpgradeProvider = {
             message: `Failed to update ${BUILD_PACKAGE_NAME} through npm.`,
           },
       installSource: inspection.installSource,
+      newVersion: success ? inspection.latestVersion : undefined,
       success,
     }
   },

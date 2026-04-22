@@ -1,28 +1,32 @@
-import type { SelfInspection, SelfInstallSource, SelfPackageMetadata, SelfUpdateResult } from './types'
+import type { SelfInspection, SelfInstallSource, SelfPackageMetadata, SelfUpdateChannel, SelfUpdateResult } from './types'
 import { readFile } from 'node:fs/promises'
 import { basename, dirname, join } from 'node:path'
 import process from 'node:process'
 import { fileURLToPath } from 'node:url'
+import { loadConfig } from '../config'
 import { BUILD_PACKAGE_NAME, BUILD_VERSION } from '../generated/build-meta'
 import { getSelfState, setSelfInstallSource } from '../state'
 import { getLatestVersion } from '../utils/version'
 import { acquireSelfUpgradeLock } from './lock'
 import { getSelfUpgradeProvider } from './providers'
 import { getSelfUpgradeRecoveryHint } from './recovery'
+import { fetchBinaryReleaseManifest, getSelfUpdateChannel, resolveBinaryReleaseAsset } from './release'
 
 const CLI_NPM_PACKAGE_NAME = BUILD_PACKAGE_NAME
 const BUN_GLOBAL_PATH_SEGMENT = '/.bun/install/global/'
 const NODE_MODULES_SEGMENT = `/node_modules/${CLI_NPM_PACKAGE_NAME}`
 
-export async function inspectSelf(): Promise<SelfInspection> {
+export async function inspectSelf(options?: { updateChannel?: SelfUpdateChannel }): Promise<SelfInspection> {
   const metadata = await resolveSelfPackageMetadata()
-  const latestVersion = await getLatestVersion(CLI_NPM_PACKAGE_NAME)
   const executablePath = process.execPath
   const detectedInstallSource = metadata.foundPackageJson
     ? detectSelfInstallSource(metadata.packageRoot)
     : detectSelfInstallSource('', executablePath)
   const state = await getSelfState()
   const installSource = await resolveSelfInstallSource(state.installSource, detectedInstallSource)
+  const config = await loadConfig()
+  const updateChannel = getSelfUpdateChannel(options?.updateChannel, config.selfUpdateChannel)
+  const latestVersion = await resolveSelfLatestVersion(installSource, executablePath, updateChannel)
 
   return {
     canAutoUpdate: canAutoUpdateSelf(installSource),
@@ -32,6 +36,7 @@ export async function inspectSelf(): Promise<SelfInspection> {
     latestVersion,
     packageRoot: metadata.packageRoot,
     recommendedUpgradeCommand: canAutoUpdateSelf(installSource) ? 'quantex upgrade' : undefined,
+    updateChannel,
   }
 }
 
@@ -134,6 +139,25 @@ export function getManualSelfUpgradeCommand(
   return getSelfUpgradeRecoveryHint(installSource, executablePath)
 }
 
+async function resolveSelfLatestVersion(
+  installSource: SelfInstallSource,
+  executablePath: string,
+  updateChannel: SelfUpdateChannel,
+): Promise<string | undefined> {
+  if (installSource === 'binary') {
+    try {
+      const manifest = await fetchBinaryReleaseManifest(updateChannel)
+      const asset = resolveBinaryReleaseAsset(manifest, executablePath)
+      return asset ? manifest.version : undefined
+    }
+    catch {
+      return undefined
+    }
+  }
+
+  return getLatestVersion(CLI_NPM_PACKAGE_NAME, updateChannel === 'beta' ? 'beta' : 'latest')
+}
+
 async function readPackageJson(packageJsonPath: string): Promise<{ name?: string, version?: string } | undefined> {
   try {
     return JSON.parse(await readFile(packageJsonPath, 'utf8')) as { name?: string, version?: string }
@@ -165,9 +189,14 @@ export { acquireSelfUpgradeLock, getSelfUpgradeLockPath } from './lock'
 export { getSelfUpgradeRecoveryHint, getSelfUpgradeRecoveryHintForInspection } from './recovery'
 export {
   fetchBinaryReleaseChecksum,
+  fetchBinaryReleaseManifest,
+  fetchGitHubReleaseSummary,
   getBinaryReleaseAssetName,
   getBinaryReleaseChecksumUrl,
   getBinaryReleaseDownloadUrl,
+  getSelfUpdateChannel,
   parseBinaryReleaseChecksum,
+  resolveBinaryReleaseAsset,
+  resolveBinaryReleaseManifestUrl,
 } from './release'
-export type { SelfInspection, SelfInstallSource, SelfPackageMetadata, SelfUpdateResult } from './types'
+export type { SelfInspection, SelfInstallSource, SelfPackageMetadata, SelfUpdateChannel, SelfUpdateResult } from './types'

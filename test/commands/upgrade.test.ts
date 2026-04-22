@@ -32,9 +32,10 @@ describe('upgradeCommand', () => {
       latestVersion: '1.0.0',
       packageRoot: '/tmp/quantex',
       recommendedUpgradeCommand: 'quantex upgrade',
+      updateChannel: 'stable',
     })
 
-    await upgradeCommand()
+    await expect(upgradeCommand()).resolves.toBe(0)
 
     expect(upgradeSelfSpy).not.toHaveBeenCalled()
     expect(logSpy).toHaveBeenCalledWith(expect.stringContaining('already up to date'))
@@ -48,9 +49,10 @@ describe('upgradeCommand', () => {
       installSource: 'source',
       latestVersion: '1.1.0',
       packageRoot: '/tmp/quantex',
+      updateChannel: 'stable',
     })
 
-    await upgradeCommand()
+    await expect(upgradeCommand()).resolves.toBe(2)
 
     expect(upgradeSelfSpy).not.toHaveBeenCalled()
     expect(logSpy).toHaveBeenCalledWith(expect.stringContaining('cannot auto-update'))
@@ -65,6 +67,7 @@ describe('upgradeCommand', () => {
       latestVersion: '1.1.0',
       packageRoot: '/Users/test/.bun/install/global/node_modules/quantex-cli',
       recommendedUpgradeCommand: 'quantex upgrade',
+      updateChannel: 'stable' as const,
     }
     inspectSelfSpy.mockResolvedValue(inspection)
     upgradeSelfSpy.mockResolvedValue({
@@ -76,7 +79,7 @@ describe('upgradeCommand', () => {
       success: false,
     })
 
-    await upgradeCommand()
+    await expect(upgradeCommand()).resolves.toBe(2)
 
     expect(logSpy).toHaveBeenCalledWith(expect.stringContaining('Failed to upgrade Quantex CLI'))
     expect(logSpy).toHaveBeenCalledWith(expect.stringContaining('Reason: Failed to update quantex-cli through Bun.'))
@@ -92,6 +95,7 @@ describe('upgradeCommand', () => {
       latestVersion: '1.1.0',
       packageRoot: '/usr/local/lib/node_modules/quantex-cli',
       recommendedUpgradeCommand: 'quantex upgrade',
+      updateChannel: 'stable' as const,
     }
     inspectSelfSpy.mockResolvedValue(inspection)
     upgradeSelfSpy.mockResolvedValue({
@@ -103,7 +107,7 @@ describe('upgradeCommand', () => {
       success: false,
     })
 
-    await upgradeCommand()
+    await expect(upgradeCommand()).resolves.toBe(2)
 
     expect(logSpy).toHaveBeenCalledWith(expect.stringContaining('npm install -g quantex-cli@latest'))
   })
@@ -117,6 +121,7 @@ describe('upgradeCommand', () => {
       latestVersion: '1.1.0',
       packageRoot: '/usr/local/bin',
       recommendedUpgradeCommand: 'quantex upgrade',
+      updateChannel: 'stable' as const,
     }
     inspectSelfSpy.mockResolvedValue(inspection)
     upgradeSelfSpy.mockResolvedValue({
@@ -128,7 +133,7 @@ describe('upgradeCommand', () => {
       success: false,
     })
 
-    await upgradeCommand()
+    await expect(upgradeCommand()).resolves.toBe(2)
 
     expect(logSpy).toHaveBeenCalledWith(expect.stringContaining('check write permission'))
   })
@@ -142,6 +147,7 @@ describe('upgradeCommand', () => {
       latestVersion: '1.1.0',
       packageRoot: '/usr/local/lib/node_modules/quantex-cli',
       recommendedUpgradeCommand: 'quantex upgrade',
+      updateChannel: 'stable' as const,
     }
     inspectSelfSpy.mockResolvedValue(inspection)
     upgradeSelfSpy.mockResolvedValue({
@@ -153,7 +159,7 @@ describe('upgradeCommand', () => {
       success: false,
     })
 
-    await upgradeCommand()
+    await expect(upgradeCommand()).resolves.toBe(2)
 
     expect(logSpy).toHaveBeenCalledWith(expect.stringContaining('Another qtx upgrade is already running.'))
     expect(logSpy).toHaveBeenCalledWith(expect.stringContaining('already running; wait for it to finish and retry'))
@@ -168,6 +174,7 @@ describe('upgradeCommand', () => {
       latestVersion: '1.1.0',
       packageRoot: '/tmp/quantex',
       recommendedUpgradeCommand: 'quantex upgrade',
+      updateChannel: 'stable' as const,
     }
     inspectSelfSpy.mockResolvedValue(inspection)
     upgradeSelfSpy.mockResolvedValue({
@@ -175,10 +182,29 @@ describe('upgradeCommand', () => {
       success: true,
     })
 
-    await upgradeCommand()
+    await expect(upgradeCommand()).resolves.toBe(0)
 
     expect(upgradeSelfSpy).toHaveBeenCalledWith(inspection)
     expect(logSpy).toHaveBeenCalledWith(expect.stringContaining('Upgrading Quantex CLI'))
     expect(logSpy).toHaveBeenCalledWith(expect.stringContaining('upgraded successfully'))
+  })
+
+  it('supports --check mode when an update is available', async () => {
+    inspectSelfSpy.mockResolvedValue({
+      canAutoUpdate: true,
+      currentVersion: '1.0.0',
+      executablePath: '/tmp/quantex',
+      installSource: 'npm',
+      latestVersion: '1.1.0',
+      packageRoot: '/tmp/quantex',
+      recommendedUpgradeCommand: 'quantex upgrade',
+      updateChannel: 'beta',
+    })
+
+    await expect(upgradeCommand({ check: true, channel: 'beta' })).resolves.toBe(1)
+
+    expect(upgradeSelfSpy).not.toHaveBeenCalled()
+    expect(logSpy).toHaveBeenCalledWith(expect.stringContaining('Update available'))
+    expect(logSpy).toHaveBeenCalledWith(expect.stringContaining('(beta)'))
   })
 })

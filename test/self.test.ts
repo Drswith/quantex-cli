@@ -15,7 +15,7 @@ const getConfigDirSpy = vi.spyOn(config, 'getConfigDir')
 const bunUpdateSpy = vi.spyOn(bunPm, 'update')
 const npmUpdateSpy = vi.spyOn(npmPm, 'update')
 const binaryUpgradeSpy = vi.spyOn(binarySelf, 'upgradeStandaloneBinary')
-const releaseChecksumSpy = vi.spyOn(releaseSelf, 'fetchBinaryReleaseChecksum')
+const releaseManifestSpy = vi.spyOn(releaseSelf, 'fetchBinaryReleaseManifest')
 const latestVersionSpy = vi.spyOn(version, 'getLatestVersion')
 const tempConfigDir = join(tmpdir(), `quantex-self-test-${Date.now()}`)
 
@@ -24,7 +24,7 @@ afterAll(() => {
   bunUpdateSpy.mockRestore()
   npmUpdateSpy.mockRestore()
   binaryUpgradeSpy.mockRestore()
-  releaseChecksumSpy.mockRestore()
+  releaseManifestSpy.mockRestore()
   latestVersionSpy.mockRestore()
 })
 
@@ -34,7 +34,7 @@ describe('self helpers', () => {
     bunUpdateSpy.mockClear()
     npmUpdateSpy.mockClear()
     binaryUpgradeSpy.mockClear()
-    releaseChecksumSpy.mockClear()
+    releaseManifestSpy.mockClear()
     latestVersionSpy.mockClear()
   })
 
@@ -67,6 +67,7 @@ describe('self helpers', () => {
       executablePath: '/usr/local/bin/qtx',
       installSource: 'binary',
       packageRoot: '/usr/local/bin',
+      updateChannel: 'stable',
     })
 
     expect(provider.source).toBe('binary')
@@ -84,14 +85,16 @@ describe('self helpers', () => {
       latestVersion: '1.1.0',
       packageRoot: '/Users/test/.bun/install/global/node_modules/quantex-cli',
       recommendedUpgradeCommand: 'quantex upgrade',
+      updateChannel: 'stable',
     })
 
     expect(result).toEqual({
       error: undefined,
       installSource: 'bun',
+      newVersion: '1.1.0',
       success: true,
     })
-    expect(bunUpdateSpy).toHaveBeenCalledWith('quantex-cli')
+    expect(bunUpdateSpy).toHaveBeenCalledWith('quantex-cli', 'latest-major', 'latest')
     expect(existsSync(getSelfUpgradeLockPath())).toBe(false)
   })
 
@@ -107,14 +110,16 @@ describe('self helpers', () => {
       latestVersion: '1.1.0',
       packageRoot: '/usr/local/lib/node_modules/quantex-cli',
       recommendedUpgradeCommand: 'quantex upgrade',
+      updateChannel: 'stable',
     })
 
     expect(result).toEqual({
       error: undefined,
       installSource: 'npm',
+      newVersion: '1.1.0',
       success: true,
     })
-    expect(npmUpdateSpy).toHaveBeenCalledWith('quantex-cli')
+    expect(npmUpdateSpy).toHaveBeenCalledWith('quantex-cli', 'latest-major', 'latest')
   })
 
   it('reports source installs as unsupported for auto-update', async () => {
@@ -127,6 +132,7 @@ describe('self helpers', () => {
       installSource: 'source',
       latestVersion: '1.1.0',
       packageRoot: '/Users/test/workspaces/quantex-cli',
+      updateChannel: 'stable',
     })
 
     expect(result).toEqual({
@@ -141,8 +147,18 @@ describe('self helpers', () => {
   })
 
   it('upgrades standalone binaries through release downloads', async () => {
-    const { getSelfUpgradeRecoveryHint, parseBinaryReleaseChecksum, upgradeSelf } = await import('../src/self')
-    releaseChecksumSpy.mockResolvedValue('abc123')
+    const { getSelfUpdateChannel, getSelfUpgradeRecoveryHint, parseBinaryReleaseChecksum, resolveBinaryReleaseAsset, upgradeSelf } = await import('../src/self')
+    releaseManifestSpy.mockResolvedValue({
+      assets: [{
+        arch: 'arm64',
+        checksum: 'abc123',
+        downloadUrl: 'https://example.com/releases/download/v1.1.0/quantex-darwin-arm64',
+        name: 'quantex-darwin-arm64',
+        platform: 'darwin',
+      }],
+      channel: 'stable',
+      version: '1.1.0',
+    })
     binaryUpgradeSpy.mockResolvedValue({ success: true })
 
     const result = await upgradeSelf({
@@ -153,6 +169,7 @@ describe('self helpers', () => {
       latestVersion: '1.1.0',
       packageRoot: '/usr/local/bin',
       recommendedUpgradeCommand: 'quantex upgrade',
+      updateChannel: 'stable',
     })
 
     expect(result).toEqual({
@@ -161,12 +178,12 @@ describe('self helpers', () => {
       newVersion: '1.1.0',
     })
     expect(binaryUpgradeSpy).toHaveBeenCalledWith(
-      'https://github.com/Drswith/quantex-cli/releases/latest/download/quantex-darwin-arm64',
+      'https://example.com/releases/download/v1.1.0/quantex-darwin-arm64',
       '/usr/local/bin/qtx',
       'abc123',
       '1.1.0',
     )
-    expect(getSelfUpgradeRecoveryHint('binary', '/usr/local/bin/qtx', {
+    expect(getSelfUpgradeRecoveryHint('binary', '/usr/local/bin/qtx', 'stable', {
       error: {
         kind: 'network',
         message: 'offline',
@@ -176,6 +193,18 @@ describe('self helpers', () => {
     })).toContain('check network access')
     expect(parseBinaryReleaseChecksum(`abc123  quantex-darwin-arm64\n`, 'quantex-darwin-arm64')).toBeUndefined()
     expect(parseBinaryReleaseChecksum(`${'a'.repeat(64)}  quantex-darwin-arm64\n`, 'quantex-darwin-arm64')).toBe('a'.repeat(64))
+    expect(getSelfUpdateChannel(undefined, 'stable', { QUANTEX_UPDATE_CHANNEL: 'beta' })).toBe('beta')
+    expect(resolveBinaryReleaseAsset({
+      assets: [{
+        arch: 'arm64',
+        checksum: 'abc123',
+        downloadUrl: 'https://example.com/quantex-darwin-arm64',
+        name: 'quantex-darwin-arm64',
+        platform: 'darwin',
+      }],
+      channel: 'stable',
+      version: '1.1.0',
+    }, '/usr/local/bin/qtx')?.downloadUrl).toBe('https://example.com/quantex-darwin-arm64')
   })
 
   it('returns a locked error when another self upgrade is already running', async () => {
@@ -193,6 +222,7 @@ describe('self helpers', () => {
         latestVersion: '1.1.0',
         packageRoot: '/Users/test/.bun/install/global/node_modules/quantex-cli',
         recommendedUpgradeCommand: 'quantex upgrade',
+        updateChannel: 'stable',
       })
 
       expect(result).toEqual({
@@ -248,5 +278,6 @@ describe('self helpers', () => {
     expect(inspection.canAutoUpdate).toBe(false)
     expect(inspection.executablePath).toBeTruthy()
     expect(inspection.latestVersion).toBe('9.9.9')
+    expect(inspection.updateChannel).toBe('stable')
   })
 })

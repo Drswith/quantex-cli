@@ -1,20 +1,21 @@
-import type { SelfInspection, SelfInstallSource, SelfUpdateResult } from './types'
+import type { SelfInspection, SelfInstallSource, SelfUpdateChannel, SelfUpdateResult } from './types'
 import { BUILD_PACKAGE_NAME } from '../generated/build-meta'
 import { getBinaryReleaseDownloadUrl } from './release'
 
 export function getSelfUpgradeRecoveryHint(
   installSource: SelfInstallSource,
   executablePath: string,
+  updateChannel: SelfUpdateChannel = 'stable',
   result?: SelfUpdateResult,
 ): string | undefined {
   if (result?.error?.kind === 'locked')
     return 'another qtx upgrade is already running; wait for it to finish and retry'
 
   if (installSource === 'bun')
-    return `bun add -g ${BUILD_PACKAGE_NAME}@latest`
+    return `bun add -g ${BUILD_PACKAGE_NAME}@${updateChannel === 'beta' ? 'beta' : 'latest'}`
 
   if (installSource === 'npm')
-    return `npm install -g ${BUILD_PACKAGE_NAME}@latest`
+    return `npm install -g ${BUILD_PACKAGE_NAME}@${updateChannel === 'beta' ? 'beta' : 'latest'}`
 
   if (installSource === 'binary') {
     const downloadUrl = getBinaryReleaseDownloadUrl(executablePath)
@@ -37,5 +38,5 @@ export function getSelfUpgradeRecoveryHintForInspection(
   inspection: SelfInspection,
   result?: SelfUpdateResult,
 ): string | undefined {
-  return getSelfUpgradeRecoveryHint(inspection.installSource, inspection.executablePath, result)
+  return getSelfUpgradeRecoveryHint(inspection.installSource, inspection.executablePath, inspection.updateChannel, result)
 }
