@@ -67,6 +67,18 @@ The binary self-upgrade path SHALL use a replacement strategy that matches platf
 - WHEN a binary upgrade is executed
 - THEN Quantex uses delayed replacement semantics compatible with Windows file locking behavior
 
+### Requirement: Release artifacts MUST be smoke-validated before publish
+
+The release pipeline SHALL verify that at least the current runner's publishable binary artifact is executable and matches the generated release metadata.
+
+#### Scenario: Verifying the current runner release asset
+
+- GIVEN Quantex has built release binaries, `SHA256SUMS.txt`, and `manifest.json`
+- WHEN the release verification workflow runs
+- THEN it checks that the current runner asset exists in the manifest and checksum file
+- AND it executes that binary with `--version`
+- AND the command reports the expected build version
+
 ### Requirement: Self-upgrade MUST expose recovery guidance
 
 The self-upgrade system SHALL provide recovery hints when automatic upgrade is unavailable or fails.
