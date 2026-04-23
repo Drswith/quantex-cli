@@ -1,8 +1,11 @@
 import { access, mkdir, readdir, writeFile } from 'node:fs/promises'
 import { dirname, resolve } from 'node:path'
 import process from 'node:process'
+import { fileURLToPath } from 'node:url'
 
-export const rootDir = resolve(import.meta.dir, '..')
+const scriptDir = dirname(fileURLToPath(import.meta.url))
+
+export const rootDir = resolve(scriptDir, '..')
 
 export function formatCurrentDate() {
   return new Intl.DateTimeFormat('en-CA', {
@@ -69,6 +72,35 @@ export function slugify(value: string, fallback = 'item') {
     .replace(/-+$/, '')
 
   return normalized || fallback
+}
+
+export function insertQueueRow(queueContent: string, row: string, status: string) {
+  const activeHeader = '## Active queue'
+  const completedHeader = '## Completed milestones'
+  const intakeHeader = '## Intake rules'
+  const tableDivider = '|---|---|---|---|---|'
+  const emptyActiveNotice = 'No active tasks are currently queued. Add the next executable task contract in `autonomy/tasks/` before reopening this section.'
+
+  const normalizedQueue = queueContent.replace(`${emptyActiveNotice}\n\n`, '')
+  const targetHeader = status === 'done' ? completedHeader : activeHeader
+  const fallbackHeader = status === 'done' ? intakeHeader : completedHeader
+  const sectionStart = normalizedQueue.indexOf(targetHeader)
+  const sectionEnd = normalizedQueue.indexOf(fallbackHeader)
+
+  if (sectionStart === -1 || sectionEnd === -1 || sectionEnd <= sectionStart)
+    return `${normalizedQueue.trimEnd()}\n${row}\n`
+
+  const beforeSection = normalizedQueue.slice(0, sectionStart)
+  const section = normalizedQueue.slice(sectionStart, sectionEnd)
+  const afterSection = normalizedQueue.slice(sectionEnd)
+  const dividerIndex = section.indexOf(tableDivider)
+
+  if (dividerIndex === -1)
+    return `${normalizedQueue.trimEnd()}\n${row}\n`
+
+  const dividerEnd = dividerIndex + tableDivider.length
+  const sectionWithRow = `${section.slice(0, dividerEnd)}\n${row}${section.slice(dividerEnd)}`
+  return `${beforeSection}${sectionWithRow}${afterSection}`
 }
 
 export async function writeNewFile(filePath: string, content: string) {
