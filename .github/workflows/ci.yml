@@ -43,4 +43,8 @@ jobs:
 
       - run: bun install --frozen-lockfile
       - run: bun run build
-      - run: bun run test
+      - if: runner.os == 'Windows'
+        run: bun run test -- --pool=threads
+
+      - if: runner.os != 'Windows'
+        run: bun run test
