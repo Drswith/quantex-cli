@@ -40,11 +40,9 @@ Release commits follow the same rule as product changes: they must arrive on `ma
 
 Use this split flow:
 
-1. Create a release branch from `main`.
-2. Run `bun run release` to let `bumpp` prepare the version bump commit without tagging or pushing.
-3. Open and merge the release PR.
-4. Sync local `main`.
-5. Run `bun run release:tag -- --push` from the merged `main` checkout.
+1. Run `bun run release` from a clean worktree to let the helper sync `main`, create the release branch, run `bumpp`, push, and open the PR.
+2. Merge the generated release PR.
+3. Run `bun run release:publish` to sync `main`, create the release tag, and push it.
 
 This keeps version bumps reviewable while preserving the existing tag-triggered publish workflow.
 

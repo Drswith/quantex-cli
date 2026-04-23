@@ -2,7 +2,7 @@
 
 ## Purpose
 
-Provide the canonical release procedure now that `main` only accepts changes through pull requests.
+Provide the canonical release procedure now that `main` only accepts changes through pull requests, without bringing back a long list of manual Git commands.
 
 ## When to use
 
@@ -26,38 +26,24 @@ The release flow now needs two explicit phases:
 
 ## Canonical flow
 
-### 1. Start from a clean, up-to-date `main`
+### 1. Prepare the release PR
 
-Run:
-
-```bash
-git switch main
-git pull --ff-only
-```
-
-### 2. Create a release branch
-
-Example:
-
-```bash
-git switch -c codex/release-v0.1.2
-```
-
-### 3. Prepare the version bump
-
-Run:
+Run a single command from a clean worktree:
 
 ```bash
 bun run release
 ```
 
-What this now does:
+What `bun run release` now does:
 
+- switches to `main`
+- fast-forwards local `main` from `origin/main`
+- creates a temporary release branch
 - keeps `bumpp`'s interactive version selection
-- updates `package.json`
-- creates the version bump commit
-- does not create a tag
-- does not push
+- creates the version bump commit without tagging or pushing
+- renames the branch to `codex/release-v<version>`
+- pushes the branch to origin
+- opens a PR to `main` when GitHub CLI is available and authenticated
 
 For an explicit release type or prerelease, pass flags through to `bumpp`:
 
@@ -66,48 +52,38 @@ bun run release -- --release patch
 bun run release -- --release prerelease --preid beta
 ```
 
-### 4. Push the branch and open a release PR
+Then let CI pass and merge the generated release PR into `main`.
+
+### 2. Publish the merged release
 
 Run:
 
 ```bash
-git push -u origin codex/release-v0.1.2
+bun run release:publish
 ```
 
-Then open a PR, let CI pass, and merge it into `main`.
+What `bun run release:publish` does:
 
-### 5. Sync local `main` to the merged release commit
+- switches to `main`
+- fast-forwards local `main` from `origin/main`
+- creates the release tag for `package.json` version
+- pushes the tag to origin
 
-Run:
+What the underlying `release:tag` guard still checks:
 
-```bash
-git switch main
-git pull --ff-only
-```
-
-### 6. Create and push the release tag from merged `main`
-
-Run:
-
-```bash
-bun run release:tag -- --push
-```
-
-What `release:tag` checks before tagging:
-
-- current branch must be `main`
+- current branch must end up on `main`
 - worktree must be clean
 - local `main` must match its upstream
 - local tag `v<package.json version>` must not already exist
 
-If you want to inspect the tag before pushing it, run:
+If you want the low-level manual control, these helpers still exist:
 
 ```bash
 bun run release:tag
 git push origin v0.1.2
 ```
 
-### 7. Let GitHub Actions publish the release
+### 3. Let GitHub Actions publish the release
 
 Pushing the tag triggers:
 
