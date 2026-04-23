@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - main
+      - beta
   workflow_dispatch:
 
 permissions:
@@ -13,19 +14,31 @@ permissions:
   pull-requests: write
 
 concurrency:
-  group: release-main
+  group: release-${{ github.ref_name }}
   cancel-in-progress: false
 
 jobs:
   release:
     runs-on: ubuntu-latest
     steps:
+      - name: Select release channel
+        id: channel
+        run: |
+          if [ "${GITHUB_REF_NAME}" = "beta" ]; then
+            echo "config_file=release-please-config.beta.json" >> "$GITHUB_OUTPUT"
+            echo "npm_tag=beta" >> "$GITHUB_OUTPUT"
+          else
+            echo "config_file=release-please-config.json" >> "$GITHUB_OUTPUT"
+            echo "npm_tag=latest" >> "$GITHUB_OUTPUT"
+          fi
+
       - name: Release Please
         id: release
         uses: googleapis/release-please-action@v4
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
-          config-file: release-please-config.json
+          target-branch: ${{ github.ref_name }}
+          config-file: ${{ steps.channel.outputs.config_file }}
           manifest-file: .release-please-manifest.json
 
       - name: Checkout released source
@@ -86,7 +99,7 @@ jobs:
 
       - name: Publish npm package
         if: ${{ steps.release.outputs.release_created }}
-        run: npm publish --access public --ignore-scripts
+        run: npm publish --access public --ignore-scripts --tag ${{ steps.channel.outputs.npm_tag }}
 
       - name: Upload release artifacts
         if: ${{ steps.release.outputs.release_created }}
