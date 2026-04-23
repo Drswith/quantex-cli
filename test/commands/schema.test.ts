@@ -67,4 +67,20 @@ describe('schemaCommand', () => {
     expect(payload.data.commands[0].dataSchema.properties.issues.items.properties.suggestedAction).toBeDefined()
     expect(payload.data.commands[0].dataSchema.properties.issues.items.properties.suggestedCommands).toBeDefined()
   })
+
+  it('returns the resolve schema with install guidance in json mode', async () => {
+    setCliContext({
+      interactive: false,
+      outputMode: 'json',
+      runId: 'schema-resolve-run-id',
+    })
+
+    await schemaCommand('resolve')
+
+    const payload = JSON.parse(logSpy.mock.calls[0][0])
+    expect(payload.data.commands).toHaveLength(1)
+    expect(payload.data.commands[0].name).toBe('resolve')
+    expect(payload.data.commands[0].dataSchema.properties.resolution.properties.installGuidance).toBeDefined()
+    expect(payload.data.commands[0].dataSchema.properties.resolution.properties.installed).toBeDefined()
+  })
 })

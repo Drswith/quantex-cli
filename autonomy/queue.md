@@ -12,6 +12,7 @@ This queue is the prioritized entry point for future agent-driven work.
 | ID | Status | Priority | Title | Depends on |
 |---|---|---|---|---|
 | [qtx-0024](./tasks/qtx-0024-fix-task-queue-insertion-when-active-queue-is-empty.md) | `done` | `medium` | Fix task queue insertion when active queue is empty | - |
+| [qtx-0025](./tasks/qtx-0025-make-resolve-surface-machine-actionable-install-guidance.md) | `done` | `high` | Make resolve surface machine-actionable install guidance | - |
 | [qtx-0001](./tasks/qtx-0001-migrate-troubleshooting-into-runbooks.md) | `done` | `high` | Migrate troubleshooting knowledge into canonical runbooks | - |
 | [qtx-0002](./tasks/qtx-0002-consolidate-auto-upgrade-docs-into-openspec-and-adr.md) | `done` | `high` | Consolidate auto-upgrade design into OpenSpec specs and ADRs | - |
 | [qtx-0003](./tasks/qtx-0003-convert-root-backlogs-into-task-contracts.md) | `done` | `medium` | Convert legacy root backlogs into autonomy task contracts | - |
