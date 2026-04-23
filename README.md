@@ -34,8 +34,9 @@
 
 ## Releases
 
-Quantex 的 canonical changelog 在 GitHub Releases：
+Quantex 使用 release-please 维护 Release PR。版本号和 changelog 会在 Release PR 中进入源码：
 
+- [CHANGELOG.md](./CHANGELOG.md)
 - [GitHub Releases](https://github.com/Drswith/quantex-cli/releases)
 - [docs/releases.md](./docs/releases.md)
 

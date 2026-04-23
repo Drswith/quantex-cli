@@ -9,6 +9,8 @@ on:
 permissions:
   contents: write
   id-token: write
+  issues: write
+  pull-requests: write
 
 concurrency:
   group: release-main
@@ -18,38 +20,76 @@ jobs:
   release:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout
+      - name: Release Please
+        id: release
+        uses: googleapis/release-please-action@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          config-file: release-please-config.json
+          manifest-file: .release-please-manifest.json
+
+      - name: Checkout released source
+        if: ${{ steps.release.outputs.release_created }}
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
-          ref: refs/heads/main
+          ref: ${{ steps.release.outputs.sha }}
 
       - name: Setup Bun
+        if: ${{ steps.release.outputs.release_created }}
         uses: oven-sh/setup-bun@v2
         with:
           bun-version: latest
 
       - name: Setup Node.js
+        if: ${{ steps.release.outputs.release_created }}
         uses: actions/setup-node@v4
         with:
-          node-version: lts/*
+          node-version: 24
+          registry-url: https://registry.npmjs.org
 
       - name: Install dependencies
+        if: ${{ steps.release.outputs.release_created }}
         run: bun install --frozen-lockfile
 
       - name: Validate project memory
+        if: ${{ steps.release.outputs.release_created }}
         run: bun run memory:check
 
       - name: Lint
+        if: ${{ steps.release.outputs.release_created }}
         run: bun run lint
 
       - name: Typecheck
+        if: ${{ steps.release.outputs.release_created }}
         run: bun run typecheck
 
       - name: Test
+        if: ${{ steps.release.outputs.release_created }}
         run: bun run test
 
-      - name: Release
+      - name: Build package
+        if: ${{ steps.release.outputs.release_created }}
+        run: bun run build
+
+      - name: Build binaries
+        if: ${{ steps.release.outputs.release_created }}
+        run: bun run build:bin
+
+      - name: Generate release artifacts
+        if: ${{ steps.release.outputs.release_created }}
+        run: bun run release:artifacts
+
+      - name: Smoke check current runner release binary
+        if: ${{ steps.release.outputs.release_created }}
+        run: bun run release:smoke
+
+      - name: Publish npm package
+        if: ${{ steps.release.outputs.release_created }}
+        run: npm publish --access public --ignore-scripts
+
+      - name: Upload release artifacts
+        if: ${{ steps.release.outputs.release_created }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: bun run release:ci
+        run: gh release upload ${{ steps.release.outputs.tag_name }} dist/bin/* --clobber
