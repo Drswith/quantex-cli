@@ -1,7 +1,7 @@
 ---
 id: qtx-0014
 title: Extend agent definitions with self-update commands and version probes
-status: planned
+status: done
 priority: medium
 area: agents
 depends_on:

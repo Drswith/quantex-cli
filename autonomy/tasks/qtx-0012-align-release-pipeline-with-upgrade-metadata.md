@@ -1,7 +1,7 @@
 ---
 id: qtx-0012
 title: Align release pipeline with manifest and checksum metadata
-status: planned
+status: done
 priority: medium
 area: release
 depends_on: []

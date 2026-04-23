@@ -1,7 +1,7 @@
 ---
 id: qtx-0011
 title: Add version cache and network controls for upgrade checks
-status: planned
+status: done
 priority: medium
 area: self
 depends_on:

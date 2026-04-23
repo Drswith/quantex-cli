@@ -1,7 +1,7 @@
 ---
 id: qtx-0006
 title: Introduce typed errors for self-upgrade outcomes
-status: planned
+status: done
 priority: high
 area: self
 depends_on:

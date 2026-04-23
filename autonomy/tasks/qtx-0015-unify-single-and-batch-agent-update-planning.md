@@ -1,7 +1,7 @@
 ---
 id: qtx-0015
 title: Unify single-agent and batch agent update planning
-status: planned
+status: done
 priority: medium
 area: agents
 depends_on:

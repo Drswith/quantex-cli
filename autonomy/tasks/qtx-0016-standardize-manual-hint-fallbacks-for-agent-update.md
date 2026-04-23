@@ -1,7 +1,7 @@
 ---
 id: qtx-0016
 title: Standardize manual-hint fallbacks for agent update
-status: planned
+status: done
 priority: low
 area: agents
 depends_on:

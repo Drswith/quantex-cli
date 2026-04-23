@@ -1,7 +1,7 @@
 ---
 id: qtx-0013
 title: Introduce managed, self-update, and manual-hint agent update layers
-status: planned
+status: done
 priority: high
 area: agents
 depends_on: []
