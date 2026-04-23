@@ -89,6 +89,27 @@ GitHub's documented behavior is that events created by `GITHUB_TOKEN` do not sta
 
 That is why Quantex performs release-please tagging, npm publish, and artifact upload inside the same release workflow.
 
+## Repository settings
+
+The Release workflow depends on repository-level GitHub Actions settings, not only versioned YAML.
+
+Required Actions workflow permissions:
+
+- default workflow permissions: read and write
+- allow GitHub Actions to create and approve pull requests: enabled
+
+If this permission is disabled, release-please can calculate the next version and create its branch, but it fails when opening the Release PR with:
+
+```text
+GitHub Actions is not permitted to create or approve pull requests.
+```
+
+## Release PR checks
+
+Release PRs are created by `github-actions[bot]`. If GitHub marks the generated Release PR checks as `action_required` with no jobs, close and reopen the Release PR from a maintainer account to trigger the required `pull_request` checks.
+
+For a fully non-interactive future flow, prefer replacing `GITHUB_TOKEN` in the release-please step with a dedicated release bot token or GitHub App token that is allowed to create PRs and trigger checks.
+
 ## Validation
 
 The closest local verification path for release artifacts remains:
