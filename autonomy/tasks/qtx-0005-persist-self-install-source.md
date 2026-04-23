@@ -1,7 +1,7 @@
 ---
 id: qtx-0005
 title: Persist self install source in state
-status: planned
+status: done
 priority: high
 area: self
 depends_on:

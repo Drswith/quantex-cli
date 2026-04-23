@@ -1,7 +1,7 @@
 ---
 id: qtx-0007
 title: Add checksum validation for binary self-upgrade
-status: planned
+status: done
 priority: high
 area: self
 depends_on:

@@ -60,6 +60,16 @@ describe('self helpers', () => {
     expect(detectSelfInstallSource('', '/usr/local/bin/qtx')).toBe('binary')
   })
 
+  it('prefers a persisted self install source when runtime detection is unknown', async () => {
+    const { reconcileSelfInstallSource } = await import('../src/self')
+    expect(await reconcileSelfInstallSource('npm', 'unknown')).toBe('npm')
+  })
+
+  it('persists a newly detected self install source when state is missing', async () => {
+    const { reconcileSelfInstallSource } = await import('../src/self')
+    expect(await reconcileSelfInstallSource(undefined, 'binary')).toBe('binary')
+  })
+
   it('treats non-installed package roots as source checkouts', async () => {
     const { detectSelfInstallSource } = await import('../src/self')
     expect(detectSelfInstallSource('/Users/test/workspaces/quantex-cli')).toBe('source')

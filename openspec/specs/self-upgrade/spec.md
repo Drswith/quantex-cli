@@ -17,6 +17,24 @@ The self-upgrade system SHALL identify how Quantex CLI is installed before selec
 - THEN it classifies the install source as one of `bun`, `npm`, `binary`, `source`, or `unknown`
 - AND that classification drives upgrade behavior and recovery messaging
 
+### Requirement: Self-upgrade MUST reconcile persisted install source state
+
+The self-upgrade system SHALL persist self install-source knowledge and reconcile it against runtime detection.
+
+#### Scenario: Using persisted state when runtime detection is inconclusive
+
+- GIVEN Quantex has a stored `state.self.installSource`
+- AND the current runtime inspection cannot classify the install source beyond `unknown`
+- WHEN Quantex inspects self-upgrade state
+- THEN it uses the persisted install source for upgrade planning
+
+#### Scenario: Refreshing stale state when runtime detection changes
+
+- GIVEN Quantex has a stored `state.self.installSource`
+- AND runtime inspection resolves a different non-`unknown` install source
+- WHEN Quantex inspects self-upgrade state
+- THEN it updates the stored install source to the runtime-detected value
+
 ### Requirement: Self-upgrade MUST route by install source
 
 The self-upgrade system SHALL choose an upgrade strategy based on the detected install source.

@@ -1,7 +1,7 @@
 ---
 id: qtx-0008
 title: Add locking for self-upgrade execution
-status: planned
+status: done
 priority: medium
 area: self
 depends_on:

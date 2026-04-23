@@ -1,7 +1,7 @@
 ---
 id: qtx-0010
 title: Adopt release manifest and explicit self-upgrade channels
-status: planned
+status: done
 priority: medium
 area: self
 depends_on:

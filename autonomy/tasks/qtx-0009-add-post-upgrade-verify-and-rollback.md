@@ -1,7 +1,7 @@
 ---
 id: qtx-0009
 title: Add post-upgrade verification and minimal rollback
-status: planned
+status: done
 priority: medium
 area: self
 depends_on:
