@@ -15,7 +15,8 @@ This directory defines how Quantex can evolve toward agent-driven iteration with
 1. Read `queue.md`.
 2. Pick the highest-priority task that is `ready` and not blocked by dependencies.
 3. Read the task file and any linked ADRs, specs, or runbooks.
-4. Implement the change, run the required checks, and update relevant docs.
-5. Update task status and record any new follow-up tasks.
+4. If the task will create commits or a PR, create a dedicated worktree-backed branch before editing.
+5. Implement the change, run the required checks, and update relevant docs.
+6. Update task status and record any new follow-up tasks.
 
 The goal is not blind automation. The goal is bounded, reviewable autonomy.

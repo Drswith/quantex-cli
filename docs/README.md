@@ -28,6 +28,7 @@ Discussion transcripts are not the long-term artifact. Use this funnel instead:
 3. Promote durable design choices into `docs/adr/`.
 4. Promote recurring troubleshooting knowledge into `docs/runbooks/`.
 5. Promote actionable follow-up work into `autonomy/tasks/` and `autonomy/queue.md`.
+6. When the follow-up will create commits or a PR, implement it from a dedicated git worktree.
 
 This keeps the project memory compact, searchable, and safe for future agent iteration.
 
@@ -45,6 +46,7 @@ Useful scaffolds:
 
 - `bun run task:new -- --title "Task title"`
 - `bun run adr:new -- --title "Decision title"`
+- `bun run worktree:new -- --task qtx-0000 --title "Task title"`
 
 GitHub workflow guidance:
 
