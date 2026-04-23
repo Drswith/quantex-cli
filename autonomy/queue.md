@@ -9,7 +9,7 @@ This queue is the prioritized entry point for future agent-driven work.
 | [qtx-0001](./tasks/qtx-0001-migrate-troubleshooting-into-runbooks.md) | `done` | `high` | Migrate troubleshooting knowledge into canonical runbooks | - |
 | [qtx-0002](./tasks/qtx-0002-consolidate-auto-upgrade-docs-into-openspec-and-adr.md) | `done` | `high` | Consolidate auto-upgrade design into OpenSpec specs and ADRs | - |
 | [qtx-0003](./tasks/qtx-0003-convert-root-backlogs-into-task-contracts.md) | `ready` | `medium` | Convert legacy root backlogs into autonomy task contracts | - |
-| [qtx-0004](./tasks/qtx-0004-extract-self-upgrade-providers.md) | `ready` | `high` | Extract self-upgrade provider modules | - |
+| [qtx-0004](./tasks/qtx-0004-extract-self-upgrade-providers.md) | `done` | `high` | Extract self-upgrade provider modules | - |
 | [qtx-0005](./tasks/qtx-0005-persist-self-install-source.md) | `planned` | `high` | Persist self install source in state | qtx-0004 |
 | [qtx-0006](./tasks/qtx-0006-introduce-self-upgrade-typed-errors.md) | `planned` | `high` | Introduce typed errors for self-upgrade outcomes | qtx-0004 |
 | [qtx-0007](./tasks/qtx-0007-add-binary-checksum-validation.md) | `planned` | `high` | Add checksum validation for binary self-upgrade | qtx-0006 |

@@ -1,7 +1,7 @@
 ---
 id: qtx-0004
 title: Extract self-upgrade provider modules
-status: ready
+status: done
 priority: high
 area: self
 depends_on: []

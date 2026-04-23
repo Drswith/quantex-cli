@@ -66,7 +66,7 @@ describe('self helpers', () => {
   })
 
   it('selects the matching self upgrade provider from the registry', async () => {
-    const { getSelfUpgradeProvider } = await import('../src/self/providers')
+    const { getSelfUpgradeProvider, getSelfUpgradeProviderForInstallSource } = await import('../src/self/providers')
 
     const provider = getSelfUpgradeProvider({
       canAutoUpdate: true,
@@ -78,6 +78,7 @@ describe('self helpers', () => {
     })
 
     expect(provider.source).toBe('binary')
+    expect(getSelfUpgradeProviderForInstallSource('npm', '/usr/local/bin/qtx', 'beta').source).toBe('npm')
   })
 
   it('upgrades through bun when bun is the detected install source', async () => {
@@ -216,6 +217,20 @@ describe('self helpers', () => {
       channel: 'stable',
       version: '1.1.0',
     }, '/usr/local/bin/qtx')?.name).toBe(getBinaryReleaseAssetName('/usr/local/bin/qtx'))
+  })
+
+  it('derives manual recovery hints through the provider registry', async () => {
+    const { getSelfUpgradeRecoveryHint, getSelfUpgradeRecoveryHintForInspection } = await import('../src/self')
+
+    expect(getSelfUpgradeRecoveryHint('bun', '/Users/test/.bun/bin/qtx', 'beta')).toBe('bun add -g quantex-cli@beta')
+    expect(getSelfUpgradeRecoveryHintForInspection({
+      canAutoUpdate: true,
+      currentVersion: '1.0.0',
+      executablePath: '/usr/local/bin/qtx',
+      installSource: 'npm',
+      packageRoot: '/usr/local/lib/node_modules/quantex-cli',
+      updateChannel: 'stable',
+    })).toBe('npm install -g quantex-cli@latest')
   })
 
   it('returns a locked error when another self upgrade is already running', async () => {
