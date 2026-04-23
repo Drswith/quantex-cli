@@ -10,6 +10,9 @@ export const opencode: AgentDefinition = {
     npm: 'opencode-ai',
   },
   binaryName: 'opencode',
+  selfUpdate: {
+    command: ['opencode', 'upgrade'],
+  },
   platforms: {
     windows: [
       bunInstall(),

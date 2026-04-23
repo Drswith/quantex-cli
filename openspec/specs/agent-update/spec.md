@@ -33,6 +33,17 @@ The agent update system SHALL choose the best available update strategy for a si
 - WHEN the user runs `quantex update <agent>`
 - THEN Quantex provides a manual or explanatory hint instead of pretending the agent was upgraded
 
+### Requirement: Agent definitions SHOULD declare explicit update metadata when available
+
+The agent catalog SHOULD store verified self-update commands, version probes, package names, and canonical homepages in agent definitions whenever an upstream tool documents them.
+
+#### Scenario: Agent definition includes verified update commands
+
+- GIVEN an upstream CLI documents its own update command
+- WHEN Quantex defines or refreshes that agent entry
+- THEN the definition records the self-update command explicitly
+- AND command-layer update behavior can rely on catalog metadata instead of hardcoded exceptions
+
 #### Scenario: Human update output summarizes mixed outcomes clearly
 
 - GIVEN the user runs `quantex update --all`

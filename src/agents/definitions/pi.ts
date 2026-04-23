@@ -10,6 +10,9 @@ export const pi: AgentDefinition = {
     npm: '@mariozechner/pi-coding-agent',
   },
   binaryName: 'pi',
+  selfUpdate: {
+    command: ['pi', 'update'],
+  },
   platforms: {
     windows: [
       bunInstall(),
