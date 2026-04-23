@@ -13,7 +13,7 @@ const repositoryUrl = typeof packageJson.repository === 'string'
 const content = [
   `export const BUILD_PACKAGE_NAME = '${escapeSingleQuotedString(packageJson.name ?? 'quantex-cli')}'`,
   `export const BUILD_REPOSITORY_URL = '${escapeSingleQuotedString(normalizeRepositoryUrl(repositoryUrl) ?? '')}'`,
-  `export const BUILD_VERSION = '${escapeSingleQuotedString(packageJson.version ?? '0.0.0')}'`,
+  `export const BUILD_VERSION = '${escapeSingleQuotedString(packageJson.version ?? '0.0.0')}' // x-release-please-version`,
   '',
 ].join('\n')
 
