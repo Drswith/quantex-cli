@@ -36,15 +36,21 @@ Use the repository for:
 
 ## Release under protected `main`
 
-Release commits follow the same rule as product changes: they must arrive on `main` through a PR.
+Quantex no longer uses a separate release-preparation command or release PR. Release automation now follows the normal product flow:
 
-Use this split flow:
+1. Merge one or more task PRs to `main`.
+2. Let the `CI` workflow complete successfully for the merged `main` commit.
+3. Let the `Release` workflow determine whether those merged commits require a new version.
+4. If they do, the workflow creates the tag, publishes npm, and creates the GitHub Release.
 
-1. Run `bun run release` from a clean worktree to let the helper sync `main`, create the release branch, run `bumpp`, push, and open the PR.
-2. Merge the generated release PR.
-3. Let the merge-to-main release workflow create the tag and publish automatically.
+Release notes are canonical in [docs/releases.md](./releases.md) and on GitHub Releases.
 
-This keeps version bumps reviewable while removing the need for a post-merge local publish step.
+The current release workflow relies on merged commit metadata. In practice that means:
+
+- `feat:` commits produce a minor release
+- `fix:` and `perf:` commits produce a patch release
+- `BREAKING CHANGE:` or `!` produces a major release
+- `docs:`, `test:`, `ci:`, and `chore:` do not create a release unless their commit metadata is explicitly changed to do so later
 
 ## Repository assets
 

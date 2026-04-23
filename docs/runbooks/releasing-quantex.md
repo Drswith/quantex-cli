@@ -1,84 +1,57 @@
-# Runbook: Releasing Quantex With Protected Main
+# Runbook: Releasing Quantex Automatically From Main
 
 ## Purpose
 
-Provide the canonical release procedure now that `main` only accepts changes through pull requests, without bringing back a long list of manual Git commands.
+Provide the canonical release procedure now that Quantex releases are driven directly from merged commits on `main`.
 
 ## When to use
 
-- you are preparing a new Quantex release
-- you need to cut a prerelease such as `beta`
-- you are verifying whether the current release procedure is still compatible with repository protections
+- you need to understand when Quantex will publish automatically
+- you need to verify whether a merged PR should create a release
+- you need to recover when the automated release workflow did not behave as expected
 
-## Why the old flow no longer fits
+## Canonical release source
 
-The historical `bun run release` flow used `bumpp` to bump the version, commit, tag, and push in one local step.
+Quantex's canonical changelog lives in [GitHub Releases](https://github.com/Drswith/quantex-cli/releases). The repository does not maintain a rolling `CHANGELOG.md`.
 
-That no longer matches repository policy because:
-
-- version bumps must land on `main` through a PR
-- the existing publish workflow in `.github/workflows/release.yml` still triggers from a pushed `v*` tag
-
-The release flow now needs two explicit phases:
-
-1. prepare the version bump in a release PR
-2. let GitHub Actions publish automatically after that PR is merged
+The automated release flow uses merged commit metadata on `main` to decide whether to cut a new version.
 
 ## Canonical flow
 
-### 1. Prepare the release PR
+### 1. Merge normal work to `main`
 
-Run a single command from a clean worktree:
+Normal feature, fix, or maintenance work lands through standard PRs. There is no dedicated release-preparation PR anymore.
 
-```bash
-bun run release
-```
+### 2. Let CI finish on the merged `main` commit
 
-What `bun run release` now does:
+The `Release` workflow listens for successful completion of the `CI` workflow on `main`.
 
-- switches to `main`
-- fast-forwards local `main` from `origin/main`
-- creates a temporary release branch
-- keeps `bumpp`'s interactive version selection
-- creates the version bump commit without tagging or pushing
-- renames the branch to `codex/release-v<version>`
-- pushes the branch to origin
-- opens a PR to `main` when GitHub CLI is available and authenticated
+### 3. Let semantic-release decide whether to publish
 
-For an explicit release type or prerelease, pass flags through to `bumpp`:
+The release automation examines merged commit metadata since the last release tag.
 
-```bash
-bun run release -- --release patch
-bun run release -- --release prerelease --preid beta
-```
+Current release rules:
 
-Then let CI pass and merge the generated release PR into `main`.
+- `feat:` => minor release
+- `fix:` => patch release
+- `perf:` => patch release
+- `BREAKING CHANGE:` footer or `!` => major release
+- `docs:`, `test:`, `ci:`, `chore:` => no release
 
-### 2. Let GitHub Actions publish after merge
+### 4. If release-worthy commits exist, publish automatically
 
-Once the release PR lands on `main`, `.github/workflows/release.yml` now does the rest automatically.
-
-What the workflow does on a merged release PR:
+When a release is warranted, `.github/workflows/release.yml` now:
 
 - detects that `package.json` version changed on `main`
-- creates and pushes `v<version>` for the merged commit
+- computes the next version
+- creates the git tag
 - builds binaries
 - generates release artifacts
 - runs `release:smoke`
 - publishes to npm
 - creates or updates the GitHub release
 
-For regular non-release merges to `main`, the workflow exits without publishing anything.
-
-### 3. Manual fallback
-
-The low-level `release:tag` helper still exists for recovery or exceptional cases:
-
-```bash
-bun run release:tag -- --push
-```
-
-Use that only if the automated release workflow cannot be used and you intentionally need a manual fallback.
+For regular non-release merges to `main`, the workflow exits cleanly without publishing anything.
 
 ## Important automation note
 
@@ -86,11 +59,11 @@ Do not assume a workflow that pushes a tag with the repository `GITHUB_TOKEN` sh
 
 GitHub's documented behavior is that events created by `GITHUB_TOKEN` do not start another workflow run, except for `workflow_dispatch` and `repository_dispatch`.
 
-That is why Quantex now publishes inside the same merge-to-main workflow that creates the tag, instead of expecting a tag push from `GITHUB_TOKEN` to fan out into another workflow.
+That is why Quantex now runs version calculation, tagging, npm publish, and GitHub Release creation inside the same release workflow.
 
 ## Validation
 
-Before or after tagging, the closest local verification path is:
+The closest local verification path for release artifacts remains:
 
 ```bash
 bun install --frozen-lockfile
@@ -105,6 +78,8 @@ bun run release:smoke
 ## Related artifacts
 
 - `.github/workflows/release.yml`
+- `release.config.mjs`
+- `docs/releases.md`
 - `.github/workflows/release-verify.yml`
 - `docs/runbooks/release-and-self-upgrade-debugging.md`
-- `autonomy/tasks/qtx-0027-make-release-flow-compatible-with-pr-only-main.md`
+- `autonomy/tasks/qtx-0028-replace-bumpp-with-merge-to-main-auto-release.md`
