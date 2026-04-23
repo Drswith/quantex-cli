@@ -37,7 +37,7 @@ Stable release publication has been tested with release-please, npm trusted publ
 ## Implementation Notes
 
 - GitHub issue: https://github.com/Drswith/quantex-cli/issues/21
-- Add a beta release-please manifest config with `prerelease: true` and `prerelease-type: beta`.
+- Add a beta release-please manifest config with `versioning: prerelease`, `prerelease: true`, and `prerelease-type: beta`.
 - Route the Release workflow by branch so `main` uses stable config and `beta` uses beta config.
 - Ensure CI runs for `beta` pushes and PRs.
 - After merging the workflow support, create a real beta-targeted change and merge the resulting beta Release PR.
