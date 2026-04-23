@@ -1,7 +1,7 @@
 ---
 id: qtx-0019
 title: Audit and expand agent catalog update metadata
-status: planned
+status: done
 priority: high
 area: agents
 depends_on: []

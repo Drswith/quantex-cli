@@ -97,6 +97,8 @@ describe('codex', () => {
     expect(codex.displayName).toBe('Codex CLI')
     expect(codex.packages?.npm).toBe('@openai/codex')
     expect(codex.binaryName).toBe('codex')
+    expect(codex.homepage).toBe('https://developers.openai.com/codex/cli')
+    expect(codex.selfUpdate?.command).toEqual(['codex', '--upgrade'])
   })
 
   it('binary command returns correct strings per platform', () => {
@@ -153,6 +155,7 @@ describe('droid', () => {
     expect(droid.displayName).toBe('Droid')
     expect(droid.packages?.npm).toBe('droid')
     expect(droid.binaryName).toBe('droid')
+    expect(droid.selfUpdate?.command).toEqual(['droid', 'update'])
   })
 
   it('curl install returns correct strings per platform', () => {
@@ -175,6 +178,7 @@ describe('gemini', () => {
     expect(gemini.displayName).toBe('Gemini CLI')
     expect(gemini.packages?.npm).toBe('@google/gemini-cli')
     expect(gemini.binaryName).toBe('gemini')
+    expect(gemini.homepage).toBe('https://google-gemini.github.io/gemini-cli/docs/')
     expect(gemini.lookupAliases).toBeUndefined()
   })
 
@@ -192,6 +196,7 @@ describe('opencode', () => {
     expect(opencode.displayName).toBe('OpenCode')
     expect(opencode.packages?.npm).toBe('opencode-ai')
     expect(opencode.binaryName).toBe('opencode')
+    expect(opencode.selfUpdate?.command).toEqual(['opencode', 'upgrade'])
   })
 
   it('curl install returns correct strings per platform', () => {
@@ -214,6 +219,7 @@ describe('pi', () => {
     expect(pi.displayName).toBe('Pi')
     expect(pi.packages?.npm).toBe('@mariozechner/pi-coding-agent')
     expect(pi.binaryName).toBe('pi')
+    expect(pi.selfUpdate?.command).toEqual(['pi', 'update'])
   })
 
   it('has only bun/npm methods on all platforms', () => {
