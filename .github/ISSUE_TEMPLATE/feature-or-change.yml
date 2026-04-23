@@ -1,0 +1,74 @@
+name: Feature or Change
+description: Propose a new behavior, contract change, or non-trivial refactor.
+title: '[Feature]: '
+labels:
+  - kind:feature
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Use this form for product changes, contract changes, or significant refactors.
+        If the idea is still exploratory, prefer GitHub Discussions first and then promote the result into an issue.
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem or opportunity
+      description: What is missing, painful, or worth changing?
+      placeholder: Quantex currently mixes ... and we need ...
+    validations:
+      required: true
+  - type: textarea
+    id: outcome
+    attributes:
+      label: Desired outcome
+      description: What should be true when this is successful?
+      placeholder: Users and agents should be able to ...
+    validations:
+      required: true
+  - type: textarea
+    id: scope
+    attributes:
+      label: Scope and non-goals
+      description: What is in scope, and what should remain explicitly out of scope?
+      placeholder: 'In scope: ... / Non-goals: ...'
+    validations:
+      required: true
+  - type: textarea
+    id: linked-discussion
+    attributes:
+      label: Linked discussion or prior context
+      description: Paste any relevant discussion, session summary, ADR, task, or OpenSpec link.
+      placeholder: 'https://github.com/.../discussions/... or docs/... or autonomy/tasks/...'
+  - type: dropdown
+    id: artifact-plan
+    attributes:
+      label: Which durable artifacts should this likely create or update?
+      multiple: true
+      options:
+        - OpenSpec
+        - ADR
+        - Autonomy task
+        - Runbook
+        - Postmortem
+        - Session summary only
+    validations:
+      required: true
+  - type: textarea
+    id: done-when
+    attributes:
+      label: Done when
+      description: List the acceptance conditions for this issue.
+      value: |
+        - Outcome A
+        - Outcome B
+    validations:
+      required: true
+  - type: checkboxes
+    id: guardrails
+    attributes:
+      label: Guardrails
+      options:
+        - label: I understand this issue should promote durable outcomes into repo-native docs instead of adding new ad hoc root markdown files.
+          required: true
+        - label: I understand this issue should stay within Quantex's lifecycle CLI scope unless an explicit decision changes that scope.
+          required: true

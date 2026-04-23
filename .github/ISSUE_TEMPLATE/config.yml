@@ -1,0 +1,5 @@
+blank_issues_enabled: false
+contact_links:
+  - name: GitHub Discussions
+    url: https://github.com/Drswith/quantex-cli/discussions
+    about: Use Discussions first for exploration, brainstorming, and open-ended tradeoff discussion.

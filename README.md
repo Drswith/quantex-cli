@@ -18,6 +18,20 @@
 - [Human + Agent 双模 CLI 设计](./HUMAN_AGENT_DUAL_MODE_CLI.md)
 - [Human + Agent 双模 CLI Implementation Checklist / Issue Backlog](./HUMAN_AGENT_DUAL_MODE_CLI_IMPLEMENTATION_BACKLOG.md)
 
+## Project Memory
+
+仓库现在开始采用一套面向 `human + agent` 协作、并为未来 agent 自主迭代预留的 repo-native 文档结构：
+
+- [docs/README.md](./docs/README.md)
+- [docs/adr/](./docs/adr/)
+- [docs/runbooks/](./docs/runbooks/)
+- [docs/sessions/](./docs/sessions/)
+- [docs/github-collaboration.md](./docs/github-collaboration.md)
+- [autonomy/README.md](./autonomy/README.md)
+- [openspec/README.md](./openspec/README.md)
+
+现有根目录下的设计稿、scope 文档和 backlog 文档暂时保留为迁移期参考，映射关系见 [docs/project-memory-migration.md](./docs/project-memory-migration.md)。
+
 ## Agent Skill
 
 仓库内置了一份面向 Codex / agent 使用的 Quantex skill：
@@ -28,6 +42,7 @@
 - [skills/quantex-cli/references/output-contracts.md](./skills/quantex-cli/references/output-contracts.md)
 - [skills/quantex-cli/references/troubleshooting.md](./skills/quantex-cli/references/troubleshooting.md)
 - [skills/quantex-cli/scripts/smoke-check.sh](./skills/quantex-cli/scripts/smoke-check.sh)
+- [docs/skill-installation-and-distribution.md](./docs/skill-installation-and-distribution.md)
 
 这份 skill 会引导 agent 以 Quantex 的 lifecycle CLI 方式工作，优先使用 `inspect` / `ensure` / `resolve` / `exec` / `capabilities` / `commands` / `schema`，并遵循结构化输出、非交互和自动化契约。
 
@@ -38,6 +53,8 @@ skills/quantex-cli/scripts/smoke-check.sh
 ```
 
 它会对 `capabilities`、`commands`、`schema`、`inspect` 以及可选的 `resolve` 做一轮轻量结构化 smoke check。
+
+当前这份 skill 仍然是 repo-native artifact：支持随仓库共享、按仓库 revision 使用，或复制整个 `skills/quantex-cli/` 目录到兼容的技能目录；还没有单独的 marketplace / package 发布流。细节见 [docs/skill-installation-and-distribution.md](./docs/skill-installation-and-distribution.md)。
 
 ## 支持的 Agent
 

@@ -1,5 +1,8 @@
 # Human + Agent 双模 CLI Implementation Checklist / Issue Backlog
 
+> Migration status: frozen snapshot.
+> The executable backlog now lives in [autonomy/queue.md](/Users/drs/workspaces/personal/quantex-cli/autonomy/queue.md) and [autonomy/tasks/](/Users/drs/workspaces/personal/quantex-cli/autonomy/tasks/). Keep this file as historical context rather than adding new work here.
+
 > 本文档基于以下讨论文档整理：
 >
 > - [HUMAN_AGENT_DUAL_MODE_CLI.md](./HUMAN_AGENT_DUAL_MODE_CLI.md)

@@ -1,0 +1,66 @@
+name: Bug or Regression
+description: Report incorrect behavior, failed command execution, or a regression in contract.
+title: '[Bug]: '
+labels:
+  - kind:bug
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Use this form for incorrect or broken behavior.
+        Before filing, try the canonical runbook at `docs/runbooks/quantex-troubleshooting.md`.
+  - type: textarea
+    id: summary
+    attributes:
+      label: What went wrong?
+      description: Describe the incorrect behavior or regression.
+      placeholder: quantex update --all now ...
+    validations:
+      required: true
+  - type: textarea
+    id: reproduce
+    attributes:
+      label: Reproduction steps
+      description: Provide the smallest reliable reproduction you have.
+      value: |
+        1. Step one
+        2. Step two
+        3. Step three
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual behavior
+    validations:
+      required: true
+  - type: textarea
+    id: diagnostics
+    attributes:
+      label: Diagnostics collected
+      description: Include relevant command output, JSON envelopes, versions, platform details, or links to failing CI runs.
+      placeholder: |
+        quantex capabilities --json
+        quantex inspect <agent> --json
+        quantex doctor
+  - type: textarea
+    id: linked-artifacts
+    attributes:
+      label: Linked artifacts
+      description: Paste any related runbook, issue, task, ADR, OpenSpec, or discussion link.
+      placeholder: 'docs/runbooks/... or autonomy/tasks/... or https://github.com/.../issues/...'
+  - type: checkboxes
+    id: checklist
+    attributes:
+      label: Checklist
+      options:
+        - label: I checked the canonical troubleshooting runbook first.
+          required: true
+        - label: I included enough detail for an agent to reproduce or continue debugging.
+          required: true

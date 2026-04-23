@@ -254,6 +254,23 @@ type AgentUpdateStrategy = 'managed' | 'self-update' | 'manual-hint'
 - `scripts/verify-release-artifacts.ts` 校验 manifest 与 checksum 一致性
 - `bun run release:artifacts` 会串联以上三步
 
+## Project Memory System
+
+- Canonical project memory now lives in:
+  - `docs/`
+  - `autonomy/`
+  - `openspec/`
+- Before creating a new markdown file, classify it first:
+  - behavior contract or change proposal → `openspec/`
+  - durable design decision → `docs/adr/`
+  - troubleshooting or recovery knowledge → `docs/runbooks/`
+  - session summary → `docs/sessions/`
+  - incident review → `docs/postmortems/`
+  - future executable work → `autonomy/tasks/` + `autonomy/queue.md`
+- Treat discussion notes as an intermediate artifact. Promote stable outcomes into specs, ADRs, runbooks, or task contracts.
+- Legacy root markdown files are transition artifacts. Their target homes are tracked in `docs/project-memory-migration.md`.
+- When implementation changes behavior or durable process, update the relevant spec, ADR, runbook, or task in the same change whenever practical.
+
 ## Notes
 
 - Windows 平台需特别处理 PowerShell 安装脚本和 delayed binary replacement

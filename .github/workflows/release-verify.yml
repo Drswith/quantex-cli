@@ -38,6 +38,9 @@ jobs:
       - name: Generate release artifacts
         run: bun run release:artifacts
 
+      - name: Smoke check current runner release binary
+        run: bun run release:smoke
+
       - name: Upload release build artifacts
         uses: actions/upload-artifact@v4
         with:

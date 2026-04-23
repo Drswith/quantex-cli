@@ -97,7 +97,7 @@ describe('upgradeCommand', () => {
 
     expect(stdoutWriteSpy).toHaveBeenCalledWith(expect.stringContaining('Failed to upgrade Quantex CLI'))
     expect(stdoutWriteSpy).toHaveBeenCalledWith(expect.stringContaining('Reason: Failed to update quantex-cli through Bun.'))
-    expect(stdoutWriteSpy).toHaveBeenCalledWith(expect.stringContaining('bun add -g quantex-cli@latest'))
+    expect(stdoutWriteSpy).toHaveBeenCalledWith(expect.stringContaining('Next step: bun add -g quantex-cli@latest'))
   })
 
   it('shows manual recovery for npm installs when self-upgrade fails', async () => {
@@ -160,7 +160,7 @@ describe('upgradeCommand', () => {
       ok: false,
     })
 
-    expect(stdoutWriteSpy).toHaveBeenCalledWith(expect.stringContaining('Manual recovery:'))
+    expect(stdoutWriteSpy).toHaveBeenCalledWith(expect.stringContaining('Next step:'))
     expect(stdoutWriteSpy).toHaveBeenCalledWith(expect.stringContaining('download and replace the binary'))
   })
 
