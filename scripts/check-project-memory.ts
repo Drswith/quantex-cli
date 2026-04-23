@@ -35,14 +35,7 @@ interface QueueEntry {
 const rootDir = resolve(import.meta.dir, '..')
 const allowedRootMarkdownFiles = new Set([
   'AGENTS.md',
-  'AUTO_UPGRADE_IMPLEMENTATION_BACKLOG.md',
-  'AUTO_UPGRADE_SCOPE.md',
-  'AUTO_UPGRADE_SCOPE_ADDENDUM.md',
-  'HUMAN_AGENT_DUAL_MODE_CLI.md',
-  'HUMAN_AGENT_DUAL_MODE_CLI_ADDENDUM.md',
-  'HUMAN_AGENT_DUAL_MODE_CLI_IMPLEMENTATION_BACKLOG.md',
   'README.md',
-  'TODO.md',
 ])
 
 const requiredTaskKeys = [
