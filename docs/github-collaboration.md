@@ -39,13 +39,13 @@ Use the repository for:
 Quantex no longer uses a separate release-preparation command or release PR. Release automation now follows the normal product flow:
 
 1. Merge one or more task PRs to `main`.
-2. Let the `CI` workflow complete successfully for the merged `main` commit.
-3. Let the `Release` workflow determine whether those merged commits require a new version.
-4. If they do, the workflow creates the tag, publishes npm, and creates the GitHub Release.
+2. The `Release` workflow starts directly on the resulting `main` push.
+3. The release job reruns release-critical validation on Ubuntu before publishing.
+4. If the merged commits warrant a version bump, the workflow creates the tag, publishes npm, and creates the GitHub Release.
 
 Release notes are canonical in [docs/releases.md](./releases.md) and on GitHub Releases.
 
-The npm publish step uses GitHub Actions trusted publishing with OIDC rather than a long-lived `NPM_TOKEN`, so the `Release` workflow file itself must match the trusted publisher configuration on npm.
+The npm publish step uses GitHub Actions trusted publishing with OIDC rather than a long-lived `NPM_TOKEN`, so npm trusted publisher settings should point at `.github/workflows/release.yml`.
 
 The current release workflow relies on merged commit metadata. In practice that means:
 
