@@ -33,6 +33,14 @@ The agent update system SHALL choose the best available update strategy for a si
 - WHEN the user runs `quantex update <agent>`
 - THEN Quantex provides a manual or explanatory hint instead of pretending the agent was upgraded
 
+#### Scenario: Human update output summarizes mixed outcomes clearly
+
+- GIVEN the user runs `quantex update --all`
+- AND the result contains a mix of updated, manual-required, failed, or up-to-date agents
+- WHEN Quantex renders human-mode output
+- THEN each agent outcome is individually understandable
+- AND the command ends with a concise summary of the batch result
+
 ### Requirement: Batch update MUST plan from recorded install sources
 
 Batch agent updates SHALL prioritize recorded actual install sources over candidate install methods declared for the agent.

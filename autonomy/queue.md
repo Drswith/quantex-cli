@@ -6,7 +6,7 @@ This queue is the prioritized entry point for future agent-driven work.
 
 | ID | Status | Priority | Title | Depends on |
 |---|---|---|---|---|
-| [qtx-0017](./tasks/qtx-0017-improve-update-and-upgrade-lifecycle-summaries.md) | `ready` | `medium` | Improve update and upgrade lifecycle summaries | - |
+| [qtx-0017](./tasks/qtx-0017-improve-update-and-upgrade-lifecycle-summaries.md) | `done` | `medium` | Improve update and upgrade lifecycle summaries | - |
 | [qtx-0018](./tasks/qtx-0018-expand-doctor-remediation-guidance.md) | `done` | `high` | Expand doctor remediation guidance | - |
 | [qtx-0019](./tasks/qtx-0019-audit-and-expand-agent-catalog-update-metadata.md) | `planned` | `high` | Audit and expand agent catalog update metadata | - |
 | [qtx-0020](./tasks/qtx-0020-add-release-workflow-smoke-validation.md) | `planned` | `high` | Add release workflow smoke validation | - |

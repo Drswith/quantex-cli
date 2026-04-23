@@ -91,6 +91,14 @@ The self-upgrade system SHALL provide recovery hints when automatic upgrade is u
 - WHEN Quantex reports the failure
 - THEN the output includes a recovery action that matches the detected install source
 
+#### Scenario: Human upgrade output highlights the next action
+
+- GIVEN the user runs `quantex upgrade`
+- AND the command cannot upgrade automatically or the upgrade fails
+- WHEN Quantex renders human-mode output
+- THEN it explains the failure reason
+- AND presents the next recovery action in a way that is easy to scan
+
 ### Requirement: Self-upgrade MAY support explicit channel and check flows
 
 The self-upgrade surface SHALL support explicit user-controlled update checks and channel selection.
