@@ -195,6 +195,89 @@ const schemaCatalog: SchemaDocument[] = [
     dataSchema: {
       additionalProperties: false,
       properties: {
+        agents: {
+          items: {
+            additionalProperties: false,
+            properties: {
+              displayName: { type: 'string' },
+              installedVersion: { type: 'string' },
+              latestVersion: { type: 'string' },
+              lifecycle: { type: 'string' },
+              outdated: { type: 'boolean' },
+              sourceLabel: { type: 'string' },
+            },
+            required: ['displayName', 'lifecycle', 'outdated', 'sourceLabel'],
+            type: 'object',
+          },
+          type: 'array',
+        },
+        installers: {
+          additionalProperties: false,
+          properties: {
+            brew: { type: 'boolean' },
+            bun: { type: 'boolean' },
+            npm: { type: 'boolean' },
+            winget: { type: 'boolean' },
+          },
+          required: ['brew', 'bun', 'npm', 'winget'],
+          type: 'object',
+        },
+        issues: {
+          items: {
+            additionalProperties: false,
+            properties: {
+              blocking: { type: 'boolean' },
+              category: { type: 'string' },
+              code: { type: 'string' },
+              docsRef: { type: 'string' },
+              message: { type: 'string' },
+              severity: { type: 'string' },
+              subject: {
+                additionalProperties: false,
+                properties: {
+                  kind: { type: 'string' },
+                  name: { type: 'string' },
+                },
+                required: ['kind'],
+                type: 'object',
+              },
+              suggestedAction: { type: 'string' },
+              suggestedCommands: {
+                items: { type: 'string' },
+                type: 'array',
+              },
+            },
+            required: ['blocking', 'category', 'code', 'message', 'severity', 'subject', 'suggestedAction', 'suggestedCommands'],
+            type: 'object',
+          },
+          type: 'array',
+        },
+        self: {
+          additionalProperties: false,
+          properties: {
+            canAutoUpdate: { type: 'boolean' },
+            currentVersion: { type: 'string' },
+            installSource: { type: 'string' },
+            latestVersion: { type: 'string' },
+            outdated: { type: 'boolean' },
+            recoveryHint: { type: 'string' },
+          },
+          required: ['canAutoUpdate', 'currentVersion', 'installSource', 'outdated'],
+          type: 'object',
+        },
+      },
+      required: ['agents', 'installers', 'issues', 'self'],
+      type: 'object',
+    },
+    description: 'Diagnostic state and remediation guidance for the current environment',
+    envelopeSchema: baseEnvelopeSchema,
+    name: 'doctor',
+    ndjsonEventSchema: baseNdjsonEventSchema,
+  },
+  {
+    dataSchema: {
+      additionalProperties: false,
+      properties: {
         agent: { type: 'object' },
         changed: { type: 'boolean' },
         installState: { type: 'object' },

@@ -35,6 +35,7 @@ No active tasks are currently queued. Add the next executable task contract in `
 | [qtx-0020](./tasks/qtx-0020-add-release-workflow-smoke-validation.md) | `done` | `high` | Add release workflow smoke validation | - |
 | [qtx-0021](./tasks/qtx-0021-write-release-and-self-upgrade-debugging-runbook.md) | `done` | `medium` | Write release and self-upgrade debugging runbook | - |
 | [qtx-0022](./tasks/qtx-0022-document-skill-installation-and-distribution-flow.md) | `done` | `low` | Document skill installation and distribution flow | - |
+| [qtx-0023](./tasks/qtx-0023-make-doctor-output-machine-actionable-remediation.md) | `done` | `high` | Make doctor output machine-actionable remediation | - |
 
 ## Intake rules
 
