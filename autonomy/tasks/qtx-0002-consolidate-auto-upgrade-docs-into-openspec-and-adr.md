@@ -1,7 +1,7 @@
 ---
 id: qtx-0002
 title: Consolidate auto-upgrade design into OpenSpec specs and ADRs
-status: planned
+status: done
 priority: high
 area: docs
 depends_on: []
@@ -12,6 +12,7 @@ checks:
 docs_to_update:
   - openspec/specs/
   - docs/adr/
+  - autonomy/tasks/
 ---
 
 # Task: Consolidate auto-upgrade design into OpenSpec specs and ADRs
