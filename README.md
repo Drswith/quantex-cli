@@ -42,6 +42,7 @@
 - [skills/quantex-cli/references/output-contracts.md](./skills/quantex-cli/references/output-contracts.md)
 - [skills/quantex-cli/references/troubleshooting.md](./skills/quantex-cli/references/troubleshooting.md)
 - [skills/quantex-cli/scripts/smoke-check.sh](./skills/quantex-cli/scripts/smoke-check.sh)
+- [docs/skill-installation-and-distribution.md](./docs/skill-installation-and-distribution.md)
 
 这份 skill 会引导 agent 以 Quantex 的 lifecycle CLI 方式工作，优先使用 `inspect` / `ensure` / `resolve` / `exec` / `capabilities` / `commands` / `schema`，并遵循结构化输出、非交互和自动化契约。
 
@@ -52,6 +53,8 @@ skills/quantex-cli/scripts/smoke-check.sh
 ```
 
 它会对 `capabilities`、`commands`、`schema`、`inspect` 以及可选的 `resolve` 做一轮轻量结构化 smoke check。
+
+当前这份 skill 仍然是 repo-native artifact：支持随仓库共享、按仓库 revision 使用，或复制整个 `skills/quantex-cli/` 目录到兼容的技能目录；还没有单独的 marketplace / package 发布流。细节见 [docs/skill-installation-and-distribution.md](./docs/skill-installation-and-distribution.md)。
 
 ## 支持的 Agent
 
