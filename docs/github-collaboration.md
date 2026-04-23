@@ -34,6 +34,20 @@ Use the repository for:
 6. Merge only after CI, PR governance, and documentation updates are in place.
 7. Mark the task done and update any affected runbooks, specs, or ADRs.
 
+## Release under protected `main`
+
+Release commits follow the same rule as product changes: they must arrive on `main` through a PR.
+
+Use this split flow:
+
+1. Create a release branch from `main`.
+2. Run `bun run release` to let `bumpp` prepare the version bump commit without tagging or pushing.
+3. Open and merge the release PR.
+4. Sync local `main`.
+5. Run `bun run release:tag -- --push` from the merged `main` checkout.
+
+This keeps version bumps reviewable while preserving the existing tag-triggered publish workflow.
+
 ## Repository assets
 
 The repository now includes:
