@@ -2,6 +2,8 @@ name: Release
 
 on:
   push:
+    branches:
+      - main
     tags:
       - 'v*'
 
@@ -9,14 +11,94 @@ permissions:
   contents: write
   id-token: write
 
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
 jobs:
-  release:
+  prepare:
     runs-on: ubuntu-latest
+    outputs:
+      should_release: ${{ steps.detect.outputs.should_release }}
+      release_version: ${{ steps.detect.outputs.release_version }}
+      release_tag: ${{ steps.detect.outputs.release_tag }}
+      release_source: ${{ steps.detect.outputs.release_source }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
+
+      - name: Detect release trigger
+        id: detect
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          if [[ "${GITHUB_REF_TYPE}" == "tag" ]]; then
+            TAG="${GITHUB_REF_NAME}"
+            VERSION="${TAG#v}"
+            echo "should_release=true" >> "$GITHUB_OUTPUT"
+            echo "release_version=$VERSION" >> "$GITHUB_OUTPUT"
+            echo "release_tag=$TAG" >> "$GITHUB_OUTPUT"
+            echo "release_source=tag" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          if [[ "${GITHUB_REF_NAME}" != "main" ]]; then
+            echo "should_release=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          if ! git diff --name-only "${{ github.event.before }}" "${GITHUB_SHA}" | grep -q '^package.json$'; then
+            echo "should_release=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          PREVIOUS_VERSION=$(git show "${{ github.event.before }}:package.json" | node -p "JSON.parse(require('fs').readFileSync(0, 'utf8')).version")
+          CURRENT_VERSION=$(node -p "JSON.parse(require('fs').readFileSync('package.json', 'utf8')).version")
+
+          if [[ -z "$CURRENT_VERSION" || "$CURRENT_VERSION" == "$PREVIOUS_VERSION" ]]; then
+            echo "should_release=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          echo "should_release=true" >> "$GITHUB_OUTPUT"
+          echo "release_version=$CURRENT_VERSION" >> "$GITHUB_OUTPUT"
+          echo "release_tag=v$CURRENT_VERSION" >> "$GITHUB_OUTPUT"
+          echo "release_source=main" >> "$GITHUB_OUTPUT"
+
+  release:
+    needs: prepare
+    if: needs.prepare.outputs.should_release == 'true'
+    runs-on: ubuntu-latest
+    env:
+      RELEASE_VERSION: ${{ needs.prepare.outputs.release_version }}
+      RELEASE_TAG: ${{ needs.prepare.outputs.release_tag }}
+      RELEASE_SOURCE: ${{ needs.prepare.outputs.release_source }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Create release tag from merged main
+        if: env.RELEASE_SOURCE == 'main'
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          if git rev-parse --verify "refs/tags/${RELEASE_TAG}" >/dev/null 2>&1; then
+            echo "Tag ${RELEASE_TAG} already exists locally."
+          else
+            git tag -a "${RELEASE_TAG}" -m "release: ${RELEASE_TAG}" "${GITHUB_SHA}"
+          fi
+
+          if git ls-remote --tags origin "refs/tags/${RELEASE_TAG}" | grep -q "${RELEASE_TAG}$"; then
+            echo "Tag ${RELEASE_TAG} already exists on origin."
+          else
+            git push origin "refs/tags/${RELEASE_TAG}"
+          fi
 
       - name: Setup Bun
         uses: oven-sh/setup-bun@v2
@@ -44,12 +126,26 @@ jobs:
           node-version: lts/*
           registry-url: 'https://registry.npmjs.org'
 
-      - name: Publish to NPM
-        id: publish
+      - name: Check whether version is already on npm
+        id: npm-check
+        shell: bash
         run: |
-          VERSION=${GITHUB_REF#refs/tags/v}
-          if [[ "$VERSION" =~ -(beta|alpha|rc|pre) ]]; then
-            TAG=$(echo "$VERSION" | sed -E 's/.*-((beta|alpha|rc|pre)(\.[0-9]+)?).*/\1/' | cut -d. -f1)
+          set -euo pipefail
+
+          if npm view "quantex-cli@${RELEASE_VERSION}" version >/dev/null 2>&1; then
+            echo "already_published=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "already_published=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Publish to NPM
+        if: steps.npm-check.outputs.already_published != 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          if [[ "$RELEASE_VERSION" =~ -(beta|alpha|rc|pre) ]]; then
+            TAG=$(echo "$RELEASE_VERSION" | sed -E 's/.*-((beta|alpha|rc|pre)(\.[0-9]+)?).*/\1/' | cut -d. -f1)
             npm publish --provenance --access public --tag "$TAG"
           else
             npm publish --provenance --access public
@@ -58,6 +154,8 @@ jobs:
       - name: Publish GitHub Release
         uses: softprops/action-gh-release@v2
         with:
+          tag_name: ${{ env.RELEASE_TAG }}
+          target_commitish: ${{ github.sha }}
           files: dist/bin/*
           generate_release_notes: true
-          prerelease: ${{ contains(github.ref_name, '-') }}
+          prerelease: ${{ contains(env.RELEASE_VERSION, '-') }}

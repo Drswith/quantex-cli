@@ -42,9 +42,9 @@ Use this split flow:
 
 1. Run `bun run release` from a clean worktree to let the helper sync `main`, create the release branch, run `bumpp`, push, and open the PR.
 2. Merge the generated release PR.
-3. Run `bun run release:publish` to sync `main`, create the release tag, and push it.
+3. Let the merge-to-main release workflow create the tag and publish automatically.
 
-This keeps version bumps reviewable while preserving the existing tag-triggered publish workflow.
+This keeps version bumps reviewable while removing the need for a post-merge local publish step.
 
 ## Repository assets
 

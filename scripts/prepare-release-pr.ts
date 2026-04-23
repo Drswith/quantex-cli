@@ -20,6 +20,7 @@ What it does:
   5. renames the branch to codex/release-v<version>
   6. pushes the branch
   7. opens a PR with the required governance sections
+  8. lets the merge-to-main release workflow publish automatically after the PR is merged
 `)
   process.exit(0)
 }
@@ -54,7 +55,7 @@ runGit(['push', '-u', 'origin', finalBranch], { inheritOutput: true })
 const title = `chore(release): prepare v${nextVersion}`
 const prBody = `## Summary
 - prepare release v${nextVersion} with a version bump commit from bumpp
-- keep tagging and publication as a separate post-merge step
+- let the merge-to-main release workflow publish automatically after approval
 
 ## Linked Artifacts
 - task: autonomy/tasks/qtx-0027-make-release-flow-compatible-with-pr-only-main.md
@@ -72,7 +73,7 @@ const prBody = `## Summary
 
 ## Scope Check
 - This PR only prepares the release version bump.
-- Tag creation and publication happen after merge via bun run release:publish.
+- Tag creation and publication happen automatically after the PR is merged into main.
 `
 
 try {

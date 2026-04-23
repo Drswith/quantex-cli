@@ -22,7 +22,7 @@ That no longer matches repository policy because:
 The release flow now needs two explicit phases:
 
 1. prepare the version bump in a release PR
-2. publish by tagging the merged `main` commit
+2. let GitHub Actions publish automatically after that PR is merged
 
 ## Canonical flow
 
@@ -54,55 +54,39 @@ bun run release -- --release prerelease --preid beta
 
 Then let CI pass and merge the generated release PR into `main`.
 
-### 2. Publish the merged release
+### 2. Let GitHub Actions publish after merge
 
-Run:
+Once the release PR lands on `main`, `.github/workflows/release.yml` now does the rest automatically.
 
-```bash
-bun run release:publish
-```
+What the workflow does on a merged release PR:
 
-What `bun run release:publish` does:
+- detects that `package.json` version changed on `main`
+- creates and pushes `v<version>` for the merged commit
+- builds binaries
+- generates release artifacts
+- runs `release:smoke`
+- publishes to npm
+- creates or updates the GitHub release
 
-- switches to `main`
-- fast-forwards local `main` from `origin/main`
-- creates the release tag for `package.json` version
-- pushes the tag to origin
+For regular non-release merges to `main`, the workflow exits without publishing anything.
 
-What the underlying `release:tag` guard still checks:
+### 3. Manual fallback
 
-- current branch must end up on `main`
-- worktree must be clean
-- local `main` must match its upstream
-- local tag `v<package.json version>` must not already exist
-
-If you want the low-level manual control, these helpers still exist:
+The low-level `release:tag` helper still exists for recovery or exceptional cases:
 
 ```bash
-bun run release:tag
-git push origin v0.1.2
+bun run release:tag -- --push
 ```
 
-### 3. Let GitHub Actions publish the release
-
-Pushing the tag triggers:
-
-- `.github/workflows/release.yml`
-
-That workflow builds binaries, generates release artifacts, smoke-checks the current runner binary, publishes to npm, and creates the GitHub release.
+Use that only if the automated release workflow cannot be used and you intentionally need a manual fallback.
 
 ## Important automation note
 
-Do not assume a workflow that pushes a tag with the repository `GITHUB_TOKEN` will trigger `.github/workflows/release.yml`.
+Do not assume a workflow that pushes a tag with the repository `GITHUB_TOKEN` should trigger a second publish workflow.
 
 GitHub's documented behavior is that events created by `GITHUB_TOKEN` do not start another workflow run, except for `workflow_dispatch` and `repository_dispatch`.
 
-That means the safe default for this repository is:
-
-- prepare the version bump in a PR
-- push the final release tag from a human-authenticated local checkout
-
-If Quantex later wants a one-click release button, implement a dedicated publish workflow rather than a tag-pusher workflow that expects a second workflow to fan out from the tag push.
+That is why Quantex now publishes inside the same merge-to-main workflow that creates the tag, instead of expecting a tag push from `GITHUB_TOKEN` to fan out into another workflow.
 
 ## Validation
 
