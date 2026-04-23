@@ -103,6 +103,14 @@ bun run release:artifacts
 bun run release:smoke
 ```
 
+`release:artifacts` must fail if the release manifest is missing any required platform binary:
+
+- `quantex-darwin-arm64`
+- `quantex-darwin-x64`
+- `quantex-linux-arm64`
+- `quantex-linux-x64`
+- `quantex-windows-x64.exe`
+
 ## Related artifacts
 
 - `.github/workflows/release.yml`

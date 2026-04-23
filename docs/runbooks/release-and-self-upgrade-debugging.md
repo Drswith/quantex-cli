@@ -99,11 +99,14 @@ What this should guarantee:
 - every release binary listed in `manifest.json` exists in `SHA256SUMS.txt`
 - every checksum in the manifest matches the checksum file
 - asset filenames still match Quantex release naming rules
+- the stable release matrix contains all required platform binaries
 
 Common symptoms and likely causes:
 
 - missing checksum entry:
   the build produced a binary that checksum generation or manifest generation did not include
+- missing required release asset:
+  a target build failed, the filename changed, or stale local outputs hid an incomplete binary matrix
 - manifest checksum mismatch:
   artifact contents changed after checksum generation, or the manifest was generated from stale data
 - invalid asset name:
