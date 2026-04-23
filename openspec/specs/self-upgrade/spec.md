@@ -97,6 +97,15 @@ The self-upgrade system SHALL provide recovery hints when automatic upgrade is u
 - THEN the output includes an actionable warning that explains the mismatch
 - AND points the user toward reinstalling or restoring a supported install source
 
+#### Scenario: Doctor JSON exposes machine-actionable self remediation
+
+- GIVEN the user runs `quantex doctor --json`
+- AND Quantex emits a self-related issue
+- WHEN the command returns structured data
+- THEN each self-related issue includes a stable issue code
+- AND includes `blocking`, `category`, `suggestedAction`, and `suggestedCommands`
+- AND includes a docs reference that points to the relevant recovery guide
+
 #### Scenario: Upgrade failure surfaces a recovery path
 
 - GIVEN a self-upgrade attempt fails

@@ -16,7 +16,7 @@ Provide a canonical diagnostic and recovery path when Quantex fails, behaves une
 - `quantex commands --json`
 - `quantex inspect <agent> --json`
 - `quantex resolve <agent> --json`
-- `quantex doctor`
+- `quantex doctor --json`
 
 ## Triage order
 
@@ -35,6 +35,15 @@ Why this order:
 - `inspect` tells you how Quantex sees the specific agent
 - `resolve` tells you what executable Quantex would actually launch
 - `doctor` is for diagnosing what is wrong and how to recover
+
+When consuming `doctor --json` in automation, prefer the structured issue fields over parsing prose:
+
+- `issues[].code`
+- `issues[].category`
+- `issues[].blocking`
+- `issues[].suggestedAction`
+- `issues[].suggestedCommands`
+- `issues[].docsRef`
 
 ## Common failure patterns
 
