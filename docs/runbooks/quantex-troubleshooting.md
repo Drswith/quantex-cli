@@ -1,10 +1,22 @@
-# Troubleshooting
+# Runbook: Quantex Troubleshooting
 
-> Canonical source: `docs/runbooks/quantex-troubleshooting.md`
->
-> This file remains as a skill-facing mirror during the migration to the repo-native project memory system. Update the canonical runbook first.
+## Purpose
 
-Use this file when Quantex fails, behaves unexpectedly, or when you need to decide whether the problem is configuration, environment, install source, or command choice.
+Provide a canonical diagnostic and recovery path when Quantex fails, behaves unexpectedly, or produces output that is hard to automate against.
+
+## When to use
+
+- a command failed and it is unclear whether the problem is configuration, environment, install source, or command choice
+- structured output is hard to parse or looks polluted
+- an automation run is blocked by prompts, stale data, timeouts, or lock conflicts
+
+## Inputs
+
+- `quantex capabilities --json`
+- `quantex commands --json`
+- `quantex inspect <agent> --json`
+- `quantex resolve <agent> --json`
+- `quantex doctor`
 
 ## Triage order
 
@@ -54,7 +66,7 @@ What to do:
 - parse `stdout`, not `stderr`
 - use `--json` for final structured results
 - use `--output ndjson` for long-running progress streams
-- consult [output-contracts.md](output-contracts.md) for the exact stream rules
+- consult `skills/quantex-cli/references/output-contracts.md` for the exact stream rules
 
 ### The agent exists in PATH but Quantex cannot manage it
 
@@ -126,7 +138,7 @@ What to do:
 Symptoms:
 
 - timeout or cancellation errors
-- long-running install/update appears interrupted
+- long-running install or update appears interrupted
 
 What to do:
 
@@ -150,7 +162,7 @@ What to do:
 
 Quantex protects lifecycle state with resource locks; lock conflicts are a sign to serialize work, not to bypass the error.
 
-## Practical recovery patterns
+## Recovery
 
 ### Need a safe minimal diagnostic snapshot
 
@@ -172,3 +184,17 @@ quantex resolve codex --json
 ```bash
 quantex ensure codex --json --non-interactive --yes --idempotency-key ensure-codex-001 --timeout 2m
 ```
+
+## Escalation
+
+Stop and ask for human input when:
+
+- recovery requires changing install source or release channel unexpectedly
+- repeated retries suggest a permission, platform, or environment mismatch rather than transient failure
+- troubleshooting reveals a missing product contract that should be written down before implementation continues
+
+## Related artifacts
+
+- `docs/adr/0001-agent-native-project-memory.md`
+- `skills/quantex-cli/references/output-contracts.md`
+- `autonomy/tasks/qtx-0001-migrate-troubleshooting-into-runbooks.md`

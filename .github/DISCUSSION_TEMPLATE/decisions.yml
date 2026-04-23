@@ -1,0 +1,35 @@
+title: '[Decision] '
+labels:
+  - source:discussion
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Use this category for decision framing before the final outcome is promoted into an ADR.
+  - type: textarea
+    id: decision-space
+    attributes:
+      label: Decision space
+      description: What decision are we trying to make?
+    validations:
+      required: true
+  - type: textarea
+    id: constraints
+    attributes:
+      label: Constraints
+      description: What constraints or goals shape the decision?
+    validations:
+      required: true
+  - type: textarea
+    id: tradeoffs
+    attributes:
+      label: Tradeoffs
+      description: What are the main tradeoffs between the options?
+    validations:
+      required: true
+  - type: input
+    id: proposed-adr-title
+    attributes:
+      label: Proposed ADR title
+      description: If this settles, what ADR title should likely be created?
+      placeholder: Adopt ...
