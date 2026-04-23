@@ -6,7 +6,7 @@ This queue is the prioritized entry point for future agent-driven work.
 
 | ID | Status | Priority | Title | Depends on |
 |---|---|---|---|---|
-| _None right now._ |
+| [qtx-0031](./tasks/qtx-0031-harden-release-artifact-matrix-validation.md) | `in_progress` | `high` | Harden release artifact matrix validation | qtx-0030 |
 
 ## Completed milestones
 

@@ -5,6 +5,7 @@ import {
   normalizeRepositoryUrl,
   parseBinaryTarget,
   parseChecksums,
+  REQUIRED_RELEASE_ASSET_NAMES,
   resolveReleaseChannel,
   validateReleaseManifest,
 } from '../src/release-artifacts'
@@ -90,6 +91,22 @@ describe('release artifacts helpers', () => {
   })
 
   it('validates manifest/checksum consistency', () => {
+    const checksums = createRequiredChecksums()
+    const manifest = createReleaseManifest({
+      checksums,
+      files: createRequiredFiles(),
+      version: '1.2.3',
+    })
+
+    expect(() => validateReleaseManifest(manifest, checksums)).not.toThrow()
+
+    const mismatchedChecksums = new Map(checksums)
+    mismatchedChecksums.set('quantex-darwin-arm64', 'z'.repeat(64))
+
+    expect(() => validateReleaseManifest(manifest, mismatchedChecksums)).toThrow('manifest.json checksum mismatch for quantex-darwin-arm64.')
+  })
+
+  it('requires the complete release asset matrix', () => {
     const manifest = createReleaseManifest({
       checksums: new Map([
         ['quantex-darwin-arm64', 'a'.repeat(64)],
@@ -100,10 +117,20 @@ describe('release artifacts helpers', () => {
 
     expect(() => validateReleaseManifest(manifest, new Map([
       ['quantex-darwin-arm64', 'a'.repeat(64)],
-    ]))).not.toThrow()
-
-    expect(() => validateReleaseManifest(manifest, new Map([
-      ['quantex-darwin-arm64', 'b'.repeat(64)],
-    ]))).toThrow('manifest.json checksum mismatch for quantex-darwin-arm64.')
+    ]))).toThrow('manifest.json is missing required release asset: quantex-darwin-x64.')
   })
 })
+
+function createRequiredChecksums(): Map<string, string> {
+  return new Map(REQUIRED_RELEASE_ASSET_NAMES.map((name, index) => [
+    name,
+    String(index + 1).repeat(64),
+  ]))
+}
+
+function createRequiredFiles(): Array<{ name: string, size: number }> {
+  return REQUIRED_RELEASE_ASSET_NAMES.map((name, index) => ({
+    name,
+    size: index + 1,
+  }))
+}
