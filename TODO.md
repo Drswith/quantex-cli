@@ -1,5 +1,8 @@
 # TODO
 
+> Migration status: frozen snapshot.
+> New work should be added to [autonomy/queue.md](/Users/drs/workspaces/personal/quantex-cli/autonomy/queue.md) and [autonomy/tasks/](/Users/drs/workspaces/personal/quantex-cli/autonomy/tasks/), not to this file.
+
 ## Current Status
 
 已完成的主要能力：
