@@ -58,4 +58,4 @@ Operational runbooks:
 
 ## Migration status
 
-Legacy root-level design and backlog documents still exist during the transition. Their target homes are tracked in [project-memory-migration.md](./project-memory-migration.md).
+Legacy root-level design and backlog documents have been archived under [archive/legacy-root-notes/](./archive/legacy-root-notes/). Their target homes and cleanup status are tracked in [project-memory-migration.md](./project-memory-migration.md).
