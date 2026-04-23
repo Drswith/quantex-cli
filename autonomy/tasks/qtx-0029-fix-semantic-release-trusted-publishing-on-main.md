@@ -26,6 +26,7 @@ docs_to_update:
 ## Context
 
 - the current release flow reaches `semantic-release`, but npm publish fails before release because the installed npm plugin falls back to token auth
+- `semantic-release` can still load its bundled npm plugin, so upgrading only the top-level plugin is not sufficient
 - `workflow_run` also makes the trusted publisher relationship harder to reason about, since npm needs to trust the workflow file that actually triggers publishing
 
 ## Constraints
@@ -47,10 +48,11 @@ docs_to_update:
   - `bun run lint`
   - `bun run typecheck`
 - investigate installed `@semantic-release/npm` version before changing the workflow
+- confirm which npm plugin version `semantic-release` itself resolves at runtime
 
 ## Done When
 
-- `@semantic-release/npm` is upgraded to a version that supports npm trusted publishing on GitHub Actions
+- `semantic-release` resolves an npm plugin version that supports npm trusted publishing on GitHub Actions
 - release automation is triggered from `.github/workflows/release.yml` on merged `main` pushes
 - docs explain the trusted publishing contract and no longer describe the old `workflow_run` dependency
 

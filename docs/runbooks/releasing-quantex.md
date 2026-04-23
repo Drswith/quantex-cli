@@ -72,7 +72,7 @@ That means:
 - do not configure `registry-url` in the release workflow's `setup-node` step
 - do not depend on `NPM_TOKEN` for the normal publish path
 - make sure npm package settings point the trusted publisher at the exact workflow filename `.github/workflows/release.yml`
-- use an `@semantic-release/npm` version that includes trusted publishing support
+- use a `semantic-release` version that bundles an OIDC-capable `@semantic-release/npm`
 
 ## Important automation note
 
