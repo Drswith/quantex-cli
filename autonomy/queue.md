@@ -6,12 +6,13 @@ This queue is the prioritized entry point for future agent-driven work.
 
 | ID | Status | Priority | Title | Depends on |
 |---|---|---|---|---|
-| [qtx-0029](./tasks/qtx-0029-fix-semantic-release-trusted-publishing-on-main.md) | `in_progress` | `high` | Fix semantic-release trusted publishing on main | - |
+| _None right now._ |
 
 ## Completed milestones
 
 | ID | Status | Priority | Title | Depends on |
 |---|---|---|---|---|
+| [qtx-0029](./tasks/qtx-0029-fix-semantic-release-trusted-publishing-on-main.md) | `done` | `high` | Fix semantic-release trusted publishing on main | - |
 | [qtx-0028](./tasks/qtx-0028-replace-bumpp-with-merge-to-main-auto-release.md) | `done` | `high` | Replace bumpp with merge-to-main auto release | - |
 | [qtx-0027](./tasks/qtx-0027-make-release-flow-compatible-with-pr-only-main.md) | `done` | `high` | Make release flow compatible with PR-only main | - |
 | [qtx-0026](./tasks/qtx-0026-make-exec-surface-machine-actionable-install-guidance.md) | `done` | `high` | Make exec surface machine-actionable install guidance | - |
