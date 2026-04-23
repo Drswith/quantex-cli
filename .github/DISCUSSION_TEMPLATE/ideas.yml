@@ -1,0 +1,40 @@
+title: '[Idea] '
+labels:
+  - source:discussion
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Use this category for exploratory product or implementation ideas before they harden into an issue, task, ADR, or OpenSpec change.
+  - type: textarea
+    id: context
+    attributes:
+      label: Context
+      description: What sparked this discussion?
+    validations:
+      required: true
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem or opportunity
+      description: What are we trying to improve, avoid, or decide?
+    validations:
+      required: true
+  - type: textarea
+    id: options
+    attributes:
+      label: Options or directions
+      description: List candidate approaches or open questions.
+      value: |
+        - Option A
+        - Option B
+    validations:
+      required: true
+  - type: textarea
+    id: promotion
+    attributes:
+      label: Likely promotion path
+      description: If this converges, what durable artifact should follow?
+      placeholder: Session summary, issue, autonomy task, ADR, OpenSpec change, runbook ...
+    validations:
+      required: true
