@@ -12,6 +12,7 @@ This queue is the prioritized entry point for future agent-driven work.
 
 | ID | Status | Priority | Title | Depends on |
 |---|---|---|---|---|
+| [qtx-0030](./tasks/qtx-0030-adopt-release-please-release-pr-flow.md) | `done` | `high` | Adopt release-please Release PR flow | - |
 | [qtx-0029](./tasks/qtx-0029-fix-semantic-release-trusted-publishing-on-main.md) | `done` | `high` | Fix semantic-release trusted publishing on main | - |
 | [qtx-0028](./tasks/qtx-0028-replace-bumpp-with-merge-to-main-auto-release.md) | `done` | `high` | Replace bumpp with merge-to-main auto release | - |
 | [qtx-0027](./tasks/qtx-0027-make-release-flow-compatible-with-pr-only-main.md) | `done` | `high` | Make release flow compatible with PR-only main | - |

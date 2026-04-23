@@ -1,0 +1,17 @@
+{
+  "$schema": "https://raw.githubusercontent.com/googleapis/release-please/main/schemas/config.json",
+  "packages": {
+    ".": {
+      "release-type": "node",
+      "package-name": "quantex-cli",
+      "include-component-in-tag": false,
+      "include-v-in-tag": true,
+      "include-v-in-release-name": true,
+      "extra-files": [
+        "src/generated/build-meta.ts"
+      ],
+      "pull-request-title-pattern": "chore: release ${version}",
+      "pull-request-header": "## Summary\n- materialize the next Quantex release version in source-controlled files\n- update the repository changelog for the pending release\n\n## Linked Artifacts\n- Release automation: release-please\n\n## Validation\n- CI must pass before merging this Release PR\n\n## Docs Updated\n- CHANGELOG.md\n- package.json\n- src/generated/build-meta.ts\n- .release-please-manifest.json\n\n## Scope Check\n- Release PR only; merge this PR to publish the prepared version\n"
+    }
+  }
+}
