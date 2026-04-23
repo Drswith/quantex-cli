@@ -1,7 +1,7 @@
 ---
 id: qtx-0017
 title: Improve update and upgrade lifecycle summaries
-status: ready
+status: done
 priority: medium
 area: ux
 depends_on: []

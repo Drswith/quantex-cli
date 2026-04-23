@@ -125,6 +125,7 @@ describe('updateCommand', () => {
     const output = stdoutWriteSpy.mock.calls.map((c: any[]) => c[0]).join('\n')
     expect(output).toContain('Updating Test Agent via managed/bun... (1.0.0 -> 2.0.0)')
     expect(output).toContain('Updating Agent 2 via managed/bun... (1.0.0 -> 2.0.0)')
+    expect(output).toContain('Summary: updated 2')
   })
 
   it('skips detected PATH installs without auto-update support for --all', async () => {
@@ -153,7 +154,8 @@ describe('updateCommand', () => {
     expect(updateSpy).not.toHaveBeenCalled()
 
     const output = stdoutWriteSpy.mock.calls.map((c: any[]) => c[0]).join('\n')
-    expect(output).toContain('Manual Agent uses a manually managed install source')
+    expect(output).toContain('Manual Agent: manual action required.')
+    expect(output).toContain('Next step: Manual Agent uses a manually managed install source')
     expect(output).not.toContain('Updating Manual Agent')
     expect(output).not.toContain('Failed to update Manual Agent')
   })
@@ -220,7 +222,7 @@ describe('updateCommand', () => {
 
     const output = stdoutWriteSpy.mock.calls.map((c: any[]) => c[0]).join('\n')
     expect(output).toContain('Failed to update Self Updating Agent.')
-    expect(output).toContain('Try running self-updating-bin update directly.')
+    expect(output).toContain('Next step: Try running self-updating-bin update directly.')
   })
 
   it('returns a stable conflict when another lifecycle operation already holds the lock', async () => {

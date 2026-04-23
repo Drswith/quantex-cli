@@ -406,8 +406,9 @@ function renderUpdateHuman(result: { data?: UpdateCommandData, error: { code: st
         printInfo(pc.green(`${item.displayName} is up to date (${item.installedVersion ?? 'unknown'})`))
         break
       case 'manual-required':
+        printWarn(pc.yellow(`${item.displayName}: manual action required.`))
         if (item.message)
-          printWarn(pc.yellow(item.message))
+          printWarn(pc.cyan(`Next step: ${item.message}`))
         break
       case 'planned':
         printWarn(pc.cyan(`Would update ${item.displayName}${item.strategy ? ` via ${item.strategy}` : ''}${getVersionHint(item.installedVersion, item.latestVersion)}`))
@@ -420,7 +421,7 @@ function renderUpdateHuman(result: { data?: UpdateCommandData, error: { code: st
         printInfo(pc.cyan(`Updating ${item.displayName}${item.strategy ? ` via ${item.strategy}` : ''}...${getVersionHint(item.installedVersion, item.latestVersion)}`))
         printError(pc.red(`Failed to update ${item.displayName}.`))
         if (item.hint)
-          printWarn(pc.yellow(item.hint))
+          printWarn(pc.cyan(`Next step: ${item.hint}`))
         break
       case 'locked':
         printWarn(pc.yellow(item.message ?? `Another quantex process is already updating ${item.displayName}.`))
@@ -428,10 +429,59 @@ function renderUpdateHuman(result: { data?: UpdateCommandData, error: { code: st
     }
   }
 
+  if (result.data.results.length > 1)
+    printUpdateSummary(result.data.results)
+
   if (!result.data.results.length && result.error)
     printError(pc.red(result.error.message))
 }
 
 function getVersionHint(installed?: string, latest?: string): string {
   return installed ? ` (${installed} -> ${latest ?? 'latest'})` : ''
+}
+
+function printUpdateSummary(results: UpdateResultItem[]): void {
+  const counts = {
+    failed: 0,
+    locked: 0,
+    manualRequired: 0,
+    planned: 0,
+    upToDate: 0,
+    updated: 0,
+  }
+
+  for (const item of results) {
+    switch (item.status) {
+      case 'up-to-date':
+        counts.upToDate += 1
+        break
+      case 'manual-required':
+        counts.manualRequired += 1
+        break
+      case 'planned':
+        counts.planned += 1
+        break
+      case 'updated':
+        counts.updated += 1
+        break
+      case 'failed':
+        counts.failed += 1
+        break
+      case 'locked':
+        counts.locked += 1
+        break
+    }
+  }
+
+  const parts = [
+    counts.updated ? `updated ${counts.updated}` : undefined,
+    counts.upToDate ? `up to date ${counts.upToDate}` : undefined,
+    counts.manualRequired ? `manual ${counts.manualRequired}` : undefined,
+    counts.failed ? `failed ${counts.failed}` : undefined,
+    counts.locked ? `locked ${counts.locked}` : undefined,
+    counts.planned ? `planned ${counts.planned}` : undefined,
+  ].filter(Boolean)
+
+  if (parts.length > 0)
+    printInfo(pc.bold(`Summary: ${parts.join(', ')}`))
 }
