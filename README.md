@@ -15,8 +15,8 @@
 
 ## 设计文档
 
-- [Human + Agent 双模 CLI 设计](./HUMAN_AGENT_DUAL_MODE_CLI.md)
-- [Human + Agent 双模 CLI Implementation Checklist / Issue Backlog](./HUMAN_AGENT_DUAL_MODE_CLI_IMPLEMENTATION_BACKLOG.md)
+- [Human + Agent 双模 CLI 设计](./docs/archive/legacy-root-notes/HUMAN_AGENT_DUAL_MODE_CLI.md)
+- [Human + Agent 双模 CLI Implementation Checklist / Issue Backlog](./docs/archive/legacy-root-notes/HUMAN_AGENT_DUAL_MODE_CLI_IMPLEMENTATION_BACKLOG.md)
 
 ## Project Memory
 
@@ -30,7 +30,7 @@
 - [autonomy/README.md](./autonomy/README.md)
 - [openspec/README.md](./openspec/README.md)
 
-现有根目录下的设计稿、scope 文档和 backlog 文档暂时保留为迁移期参考，映射关系见 [docs/project-memory-migration.md](./docs/project-memory-migration.md)。
+迁移期遗留文档的归档位置和映射关系见 [docs/project-memory-migration.md](./docs/project-memory-migration.md)。
 
 ## Agent Skill
 
