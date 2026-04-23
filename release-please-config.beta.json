@@ -7,6 +7,7 @@
       "include-component-in-tag": false,
       "include-v-in-tag": true,
       "include-v-in-release-name": true,
+      "versioning": "prerelease",
       "prerelease": true,
       "prerelease-type": "beta",
       "extra-files": [
