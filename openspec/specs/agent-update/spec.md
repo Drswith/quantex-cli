@@ -72,3 +72,12 @@ Agent update behavior SHALL be inspectable through user-facing diagnostic comman
 - GIVEN the user runs `quantex list`, `quantex info <agent>`, or `quantex doctor`
 - WHEN Quantex renders the result
 - THEN the output includes enough install-source and recovery information to explain how update behavior will be chosen
+
+#### Scenario: Doctor JSON exposes machine-actionable agent remediation
+
+- GIVEN the user runs `quantex doctor --json`
+- AND Quantex emits an agent-related issue
+- WHEN the command returns structured data
+- THEN each agent-related issue includes a stable issue code
+- AND includes `subject`, `suggestedAction`, and `suggestedCommands`
+- AND allows an automation layer to distinguish between inspection, self-update, and manual-follow-up paths

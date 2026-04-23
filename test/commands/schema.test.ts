@@ -20,6 +20,7 @@ describe('schemaCommand', () => {
     expect(output).toContain('Quantex Schemas')
     expect(output).toContain('capabilities')
     expect(output).toContain('commands')
+    expect(output).toContain('doctor')
     expect(output).toContain('inspect')
     expect(output).toContain('resolve')
   })
@@ -49,5 +50,21 @@ describe('schemaCommand', () => {
     await schemaCommand('missing-command')
 
     expect(logSpy).toHaveBeenCalledWith(expect.stringContaining('Unknown schema target'))
+  })
+
+  it('returns the doctor schema in json mode', async () => {
+    setCliContext({
+      interactive: false,
+      outputMode: 'json',
+      runId: 'schema-doctor-run-id',
+    })
+
+    await schemaCommand('doctor')
+
+    const payload = JSON.parse(logSpy.mock.calls[0][0])
+    expect(payload.data.commands).toHaveLength(1)
+    expect(payload.data.commands[0].name).toBe('doctor')
+    expect(payload.data.commands[0].dataSchema.properties.issues.items.properties.suggestedAction).toBeDefined()
+    expect(payload.data.commands[0].dataSchema.properties.issues.items.properties.suggestedCommands).toBeDefined()
   })
 })
