@@ -2,6 +2,13 @@
 
 This changelog is maintained by release-please Release PRs.
 
+## [0.3.0](https://github.com/Drswith/quantex-cli/compare/v0.2.1...v0.3.0) (2026-04-23)
+
+
+### Features
+
+* **release:** add beta prerelease channel ([6a0858e](https://github.com/Drswith/quantex-cli/commit/6a0858e6d97f37aa7a6f2823694c3f403591ab60))
+
 ## [0.2.1](https://github.com/Drswith/quantex-cli/compare/v0.2.0...v0.2.1) (2026-04-23)
 
 
