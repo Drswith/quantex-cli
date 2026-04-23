@@ -19,29 +19,30 @@ docs_to_update:
 
 ## Goal
 
-Quantex should have a release procedure that still uses `bumpp` for version selection while remaining compatible with a PR-only `main` branch.
+Quantex should have a release procedure that still uses `bumpp` for version selection while remaining compatible with a PR-only `main` branch, without requiring a post-merge local publish step.
 
 ## Context
 
-The old release flow assumed a local version bump commit could tag and push directly from `main`. Repository protections now require all `main` updates to go through PRs, so release preparation and release publication must be split into separate steps.
+The old release flow assumed a local version bump commit could tag and push directly from `main`. Repository protections now require all `main` updates to go through PRs, so release preparation must happen in a PR and release publication must happen from trusted automation after merge.
 
 ## Constraints
 
-- Keep the existing tag-triggered publish workflow in `.github/workflows/release.yml`.
-- Do not introduce a fake one-click workflow that silently bypasses branch protections or depends on `GITHUB_TOKEN` to trigger another workflow.
+- Keep release commits reviewable through PRs.
+- Do not depend on `GITHUB_TOKEN` pushing a tag in one workflow to trigger a second publish workflow.
 
 ## Implementation Notes
 
 - Update package scripts so `bun run release` is safe under the new rules.
-- Add a helper for creating the release tag from merged `main`.
+- Keep `bun run release` ergonomic for humans.
+- Publish automatically from GitHub Actions after the release PR merges.
 - Document the new release flow in a canonical runbook and in GitHub collaboration guidance.
 
 ## Done When
 
-- `bun run release` prepares a reviewable version bump without tagging or pushing.
-- maintainers have a documented and guarded way to tag the merged `main` commit and trigger the publish workflow.
+- `bun run release` prepares a reviewable release PR without tagging or publishing.
+- merging that PR to `main` automatically tags and publishes the release.
 
 ## Non-Goals
 
 - Replacing `bumpp`
-- Building a fully automated one-click release service
+- Bypassing PR review for release version bumps

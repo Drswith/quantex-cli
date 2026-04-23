@@ -43,7 +43,6 @@
     "release:cut": "bun run scripts/prepare-release-pr.ts",
     "release:prepare": "bumpp --no-tag --no-push",
     "release:artifacts": "bun run scripts/write-release-checksums.ts && bun run scripts/generate-release-manifest.ts && bun run scripts/verify-release-artifacts.ts",
-    "release:publish": "bun run scripts/publish-release.ts",
     "release:smoke": "bun run scripts/verify-release-smoke.ts",
     "release:tag": "bun run scripts/create-release-tag.ts",
     "task:new": "bun run scripts/new-task.ts",
