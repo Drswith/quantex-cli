@@ -12,10 +12,10 @@ This file tracks how legacy markdown documents in the repository root should be 
 
 | Existing file | Current role | Target home | Migration note |
 |---|---|---|---|
-| `TODO.md` | mixed backlog and status | `autonomy/queue.md` and `autonomy/tasks/` | Split into task-sized units with explicit done criteria |
+| `TODO.md` | mixed backlog and status | `autonomy/queue.md` and `autonomy/tasks/` | Converted into task contracts on 2026-04-23; keep the root file as a frozen status snapshot |
 | `HUMAN_AGENT_DUAL_MODE_CLI.md` | current design narrative | `openspec/specs/` plus `docs/adr/` | Keep as reference during transition; new changes should flow through OpenSpec and ADRs |
 | `HUMAN_AGENT_DUAL_MODE_CLI_ADDENDUM.md` | design refinements | `openspec/changes/` or `docs/adr/` | Merge durable policy into ADRs, keep implementation detail in specs/changes |
-| `HUMAN_AGENT_DUAL_MODE_CLI_IMPLEMENTATION_BACKLOG.md` | implementation backlog | `autonomy/queue.md` and `autonomy/tasks/` | Convert backlog bullets into executable tasks |
+| `HUMAN_AGENT_DUAL_MODE_CLI_IMPLEMENTATION_BACKLOG.md` | implementation backlog | `autonomy/queue.md` and `autonomy/tasks/` | Converted into task contracts on 2026-04-23; keep the root file as a frozen historical checklist |
 | `AUTO_UPGRADE_SCOPE.md` | subsystem scope and architecture | `openspec/specs/` plus `docs/adr/` | Treat current document as reference; future self-upgrade changes should use OpenSpec |
 | `AUTO_UPGRADE_SCOPE_ADDENDUM.md` | refinement and non-goals | `docs/adr/` and `openspec/changes/` | Durable rules belong in ADRs; pending work belongs in change artifacts |
 | `AUTO_UPGRADE_IMPLEMENTATION_BACKLOG.md` | implementation backlog | `autonomy/queue.md` and `autonomy/tasks/` | Normalize into task contracts |

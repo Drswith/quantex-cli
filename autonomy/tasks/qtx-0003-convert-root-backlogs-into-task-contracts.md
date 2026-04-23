@@ -1,7 +1,7 @@
 ---
 id: qtx-0003
 title: Convert legacy root backlogs into autonomy task contracts
-status: ready
+status: done
 priority: medium
 area: docs
 depends_on: []

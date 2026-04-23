@@ -6,9 +6,20 @@ This queue is the prioritized entry point for future agent-driven work.
 
 | ID | Status | Priority | Title | Depends on |
 |---|---|---|---|---|
+| [qtx-0017](./tasks/qtx-0017-improve-update-and-upgrade-lifecycle-summaries.md) | `ready` | `medium` | Improve update and upgrade lifecycle summaries | - |
+| [qtx-0018](./tasks/qtx-0018-expand-doctor-remediation-guidance.md) | `ready` | `high` | Expand doctor remediation guidance | - |
+| [qtx-0019](./tasks/qtx-0019-audit-and-expand-agent-catalog-update-metadata.md) | `planned` | `high` | Audit and expand agent catalog update metadata | - |
+| [qtx-0020](./tasks/qtx-0020-add-release-workflow-smoke-validation.md) | `planned` | `high` | Add release workflow smoke validation | - |
+| [qtx-0021](./tasks/qtx-0021-write-release-and-self-upgrade-debugging-runbook.md) | `planned` | `medium` | Write release and self-upgrade debugging runbook | - |
+| [qtx-0022](./tasks/qtx-0022-document-skill-installation-and-distribution-flow.md) | `planned` | `low` | Document skill installation and distribution flow | - |
+
+## Completed milestones
+
+| ID | Status | Priority | Title | Depends on |
+|---|---|---|---|---|
 | [qtx-0001](./tasks/qtx-0001-migrate-troubleshooting-into-runbooks.md) | `done` | `high` | Migrate troubleshooting knowledge into canonical runbooks | - |
 | [qtx-0002](./tasks/qtx-0002-consolidate-auto-upgrade-docs-into-openspec-and-adr.md) | `done` | `high` | Consolidate auto-upgrade design into OpenSpec specs and ADRs | - |
-| [qtx-0003](./tasks/qtx-0003-convert-root-backlogs-into-task-contracts.md) | `ready` | `medium` | Convert legacy root backlogs into autonomy task contracts | - |
+| [qtx-0003](./tasks/qtx-0003-convert-root-backlogs-into-task-contracts.md) | `done` | `medium` | Convert legacy root backlogs into autonomy task contracts | - |
 | [qtx-0004](./tasks/qtx-0004-extract-self-upgrade-providers.md) | `done` | `high` | Extract self-upgrade provider modules | - |
 | [qtx-0005](./tasks/qtx-0005-persist-self-install-source.md) | `done` | `high` | Persist self install source in state | qtx-0004 |
 | [qtx-0006](./tasks/qtx-0006-introduce-self-upgrade-typed-errors.md) | `done` | `high` | Introduce typed errors for self-upgrade outcomes | qtx-0004 |
