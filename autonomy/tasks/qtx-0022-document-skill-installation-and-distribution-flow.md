@@ -1,7 +1,7 @@
 ---
 id: qtx-0022
 title: Document skill installation and distribution flow
-status: planned
+status: done
 priority: low
 area: docs
 depends_on: []
