@@ -1,63 +1,47 @@
 name: Release
 
 on:
-  push:
-    tags:
-      - 'v*'
+  workflow_run:
+    workflows:
+      - CI
+    types:
+      - completed
+  workflow_dispatch:
 
 permissions:
   contents: write
   id-token: write
 
+concurrency:
+  group: release-main
+  cancel-in-progress: false
+
 jobs:
   release:
+    if: github.event_name == 'workflow_dispatch' || (github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.head_branch == 'main')
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
+          ref: refs/heads/main
 
       - name: Setup Bun
         uses: oven-sh/setup-bun@v2
         with:
           bun-version: latest
 
-      - name: Install dependencies
-        run: bun install --frozen-lockfile
-
-      - name: Build
-        run: bun run build
-
-      - name: Build binaries
-        run: bun run build:bin
-
-      - name: Generate release artifacts
-        run: bun run release:artifacts
-
-      - name: Smoke check current runner release binary
-        run: bun run release:smoke
-
-      - name: Setup Node.js (for OIDC publish)
+      - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: lts/*
           registry-url: 'https://registry.npmjs.org'
 
-      - name: Publish to NPM
-        id: publish
-        run: |
-          VERSION=${GITHUB_REF#refs/tags/v}
-          if [[ "$VERSION" =~ -(beta|alpha|rc|pre) ]]; then
-            TAG=$(echo "$VERSION" | sed -E 's/.*-((beta|alpha|rc|pre)(\.[0-9]+)?).*/\1/' | cut -d. -f1)
-            npm publish --provenance --access public --tag "$TAG"
-          else
-            npm publish --provenance --access public
-          fi
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
 
-      - name: Publish GitHub Release
-        uses: softprops/action-gh-release@v2
-        with:
-          files: dist/bin/*
-          generate_release_notes: true
-          prerelease: ${{ contains(github.ref_name, '-') }}
+      - name: Release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: bun run release:ci
