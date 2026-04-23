@@ -44,6 +44,8 @@ Use:
 - `resolve` for executable path and launch resolution
 - `capabilities`, `commands`, `schema` for self-description
 
+When `resolve --json` reports `AGENT_NOT_INSTALLED`, prefer `data.resolution.installGuidance` instead of scraping the error text. It now includes a suggested `quantex ensure <agent>` command plus install methods Quantex can attempt.
+
 ### Installation and updates
 
 ```bash

@@ -312,7 +312,46 @@ const schemaCatalog: SchemaDocument[] = [
       additionalProperties: false,
       properties: {
         agent: { type: 'object' },
-        resolution: { type: 'object' },
+        resolution: {
+          additionalProperties: false,
+          properties: {
+            binaryPath: { type: 'string' },
+            installGuidance: {
+              additionalProperties: false,
+              properties: {
+                docsRef: { type: 'string' },
+                installMethods: {
+                  items: {
+                    additionalProperties: false,
+                    properties: {
+                      command: { type: 'string' },
+                      label: { type: 'string' },
+                      type: { type: 'string' },
+                    },
+                    required: ['command', 'label', 'type'],
+                    type: 'object',
+                  },
+                  type: 'array',
+                },
+                suggestedAction: { type: 'string' },
+                suggestedEnsureCommand: { type: 'string' },
+              },
+              required: ['docsRef', 'installMethods', 'suggestedAction', 'suggestedEnsureCommand'],
+              type: 'object',
+            },
+            installed: { type: 'boolean' },
+            installSource: { type: 'string' },
+            installedVersion: { type: 'string' },
+            lifecycle: { type: 'string' },
+            sourceLabel: { type: 'string' },
+            suggestedLaunchCommand: {
+              items: { type: 'string' },
+              type: 'array',
+            },
+          },
+          required: ['binaryPath', 'installed', 'installSource', 'lifecycle', 'sourceLabel', 'suggestedLaunchCommand'],
+          type: 'object',
+        },
       },
       required: ['agent', 'resolution'],
       type: 'object',
