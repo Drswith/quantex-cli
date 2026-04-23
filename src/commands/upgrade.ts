@@ -190,7 +190,7 @@ function renderUpgradeHuman(result: { data?: UpgradeCommandData, error: { code?:
   if (result.data.status === 'manual-required' && result.error?.code === 'MANUAL_ACTION_REQUIRED') {
     printWarn(pc.yellow(result.error.message))
     if (result.data.recoveryHint)
-      printWarn(pc.cyan(`Manual upgrade: ${result.data.recoveryHint}`))
+      printWarn(pc.cyan(`Next step: ${result.data.recoveryHint}`))
     return
   }
 
@@ -208,5 +208,5 @@ function renderUpgradeHuman(result: { data?: UpgradeCommandData, error: { code?:
   printError(pc.red('Failed to upgrade Quantex CLI.'))
   printWarn(pc.yellow(`Reason: ${result.error.message}`))
   for (const warning of result.warnings)
-    printWarn(pc.cyan(warning.message))
+    printWarn(pc.cyan(warning.message.replace(/^Manual recovery:/, 'Next step:')))
 }

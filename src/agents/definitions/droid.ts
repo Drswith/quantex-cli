@@ -10,6 +10,9 @@ export const droid: AgentDefinition = {
     npm: 'droid',
   },
   binaryName: 'droid',
+  selfUpdate: {
+    command: ['droid', 'update'],
+  },
   platforms: {
     windows: [
       bunInstall(),

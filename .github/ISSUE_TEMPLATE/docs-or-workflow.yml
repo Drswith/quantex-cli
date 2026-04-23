@@ -1,0 +1,52 @@
+name: Docs or Workflow
+description: Improve project memory, GitHub workflow, automation, or contributor process.
+title: '[Docs/Workflow]: '
+labels:
+  - kind:docs
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Use this form for documentation, project-memory, and collaboration workflow improvements.
+  - type: textarea
+    id: friction
+    attributes:
+      label: Current friction
+      description: What is hard to find, easy to forget, or repeated manually?
+    validations:
+      required: true
+  - type: textarea
+    id: proposed-change
+    attributes:
+      label: Proposed change
+      description: What workflow, template, or documentation improvement do you want?
+    validations:
+      required: true
+  - type: dropdown
+    id: target-area
+    attributes:
+      label: Primary target area
+      options:
+        - docs/adr
+        - docs/runbooks
+        - docs/sessions
+        - autonomy/tasks
+        - openspec
+        - GitHub Issues
+        - GitHub PRs
+        - GitHub Discussions
+        - CI or automation
+    validations:
+      required: true
+  - type: textarea
+    id: linked-context
+    attributes:
+      label: Linked context
+      description: Paste related tasks, ADRs, OpenSpec artifacts, or discussions.
+  - type: checkboxes
+    id: checklist
+    attributes:
+      label: Checklist
+      options:
+        - label: I considered whether this should be captured as a durable project-memory rule or runbook update.
+          required: true

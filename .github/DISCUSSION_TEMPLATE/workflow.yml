@@ -1,0 +1,32 @@
+title: '[Workflow] '
+labels:
+  - source:discussion
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Use this category for process, tooling, and collaboration workflow improvements.
+  - type: textarea
+    id: friction
+    attributes:
+      label: Current friction
+      description: What repeated pain, ambiguity, or manual work should improve?
+    validations:
+      required: true
+  - type: textarea
+    id: proposed-change
+    attributes:
+      label: Proposed change
+      description: What workflow or automation change are you proposing?
+    validations:
+      required: true
+  - type: textarea
+    id: durable-artifacts
+    attributes:
+      label: Durable artifacts to update
+      description: Which session summary, task, ADR, spec, or runbook should follow from this?
+      value: |
+        - session summary
+        - autonomy task
+    validations:
+      required: true

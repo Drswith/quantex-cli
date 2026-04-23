@@ -1,5 +1,9 @@
 # Troubleshooting
 
+> Canonical source: `docs/runbooks/quantex-troubleshooting.md`
+>
+> This file remains as a skill-facing mirror during the migration to the repo-native project memory system. Update the canonical runbook first.
+
 Use this file when Quantex fails, behaves unexpectedly, or when you need to decide whether the problem is configuration, environment, install source, or command choice.
 
 ## Triage order

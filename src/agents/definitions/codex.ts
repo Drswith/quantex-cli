@@ -5,11 +5,14 @@ export const codex: AgentDefinition = {
   name: 'codex',
   displayName: 'Codex CLI',
   description: 'OpenAI 官方 AI 编程助手 CLI',
-  homepage: 'https://developers.openai.com/codex',
+  homepage: 'https://developers.openai.com/codex/cli',
   packages: {
     npm: '@openai/codex',
   },
   binaryName: 'codex',
+  selfUpdate: {
+    command: ['codex', '--upgrade'],
+  },
   platforms: {
     windows: [
       bunInstall(),

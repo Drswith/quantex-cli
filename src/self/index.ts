@@ -23,7 +23,7 @@ export async function inspectSelf(options?: { updateChannel?: SelfUpdateChannel 
     ? detectSelfInstallSource(metadata.packageRoot)
     : detectSelfInstallSource('', executablePath)
   const state = await getSelfState()
-  const installSource = await resolveSelfInstallSource(state.installSource, detectedInstallSource)
+  const installSource = await reconcileSelfInstallSource(state.installSource, detectedInstallSource)
   const config = await loadConfig()
   const updateChannel = getSelfUpdateChannel(options?.updateChannel, config.selfUpdateChannel)
   const latestVersion = await resolveSelfLatestVersion(installSource, executablePath, updateChannel)
@@ -67,7 +67,7 @@ export function canAutoUpdateSelf(installSource: SelfInstallSource): boolean {
   return installSource === 'binary' || installSource === 'bun' || installSource === 'npm'
 }
 
-async function resolveSelfInstallSource(
+export async function reconcileSelfInstallSource(
   storedInstallSource: SelfInstallSource | undefined,
   detectedInstallSource: SelfInstallSource,
 ): Promise<SelfInstallSource> {

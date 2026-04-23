@@ -178,4 +178,64 @@ describe('doctorCommand', () => {
     const output = logSpy.mock.calls.map((c: any[]) => c[0]).join('\n')
     expect(output).toContain('No managed installer found')
   })
+
+  it('warns when the detected self package manager is missing from PATH', async () => {
+    isBunSpy.mockResolvedValue(false)
+    isNpmSpy.mockResolvedValue(true)
+    allAgentsSpy.mockReturnValue([])
+    inspectSelfSpy.mockResolvedValue({
+      canAutoUpdate: true,
+      currentVersion: '1.0.0',
+      executablePath: '/Users/test/.bun/bin/qtx',
+      installSource: 'bun',
+      latestVersion: '1.0.0',
+      packageRoot: '/Users/test/.bun/install/global/node_modules/quantex-cli',
+      recommendedUpgradeCommand: 'quantex upgrade',
+      updateChannel: 'stable',
+    })
+
+    await doctorCommand()
+
+    const output = logSpy.mock.calls.map((c: any[]) => c[0]).join('\n')
+    expect(output).toContain('tracked as a bun install')
+    expect(output).toContain('not available in PATH')
+  })
+
+  it('warns when Quantex cannot auto-update from the current install source', async () => {
+    isBunSpy.mockResolvedValue(true)
+    isNpmSpy.mockResolvedValue(true)
+    allAgentsSpy.mockReturnValue([])
+    inspectSelfSpy.mockResolvedValue({
+      canAutoUpdate: false,
+      currentVersion: '1.0.0',
+      executablePath: '/Users/test/workspaces/quantex-cli/node_modules/.bin/bun',
+      installSource: 'source',
+      latestVersion: '1.1.0',
+      packageRoot: '/Users/test/workspaces/quantex-cli',
+      recommendedUpgradeCommand: undefined,
+      updateChannel: 'stable',
+    })
+
+    await doctorCommand()
+
+    const output = logSpy.mock.calls.map((c: any[]) => c[0]).join('\n')
+    expect(output).toContain('cannot auto-update from install source "source"')
+    expect(output).toContain('Reinstall via bun, npm, or the standalone binary')
+  })
+
+  it('warns when an agent is only detected in PATH and not managed by Quantex', async () => {
+    isBunSpy.mockResolvedValue(true)
+    isNpmSpy.mockResolvedValue(true)
+    allAgentsSpy.mockReturnValue([testAgent])
+    binaryInPathSpy.mockResolvedValue(true)
+    installedStateSpy.mockResolvedValue(undefined)
+    installedVerSpy.mockResolvedValue('1.0.0')
+    latestVerSpy.mockResolvedValue('2.0.0')
+
+    await doctorCommand()
+
+    const output = logSpy.mock.calls.map((c: any[]) => c[0]).join('\n')
+    expect(output).toContain('available in PATH but not tracked as a managed Quantex install')
+    expect(output).toContain('quantex inspect test-agent --json')
+  })
 })
