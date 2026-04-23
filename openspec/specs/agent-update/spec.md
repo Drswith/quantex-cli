@@ -81,3 +81,12 @@ Agent update behavior SHALL be inspectable through user-facing diagnostic comman
 - THEN each agent-related issue includes a stable issue code
 - AND includes `subject`, `suggestedAction`, and `suggestedCommands`
 - AND allows an automation layer to distinguish between inspection, self-update, and manual-follow-up paths
+
+#### Scenario: Resolve exposes machine-actionable install guidance
+
+- GIVEN the user runs `quantex resolve <agent> --json`
+- AND the target agent is not installed
+- WHEN Quantex returns the structured result
+- THEN it keeps the `AGENT_NOT_INSTALLED` error semantics
+- AND includes structured install guidance in the result data
+- AND that guidance includes a suggested ensure command plus install methods that Quantex can attempt
