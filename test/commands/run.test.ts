@@ -135,6 +135,25 @@ describe('runCommand', () => {
     expect(stdoutWriteSpy).toHaveBeenCalledWith(expect.stringContaining('interactive installation is disabled'))
   })
 
+  it('emits structured rerun guidance when non-interactive mode blocks install prompting', async () => {
+    setCliContext({
+      interactive: false,
+      outputMode: 'json',
+      runId: 'exec-interaction-run-id',
+    })
+    agentSpy.mockReturnValue(testAgent)
+    binaryInPathSpy.mockResolvedValue(false)
+
+    const code = await runCommand('test-agent', ['--help'], { nonInteractive: true })
+
+    expect(code).toBe(7)
+    const payload = JSON.parse(logSpy.mock.calls[0][0])
+    expect(payload.action).toBe('exec')
+    expect(payload.error.code).toBe('INTERACTION_REQUIRED')
+    expect(payload.data.execution.installGuidance.suggestedAction).toBe('rerun-with-install-policy')
+    expect(payload.data.execution.installGuidance.suggestedExecCommand).toBe('quantex exec test-agent --install if-missing -- --help')
+  })
+
   it('returns agent-not-installed when install policy is never', async () => {
     agentSpy.mockReturnValue(testAgent)
     binaryInPathSpy.mockResolvedValue(false)
@@ -145,6 +164,26 @@ describe('runCommand', () => {
     expect(mockPrompts).not.toHaveBeenCalled()
     expect(installSpy).not.toHaveBeenCalled()
     expect(stdoutWriteSpy).toHaveBeenCalledWith(expect.stringContaining('is not installed'))
+  })
+
+  it('emits structured install guidance when install policy is never in json mode', async () => {
+    setCliContext({
+      interactive: false,
+      outputMode: 'json',
+      runId: 'exec-missing-run-id',
+    })
+    agentSpy.mockReturnValue(testAgent)
+    binaryInPathSpy.mockResolvedValue(false)
+
+    const code = await runCommand('test-agent', ['--help'], { install: 'never' })
+
+    expect(code).toBe(4)
+    const payload = JSON.parse(logSpy.mock.calls[0][0])
+    expect(payload.ok).toBe(false)
+    expect(payload.action).toBe('exec')
+    expect(payload.error.code).toBe('AGENT_NOT_INSTALLED')
+    expect(payload.data.execution.installGuidance.suggestedEnsureCommand).toBe('quantex ensure test-agent')
+    expect(payload.data.execution.installGuidance.suggestedExecCommand).toBe('quantex exec test-agent --install if-missing -- --help')
   })
 
   it('installs automatically when install policy is if-missing', async () => {
