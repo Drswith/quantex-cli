@@ -4,10 +4,9 @@ This queue is the prioritized entry point for future agent-driven work.
 
 ## Active queue
 
-No active tasks are currently queued. Add the next executable task contract in `autonomy/tasks/` before reopening this section.
-
 | ID | Status | Priority | Title | Depends on |
 |---|---|---|---|---|
+| [qtx-0029](./tasks/qtx-0029-fix-semantic-release-trusted-publishing-on-main.md) | `in_progress` | `high` | Fix semantic-release trusted publishing on main | - |
 
 ## Completed milestones
 
