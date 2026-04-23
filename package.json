@@ -42,6 +42,7 @@
     "release:artifacts": "bun run scripts/write-release-checksums.ts && bun run scripts/generate-release-manifest.ts && bun run scripts/verify-release-artifacts.ts",
     "release:smoke": "bun run scripts/verify-release-smoke.ts",
     "task:new": "bun run scripts/new-task.ts",
+    "worktree:new": "bun run scripts/new-worktree.ts",
     "dev": "bun run src/cli.ts",
     "test": "vitest run",
     "test:watch": "vitest",

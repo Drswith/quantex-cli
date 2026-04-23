@@ -4,6 +4,8 @@ Each file in this directory is a task that an agent can execute with bounded aut
 
 Use `bun run task:new -- --title "Task title"` to scaffold a new task file without hand-editing frontmatter.
 
+If the task will produce commits or a PR, start execution from a dedicated worktree with `bun run worktree:new`.
+
 ## Requirements
 
 - every task has a stable ID

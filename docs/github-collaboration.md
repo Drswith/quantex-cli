@@ -30,9 +30,35 @@ Use the repository for:
    - `autonomy/tasks/` for executable work
    - `docs/adr/` for durable decisions
    - `openspec/` for non-trivial behavior changes
-5. Implement in a branch and open a PR.
+5. Create a dedicated worktree-backed branch and open a PR.
 6. Merge only after CI, PR governance, and documentation updates are in place.
 7. Mark the task done and update any affected runbooks, specs, or ADRs.
+
+## Worktree-backed task execution
+
+For implementation that is expected to create commits or a PR, Quantex defaults to a dedicated git worktree rather than switching the user's active workspace in place.
+
+Use `bun run worktree:new -- --task qtx-0000 --title "Task title"` to scaffold a new task worktree.
+
+Worktrees are required when:
+
+- the current workspace already has local changes
+- more than one task may be active in parallel
+- the user wants their IDE to stay on its current branch or context
+- the task may touch `main`, `beta`, or automation-managed release branches during verification
+
+Working directly in the current workspace is reserved for:
+
+- read-only inspection
+- short-lived commands that do not create commits
+- explicit in-place edits requested by the user
+
+Preferred naming:
+
+- branch: `codex/<task-or-title-slug>`
+- worktree path: `../<repo-name>-<task-or-title-slug>`
+
+Clean up merged or abandoned worktrees with `git worktree remove <path>` and `git worktree prune` after confirming no unmerged commits remain.
 
 ## Release under protected `main`
 
