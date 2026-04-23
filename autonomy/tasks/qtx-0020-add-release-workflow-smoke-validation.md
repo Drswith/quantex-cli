@@ -1,7 +1,7 @@
 ---
 id: qtx-0020
 title: Add release workflow smoke validation
-status: planned
+status: done
 priority: high
 area: release
 depends_on: []
