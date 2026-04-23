@@ -90,3 +90,10 @@ Agent update behavior SHALL be inspectable through user-facing diagnostic comman
 - THEN it keeps the `AGENT_NOT_INSTALLED` error semantics
 - AND includes structured install guidance in the result data
 - AND that guidance includes a suggested ensure command plus install methods that Quantex can attempt
+
+#### Scenario: Exec exposes machine-actionable preflight guidance
+
+- GIVEN the user runs `quantex exec <agent>` with an agent that is not currently installed
+- WHEN the command cannot continue without installation or an explicit install policy
+- THEN Quantex keeps the existing error semantics
+- AND exposes structured guidance that points to `ensure` and a rerun command with `--install if-missing`

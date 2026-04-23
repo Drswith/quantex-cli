@@ -278,6 +278,68 @@ const schemaCatalog: SchemaDocument[] = [
     dataSchema: {
       additionalProperties: false,
       properties: {
+        agent: {
+          additionalProperties: false,
+          properties: {
+            binaryName: { type: 'string' },
+            displayName: { type: 'string' },
+            name: { type: 'string' },
+          },
+          required: ['name'],
+          type: 'object',
+        },
+        execution: {
+          additionalProperties: false,
+          properties: {
+            args: {
+              items: { type: 'string' },
+              type: 'array',
+            },
+            installGuidance: {
+              additionalProperties: false,
+              properties: {
+                docsRef: { type: 'string' },
+                installMethods: {
+                  items: {
+                    additionalProperties: false,
+                    properties: {
+                      command: { type: 'string' },
+                      label: { type: 'string' },
+                      type: { type: 'string' },
+                    },
+                    required: ['command', 'label', 'type'],
+                    type: 'object',
+                  },
+                  type: 'array',
+                },
+                suggestedAction: { type: 'string' },
+                suggestedEnsureCommand: { type: 'string' },
+                suggestedExecCommand: { type: 'string' },
+              },
+              required: ['docsRef', 'installMethods', 'suggestedAction', 'suggestedEnsureCommand', 'suggestedExecCommand'],
+              type: 'object',
+            },
+            installPolicy: { type: 'string' },
+            installed: { type: 'boolean' },
+            interactive: { type: 'boolean' },
+            launched: { type: 'boolean' },
+          },
+          required: ['args', 'installPolicy', 'installed', 'interactive', 'launched'],
+          type: 'object',
+        },
+      },
+      required: ['agent', 'execution'],
+      type: 'object',
+    },
+    description: 'Preflight contract for managed agent execution',
+    envelopeSchema: baseEnvelopeSchema,
+    name: 'exec',
+    ndjsonEventSchema: baseNdjsonEventSchema,
+  },
+  {
+    dataSchema: {
+      additionalProperties: false,
+      properties: {
         agent: { type: 'object' },
         changed: { type: 'boolean' },
         installState: { type: 'object' },

@@ -76,6 +76,8 @@ Rules:
 - prefer `--install never` when mutation would be surprising
 - prefer `--install if-missing` when you want lifecycle management and execution in one step
 
+If `exec` fails before launch because the agent is missing, prefer the structured preflight guidance in the JSON result. It now includes both `suggestedEnsureCommand` and a rerun command with `--install if-missing`.
+
 ### Configuration and diagnosis
 
 ```bash
