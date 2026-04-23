@@ -42,7 +42,6 @@ Current release rules:
 
 When a release is warranted, `.github/workflows/release.yml` now:
 
-- detects that `package.json` version changed on `main`
 - computes the next version
 - creates the git tag
 - builds binaries
@@ -52,6 +51,16 @@ When a release is warranted, `.github/workflows/release.yml` now:
 - creates or updates the GitHub release
 
 For regular non-release merges to `main`, the workflow exits cleanly without publishing anything.
+
+## npm trusted publishing
+
+Quantex publishes to npm through GitHub Actions trusted publishing with OIDC. The release workflow must keep `id-token: write` enabled and must not inject npm registry auth through `actions/setup-node` when `semantic-release` performs the publish step.
+
+That means:
+
+- do not configure `registry-url` in the release workflow's `setup-node` step
+- do not depend on `NPM_TOKEN` for the normal publish path
+- make sure npm package settings point the trusted publisher at the exact workflow filename `release.yml`
 
 ## Important automation note
 
