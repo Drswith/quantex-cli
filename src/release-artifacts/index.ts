@@ -18,6 +18,14 @@ export interface ReleaseManifest {
   version: string
 }
 
+export const REQUIRED_RELEASE_ASSET_NAMES = [
+  'quantex-darwin-arm64',
+  'quantex-darwin-x64',
+  'quantex-linux-arm64',
+  'quantex-linux-x64',
+  'quantex-windows-x64.exe',
+] as const
+
 export function formatChecksums(entries: Array<{ checksum: string, name: string }>): string {
   return `${entries
     .sort((left, right) => left.name.localeCompare(right.name))
@@ -118,6 +126,13 @@ export function createReleaseManifest(input: {
 export function validateReleaseManifest(manifest: ReleaseManifest, checksums: Map<string, string>): void {
   if (manifest.assets.length === 0)
     throw new Error('manifest.json must contain at least one binary asset.')
+
+  const assetNames = new Set(manifest.assets.map(asset => asset.name))
+
+  for (const requiredName of REQUIRED_RELEASE_ASSET_NAMES) {
+    if (!assetNames.has(requiredName))
+      throw new Error(`manifest.json is missing required release asset: ${requiredName}.`)
+  }
 
   for (const asset of manifest.assets) {
     const expectedChecksum = checksums.get(asset.name)

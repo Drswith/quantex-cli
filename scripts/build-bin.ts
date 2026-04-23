@@ -1,3 +1,4 @@
+import { rm } from 'node:fs/promises'
 import process from 'node:process'
 
 const targets = [
@@ -21,8 +22,15 @@ async function buildBin(): Promise<void> {
 
   console.log(`Building ${filtered.length} targets...\n`)
 
+  let hasFailure = false
+
   for (const { target, outfile } of filtered) {
     console.log(`Building ${target}...`)
+    await Promise.all([
+      rm(outfile, { force: true }),
+      rm(`${outfile}.exe`, { force: true }),
+    ])
+
     const result = await Bun.build({
       entrypoints: ['./src/cli.ts'],
       compile: { target, outfile },
@@ -30,6 +38,7 @@ async function buildBin(): Promise<void> {
     })
 
     if (!result.success) {
+      hasFailure = true
       console.error(`  ❌ ${target} failed:`)
       for (const log of result.logs)
         console.error(`    ${log}`)
@@ -37,6 +46,11 @@ async function buildBin(): Promise<void> {
     else {
       console.log(`  ✅ ${outfile}`)
     }
+  }
+
+  if (hasFailure) {
+    console.error('\nOne or more release targets failed to build.')
+    process.exit(1)
   }
 }
 
