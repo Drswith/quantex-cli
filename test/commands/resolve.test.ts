@@ -67,6 +67,7 @@ describe('resolveCommand', () => {
     await resolveCommand('test-agent')
 
     expect(logSpy).toHaveBeenCalledWith(expect.stringContaining('is not installed'))
+    expect(logSpy).toHaveBeenCalledWith(expect.stringContaining('quantex ensure test-agent'))
   })
 
   it('shows resolved executable information for an installed agent', async () => {
@@ -117,5 +118,29 @@ describe('resolveCommand', () => {
     expect(payload.data.resolution.binaryPath).toBe('/usr/bin/test-bin')
     expect(payload.data.resolution.suggestedLaunchCommand).toEqual(['/usr/bin/test-bin'])
     expect(payload.meta.runId).toBe('resolve-run-id')
+  })
+
+  it('emits machine-actionable install guidance when the agent is not installed', async () => {
+    setCliContext({
+      interactive: false,
+      outputMode: 'json',
+      runId: 'resolve-missing-run-id',
+    })
+    agentSpy.mockReturnValue(testAgent)
+    binaryInPathSpy.mockResolvedValue(false)
+
+    await resolveCommand('test-agent')
+
+    const payload = JSON.parse(logSpy.mock.calls[0][0])
+    expect(payload.ok).toBe(false)
+    expect(payload.error.code).toBe('AGENT_NOT_INSTALLED')
+    expect(payload.data.agent.name).toBe('test-agent')
+    expect(payload.data.resolution.installed).toBe(false)
+    expect(payload.data.resolution.installGuidance.suggestedAction).toBe('ensure-agent-installed')
+    expect(payload.data.resolution.installGuidance.suggestedEnsureCommand).toBe('quantex ensure test-agent')
+    expect(payload.data.resolution.installGuidance.installMethods[0]).toMatchObject({
+      command: 'bun add -g test-pkg',
+      type: 'bun',
+    })
   })
 })

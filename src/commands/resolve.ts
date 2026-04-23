@@ -2,6 +2,7 @@ import type { CommandResult } from '../output/types'
 import { createErrorResult, createSuccessResult, emitCommandResult } from '../output'
 import { resolveAgentInspection } from '../services/agents'
 import { pc } from '../utils/color'
+import { formatInstallMethodCommand, formatInstallMethodLabel } from '../utils/install'
 
 interface ResolveCommandData {
   agent: {
@@ -11,6 +12,17 @@ interface ResolveCommandData {
   }
   resolution: {
     binaryPath: string
+    installGuidance?: {
+      docsRef: string
+      installMethods: Array<{
+        command: string
+        label: string
+        type: string
+      }>
+      suggestedAction: 'ensure-agent-installed'
+      suggestedEnsureCommand: string
+    }
+    installed: boolean
     installSource: string
     installedVersion?: string
     lifecycle: 'managed' | 'unmanaged'
@@ -40,10 +52,43 @@ export async function resolveCommand(agentName: string): Promise<CommandResult<R
 
   const { agent, inspection } = resolved
   if (!inspection.inPath || !inspection.binaryPath) {
+    const installMethods = inspection.methods.map(method => ({
+      command: formatInstallMethodCommand(agent, method),
+      label: formatInstallMethodLabel(method),
+      type: method.type,
+    })).filter(method => method.command)
+
     return emitCommandResult(createErrorResult<ResolveCommandData>({
       action: 'resolve',
+      data: {
+        agent: {
+          binaryName: agent.binaryName,
+          displayName: agent.displayName,
+          name: agent.name,
+        },
+        resolution: {
+          binaryPath: '',
+          installGuidance: {
+            docsRef: 'skills/quantex-cli/references/command-recipes.md',
+            installMethods,
+            suggestedAction: 'ensure-agent-installed',
+            suggestedEnsureCommand: `quantex ensure ${agent.name}`,
+          },
+          installed: false,
+          installSource: 'not-installed',
+          lifecycle: 'unmanaged',
+          sourceLabel: 'not installed',
+          suggestedLaunchCommand: [],
+        },
+      },
       error: {
         code: 'AGENT_NOT_INSTALLED',
+        details: {
+          docsRef: 'skills/quantex-cli/references/command-recipes.md',
+          installMethods,
+          suggestedAction: 'ensure-agent-installed',
+          suggestedEnsureCommand: `quantex ensure ${agent.name}`,
+        },
         message: `${agent.displayName} is not installed.`,
       },
       target: {
@@ -63,6 +108,7 @@ export async function resolveCommand(agentName: string): Promise<CommandResult<R
       },
       resolution: {
         binaryPath: inspection.binaryPath,
+        installed: true,
         installSource: inspection.installedState?.installType ?? 'detected-in-path',
         installedVersion: inspection.installedVersion,
         lifecycle: inspection.lifecycle,
@@ -80,6 +126,12 @@ export async function resolveCommand(agentName: string): Promise<CommandResult<R
 function renderResolveHuman(result: { data?: ResolveCommandData, error: { message: string } | null }): void {
   if (result.error) {
     console.log(pc.red(result.error.message))
+    const guidance = result.data?.resolution.installGuidance
+    if (guidance) {
+      console.log(pc.dim(`Try: ${guidance.suggestedEnsureCommand}`))
+      for (const method of guidance.installMethods)
+        console.log(pc.dim(`Install: [${method.label}] ${method.command}`))
+    }
     return
   }
 
