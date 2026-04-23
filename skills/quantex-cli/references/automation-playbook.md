@@ -138,3 +138,4 @@ This avoids depending on stale assumptions about flags, schema refs, output mode
 - Prefer `inspect`, `ensure`, `resolve`, and `exec` over scraping `list` or `info`.
 - Prefer `exec` over shortcut commands in automation.
 - Use `doctor` when the question is "why is this environment broken?" rather than "what can I do?"
+- When using `quantex doctor --json`, prefer `data.issues[].suggestedAction`, `suggestedCommands`, and `docsRef` over scraping warning prose.

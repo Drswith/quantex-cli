@@ -80,14 +80,14 @@ Rules:
 quantex config
 quantex config get defaultPackageManager
 quantex config set defaultPackageManager npm
-quantex doctor
+quantex doctor --json
 quantex upgrade --check --json
 ```
 
 Use:
 
 - `config` for CLI policy and defaults
-- `doctor` for environment or recovery diagnosis
+- `doctor` for environment or recovery diagnosis, especially when another agent should consume structured remediation hints
 - `upgrade` for Quantex itself, not downstream agents
 
 ## High-value global flags

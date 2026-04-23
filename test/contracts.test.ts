@@ -19,6 +19,7 @@ describe('surface contracts', () => {
       [
         "capabilities",
         "commands",
+        "doctor",
         "ensure",
         "inspect",
         "resolve",
