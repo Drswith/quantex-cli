@@ -13,6 +13,7 @@ No active tasks are currently queued. Add the next executable task contract in `
 
 | ID | Status | Priority | Title | Depends on |
 |---|---|---|---|---|
+| [qtx-0027](./tasks/qtx-0027-make-release-flow-compatible-with-pr-only-main.md) | `done` | `high` | Make release flow compatible with PR-only main | - |
 | [qtx-0026](./tasks/qtx-0026-make-exec-surface-machine-actionable-install-guidance.md) | `done` | `high` | Make exec surface machine-actionable install guidance | - |
 | [qtx-0024](./tasks/qtx-0024-fix-task-queue-insertion-when-active-queue-is-empty.md) | `done` | `medium` | Fix task queue insertion when active queue is empty | - |
 | [qtx-0025](./tasks/qtx-0025-make-resolve-surface-machine-actionable-install-guidance.md) | `done` | `high` | Make resolve surface machine-actionable install guidance | - |

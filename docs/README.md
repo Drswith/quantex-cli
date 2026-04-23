@@ -54,6 +54,7 @@ GitHub workflow guidance:
 Operational runbooks:
 
 - [quantex-troubleshooting.md](./runbooks/quantex-troubleshooting.md)
+- [releasing-quantex.md](./runbooks/releasing-quantex.md)
 - [release-and-self-upgrade-debugging.md](./runbooks/release-and-self-upgrade-debugging.md)
 
 ## Migration status
