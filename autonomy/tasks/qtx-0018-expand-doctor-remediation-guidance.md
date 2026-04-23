@@ -1,7 +1,7 @@
 ---
 id: qtx-0018
 title: Expand doctor remediation guidance
-status: ready
+status: done
 priority: high
 area: doctor
 depends_on: []

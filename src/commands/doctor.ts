@@ -1,4 +1,5 @@
 import type { CommandResult } from '../output/types'
+import { getAgentUpdateFailureHint, getManualAgentUpdateMessage } from '../agent-update'
 import { createSuccessResult, emitCommandResult } from '../output'
 import { getSelfUpgradeRecoveryHintForInspection, inspectSelf } from '../self'
 import { inspectRegisteredAgents } from '../services/agents'
@@ -61,7 +62,60 @@ export async function doctorCommand(): Promise<CommandResult<DoctorData>> {
   if (!bunAvailable && !npmAvailable && !brewAvailable && !wingetAvailable) {
     issues.push({
       code: 'NO_MANAGED_INSTALLER',
-      message: 'No managed installer found. Install bun, npm, brew, or winget.',
+      message: 'No managed installer found. Install bun, npm, brew, or winget before relying on managed lifecycle operations.',
+      severity: 'warning',
+    })
+  }
+
+  if ((selfInspection.installSource === 'bun' && !bunAvailable) || (selfInspection.installSource === 'npm' && !npmAvailable)) {
+    issues.push({
+      code: 'SELF_INSTALLER_MISSING',
+      message: `Quantex CLI is tracked as a ${selfInspection.installSource} install, but ${selfInspection.installSource} is not available in PATH. Reinstall that package manager or reinstall Quantex from a supported source.`,
+      severity: 'warning',
+    })
+  }
+
+  if (!selfInspection.canAutoUpdate) {
+    issues.push({
+      code: 'SELF_AUTO_UPDATE_UNAVAILABLE',
+      message: `Quantex CLI cannot auto-update from install source "${selfInspection.installSource}". Reinstall via bun, npm, or the standalone binary if you want \`quantex upgrade\` support.`,
+      severity: 'warning',
+    })
+  }
+
+  if (selfOutdated && selfInspection.recommendedUpgradeCommand) {
+    const recoveryHint = getSelfUpgradeRecoveryHintForInspection(selfInspection)
+    issues.push({
+      code: 'SELF_UPDATE_AVAILABLE',
+      message: recoveryHint
+        ? `Quantex CLI ${selfInspection.currentVersion} is behind ${selfInspection.latestVersion}. Run ${selfInspection.recommendedUpgradeCommand} or follow: ${recoveryHint}`
+        : `Quantex CLI ${selfInspection.currentVersion} is behind ${selfInspection.latestVersion}. Run ${selfInspection.recommendedUpgradeCommand}.`,
+      severity: 'warning',
+    })
+  }
+
+  for (const inspection of inspections.filter(candidate => candidate.inPath)) {
+    if (!inspection.installedState) {
+      issues.push({
+        code: 'AGENT_UNTRACKED_IN_PATH',
+        message: `${inspection.agent.displayName} is available in PATH but not tracked as a managed Quantex install. Use \`quantex inspect ${inspection.agent.name} --json\` to confirm the source, then reinstall through Quantex if you want managed lifecycle operations.`,
+        severity: 'warning',
+      })
+    }
+
+    const outdated = Boolean(inspection.installedVersion && inspection.latestVersion && inspection.installedVersion !== inspection.latestVersion)
+    if (!outdated)
+      continue
+
+    if (inspection.lifecycle === 'managed')
+      continue
+
+    const recoveryHint = getAgentUpdateFailureHint(inspection.agent, inspection.agent.selfUpdate ? 'self-update' : 'manual-hint')
+      ?? getManualAgentUpdateMessage(inspection.agent)
+
+    issues.push({
+      code: 'AGENT_MANUAL_UPDATE_REQUIRED',
+      message: `${inspection.agent.displayName} ${inspection.installedVersion} is behind ${inspection.latestVersion}, but the current source is ${inspection.sourceLabel}. ${recoveryHint}`,
       severity: 'warning',
     })
   }

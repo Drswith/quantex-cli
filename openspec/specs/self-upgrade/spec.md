@@ -77,6 +77,14 @@ The self-upgrade system SHALL provide recovery hints when automatic upgrade is u
 - WHEN Quantex finishes inspecting self-upgrade state
 - THEN the output includes recovery guidance appropriate to the detected install source
 
+#### Scenario: Doctor reports install-source drift and auto-update limits
+
+- GIVEN Quantex detects that its persisted install source no longer matches available package-manager tooling
+- OR the current install source does not support self auto-update
+- WHEN the user runs `quantex doctor`
+- THEN the output includes an actionable warning that explains the mismatch
+- AND points the user toward reinstalling or restoring a supported install source
+
 #### Scenario: Upgrade failure surfaces a recovery path
 
 - GIVEN a self-upgrade attempt fails

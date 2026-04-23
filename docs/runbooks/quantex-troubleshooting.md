@@ -109,6 +109,22 @@ What to do:
 - inspect the current platform and supported install methods
 - if this is expected, choose a different install source or follow the manual hint
 
+`quantex doctor` now reports this as a direct warning and points you toward restoring a managed installer or falling back to a manual path.
+
+### `doctor` reports install-source drift or unmanaged PATH detections
+
+Symptoms:
+
+- Quantex says it was installed through `bun` or `npm`, but that package manager is no longer available
+- an agent is visible in PATH, but Quantex treats it as unmanaged
+
+What to do:
+
+- if Quantex itself lost its package manager, restore that package manager or reinstall Quantex from a supported source
+- if an agent is only detected in PATH, run `quantex inspect <agent> --json` to confirm the source
+- reinstall the agent through Quantex if you want tracked lifecycle management
+- keep manual or self-updating installs only when that tradeoff is intentional
+
 ### Data looks stale
 
 Symptoms:
