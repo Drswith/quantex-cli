@@ -10,7 +10,7 @@ This queue is the prioritized entry point for future agent-driven work.
 | [qtx-0018](./tasks/qtx-0018-expand-doctor-remediation-guidance.md) | `done` | `high` | Expand doctor remediation guidance | - |
 | [qtx-0019](./tasks/qtx-0019-audit-and-expand-agent-catalog-update-metadata.md) | `done` | `high` | Audit and expand agent catalog update metadata | - |
 | [qtx-0020](./tasks/qtx-0020-add-release-workflow-smoke-validation.md) | `done` | `high` | Add release workflow smoke validation | - |
-| [qtx-0021](./tasks/qtx-0021-write-release-and-self-upgrade-debugging-runbook.md) | `planned` | `medium` | Write release and self-upgrade debugging runbook | - |
+| [qtx-0021](./tasks/qtx-0021-write-release-and-self-upgrade-debugging-runbook.md) | `done` | `medium` | Write release and self-upgrade debugging runbook | - |
 | [qtx-0022](./tasks/qtx-0022-document-skill-installation-and-distribution-flow.md) | `planned` | `low` | Document skill installation and distribution flow | - |
 
 ## Completed milestones
