@@ -45,6 +45,8 @@ Quantex no longer uses a separate release-preparation command or release PR. Rel
 
 Release notes are canonical in [docs/releases.md](./releases.md) and on GitHub Releases.
 
+The npm publish step uses GitHub Actions trusted publishing with OIDC rather than a long-lived `NPM_TOKEN`, so the `Release` workflow file itself must match the trusted publisher configuration on npm.
+
 The current release workflow relies on merged commit metadata. In practice that means:
 
 - `feat:` commits produce a minor release
