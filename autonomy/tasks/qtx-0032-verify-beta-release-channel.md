@@ -1,7 +1,7 @@
 ---
 id: qtx-0032
 title: Verify beta release channel
-status: planned
+status: done
 priority: high
 area: release
 depends_on:
@@ -48,6 +48,17 @@ Stable release publication has been tested with release-please, npm trusted publ
 - A `beta` branch exists with the release workflow support.
 - Merging a conventional commit into `beta` creates a beta Release PR.
 - Merging the beta Release PR publishes the beta package with npm dist-tag `beta` and GitHub prerelease metadata.
+
+## Verification Notes
+
+- Beta channel automation PR: https://github.com/Drswith/quantex-cli/pull/22
+- Beta prerelease versioning fix PR: https://github.com/Drswith/quantex-cli/pull/25
+- Closed incorrect beta Release PR: https://github.com/Drswith/quantex-cli/pull/24 proposed `0.3.0` before `versioning: prerelease` was enabled.
+- Beta Release PR: https://github.com/Drswith/quantex-cli/pull/26
+- Beta release workflow: https://github.com/Drswith/quantex-cli/actions/runs/24845768393
+- GitHub prerelease: https://github.com/Drswith/quantex-cli/releases/tag/v0.3.0-beta
+- npm official registry dist-tags after publication: `latest` remains `0.2.1`; `beta` points to `0.3.0-beta`.
+- GitHub prerelease assets include `manifest.json`, `SHA256SUMS.txt`, and all five platform binaries.
 
 ## Non-Goals
 
