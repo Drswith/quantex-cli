@@ -4,7 +4,7 @@ import process from 'node:process'
 import { parseArgs } from 'node:util'
 import prompts from 'prompts'
 import { defaultTaskChecks, taskHumanReviewValues, taskPriorityValues, taskStatusValues } from './project-memory-schema'
-import { getNextSequenceNumber, isInteractiveSession, normalizeListValues, renderFrontmatterList, rootDir, slugify, writeNewFile } from './project-memory-utils'
+import { getNextSequenceNumber, insertQueueRow, isInteractiveSession, normalizeListValues, renderFrontmatterList, rootDir, slugify, writeNewFile } from './project-memory-utils'
 
 const { values } = parseArgs({
   args: process.argv.slice(2),
@@ -223,9 +223,7 @@ async function appendTaskToQueue(input: {
 
   const dependsOnCell = input.dependsOn.length > 0 ? input.dependsOn.join(', ') : '-'
   const row = `| [${input.id}](${input.relativePath}) | \`${input.status}\` | \`${input.priority}\` | ${input.title} | ${dependsOnCell} |`
-  const updatedQueue = queueContent.includes('\n\n## Intake rules')
-    ? queueContent.replace('\n\n## Intake rules', `\n${row}\n\n## Intake rules`)
-    : `${queueContent.trimEnd()}\n${row}\n`
+  const updatedQueue = insertQueueRow(queueContent, row, input.status)
 
   await writeFile(queuePath, updatedQueue, 'utf8')
 }
