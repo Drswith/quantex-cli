@@ -49,11 +49,13 @@ Useful scaffolds:
 GitHub workflow guidance:
 
 - [github-collaboration.md](./github-collaboration.md)
+- [releases.md](./releases.md)
 - [skill-installation-and-distribution.md](./skill-installation-and-distribution.md)
 
 Operational runbooks:
 
 - [quantex-troubleshooting.md](./runbooks/quantex-troubleshooting.md)
+- [releasing-quantex.md](./runbooks/releasing-quantex.md)
 - [release-and-self-upgrade-debugging.md](./runbooks/release-and-self-upgrade-debugging.md)
 
 ## Migration status

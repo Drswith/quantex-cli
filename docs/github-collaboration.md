@@ -34,6 +34,24 @@ Use the repository for:
 6. Merge only after CI, PR governance, and documentation updates are in place.
 7. Mark the task done and update any affected runbooks, specs, or ADRs.
 
+## Release under protected `main`
+
+Quantex no longer uses a separate release-preparation command or release PR. Release automation now follows the normal product flow:
+
+1. Merge one or more task PRs to `main`.
+2. Let the `CI` workflow complete successfully for the merged `main` commit.
+3. Let the `Release` workflow determine whether those merged commits require a new version.
+4. If they do, the workflow creates the tag, publishes npm, and creates the GitHub Release.
+
+Release notes are canonical in [docs/releases.md](./releases.md) and on GitHub Releases.
+
+The current release workflow relies on merged commit metadata. In practice that means:
+
+- `feat:` commits produce a minor release
+- `fix:` and `perf:` commits produce a patch release
+- `BREAKING CHANGE:` or `!` produces a major release
+- `docs:`, `test:`, `ci:`, and `chore:` do not create a release unless their commit metadata is explicitly changed to do so later
+
 ## Repository assets
 
 The repository now includes:

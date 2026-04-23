@@ -32,6 +32,13 @@
 
 迁移期遗留文档的归档位置和映射关系见 [docs/project-memory-migration.md](./docs/project-memory-migration.md)。
 
+## Releases
+
+Quantex 的 canonical changelog 在 GitHub Releases：
+
+- [GitHub Releases](https://github.com/Drswith/quantex-cli/releases)
+- [docs/releases.md](./docs/releases.md)
+
 ## Agent Skill
 
 仓库内置了一份面向 Codex / agent 使用的 Quantex skill：
