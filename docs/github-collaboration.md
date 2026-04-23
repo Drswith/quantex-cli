@@ -36,23 +36,27 @@ Use the repository for:
 
 ## Release under protected `main`
 
-Quantex no longer uses a separate release-preparation command or release PR. Release automation now follows the normal product flow:
+Quantex uses release-please to keep publishing compatible with protected `main` and source-visible versions.
 
-1. Merge one or more task PRs to `main`.
-2. The `Release` workflow starts directly on the resulting `main` push.
-3. The release job reruns release-critical validation on Ubuntu before publishing.
-4. If the merged commits warrant a version bump, the workflow creates the tag, publishes npm, and creates the GitHub Release.
+1. Merge one or more normal task PRs to `main`.
+2. The `Release` workflow runs release-please on the resulting `main` push.
+3. If the merged commits warrant a version bump, release-please creates or updates a Release PR.
+4. The Release PR updates `CHANGELOG.md`, `package.json`, `.release-please-manifest.json`, and `src/generated/build-meta.ts`.
+5. Merge the Release PR when you are ready to publish.
+6. The `Release` workflow creates the tag and GitHub Release, then builds artifacts, publishes npm through trusted publishing, and uploads binaries.
 
-Release notes are canonical in [docs/releases.md](./releases.md) and on GitHub Releases.
+This keeps normal product changes behind PR review while making the release version visible in the source tree at the tagged commit.
+
+Release notes are tracked in [CHANGELOG.md](../CHANGELOG.md), summarized in [docs/releases.md](./releases.md), and published on GitHub Releases.
 
 The npm publish step uses GitHub Actions trusted publishing with OIDC rather than a long-lived `NPM_TOKEN`, so npm trusted publisher settings should point at `.github/workflows/release.yml`.
 
-The current release workflow relies on merged commit metadata. In practice that means:
+Release PR creation relies on merged commit metadata. In practice that means:
 
 - `feat:` commits produce a minor release
 - `fix:` and `perf:` commits produce a patch release
 - `BREAKING CHANGE:` or `!` produces a major release
-- `docs:`, `test:`, `ci:`, and `chore:` do not create a release unless their commit metadata is explicitly changed to do so later
+- `docs:`, `test:`, `ci:`, and `chore:` do not create a release unless the commit metadata is explicitly changed to do so later
 
 ## Repository assets
 
