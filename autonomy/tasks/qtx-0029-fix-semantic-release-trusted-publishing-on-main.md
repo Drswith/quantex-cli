@@ -1,7 +1,7 @@
 ---
 id: qtx-0029
 title: Fix semantic-release trusted publishing on main
-status: in_progress
+status: done
 priority: high
 area: release
 depends_on: []
@@ -55,6 +55,12 @@ docs_to_update:
 - `semantic-release` resolves an npm plugin version that supports npm trusted publishing on GitHub Actions
 - release automation is triggered from `.github/workflows/release.yml` on merged `main` pushes
 - docs explain the trusted publishing contract and no longer describe the old `workflow_run` dependency
+
+## Validation Outcome
+
+- `semantic-release` now runs on merged `main` pushes through `.github/workflows/release.yml`
+- merge commit `a33695dbcfbace7d018d4e6ba4bc01eca29ce06e` triggered successful `Release` run `24838880060`
+- GitHub Release `v0.2.0` was created and npm registry now reports `quantex-cli@0.2.0`
 
 ## Non-Goals
 
