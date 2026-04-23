@@ -50,6 +50,11 @@ GitHub workflow guidance:
 
 - [github-collaboration.md](./github-collaboration.md)
 
+Operational runbooks:
+
+- [quantex-troubleshooting.md](./runbooks/quantex-troubleshooting.md)
+- [release-and-self-upgrade-debugging.md](./runbooks/release-and-self-upgrade-debugging.md)
+
 ## Migration status
 
 Legacy root-level design and backlog documents still exist during the transition. Their target homes are tracked in [project-memory-migration.md](./project-memory-migration.md).

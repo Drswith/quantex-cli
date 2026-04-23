@@ -17,3 +17,4 @@ Start from [_template.md](./_template.md).
 Current canonical runbooks:
 
 - [quantex-troubleshooting.md](./quantex-troubleshooting.md)
+- [release-and-self-upgrade-debugging.md](./release-and-self-upgrade-debugging.md)

@@ -1,7 +1,7 @@
 ---
 id: qtx-0021
 title: Write release and self-upgrade debugging runbook
-status: planned
+status: done
 priority: medium
 area: docs
 depends_on: []
