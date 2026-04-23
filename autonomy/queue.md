@@ -4,8 +4,6 @@ This queue is the prioritized entry point for future agent-driven work.
 
 ## Active queue
 
-No active tasks are currently queued. Add the next executable task contract in `autonomy/tasks/` before reopening this section.
-
 | ID | Status | Priority | Title | Depends on |
 |---|---|---|---|---|
 
@@ -13,6 +11,7 @@ No active tasks are currently queued. Add the next executable task contract in `
 
 | ID | Status | Priority | Title | Depends on |
 |---|---|---|---|---|
+| [qtx-0024](./tasks/qtx-0024-fix-task-queue-insertion-when-active-queue-is-empty.md) | `done` | `medium` | Fix task queue insertion when active queue is empty | - |
 | [qtx-0001](./tasks/qtx-0001-migrate-troubleshooting-into-runbooks.md) | `done` | `high` | Migrate troubleshooting knowledge into canonical runbooks | - |
 | [qtx-0002](./tasks/qtx-0002-consolidate-auto-upgrade-docs-into-openspec-and-adr.md) | `done` | `high` | Consolidate auto-upgrade design into OpenSpec specs and ADRs | - |
 | [qtx-0003](./tasks/qtx-0003-convert-root-backlogs-into-task-contracts.md) | `done` | `medium` | Convert legacy root backlogs into autonomy task contracts | - |
