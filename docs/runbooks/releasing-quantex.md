@@ -22,11 +22,22 @@ The automated release flow uses merged commit metadata on `main` to decide wheth
 
 Normal feature, fix, or maintenance work lands through standard PRs. There is no dedicated release-preparation PR anymore.
 
-### 2. Let CI finish on the merged `main` commit
+### 2. Let the release workflow start from the merged `main` push
 
-The `Release` workflow listens for successful completion of the `CI` workflow on `main`.
+The `Release` workflow runs directly from pushes to `main`, which means the trusted publisher on npm can point at the same workflow file that actually performs the publish.
 
-### 3. Let semantic-release decide whether to publish
+### 3. Let the release job validate the merged commit
+
+Before publishing, the release job reruns:
+
+- `bun run memory:check`
+- `bun run lint`
+- `bun run typecheck`
+- `bun run test`
+
+This keeps publish gating inside the workflow that npm trusts for OIDC publishing.
+
+### 4. Let semantic-release decide whether to publish
 
 The release automation examines merged commit metadata since the last release tag.
 
@@ -38,7 +49,7 @@ Current release rules:
 - `BREAKING CHANGE:` footer or `!` => major release
 - `docs:`, `test:`, `ci:`, `chore:` => no release
 
-### 4. If release-worthy commits exist, publish automatically
+### 5. If release-worthy commits exist, publish automatically
 
 When a release is warranted, `.github/workflows/release.yml` now:
 
@@ -60,7 +71,8 @@ That means:
 
 - do not configure `registry-url` in the release workflow's `setup-node` step
 - do not depend on `NPM_TOKEN` for the normal publish path
-- make sure npm package settings point the trusted publisher at the exact workflow filename `release.yml`
+- make sure npm package settings point the trusted publisher at the exact workflow filename `.github/workflows/release.yml`
+- use an `@semantic-release/npm` version that includes trusted publishing support
 
 ## Important automation note
 
@@ -87,6 +99,7 @@ bun run release:smoke
 ## Related artifacts
 
 - `.github/workflows/release.yml`
+- `.github/workflows/ci.yml`
 - `release.config.mjs`
 - `docs/releases.md`
 - `.github/workflows/release-verify.yml`
