@@ -1,15 +1,44 @@
+import type { InstallMethod } from '../agents/types'
 import type { SpawnHandle } from '../utils/child-process'
 import type { ExecInstallPolicy } from './exec'
 import process from 'node:process'
 import prompts from 'prompts'
 import { cancelCliContextOperations, getCliContext } from '../cli-context'
 import { getExitCodeForError } from '../errors'
+import { createErrorResult, createSuccessResult, emitCommandResult } from '../output'
 import { installAgent } from '../package-manager'
 import { resolveAgentInspection } from '../services/agents'
 import { spawnWithQuantexStdio, waitForSpawnedCommand } from '../utils/child-process'
 import { pc } from '../utils/color'
+import { formatInstallMethodCommand, formatInstallMethodLabel } from '../utils/install'
 import { isResourceLockError } from '../utils/lock'
 import { isAssumeYesEnabled, isDryRunEnabled, printError, printInfo, printWarn, writeDirectOutput } from '../utils/user-output'
+
+interface ExecPreflightData {
+  agent: {
+    binaryName?: string
+    displayName?: string
+    name: string
+  }
+  execution: {
+    args: string[]
+    installGuidance?: {
+      docsRef: string
+      installMethods: Array<{
+        command: string
+        label: string
+        type: string
+      }>
+      suggestedAction: 'ensure-agent-installed' | 'rerun-with-install-policy'
+      suggestedEnsureCommand: string
+      suggestedExecCommand: string
+    }
+    installPolicy: ExecInstallPolicy | 'prompt'
+    installed: boolean
+    interactive: boolean
+    launched: boolean
+  }
+}
 
 export async function runCommand(
   agentName: string,
@@ -23,7 +52,20 @@ export async function runCommand(
 ): Promise<number> {
   const resolved = await resolveAgentInspection(agentName)
   if (!resolved) {
-    printError(pc.red(`Unknown agent: ${agentName}`))
+    emitExecPreflightError({
+      agent: {
+        name: agentName,
+      },
+      errorCode: 'AGENT_NOT_FOUND',
+      errorMessage: `Unknown agent: ${agentName}`,
+      execution: {
+        args,
+        installPolicy: options.install ?? 'prompt',
+        installed: false,
+        interactive: false,
+        launched: false,
+      },
+    })
     return getExitCodeForError('AGENT_NOT_FOUND')
   }
 
@@ -35,7 +77,23 @@ export async function runCommand(
 
   if (!inspection.inPath) {
     if (installPolicy === 'never') {
-      printError(pc.red(`${agent.displayName} is not installed.`))
+      emitExecPreflightError({
+        agent: {
+          binaryName: agent.binaryName,
+          displayName: agent.displayName,
+          name: agent.name,
+        },
+        errorCode: 'AGENT_NOT_INSTALLED',
+        errorMessage: `${agent.displayName} is not installed.`,
+        execution: {
+          args,
+          installGuidance: createExecInstallGuidance(agent, inspection.methods, args),
+          installPolicy,
+          installed: false,
+          interactive,
+          launched: false,
+        },
+      })
       return getExitCodeForError('AGENT_NOT_INSTALLED')
     }
 
@@ -53,7 +111,23 @@ export async function runCommand(
       }
     }
     else if (!interactive) {
-      printError(pc.red(`${agent.displayName} is not installed and interactive installation is disabled.`))
+      emitExecPreflightError({
+        agent: {
+          binaryName: agent.binaryName,
+          displayName: agent.displayName,
+          name: agent.name,
+        },
+        errorCode: 'INTERACTION_REQUIRED',
+        errorMessage: `${agent.displayName} is not installed and interactive installation is disabled.`,
+        execution: {
+          args,
+          installGuidance: createExecInstallGuidance(agent, inspection.methods, args),
+          installPolicy,
+          installed: false,
+          interactive,
+          launched: false,
+        },
+      })
       return getExitCodeForError('INTERACTION_REQUIRED')
     }
     else {
@@ -86,7 +160,21 @@ export async function runCommand(
   }
 
   if (dryRun) {
-    writeDirectOutput(pc.cyan(`Dry run: would run ${[agent.binaryName, ...args].join(' ')}`))
+    emitExecDryRun({
+      agent: {
+        binaryName: agent.binaryName,
+        displayName: agent.displayName,
+        name: agent.name,
+      },
+      execution: {
+        args,
+        installPolicy,
+        installed: true,
+        interactive,
+        launched: false,
+      },
+      message: `Dry run: would run ${[agent.binaryName, ...args].join(' ')}`,
+    })
     return 0
   }
 
@@ -97,6 +185,90 @@ export async function runCommand(
     printError(pc.red(`Failed to launch ${agent.displayName}: ${e instanceof Error ? e.message : String(e)}`))
     return 1
   }
+}
+
+function createExecInstallGuidance(
+  agent: {
+    binaryName: string
+    displayName: string
+    name: string
+    packages?: { npm?: string }
+  },
+  methods: InstallMethod[],
+  args: string[],
+): ExecPreflightData['execution']['installGuidance'] {
+  const installMethods = methods.map(method => ({
+    command: formatInstallMethodCommand(agent, method),
+    label: formatInstallMethodLabel(method),
+    type: method.type,
+  })).filter(method => method.command)
+
+  return {
+    docsRef: 'skills/quantex-cli/references/command-recipes.md',
+    installMethods,
+    suggestedAction: 'rerun-with-install-policy',
+    suggestedEnsureCommand: `quantex ensure ${agent.name}`,
+    suggestedExecCommand: ['quantex', 'exec', agent.name, '--install', 'if-missing', '--', ...args].join(' '),
+  }
+}
+
+function emitExecPreflightError(input: {
+  agent: ExecPreflightData['agent']
+  errorCode: 'AGENT_NOT_FOUND' | 'AGENT_NOT_INSTALLED' | 'INTERACTION_REQUIRED'
+  errorMessage: string
+  execution: ExecPreflightData['execution']
+}): void {
+  const context = getCliContext()
+  if (context.outputMode === 'human') {
+    printError(pc.red(input.errorMessage))
+    const guidance = input.execution.installGuidance
+    if (guidance) {
+      writeDirectOutput(pc.dim(`Try: ${guidance.suggestedEnsureCommand}`))
+      writeDirectOutput(pc.dim(`Or:  ${guidance.suggestedExecCommand}`))
+    }
+    return
+  }
+
+  emitCommandResult(createErrorResult<ExecPreflightData>({
+    action: 'exec',
+    data: {
+      agent: input.agent,
+      execution: input.execution,
+    },
+    error: {
+      code: input.errorCode,
+      details: input.execution.installGuidance,
+      message: input.errorMessage,
+    },
+    target: {
+      kind: 'agent',
+      name: input.agent.name,
+    },
+  }), () => {})
+}
+
+function emitExecDryRun(input: {
+  agent: ExecPreflightData['agent']
+  execution: ExecPreflightData['execution']
+  message: string
+}): void {
+  const context = getCliContext()
+  if (context.outputMode === 'human') {
+    writeDirectOutput(pc.cyan(input.message))
+    return
+  }
+
+  emitCommandResult(createSuccessResult<ExecPreflightData>({
+    action: 'exec',
+    data: {
+      agent: input.agent,
+      execution: input.execution,
+    },
+    target: {
+      kind: 'agent',
+      name: input.agent.name,
+    },
+  }), () => {})
 }
 
 async function tryInstallForRun(

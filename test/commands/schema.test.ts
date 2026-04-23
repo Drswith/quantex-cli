@@ -68,6 +68,22 @@ describe('schemaCommand', () => {
     expect(payload.data.commands[0].dataSchema.properties.issues.items.properties.suggestedCommands).toBeDefined()
   })
 
+  it('returns the exec schema in json mode', async () => {
+    setCliContext({
+      interactive: false,
+      outputMode: 'json',
+      runId: 'schema-exec-run-id',
+    })
+
+    await schemaCommand('exec')
+
+    const payload = JSON.parse(logSpy.mock.calls[0][0])
+    expect(payload.data.commands).toHaveLength(1)
+    expect(payload.data.commands[0].name).toBe('exec')
+    expect(payload.data.commands[0].dataSchema.properties.execution.properties.installGuidance).toBeDefined()
+    expect(payload.data.commands[0].dataSchema.properties.execution.properties.installPolicy).toBeDefined()
+  })
+
   it('returns the resolve schema with install guidance in json mode', async () => {
     setCliContext({
       interactive: false,
