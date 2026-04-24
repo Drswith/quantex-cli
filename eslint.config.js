@@ -6,6 +6,7 @@ export default antfu(
     type: 'lib',
     markdown: false,
     ignores: [
+      '.bun',
       'README.md',
     ],
   },
