@@ -153,6 +153,25 @@ bun run release:smoke
 - `quantex-linux-x64`
 - `quantex-windows-x64.exe`
 
+## CI coverage split
+
+The main `CI` workflow uses a split Windows strategy to keep pull requests responsive without dropping protected-branch confidence.
+
+- `pull_request` runs still install dependencies and build on `windows-latest`, but they skip the full Windows test step.
+- `push` to `main` or `beta`, `workflow_dispatch`, and the scheduled CI run keep the full Windows test step enabled.
+- `ubuntu-latest` and `macos-latest` continue to run the full test suite for pull requests.
+
+If Windows coverage policy changes again, update `.github/workflows/ci.yml` and this runbook in the same change so release and workflow expectations stay aligned.
+
+## Registry expectations
+
+Repository-controlled dependency resolution should use the official npm registry unless there is an explicit, documented override for a specific environment.
+
+- `.npmrc` should point at `https://registry.npmjs.org/`
+- `bun.lock` tarball URLs should stay on `https://registry.npmjs.org/`
+
+If a mirror registry is introduced temporarily for local development or incident recovery, do not commit that override as the repository default without documenting the reason and rollout scope.
+
 ## Related artifacts
 
 - `.github/workflows/release.yml`
