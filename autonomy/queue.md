@@ -12,6 +12,7 @@ This queue is the prioritized entry point for future agent-driven work.
 
 | ID | Status | Priority | Title | Depends on |
 |---|---|---|---|---|
+| [qtx-0036](./tasks/qtx-0036-speed-up-windows-ci-and-align-registry.md) | `done` | `high` | Speed up Windows CI and align registry usage | qtx-0034 |
 | [qtx-0035](./tasks/qtx-0035-automate-release-pr-merge.md) | `done` | `high` | Automate release PR merge | qtx-0030, qtx-0034 |
 | [qtx-0034](./tasks/qtx-0034-harden-release-trigger-governance.md) | `done` | `high` | Harden release trigger governance | qtx-0030, qtx-0032 |
 | [qtx-0033](./tasks/qtx-0033-standardize-worktree-first-task-execution.md) | `done` | `high` | Standardize worktree-first task execution | - |
