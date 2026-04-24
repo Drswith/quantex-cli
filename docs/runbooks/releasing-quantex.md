@@ -33,9 +33,19 @@ The Release PR materializes the pending version in:
 - `.release-please-manifest.json`
 - `src/generated/build-meta.ts`
 
-### 3. Merge the Release PR when ready
+### 3. Let Release PR Automerge validate the Release PR
 
-The Release PR is the human/agent review point for the exact version and changelog that will be published.
+The Release PR is the review point for the exact version and changelog that will be published. The `Release PR Automerge` workflow validates release-please generated PRs before enabling auto-merge.
+
+It only enables auto-merge when the PR:
+
+- comes from this repository
+- uses the expected release-please branch for `main` or `beta`
+- has the expected release title shape
+- includes the release-please generated marker
+- only changes `CHANGELOG.md`, `package.json`, `.release-please-manifest.json`, and `src/generated/build-meta.ts`
+
+Branch protection and required checks still decide when the Release PR actually merges.
 
 ### 4. Let the release job validate the merged Release PR
 
@@ -101,6 +111,7 @@ Required Actions workflow permissions:
 
 - default workflow permissions: read and write
 - allow GitHub Actions to create and approve pull requests: enabled
+- repository auto-merge: enabled
 
 If this permission is disabled, release-please can calculate the next version and create its branch, but it fails when opening the Release PR with:
 
@@ -112,7 +123,13 @@ GitHub Actions is not permitted to create or approve pull requests.
 
 Release PRs are created by `github-actions[bot]`. If GitHub marks the generated Release PR checks as `action_required` with no jobs, close and reopen the Release PR from a maintainer account to trigger the required `pull_request` checks.
 
-For a fully non-interactive future flow, prefer replacing `GITHUB_TOKEN` in the release-please step with a dedicated release bot token or GitHub App token that is allowed to create PRs and trigger checks.
+For the non-interactive release flow, configure a dedicated release bot token or GitHub App token:
+
+- `RELEASE_PLEASE_TOKEN` lets release-please create PRs in a way that triggers downstream workflows normally.
+- `RELEASE_AUTOMERGE_TOKEN` lets the automerge workflow enable auto-merge for validated Release PRs.
+- Both tokens need enough permission to read PR files and update/merge pull requests.
+
+The workflows fall back to `GITHUB_TOKEN`, but that fallback is best treated as degraded mode because GitHub suppresses many workflow events created by `GITHUB_TOKEN`.
 
 ## Validation
 
@@ -139,6 +156,7 @@ bun run release:smoke
 ## Related artifacts
 
 - `.github/workflows/release.yml`
+- `.github/workflows/release-pr-automerge.yml`
 - `.github/workflows/ci.yml`
 - `release-please-config.json`
 - `.release-please-manifest.json`
