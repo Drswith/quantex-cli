@@ -84,6 +84,8 @@ Release PR creation relies on merged commit metadata. In practice that means:
 - `BREAKING CHANGE:` or `!` produces a major release
 - `docs:`, `test:`, `ci:`, and `chore:` do not create a release unless the commit metadata is explicitly changed to do so later
 
+For PRs that only touch workflow, documentation, project-memory, or release-please configuration files, use `ci:`, `chore:`, or `docs:` titles. PR Governance blocks release-worthy metadata for those scopes so release-process changes do not accidentally create stable product Release PRs.
+
 ## Repository assets
 
 The repository now includes:
