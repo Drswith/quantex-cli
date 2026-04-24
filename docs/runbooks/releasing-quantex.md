@@ -70,6 +70,8 @@ Release PR creation uses conventional commits:
 - `BREAKING CHANGE:` footer or `!` => major release
 - `docs:`, `test:`, `ci:`, `chore:` => no release unless the metadata is intentionally changed
 
+Release automation, documentation, and project-memory-only PRs must use non-release-worthy titles such as `ci:`, `chore:`, or `docs:`. PR Governance rejects release-worthy titles for PRs that only change `.github/`, `docs/`, `autonomy/`, or release-please configuration files, because those changes should not create stable product releases by themselves.
+
 ## npm trusted publishing
 
 Quantex publishes to npm through GitHub Actions trusted publishing with OIDC. The release workflow must keep `id-token: write` enabled and use a Node/npm version that supports trusted publishing.
