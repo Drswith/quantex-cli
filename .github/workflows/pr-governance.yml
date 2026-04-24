@@ -69,3 +69,44 @@ jobs:
             if (meaningfulArtifacts.length === 0) {
               core.setFailed('PR body must link at least one issue, task, ADR, OpenSpec artifact, or discussion in the "Linked Artifacts" section.')
             }
+
+      - name: Validate release trigger scope
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const pullRequest = context.payload.pull_request
+            const title = pullRequest.title || ''
+            const body = pullRequest.body || ''
+
+            const files = await github.paginate(github.rest.pulls.listFiles, {
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              pull_number: pullRequest.number,
+              per_page: 100,
+            })
+
+            const changedFiles = files.map(file => file.filename)
+            const releaseProcessOnly = changedFiles.length > 0
+              && changedFiles.every(fileName => {
+                return fileName.startsWith('.github/')
+                  || fileName.startsWith('autonomy/')
+                  || fileName.startsWith('docs/')
+                  || fileName === 'release-please-config.json'
+                  || fileName === 'release-please-config.beta.json'
+                  || fileName === '.release-please-manifest.json'
+              })
+
+            if (!releaseProcessOnly)
+              return
+
+            const releaseWorthyTitle = /^(feat|fix|perf)(\(.+\))?!?:/.test(title)
+              || /^[a-z]+(\(.+\))?!:/.test(title)
+            const releaseWorthyBody = /\nBREAKING CHANGE:/.test(`\n${body}`)
+
+            if (releaseWorthyTitle || releaseWorthyBody) {
+              core.setFailed([
+                'Release/process/docs/memory-only PRs must not use release-worthy conventional commit metadata.',
+                'Use ci:, chore:, or docs: unless the PR changes user-facing product behavior.',
+                `Changed files: ${changedFiles.join(', ')}`,
+              ].join('\n'))
+            }
