@@ -68,7 +68,7 @@ Quantex uses release-please to keep publishing compatible with protected `main` 
 2. The `Release` workflow runs release-please on the resulting `main` push.
 3. If the merged commits warrant a version bump, release-please creates or updates a Release PR.
 4. The Release PR updates `CHANGELOG.md`, `package.json`, `.release-please-manifest.json`, and `src/generated/build-meta.ts`.
-5. Merge the Release PR when you are ready to publish.
+5. `Release PR Automerge` validates the generated Release PR and enables auto-merge.
 6. The `Release` workflow creates the tag and GitHub Release, then builds artifacts, publishes npm through trusted publishing, and uploads binaries.
 
 This keeps normal product changes behind PR review while making the release version visible in the source tree at the tagged commit.
@@ -76,6 +76,8 @@ This keeps normal product changes behind PR review while making the release vers
 Release notes are tracked in [CHANGELOG.md](../CHANGELOG.md), summarized in [docs/releases.md](./releases.md), and published on GitHub Releases.
 
 The npm publish step uses GitHub Actions trusted publishing with OIDC rather than a long-lived `NPM_TOKEN`, so npm trusted publisher settings should point at `.github/workflows/release.yml`.
+
+For full unattended publishing, configure `RELEASE_PLEASE_TOKEN` and `RELEASE_AUTOMERGE_TOKEN` as dedicated release bot or GitHub App tokens. The workflows can fall back to `GITHUB_TOKEN`, but that fallback may leave generated Release PR checks in `action_required` because GitHub suppresses many workflow events created by `GITHUB_TOKEN`.
 
 Release PR creation relies on merged commit metadata. In practice that means:
 
