@@ -117,6 +117,13 @@ jobs:
           - [x] I updated the relevant issue, ADR, spec, runbook, or captured the missing doc work as follow-up.
           - [x] I did not silently expand project scope without recording it explicitly.
 
+          ## Closure Check
+
+          - [x] Working tree was clean after commit.
+          - [x] Branch was pushed and this PR is the active delivery artifact.
+          - [x] OpenSpec change is already archived by this PR.
+          - [x] Release is not applicable.
+
           ## Notes
 
           - Auto-generated archive closure PR for completed changes on \`$BASE_BRANCH\`.

@@ -34,6 +34,19 @@ Use the repository for:
 7. Update any affected runbooks, specs, or ADRs; if an OpenSpec change lands, merge its delta into `openspec/specs/` and archive or close the change.
 8. Treat "implementation merged" and "OpenSpec archived" as separate closure steps; a non-trivial change is not fully done until the archive follow-up PR merges.
 
+## Delivery closure states
+
+Use explicit closure language when handing work between agents, reviewers, and automation:
+
+- local implementation: files changed and local validation passed
+- repository delivery: changes committed and the working tree is clean
+- PR delivery: branch pushed and PR opened with linked artifacts and validation status
+- merge delivery: PR merged into `main` or another protected target branch
+- OpenSpec archive closure: accepted spec deltas synced and completed changes archived
+- release closure: release workflow completed when commit metadata warrants a release
+
+Agents should not summarize a task as simply "done" when the current state is only local implementation or PR delivery. If the next step belongs to CI, reviewer approval, release automation, or the OpenSpec archive workflow, name that owner explicitly.
+
 ## Worktree-backed implementation
 
 For implementation that is expected to create commits or a PR, Quantex defaults to a dedicated git worktree rather than switching the user's active workspace in place.
@@ -155,6 +168,8 @@ For non-trivial behavior or durable-process changes, use OPSX actions rather tha
 On protected branches, archive closure should normally happen through the repository-managed archive PR flow rather than relying on a human to remember the final step after merge or release.
 
 Agents should use `openspec status --change <id> --json` and `openspec instructions <artifact> --change <id> --json` when they need to determine the next artifact or implementation step.
+
+Before final handoff, agents should also check `git status`, whether the branch has been pushed, whether a PR exists, whether the OpenSpec change is still active by design, and whether archive or release closure is pending.
 
 ## Discussion promotion rules
 
