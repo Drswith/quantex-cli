@@ -7,12 +7,14 @@ context: |
   Non-goal: do not turn Quantex into a workflow orchestration platform.
   Release: protected main with release-please Release PRs, GitHub Actions trusted publishing, and GitHub App release automation.
   Project memory: OpenSpec owns non-trivial behavior or durable-process changes; GitHub issues track executable work; ADRs record durable decisions; runbooks record repeatable operations.
+  Work intake gate: before implementation or file edits, classify whether the work requires OpenSpec. OpenSpec is required for observable CLI behavior, structured output/schema, agent catalog metadata, configuration/state, release/upgrade, architecture-boundary, durable-process, and product-facing documentation changes. User wording such as "start", "continue", or "until complete" does not skip this gate.
 
 rules:
   proposal:
     - 'Use the OPSX proposal structure: Why, What Changes, Capabilities, Impact.'
     - Keep scope and non-goals explicit.
     - Identify whether the change should create or modify OpenSpec capabilities.
+    - State the work-intake classification when the change is created because implementation was requested.
   specs:
     - Requirements must use SHALL or MUST.
     - Scenarios should use Given/When/Then bullets.
@@ -23,3 +25,4 @@ rules:
   tasks:
     - Include validation commands relevant to the change.
     - 'Mark tasks complete only after the corresponding code, docs, or configuration has changed.'
+    - Include documentation or project-memory validation tasks for workflow changes.

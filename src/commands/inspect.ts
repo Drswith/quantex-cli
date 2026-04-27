@@ -8,7 +8,6 @@ interface InspectCommandData {
   agent: {
     aliases: string[]
     binaryName: string
-    description: string
     displayName: string
     installMethods: Array<{
       command: string
@@ -66,7 +65,6 @@ export async function inspectCommand(agentName: string): Promise<CommandResult<I
       agent: {
         aliases: agent.lookupAliases ?? [],
         binaryName: agent.binaryName,
-        description: agent.description,
         displayName: agent.displayName,
         installMethods: inspection.methods.map(method => ({
           command: formatInstallMethodCommand(agent, method),
@@ -112,7 +110,6 @@ function renderInspectHuman(result: { data?: InspectCommandData, error: { messag
   console.log(pc.bold(`\n${result.data.agent.displayName}\n`))
   console.log(`  Name:         ${result.data.agent.name}`)
   console.log(`  Aliases:      ${result.data.agent.aliases.join(', ') || '-'}`)
-  console.log(`  Description:  ${result.data.agent.description}`)
   console.log(`  Package:      ${result.data.agent.packageName ?? '-'}`)
   console.log(`  Binary:       ${result.data.agent.binaryName}`)
   console.log(`  Installed:    ${result.data.inspection.installed ? pc.green('Yes') : pc.red('No')}`)

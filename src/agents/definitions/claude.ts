@@ -4,7 +4,6 @@ import { brewInstall, bunInstall, npmInstall, scriptInstall, wingetInstall } fro
 export const claude: AgentDefinition = {
   name: 'claude',
   displayName: 'Claude Code',
-  description: 'Anthropic 官方 AI 编程助手 CLI',
   homepage: 'https://code.claude.com/docs',
   packages: {
     npm: '@anthropic-ai/claude-code',
