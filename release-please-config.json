@@ -12,7 +12,7 @@
         "src/generated/build-meta.ts"
       ],
       "pull-request-title-pattern": "chore: release ${version}",
-      "pull-request-header": "## Summary\n- materialize the next Quantex release version in source-controlled files\n- update the repository changelog for the pending release\n\n## Linked Artifacts\n- Release automation: release-please\n\n## Validation\n- CI must pass before merging this Release PR\n\n## Docs Updated\n- CHANGELOG.md\n- package.json\n- src/generated/build-meta.ts\n- .release-please-manifest.json\n\n## Scope Check\n- Release PR only; merge this PR to publish the prepared version\n"
+      "pull-request-header": "## Summary\n- materialize the next Quantex release version in source-controlled files\n- update the repository changelog for the pending release\n\n## Linked Artifacts\n- Release automation: release-please\n\n## Validation\n- CI must pass before merging this Release PR\n\n## Docs Updated\n- CHANGELOG.md\n- package.json\n- src/generated/build-meta.ts\n- .release-please-manifest.json\n\n## Scope Check\n- Release PR only; merge this PR to publish the prepared version\n\n## Closure Check\n- OpenSpec: release-workflow\n- Delivery state: Release PR pending merge and publication\n"
     }
   }
 }

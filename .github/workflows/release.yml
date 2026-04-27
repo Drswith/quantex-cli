@@ -69,7 +69,7 @@ jobs:
       - name: Release Please
         id: release
         if: ${{ steps.release-scope.outputs.run_release == 'true' }}
-        uses: googleapis/release-please-action@v4
+        uses: googleapis/release-please-action@v4.1.5
         with:
           token: ${{ steps.release-bot-token.outputs.token }}
           target-branch: ${{ github.ref_name }}
