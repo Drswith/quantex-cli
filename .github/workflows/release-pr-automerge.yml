@@ -88,9 +88,16 @@ jobs:
               return
             }
 
+      - name: Create release bot token
+        id: release-bot-token
+        uses: actions/create-github-app-token@v3
+        with:
+          app-id: ${{ secrets.RELEASE_APP_ID }}
+          private-key: ${{ secrets.RELEASE_APP_PRIVATE_KEY }}
+
       - name: Enable Release PR auto-merge
         env:
-          GH_TOKEN: ${{ secrets.RELEASE_AUTOMERGE_TOKEN || secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ steps.release-bot-token.outputs.token }}
           PR_URL: ${{ github.event.pull_request.html_url }}
           PR_TITLE: ${{ github.event.pull_request.title }}
         run: |
