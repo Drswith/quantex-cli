@@ -86,6 +86,8 @@ The stable release-please config currently includes a temporary `last-release-sh
 
 The Release workflow pins `googleapis/release-please-action` to a repository-verified tag instead of floating on the major `v4` tag. Before changing that pin, run a dry run against the repository and confirm it can prepare the expected Release PR without GitHub GraphQL errors.
 
+Release PR creation and GitHub Release creation run as separate release-please phases. Product merges use Release PR mode, while `chore: release ...` merges use GitHub Release mode and then continue into build, npm trusted publishing, and artifact upload.
+
 ## npm trusted publishing
 
 Quantex publishes to npm through GitHub Actions trusted publishing with OIDC. The release workflow must keep `id-token: write` enabled and use a Node/npm version that supports trusted publishing.

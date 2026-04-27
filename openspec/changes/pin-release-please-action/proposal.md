@@ -9,10 +9,12 @@ The release workflow should use a deterministic release-please action version th
 ## What Changes
 
 - Pin the Release workflow to `googleapis/release-please-action@v4.1.5`, which bundles release-please 16.18.0.
+- Split release-please execution into a Release PR phase and a GitHub Release phase.
 - Update stable and beta Release PR headers to include the required closure section.
 - Document that the Release workflow should not float release-please action versions without verification.
 
 ## Impact
 
 - Release PR creation should recover for the Qoder catalog feature merged in PR #55.
+- Release PR merges should continue to publish through the existing build, npm trusted publishing, and artifact upload path.
 - Generated Release PRs should satisfy PR Governance without manual body edits.

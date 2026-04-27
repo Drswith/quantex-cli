@@ -13,8 +13,15 @@ The Release workflow SHALL skip release-please for pushes that cannot create a r
 #### Scenario: release-worthy merge reaches main
 
 - **WHEN** a push to `main` has a release-worthy conventional commit title such as `feat:`, `fix:`, or `perf:`
-- **THEN** the Release workflow MUST invoke release-please
+- **THEN** the Release workflow MUST invoke release-please in Release PR mode
 - **AND** the release-please action version MUST be pinned to a repository-verified tag
+- **AND** it MUST skip GitHub Release creation in that invocation
+
+#### Scenario: Release PR merge reaches main
+
+- **WHEN** a push to `main` has a Release PR commit title such as `chore: release 0.4.0`
+- **THEN** the Release workflow MUST invoke release-please in GitHub Release mode
+- **AND** it MUST skip Release PR creation in that invocation
 - **AND** downstream build, publish, and artifact upload steps MUST still depend on release-please reporting `release_created`
 
 #### Scenario: manual release dispatch
@@ -22,6 +29,8 @@ The Release workflow SHALL skip release-please for pushes that cannot create a r
 - **WHEN** the Release workflow is started by `workflow_dispatch`
 - **THEN** it MUST invoke release-please regardless of the latest commit metadata
 - **AND** the release-please action version MUST be pinned to a repository-verified tag
+- **AND** it MUST use GitHub Release mode when the current commit is a Release PR commit
+- **AND** it MUST use Release PR mode otherwise
 
 ### Requirement: Generated Release PRs satisfy governance sections
 
