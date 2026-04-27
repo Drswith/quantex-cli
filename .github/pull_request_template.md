@@ -30,6 +30,13 @@ Describe the change and why it exists.
 - [ ] I updated the relevant issue, ADR, spec, runbook, or captured the missing doc work as follow-up.
 - [ ] I did not silently expand project scope without recording it explicitly.
 
+## Closure Check
+
+- [ ] Working tree was clean after commit.
+- [ ] Branch was pushed and this PR is the active delivery artifact.
+- [ ] OpenSpec change is not needed, still active by design until merge, or already archived.
+- [ ] Release is not applicable, delegated to release automation, or verified.
+
 ## Notes
 
 Anything reviewers should pay extra attention to.
