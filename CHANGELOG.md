@@ -2,6 +2,13 @@
 
 This changelog is maintained by release-please Release PRs.
 
+## [0.4.0](https://github.com/Drswith/quantex-cli/compare/v0.3.0...v0.4.0) (2026-04-27)
+
+
+### Features
+
+* **agent-catalog:** add qoder cli support ([#55](https://github.com/Drswith/quantex-cli/issues/55)) ([43fc8a8](https://github.com/Drswith/quantex-cli/commit/43fc8a81f41b3ed0837cd7d7297899dadfc20ba6))
+
 ## [0.3.0](https://github.com/Drswith/quantex-cli/compare/v0.2.2...v0.3.0) (2026-04-27)
 
 
