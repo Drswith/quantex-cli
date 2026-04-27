@@ -133,7 +133,7 @@ function renderCapabilitiesHuman(result: { data?: CapabilitiesData }): void {
   console.log(`    winget: ${formatCapabilityAvailability(result.data.installers.winget)}`)
 
   console.log(pc.bold('\n  Features:'))
-  console.log(`    assume-yes:           ${result.data.features.assumeYes ? 'yes' : 'no'}`)
+  console.log(`    --yes:                ${result.data.features.assumeYes ? 'yes' : 'no'}`)
   console.log(`    cache-refresh:        ${result.data.features.cacheRefresh ? 'yes' : 'no'}`)
   console.log(`    color-modes:          ${result.data.features.colorModes.join(', ')}`)
   console.log(`    no-cache:             ${result.data.features.cacheBypass ? 'yes' : 'no'}`)
