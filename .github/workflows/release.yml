@@ -32,8 +32,35 @@ jobs:
             echo "npm_tag=latest" >> "$GITHUB_OUTPUT"
           fi
 
+      - name: Detect release relevance
+        id: release-scope
+        env:
+          HEAD_COMMIT_MESSAGE: ${{ github.event.head_commit.message }}
+        run: |
+          run_release=false
+
+          if [ "${GITHUB_EVENT_NAME}" = "workflow_dispatch" ]; then
+            run_release=true
+          else
+            message="$HEAD_COMMIT_MESSAGE"
+            first_line="${message%%$'\n'*}"
+
+            if [[ "$first_line" =~ ^(feat|fix|perf)(\(.+\))?!?: ]]; then
+              run_release=true
+            elif [[ "$first_line" =~ ^[a-z]+(\(.+\))?!: ]]; then
+              run_release=true
+            elif [[ "$first_line" =~ ^chore:\ release ]]; then
+              run_release=true
+            elif grep -q '^BREAKING CHANGE:' <<< "$message"; then
+              run_release=true
+            fi
+          fi
+
+          echo "run_release=$run_release" >> "$GITHUB_OUTPUT"
+
       - name: Create release bot token
         id: release-bot-token
+        if: ${{ steps.release-scope.outputs.run_release == 'true' }}
         uses: actions/create-github-app-token@v3
         with:
           client-id: ${{ secrets.RELEASE_APP_CLIENT_ID }}
@@ -41,6 +68,7 @@ jobs:
 
       - name: Release Please
         id: release
+        if: ${{ steps.release-scope.outputs.run_release == 'true' }}
         uses: googleapis/release-please-action@v4
         with:
           token: ${{ steps.release-bot-token.outputs.token }}
