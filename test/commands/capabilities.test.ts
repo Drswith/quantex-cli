@@ -78,6 +78,7 @@ describe('capabilitiesCommand', () => {
     expect(output).toContain('Quantex Capabilities')
     expect(output).toContain('Platform:')
     expect(output).toContain('Agents:')
+    expect(output).toContain('--yes:')
     expect(output).toContain('dry-run:')
     expect(output).toContain('self-upgrade:')
     expect(output).toContain('exec-install-policy:')
