@@ -30,7 +30,6 @@ body:
         - docs/adr
         - docs/runbooks
         - docs/sessions
-        - autonomy/tasks
         - openspec
         - GitHub Issues
         - GitHub PRs
@@ -42,7 +41,7 @@ body:
     id: linked-context
     attributes:
       label: Linked context
-      description: Paste related tasks, ADRs, OpenSpec artifacts, or discussions.
+      description: Paste related issues, ADRs, OpenSpec artifacts, or discussions.
   - type: checkboxes
     id: checklist
     attributes:

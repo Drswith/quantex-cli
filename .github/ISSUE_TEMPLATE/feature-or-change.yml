@@ -37,8 +37,8 @@ body:
     id: linked-discussion
     attributes:
       label: Linked discussion or prior context
-      description: Paste any relevant discussion, session summary, ADR, task, or OpenSpec link.
-      placeholder: 'https://github.com/.../discussions/... or docs/... or autonomy/tasks/...'
+      description: Paste any relevant discussion, session summary, issue, ADR, or OpenSpec link.
+      placeholder: 'https://github.com/.../discussions/... or docs/... or openspec/changes/...'
   - type: dropdown
     id: artifact-plan
     attributes:
@@ -47,7 +47,6 @@ body:
       options:
         - OpenSpec
         - ADR
-        - Autonomy task
         - Runbook
         - Postmortem
         - Session summary only

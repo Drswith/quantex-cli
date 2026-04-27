@@ -7,7 +7,7 @@ Each summary should capture:
 - context
 - decisions made
 - open questions
-- follow-up tasks or docs created
+- follow-up issues, OpenSpec changes, or docs created
 
 Do not paste the whole conversation. The goal is recall and promotion, not transcript storage.
 

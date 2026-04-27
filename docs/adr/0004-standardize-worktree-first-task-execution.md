@@ -1,7 +1,8 @@
 # ADR 0004: Standardize Worktree-First Task Execution
 
-- Status: Accepted
+- Status: Superseded
 - Date: 2026-04-24
+- Superseded by: OpenSpec-led workflow simplification on 2026-04-27
 
 ## Context
 
@@ -22,7 +23,7 @@ Quantex standardizes on worktree-first task execution for implementation work th
 - Read-only inspection may still happen in the current workspace.
 - PR-bound implementation should use a dedicated git worktree by default.
 - Worktrees are required when the current workspace is dirty, when multiple tasks may proceed in parallel, or when the user's primary workspace should remain on another branch.
-- Quantex provides a helper command, `bun run worktree:new`, to scaffold a task worktree using the preferred naming convention.
+- Contributors use plain `git worktree` commands with the preferred naming convention; the previous `bun run worktree:new` helper was removed with the retired autonomy workflow.
 
 ## Consequences
 
@@ -40,6 +41,6 @@ Quantex standardizes on worktree-first task execution for implementation work th
 
 ## Follow-up
 
-- Update the GitHub collaboration flow and autonomy guidance to point implementation work at dedicated worktrees.
+- Update the GitHub collaboration flow and OpenSpec guidance to point implementation work at dedicated worktrees.
 - Publish a runbook that explains setup, verification, cleanup, and escalation for worktree-backed task execution.
-- Keep task scaffolding and helper commands low-friction so the standard flow is easier to follow than ad hoc branch switching.
+- Keep the standard flow readable and close to upstream Git/OpenSpec behavior rather than adding repo-local workflow commands.

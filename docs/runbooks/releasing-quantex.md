@@ -80,7 +80,7 @@ Release PR creation uses conventional commits:
 - `BREAKING CHANGE:` footer or `!` => major release
 - `docs:`, `test:`, `ci:`, `chore:` => no release unless the metadata is intentionally changed
 
-Release automation, documentation, and project-memory-only PRs must use non-release-worthy titles such as `ci:`, `chore:`, or `docs:`. PR Governance rejects release-worthy titles for PRs that only change `.github/`, `docs/`, `autonomy/`, or release-please configuration files, because those changes should not create stable product releases by themselves.
+Release automation, documentation, and project-memory-only PRs must use non-release-worthy titles such as `ci:`, `chore:`, or `docs:`. PR Governance rejects release-worthy titles for PRs that only change `.github/`, `docs/`, `openspec/`, or release-please configuration files, because those changes should not create stable product releases by themselves.
 
 The stable release-please config currently includes a temporary `last-release-sha` anchor to exclude a historical release-process `feat(release)` commit from stable release calculation. Remove or advance that anchor after the next intentional stable Release PR is merged, because release-please treats `last-release-sha` as an explicit scan boundary until it is changed.
 
@@ -186,4 +186,4 @@ If a mirror registry is introduced temporarily for local development or incident
 - `CHANGELOG.md`
 - `.github/workflows/release-verify.yml`
 - `docs/runbooks/release-and-self-upgrade-debugging.md`
-- `autonomy/tasks/qtx-0030-adopt-release-please-release-pr-flow.md`
+- `openspec/changes/archive/qtx-0030-adopt-release-please-release-pr-flow/proposal.md`
