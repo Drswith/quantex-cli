@@ -12,6 +12,7 @@ This queue is the prioritized entry point for future agent-driven work.
 
 | ID | Status | Priority | Title | Depends on |
 |---|---|---|---|---|
+| [qtx-0037](./tasks/qtx-0037-adopt-github-app-release-bot.md) | `done` | `high` | Adopt GitHub App release bot | qtx-0030, qtx-0035 |
 | [qtx-0036](./tasks/qtx-0036-speed-up-windows-ci-and-align-registry.md) | `done` | `high` | Speed up Windows CI and align registry usage | qtx-0034 |
 | [qtx-0035](./tasks/qtx-0035-automate-release-pr-merge.md) | `done` | `high` | Automate release PR merge | qtx-0030, qtx-0034 |
 | [qtx-0034](./tasks/qtx-0034-harden-release-trigger-governance.md) | `done` | `high` | Harden release trigger governance | qtx-0030, qtx-0032 |

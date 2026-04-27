@@ -121,15 +121,18 @@ GitHub Actions is not permitted to create or approve pull requests.
 
 ## Release PR checks
 
-Release PRs are created by `github-actions[bot]`. If GitHub marks the generated Release PR checks as `action_required` with no jobs, close and reopen the Release PR from a maintainer account to trigger the required `pull_request` checks.
+Release PRs are created by the configured release GitHub App. If GitHub marks a generated Release PR check as `action_required` with no jobs, verify the workflow still uses the GitHub App token instead of `GITHUB_TOKEN`, then close and reopen the Release PR from a maintainer account only as a recovery step.
 
-For the non-interactive release flow, configure a dedicated release bot token or GitHub App token:
+For the non-interactive release flow, configure a dedicated GitHub App installation token:
 
-- `RELEASE_PLEASE_TOKEN` lets release-please create PRs in a way that triggers downstream workflows normally.
-- `RELEASE_AUTOMERGE_TOKEN` lets the automerge workflow enable auto-merge for validated Release PRs.
-- Both tokens need enough permission to read PR files and update/merge pull requests.
+- `RELEASE_APP_ID` stores the GitHub App ID.
+- `RELEASE_APP_PRIVATE_KEY` stores the GitHub App private key PEM.
+- `.github/workflows/release.yml` uses `actions/create-github-app-token` to create or update Release PRs, create releases, and upload artifacts.
+- `.github/workflows/release-pr-automerge.yml` uses the same GitHub App token to enable auto-merge for validated Release PRs.
 
-The workflows fall back to `GITHUB_TOKEN`, but that fallback is best treated as degraded mode because GitHub suppresses many workflow events created by `GITHUB_TOKEN`.
+The GitHub App should be installed only on `Drswith/quantex-cli` and only needs repository permissions for read-only actions/metadata plus read-write contents, issues, and pull requests.
+
+Do not use `GITHUB_TOKEN` as the normal release identity because GitHub suppresses many workflow events created by `GITHUB_TOKEN`.
 
 ## Validation
 

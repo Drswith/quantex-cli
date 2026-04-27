@@ -32,11 +32,18 @@ jobs:
             echo "npm_tag=latest" >> "$GITHUB_OUTPUT"
           fi
 
+      - name: Create release bot token
+        id: release-bot-token
+        uses: actions/create-github-app-token@v3
+        with:
+          app-id: ${{ secrets.RELEASE_APP_ID }}
+          private-key: ${{ secrets.RELEASE_APP_PRIVATE_KEY }}
+
       - name: Release Please
         id: release
         uses: googleapis/release-please-action@v4
         with:
-          token: ${{ secrets.RELEASE_PLEASE_TOKEN || secrets.GITHUB_TOKEN }}
+          token: ${{ steps.release-bot-token.outputs.token }}
           target-branch: ${{ github.ref_name }}
           config-file: ${{ steps.channel.outputs.config_file }}
           manifest-file: .release-please-manifest.json
@@ -104,5 +111,5 @@ jobs:
       - name: Upload release artifacts
         if: ${{ steps.release.outputs.release_created }}
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ steps.release-bot-token.outputs.token }}
         run: gh release upload ${{ steps.release.outputs.tag_name }} dist/bin/* --clobber
