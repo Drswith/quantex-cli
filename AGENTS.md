@@ -168,7 +168,6 @@ interface AgentDefinition {
   name: string
   lookupAliases?: string[]
   displayName: string
-  description: string
   homepage: string
   packages?: {
     npm?: string

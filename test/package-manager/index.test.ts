@@ -33,7 +33,6 @@ const testAgent = {
   name: 'test-agent',
   lookupAliases: [] as string[],
   displayName: 'Test Agent',
-  description: 'A test agent',
   homepage: 'https://example.com',
   packages: { npm: 'test-pkg' },
   binaryName: 'test-bin',
