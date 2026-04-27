@@ -30,6 +30,8 @@ bun run test:watch
 bun run lint
 bun run lint:fix
 bun run typecheck
+bun run openspec:list
+bun run openspec:status -- --change <change-id>
 bun run openspec:validate
 bun run build
 bun run build:bin
@@ -268,6 +270,7 @@ type AgentUpdateStrategy = 'managed' | 'self-update' | 'manual-hint'
   - incident review → `docs/postmortems/`
   - future executable work → GitHub issue
 - Treat discussion notes as an intermediate artifact. Promote stable outcomes into specs, ADRs, runbooks, or GitHub issues.
+- Use OPSX actions for non-trivial changes when supported by the current agent: explore/propose/apply/archive. For CLI-driven work, use `openspec status --json` and `openspec instructions ... --json` to decide the next artifact or implementation step.
 - Legacy root markdown files are transition artifacts. Their target homes are tracked in `docs/project-memory-migration.md`.
 - When implementation changes behavior or durable process, update the relevant OpenSpec spec/change, ADR, or runbook in the same change whenever practical.
 

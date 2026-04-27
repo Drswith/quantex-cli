@@ -37,7 +37,7 @@ The project SHALL treat session summaries as an intermediate artifact and promot
 
 ### Requirement: Non-trivial changes MUST use OpenSpec as the proposal contract
 
-The project SHALL use OpenSpec-compatible change folders as the default proposal and task contract for non-trivial behavior or durable-process changes.
+The project SHALL use OpenSpec change folders as the default proposal and task contract for non-trivial behavior or durable-process changes.
 
 #### Scenario: Planning a non-trivial behavior change
 
@@ -54,7 +54,7 @@ The project SHALL use OpenSpec-compatible change folders as the default proposal
 
 ### Requirement: Custom workflow command surface MUST stay out of the product repo
 
-The project SHALL avoid growing project-specific workflow commands when an OpenSpec-compatible artifact or GitHub-native workflow can provide the same planning and review capability.
+The project SHALL avoid growing project-specific workflow commands when an OpenSpec artifact or GitHub-native workflow can provide the same planning and review capability.
 
 #### Scenario: Recording future executable work
 
@@ -80,6 +80,17 @@ The project SHALL preserve completed historical task contracts under `openspec/c
 - THEN the contributor reads the migrated archived change under `openspec/changes/archive/`
 - AND uses `openspec/changes/archive/qtx-task-history.md` as the index
 
+### Requirement: OPSX actions MUST be available across supported coding agents
+
+The project SHALL initialize OpenSpec OPSX integrations for the supported coding agents instead of relying on Codex-only workflow instructions.
+
+#### Scenario: Agent starts a non-trivial change
+
+- GIVEN a supported coding agent is asked to plan a non-trivial behavior or durable-process change
+- WHEN the agent needs workflow guidance
+- THEN it can use the generated OPSX integration for explore, propose, apply, and archive actions
+- AND shared project-specific guidance comes from `openspec/config.yaml`
+
 ### Requirement: Canonical docs must stay aligned with implementation
 
 When implementation changes behavior, risk handling, or durable process, the corresponding project memory artifact SHALL be updated in the same change set or explicitly flagged for follow-up.
@@ -89,4 +100,4 @@ When implementation changes behavior, risk handling, or durable process, the cor
 - GIVEN a change uncovers a reusable troubleshooting or recovery procedure
 - WHEN the work is finalized
 - THEN the relevant runbook is updated in the same change set
-- OR a follow-up task captures the missing documentation work
+- OR a follow-up issue or OpenSpec change captures the missing documentation work

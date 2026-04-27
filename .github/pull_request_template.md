@@ -5,7 +5,6 @@ Describe the change and why it exists.
 ## Linked Artifacts
 
 - Issue:
-- Task:
 - ADR:
 - OpenSpec:
 - Discussion:

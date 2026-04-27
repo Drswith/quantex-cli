@@ -1,27 +1,32 @@
-# Proposal: Adopt OpenSpec-Led Workflow
+## Why
 
-## Summary
+Quantex's initial project-memory experiment made agent-led work reviewable, but it also grew a repo-local task queue and helper scripts that duplicated capabilities now provided by OpenSpec and GitHub. The project needs one standard, agent-neutral workflow so Codex, Claude Code, Gemini CLI, Cursor, GitHub Copilot, OpenCode, and future agents can move from discussion to implementation without depending on Quantex-specific project-management commands.
 
-Use OpenSpec-compatible changes as the default proposal and task contract for non-trivial behavior or durable-process changes. Retire the repo-local autonomy task system so Quantex stores project memory without growing a second project-management CLI inside the product repository.
+## What Changes
 
-## Problem
+- Retire the active `autonomy/` task queue and repo-local scaffolding commands from the development workflow.
+- Preserve completed `qtx-*` task history as archived OpenSpec changes under `openspec/changes/archive/`.
+- Pin the official OpenSpec CLI as a project-local dev dependency and expose repo scripts for list, validation, status, show, new change, instructions, and archive operations.
+- Initialize OPSX integrations for multiple coding agents: Codex, Claude Code, Gemini CLI, Cursor, GitHub Copilot, and OpenCode.
+- Add `openspec/config.yaml` so OpenSpec instructions receive Quantex-specific context and artifact rules.
+- Update project memory, GitHub collaboration, runbook, ADR, PR template, and CI guidance to treat OpenSpec as the default contract for non-trivial behavior or durable-process changes.
+- Keep GitHub issues and PRs as the executable work and merge-gating surfaces.
+- Keep ADRs, runbooks, postmortems, and session summaries in `docs/` for durable decisions and operational knowledge.
 
-The initial project-memory experiment successfully made agent-led development reviewable and release-safe. It also introduced custom scaffolding commands and a task queue that began to duplicate workflow capabilities better handled by OpenSpec, GitHub, and CI.
+## Capabilities
 
-That creates a nested-CLI smell: Quantex is itself a CLI product, while the repo is accumulating a separate CLI-like management layer only for developing Quantex.
+### New Capabilities
 
-## Goals
+- None.
 
-- Make OpenSpec the standard entry point for non-trivial behavior and durable-process changes.
-- Pin the official OpenSpec CLI as a project-local development dependency instead of relying on global installs.
-- Keep GitHub issues and PRs as executable work and merge-gating surfaces.
-- Keep ADRs and runbooks for durable decisions and recovery knowledge.
-- Preserve completed `qtx-*` task history as OpenSpec archived changes.
-- Remove `autonomy/`, `task:new`, `adr:new`, and `worktree:new` from the active workflow surface.
+### Modified Capabilities
 
-## Non-Goals
+- `project-memory`: OpenSpec becomes the primary proposal and change-contract workflow for non-trivial behavior or durable-process changes; historical `qtx-*` task contracts are preserved as OpenSpec archive history.
 
-- Rewrite every historical task body into a new format.
-- Remove release automation, PR governance, or GitHub App release bot flow.
-- Require OpenSpec for tiny fixes, typo corrections, or mechanical maintenance.
-- Replace GitHub issues, PRs, CI, or release-please.
+## Impact
+
+- Development workflow changes from a repo-local autonomy task system to OPSX actions and OpenSpec artifacts.
+- New agent-specific OPSX skills and prompts are added for the supported coding agents.
+- CI validates OpenSpec artifacts with `bun run openspec:validate`.
+- The repo no longer exposes `task:new`, `adr:new`, or `worktree:new` package scripts.
+- Historical task context remains accessible through `openspec/changes/archive/qtx-task-history.md`.

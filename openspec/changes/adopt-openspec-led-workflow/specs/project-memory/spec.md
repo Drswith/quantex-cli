@@ -4,7 +4,7 @@
 
 ### Requirement: Non-trivial changes MUST use OpenSpec as the proposal contract
 
-The project SHALL use OpenSpec-compatible change folders as the default proposal and task contract for non-trivial behavior or durable-process changes.
+The project SHALL use OpenSpec change folders as the default proposal and task contract for non-trivial behavior or durable-process changes.
 
 #### Scenario: Planning a non-trivial behavior change
 
@@ -21,7 +21,7 @@ The project SHALL use OpenSpec-compatible change folders as the default proposal
 
 ### Requirement: Custom workflow command surface MUST stay out of the product repo
 
-The project SHALL avoid growing project-specific workflow commands when an OpenSpec-compatible artifact or GitHub-native workflow can provide the same planning and review capability.
+The project SHALL avoid growing project-specific workflow commands when an OpenSpec artifact or GitHub-native workflow can provide the same planning and review capability.
 
 #### Scenario: Recording future executable work
 
@@ -46,3 +46,14 @@ The project SHALL preserve completed historical task contracts under `openspec/c
 - WHEN the original task queue has been retired
 - THEN the contributor reads the migrated archived change under `openspec/changes/archive/`
 - AND uses `openspec/changes/archive/qtx-task-history.md` as the index
+
+### Requirement: OPSX actions MUST be available across supported coding agents
+
+The project SHALL initialize OpenSpec OPSX integrations for the supported coding agents instead of relying on Codex-only workflow instructions.
+
+#### Scenario: Agent starts a non-trivial change
+
+- GIVEN a supported coding agent is asked to plan a non-trivial behavior or durable-process change
+- WHEN the agent needs workflow guidance
+- THEN it can use the generated OPSX integration for explore, propose, apply, and archive actions
+- AND shared project-specific guidance comes from `openspec/config.yaml`

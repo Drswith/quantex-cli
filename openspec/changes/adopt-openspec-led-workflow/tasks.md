@@ -5,5 +5,8 @@
 - [x] Update project-memory documentation to remove `autonomy/tasks` and `autonomy/queue.md` from the active workflow.
 - [x] Remove `task:new`, `adr:new`, and `worktree:new` from the public package script surface.
 - [x] Pin the official OpenSpec CLI as a project dev dependency and expose repo scripts.
+- [x] Initialize OPSX integrations for Codex, Claude Code, Gemini CLI, Cursor, GitHub Copilot, and OpenCode.
+- [x] Add `openspec/config.yaml` with Quantex context and artifact rules.
+- [x] Convert this change proposal to the OPSX proposal artifact format and add design rationale.
 - [x] Keep `memory:check` as a narrow repository hygiene check, not a workflow engine.
 - [x] Delete legacy autonomy scaffolding source files after migration.

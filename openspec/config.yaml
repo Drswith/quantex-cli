@@ -1,0 +1,25 @@
+schema: spec-driven
+
+context: |
+  Project: Quantex CLI, a human-friendly and agent-friendly lifecycle CLI for AI coding agents.
+  Runtime: Bun. Language: strict TypeScript ESM. Tests: Vitest. Lint: @antfu/eslint-config.
+  Product scope: agent installation, inspection, ensure, update, uninstall, discovery, execution, self-upgrade, and stable machine-readable contracts.
+  Non-goal: do not turn Quantex into a workflow orchestration platform.
+  Release: protected main with release-please Release PRs, GitHub Actions trusted publishing, and GitHub App release automation.
+  Project memory: OpenSpec owns non-trivial behavior or durable-process changes; GitHub issues track executable work; ADRs record durable decisions; runbooks record repeatable operations.
+
+rules:
+  proposal:
+    - 'Use the OPSX proposal structure: Why, What Changes, Capabilities, Impact.'
+    - Keep scope and non-goals explicit.
+    - Identify whether the change should create or modify OpenSpec capabilities.
+  specs:
+    - Requirements must use SHALL or MUST.
+    - Scenarios should use Given/When/Then bullets.
+    - Keep implementation details out unless they are externally observable behavior.
+  design:
+    - 'Include a design document for cross-cutting workflow, release, dependency, migration, or security-sensitive changes.'
+    - Prefer upstream OpenSpec and GitHub-native workflows over repo-local project-management scripts.
+  tasks:
+    - Include validation commands relevant to the change.
+    - 'Mark tasks complete only after the corresponding code, docs, or configuration has changed.'

@@ -52,7 +52,7 @@ Working directly in the current workspace is reserved for:
 
 Preferred naming:
 
-- branch: `codex/<issue-or-change-slug>`
+- branch: `<agent>/<issue-or-change-slug>`
 - worktree path: `../<repo-name>-<issue-or-change-slug>`
 
 Clean up merged or abandoned worktrees with `git worktree remove <path>` and `git worktree prune` after confirming no unmerged commits remain.
@@ -141,6 +141,17 @@ Examples:
 - `dual-mode-surface`
 - `self-upgrade-hardening`
 - `agent-update-unification`
+
+## OPSX working rule
+
+For non-trivial behavior or durable-process changes, use OPSX actions rather than ad hoc planning files:
+
+- explore: clarify the problem and inspect existing artifacts
+- propose: create or update OpenSpec artifacts
+- apply: implement tasks and update artifacts as learning happens
+- archive: finalize completed OpenSpec changes after specs are synced
+
+Agents should use `openspec status --change <id> --json` and `openspec instructions <artifact> --change <id> --json` when they need to determine the next artifact or implementation step.
 
 ## Discussion promotion rules
 

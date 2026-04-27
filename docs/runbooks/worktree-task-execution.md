@@ -23,7 +23,7 @@ Provide the setup and cleanup flow for implementing Quantex changes from dedicat
 2. Choose a branch and path using the same slug:
 
    ```bash
-   git worktree add -b codex/<issue-or-change-slug> ../quantex-cli-<issue-or-change-slug> main
+   git worktree add -b <agent>/<issue-or-change-slug> ../quantex-cli-<issue-or-change-slug> main
    ```
 
 3. Verify the new workspace:
@@ -49,7 +49,7 @@ If the branch name is wrong, remove the unused worktree and recreate it with the
 If cleanup fails because the branch still has unique commits, compare it against the intended base first:
 
 ```bash
-git log --oneline main..codex/<issue-or-change-slug>
+git log --oneline main..<agent>/<issue-or-change-slug>
 ```
 
 ## Escalation
