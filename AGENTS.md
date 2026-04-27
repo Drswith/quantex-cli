@@ -30,6 +30,9 @@ bun run test:watch
 bun run lint
 bun run lint:fix
 bun run typecheck
+bun run openspec:list
+bun run openspec:status -- --change <change-id>
+bun run openspec:validate
 bun run build
 bun run build:bin
 bun run release:artifacts
@@ -258,18 +261,18 @@ type AgentUpdateStrategy = 'managed' | 'self-update' | 'manual-hint'
 
 - Canonical project memory now lives in:
   - `docs/`
-  - `autonomy/`
   - `openspec/`
 - Before creating a new markdown file, classify it first:
-  - behavior contract or change proposal → `openspec/`
+  - behavior contract or non-trivial change proposal → `openspec/`
   - durable design decision → `docs/adr/`
   - troubleshooting or recovery knowledge → `docs/runbooks/`
   - session summary → `docs/sessions/`
   - incident review → `docs/postmortems/`
-  - future executable work → `autonomy/tasks/` + `autonomy/queue.md`
-- Treat discussion notes as an intermediate artifact. Promote stable outcomes into specs, ADRs, runbooks, or task contracts.
+  - future executable work → GitHub issue
+- Treat discussion notes as an intermediate artifact. Promote stable outcomes into specs, ADRs, runbooks, or GitHub issues.
+- Use OPSX actions for non-trivial changes when supported by the current agent: explore/propose/apply/archive. For CLI-driven work, use `openspec status --json` and `openspec instructions ... --json` to decide the next artifact or implementation step.
 - Legacy root markdown files are transition artifacts. Their target homes are tracked in `docs/project-memory-migration.md`.
-- When implementation changes behavior or durable process, update the relevant spec, ADR, runbook, or task in the same change whenever practical.
+- When implementation changes behavior or durable process, update the relevant OpenSpec spec/change, ADR, or runbook in the same change whenever practical.
 
 ## Notes
 

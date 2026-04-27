@@ -19,7 +19,7 @@ Use the repository for:
 - ADRs
 - runbooks
 - session summaries
-- autonomy task contracts
+- archived OpenSpec change history
 
 ## Recommended flow
 
@@ -27,25 +27,22 @@ Use the repository for:
 2. Summarize the conclusion in `docs/sessions/` if the discussion materially changes direction.
 3. Open or update a GitHub issue for the actionable work.
 4. Create or update:
-   - `autonomy/tasks/` for executable work
+   - `openspec/changes/` for non-trivial behavior or durable-process changes
    - `docs/adr/` for durable decisions
-   - `openspec/` for non-trivial behavior changes
-5. Create a dedicated worktree-backed branch and open a PR.
+5. Create a dedicated branch or worktree-backed branch and open a PR.
 6. Merge only after CI, PR governance, and documentation updates are in place.
-7. Mark the task done and update any affected runbooks, specs, or ADRs.
+7. Update any affected runbooks, specs, or ADRs; if an OpenSpec change lands, merge its delta into `openspec/specs/` and archive or close the change.
 
-## Worktree-backed task execution
+## Worktree-backed implementation
 
 For implementation that is expected to create commits or a PR, Quantex defaults to a dedicated git worktree rather than switching the user's active workspace in place.
-
-Use `bun run worktree:new -- --task qtx-0000 --title "Task title"` to scaffold a new task worktree.
 
 Worktrees are required when:
 
 - the current workspace already has local changes
-- more than one task may be active in parallel
+- more than one change may be active in parallel
 - the user wants their IDE to stay on its current branch or context
-- the task may touch `main`, `beta`, or automation-managed release branches during verification
+- the change may touch `main`, `beta`, or automation-managed release branches during verification
 
 Working directly in the current workspace is reserved for:
 
@@ -55,8 +52,8 @@ Working directly in the current workspace is reserved for:
 
 Preferred naming:
 
-- branch: `codex/<task-or-title-slug>`
-- worktree path: `../<repo-name>-<task-or-title-slug>`
+- branch: `<agent>/<issue-or-change-slug>`
+- worktree path: `../<repo-name>-<issue-or-change-slug>`
 
 Clean up merged or abandoned worktrees with `git worktree remove <path>` and `git worktree prune` after confirming no unmerged commits remain.
 
@@ -64,7 +61,7 @@ Clean up merged or abandoned worktrees with `git worktree remove <path>` and `gi
 
 Quantex uses release-please to keep publishing compatible with protected `main` and source-visible versions.
 
-1. Merge one or more normal task PRs to `main`.
+1. Merge one or more normal change PRs to `main`.
 2. The `Release` workflow runs release-please on the resulting `main` push.
 3. If the merged commits warrant a version bump, release-please creates or updates a Release PR.
 4. The Release PR updates `CHANGELOG.md`, `package.json`, `.release-please-manifest.json`, and `src/generated/build-meta.ts`.
@@ -145,6 +142,17 @@ Examples:
 - `self-upgrade-hardening`
 - `agent-update-unification`
 
+## OPSX working rule
+
+For non-trivial behavior or durable-process changes, use OPSX actions rather than ad hoc planning files:
+
+- explore: clarify the problem and inspect existing artifacts
+- propose: create or update OpenSpec artifacts
+- apply: implement tasks and update artifacts as learning happens
+- archive: finalize completed OpenSpec changes after specs are synced
+
+Agents should use `openspec status --change <id> --json` and `openspec instructions <artifact> --change <id> --json` when they need to determine the next artifact or implementation step.
+
 ## Discussion promotion rules
 
 Do not let a merged PR depend only on a GitHub discussion for its rationale.
@@ -153,6 +161,6 @@ Promote discussion outcomes like this:
 
 - decision that lasts beyond the current change -> ADR
 - non-trivial behavior change -> OpenSpec
-- future executable work -> autonomy task
+- future executable work -> GitHub issue; use OpenSpec too when it changes behavior or durable process
 - reusable debugging or recovery knowledge -> runbook
 - session-specific context -> session summary

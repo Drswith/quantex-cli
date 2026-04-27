@@ -67,7 +67,7 @@ jobs:
             })
 
             if (meaningfulArtifacts.length === 0) {
-              core.setFailed('PR body must link at least one issue, task, ADR, OpenSpec artifact, or discussion in the "Linked Artifacts" section.')
+              core.setFailed('PR body must link at least one issue, ADR, OpenSpec artifact, or discussion in the "Linked Artifacts" section.')
             }
 
       - name: Validate release trigger scope
@@ -89,8 +89,8 @@ jobs:
             const releaseProcessOnly = changedFiles.length > 0
               && changedFiles.every(fileName => {
                 return fileName.startsWith('.github/')
-                  || fileName.startsWith('autonomy/')
                   || fileName.startsWith('docs/')
+                  || fileName.startsWith('openspec/')
                   || fileName === 'release-please-config.json'
                   || fileName === 'release-please-config.beta.json'
                   || fileName === '.release-please-manifest.json'

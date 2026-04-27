@@ -24,9 +24,9 @@ body:
     id: durable-artifacts
     attributes:
       label: Durable artifacts to update
-      description: Which session summary, task, ADR, spec, or runbook should follow from this?
+      description: Which session summary, issue, ADR, spec, or runbook should follow from this?
       value: |
         - session summary
-        - autonomy task
+        - OpenSpec change
     validations:
       required: true

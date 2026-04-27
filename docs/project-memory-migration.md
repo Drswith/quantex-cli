@@ -12,18 +12,18 @@ This file tracks how legacy markdown documents in the repository root should be 
 
 | Existing file | Current role | Target home | Migration note |
 |---|---|---|---|
-| `TODO.md` | mixed backlog and status | `autonomy/queue.md` and `autonomy/tasks/` | Converted into task contracts on 2026-04-23 and archived at `docs/archive/legacy-root-notes/TODO.md` |
+| `TODO.md` | mixed backlog and status | `openspec/changes/archive/` | Converted into task contracts on 2026-04-23, migrated into OpenSpec archive on 2026-04-27, and archived at `docs/archive/legacy-root-notes/TODO.md` |
 | `HUMAN_AGENT_DUAL_MODE_CLI.md` | current design narrative | `openspec/specs/` plus `docs/adr/` | Archived at `docs/archive/legacy-root-notes/HUMAN_AGENT_DUAL_MODE_CLI.md`; new changes should flow through OpenSpec and ADRs |
 | `HUMAN_AGENT_DUAL_MODE_CLI_ADDENDUM.md` | design refinements | `openspec/changes/` or `docs/adr/` | Archived at `docs/archive/legacy-root-notes/HUMAN_AGENT_DUAL_MODE_CLI_ADDENDUM.md`; durable policy belongs in ADRs |
-| `HUMAN_AGENT_DUAL_MODE_CLI_IMPLEMENTATION_BACKLOG.md` | implementation backlog | `autonomy/queue.md` and `autonomy/tasks/` | Converted into task contracts on 2026-04-23 and archived at `docs/archive/legacy-root-notes/HUMAN_AGENT_DUAL_MODE_CLI_IMPLEMENTATION_BACKLOG.md` |
+| `HUMAN_AGENT_DUAL_MODE_CLI_IMPLEMENTATION_BACKLOG.md` | implementation backlog | `openspec/changes/archive/` | Converted into task contracts on 2026-04-23, migrated into OpenSpec archive on 2026-04-27, and archived at `docs/archive/legacy-root-notes/HUMAN_AGENT_DUAL_MODE_CLI_IMPLEMENTATION_BACKLOG.md` |
 | `AUTO_UPGRADE_SCOPE.md` | subsystem scope and architecture | `openspec/specs/` plus `docs/adr/` | Consolidated on 2026-04-23; legacy root file removed after migration |
 | `AUTO_UPGRADE_SCOPE_ADDENDUM.md` | refinement and non-goals | `docs/adr/` and `openspec/changes/` | Consolidated on 2026-04-23; legacy root file removed after migration |
-| `AUTO_UPGRADE_IMPLEMENTATION_BACKLOG.md` | implementation backlog | `autonomy/queue.md` and `autonomy/tasks/` | Normalized into task contracts on 2026-04-23; legacy root file removed after migration |
+| `AUTO_UPGRADE_IMPLEMENTATION_BACKLOG.md` | implementation backlog | `openspec/changes/archive/` | Normalized into task contracts on 2026-04-23, migrated into OpenSpec archive on 2026-04-27; legacy root file removed after migration |
 | `skills/quantex-cli/references/troubleshooting.md` | troubleshooting knowledge | `docs/runbooks/` | Canonical runbook now exists at `docs/runbooks/quantex-troubleshooting.md`; keep the skill copy as a mirror until a later cleanup |
 
 ## Recommended order
 
-1. Move backlog-shaped documents into `autonomy/`.
+1. Move backlog-shaped documents into GitHub issues or OpenSpec changes.
 2. Establish current behavior contracts in `openspec/specs/`.
 3. Extract durable design choices into ADRs.
 4. Move recurring support knowledge into `docs/runbooks/`.

@@ -213,5 +213,5 @@ Stop and ask for human input when:
 - `openspec/specs/self-upgrade/spec.md`
 - `docs/adr/0002-keep-self-upgrade-and-agent-update-separate.md`
 - `docs/adr/0003-require-explicit-upgrade-invocation.md`
-- `autonomy/tasks/qtx-0020-add-release-workflow-smoke-validation.md`
-- `autonomy/tasks/qtx-0021-write-release-and-self-upgrade-debugging-runbook.md`
+- `openspec/changes/archive/qtx-0020-add-release-workflow-smoke-validation/proposal.md`
+- `openspec/changes/archive/qtx-0021-write-release-and-self-upgrade-debugging-runbook/proposal.md`
