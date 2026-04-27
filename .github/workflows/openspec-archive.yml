@@ -72,7 +72,7 @@ jobs:
           GH_TOKEN: ${{ steps.release-bot-token.outputs.token }}
         run: |
           branch="opspec/archive-${BASE_BRANCH}"
-          bullets=$(node -e "const data = JSON.parse(process.env.ARCHIVE_SUMMARY); process.stdout.write(data.archivedChanges.map(name => '- OpenSpec: `' + name + '`').join('\n'))")
+          bullets=$(node -e 'const data = JSON.parse(process.env.ARCHIVE_SUMMARY); process.stdout.write(data.archivedChanges.map(name => `- OpenSpec: ${name}`).join("\n"))')
           note=$(node -e "const data = JSON.parse(process.env.ARCHIVE_SUMMARY); process.stdout.write(data.archivedChanges.join(', '))")
 
           git config user.name "quantex-release[bot]"
