@@ -19,6 +19,7 @@ This repository uses OpenSpec and the OPSX workflow for behavior contracts and n
 - use `openspec status --change <name> --json` to inspect which artifacts are ready or missing
 - use `openspec instructions <artifact> --change <name> --json` when an agent needs artifact-specific guidance
 - use `/opsx:apply` or equivalent to implement tasks while updating artifacts as learning happens
+- after implementation, apply the delivery closure gate before reporting the work as complete
 - after the implementation PR lands, the change is still only "implemented"
 - treat the change as fully "done" only after specs are synced and `/opsx:archive` or `openspec archive <name> --yes` has moved it into `openspec/changes/archive/`
 - protected branches should close that final gap through an archive follow-up PR rather than relying on memory
@@ -27,7 +28,7 @@ Prefer the official OpenSpec CLI or slash commands when available. This reposito
 
 ## Intake gate
 
-Implementation requests must be classified before editing files. User wording such as “start”, “land this”, “continue”, “until complete”, or “just implement it” is not permission to skip OpenSpec.
+Implementation requests must be classified before editing files. Execution-oriented intent, continuation intent, or closure intent is not permission to skip OpenSpec.
 
 Create or select an OpenSpec change first when the work affects:
 
@@ -39,6 +40,18 @@ Create or select an OpenSpec change first when the work affects:
 - product-facing documentation that changes user expectations
 
 OpenSpec is optional only for typo fixes, formatting-only edits, small wording cleanup with no product/process meaning change, mechanical no-behavior maintenance, or test-only cleanup that does not redefine expected behavior. If an agent skips OpenSpec, it should briefly state that classification before proceeding.
+
+## Delivery closure gate
+
+OpenSpec-backed work has multiple closure states:
+
+- implementation complete: tasks are done and validation passes locally
+- PR delivered: changes are committed, pushed, and linked from a PR
+- merge complete: the implementation PR has landed on the protected branch
+- archive closed: accepted spec deltas have been synced and the OpenSpec change has moved to `openspec/changes/archive/`
+- release closed: release automation has completed when the change is release-worthy
+
+Agents should not report “complete” without stating which closure state was reached. For protected branches, it is valid for an implementation PR to be delivered while archive closure remains pending; in that case the final answer must explicitly say that the post-merge archive workflow or follow-up PR owns the remaining closure.
 
 The CLI is pinned as a project dev dependency. Use the repo scripts instead of relying on a global install:
 

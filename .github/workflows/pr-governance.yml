@@ -27,6 +27,7 @@ jobs:
               '## Validation',
               '## Docs Updated',
               '## Scope Check',
+              '## Closure Check',
             ]
 
             const missingHeadings = requiredHeadings.filter(heading => !body.includes(heading))
