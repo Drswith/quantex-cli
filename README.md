@@ -4,268 +4,164 @@
 
 [![npm version][npm-version-src]][npm-version-href]
 [![npm downloads][npm-downloads-src]][npm-downloads-href]
+[![GitHub stars][stars-src]][stars-href]
+[![CI][ci-src]][ci-href]
+[![Release][release-src]][release-href]
 [![bundle][bundle-src]][bundle-href]
 [![License][license-src]][license-href]
 
-统一的 AI Agent CLI 管理工具，支持安装、更新、卸载、查询、快捷启动主流 AI 编程助手。
+统一管理 AI 编程助手 CLI 的安装、检查、更新、卸载与启动。
+
+**简体中文** | [English](./README.en.md)
 
 </div>
 
-> 项目定位：Quantex 是 `human-friendly + agent-friendly` 的 `agent lifecycle CLI`。主线聚焦 agent 的安装、检查、确保可用、更新、卸载、能力发现与稳定执行契约，不把自身扩张为 workflow orchestration platform。
+Quantex 是一个 `human-friendly + agent-friendly` 的 agent lifecycle CLI。它帮你把 Claude Code、Codex、Gemini、Cursor、OpenCode 等 AI 编程助手的生命周期操作统一到一组稳定命令里：人可以直接用，自动化脚本和 coding agent 也可以用结构化输出可靠调用。
 
-## 设计文档
+## 为什么用 Quantex
 
-- [Human + Agent 双模 CLI 设计](./docs/archive/legacy-root-notes/HUMAN_AGENT_DUAL_MODE_CLI.md)
-- [Human + Agent 双模 CLI Implementation Checklist / Issue Backlog](./docs/archive/legacy-root-notes/HUMAN_AGENT_DUAL_MODE_CLI_IMPLEMENTATION_BACKLOG.md)
+- 一个入口管理多个 AI agent：安装、确保可用、查询状态、更新、卸载、启动。
+- 适合脚本和 agent 调用：支持 `--json`、`--output ndjson`、`--non-interactive`、`--dry-run` 等稳定契约。
+- 记住真实安装来源：`update --all` 会优先按已记录来源分组更新，避免混合安装环境下误用更新方式。
+- 支持 Quantex 自升级：Bun、npm、独立二进制安装来源都有对应升级路径。
 
-## Project Memory
+## Agent 快速接入
 
-仓库现在开始采用一套面向 `human + agent` 协作、并为未来 agent 自主迭代预留的 repo-native 文档结构：
-
-- [docs/README.md](./docs/README.md)
-- [docs/adr/](./docs/adr/)
-- [docs/runbooks/](./docs/runbooks/)
-- [docs/sessions/](./docs/sessions/)
-- [docs/github-collaboration.md](./docs/github-collaboration.md)
-- [openspec/README.md](./openspec/README.md)
-- [OpenSpec archived QTX task history](./openspec/changes/archive/qtx-task-history.md)
-
-迁移期遗留文档的归档位置和映射关系见 [docs/project-memory-migration.md](./docs/project-memory-migration.md)。
-
-## Releases
-
-Quantex 使用 release-please 维护 Release PR。版本号和 changelog 会在 Release PR 中进入源码：
-
-- [CHANGELOG.md](./CHANGELOG.md)
-- [GitHub Releases](https://github.com/Drswith/quantex-cli/releases)
-- [docs/releases.md](./docs/releases.md)
-
-## Agent Skill
-
-仓库内置了一份面向 Codex / agent 使用的 Quantex skill：
-
-- [skills/quantex-cli/SKILL.md](./skills/quantex-cli/SKILL.md)
-- [skills/quantex-cli/references/command-recipes.md](./skills/quantex-cli/references/command-recipes.md)
-- [skills/quantex-cli/references/automation-playbook.md](./skills/quantex-cli/references/automation-playbook.md)
-- [skills/quantex-cli/references/output-contracts.md](./skills/quantex-cli/references/output-contracts.md)
-- [skills/quantex-cli/references/troubleshooting.md](./skills/quantex-cli/references/troubleshooting.md)
-- [skills/quantex-cli/scripts/smoke-check.sh](./skills/quantex-cli/scripts/smoke-check.sh)
-- [docs/skill-installation-and-distribution.md](./docs/skill-installation-and-distribution.md)
-
-这份 skill 会引导 agent 以 Quantex 的 lifecycle CLI 方式工作，优先使用 `inspect` / `ensure` / `resolve` / `exec` / `capabilities` / `commands` / `schema`，并遵循结构化输出、非交互和自动化契约。
-
-如果你在维护 Quantex 的命令面或 skill 本身，可以运行：
+如果你正在让 coding agent 使用 Quantex，可以先安装仓库里的 Quantex skill：
 
 ```bash
-skills/quantex-cli/scripts/smoke-check.sh
+npx skills add Drswith/quantex-cli --skill quantex-cli -a codex -a claude-code -a opencode -y
 ```
 
-它会对 `capabilities`、`commands`、`schema`、`inspect` 以及可选的 `resolve` 做一轮轻量结构化 smoke check。
+只想先查看这个仓库暴露了哪些 skills：
 
-当前这份 skill 仍然是 repo-native artifact：支持随仓库共享、按仓库 revision 使用，或复制整个 `skills/quantex-cli/` 目录到兼容的技能目录；还没有单独的 marketplace / package 发布流。细节见 [docs/skill-installation-and-distribution.md](./docs/skill-installation-and-distribution.md)。
+```bash
+npx skills add Drswith/quantex-cli --list
+```
 
-## 支持的 Agent
+随后让 agent 发现 Quantex 的稳定命令和输出契约：
 
-| Agent | 命令 | 别名 | 描述 |
-|-------|------|------|------|
-| **Claude Code** | `quantex claude` / `qtx claude` | - | Anthropic 官方 AI 编程助手 CLI |
-| **Codex** | `quantex codex` / `qtx codex` | - | OpenAI 官方 AI 编程助手 CLI |
-| **Copilot** | `quantex copilot` / `qtx copilot` | - | GitHub Copilot 命令行工具 |
-| **Cursor** | `quantex cursor` / `qtx cursor` | `agent` | Cursor AI 编程助手命令行工具 |
-| **Droid** | `quantex droid` / `qtx droid` | - | Factory AI 软件工程 Agent CLI |
-| **Gemini** | `quantex gemini` / `qtx gemini` | - | Google 开源 AI 编程助手 CLI |
-| **OpenCode** | `quantex opencode` / `qtx opencode` | - | 开源 AI 编程 CLI |
-| **Pi** | `quantex pi` / `qtx pi` | - | 极简可扩展的终端编程 Agent |
+```bash
+npm exec --yes --package quantex-cli -- quantex capabilities --json
+npm exec --yes --package quantex-cli -- quantex commands --json
+npm exec --yes --package quantex-cli -- quantex schema --json
+```
+
+如果 agent 正在这个仓库内参与开发，请把下面这段作为启动提示：
+
+```text
+Read AGENTS.md, openspec/README.md, and skills/quantex-cli/SKILL.md first.
+For non-trivial changes, use the OpenSpec / OPSX workflow.
+Before finishing, run bun run lint and bun run typecheck.
+If command behavior changed, also run bun run test.
+```
+
+仓库内置的 Quantex skill 位于 [`skills/quantex-cli/`](./skills/quantex-cli/)。它可以通过 [skills.sh](https://skills.sh/) 的 `npx skills add` 从 GitHub 安装，但仍然以本仓库为发布源，不是单独的 npm package；安装和同步方式见 [skill 分发说明](./docs/skill-installation-and-distribution.md)。
 
 ## 安装
 
-```bash
-# 使用 Bun
-bun add -g quantex-cli
+使用 Bun：
 
-# 使用 npm
+```bash
+bun add -g quantex-cli
+```
+
+使用 npm：
+
+```bash
 npm i -g quantex-cli
 ```
 
-也可以从 GitHub Releases 下载对应平台的独立二进制，或使用安装脚本：
+也可以从 [GitHub Releases](https://github.com/Drswith/quantex-cli/releases) 下载独立二进制，或使用安装脚本：
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/Drswith/quantex-cli/main/install.sh | sh
 ```
 
-Windows PowerShell:
+Windows PowerShell：
 
 ```powershell
 irm https://raw.githubusercontent.com/Drswith/quantex-cli/main/install.ps1 | iex
 ```
 
-安装后可使用 `quantex` 或短别名 `qtx` 命令。
+安装后可以使用完整命令 `quantex`，也可以使用短别名 `qtx`。
 
-## 使用
+## 快速开始
 
-### 安装 Agent
+安装并启动一个 agent：
 
 ```bash
 quantex install claude
-qtx i claude
+quantex exec claude --install if-missing -- --help
 ```
 
-### 确保 Agent 已安装
+确保 agent 可用，适合脚本或其他 agent 调用：
 
 ```bash
-quantex ensure claude
+quantex ensure codex --json
 ```
 
-`ensure` 是面向自动化和 agent 调用的幂等入口：
+查看 agent 状态和可执行入口：
 
-- 已安装则直接成功
-- 未安装时才执行安装
-- 配合 `--json` 时会返回 `changed` 字段，便于上层判断是否发生变更
+```bash
+quantex inspect codex --json
+quantex resolve codex --json
+```
 
-### 更新 Agent
+更新单个 agent 或全部已安装 agent：
 
 ```bash
 quantex update claude
-quantex u claude
-
 quantex update --all
 ```
 
-`quantex update` 和 `quantex update --all` 现在共用同一套更新策略层：
-
-- `managed`：优先按 Quantex 已记录的安装来源更新
-- `self-update`：使用 agent 自带的更新命令
-- `manual-hint`：不自动更新，只给出明确提示
-
-`quantex update --all` 会优先使用 `~/.quantex/state.json` 里记录的实际安装来源进行批量更新：
-
-- `bun` 会批量合并为一条 `bun update -g --latest ...`
-- `npm` 会批量合并为一条 `npm install -g ...@latest`
-- `brew`、`winget` 会按记录的安装器标识逐个更新
-- `script`、`binary` 或仅在 PATH 中探测到但没有可自动更新能力的 agent 不会被错误并入托管更新命令
-
-对于支持自更新的 agent，`list`、`info`、`update` 输出会明确显示 `command update` 或 `self-update`。
-
-### 升级 Quantex CLI
+升级 Quantex 自身：
 
 ```bash
 quantex upgrade
-
-# 只检查是否有更新
 quantex upgrade --check
-
-# 使用 beta channel
 quantex upgrade --channel beta
 ```
 
-当前自身升级支持：
+## 常用命令
 
-- 通过 Bun 全局安装的 `quantex-cli`
-- 通过 npm 全局安装的 `quantex-cli`
-- 通过独立二进制安装的 `quantex`
+| 命令 | 作用 |
+|------|------|
+| `quantex install <agent>` / `qtx i` | 安装 agent |
+| `quantex ensure <agent>` | 幂等确保 agent 已安装 |
+| `quantex update <agent>` / `qtx u` | 更新 agent |
+| `quantex update --all` | 更新所有已安装 agent |
+| `quantex uninstall <agent>` / `qtx rm` | 卸载 agent |
+| `quantex list` / `qtx ls` | 列出所有支持的 agent |
+| `quantex info <agent>` | 查看 agent 详情 |
+| `quantex inspect <agent>` | 查看结构化状态 |
+| `quantex resolve <agent>` | 解析可执行入口 |
+| `quantex exec <agent> -- [args...]` | 以显式策略运行 agent |
+| `quantex <agent> [args...]` | 快捷启动 agent |
+| `quantex capabilities` | 查看当前环境能力 |
+| `quantex commands` | 查看稳定命令目录 |
+| `quantex schema` | 查看结构化输出 schema |
+| `quantex config` | 管理配置 |
+| `quantex doctor` | 检查环境和恢复建议 |
 
-Binary 自升级具备：
+## 支持的 Agent
 
-- release manifest 解析
-- SHA256 checksum 校验
-- 升级锁
-- post-upgrade verify
-- `.bak` 最小回滚
-- Windows 延迟替换
+| Agent | 启动命令 | 描述 |
+|-------|----------|------|
+| Claude Code | `quantex claude` | Anthropic 官方 AI 编程助手 CLI |
+| Codex CLI | `quantex codex` | OpenAI 官方 AI 编程助手 CLI |
+| GitHub Copilot CLI | `quantex copilot` | GitHub Copilot 命令行工具 |
+| Cursor CLI | `quantex cursor` | Cursor AI 编程助手命令行工具 |
+| Droid | `quantex droid` | Factory AI 软件工程 Agent CLI |
+| Gemini CLI | `quantex gemini` | Google 开源 AI 编程助手 CLI |
+| OpenCode | `quantex opencode` | 开源 AI 编程 CLI |
+| Pi | `quantex pi` | 极简可扩展的终端编程 Agent |
 
-如果升级失败，`upgrade` 和 `doctor` 都会给出与安装来源匹配的恢复方式。
+`qtx` 是 `quantex` 的短别名，例如 `qtx codex`、`qtx ensure claude`。
 
-### 卸载 Agent
+## 面向自动化和 Agent
 
-```bash
-quantex uninstall claude
-quantex rm claude
-```
-
-### 列出所有 Agent
-
-```bash
-quantex list
-qtx ls
-```
-
-`list` 会显示每个 agent 的安装状态、当前版本、更新方式和安装来源。例如：
-
-- `managed update` 表示 Quantex 能按记录的安装器执行更新
-- `command update` 表示当前 agent 支持自更新
-- `manual update` 表示当前来源不支持自动更新
-- `managed via bun (...)`、`managed via brew (...)` 表示有明确来源记录
-- `detected in PATH` 表示命令存在，但不是由当前 Quantex 状态追踪到的安装
-
-### 查看 Agent 详情
-
-```bash
-quantex info claude
-```
-
-`info` 会显示：
-
-- 当前平台可用的安装方式
-- 当前记录的安装来源与生命周期
-- 当前版本和可检测到的最新版本
-- agent 自带的自更新命令
-
-### 查看 Agent 结构化状态
-
-```bash
-quantex inspect claude
-quantex inspect claude --json
-```
-
-`inspect` 更偏 agent-friendly，会集中返回：
-
-- 安装状态、版本、路径、来源
-- 当前 update mode
-- 当前平台可用安装方式
-- `auto-install` / `self-update` / `runnable` 等能力摘要
-
-### 解析 Agent 可执行入口
-
-```bash
-quantex resolve claude
-quantex resolve claude --json
-```
-
-`resolve` 更偏 runtime-friendly，会直接返回：
-
-- 当前可执行 binary 的绝对路径
-- 已安装版本
-- 安装来源
-- 建议启动命令
-
-### 快捷启动 Agent
-
-```bash
-quantex claude --dangerously-skip-permissions
-qtx claude --dangerously-skip-permissions
-quantex agent --help
-```
-
-如果 agent 未安装，Quantex 会提示是否先安装再启动。
-
-### 以显式策略启动 Agent
-
-```bash
-quantex exec claude --install if-missing -- --dangerously-skip-permissions
-quantex exec codex --install never -- --help
-```
-
-`exec` 是比快捷启动更适合自动化的入口：
-
-- `--install never`：未安装时直接失败
-- `--install if-missing`：缺失时自动安装再启动
-- `--install always`：显式要求先满足安装前置，再启动
-
-`--` 之后的参数会原样透传给下游 agent，避免与 Quantex 自己的参数冲突。
-
-### Agent-friendly 全局参数
-
-Quantex 现在默认保留 human-first CLI，同时补齐了一组统一的 agent-friendly 全局参数：
+Quantex 的主线不是工作流编排平台，而是稳定的 agent lifecycle surface。自动化场景建议显式使用结构化参数：
 
 ```bash
 quantex inspect claude --json --refresh
@@ -273,108 +169,25 @@ quantex install claude --json --dry-run
 quantex exec claude --install if-missing --yes -- --help
 ```
 
-当前主线支持：
+常用契约：
 
-- `--json` / `--output <human|json|ndjson>`
-- `--non-interactive`
-- `--yes`
-- `--quiet`
-- `--color <auto|always|never>`
-- `--log-level <silent|error|warn|info|debug>`
-- `--dry-run`
-- `--refresh` / `--no-cache`
-- `--run-id`
-- `--idempotency-key`
-- `--timeout`
+- `--json` / `--output <human|json|ndjson>` 控制输出格式。
+- `--non-interactive`、`--yes`、`--quiet` 适合 CI 和 agent 调用。
+- `--dry-run` 用于预览安装或更新计划。
+- `--refresh` / `--no-cache` 控制版本和 release 元数据缓存。
+- `stdout` 用于结构化结果，`stderr` 用于日志、警告和底层安装器输出。
 
-当 `stdin` 或 `stdout` 不是 TTY 时，Quantex 现在会自动切到 agent-friendly 默认行为：
-
-- 自动关闭交互
-- 默认改为结构化输出
-
-不过在自动化里，仍然更建议显式传 `--json`、`--output`、`--non-interactive`，这样契约更清晰。
-
-结构化输出的 stream contract 也已经固定下来：
-
-- `human`：面向人类阅读
-- `--json`：`stdout` 只输出最终 JSON envelope
-- `--output ndjson`：`stdout` 只输出事件流
-- `stderr`：日志、警告和底层安装器输出
-
-如果你需要精确查看输出结构，优先使用：
+如果你正在为上层 agent 集成 Quantex，优先从这些命令发现能力和类型：
 
 ```bash
+quantex capabilities --json
 quantex commands --json
 quantex schema --json
-quantex schema inspect --json
 ```
 
-对于版本与 release 元数据查询，结构化结果的 `meta` 现在会附带：
+## 配置与状态
 
-- `fetchedAt`
-- `staleAfter`
-- `source`
-
-这让上层 agent 可以判断结果是否来自缓存、何时应主动强刷。
-
-### 配置管理
-
-```bash
-quantex config
-quantex config get defaultPackageManager
-quantex config set defaultPackageManager npm
-quantex config set npmBunUpdateStrategy respect-semver
-quantex config set selfUpdateChannel beta
-quantex config reset
-```
-
-### 环境检查
-
-```bash
-quantex doctor
-```
-
-`doctor` 会检查：
-
-- `bun`、`npm`、`brew`、`winget` 是否可用
-- Quantex CLI 自身的版本、安装来源、是否支持自动升级
-- Quantex CLI 是否有新版本以及对应恢复方式
-- 已安装 agent 的版本状态
-- 当前环境是否缺少任何可用于托管安装/更新的安装器
-
-### 查看能力探测结果
-
-```bash
-quantex capabilities
-quantex capabilities --json
-```
-
-`capabilities` 和 `doctor` 的边界不同：
-
-- `capabilities`：回答“当前环境能做什么”
-- `doctor`：回答“当前哪里有问题，以及怎么修”
-
-### 查看命令目录
-
-```bash
-quantex commands
-quantex commands --json
-```
-
-`commands` 会返回当前支持的稳定命令、摘要以及常用 flag，适合作为上层 agent 做 command discovery 的入口。
-
-### 查看输出 Schema
-
-```bash
-quantex schema
-quantex schema inspect --json
-```
-
-`schema` 用来导出稳定命令的结构化输出定义，适合作为 agent 或 SDK 的类型参考。
-
-## 配置
-
-配置文件位于 `~/.quantex/config.json`，当前支持：
+用户配置位于 `~/.quantex/config.json`：
 
 ```json
 {
@@ -387,49 +200,36 @@ quantex schema inspect --json
 }
 ```
 
-配置项说明：
+运行时状态位于 `~/.quantex/state.json`。Quantex 会记录 agent 和自身的实际安装来源，用于 `update --all` 分组更新、`doctor` 恢复建议和 self upgrade 来源判断。
 
-- `defaultPackageManager`：控制托管安装器的优先尝试顺序
-- `npmBunUpdateStrategy`：
-  - `latest-major`：升级到 registry 最新版本，默认值
-  - `respect-semver`：保留包管理器默认的 semver 更新语义
-- `selfUpdateChannel`：Quantex CLI 自升级默认 channel，支持 `stable` / `beta`
-- `networkRetries`：版本查询和 release 元数据请求重试次数
-- `networkTimeoutMs`：网络请求超时时间
-- `versionCacheTtlHours`：版本与 release 元数据缓存 TTL
+## 发布
 
-## 状态文件
+Quantex 使用 release-please 维护 Release PR，发布说明以 GitHub Releases 为准：
 
-Quantex 会在 `~/.quantex/state.json` 中记录运行时状态，例如：
+- [GitHub Releases](https://github.com/Drswith/quantex-cli/releases)
+- [docs/releases.md](./docs/releases.md)
+- [CHANGELOG.md](./CHANGELOG.md)
 
-- agent 的实际安装来源
-- Quantex CLI 自身的安装来源
+## 维护者与 Agent 协作
 
-这个状态文件主要用于：
+如果你要参与开发或让 coding agent 在本仓库内工作，请从这些入口开始：
 
-- 让 `update --all` 能先生成更新计划，再按安装来源分组执行
-- 避免混合安装场景下误用错误的更新方式
-- 支撑 `list`、`info`、`doctor`、`upgrade` 的来源判断和恢复提示
+- [AGENTS.md](./AGENTS.md)：仓库级 agent 指令、架构和命令约定。
+- [docs/README.md](./docs/README.md)：ADR、runbook、session、postmortem 等项目文档入口。
+- [openspec/README.md](./openspec/README.md)：OpenSpec / OPSX 变更流程。
+- [docs/github-collaboration.md](./docs/github-collaboration.md)：Issue、PR、Discussion 协作流程。
+- [skills/quantex-cli/SKILL.md](./skills/quantex-cli/SKILL.md)：面向 agent 使用 Quantex 的 repo-native skill。
 
-## 开发
+本地开发常用命令：
 
 ```bash
 bun install
 bun run dev
-bun run test
-bun run test:watch
 bun run lint
-bun run lint:fix
 bun run typecheck
+bun run test
 bun run build
-bun run build:bin
-bun run release:artifacts
 ```
-
-`release:artifacts` 会统一生成并校验：
-
-- `dist/bin/SHA256SUMS.txt`
-- `dist/bin/manifest.json`
 
 ## License
 
@@ -441,6 +241,12 @@ bun run release:artifacts
 [npm-version-href]: https://npmjs.com/package/quantex-cli
 [npm-downloads-src]: https://img.shields.io/npm/dm/quantex-cli?style=flat&colorA=080f12&colorB=1fa669
 [npm-downloads-href]: https://npmjs.com/package/quantex-cli
+[stars-src]: https://img.shields.io/github/stars/Drswith/quantex-cli?style=flat&colorA=080f12&colorB=f2c94c
+[stars-href]: https://github.com/Drswith/quantex-cli/stargazers
+[ci-src]: https://img.shields.io/github/actions/workflow/status/Drswith/quantex-cli/ci.yml?branch=main&style=flat&colorA=080f12&label=CI
+[ci-href]: https://github.com/Drswith/quantex-cli/actions/workflows/ci.yml
+[release-src]: https://img.shields.io/github/actions/workflow/status/Drswith/quantex-cli/release.yml?branch=main&style=flat&colorA=080f12&label=release
+[release-href]: https://github.com/Drswith/quantex-cli/actions/workflows/release.yml
 [bundle-src]: https://img.shields.io/bundlephobia/minzip/quantex-cli?style=flat&colorA=080f12&colorB=1fa669&label=minzip
 [bundle-href]: https://bundlephobia.com/result?p=quantex-cli
 [license-src]: https://img.shields.io/github/license/Drswith/quantex-cli.svg?style=flat&colorA=080f12&colorB=1fa669

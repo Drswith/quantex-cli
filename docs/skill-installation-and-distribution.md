@@ -35,14 +35,26 @@ Then update the skill files so they reflect the same contract.
 
 ## Installation model
 
-Today the Quantex skill is installed from the repository itself. There is no separate registry package, marketplace release, or standalone bundle.
+Today the Quantex skill is installed from the repository itself. There is no separate npm package, marketplace release, or standalone bundle.
 
 Use one of these patterns:
 
-1. Work directly from this repository when the agent runtime can read repo-local skills.
-2. Copy or sync `skills/quantex-cli/` into the target skill directory if the runtime expects installed skills outside the repository.
+1. Install from GitHub with the `skills` CLI:
+
+   ```bash
+   npx skills add Drswith/quantex-cli --skill quantex-cli
+   ```
+
+2. Work directly from this repository when the agent runtime can read repo-local skills.
+3. Copy or sync `skills/quantex-cli/` into the target skill directory if the runtime expects installed skills outside the repository.
 
 The important requirement is that the runtime sees the whole `skills/quantex-cli/` directory, not only `SKILL.md`, because the references, metadata, assets, and smoke-check script are part of the maintained artifact.
+
+To inspect the available skills before installing, run:
+
+```bash
+npx skills add Drswith/quantex-cli --list
+```
 
 ## Validation
 
@@ -104,6 +116,7 @@ Supported today:
 
 - sharing the repository itself
 - pinning to a repository revision or branch
+- installing from GitHub through `npx skills add Drswith/quantex-cli --skill quantex-cli`
 - copying the repo-local skill directory into another compatible skill location
 
 Not supported today:

@@ -6,6 +6,7 @@ const rootDir = resolve(import.meta.dir, '..')
 const allowedRootMarkdownFiles = new Set([
   'AGENTS.md',
   'CHANGELOG.md',
+  'README.en.md',
   'README.md',
 ])
 
