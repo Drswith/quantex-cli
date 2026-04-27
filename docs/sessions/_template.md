@@ -15,6 +15,6 @@ Why did this discussion happen?
 
 ## Follow-up
 
-- Tasks created
+- Issues or OpenSpec changes created
 - Specs updated
 - ADRs added

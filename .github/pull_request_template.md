@@ -22,7 +22,7 @@ Describe the change and why it exists.
 - [ ] Not needed
 - [ ] `docs/...`
 - [ ] `openspec/...`
-- [ ] Follow-up task created instead
+- [ ] Follow-up issue or OpenSpec change created instead
 
 ## Scope Check
 

@@ -18,7 +18,7 @@ This repository uses OpenSpec and the OPSX workflow for behavior contracts and n
 - use `openspec status --change <name> --json` to inspect which artifacts are ready or missing
 - use `openspec instructions <artifact> --change <name> --json` when an agent needs artifact-specific guidance
 - use `/opsx:apply` or equivalent to implement tasks while updating artifacts as learning happens
-- after the work lands and specs are synced, use `/opsx:archive` or `openspec archive <name> --yes`
+- after the PR lands, specs are synced, and validation passes, use `/opsx:archive` or `openspec archive <name> --yes`
 
 Prefer the official OpenSpec CLI or slash commands when available. This repository should store OpenSpec artifacts, not grow custom project-management commands unless they directly serve Quantex users.
 
@@ -35,5 +35,19 @@ bun run openspec:archive -- <change-name>
 ```
 
 `openspec init` has generated OPSX integrations for Codex, Claude Code, Gemini CLI, Cursor, GitHub Copilot, and OpenCode. Keep generated OPSX files close to upstream output; put project-specific context in `openspec/config.yaml` instead.
+
+Current OPSX profile:
+
+- supported core actions: explore, propose, apply, archive
+- not enabled yet: expanded actions such as continue, fast-forward, verify, sync, bulk archive, and onboard
+- if a generated prompt mentions an expanded action that is not present in this repository, use the closest core action plus `openspec status`, `openspec instructions`, manual spec updates, and `openspec validate`
+
+Generated OPSX files under agent-specific directories should normally be regenerated with `openspec init` or `openspec update`, not hand-edited. Put Quantex-specific workflow context and artifact rules in `openspec/config.yaml`.
+
+Archive timing:
+
+- do not archive an active change before its implementation PR has merged
+- sync any accepted spec delta into `openspec/specs/` before archiving
+- run `bun run openspec:validate` before and after archive operations
 
 Small fixes that do not alter behavior contracts can still go directly through GitHub Issue/PR review without an OpenSpec change.
