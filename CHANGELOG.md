@@ -2,6 +2,13 @@
 
 This changelog is maintained by release-please Release PRs.
 
+## [0.3.0](https://github.com/Drswith/quantex-cli/compare/v0.2.2...v0.3.0) (2026-04-27)
+
+
+### Features
+
+* **agent:** add Kilo Code CLI support ([#48](https://github.com/Drswith/quantex-cli/issues/48)) ([220957f](https://github.com/Drswith/quantex-cli/commit/220957ff44900ccafe63a2b552534ebfa25b556d))
+
 ## [0.2.2](https://github.com/Drswith/quantex-cli/compare/v0.2.1...v0.2.2) (2026-04-27)
 
 
