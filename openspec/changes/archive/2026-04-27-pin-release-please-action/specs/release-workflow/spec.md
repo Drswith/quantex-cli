@@ -1,6 +1,6 @@
 ## MODIFIED Requirements
 
-### Requirement: Release workflow invokes release-please only for release-relevant pushes
+### Requirement: Release Workflow Skips Non-release Pushes
 
 The Release workflow SHALL skip release-please for pushes that cannot create a release.
 
@@ -31,6 +31,8 @@ The Release workflow SHALL skip release-please for pushes that cannot create a r
 - **AND** the release-please action version MUST be pinned to a repository-verified tag
 - **AND** it MUST use GitHub Release mode when the current commit is a Release PR commit
 - **AND** it MUST use Release PR mode otherwise
+
+## ADDED Requirements
 
 ### Requirement: Generated Release PRs satisfy governance sections
 
