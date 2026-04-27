@@ -34,6 +34,8 @@
     "build": "tsdown",
     "build:bin": "bun run scripts/write-build-metadata.ts && bun run scripts/build-bin.ts",
     "memory:check": "bun run scripts/check-project-memory.ts",
+    "openspec:list": "openspec list",
+    "openspec:validate": "openspec validate --all --no-interactive",
     "lint:fix": "eslint --fix",
     "lint": "eslint",
     "prepublishOnly": "bun run build",
@@ -54,6 +56,7 @@
   },
   "devDependencies": {
     "@antfu/eslint-config": "^6.6.1",
+    "@fission-ai/openspec": "1.3.1",
     "@types/bun": "^1.3.11",
     "@types/node": "^25.0.1",
     "@types/prompts": "^2.4.9",

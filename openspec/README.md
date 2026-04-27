@@ -19,4 +19,11 @@ This repository uses an OpenSpec-compatible layout for behavior contracts and no
 
 Prefer the official OpenSpec CLI or slash commands when available. This repository should store OpenSpec-compatible artifacts, not grow custom project-management commands unless they directly serve Quantex users.
 
+The CLI is pinned as a project dev dependency. Use the repo scripts instead of relying on a global install:
+
+```bash
+bun run openspec:list
+bun run openspec:validate
+```
+
 Small fixes that do not alter behavior contracts can still go directly through GitHub Issue/PR review without an OpenSpec change.

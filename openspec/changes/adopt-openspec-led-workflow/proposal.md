@@ -13,6 +13,7 @@ That creates a nested-CLI smell: Quantex is itself a CLI product, while the repo
 ## Goals
 
 - Make OpenSpec the standard entry point for non-trivial behavior and durable-process changes.
+- Pin the official OpenSpec CLI as a project-local development dependency instead of relying on global installs.
 - Keep GitHub issues and PRs as executable work and merge-gating surfaces.
 - Keep ADRs and runbooks for durable decisions and recovery knowledge.
 - Preserve completed `qtx-*` task history as OpenSpec archived changes.

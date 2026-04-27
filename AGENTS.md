@@ -30,6 +30,7 @@ bun run test:watch
 bun run lint
 bun run lint:fix
 bun run typecheck
+bun run openspec:validate
 bun run build
 bun run build:bin
 bun run release:artifacts

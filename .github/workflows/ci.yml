@@ -43,6 +43,7 @@ jobs:
 
       - run: bun install --frozen-lockfile --ignore-scripts --no-progress
       - run: bun run memory:check
+      - run: bun run openspec:validate
       - run: bun run lint
       - run: bun run typecheck
 
