@@ -10,12 +10,13 @@ import { gemini } from '../src/agents/definitions/gemini'
 import { kilo } from '../src/agents/definitions/kilo'
 import { opencode } from '../src/agents/definitions/opencode'
 import { pi } from '../src/agents/definitions/pi'
+import { qoder } from '../src/agents/definitions/qoder'
 import { formatInstallMethodCommand } from '../src/utils/install'
 
 describe('agent registry', () => {
-  it('returns array with at least 9 agents', () => {
+  it('returns array with at least 10 agents', () => {
     const agents = getAllAgents()
-    expect(agents.length).toBeGreaterThanOrEqual(9)
+    expect(agents.length).toBeGreaterThanOrEqual(10)
   })
 
   it('finds agent by name', () => {
@@ -249,6 +250,34 @@ describe('pi', () => {
         expect(['bun', 'npm']).toContain(method.type)
       }
     }
+  })
+})
+
+describe('qoder', () => {
+  it('is registered for lookup by canonical name', () => {
+    expect(getAgentByNameOrAlias('qoder')).toBe(qoder)
+  })
+
+  it('has valid structure', () => {
+    validateAgent(qoder)
+    expect(qoder.name).toBe('qoder')
+    expect(qoder.displayName).toBe('Qoder CLI')
+    expect(qoder.packages?.npm).toBe('@qoder-ai/qodercli')
+    expect(qoder.binaryName).toBe('qodercli')
+    expect(qoder.homepage).toBe('https://docs.qoder.com/cli/quick-start')
+    expect(qoder.selfUpdate?.command).toEqual(['qodercli', 'update'])
+  })
+
+  it('curl install returns correct strings per platform', () => {
+    expect(qoder.platforms.macos!.find(m => m.type === 'script' && m.command.includes('qoder.com/install'))).toBeDefined()
+    expect(qoder.platforms.linux!.find(m => m.type === 'script' && m.command.includes('qoder.com/install'))).toBeDefined()
+    expect(qoder.platforms.windows!.find(m => m.type === 'script')).toBeUndefined()
+  })
+
+  it('brew install returns correct strings per platform', () => {
+    expect(qoder.platforms.macos!.find(m => m.type === 'brew' && m.packageName === 'qoderai/qoder/qodercli' && m.packageTargetKind === 'cask')).toBeDefined()
+    expect(qoder.platforms.linux!.find(m => m.type === 'brew' && m.packageName === 'qoderai/qoder/qodercli' && m.packageTargetKind === 'cask')).toBeDefined()
+    expect(qoder.platforms.windows!.find(m => m.type === 'brew')).toBeUndefined()
   })
 })
 
