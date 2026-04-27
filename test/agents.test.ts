@@ -7,14 +7,15 @@ import { copilot } from '../src/agents/definitions/copilot'
 import { cursor } from '../src/agents/definitions/cursor'
 import { droid } from '../src/agents/definitions/droid'
 import { gemini } from '../src/agents/definitions/gemini'
+import { kilo } from '../src/agents/definitions/kilo'
 import { opencode } from '../src/agents/definitions/opencode'
 import { pi } from '../src/agents/definitions/pi'
 import { formatInstallMethodCommand } from '../src/utils/install'
 
 describe('agent registry', () => {
-  it('returns array with at least 8 agents', () => {
+  it('returns array with at least 9 agents', () => {
     const agents = getAllAgents()
-    expect(agents.length).toBeGreaterThanOrEqual(8)
+    expect(agents.length).toBeGreaterThanOrEqual(9)
   })
 
   it('finds agent by name', () => {
@@ -209,6 +210,27 @@ describe('opencode', () => {
     expect(opencode.platforms.macos!.find(m => m.type === 'brew' && m.packageName === 'anomalyco/tap/opencode')).toBeDefined()
     expect(opencode.platforms.linux!.find(m => m.type === 'brew' && m.packageName === 'anomalyco/tap/opencode')).toBeDefined()
     expect(opencode.platforms.windows!.find(m => m.type === 'brew')).toBeUndefined()
+  })
+})
+
+describe('kilo', () => {
+  it('has valid structure', () => {
+    validateAgent(kilo)
+    expect(kilo.name).toBe('kilo')
+    expect(kilo.lookupAliases).toEqual(['kilocode'])
+    expect(kilo.displayName).toBe('Kilo Code CLI')
+    expect(kilo.packages?.npm).toBe('@kilocode/cli')
+    expect(kilo.binaryName).toBe('kilo')
+    expect(kilo.homepage).toBe('https://kilo.ai/docs/cli')
+    expect(kilo.selfUpdate?.command).toEqual(['kilo', 'upgrade'])
+  })
+
+  it('has only bun/npm methods on all platforms', () => {
+    for (const methods of Object.values(kilo.platforms)) {
+      for (const method of methods!) {
+        expect(['bun', 'npm']).toContain(method.type)
+      }
+    }
   })
 })
 

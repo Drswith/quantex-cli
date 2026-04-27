@@ -1,6 +1,6 @@
 export { agentUpdateProviders, canResolveAgentUpdate, getAgentUpdateFailureHint, getAgentUpdateStrategy, getManualAgentUpdateMessage, resolveAgentUpdateProvider } from './agent-update'
 export type { AgentUpdateContext, AgentUpdateProvider, AgentUpdateStrategy } from './agent-update'
-export { claude, codex, copilot, cursor, droid, gemini, getAgentByLookupName, getAgentByNameOrAlias, getAllAgents, opencode, pi } from './agents'
+export { claude, codex, copilot, cursor, droid, gemini, getAgentByLookupName, getAgentByNameOrAlias, getAllAgents, kilo, opencode, pi } from './agents'
 export type {
   AgentDefinition,
   AgentPackageMetadata,

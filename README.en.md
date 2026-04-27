@@ -16,7 +16,7 @@ Manage AI coding assistant CLIs from one lifecycle-focused command line.
 
 </div>
 
-Quantex is a `human-friendly + agent-friendly` lifecycle CLI for AI coding agents. It gives Claude Code, Codex, Gemini, Cursor, OpenCode, and other assistant CLIs a shared surface for installation, inspection, updates, removal, execution, and machine-readable automation.
+Quantex is a `human-friendly + agent-friendly` lifecycle CLI for AI coding agents. It gives Claude Code, Codex, Gemini, Kilo Code, Cursor, OpenCode, and other assistant CLIs a shared surface for installation, inspection, updates, removal, execution, and machine-readable automation.
 
 ## Why Quantex
 
@@ -154,6 +154,7 @@ quantex upgrade --channel beta
 | Cursor CLI | `quantex cursor` | Cursor AI coding assistant CLI |
 | Droid | `quantex droid` | Factory AI software engineering agent CLI |
 | Gemini CLI | `quantex gemini` | Google's open-source AI coding assistant CLI |
+| Kilo Code CLI | `quantex kilo` | Kilo's official AI coding assistant CLI |
 | OpenCode | `quantex opencode` | Open-source AI coding CLI |
 | Pi | `quantex pi` | Minimal and extensible terminal coding agent |
 
