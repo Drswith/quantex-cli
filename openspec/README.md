@@ -18,7 +18,9 @@ This repository uses OpenSpec and the OPSX workflow for behavior contracts and n
 - use `openspec status --change <name> --json` to inspect which artifacts are ready or missing
 - use `openspec instructions <artifact> --change <name> --json` when an agent needs artifact-specific guidance
 - use `/opsx:apply` or equivalent to implement tasks while updating artifacts as learning happens
-- after the PR lands, specs are synced, and validation passes, use `/opsx:archive` or `openspec archive <name> --yes`
+- after the implementation PR lands, the change is still only "implemented"
+- treat the change as fully "done" only after specs are synced and `/opsx:archive` or `openspec archive <name> --yes` has moved it into `openspec/changes/archive/`
+- protected branches should close that final gap through an archive follow-up PR rather than relying on memory
 
 Prefer the official OpenSpec CLI or slash commands when available. This repository should store OpenSpec artifacts, not grow custom project-management commands unless they directly serve Quantex users.
 
@@ -49,5 +51,6 @@ Archive timing:
 - do not archive an active change before its implementation PR has merged
 - sync any accepted spec delta into `openspec/specs/` before archiving
 - run `bun run openspec:validate` before and after archive operations
+- on `main` and `beta`, the repository should open an archive follow-up PR for completed active changes so merge/release success does not leave project memory half-closed
 
 Small fixes that do not alter behavior contracts can still go directly through GitHub Issue/PR review without an OpenSpec change.
