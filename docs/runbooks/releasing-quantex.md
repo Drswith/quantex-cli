@@ -125,7 +125,7 @@ Release PRs are created by the configured release GitHub App. If GitHub marks a 
 
 For the non-interactive release flow, configure a dedicated GitHub App installation token:
 
-- `RELEASE_APP_ID` stores the GitHub App ID.
+- `RELEASE_APP_CLIENT_ID` stores the GitHub App client ID.
 - `RELEASE_APP_PRIVATE_KEY` stores the GitHub App private key PEM.
 - `.github/workflows/release.yml` uses `actions/create-github-app-token` to create or update Release PRs, create releases, and upload artifacts.
 - `.github/workflows/release-pr-automerge.yml` uses the same GitHub App token to enable auto-merge for validated Release PRs.

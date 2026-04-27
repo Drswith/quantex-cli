@@ -38,7 +38,7 @@ The release-please Release PR flow needs a real bot identity so generated Releas
 
 - GitHub issue: https://github.com/Drswith/quantex-cli/issues/37
 - Create GitHub App `quantex-cli-release-bot`.
-- Store `RELEASE_APP_ID` and `RELEASE_APP_PRIVATE_KEY` as repository secrets.
+- Store `RELEASE_APP_CLIENT_ID` and `RELEASE_APP_PRIVATE_KEY` as repository secrets.
 - Update release workflows to use `actions/create-github-app-token`.
 - Remove `RELEASE_PLEASE_TOKEN` and `RELEASE_AUTOMERGE_TOKEN` from the normal documented path.
 
@@ -50,7 +50,7 @@ The release-please Release PR flow needs a real bot identity so generated Releas
 
 ## Verification Notes
 
-- Repository secrets `RELEASE_APP_ID` and `RELEASE_APP_PRIVATE_KEY` were configured.
+- Repository secrets `RELEASE_APP_CLIENT_ID` and `RELEASE_APP_PRIVATE_KEY` were configured.
 - Local validation passed: `bun run memory:check`, `bun run lint`, `bun run typecheck`.
 - GitHub PR validation and a post-merge Release workflow run must confirm the App token works end to end.
 
