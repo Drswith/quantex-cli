@@ -1,10 +1,10 @@
 import { describe, expect, it } from 'vitest'
-import { codex, copilot, createUpdatePlan, cursor, droid, gemini, getAgentByLookupName, getAgentByNameOrAlias, getAllAgents, inspectAgent, opencode, pi } from '../src/index'
+import { codex, copilot, createUpdatePlan, cursor, droid, gemini, getAgentByLookupName, getAgentByNameOrAlias, getAllAgents, inspectAgent, kilo, opencode, pi } from '../src/index'
 
 describe('agent registry', () => {
   it('returns all agents', () => {
     const agents = getAllAgents()
-    expect(agents.length).toBeGreaterThanOrEqual(8)
+    expect(agents.length).toBeGreaterThanOrEqual(9)
   })
 
   it('finds agent by name', () => {
@@ -21,6 +21,11 @@ describe('agent registry', () => {
   it('re-exports lookup-based resolution', () => {
     const agent = getAgentByLookupName('agent')
     expect(agent?.name).toBe('cursor')
+  })
+
+  it('resolves Kilo by published alias', () => {
+    const agent = getAgentByLookupName('kilocode')
+    expect(agent?.name).toBe('kilo')
   })
 })
 
@@ -50,12 +55,21 @@ describe('agent definitions', () => {
     expect(agent!.binaryName).toBe('opencode')
   })
 
+  it('kilo has correct structure', () => {
+    const agent = getAgentByNameOrAlias('kilo')
+    expect(agent).toBeDefined()
+    expect(agent!.displayName).toBe('Kilo Code CLI')
+    expect(agent!.packages?.npm).toBe('@kilocode/cli')
+    expect(agent!.binaryName).toBe('kilo')
+  })
+
   it('re-exports all built-in agents from root index', () => {
     expect(codex.name).toBe('codex')
     expect(copilot.name).toBe('copilot')
     expect(cursor.name).toBe('cursor')
     expect(droid.name).toBe('droid')
     expect(gemini.name).toBe('gemini')
+    expect(kilo.name).toBe('kilo')
     expect(opencode.name).toBe('opencode')
     expect(pi.name).toBe('pi')
   })
