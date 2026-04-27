@@ -3,9 +3,7 @@
 ## Purpose
 
 Define how Quantex stores durable discussion outcomes, operational knowledge, and change history inside the repository.
-
 ## Requirements
-
 ### Requirement: Repo-native canonical memory
 
 The project SHALL store long-lived project memory in versioned repository artifacts instead of relying on session memory alone.
