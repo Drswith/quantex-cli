@@ -5,7 +5,6 @@ export const cursor: AgentDefinition = {
   name: 'cursor',
   lookupAliases: ['agent'],
   displayName: 'Cursor CLI',
-  description: 'Cursor AI 编程助手命令行工具',
   homepage: 'https://cursor.com/docs/cli',
   binaryName: 'agent',
   selfUpdate: {

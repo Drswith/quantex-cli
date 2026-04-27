@@ -4,7 +4,6 @@ import { brewInstall, bunInstall, npmInstall, scriptInstall } from '../methods'
 export const opencode: AgentDefinition = {
   name: 'opencode',
   displayName: 'OpenCode',
-  description: '开源 AI 编程 CLI',
   homepage: 'https://opencode.ai',
   packages: {
     npm: 'opencode-ai',

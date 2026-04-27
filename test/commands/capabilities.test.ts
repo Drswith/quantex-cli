@@ -35,7 +35,6 @@ describe('capabilitiesCommand', () => {
     allAgentsSpy.mockReturnValue([
       {
         binaryName: 'claude',
-        description: 'Claude Code',
         displayName: 'Claude Code',
         homepage: 'https://example.com/claude',
         name: 'claude',
@@ -43,7 +42,6 @@ describe('capabilitiesCommand', () => {
       } as any,
       {
         binaryName: 'codex',
-        description: 'Codex',
         displayName: 'Codex',
         homepage: 'https://example.com/codex',
         name: 'codex',

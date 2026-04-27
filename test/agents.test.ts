@@ -39,7 +39,6 @@ function validateAgent(agent: AgentDefinition): void {
   expect(agent.name).toBeTruthy()
   expect(agent.lookupAliases ?? []).toBeInstanceOf(Array)
   expect(agent.displayName).toBeTruthy()
-  expect(agent.description).toBeTruthy()
   expect(agent.homepage).toMatch(/^https:\/\//)
   expect(agent.binaryName).toBeTruthy()
   if (agent.selfUpdate) {

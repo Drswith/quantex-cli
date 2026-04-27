@@ -46,7 +46,6 @@ export interface AgentDefinition {
   name: string
   lookupAliases?: string[]
   displayName: string
-  description: string
   homepage: string
   packages?: AgentPackageMetadata
   platforms: Partial<Record<Platform, InstallMethod[]>>

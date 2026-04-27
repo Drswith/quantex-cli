@@ -13,6 +13,7 @@ This repository uses OpenSpec and the OPSX workflow for behavior contracts and n
 
 ## Working rule
 
+- before implementation or file edits, classify the work through the intake gate
 - use `/opsx:explore` or equivalent for open-ended investigation
 - use `/opsx:propose` or `openspec new change <name>` for non-trivial behavior or durable-process changes
 - use `openspec status --change <name> --json` to inspect which artifacts are ready or missing
@@ -23,6 +24,21 @@ This repository uses OpenSpec and the OPSX workflow for behavior contracts and n
 - protected branches should close that final gap through an archive follow-up PR rather than relying on memory
 
 Prefer the official OpenSpec CLI or slash commands when available. This repository should store OpenSpec artifacts, not grow custom project-management commands unless they directly serve Quantex users.
+
+## Intake gate
+
+Implementation requests must be classified before editing files. User wording such as “start”, “land this”, “continue”, “until complete”, or “just implement it” is not permission to skip OpenSpec.
+
+Create or select an OpenSpec change first when the work affects:
+
+- observable CLI behavior
+- stable structured output, schema, command catalog, or machine-readable contract
+- agent catalog fields, install/update metadata, version probes, or execution semantics
+- configuration, state, cache, release, publishing, or upgrade behavior
+- architecture boundaries or durable workflow rules
+- product-facing documentation that changes user expectations
+
+OpenSpec is optional only for typo fixes, formatting-only edits, small wording cleanup with no product/process meaning change, mechanical no-behavior maintenance, or test-only cleanup that does not redefine expected behavior. If an agent skips OpenSpec, it should briefly state that classification before proceeding.
 
 The CLI is pinned as a project dev dependency. Use the repo scripts instead of relying on a global install:
 

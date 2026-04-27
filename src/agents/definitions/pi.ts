@@ -4,7 +4,6 @@ import { bunInstall, npmInstall } from '../methods'
 export const pi: AgentDefinition = {
   name: 'pi',
   displayName: 'Pi',
-  description: '极简可扩展的终端编程 Agent',
   homepage: 'https://pi.dev',
   packages: {
     npm: '@mariozechner/pi-coding-agent',

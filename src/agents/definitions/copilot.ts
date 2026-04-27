@@ -4,7 +4,6 @@ import { brewInstall, bunInstall, npmInstall, scriptInstall, wingetInstall } fro
 export const copilot: AgentDefinition = {
   name: 'copilot',
   displayName: 'GitHub Copilot CLI',
-  description: 'GitHub Copilot 命令行工具',
   homepage: 'https://github.com/features/copilot/cli',
   packages: {
     npm: '@github/copilot',

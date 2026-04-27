@@ -35,7 +35,6 @@ const testAgent = {
   name: 'test-agent',
   lookupAliases: ['ta'],
   displayName: 'Test Agent',
-  description: 'test',
   homepage: 'https://example.com',
   packages: { npm: 'test-pkg' },
   binaryName: 'test-bin',
