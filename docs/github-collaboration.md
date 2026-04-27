@@ -77,7 +77,7 @@ Release notes are tracked in [CHANGELOG.md](../CHANGELOG.md), summarized in [doc
 
 The npm publish step uses GitHub Actions trusted publishing with OIDC rather than a long-lived `NPM_TOKEN`, so npm trusted publisher settings should point at `.github/workflows/release.yml`.
 
-For full unattended publishing, configure the release GitHub App secrets `RELEASE_APP_ID` and `RELEASE_APP_PRIVATE_KEY`. The workflows use `actions/create-github-app-token` to mint short-lived installation tokens for Release PR creation, Release PR auto-merge, GitHub Release creation, and artifact upload.
+For full unattended publishing, configure the release GitHub App secrets `RELEASE_APP_CLIENT_ID` and `RELEASE_APP_PRIVATE_KEY`. The workflows use `actions/create-github-app-token` to mint short-lived installation tokens for Release PR creation, Release PR auto-merge, GitHub Release creation, and artifact upload.
 
 Avoid using `GITHUB_TOKEN` as the normal release identity because GitHub suppresses many workflow events created by `GITHUB_TOKEN`, which can leave generated Release PR checks in `action_required`.
 
