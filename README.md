@@ -27,8 +27,8 @@
 - [docs/runbooks/](./docs/runbooks/)
 - [docs/sessions/](./docs/sessions/)
 - [docs/github-collaboration.md](./docs/github-collaboration.md)
-- [autonomy/README.md](./autonomy/README.md)
 - [openspec/README.md](./openspec/README.md)
+- [OpenSpec archived QTX task history](./openspec/changes/archive/qtx-task-history.md)
 
 迁移期遗留文档的归档位置和映射关系见 [docs/project-memory-migration.md](./docs/project-memory-migration.md)。
 

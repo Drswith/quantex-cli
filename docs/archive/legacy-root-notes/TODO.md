@@ -1,7 +1,7 @@
 # TODO
 
 > Migration status: frozen snapshot.
-> New work should be added to [autonomy/queue.md](/Users/drs/workspaces/personal/quantex-cli/autonomy/queue.md) and [autonomy/tasks/](/Users/drs/workspaces/personal/quantex-cli/autonomy/tasks/), not to this file.
+> New work should be added to GitHub issues or OpenSpec changes, not to this file. The old task history now lives in [OpenSpec archives](/Users/drs/workspaces/personal/quantex-cli/openspec/changes/archive/qtx-task-history.md).
 
 ## Current Status
 

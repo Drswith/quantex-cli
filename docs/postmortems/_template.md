@@ -33,4 +33,4 @@ What was the actual cause, not just the symptom?
 - ADRs
 - runbooks
 - tests
-- autonomy policy
+- project memory policy

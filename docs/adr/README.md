@@ -2,7 +2,7 @@
 
 Architecture Decision Records capture durable design or scope decisions that future contributors and agents need to understand.
 
-Use `bun run adr:new -- --title "Decision title"` to scaffold a new ADR with the next available number.
+Create ADRs from [0000-template.md](./0000-template.md). Keep ADR authoring simple and avoid adding project-local scaffolding commands unless they become part of Quantex's user-facing product.
 
 Use an ADR when:
 

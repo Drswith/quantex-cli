@@ -1,7 +1,7 @@
 # Human + Agent 双模 CLI Implementation Checklist / Issue Backlog
 
 > Migration status: frozen snapshot.
-> The executable backlog now lives in [autonomy/queue.md](/Users/drs/workspaces/personal/quantex-cli/autonomy/queue.md) and [autonomy/tasks/](/Users/drs/workspaces/personal/quantex-cli/autonomy/tasks/). Keep this file as historical context rather than adding new work here.
+> New executable work should be tracked with GitHub issues or OpenSpec changes. The old task history now lives in [OpenSpec archives](/Users/drs/workspaces/personal/quantex-cli/openspec/changes/archive/qtx-task-history.md). Keep this file as historical context rather than adding new work here.
 
 > 本文档基于以下讨论文档整理：
 >

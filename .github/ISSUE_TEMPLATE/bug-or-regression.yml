@@ -53,8 +53,8 @@ body:
     id: linked-artifacts
     attributes:
       label: Linked artifacts
-      description: Paste any related runbook, issue, task, ADR, OpenSpec, or discussion link.
-      placeholder: 'docs/runbooks/... or autonomy/tasks/... or https://github.com/.../issues/...'
+      description: Paste any related runbook, issue, ADR, OpenSpec, or discussion link.
+      placeholder: 'docs/runbooks/... or openspec/changes/... or https://github.com/.../issues/...'
   - type: checkboxes
     id: checklist
     attributes:

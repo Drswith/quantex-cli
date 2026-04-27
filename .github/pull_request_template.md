@@ -22,14 +22,13 @@ Describe the change and why it exists.
 
 - [ ] Not needed
 - [ ] `docs/...`
-- [ ] `autonomy/...`
 - [ ] `openspec/...`
 - [ ] Follow-up task created instead
 
 ## Scope Check
 
 - [ ] I did not add a new ad hoc root-level Markdown file.
-- [ ] I updated the relevant task, ADR, spec, runbook, or captured the missing doc work as follow-up.
+- [ ] I updated the relevant issue, ADR, spec, runbook, or captured the missing doc work as follow-up.
 - [ ] I did not silently expand project scope without recording it explicitly.
 
 ## Notes

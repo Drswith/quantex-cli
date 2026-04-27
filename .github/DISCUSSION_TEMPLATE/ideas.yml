@@ -5,7 +5,7 @@ body:
   - type: markdown
     attributes:
       value: |
-        Use this category for exploratory product or implementation ideas before they harden into an issue, task, ADR, or OpenSpec change.
+        Use this category for exploratory product or implementation ideas before they harden into an issue, ADR, or OpenSpec change.
   - type: textarea
     id: context
     attributes:
@@ -35,6 +35,6 @@ body:
     attributes:
       label: Likely promotion path
       description: If this converges, what durable artifact should follow?
-      placeholder: Session summary, issue, autonomy task, ADR, OpenSpec change, runbook ...
+      placeholder: Session summary, issue, ADR, OpenSpec change, runbook ...
     validations:
       required: true
