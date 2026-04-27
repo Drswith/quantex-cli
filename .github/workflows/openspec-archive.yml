@@ -1,0 +1,141 @@
+name: OpenSpec Archive
+
+on:
+  push:
+    branches:
+      - main
+      - beta
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+
+concurrency:
+  group: openspec-archive-${{ github.ref_name }}
+  cancel-in-progress: false
+
+jobs:
+  archive-completed-changes:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Create release bot token
+        id: release-bot-token
+        uses: actions/create-github-app-token@v3
+        with:
+          client-id: ${{ secrets.RELEASE_APP_CLIENT_ID }}
+          private-key: ${{ secrets.RELEASE_APP_PRIVATE_KEY }}
+
+      - name: Checkout source
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ steps.release-bot-token.outputs.token }}
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile --ignore-scripts --no-progress
+
+      - name: Detect completed changes
+        id: detect
+        run: |
+          json=$(bun run scripts/archive-completed-openspec-changes.ts --check)
+          echo "$json"
+          echo "summary=$json" >> "$GITHUB_OUTPUT"
+          count=$(node -e "const data = JSON.parse(process.argv[1]); process.stdout.write(String(data.count))" "$json")
+          echo "count=$count" >> "$GITHUB_OUTPUT"
+
+      - name: Archive completed changes
+        id: archive
+        if: ${{ steps.detect.outputs.count != '0' }}
+        run: |
+          json=$(bun run scripts/archive-completed-openspec-changes.ts --archive)
+          echo "$json"
+          echo "summary=$json" >> "$GITHUB_OUTPUT"
+
+      - name: Validate OpenSpec and project memory
+        if: ${{ steps.detect.outputs.count != '0' }}
+        run: |
+          bun run openspec:validate
+          bun run memory:check
+          git diff --check
+
+      - name: Create archive PR
+        if: ${{ steps.detect.outputs.count != '0' }}
+        env:
+          ARCHIVE_SUMMARY: ${{ steps.archive.outputs.summary }}
+          BASE_BRANCH: ${{ github.ref_name }}
+          GH_TOKEN: ${{ steps.release-bot-token.outputs.token }}
+        run: |
+          branch="opspec/archive-${BASE_BRANCH}"
+          bullets=$(node -e "const data = JSON.parse(process.env.ARCHIVE_SUMMARY); process.stdout.write(data.archivedChanges.map(name => '- OpenSpec: `' + name + '`').join('\n'))")
+          note=$(node -e "const data = JSON.parse(process.env.ARCHIVE_SUMMARY); process.stdout.write(data.archivedChanges.join(', '))")
+
+          git config user.name "quantex-release[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git checkout -B "$branch"
+          git add openspec
+          git commit -m "docs(openspec): archive completed changes" || exit 0
+          git push --force-with-lease origin "$branch"
+
+          existing=$(gh pr list --head "$branch" --base "$BASE_BRANCH" --state open --json number --jq '.[0].number')
+
+          cat > archive-pr-body.md <<EOF
+          ## Summary
+
+          Archive completed OpenSpec changes after their implementation work has already landed on \`$BASE_BRANCH\`. This keeps \`openspec/changes/\` limited to active work and syncs accepted spec deltas back into the canonical specs.
+
+          ## Linked Artifacts
+
+          - Issue: N/A
+          - ADR: N/A
+          $bullets
+          - Discussion: N/A
+
+          ## Validation
+
+          - [x] \`bun run memory:check\`
+          - [ ] \`bun run lint\`
+          - [ ] \`bun run typecheck\`
+          - [ ] \`bun run test\` (if behavior changed)
+          - [x] Not run, explained below
+
+          ## Docs Updated
+
+          - [ ] Not needed
+          - [ ] \`docs/...\`
+          - [x] \`openspec/...\`
+          - [ ] Follow-up issue or OpenSpec change created instead
+
+          ## Scope Check
+
+          - [x] I did not add a new ad hoc root-level Markdown file.
+          - [x] I updated the relevant issue, ADR, spec, runbook, or captured the missing doc work as follow-up.
+          - [x] I did not silently expand project scope without recording it explicitly.
+
+          ## Notes
+
+          - Auto-generated archive closure PR for completed changes on \`$BASE_BRANCH\`.
+          - Archived changes in this batch: $note
+          - \`lint\`, \`typecheck\`, and \`test\` are delegated to the normal PR CI workflow for this branch.
+          EOF
+
+          body=$(cat archive-pr-body.md)
+
+          if [ -n "$existing" ]; then
+            gh pr edit "$existing" --title "docs(openspec): archive completed changes" --body "$body"
+            pr_number="$existing"
+          else
+            pr_url=$(gh pr create \
+              --base "$BASE_BRANCH" \
+              --head "$branch" \
+              --title "docs(openspec): archive completed changes" \
+              --body "$body")
+            pr_number=$(basename "$pr_url")
+          fi
+
+          gh pr merge "$pr_number" --auto --squash --delete-branch
