@@ -16,7 +16,7 @@
 
 </div>
 
-Quantex 是一个 `human-friendly + agent-friendly` 的 agent lifecycle CLI。它帮你把 Claude Code、Codex、Gemini、Cursor、OpenCode 等 AI 编程助手的生命周期操作统一到一组稳定命令里：人可以直接用，自动化脚本和 coding agent 也可以用结构化输出可靠调用。
+Quantex 是一个 `human-friendly + agent-friendly` 的 agent lifecycle CLI。它帮你把 Claude Code、Codex、Gemini、Kilo Code、Cursor、OpenCode 等 AI 编程助手的生命周期操作统一到一组稳定命令里：人可以直接用，自动化脚本和 coding agent 也可以用结构化输出可靠调用。
 
 ## 为什么用 Quantex
 
@@ -154,6 +154,7 @@ quantex upgrade --channel beta
 | Cursor CLI | `quantex cursor` | Cursor AI 编程助手命令行工具 |
 | Droid | `quantex droid` | Factory AI 软件工程 Agent CLI |
 | Gemini CLI | `quantex gemini` | Google 开源 AI 编程助手 CLI |
+| Kilo Code CLI | `quantex kilo` | Kilo 官方 AI 编程助手 CLI |
 | OpenCode | `quantex opencode` | 开源 AI 编程 CLI |
 | Pi | `quantex pi` | 极简可扩展的终端编程 Agent |
 
