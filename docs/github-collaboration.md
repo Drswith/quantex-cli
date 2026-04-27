@@ -32,6 +32,7 @@ Use the repository for:
 5. Create a dedicated branch or worktree-backed branch and open a PR.
 6. Merge only after CI, PR governance, and documentation updates are in place.
 7. Update any affected runbooks, specs, or ADRs; if an OpenSpec change lands, merge its delta into `openspec/specs/` and archive or close the change.
+8. Treat "implementation merged" and "OpenSpec archived" as separate closure steps; a non-trivial change is not fully done until the archive follow-up PR merges.
 
 ## Worktree-backed implementation
 
@@ -150,6 +151,8 @@ For non-trivial behavior or durable-process changes, use OPSX actions rather tha
 - propose: create or update OpenSpec artifacts
 - apply: implement tasks and update artifacts as learning happens
 - archive: finalize completed OpenSpec changes after specs are synced
+
+On protected branches, archive closure should normally happen through the repository-managed archive PR flow rather than relying on a human to remember the final step after merge or release.
 
 Agents should use `openspec status --change <id> --json` and `openspec instructions <artifact> --change <id> --json` when they need to determine the next artifact or implementation step.
 

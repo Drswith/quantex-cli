@@ -3,9 +3,7 @@
 ## Purpose
 
 Define the current observable behavior and update contract for installed agent tooling managed by Quantex.
-
 ## Requirements
-
 ### Requirement: Agent update MUST inspect install source and version state
 
 The agent update system SHALL inspect the current install state of an agent before choosing an update path.
@@ -97,3 +95,20 @@ Agent update behavior SHALL be inspectable through user-facing diagnostic comman
 - WHEN the command cannot continue without installation or an explicit install policy
 - THEN Quantex keeps the existing error semantics
 - AND exposes structured guidance that points to `ensure` and a rerun command with `--install if-missing`
+
+### Requirement: Supported agent catalog entries MUST expose verified lifecycle metadata
+
+The supported agent catalog SHALL expose verified canonical names, lookup aliases, install methods, package metadata, binary names, and self-update commands for each newly supported agent when upstream documentation provides them.
+
+#### Scenario: Adding a newly supported agent with documented install and upgrade paths
+
+- **WHEN** Quantex adds support for a newly documented CLI such as Kilo Code CLI
+- **THEN** the catalog entry includes the verified package name, binary name, canonical homepage, and available install methods
+- **AND** the entry exposes any verified self-update command through lifecycle surfaces such as `info`, `list`, and `update`
+
+#### Scenario: Resolving a supported agent by canonical name or published alias
+
+- **WHEN** a user refers to a supported agent by its canonical Quantex name or a published upstream alias
+- **THEN** Quantex resolves the same catalog entry
+- **AND** lifecycle commands operate on that agent without requiring a separate duplicate definition
+

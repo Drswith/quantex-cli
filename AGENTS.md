@@ -271,6 +271,8 @@ type AgentUpdateStrategy = 'managed' | 'self-update' | 'manual-hint'
   - future executable work → GitHub issue
 - Treat discussion notes as an intermediate artifact. Promote stable outcomes into specs, ADRs, runbooks, or GitHub issues.
 - Use OPSX actions for non-trivial changes when supported by the current agent: explore/propose/apply/archive. For CLI-driven work, use `openspec status --json` and `openspec instructions ... --json` to decide the next artifact or implementation step.
+- Treat an OpenSpec-backed change as fully done only after its implementation has merged, its spec delta has been synced, and the change has been archived into `openspec/changes/archive/`.
+- On protected branches, prefer the archive follow-up PR flow instead of leaving completed changes active in `openspec/changes/`.
 - Legacy root markdown files are transition artifacts. Their target homes are tracked in `docs/project-memory-migration.md`.
 - When implementation changes behavior or durable process, update the relevant OpenSpec spec/change, ADR, or runbook in the same change whenever practical.
 
