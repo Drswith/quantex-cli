@@ -84,6 +84,8 @@ Release automation, documentation, and project-memory-only PRs must use non-rele
 
 The stable release-please config currently includes a temporary `last-release-sha` anchor to exclude a historical release-process `feat(release)` commit from stable release calculation. Remove or advance that anchor after the next intentional stable Release PR is merged, because release-please treats `last-release-sha` as an explicit scan boundary until it is changed.
 
+The Release workflow pins `googleapis/release-please-action` to a repository-verified tag instead of floating on the major `v4` tag. Before changing that pin, run a dry run against the repository and confirm it can prepare the expected Release PR without GitHub GraphQL errors.
+
 ## npm trusted publishing
 
 Quantex publishes to npm through GitHub Actions trusted publishing with OIDC. The release workflow must keep `id-token: write` enabled and use a Node/npm version that supports trusted publishing.
