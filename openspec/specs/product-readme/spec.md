@@ -56,4 +56,3 @@ The root README MUST use command examples and supported-agent references that ma
 
 - **WHEN** a user copies an install, inspect, ensure, update, upgrade, or execution example from `README.md`
 - **THEN** the command reflects an existing Quantex command or documented alias.
-

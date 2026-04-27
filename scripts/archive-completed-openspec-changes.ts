@@ -1,3 +1,4 @@
+import { readFileSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 import process from 'node:process'
 
@@ -62,6 +63,19 @@ function printJson(value: CheckSummary | ArchiveSummary): void {
   process.stdout.write(`${JSON.stringify(value)}\n`)
 }
 
+function normalizeMarkdownEof(rootDir: string): void {
+  const glob = new Bun.Glob('**/*.md')
+
+  for (const relativePath of glob.scanSync({ cwd: rootDir })) {
+    const filePath = join(rootDir, relativePath)
+    const contents = readFileSync(filePath, 'utf8')
+    const normalized = contents.replace(/\n+$/u, '\n')
+
+    if (normalized !== contents)
+      writeFileSync(filePath, normalized)
+  }
+}
+
 if (mode === '--check') {
   const changes = getCompletedChanges()
   printJson({
@@ -75,6 +89,8 @@ const archivedChanges = getCompletedChanges()
 
 for (const changeName of archivedChanges)
   runOpenSpec(['archive', '--yes', changeName])
+
+normalizeMarkdownEof(join(process.cwd(), 'openspec'))
 
 printJson({
   archivedChanges,
