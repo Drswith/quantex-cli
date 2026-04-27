@@ -111,4 +111,3 @@ The supported agent catalog SHALL expose verified canonical names, lookup aliase
 - **WHEN** a user refers to a supported agent by its canonical Quantex name or a published upstream alias
 - **THEN** Quantex resolves the same catalog entry
 - **AND** lifecycle commands operate on that agent without requiring a separate duplicate definition
-
