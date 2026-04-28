@@ -2,6 +2,13 @@
 
 This changelog is maintained by release-please Release PRs.
 
+## [0.4.4](https://github.com/Drswith/quantex-cli/compare/v0.4.3...v0.4.4) (2026-04-28)
+
+
+### Bug Fixes
+
+* **config:** upgrade commander and remove c12 ([#95](https://github.com/Drswith/quantex-cli/issues/95)) ([6718b9b](https://github.com/Drswith/quantex-cli/commit/6718b9b24f06c39c8e803e683ff2b292c8a7ae93))
+
 ## [0.4.3](https://github.com/Drswith/quantex-cli/compare/v0.4.2...v0.4.3) (2026-04-28)
 
 
