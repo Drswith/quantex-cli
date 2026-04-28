@@ -2,6 +2,7 @@ import { readFileSync } from 'node:fs'
 import { describe, expect, it } from 'vitest'
 
 const prGovernanceWorkflow = readFileSync('.github/workflows/pr-governance.yml', 'utf8')
+const openspecArchiveWorkflow = readFileSync('.github/workflows/openspec-archive.yml', 'utf8')
 const prTemplate = readFileSync('.github/pull_request_template.md', 'utf8')
 
 describe('pr governance release intent', () => {
@@ -32,5 +33,10 @@ describe('pr governance release intent', () => {
       expect(header).toContain('## Release Intent')
       expect(header).toContain('## Closure Check')
     }
+  })
+
+  it('keeps generated OpenSpec archive PR bodies compatible with required governance headings', () => {
+    expect(openspecArchiveWorkflow).toContain('## Release Intent')
+    expect(openspecArchiveWorkflow).toContain('Release: not applicable - OpenSpec archive closure only')
   })
 })
