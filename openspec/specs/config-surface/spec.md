@@ -1,8 +1,11 @@
 # config-surface Specification
 
 ## Purpose
-TBD - created by archiving change upgrade-commander-assess-c12. Update Purpose after archive.
+
+Define the current observable contract for Quantex user configuration loading and normalization.
+
 ## Requirements
+
 ### Requirement: User config MUST load from quantex config.json
 
 Quantex SHALL load user configuration from `~/.quantex/config.json`, using the current home-directory resolution rules for the active platform.
