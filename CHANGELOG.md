@@ -2,6 +2,13 @@
 
 This changelog is maintained by release-please Release PRs.
 
+## [0.4.3](https://github.com/Drswith/quantex-cli/compare/v0.4.2...v0.4.3) (2026-04-28)
+
+
+### Bug Fixes
+
+* **release:** exclude standalone binaries from managed package ([#91](https://github.com/Drswith/quantex-cli/issues/91)) ([73e9e09](https://github.com/Drswith/quantex-cli/commit/73e9e09d2828b807e67fdc4c2720184ba1feb96a))
+
 ## [0.4.2](https://github.com/Drswith/quantex-cli/compare/v0.4.1...v0.4.2) (2026-04-28)
 
 
