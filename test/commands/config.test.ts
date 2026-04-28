@@ -14,8 +14,6 @@ const originalUserProfile = process.env.USERPROFILE
 
 afterAll(() => {
   loadConfigSpy.mockRestore()
-  process.env.HOME = originalHome
-  process.env.USERPROFILE = originalUserProfile
 })
 
 describe('configCommand', () => {
@@ -30,6 +28,8 @@ describe('configCommand', () => {
 
   afterEach(() => {
     logSpy.mockRestore()
+    process.env.HOME = originalHome
+    process.env.USERPROFILE = originalUserProfile
     if (existsSync(tempDir)) {
       rmSync(tempDir, { recursive: true, force: true })
     }

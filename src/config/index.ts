@@ -1,11 +1,8 @@
 import type { SelfUpdateChannel } from '../self/types'
-import type { Jiti } from 'jiti'
-import { loadConfig as c12LoadConfig } from 'c12'
 import { mkdir, readFile } from 'node:fs/promises'
 import { homedir } from 'node:os'
 import { join } from 'node:path'
 import process from 'node:process'
-import { pathToFileURL } from 'node:url'
 import { normalizeRegistryUrl } from '../utils/registry'
 import { defaultConfig } from './default'
 
@@ -31,24 +28,11 @@ export function getConfigFilePath(): string {
 }
 
 export async function loadConfig(): Promise<QuantexConfig> {
-  const jiti = {
-    import: async (id: string, options?: { default?: boolean }) => {
-      if (id.endsWith('.json')) {
-        return JSON.parse(await readFile(id, 'utf8'))
-      }
+  const normalizedConfig = {
+    ...defaultConfig,
+    ...(await readUserConfig()),
+  } as Record<string, unknown>
 
-      const module = await import(id.startsWith('file:') ? id : pathToFileURL(id).href)
-      return options?.default ? (module.default ?? module) : module
-    },
-  } as unknown as Jiti
-
-  const { config } = await c12LoadConfig({
-    name: 'quantex',
-    defaults: defaultConfig,
-    configFile: getConfigFilePath(),
-    jiti,
-  })
-  const normalizedConfig = config as Record<string, unknown>
   return {
     ...normalizedConfig,
     defaultPackageManager: normalizedConfig.defaultPackageManager === 'npm' ? 'npm' : 'bun',
@@ -74,6 +58,16 @@ export async function saveConfig(config: Record<string, unknown>): Promise<void>
   await Bun.write(getConfigFilePath(), `${JSON.stringify(config, null, 2)}\n`)
 }
 
+async function readUserConfig(): Promise<Record<string, unknown>> {
+  try {
+    const contents = await readFile(getConfigFilePath(), 'utf8')
+    const parsed = JSON.parse(contents) as unknown
+    return isPlainObject(parsed) ? parsed : {}
+  } catch {
+    return {}
+  }
+}
+
 function normalizePositiveInteger(value: unknown, fallback: number): number {
   if (typeof value === 'number' && Number.isInteger(value) && value > 0) return value
 
@@ -83,4 +77,8 @@ function normalizePositiveInteger(value: unknown, fallback: number): number {
   }
 
   return fallback
+}
+
+function isPlainObject(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value)
 }
