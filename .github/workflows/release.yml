@@ -153,6 +153,10 @@ jobs:
         if: ${{ steps.release.outputs.release_created }}
         run: bun run release:smoke
 
+      - name: Verify managed-install package contents
+        if: ${{ steps.release.outputs.release_created }}
+        run: bun run package:check
+
       - name: Publish npm package
         if: ${{ steps.release.outputs.release_created }}
         run: npm publish --access public --ignore-scripts --tag ${{ steps.channel.outputs.npm_tag }}

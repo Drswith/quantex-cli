@@ -66,6 +66,7 @@ When release-please reports that a GitHub Release was created, the workflow:
 - builds binaries
 - generates release artifacts
 - runs `release:smoke`
+- runs `package:check`
 - publishes to npm
 - uploads binaries to the GitHub Release
 
@@ -152,6 +153,7 @@ bun run build
 bun run build:bin
 bun run release:artifacts
 bun run release:smoke
+bun run package:check
 ```
 
 `release:artifacts` must fail if the release manifest is missing any required platform binary:
@@ -161,6 +163,8 @@ bun run release:smoke
 - `quantex-linux-arm64`
 - `quantex-linux-x64`
 - `quantex-windows-x64.exe`
+
+`package:check` must fail if the managed-install tarball still contains any `dist/bin/` entries after `build:bin` has populated standalone release outputs.
 
 ## CI coverage split
 

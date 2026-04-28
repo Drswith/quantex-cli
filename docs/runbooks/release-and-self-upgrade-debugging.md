@@ -9,6 +9,7 @@ Provide a repeatable path for debugging Quantex release artifacts, release metad
 - `quantex upgrade` failed and the failure might be in release metadata, download, checksum, verify, or install-source detection
 - a release build completed but you are not sure whether the publishable binary for the current platform is actually runnable
 - `manifest.json` or `SHA256SUMS.txt` looks suspicious or out of sync with built binaries
+- the npm or Bun install package looks much larger than the JS CLI runtime should require
 - you need to validate a release candidate locally before trusting the GitHub workflow
 
 ## Inputs
@@ -17,6 +18,7 @@ Provide a repeatable path for debugging Quantex release artifacts, release metad
 - `bun run build:bin`
 - `bun run release:artifacts`
 - `bun run release:smoke`
+- `bun run package:check`
 - `quantex upgrade --check`
 - `quantex doctor`
 - `dist/bin/manifest.json`
@@ -30,14 +32,16 @@ Prefer this order:
 
 1. Confirm the current self-upgrade view from the CLI.
 2. Rebuild the local release artifacts.
-3. Verify metadata consistency.
-4. Smoke-check the current runner binary.
-5. Only then debug deeper provider or replacement behavior.
+3. Verify managed-install package contents.
+4. Verify metadata consistency.
+5. Smoke-check the current runner binary.
+6. Only then debug deeper provider or replacement behavior.
 
 Why this order:
 
 - `upgrade --check` and `doctor` tell you whether the problem is visible from the user surface
 - local rebuilds separate release-pipeline bugs from machine-specific state
+- package verification catches accidental npm/bun package bloat before you debug release metadata
 - metadata validation catches manifest and checksum drift before you inspect binary replacement logic
 - smoke validation tells you whether the current platform artifact is actually executable
 
@@ -81,6 +85,7 @@ Run:
 bun run build
 bun run build:bin
 bun run release:artifacts
+bun run package:check
 ```
 
 Expected outputs:
@@ -94,7 +99,27 @@ If this fails:
 - `build:bin` failure usually means the compiled release targets are broken
 - `release:artifacts` failure usually means checksum or manifest generation assumptions no longer match produced files
 
-### 3. Inspect manifest and checksum consistency
+### 3. Verify managed-install package contents
+
+Canonical validator:
+
+```bash
+bun run package:check
+```
+
+What this should guarantee:
+
+- the npm tarball excludes every `dist/bin/` entry even if standalone release binaries exist locally
+- the tarball still contains the runtime CLI files needed by managed installs
+
+Common symptoms and likely causes:
+
+- `dist/bin/...` still appears in the pack output:
+  `package.json#files` or another packaging rule started including standalone release artifacts again
+- missing `dist/cli.mjs`, `dist/index.mjs`, or `scripts/postinstall.cjs`:
+  the packlist was tightened too far and now drops files required by Bun/npm installs
+
+### 4. Inspect manifest and checksum consistency
 
 Canonical validator:
 
@@ -120,7 +145,7 @@ Common symptoms and likely causes:
 - invalid asset name:
   build target naming changed without updating release-artifact parsing
 
-### 4. Smoke-check the current runner binary
+### 5. Smoke-check the current runner binary
 
 Canonical smoke command:
 
@@ -149,7 +174,7 @@ If smoke fails:
 - checksum mismatch means metadata and binary contents drifted
 - `--version` execution failure means the produced binary is not publishable even if metadata looks correct
 
-### 5. Debug binary self-upgrade replacement behavior
+### 6. Debug binary self-upgrade replacement behavior
 
 If metadata and smoke validation are already green, move into runtime replacement debugging.
 
@@ -172,7 +197,7 @@ Focus areas:
 - post-replacement `--version` verification
 - rollback from `.bak` when verification fails
 
-### 6. Debug install-source detection and state drift
+### 7. Debug install-source detection and state drift
 
 If the wrong provider is chosen, inspect install-source detection before touching release code.
 
