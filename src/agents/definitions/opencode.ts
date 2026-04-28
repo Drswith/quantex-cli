@@ -13,10 +13,7 @@ export const opencode: AgentDefinition = {
     command: ['opencode', 'upgrade'],
   },
   platforms: {
-    windows: [
-      bunInstall(),
-      npmInstall(),
-    ],
+    windows: [bunInstall(), npmInstall()],
     macos: [
       bunInstall(),
       npmInstall(),

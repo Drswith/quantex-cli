@@ -30,10 +30,7 @@ export function spawnWithQuantexStdio(command: SpawnCommand, options: SpawnOptio
 
   return {
     cleanup: registerCliCancellationHandler(() => proc.kill?.('SIGTERM')),
-    outputDrained: Promise.all([
-      forwardToStderr(proc.stdout),
-      forwardToStderr(proc.stderr),
-    ]).then(() => {}),
+    outputDrained: Promise.all([forwardToStderr(proc.stdout), forwardToStderr(proc.stderr)]).then(() => undefined),
     proc,
   }
 }
@@ -43,17 +40,14 @@ export async function waitForSpawnedCommand(handle: SpawnHandle): Promise<number
     await handle.proc.exited
     await handle.outputDrained
     return handle.proc.exitCode ?? 1
-  }
-  finally {
+  } finally {
     handle.cleanup()
   }
 }
 
 async function forwardToStderr(stream: unknown): Promise<void> {
-  if (!stream)
-    return
+  if (!stream) return
 
   const output = await new Response(stream as any).text()
-  if (output)
-    process.stderr.write(output)
+  if (output) process.stderr.write(output)
 }

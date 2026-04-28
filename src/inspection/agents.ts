@@ -3,7 +3,12 @@ import type { InstalledAgentState } from '../state'
 import { getOrderedInstallMethods } from '../package-manager'
 import { getInstalledAgentState } from '../state'
 import { isBinaryInPath } from '../utils/detect'
-import { formatInstalledSource, formatUpdateManagement, getInstallLifecycle, getLatestVersionPackage } from '../utils/install'
+import {
+  formatInstalledSource,
+  formatUpdateManagement,
+  getInstallLifecycle,
+  getLatestVersionPackage,
+} from '../utils/install'
 import { getBinaryPath, getInstalledVersion, getLatestVersion } from '../utils/version'
 
 export interface AgentInspection {
@@ -56,8 +61,7 @@ async function getLatestVersionForAgent(
   methods: InstallMethod[],
 ): Promise<string | undefined> {
   const packageName = getLatestVersionPackage(agent, installedState, methods)
-  if (!packageName)
-    return undefined
+  if (!packageName) return undefined
 
   return getLatestVersion(packageName)
 }

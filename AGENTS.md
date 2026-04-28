@@ -13,7 +13,7 @@
 2. 只要改动 observable behavior、durable workflow、project memory 或 product-facing docs，就先选择或创建 OpenSpec change。
 3. 用 `bun run openspec:status -- --change <id>` 和 `bun run openspec:instructions -- <artifact> --change <id>` 确认下一步。
 4. 先做最小闭环实现，再同步更新相关 spec、ADR、session、issue 或 docs。
-5. 改完后至少跑 `bun run lint` 和 `bun run typecheck`；如果动了行为，也跑 `bun run test`。
+5. 改完后至少跑 `bun run lint`、`bun run format:check` 和 `bun run typecheck`；如果动了行为，也跑 `bun run test`。
 6. 结束前报告 validation、OpenSpec、git、commit、push、PR、release、archive closure 状态。
 
 ## Must
@@ -38,6 +38,8 @@
 ```bash
 bun install
 bun run lint
+bun run format
+bun run format:check
 bun run typecheck
 bun run test
 bun run openspec:list
@@ -51,10 +53,11 @@ bun run release:artifacts
 
 触发规则：
 
-- 改了任意文件：跑 `bun run lint` 和 `bun run typecheck`
+- 改了任意文件：跑 `bun run lint`、`bun run format:check` 和 `bun run typecheck`；本地修复用 `bun run lint:fix` 与 `bun run format`
 - 改了 CLI 行为、结构化输出、契约或集成逻辑：再跑 `bun run test`
 - 改了 OpenSpec / docs / project memory 流程：跑 `bun run openspec:validate`，必要时跑 `bun run memory:check`
 - 改了构建、发布、自升级或 release artifacts：补跑 `bun run build`、`bun run build:bin`、`bun run release:artifacts`
+- lint 由 `oxlint` 提供，format 由 `oxfmt` 提供（配置见 `.oxlintrc.json` / `.oxfmtrc.json`）；不要再引入 `eslint`、`@antfu/eslint-config` 或 `prettier`
 
 ## Work Intake Gate
 
@@ -123,6 +126,8 @@ bun run release:artifacts
   `openspec/README.md`、`openspec/config.yaml`、`docs/README.md`、`docs/github-collaboration.md`、`openspec/specs/project-memory/spec.md`
 - 改产品介绍、安装方式、用户理解：
   `README.md`、`README.en.md`、`openspec/specs/product-readme/spec.md`
+- 改 lint / format 工具链、IDE 推荐扩展、pre-commit 钩子：
+  `.oxlintrc.json`、`.oxfmtrc.json`、`package.json` (`scripts`、`lint-staged`、`simple-git-hooks`)、`.vscode/extensions.json`、`.vscode/settings.json`、`openspec/specs/code-quality-tooling/spec.md`
 - 需要真实类型或默认值时，不要复制片段；直接看源码：
   `src/agents/types.ts`、`src/self/types.ts`、`src/config/default.ts`
 

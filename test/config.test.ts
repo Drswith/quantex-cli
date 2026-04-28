@@ -1,12 +1,14 @@
 import { describe, expect, it, vi } from 'vitest'
 
 vi.mock('c12', () => ({
-  loadConfig: vi.fn(() => Promise.resolve({
-    config: {
-      defaultPackageManager: 'bun',
-      npmBunUpdateStrategy: 'latest-major',
-    },
-  })),
+  loadConfig: vi.fn(() =>
+    Promise.resolve({
+      config: {
+        defaultPackageManager: 'bun',
+        npmBunUpdateStrategy: 'latest-major',
+      },
+    }),
+  ),
 }))
 
 describe('defaultConfig', () => {

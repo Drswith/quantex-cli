@@ -19,16 +19,13 @@ const manifest = JSON.parse(manifestContents) as ReleaseManifest
 const checksums = parseChecksums(checksumContents)
 const currentAssetName = getCurrentReleaseAssetName()
 
-if (!currentAssetName)
-  throw new Error(`No release smoke target is defined for ${process.platform}/${process.arch}.`)
+if (!currentAssetName) throw new Error(`No release smoke target is defined for ${process.platform}/${process.arch}.`)
 
 const currentAsset = manifest.assets.find(asset => asset.name === currentAssetName)
-if (!currentAsset)
-  throw new Error(`manifest.json does not contain the current runner asset "${currentAssetName}".`)
+if (!currentAsset) throw new Error(`manifest.json does not contain the current runner asset "${currentAssetName}".`)
 
 const checksum = checksums.get(currentAssetName)
-if (!checksum)
-  throw new Error(`SHA256SUMS.txt does not contain the current runner asset "${currentAssetName}".`)
+if (!checksum) throw new Error(`SHA256SUMS.txt does not contain the current runner asset "${currentAssetName}".`)
 
 if (checksum !== currentAsset.checksum)
   throw new Error(`Checksum mismatch for "${currentAssetName}" between manifest.json and SHA256SUMS.txt.`)
@@ -48,34 +45,33 @@ const [stdout, stderr, exitCode] = await Promise.all([
 ])
 
 if (exitCode !== 0) {
-  throw new Error(`Release smoke check failed for "${currentAssetName}" with exit code ${exitCode}: ${stderr.trim() || 'no stderr output'}`)
+  throw new Error(
+    `Release smoke check failed for "${currentAssetName}" with exit code ${exitCode}: ${stderr.trim() || 'no stderr output'}`,
+  )
 }
 
 if (!stdout.includes(BUILD_VERSION)) {
-  throw new Error(`Release smoke check for "${currentAssetName}" did not report version "${BUILD_VERSION}". Output was: ${stdout.trim() || '(empty)'}`)
+  throw new Error(
+    `Release smoke check for "${currentAssetName}" did not report version "${BUILD_VERSION}". Output was: ${stdout.trim() || '(empty)'}`,
+  )
 }
 
 console.log(`Release smoke check passed for ${currentAssetName} (${BUILD_VERSION}).`)
 
 function getCurrentReleaseAssetName(): string | undefined {
   if (process.platform === 'darwin') {
-    if (process.arch === 'arm64')
-      return 'quantex-darwin-arm64'
+    if (process.arch === 'arm64') return 'quantex-darwin-arm64'
 
-    if (process.arch === 'x64')
-      return 'quantex-darwin-x64'
+    if (process.arch === 'x64') return 'quantex-darwin-x64'
   }
 
   if (process.platform === 'linux') {
-    if (process.arch === 'arm64')
-      return 'quantex-linux-arm64'
+    if (process.arch === 'arm64') return 'quantex-linux-arm64'
 
-    if (process.arch === 'x64')
-      return 'quantex-linux-x64'
+    if (process.arch === 'x64') return 'quantex-linux-x64'
   }
 
-  if (process.platform === 'win32' && process.arch === 'x64')
-    return 'quantex-windows-x64.exe'
+  if (process.platform === 'win32' && process.arch === 'x64') return 'quantex-windows-x64.exe'
 
   return undefined
 }

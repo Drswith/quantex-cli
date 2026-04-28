@@ -11,27 +11,22 @@ const logLevelPriority: Record<LogLevel, number> = {
 }
 
 export function printInfo(message: string): void {
-  if (shouldPrint('info'))
-    process.stdout.write(`${message}\n`)
+  if (shouldPrint('info')) process.stdout.write(`${message}\n`)
 }
 
 export function printWarn(message: string): void {
-  if (shouldPrint('warn'))
-    process.stdout.write(`${message}\n`)
+  if (shouldPrint('warn')) process.stdout.write(`${message}\n`)
 }
 
 export function printError(message: string): void {
-  if (shouldPrint('error'))
-    process.stdout.write(`${message}\n`)
+  if (shouldPrint('error')) process.stdout.write(`${message}\n`)
 }
 
 export function shouldPrint(level: Exclude<LogLevel, 'silent'>): boolean {
   const context = getCliContext()
-  if (context.outputMode !== 'human')
-    return true
+  if (context.outputMode !== 'human') return true
 
-  if (context.quiet && level === 'info')
-    return false
+  if (context.quiet && level === 'info') return false
 
   return logLevelPriority[context.logLevel ?? 'info'] >= logLevelPriority[level]
 }

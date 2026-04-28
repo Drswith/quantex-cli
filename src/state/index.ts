@@ -47,8 +47,7 @@ export async function saveState(state: QuantexState): Promise<void> {
 
   try {
     await writeState(state)
-  }
-  finally {
+  } finally {
     await release()
   }
 }
@@ -59,13 +58,13 @@ export async function getInstalledAgentState(agentName: string): Promise<Install
 }
 
 export async function setInstalledAgentState(agentState: InstalledAgentState): Promise<void> {
-  await mutateState((state) => {
+  await mutateState(state => {
     state.installedAgents[agentState.agentName] = agentState
   })
 }
 
 export async function removeInstalledAgentState(agentName: string): Promise<void> {
-  await mutateState((state) => {
+  await mutateState(state => {
     delete state.installedAgents[agentName]
   })
 }
@@ -76,20 +75,19 @@ export async function getSelfState(): Promise<SelfState> {
 }
 
 export async function setSelfInstallSource(installSource: SelfInstallSource): Promise<void> {
-  await mutateState((state) => {
+  await mutateState(state => {
     state.self.installSource = installSource
   })
 }
 
 async function readState(): Promise<QuantexState> {
   try {
-    const data = await Bun.file(getStateFilePath()).json() as Partial<QuantexState>
+    const data = (await Bun.file(getStateFilePath()).json()) as Partial<QuantexState>
     return {
       installedAgents: data.installedAgents ?? {},
       self: data.self ?? {},
     }
-  }
-  catch {
+  } catch {
     return { ...defaultState }
   }
 }
@@ -109,8 +107,7 @@ async function mutateState(mutator: (state: QuantexState) => void | Promise<void
     const state = await readState()
     await mutator(state)
     await writeState(state)
-  }
-  finally {
+  } finally {
     await release()
   }
 }

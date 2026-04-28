@@ -13,19 +13,8 @@ export const codex: AgentDefinition = {
     command: ['codex', '--upgrade'],
   },
   platforms: {
-    windows: [
-      bunInstall(),
-      npmInstall(),
-    ],
-    macos: [
-      bunInstall(),
-      npmInstall(),
-      brewInstall('codex'),
-    ],
-    linux: [
-      bunInstall(),
-      npmInstall(),
-      brewInstall('codex'),
-    ],
+    windows: [bunInstall(), npmInstall()],
+    macos: [bunInstall(), npmInstall(), brewInstall('codex')],
+    linux: [bunInstall(), npmInstall(), brewInstall('codex')],
   },
 }

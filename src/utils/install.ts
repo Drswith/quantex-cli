@@ -1,30 +1,34 @@
 import type { AgentDefinition, InstallMethod, PackageTargetKind } from '../agents/types'
 import type { InstalledAgentState } from '../state'
 import { getAgentUpdateStrategy } from '../agent-update'
-import { canLookupLatestVersionForInstallType, canUpdateInstallType, getInstallLifecycle, isManagedInstallType } from '../package-manager/capabilities'
+import {
+  canLookupLatestVersionForInstallType,
+  canUpdateInstallType,
+  getInstallLifecycle,
+  isManagedInstallType,
+} from '../package-manager/capabilities'
 
 function formatPackageTarget(packageName?: string, packageTargetKind?: PackageTargetKind): string {
-  if (!packageName)
-    return ''
+  if (!packageName) return ''
 
-  if (packageTargetKind === 'cask')
-    return ` (${packageName} cask)`
+  if (packageTargetKind === 'cask') return ` (${packageName} cask)`
 
-  if (packageTargetKind === 'id')
-    return ` (${packageName} id)`
+  if (packageTargetKind === 'id') return ` (${packageName} id)`
 
   return ` (${packageName})`
 }
 
 export { canUpdateInstallType, getInstallLifecycle, isManagedInstallType } from '../package-manager/capabilities'
 
-export function getManagedPackageName(agent: Pick<AgentDefinition, 'packages'>, method: Pick<InstallMethod, 'packageName'>): string | undefined {
+export function getManagedPackageName(
+  agent: Pick<AgentDefinition, 'packages'>,
+  method: Pick<InstallMethod, 'packageName'>,
+): string | undefined {
   return method.packageName || agent.packages?.npm || undefined
 }
 
 export function canUpdateInstalledState(state?: Pick<InstalledAgentState, 'installType'>): boolean {
-  if (!state)
-    return false
+  if (!state) return false
 
   return canUpdateInstallType(state.installType)
 }
@@ -44,25 +48,26 @@ export function canLookupLatestVersionForMethods(methods: Pick<InstallMethod, 't
   return methods.length > 0 && methods.every(method => canLookupLatestVersionForInstallType(method.type))
 }
 
-export function formatInstallMethodLabel(method: Pick<InstallMethod, 'type' | 'packageName' | 'packageTargetKind'>): string {
+export function formatInstallMethodLabel(
+  method: Pick<InstallMethod, 'type' | 'packageName' | 'packageTargetKind'>,
+): string {
   if (isManagedInstallType(method.type))
     return `${getInstallLifecycle(method.type)}/${method.type}${formatPackageTarget(method.packageName, method.packageTargetKind)}`
 
-  if (method.type === 'script')
-    return 'unmanaged/script'
+  if (method.type === 'script') return 'unmanaged/script'
 
   return 'unmanaged/binary'
 }
 
-export function formatInstalledSource(state?: Pick<InstalledAgentState, 'installType' | 'packageName' | 'packageTargetKind'>): string {
-  if (!state)
-    return 'detected in PATH'
+export function formatInstalledSource(
+  state?: Pick<InstalledAgentState, 'installType' | 'packageName' | 'packageTargetKind'>,
+): string {
+  if (!state) return 'detected in PATH'
 
   if (isManagedInstallType(state.installType))
     return `managed via ${state.installType}${formatPackageTarget(state.packageName, state.packageTargetKind)}`
 
-  if (state.installType === 'script')
-    return 'script installer'
+  if (state.installType === 'script') return 'script installer'
 
   return 'binary installer'
 }
@@ -77,11 +82,9 @@ export function formatUpdateManagement(
     methods: [],
   })
 
-  if (strategy === 'managed')
-    return 'managed update'
+  if (strategy === 'managed') return 'managed update'
 
-  if (strategy === 'self-update')
-    return 'command update'
+  if (strategy === 'self-update') return 'command update'
 
   return 'manual update'
 }
@@ -98,8 +101,7 @@ export function formatInstallMethodCommand(agent: Pick<AgentDefinition, 'package
   }
 
   if (method.type === 'brew') {
-    if (!method.packageName)
-      return ''
+    if (!method.packageName) return ''
     return method.packageTargetKind === 'cask'
       ? `brew install --cask ${method.packageName}`
       : `brew install ${method.packageName}`
@@ -118,14 +120,12 @@ export function getLatestVersionPackage(
   methods: Pick<InstallMethod, 'type'>[],
 ): string | undefined {
   if (state) {
-    if (!canLookupLatestVersionForState(state))
-      return undefined
+    if (!canLookupLatestVersionForState(state)) return undefined
 
     return state.packageName || agent.packages?.npm || undefined
   }
 
-  if (!agent.packages?.npm || !canLookupLatestVersionForMethods(methods))
-    return undefined
+  if (!agent.packages?.npm || !canLookupLatestVersionForMethods(methods)) return undefined
 
   return agent.packages.npm
 }

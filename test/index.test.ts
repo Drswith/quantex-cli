@@ -1,5 +1,19 @@
 import { describe, expect, it } from 'vitest'
-import { codex, copilot, createUpdatePlan, cursor, droid, gemini, getAgentByLookupName, getAgentByNameOrAlias, getAllAgents, inspectAgent, kilo, opencode, pi } from '../src/index'
+import {
+  codex,
+  copilot,
+  createUpdatePlan,
+  cursor,
+  droid,
+  gemini,
+  getAgentByLookupName,
+  getAgentByNameOrAlias,
+  getAllAgents,
+  inspectAgent,
+  kilo,
+  opencode,
+  pi,
+} from '../src/index'
 
 describe('agent registry', () => {
   it('returns all agents', () => {

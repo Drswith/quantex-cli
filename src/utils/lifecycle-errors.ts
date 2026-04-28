@@ -4,7 +4,7 @@ import type { ResourceLockError } from './lock'
 export function createResourceLockedError(
   error: ResourceLockError,
   target?: CommandTarget,
-): { error: CommandError, target?: CommandTarget } {
+): { error: CommandError; target?: CommandTarget } {
   return {
     error: {
       code: 'RESOURCE_LOCKED',

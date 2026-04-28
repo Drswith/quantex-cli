@@ -7,15 +7,15 @@ const prTemplate = readFileSync('.github/pull_request_template.md', 'utf8')
 
 describe('pr governance release intent', () => {
   it('requires a release intent section in PR bodies', () => {
-    expect(prGovernanceWorkflow).toContain('\'## Release Intent\'')
+    expect(prGovernanceWorkflow).toContain("'## Release Intent'")
     expect(prTemplate).toContain('## Release Intent')
   })
 
   it('guards product-impacting files from silently skipping release automation', () => {
     expect(prGovernanceWorkflow).toContain('Validate product release intent')
-    expect(prGovernanceWorkflow).toContain('headBranch.startsWith(\'release-please--branches--\')')
-    expect(prGovernanceWorkflow).toContain('fileName.startsWith(\'src/\')')
-    expect(prGovernanceWorkflow).toContain('fileName.startsWith(\'skills/quantex-cli/\')')
+    expect(prGovernanceWorkflow).toContain("headBranch.startsWith('release-please--branches--')")
+    expect(prGovernanceWorkflow).toContain("fileName.startsWith('src/')")
+    expect(prGovernanceWorkflow).toContain("fileName.startsWith('skills/quantex-cli/')")
     expect(prGovernanceWorkflow).toContain('Release: not applicable - <reason>')
   })
 

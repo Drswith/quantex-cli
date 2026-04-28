@@ -24,9 +24,7 @@ afterEach(() => {
 describe('bun install', () => {
   it('returns true on success', async () => {
     const { install } = await import('../../src/package-manager/bun')
-    mockSpawn
-      .mockReturnValueOnce(createProc(0))
-      .mockReturnValueOnce(createProc(0, ''))
+    mockSpawn.mockReturnValueOnce(createProc(0)).mockReturnValueOnce(createProc(0, ''))
     expect(await install('some-package')).toBe(true)
     expect(mockSpawn).toHaveBeenCalledWith(['bun', 'add', '-g', 'some-package'], expect.any(Object))
     expect(mockSpawn).toHaveBeenCalledWith(['bun', 'pm', '-g', 'untrusted'], expect.any(Object))
@@ -53,18 +51,14 @@ describe('bun install', () => {
 describe('bun update', () => {
   it('uses latest-major strategy by default', async () => {
     const { update } = await import('../../src/package-manager/bun')
-    mockSpawn
-      .mockReturnValueOnce(createProc(0))
-      .mockReturnValueOnce(createProc(0, ''))
+    mockSpawn.mockReturnValueOnce(createProc(0)).mockReturnValueOnce(createProc(0, ''))
     expect(await update('some-package')).toBe(true)
     expect(mockSpawn).toHaveBeenCalledWith(['bun', 'update', '-g', '--latest', 'some-package'], expect.any(Object))
   })
 
   it('supports respect-semver strategy', async () => {
     const { update } = await import('../../src/package-manager/bun')
-    mockSpawn
-      .mockReturnValueOnce(createProc(0))
-      .mockReturnValueOnce(createProc(0, ''))
+    mockSpawn.mockReturnValueOnce(createProc(0)).mockReturnValueOnce(createProc(0, ''))
     expect(await update('some-package', 'respect-semver')).toBe(true)
     expect(mockSpawn).toHaveBeenCalledWith(['bun', 'update', '-g', 'some-package'], expect.any(Object))
   })
@@ -90,18 +84,17 @@ describe('bun update', () => {
 describe('bun updateMany', () => {
   it('uses latest-major strategy by default', async () => {
     const { updateMany } = await import('../../src/package-manager/bun')
-    mockSpawn
-      .mockReturnValueOnce(createProc(0))
-      .mockReturnValueOnce(createProc(0, ''))
+    mockSpawn.mockReturnValueOnce(createProc(0)).mockReturnValueOnce(createProc(0, ''))
     expect(await updateMany(['some-package', 'other-package'])).toBe(true)
-    expect(mockSpawn).toHaveBeenCalledWith(['bun', 'update', '-g', '--latest', 'some-package', 'other-package'], expect.any(Object))
+    expect(mockSpawn).toHaveBeenCalledWith(
+      ['bun', 'update', '-g', '--latest', 'some-package', 'other-package'],
+      expect.any(Object),
+    )
   })
 
   it('supports respect-semver strategy', async () => {
     const { updateMany } = await import('../../src/package-manager/bun')
-    mockSpawn
-      .mockReturnValueOnce(createProc(0))
-      .mockReturnValueOnce(createProc(0, ''))
+    mockSpawn.mockReturnValueOnce(createProc(0)).mockReturnValueOnce(createProc(0, ''))
     expect(await updateMany(['some-package', 'other-package'], 'respect-semver')).toBe(true)
     expect(mockSpawn).toHaveBeenCalledWith(['bun', 'update', '-g', 'some-package', 'other-package'], expect.any(Object))
   })
@@ -110,12 +103,17 @@ describe('bun updateMany', () => {
     const { updateMany } = await import('../../src/package-manager/bun')
     mockSpawn
       .mockReturnValueOnce(createProc(0))
-      .mockReturnValueOnce(createProc(0, [
-        './node_modules/some-package @1.0.0',
-        ' » [postinstall]: node install.cjs',
-        './node_modules/unrelated-package @1.0.0',
-        ' » [postinstall]: node scripts/postinstall.js',
-      ].join('\n')))
+      .mockReturnValueOnce(
+        createProc(
+          0,
+          [
+            './node_modules/some-package @1.0.0',
+            ' » [postinstall]: node install.cjs',
+            './node_modules/unrelated-package @1.0.0',
+            ' » [postinstall]: node scripts/postinstall.js',
+          ].join('\n'),
+        ),
+      )
       .mockReturnValueOnce(createProc(0))
 
     expect(await updateMany(['some-package', 'other-package'])).toBe(true)

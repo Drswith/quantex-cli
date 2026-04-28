@@ -31,39 +31,47 @@ interface UpdateResultItem {
   strategy?: string
 }
 
-export async function updateCommand(agentName: string | undefined, all: boolean): Promise<CommandResult<UpdateCommandData>> {
-  if (all)
-    return updateAllAgents()
+export async function updateCommand(
+  agentName: string | undefined,
+  all: boolean,
+): Promise<CommandResult<UpdateCommandData>> {
+  if (all) return updateAllAgents()
 
   if (!agentName) {
-    return emitCommandResult(createErrorResult<UpdateCommandData>({
-      action: 'update',
-      error: {
-        code: 'INVALID_ARGUMENT',
-        message: 'Please specify an agent name or use --all flag',
-      },
-      target: {
-        kind: 'agent',
-      },
-    }), renderUpdateHuman)
+    return emitCommandResult(
+      createErrorResult<UpdateCommandData>({
+        action: 'update',
+        error: {
+          code: 'INVALID_ARGUMENT',
+          message: 'Please specify an agent name or use --all flag',
+        },
+        target: {
+          kind: 'agent',
+        },
+      }),
+      renderUpdateHuman,
+    )
   }
 
   const agent = resolveAgent(agentName)
   if (!agent) {
-    return emitCommandResult(createErrorResult<UpdateCommandData>({
-      action: 'update',
-      error: {
-        code: 'AGENT_NOT_FOUND',
-        details: {
-          input: agentName,
+    return emitCommandResult(
+      createErrorResult<UpdateCommandData>({
+        action: 'update',
+        error: {
+          code: 'AGENT_NOT_FOUND',
+          details: {
+            input: agentName,
+          },
+          message: `Unknown agent: ${agentName}`,
         },
-        message: `Unknown agent: ${agentName}`,
-      },
-      target: {
-        kind: 'agent',
-        name: agentName,
-      },
-    }), renderUpdateHuman)
+        target: {
+          kind: 'agent',
+          name: agentName,
+        },
+      }),
+      renderUpdateHuman,
+    )
   }
 
   return updateSingleAgent(agent)
@@ -85,32 +93,38 @@ async function updateAllAgents(): Promise<CommandResult<UpdateCommandData>> {
   const execution = await executePlannedUpdates(plan)
 
   if (execution.hasFailures) {
-    return emitCommandResult(createErrorResult<UpdateCommandData>({
+    return emitCommandResult(
+      createErrorResult<UpdateCommandData>({
+        action: 'update',
+        data: {
+          results: execution.results,
+          scope: 'all',
+        },
+        error: {
+          code: 'UPDATE_FAILED',
+          message: 'One or more agents failed to update.',
+        },
+        target: {
+          kind: 'agent',
+        },
+      }),
+      renderUpdateHuman,
+    )
+  }
+
+  return emitCommandResult(
+    createSuccessResult<UpdateCommandData>({
       action: 'update',
       data: {
         results: execution.results,
         scope: 'all',
       },
-      error: {
-        code: 'UPDATE_FAILED',
-        message: 'One or more agents failed to update.',
-      },
       target: {
         kind: 'agent',
       },
-    }), renderUpdateHuman)
-  }
-
-  return emitCommandResult(createSuccessResult<UpdateCommandData>({
-    action: 'update',
-    data: {
-      results: execution.results,
-      scope: 'all',
-    },
-    target: {
-      kind: 'agent',
-    },
-  }), renderUpdateHuman)
+    }),
+    renderUpdateHuman,
+  )
 }
 
 async function updateSingleAgent(agent: AgentDefinition): Promise<CommandResult<UpdateCommandData>> {
@@ -130,77 +144,91 @@ async function updateSingleAgent(agent: AgentDefinition): Promise<CommandResult<
   const { inspection, plan } = await planSingleAgentUpdate(agent)
 
   if (!inspection.inPath) {
-    return emitCommandResult(createErrorResult<UpdateCommandData>({
-      action: 'update',
-      error: {
-        code: 'AGENT_NOT_INSTALLED',
-        message: `${agent.displayName} is not installed.`,
-      },
-      target: {
-        kind: 'agent',
-        name: agent.name,
-      },
-    }), renderUpdateHuman)
+    return emitCommandResult(
+      createErrorResult<UpdateCommandData>({
+        action: 'update',
+        error: {
+          code: 'AGENT_NOT_INSTALLED',
+          message: `${agent.displayName} is not installed.`,
+        },
+        target: {
+          kind: 'agent',
+          name: agent.name,
+        },
+      }),
+      renderUpdateHuman,
+    )
   }
 
   const execution = await executePlannedUpdates(plan)
   const lockedResult = getSingleLockedResult(execution.results)
 
   if (lockedResult) {
-    return emitCommandResult(createErrorResult<UpdateCommandData>({
-      action: 'update',
-      data: {
-        results: execution.results,
-        scope: 'single',
-      },
-      error: {
-        code: 'RESOURCE_LOCKED',
-        details: lockedResult.resource
-          ? {
-              resource: lockedResult.resource,
-            }
-          : undefined,
-        message: lockedResult.message ?? `Another quantex process is already updating ${agent.displayName}.`,
-      },
-      target: {
-        kind: 'agent',
-        name: agent.name,
-      },
-    }), renderUpdateHuman)
+    return emitCommandResult(
+      createErrorResult<UpdateCommandData>({
+        action: 'update',
+        data: {
+          results: execution.results,
+          scope: 'single',
+        },
+        error: {
+          code: 'RESOURCE_LOCKED',
+          details: lockedResult.resource
+            ? {
+                resource: lockedResult.resource,
+              }
+            : undefined,
+          message: lockedResult.message ?? `Another quantex process is already updating ${agent.displayName}.`,
+        },
+        target: {
+          kind: 'agent',
+          name: agent.name,
+        },
+      }),
+      renderUpdateHuman,
+    )
   }
 
   if (execution.hasFailures) {
-    return emitCommandResult(createErrorResult<UpdateCommandData>({
+    return emitCommandResult(
+      createErrorResult<UpdateCommandData>({
+        action: 'update',
+        data: {
+          results: execution.results,
+          scope: 'single',
+        },
+        error: {
+          code: 'UPDATE_FAILED',
+          message: `Failed to update ${agent.displayName}.`,
+        },
+        target: {
+          kind: 'agent',
+          name: agent.name,
+        },
+      }),
+      renderUpdateHuman,
+    )
+  }
+
+  return emitCommandResult(
+    createSuccessResult<UpdateCommandData>({
       action: 'update',
       data: {
         results: execution.results,
         scope: 'single',
       },
-      error: {
-        code: 'UPDATE_FAILED',
-        message: `Failed to update ${agent.displayName}.`,
-      },
       target: {
         kind: 'agent',
         name: agent.name,
       },
-    }), renderUpdateHuman)
-  }
-
-  return emitCommandResult(createSuccessResult<UpdateCommandData>({
-    action: 'update',
-    data: {
-      results: execution.results,
-      scope: 'single',
-    },
-    target: {
-      kind: 'agent',
-      name: agent.name,
-    },
-  }), renderUpdateHuman)
+    }),
+    renderUpdateHuman,
+  )
 }
 
-async function executePlannedUpdates(plan: Awaited<ReturnType<typeof planAgentUpdates>>): Promise<{ hasFailures: boolean, results: UpdateResultItem[] }> {
+async function executePlannedUpdates(
+  plan: Awaited<ReturnType<typeof planAgentUpdates>>,
+): Promise<{ hasFailures: boolean; results: UpdateResultItem[] }> {
   const results: UpdateResultItem[] = []
 
   for (const inspection of plan.upToDate) {
@@ -224,8 +252,7 @@ async function executePlannedUpdates(plan: Awaited<ReturnType<typeof planAgentUp
 
   for (const bucket of plan.grouped) {
     const groupResults = await updateGroupedAgents(bucket.type, bucket.packages, bucket.updates)
-    for (const result of groupResults)
-      pushUpdateResult(results, result)
+    for (const result of groupResults) pushUpdateResult(results, result)
   }
 
   for (const entry of plan.manual) {
@@ -254,10 +281,14 @@ function pushUpdateResult(results: UpdateResultItem[], result: UpdateResultItem)
 async function updateGroupedAgents(
   type: ManagedInstallType,
   packages: ManagedPackageSpec[],
-  updates: Array<{ agent: AgentDefinition, inspection: { installedVersion?: string, latestVersion?: string, methods?: InstallMethod[] }, state?: InstalledAgentState, strategy: 'managed' | 'manual-hint' | 'self-update' }>,
+  updates: Array<{
+    agent: AgentDefinition
+    inspection: { installedVersion?: string; latestVersion?: string; methods?: InstallMethod[] }
+    state?: InstalledAgentState
+    strategy: 'managed' | 'manual-hint' | 'self-update'
+  }>,
 ): Promise<UpdateResultItem[]> {
-  if (updates.length === 0)
-    return []
+  if (updates.length === 0) return []
 
   if (isDryRunEnabled()) {
     return updates.map(({ agent, inspection, strategy }) => ({
@@ -285,11 +316,11 @@ async function updateGroupedAgents(
       }))
     }
 
-    return await Promise.all(updates.map(({ agent, inspection, state }) => performUpdate(agent, state, inspection.methods, inspection)))
-  }
-  catch (error) {
-    if (!isResourceLockError(error))
-      throw error
+    return await Promise.all(
+      updates.map(({ agent, inspection, state }) => performUpdate(agent, state, inspection.methods, inspection)),
+    )
+  } catch (error) {
+    if (!isResourceLockError(error)) throw error
 
     return updates.map(({ agent, inspection, strategy }) => ({
       displayName: agent.displayName,
@@ -308,7 +339,7 @@ async function performUpdate(
   agent: AgentDefinition,
   installedState?: InstalledAgentState,
   methods?: InstallMethod[],
-  inspection?: { installedVersion?: string, latestVersion?: string, methods?: InstallMethod[] },
+  inspection?: { installedVersion?: string; latestVersion?: string; methods?: InstallMethod[] },
 ): Promise<UpdateResultItem> {
   const resolvedMethods = methods ?? inspection?.methods ?? []
   const strategy = getAgentUpdateStrategy({
@@ -319,7 +350,11 @@ async function performUpdate(
   const installedVersion = inspection?.installedVersion
   const latestVersion = inspection?.latestVersion
 
-  if (strategy === 'manual-hint' && !canAutoUpdateAgent(agent, installedState) && !resolvedMethods.some(method => canUpdateInstallType(method.type))) {
+  if (
+    strategy === 'manual-hint' &&
+    !canAutoUpdateAgent(agent, installedState) &&
+    !resolvedMethods.some(method => canUpdateInstallType(method.type))
+  ) {
     return {
       displayName: agent.displayName,
       installedVersion,
@@ -346,8 +381,7 @@ async function performUpdate(
   let result
   try {
     result = await updateAgent(agent, installedState)
-  }
-  catch (error) {
+  } catch (error) {
     if (isResourceLockError(error)) {
       return {
         displayName: agent.displayName,
@@ -387,16 +421,17 @@ async function performUpdate(
 }
 
 function getSingleLockedResult(results: UpdateResultItem[]): UpdateResultItem | undefined {
-  if (results.length !== 1)
-    return undefined
+  if (results.length !== 1) return undefined
 
   return results[0]?.status === 'locked' ? results[0] : undefined
 }
 
-function renderUpdateHuman(result: { data?: UpdateCommandData, error: { code: string, message: string } | null }): void {
+function renderUpdateHuman(result: {
+  data?: UpdateCommandData
+  error: { code: string; message: string } | null
+}): void {
   if (!result.data) {
-    if (result.error)
-      printError(pc.red(result.error.message))
+    if (result.error) printError(pc.red(result.error.message))
     return
   }
 
@@ -407,21 +442,31 @@ function renderUpdateHuman(result: { data?: UpdateCommandData, error: { code: st
         break
       case 'manual-required':
         printWarn(pc.yellow(`${item.displayName}: manual action required.`))
-        if (item.message)
-          printWarn(pc.cyan(`Next step: ${item.message}`))
+        if (item.message) printWarn(pc.cyan(`Next step: ${item.message}`))
         break
       case 'planned':
-        printWarn(pc.cyan(`Would update ${item.displayName}${item.strategy ? ` via ${item.strategy}` : ''}${getVersionHint(item.installedVersion, item.latestVersion)}`))
+        printWarn(
+          pc.cyan(
+            `Would update ${item.displayName}${item.strategy ? ` via ${item.strategy}` : ''}${getVersionHint(item.installedVersion, item.latestVersion)}`,
+          ),
+        )
         break
       case 'updated':
-        printInfo(pc.cyan(`Updating ${item.displayName}${item.strategy ? ` via ${item.strategy}` : ''}...${getVersionHint(item.installedVersion, item.latestVersion)}`))
+        printInfo(
+          pc.cyan(
+            `Updating ${item.displayName}${item.strategy ? ` via ${item.strategy}` : ''}...${getVersionHint(item.installedVersion, item.latestVersion)}`,
+          ),
+        )
         printInfo(pc.green(`${item.displayName} updated successfully!`))
         break
       case 'failed':
-        printInfo(pc.cyan(`Updating ${item.displayName}${item.strategy ? ` via ${item.strategy}` : ''}...${getVersionHint(item.installedVersion, item.latestVersion)}`))
+        printInfo(
+          pc.cyan(
+            `Updating ${item.displayName}${item.strategy ? ` via ${item.strategy}` : ''}...${getVersionHint(item.installedVersion, item.latestVersion)}`,
+          ),
+        )
         printError(pc.red(`Failed to update ${item.displayName}.`))
-        if (item.hint)
-          printWarn(pc.cyan(`Next step: ${item.hint}`))
+        if (item.hint) printWarn(pc.cyan(`Next step: ${item.hint}`))
         break
       case 'locked':
         printWarn(pc.yellow(item.message ?? `Another quantex process is already updating ${item.displayName}.`))
@@ -429,11 +474,9 @@ function renderUpdateHuman(result: { data?: UpdateCommandData, error: { code: st
     }
   }
 
-  if (result.data.results.length > 1)
-    printUpdateSummary(result.data.results)
+  if (result.data.results.length > 1) printUpdateSummary(result.data.results)
 
-  if (!result.data.results.length && result.error)
-    printError(pc.red(result.error.message))
+  if (!result.data.results.length && result.error) printError(pc.red(result.error.message))
 }
 
 function getVersionHint(installed?: string, latest?: string): string {
@@ -482,6 +525,5 @@ function printUpdateSummary(results: UpdateResultItem[]): void {
     counts.planned ? `planned ${counts.planned}` : undefined,
   ].filter(Boolean)
 
-  if (parts.length > 0)
-    printInfo(pc.bold(`Summary: ${parts.join(', ')}`))
+  if (parts.length > 0) printInfo(pc.bold(`Summary: ${parts.join(', ')}`))
 }

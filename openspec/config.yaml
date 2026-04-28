@@ -2,7 +2,7 @@ schema: spec-driven
 
 context: |
   Project: Quantex CLI, a human-friendly and agent-friendly lifecycle CLI for AI coding agents.
-  Runtime: Bun. Language: strict TypeScript ESM. Tests: Vitest. Lint: @antfu/eslint-config.
+  Runtime: Bun. Language: strict TypeScript ESM. Tests: Vitest. Lint: oxlint. Format: oxfmt.
   Product scope: agent installation, inspection, ensure, update, uninstall, discovery, execution, self-upgrade, and stable machine-readable contracts.
   Non-goal: do not turn Quantex into a workflow orchestration platform.
   Release: protected main with release-please Release PRs, GitHub Actions trusted publishing, and GitHub App release automation.

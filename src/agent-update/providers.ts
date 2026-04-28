@@ -8,8 +8,7 @@ function getManagedInstallerTypeFromContext(context: AgentUpdateContext): Manage
     return context.installedState.installType
 
   for (const method of context.methods) {
-    if (isManagedInstallType(method.type) && canUpdateInstallType(method.type))
-      return method.type
+    if (isManagedInstallType(method.type) && canUpdateInstallType(method.type)) return method.type
   }
 
   return undefined

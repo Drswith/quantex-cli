@@ -30,13 +30,15 @@ export async function loadIdempotencyRecord(key: string): Promise<IdempotencyRec
     }
 
     return record
-  }
-  catch {
+  } catch {
     return undefined
   }
 }
 
-export async function saveIdempotencyRecord(key: string, record: { action: string, result: CommandResult, target?: CommandTarget }): Promise<void> {
+export async function saveIdempotencyRecord(
+  key: string,
+  record: { action: string; result: CommandResult; target?: CommandTarget },
+): Promise<void> {
   await mkdir(getIdempotencyDir(), { recursive: true })
   const createdAt = new Date().toISOString()
   const expiresAt = new Date(Date.now() + idempotencyTtlMs).toISOString()

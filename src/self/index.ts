@@ -1,4 +1,10 @@
-import type { SelfInspection, SelfInstallSource, SelfPackageMetadata, SelfUpdateChannel, SelfUpdateResult } from './types'
+import type {
+  SelfInspection,
+  SelfInstallSource,
+  SelfPackageMetadata,
+  SelfUpdateChannel,
+  SelfUpdateResult,
+} from './types'
 import { readFile } from 'node:fs/promises'
 import { basename, dirname, join } from 'node:path'
 import process from 'node:process'
@@ -41,7 +47,7 @@ export async function inspectSelf(options?: { updateChannel?: SelfUpdateChannel 
 }
 
 export async function upgradeSelf(inspection?: SelfInspection): Promise<SelfUpdateResult> {
-  const resolvedInspection = inspection ?? await inspectSelf()
+  const resolvedInspection = inspection ?? (await inspectSelf())
   const releaseLock = await acquireSelfUpgradeLock()
 
   if (!releaseLock) {
@@ -57,8 +63,7 @@ export async function upgradeSelf(inspection?: SelfInspection): Promise<SelfUpda
 
   try {
     return await getSelfUpgradeProvider(resolvedInspection).upgrade(resolvedInspection)
-  }
-  finally {
+  } finally {
     await releaseLock()
   }
 }
@@ -79,20 +84,19 @@ export async function reconcileSelfInstallSource(
   return storedInstallSource ?? detectedInstallSource
 }
 
-export function detectSelfInstallSource(packageRoot: string, executablePath: string = process.execPath): SelfInstallSource {
+export function detectSelfInstallSource(
+  packageRoot: string,
+  executablePath: string = process.execPath,
+): SelfInstallSource {
   const normalizedPath = normalizePath(packageRoot)
 
-  if (normalizedPath.includes(BUN_GLOBAL_PATH_SEGMENT))
-    return 'bun'
+  if (normalizedPath.includes(BUN_GLOBAL_PATH_SEGMENT)) return 'bun'
 
-  if (normalizedPath.includes(NODE_MODULES_SEGMENT))
-    return 'npm'
+  if (normalizedPath.includes(NODE_MODULES_SEGMENT)) return 'npm'
 
-  if (normalizedPath)
-    return 'source'
+  if (normalizedPath) return 'source'
 
-  if (isStandaloneBinaryExecutable(executablePath))
-    return 'binary'
+  if (isStandaloneBinaryExecutable(executablePath)) return 'binary'
 
   return 'unknown'
 }
@@ -115,8 +119,7 @@ export async function resolveSelfPackageMetadata(moduleUrl: string = import.meta
     }
 
     const parentDir = dirname(currentDir)
-    if (parentDir === currentDir)
-      break
+    if (parentDir === currentDir) break
     currentDir = parentDir
   }
 
@@ -149,8 +152,7 @@ async function resolveSelfLatestVersion(
       const manifest = await fetchBinaryReleaseManifest(updateChannel)
       const asset = resolveBinaryReleaseAsset(manifest, executablePath)
       return asset ? manifest.version : undefined
-    }
-    catch {
+    } catch {
       return undefined
     }
   }
@@ -158,11 +160,10 @@ async function resolveSelfLatestVersion(
   return getLatestVersion(CLI_NPM_PACKAGE_NAME, updateChannel === 'beta' ? 'beta' : 'latest')
 }
 
-async function readPackageJson(packageJsonPath: string): Promise<{ name?: string, version?: string } | undefined> {
+async function readPackageJson(packageJsonPath: string): Promise<{ name?: string; version?: string } | undefined> {
   try {
-    return JSON.parse(await readFile(packageJsonPath, 'utf8')) as { name?: string, version?: string }
-  }
-  catch {
+    return JSON.parse(await readFile(packageJsonPath, 'utf8')) as { name?: string; version?: string }
+  } catch {
     return undefined
   }
 }
@@ -179,8 +180,7 @@ function isStandaloneBinaryExecutable(executablePath: string): boolean {
 function resolveModulePath(moduleUrl: string): string {
   try {
     return fileURLToPath(moduleUrl)
-  }
-  catch {
+  } catch {
     return process.execPath
   }
 }
@@ -199,4 +199,10 @@ export {
   resolveBinaryReleaseAsset,
   resolveBinaryReleaseManifestUrl,
 } from './release'
-export type { SelfInspection, SelfInstallSource, SelfPackageMetadata, SelfUpdateChannel, SelfUpdateResult } from './types'
+export type {
+  SelfInspection,
+  SelfInstallSource,
+  SelfPackageMetadata,
+  SelfUpdateChannel,
+  SelfUpdateResult,
+} from './types'

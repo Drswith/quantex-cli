@@ -54,7 +54,9 @@ export async function planAgentUpdates(): Promise<PlannedAgentUpdates> {
   return buildPlannedAgentUpdates(await inspectRegisteredAgents())
 }
 
-export async function planSingleAgentUpdate(agent: AgentDefinition): Promise<{ inspection: AgentInspection, plan: PlannedAgentUpdates }> {
+export async function planSingleAgentUpdate(
+  agent: AgentDefinition,
+): Promise<{ inspection: AgentInspection; plan: PlannedAgentUpdates }> {
   const inspection = await inspectionService.inspectAgent(agent)
   return {
     inspection,
@@ -81,15 +83,13 @@ function createManagedUpdateBucket(
   type: ManagedInstallType,
   entries: Array<{ inspection: AgentInspection }>,
 ): ManagedUpdateBucket | undefined {
-  if (entries.length === 0)
-    return undefined
+  if (entries.length === 0) return undefined
 
   const updates = entries.map(entry => toPendingAgentUpdate(entry.inspection))
   return {
     type,
-    packages: updates.flatMap((update) => {
-      if (!update.package?.packageName)
-        return []
+    packages: updates.flatMap(update => {
+      if (!update.package?.packageName) return []
 
       return [update.package]
     }),
@@ -113,7 +113,9 @@ function toPendingAgentUpdate(inspection: AgentInspection): PendingAgentUpdate {
     agent: inspection.agent,
     inspection,
     installerType,
-    package: installerType ? getManagedPackageSpec(inspection.agent, inspection.installedState, inspection.methods, installerType) : undefined,
+    package: installerType
+      ? getManagedPackageSpec(inspection.agent, inspection.installedState, inspection.methods, installerType)
+      : undefined,
     state: inspection.installedState,
     strategy: provider.strategy,
   }
@@ -133,12 +135,10 @@ function getManagedPackageSpec(
   }
 
   const method = methods.find(candidate => candidate.type === installerType)
-  if (!method)
-    return undefined
+  if (!method) return undefined
 
   const packageName = getManagedPackageName(agent, method)
-  if (!packageName)
-    return undefined
+  if (!packageName) return undefined
 
   return {
     packageName,

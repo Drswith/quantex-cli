@@ -16,18 +16,20 @@ interface CachedResponseStore {
 
 export async function fetchJsonWithCache<T>(url: string, cacheKey: string): Promise<T | undefined> {
   const body = await fetchTextWithCache(url, cacheKey, 'json')
-  if (!body)
-    return undefined
+  if (!body) return undefined
 
   try {
     return JSON.parse(body) as T
-  }
-  catch {
+  } catch {
     return undefined
   }
 }
 
-export async function fetchTextWithCache(url: string, cacheKey: string, mode: 'json' | 'text' = 'text'): Promise<string | undefined> {
+export async function fetchTextWithCache(
+  url: string,
+  cacheKey: string,
+  mode: 'json' | 'text' = 'text',
+): Promise<string | undefined> {
   const config = await loadConfig()
   const ttlMs = config.versionCacheTtlHours * 60 * 60 * 1000
   const cacheMode = getCliContext().cacheMode
@@ -47,8 +49,7 @@ export async function fetchTextWithCache(url: string, cacheKey: string, mode: 'j
   })
 
   if (!response) {
-    if (cachedEntry)
-      recordCachedEntryFreshness(cachedEntry, ttlMs)
+    if (cachedEntry) recordCachedEntryFreshness(cachedEntry, ttlMs)
     return cachedEntry?.body
   }
 
@@ -58,15 +59,13 @@ export async function fetchTextWithCache(url: string, cacheKey: string, mode: 'j
       expiresAt: now + ttlMs,
       fetchedAt: now,
     }
-    if (cacheMode !== 'no-cache')
-      await saveResponseCache(cache)
+    if (cacheMode !== 'no-cache') await saveResponseCache(cache)
     recordNetworkFreshness(now, now + ttlMs)
     return cachedEntry.body
   }
 
   if (!response.ok) {
-    if (cachedEntry)
-      recordCachedEntryFreshness(cachedEntry, ttlMs)
+    if (cachedEntry) recordCachedEntryFreshness(cachedEntry, ttlMs)
     return cachedEntry?.body
   }
 
@@ -75,10 +74,8 @@ export async function fetchTextWithCache(url: string, cacheKey: string, mode: 'j
   if (mode === 'json') {
     try {
       JSON.parse(body)
-    }
-    catch {
-      if (cachedEntry)
-        recordCachedEntryFreshness(cachedEntry, ttlMs)
+    } catch {
+      if (cachedEntry) recordCachedEntryFreshness(cachedEntry, ttlMs)
       return cachedEntry?.body
     }
   }
@@ -100,7 +97,7 @@ export async function fetchTextWithCache(url: string, cacheKey: string, mode: 'j
 
 async function fetchWithRetries(
   url: string,
-  options: { headers?: Record<string, string>, retries: number, timeoutMs: number },
+  options: { headers?: Record<string, string>; retries: number; timeoutMs: number },
 ): Promise<Response | undefined> {
   for (let attempt = 0; attempt <= options.retries; attempt++) {
     const controller = new AbortController()
@@ -111,12 +108,9 @@ async function fetchWithRetries(
         headers: options.headers,
         signal: controller.signal,
       })
-    }
-    catch {
-      if (attempt === options.retries)
-        return undefined
-    }
-    finally {
+    } catch {
+      if (attempt === options.retries) return undefined
+    } finally {
       clearTimeout(timeout)
     }
   }
@@ -127,8 +121,7 @@ async function fetchWithRetries(
 async function loadResponseCache(): Promise<CachedResponseStore> {
   try {
     return JSON.parse(await readFile(getCacheFilePath(), 'utf8')) as CachedResponseStore
-  }
-  catch {
+  } catch {
     return { entries: {} }
   }
 }

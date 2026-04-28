@@ -52,7 +52,7 @@ If the agent is contributing inside this repository, use this as the bootstrap p
 ```text
 Read AGENTS.md, openspec/README.md, and skills/quantex-cli/SKILL.md first.
 For non-trivial changes, use the OpenSpec / OPSX workflow.
-Before finishing, run bun run lint and bun run typecheck.
+Before finishing, run bun run lint, bun run format:check, and bun run typecheck.
 If command behavior changed, also run bun run test.
 ```
 
@@ -245,6 +245,7 @@ Common local development commands:
 bun install
 bun run dev
 bun run lint
+bun run format:check
 bun run typecheck
 bun run test
 bun run build
