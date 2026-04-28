@@ -3,17 +3,22 @@ import * as agents from '../../src/agents'
 import { setCliContext } from '../../src/cli-context'
 import { installCommand } from '../../src/commands/install'
 import * as pm from '../../src/package-manager'
+import * as state from '../../src/state'
 import * as detect from '../../src/utils/detect'
 import { ResourceLockError } from '../../src/utils/lock'
 
 const agentSpy = vi.spyOn(agents, 'getAgentByNameOrAlias')
 const installSpy = vi.spyOn(pm, 'installAgent')
+const trackSpy = vi.spyOn(pm, 'trackInstalledAgent')
 const binaryInPathSpy = vi.spyOn(detect, 'isBinaryInPath')
+const installedStateSpy = vi.spyOn(state, 'getInstalledAgentState')
 
 afterAll(() => {
   agentSpy.mockRestore()
   installSpy.mockRestore()
+  trackSpy.mockRestore()
   binaryInPathSpy.mockRestore()
+  installedStateSpy.mockRestore()
 })
 
 const testAgent = {
@@ -30,6 +35,22 @@ const testAgent = {
   },
 }
 
+const scriptOnlyAgent = {
+  ...testAgent,
+  name: 'script-agent',
+  displayName: 'Script Agent',
+  binaryName: 'script-bin',
+  packages: undefined,
+  selfUpdate: {
+    command: ['script-bin', 'update'],
+  },
+  platforms: {
+    linux: [{ type: 'script' as const, command: 'curl https://example.com/install | bash' }],
+    macos: [{ type: 'script' as const, command: 'curl https://example.com/install | bash' }],
+    windows: [{ type: 'script' as const, command: 'irm https://example.com/install | iex' }],
+  },
+}
+
 describe('installCommand', () => {
   let logSpy: ReturnType<typeof vi.spyOn>
   let stdoutWriteSpy: ReturnType<typeof vi.spyOn>
@@ -39,7 +60,10 @@ describe('installCommand', () => {
     stdoutWriteSpy = vi.spyOn(process.stdout, 'write').mockReturnValue(true)
     agentSpy.mockClear()
     installSpy.mockClear()
+    trackSpy.mockClear()
     binaryInPathSpy.mockClear()
+    installedStateSpy.mockClear()
+    installedStateSpy.mockResolvedValue(undefined)
   })
 
   afterEach(() => {
@@ -53,12 +77,53 @@ describe('installCommand', () => {
     expect(stdoutWriteSpy).toHaveBeenCalledWith(expect.stringContaining('Unknown agent'))
   })
 
-  it('shows already installed when binary exists', async () => {
+  it('shows already installed when a tracked install exists', async () => {
     agentSpy.mockReturnValue(testAgent)
     binaryInPathSpy.mockResolvedValue(true)
+    installedStateSpy.mockResolvedValue({
+      agentName: 'test-agent',
+      installType: 'bun',
+      packageName: 'test-pkg',
+    })
+
     await installCommand('test-agent')
+
     expect(stdoutWriteSpy).toHaveBeenCalledWith(expect.stringContaining('already installed'))
     expect(installSpy).not.toHaveBeenCalled()
+    expect(trackSpy).not.toHaveBeenCalled()
+  })
+
+  it('tracks an existing script install when the source is unambiguous', async () => {
+    agentSpy.mockReturnValue(scriptOnlyAgent)
+    binaryInPathSpy.mockResolvedValue(true)
+    trackSpy.mockResolvedValue({
+      agentName: 'script-agent',
+      installType: 'script',
+      command: 'curl https://example.com/install | bash',
+    })
+
+    await installCommand('script-agent')
+
+    expect(trackSpy).toHaveBeenCalledWith(
+      scriptOnlyAgent,
+      expect.objectContaining({
+        command: 'curl https://example.com/install | bash',
+        type: 'script',
+      }),
+    )
+    expect(installSpy).not.toHaveBeenCalled()
+    expect(stdoutWriteSpy).toHaveBeenCalledWith(expect.stringContaining('Quantex is now tracking the existing install'))
+  })
+
+  it('explains when an existing install remains untracked', async () => {
+    agentSpy.mockReturnValue(testAgent)
+    binaryInPathSpy.mockResolvedValue(true)
+
+    await installCommand('test-agent')
+
+    expect(trackSpy).not.toHaveBeenCalled()
+    expect(installSpy).not.toHaveBeenCalled()
+    expect(stdoutWriteSpy).toHaveBeenCalledWith(expect.stringContaining('not tracked by Quantex'))
   })
 
   it('calls installAgent and shows success', async () => {
