@@ -8,4 +8,4 @@
 
 - [x] 2.1 Update README and self-upgrade troubleshooting docs to explain registry-sensitive upgrade behavior and mirror lag.
 - [x] 2.2 Add or update automated tests that cover registry resolution, mirror lag handling, and managed post-upgrade verification.
-- [ ] 2.3 Run required validation, then complete git delivery steps and report OpenSpec/archive closure status.
+- [x] 2.3 Run required validation, then complete git delivery steps and report OpenSpec/archive closure status.
