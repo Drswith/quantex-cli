@@ -67,6 +67,16 @@ The product README SHALL present `qtx` as the recommended short command entry po
 - **THEN** the primary examples use `qtx` for the shortest copyable path
 - **AND** the documentation states that `qtx` and `quantex` are equivalent entry points
 
+### Requirement: README warns that self-upgrade follows the active registry
+
+The product README SHALL explain that `qtx upgrade` uses the registry selected for the current Bun/npm self-upgrade path and that mirrors can lag behind the official npm release.
+
+#### Scenario: User reads upgrade guidance while using a mirror
+
+- **WHEN** a user reads the installation or upgrade guidance in `README.md` or `README.en.md`
+- **THEN** the documentation explains that `qtx upgrade` follows the active Bun/npm registry
+- **AND** it warns that a lagging mirror can delay installation of the newest upstream release
+
 ### Requirement: README Documents Verified Read-Only No-Install Usage
 
 The product README SHALL include a first-class no-install try-it-out section that promotes only read-only or discovery-oriented commands and uses command forms verified against the published package behavior.
