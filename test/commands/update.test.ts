@@ -1,6 +1,6 @@
 import { afterAll, afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import * as agents from '../../src/agents'
-import { setCliContext } from '../../src/cli-context'
+import { resetCliContext, setCliContext } from '../../src/cli-context'
 import { updateCommand } from '../../src/commands/update'
 import * as pm from '../../src/package-manager'
 import * as state from '../../src/state'
@@ -47,6 +47,7 @@ describe('updateCommand', () => {
   let stdoutWriteSpy: ReturnType<typeof vi.spyOn>
 
   beforeEach(() => {
+    resetCliContext()
     logSpy = vi.spyOn(console, 'log').mockImplementation(() => {})
     stdoutWriteSpy = vi.spyOn(process.stdout, 'write').mockReturnValue(true)
     agentSpy.mockClear()
@@ -60,6 +61,7 @@ describe('updateCommand', () => {
   })
 
   afterEach(() => {
+    resetCliContext()
     logSpy.mockRestore()
     stdoutWriteSpy.mockRestore()
   })
@@ -128,13 +130,13 @@ describe('updateCommand', () => {
     await updateCommand(undefined, true)
     expect(updateAgentsByTypeSpy).toHaveBeenCalledWith('bun', [
       { packageName: 'test-pkg', packageTargetKind: undefined },
-      { packageName: 'pkg2', packageTargetKind: undefined },
     ])
     expect(updateSpy).not.toHaveBeenCalled()
     const output = stdoutWriteSpy.mock.calls.map((c: any[]) => c[0]).join('\n')
     expect(output).toContain('Updating Test Agent via managed/bun... (1.0.0 -> 2.0.0)')
-    expect(output).toContain('Updating Agent 2 via managed/bun... (1.0.0 -> 2.0.0)')
-    expect(output).toContain('Summary: updated 2')
+    expect(output).toContain('Agent 2: manual action required.')
+    expect(output).toContain('detected in PATH but not tracked as a Quantex-managed install')
+    expect(output).toContain('Summary: updated 1, manual 1')
   })
 
   it('skips detected PATH installs without auto-update support for --all', async () => {
@@ -164,12 +166,12 @@ describe('updateCommand', () => {
 
     const output = stdoutWriteSpy.mock.calls.map((c: any[]) => c[0]).join('\n')
     expect(output).toContain('Manual Agent: manual action required.')
-    expect(output).toContain('Next step: Manual Agent uses a manually managed install source')
+    expect(output).toContain('detected in PATH but not tracked as a Quantex-managed install')
     expect(output).not.toContain('Updating Manual Agent')
     expect(output).not.toContain('Failed to update Manual Agent')
   })
 
-  it('updates detected PATH installs through the agent update command for --all', async () => {
+  it('skips detected PATH installs with self-update support for --all when they are untracked', async () => {
     const selfUpdatingAgent = {
       ...testAgent,
       name: 'self-updating-agent',
@@ -195,8 +197,42 @@ describe('updateCommand', () => {
 
     await updateCommand(undefined, true)
 
-    expect(updateSpy).toHaveBeenCalledWith(selfUpdatingAgent, undefined)
+    expect(updateSpy).not.toHaveBeenCalled()
+    expect(updateAgentsByTypeSpy).not.toHaveBeenCalled()
 
+    const output = stdoutWriteSpy.mock.calls.map((c: any[]) => c[0]).join('\n')
+    expect(output).toContain('Self Updating Agent: manual action required.')
+    expect(output).toContain('detected in PATH but not tracked as a Quantex-managed install')
+    expect(output).toContain('quantex inspect self-updating-agent --json')
+  })
+
+  it('still allows explicit single-agent updates for untracked PATH installs with self-update support', async () => {
+    const selfUpdatingAgent = {
+      ...testAgent,
+      name: 'self-updating-agent',
+      binaryName: 'self-updating-bin',
+      displayName: 'Self Updating Agent',
+      packages: undefined,
+      selfUpdate: {
+        command: ['self-updating-bin', 'update'],
+      },
+      platforms: {
+        linux: [{ type: 'script' as const, command: 'curl https://example.com/install | bash' }],
+        macos: [{ type: 'script' as const, command: 'curl https://example.com/install | bash' }],
+        windows: [{ type: 'script' as const, command: 'irm https://example.com/install | iex' }],
+      },
+    }
+
+    agentSpy.mockReturnValue(selfUpdatingAgent)
+    binaryInPathSpy.mockResolvedValue(true)
+    installedVerSpy.mockResolvedValue('1.0.0')
+    latestVerSpy.mockResolvedValue(undefined)
+    installedStateSpy.mockResolvedValue(undefined)
+    updateSpy.mockResolvedValue({ success: true })
+
+    await updateCommand('self-updating-agent', false)
+
+    expect(updateSpy).toHaveBeenCalledWith(selfUpdatingAgent, undefined)
     const output = stdoutWriteSpy.mock.calls.map((c: any[]) => c[0]).join('\n')
     expect(output).toContain('Updating Self Updating Agent via self-update... (1.0.0 -> latest)')
     expect(output).toContain('Self Updating Agent updated successfully')

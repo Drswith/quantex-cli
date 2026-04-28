@@ -14,10 +14,16 @@ export interface UpdatePlan {
   grouped: Record<ManagedInstallType, UpdatePlanEntry[]>
   manual: UpdatePlanEntry[]
   skippedManualCheck: AgentInspection[]
+  untrackedInPath: AgentInspection[]
   upToDate: AgentInspection[]
 }
 
-export function createUpdatePlan(inspections: AgentInspection[]): UpdatePlan {
+export function createUpdatePlan(
+  inspections: AgentInspection[],
+  options: {
+    skipUntrackedInPath?: boolean
+  } = {},
+): UpdatePlan {
   const grouped: Record<ManagedInstallType, UpdatePlanEntry[]> = {
     bun: [],
     npm: [],
@@ -26,10 +32,16 @@ export function createUpdatePlan(inspections: AgentInspection[]): UpdatePlan {
   }
   const manual: UpdatePlanEntry[] = []
   const skippedManualCheck: AgentInspection[] = []
+  const untrackedInPath: AgentInspection[] = []
   const upToDate: AgentInspection[] = []
 
   for (const inspection of inspections) {
     if (!inspection.inPath) continue
+
+    if (options.skipUntrackedInPath && !inspection.installedState) {
+      untrackedInPath.push(inspection)
+      continue
+    }
 
     if (shouldSkipUnknownManualUpdate(inspection)) {
       skippedManualCheck.push(inspection)
@@ -76,6 +88,7 @@ export function createUpdatePlan(inspections: AgentInspection[]): UpdatePlan {
     grouped,
     manual,
     skippedManualCheck,
+    untrackedInPath,
     upToDate,
   }
 }

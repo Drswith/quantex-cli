@@ -20,6 +20,7 @@ export {
   kilo,
   opencode,
   pi,
+  qoder,
 } from './agents'
 export type {
   AgentDefinition,
