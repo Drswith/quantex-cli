@@ -34,6 +34,9 @@ if (!packedPackage) throw new Error('npm pack --dry-run --json did not return pa
 
 const packedFiles = packedPackage.files ?? []
 const forbiddenFiles = packedFiles.filter(file => file.path.startsWith('dist/bin/'))
+const forbiddenInstallEntrypoints = packedFiles.filter(
+  file => file.path === 'scripts/postinstall.cjs' || file.path.startsWith('dist/postinstall.'),
+)
 
 if (forbiddenFiles.length > 0) {
   throw new Error(
@@ -43,7 +46,15 @@ if (forbiddenFiles.length > 0) {
   )
 }
 
-const requiredFiles = ['dist/cli.mjs', 'dist/index.mjs', 'scripts/postinstall.cjs']
+if (forbiddenInstallEntrypoints.length > 0) {
+  throw new Error(
+    `Managed-install package unexpectedly includes install-time postinstall entrypoints:\n${forbiddenInstallEntrypoints
+      .map(file => `- ${file.path}`)
+      .join('\n')}`,
+  )
+}
+
+const requiredFiles = ['dist/cli.mjs', 'dist/index.mjs']
 const missingFiles = requiredFiles.filter(requiredPath => !packedFiles.some(file => file.path === requiredPath))
 
 if (missingFiles.length > 0) {
@@ -54,7 +65,9 @@ if (packedPackage.filename) {
   await rm(join(process.cwd(), packedPackage.filename), { force: true })
 }
 
-console.log(`Managed-install package excludes dist/bin and keeps runtime files (${requiredFiles.join(', ')}).`)
+console.log(
+  `Managed-install package excludes dist/bin and postinstall entrypoints, and keeps runtime files (${requiredFiles.join(', ')}).`,
+)
 
 function parsePackOutput(packStdout: string): PackedPackage[] {
   const jsonStart = packStdout.lastIndexOf('\n[')
