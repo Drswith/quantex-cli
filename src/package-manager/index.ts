@@ -128,6 +128,10 @@ async function persistInstalledState(agent: AgentDefinition, method: InstallMeth
   return installedState
 }
 
+export async function trackInstalledAgent(agent: AgentDefinition, method: InstallMethod): Promise<InstalledAgentState> {
+  return withResourceLock(lifecycleLock, async () => persistInstalledState(agent, method))
+}
+
 export async function installAgent(agent: AgentDefinition): Promise<AgentOperationResult> {
   return withResourceLock(lifecycleLock, async () => {
     const methods = await getOrderedInstallMethods(agent)

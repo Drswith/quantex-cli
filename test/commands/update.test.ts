@@ -206,6 +206,50 @@ describe('updateCommand', () => {
     expect(output).toContain('quantex inspect self-updating-agent --json')
   })
 
+  it('includes tracked script installs in update --all via self-update', async () => {
+    const selfUpdatingAgent = {
+      ...testAgent,
+      name: 'self-updating-agent',
+      binaryName: 'self-updating-bin',
+      displayName: 'Self Updating Agent',
+      packages: undefined,
+      selfUpdate: {
+        command: ['self-updating-bin', 'update'],
+      },
+      platforms: {
+        linux: [{ type: 'script' as const, command: 'curl https://example.com/install | bash' }],
+        macos: [{ type: 'script' as const, command: 'curl https://example.com/install | bash' }],
+        windows: [{ type: 'script' as const, command: 'irm https://example.com/install | iex' }],
+      },
+    }
+
+    allAgentsSpy.mockReturnValue([selfUpdatingAgent])
+    binaryInPathSpy.mockResolvedValue(true)
+    installedVerSpy.mockResolvedValue('1.0.0')
+    latestVerSpy.mockResolvedValue(undefined)
+    installedStateSpy.mockResolvedValue({
+      agentName: 'self-updating-agent',
+      installType: 'script',
+      command: 'curl https://example.com/install | bash',
+    })
+    updateSpy.mockResolvedValue({ success: true })
+
+    await updateCommand(undefined, true)
+
+    expect(updateAgentsByTypeSpy).not.toHaveBeenCalled()
+    expect(updateSpy).toHaveBeenCalledWith(
+      selfUpdatingAgent,
+      expect.objectContaining({
+        command: 'curl https://example.com/install | bash',
+        installType: 'script',
+      }),
+    )
+
+    const output = stdoutWriteSpy.mock.calls.map((c: any[]) => c[0]).join('\n')
+    expect(output).toContain('Updating Self Updating Agent via self-update... (1.0.0 -> latest)')
+    expect(output).toContain('Self Updating Agent updated successfully')
+  })
+
   it('still allows explicit single-agent updates for untracked PATH installs with self-update support', async () => {
     const selfUpdatingAgent = {
       ...testAgent,

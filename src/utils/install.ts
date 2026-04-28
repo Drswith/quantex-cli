@@ -129,3 +129,12 @@ export function getLatestVersionPackage(
 
   return agent.packages.npm
 }
+
+export function getAdoptableExistingInstallMethod(methods: InstallMethod[]): InstallMethod | undefined {
+  if (methods.length !== 1) return undefined
+
+  const [method] = methods
+  if (method.type !== 'script' && method.type !== 'binary') return undefined
+
+  return method
+}

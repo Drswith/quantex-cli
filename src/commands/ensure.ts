@@ -1,8 +1,9 @@
 import type { CommandResult } from '../output/types'
 import { createErrorResult, createSuccessResult, emitCommandEvent, emitCommandResult } from '../output'
-import { installAgent } from '../package-manager'
+import { installAgent, trackInstalledAgent } from '../package-manager'
 import { resolveAgentInspection } from '../services/agents'
 import { pc } from '../utils/color'
+import { getAdoptableExistingInstallMethod } from '../utils/install'
 import { createResourceLockedError } from '../utils/lifecycle-errors'
 import { isResourceLockError } from '../utils/lock'
 import { isDryRunEnabled, printError, printInfo, printWarn } from '../utils/user-output'
@@ -44,6 +45,134 @@ export async function ensureCommand(agentName: string): Promise<CommandResult<En
 
   const { agent, inspection } = resolved
   if (inspection.inPath) {
+    if (inspection.installedState) {
+      return emitCommandResult(
+        createSuccessResult<EnsureCommandData>({
+          action: 'ensure',
+          data: {
+            agent: {
+              displayName: agent.displayName,
+              name: agent.name,
+            },
+            changed: false,
+            installed: true,
+          },
+          target: {
+            kind: 'agent',
+            name: agent.name,
+          },
+          warnings: [
+            {
+              code: 'ALREADY_INSTALLED',
+              message: `${agent.displayName} is already installed.`,
+            },
+          ],
+        }),
+        renderEnsureHuman,
+      )
+    }
+
+    const adoptableMethod = getAdoptableExistingInstallMethod(inspection.methods)
+    if (adoptableMethod) {
+      if (isDryRunEnabled()) {
+        return emitCommandResult(
+          createSuccessResult<EnsureCommandData>({
+            action: 'ensure',
+            data: {
+              agent: {
+                displayName: agent.displayName,
+                name: agent.name,
+              },
+              changed: false,
+              installed: true,
+            },
+            target: {
+              kind: 'agent',
+              name: agent.name,
+            },
+            warnings: [
+              {
+                code: 'DRY_RUN',
+                message: `Dry run: would record the existing ${agent.displayName} install in Quantex state.`,
+              },
+            ],
+          }),
+          renderEnsureHuman,
+        )
+      }
+
+      emitCommandEvent({
+        action: 'ensure',
+        data: {
+          agent: {
+            displayName: agent.displayName,
+            name: agent.name,
+          },
+        },
+        target: {
+          kind: 'agent',
+          name: agent.name,
+        },
+        type: 'started',
+      })
+
+      try {
+        const installedState = await trackInstalledAgent(agent, adoptableMethod)
+
+        return emitCommandResult(
+          createSuccessResult<EnsureCommandData>({
+            action: 'ensure',
+            data: {
+              agent: {
+                displayName: agent.displayName,
+                name: agent.name,
+              },
+              changed: true,
+              installState: {
+                installType: installedState.installType,
+                packageName: installedState.packageName,
+              },
+              installed: true,
+            },
+            target: {
+              kind: 'agent',
+              name: agent.name,
+            },
+            warnings: [
+              {
+                code: 'TRACKED_EXISTING_INSTALL',
+                message: `${agent.displayName} is already installed. Quantex is now tracking the existing install.`,
+              },
+            ],
+          }),
+          renderEnsureHuman,
+        )
+      } catch (error) {
+        if (isResourceLockError(error)) {
+          return emitCommandResult(
+            createErrorResult<EnsureCommandData>({
+              action: 'ensure',
+              data: {
+                agent: {
+                  displayName: agent.displayName,
+                  name: agent.name,
+                },
+                changed: false,
+                installed: true,
+              },
+              ...createResourceLockedError(error, {
+                kind: 'agent',
+                name: agent.name,
+              }),
+            }),
+            renderEnsureHuman,
+          )
+        }
+
+        throw error
+      }
+    }
+
     return emitCommandResult(
       createSuccessResult<EnsureCommandData>({
         action: 'ensure',
@@ -61,8 +190,8 @@ export async function ensureCommand(agentName: string): Promise<CommandResult<En
         },
         warnings: [
           {
-            code: 'ALREADY_INSTALLED',
-            message: `${agent.displayName} is already installed.`,
+            code: 'UNTRACKED_EXISTING_INSTALL',
+            message: `${agent.displayName} is already installed but not tracked by Quantex. Quantex could not safely determine the supported install source, so the existing install remains unmanaged.`,
           },
         ],
       }),
@@ -194,7 +323,7 @@ export async function ensureCommand(agentName: string): Promise<CommandResult<En
 function renderEnsureHuman(result: {
   data?: EnsureCommandData
   error: { message: string } | null
-  warnings: Array<{ message: string }>
+  warnings: Array<{ code?: string; message: string }>
 }): void {
   if (result.error) {
     printError(pc.red(result.error.message))
@@ -204,7 +333,19 @@ function renderEnsureHuman(result: {
   if (!result.data) return
 
   if (result.warnings.length > 0) {
-    for (const warning of result.warnings) printWarn(pc.yellow(warning.message))
+    for (const warning of result.warnings) {
+      if (warning.code === 'TRACKED_EXISTING_INSTALL') {
+        printInfo(pc.green(warning.message))
+        continue
+      }
+
+      if (warning.code === 'DRY_RUN') {
+        printWarn(pc.cyan(warning.message))
+        continue
+      }
+
+      printWarn(pc.yellow(warning.message))
+    }
     return
   }
 
