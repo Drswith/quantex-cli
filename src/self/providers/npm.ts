@@ -13,6 +13,7 @@ export const npmSelfUpgradeProvider: SelfUpgradeProvider = {
       BUILD_PACKAGE_NAME,
       'latest-major',
       inspection.updateChannel === 'beta' ? 'beta' : 'latest',
+      inspection.managedRegistry,
     )
     return {
       error: success

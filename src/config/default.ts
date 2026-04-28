@@ -4,5 +4,6 @@ export const defaultConfig = {
   networkTimeoutMs: 10000 as const,
   npmBunUpdateStrategy: 'latest-major' as const,
   selfUpdateChannel: 'stable' as const,
+  selfUpdateRegistry: undefined,
   versionCacheTtlHours: 6 as const,
 }

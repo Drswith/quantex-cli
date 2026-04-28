@@ -57,13 +57,21 @@ What to look for:
 - `installSource`
 - whether `canAutoUpdate` is true
 - the reported `latestVersion`
+- any warning that the selected registry is behind upstream npm
 - any recovery hint shown by `doctor`
 
 Interpretation:
 
 - if `installSource` is `source`, Quantex will not auto-upgrade and the issue is not in release artifacts
-- if `installSource` is `bun` or `npm`, first verify package-manager state before debugging binary release logic
+- if `installSource` is `bun` or `npm`, first verify package-manager registry state before debugging binary release logic
 - if `installSource` is `binary`, continue with artifact and smoke validation
+
+Registry-specific checks for managed installs:
+
+- `qtx upgrade` follows the registry selected for the current Bun/npm self-upgrade path
+- `QTX_SELF_UPDATE_REGISTRY` overrides every other managed self-upgrade registry source for the current command environment
+- `selfUpdateRegistry` in `~/.quantex/config.json` overrides package-manager defaults without changing your global Bun/npm setup
+- a newer version on official npm does not mean that version is installable from your selected mirror yet
 
 ### 2. Rebuild the local release outputs from scratch
 
@@ -179,6 +187,19 @@ Useful checks:
 - whether `state.self.installSource` exists and matches reality
 - whether Quantex is running from a package-manager install, source checkout, or standalone binary
 - whether postinstall wrote package-manager install source correctly
+
+For managed self-upgrade registry mismatches, also check:
+
+- `~/.npmrc` for `registry=...`
+- project-local `.npmrc` in the directory where `qtx upgrade` was run
+- `bunfig.toml` / `~/.bunfig.toml` if the install source is Bun
+- whether `QTX_SELF_UPDATE_REGISTRY` is set in the current shell
+- whether `selfUpdateRegistry` is set in `~/.quantex/config.json`
+
+If Quantex warns that upstream npm is newer than the selected registry:
+
+- the selected registry is the authoritative source for whether `qtx upgrade` can install a newer version right now
+- wait for the mirror to sync, or point Quantex self-upgrade at a different registry with `QTX_SELF_UPDATE_REGISTRY` or `selfUpdateRegistry`
 
 ### 7. Reproduce the CI release verification path locally
 

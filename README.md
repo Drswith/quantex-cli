@@ -140,6 +140,8 @@ qtx upgrade --check
 qtx upgrade --channel beta
 ```
 
+提示：`qtx upgrade` 会跟随当前 Bun/npm 自升级实际使用的 registry。若你使用镜像源，镜像未同步最新发布时，当前源可安装版本可能会暂时落后于官方 npm。此时可稍后重试，或单独设置 `selfUpdateRegistry` / `QTX_SELF_UPDATE_REGISTRY` 让 Quantex 自升级使用不同的 registry，而不影响其他项目。
+
 ## 常用命令
 
 | 推荐命令 | 等价长命令 | 作用 |
@@ -213,11 +215,14 @@ quantex schema --json
   "defaultPackageManager": "bun",
   "npmBunUpdateStrategy": "latest-major",
   "selfUpdateChannel": "stable",
+  "selfUpdateRegistry": "https://registry.npmjs.org",
   "networkRetries": 2,
   "networkTimeoutMs": 10000,
   "versionCacheTtlHours": 6
 }
 ```
+
+`selfUpdateRegistry` 只影响 Quantex 自身通过 Bun/npm 执行 `qtx upgrade` 的 registry 选择，不会修改你其他项目的默认安装源。一次性覆盖可使用环境变量 `QTX_SELF_UPDATE_REGISTRY`。
 
 运行时状态位于 `~/.quantex/state.json`。Quantex 会记录 agent 和自身的实际安装来源，用于 `update --all` 分组更新、`doctor` 恢复建议和 self upgrade 来源判断。
 

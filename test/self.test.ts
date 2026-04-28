@@ -17,6 +17,7 @@ const bunUpdateSpy = vi.spyOn(bunPm, 'update')
 const npmUpdateSpy = vi.spyOn(npmPm, 'update')
 const binaryUpgradeSpy = vi.spyOn(binarySelf, 'upgradeStandaloneBinary')
 const releaseManifestSpy = vi.spyOn(releaseSelf, 'fetchBinaryReleaseManifest')
+const installedVersionSpy = vi.spyOn(version, 'getInstalledVersion')
 const latestVersionSpy = vi.spyOn(version, 'getLatestVersion')
 const tempConfigDir = join(tmpdir(), `quantex-self-test-${Date.now()}`)
 const originalPlatform = process.platform
@@ -28,6 +29,7 @@ afterAll(() => {
   npmUpdateSpy.mockRestore()
   binaryUpgradeSpy.mockRestore()
   releaseManifestSpy.mockRestore()
+  installedVersionSpy.mockRestore()
   latestVersionSpy.mockRestore()
   Object.defineProperty(process, 'platform', { value: originalPlatform })
   Object.defineProperty(process, 'arch', { value: originalArch })
@@ -40,6 +42,7 @@ describe('self helpers', () => {
     npmUpdateSpy.mockClear()
     binaryUpgradeSpy.mockClear()
     releaseManifestSpy.mockClear()
+    installedVersionSpy.mockClear()
     latestVersionSpy.mockClear()
     Object.defineProperty(process, 'platform', { value: originalPlatform })
     Object.defineProperty(process, 'arch', { value: originalArch })
@@ -94,6 +97,7 @@ describe('self helpers', () => {
   it('upgrades through bun when bun is the detected install source', async () => {
     const { getSelfUpgradeLockPath, upgradeSelf } = await import('../src/self')
     bunUpdateSpy.mockResolvedValue(true)
+    installedVersionSpy.mockResolvedValue('1.1.0')
 
     const result = await upgradeSelf({
       canAutoUpdate: true,
@@ -101,6 +105,7 @@ describe('self helpers', () => {
       executablePath: '/Users/test/.bun/bin/quantex',
       installSource: 'bun',
       latestVersion: '1.1.0',
+      managedRegistry: 'https://registry.npmjs.org',
       packageRoot: '/Users/test/.bun/install/global/node_modules/quantex-cli',
       recommendedUpgradeCommand: 'quantex upgrade',
       updateChannel: 'stable',
@@ -112,13 +117,14 @@ describe('self helpers', () => {
       newVersion: '1.1.0',
       success: true,
     })
-    expect(bunUpdateSpy).toHaveBeenCalledWith('quantex-cli', 'latest-major', 'latest')
+    expect(bunUpdateSpy).toHaveBeenCalledWith('quantex-cli', 'latest-major', 'latest', 'https://registry.npmjs.org')
     expect(existsSync(getSelfUpgradeLockPath())).toBe(false)
   })
 
   it('upgrades through npm when npm is the detected install source', async () => {
     const { upgradeSelf } = await import('../src/self')
     npmUpdateSpy.mockResolvedValue(true)
+    installedVersionSpy.mockResolvedValue('1.1.0')
 
     const result = await upgradeSelf({
       canAutoUpdate: true,
@@ -126,6 +132,7 @@ describe('self helpers', () => {
       executablePath: '/usr/local/bin/quantex',
       installSource: 'npm',
       latestVersion: '1.1.0',
+      managedRegistry: 'https://registry.npmjs.org',
       packageRoot: '/usr/local/lib/node_modules/quantex-cli',
       recommendedUpgradeCommand: 'quantex upgrade',
       updateChannel: 'stable',
@@ -137,7 +144,7 @@ describe('self helpers', () => {
       newVersion: '1.1.0',
       success: true,
     })
-    expect(npmUpdateSpy).toHaveBeenCalledWith('quantex-cli', 'latest-major', 'latest')
+    expect(npmUpdateSpy).toHaveBeenCalledWith('quantex-cli', 'latest-major', 'latest', 'https://registry.npmjs.org')
   })
 
   it('reports source installs as unsupported for auto-update', async () => {
@@ -335,5 +342,99 @@ describe('self helpers', () => {
     expect(inspection.executablePath).toBeTruthy()
     expect(inspection.latestVersion).toBe('9.9.9')
     expect(inspection.updateChannel).toBe('stable')
+  })
+
+  it('prefers QTX self-update registry overrides over package-manager defaults', async () => {
+    const { resolveManagedSelfUpdateRegistry } = await import('../src/self')
+
+    await expect(
+      resolveManagedSelfUpdateRegistry(
+        'npm',
+        {
+          defaultPackageManager: 'bun',
+          networkRetries: 2,
+          networkTimeoutMs: 10000,
+          npmBunUpdateStrategy: 'latest-major',
+          selfUpdateChannel: 'stable',
+          versionCacheTtlHours: 6,
+        },
+        {
+          QTX_SELF_UPDATE_REGISTRY: 'https://registry.npmjs.org/',
+          npm_config_registry: 'https://registry.npmmirror.com',
+        },
+      ),
+    ).resolves.toEqual({
+      isOverride: true,
+      registry: 'https://registry.npmjs.org',
+      source: 'quantex-env',
+    })
+  })
+
+  it('reads managed self-upgrade registries from npmrc files', async () => {
+    const { resolveManagedSelfUpdateRegistry } = await import('../src/self')
+    const tempRoot = await mkdtemp(join(tmpdir(), 'quantex-self-registry-'))
+    const projectDir = join(tempRoot, 'project')
+    const homeDir = join(tempRoot, 'home')
+
+    await mkdir(projectDir, { recursive: true })
+    await mkdir(homeDir, { recursive: true })
+    await writeFile(join(projectDir, '.npmrc'), 'registry=https://registry.npmmirror.com/\n')
+
+    try {
+      await expect(
+        resolveManagedSelfUpdateRegistry(
+          'bun',
+          {
+            defaultPackageManager: 'bun',
+            networkRetries: 2,
+            networkTimeoutMs: 10000,
+            npmBunUpdateStrategy: 'latest-major',
+            selfUpdateChannel: 'stable',
+            versionCacheTtlHours: 6,
+          },
+          {
+            HOME: homeDir,
+          },
+          projectDir,
+        ),
+      ).resolves.toEqual({
+        isOverride: false,
+        registry: 'https://registry.npmmirror.com',
+        source: 'npmrc',
+      })
+    } finally {
+      await rm(tempRoot, { recursive: true, force: true })
+    }
+  })
+
+  it('fails managed self-upgrade verification when the installed version does not change', async () => {
+    const { upgradeSelf } = await import('../src/self')
+    npmUpdateSpy.mockResolvedValue(true)
+    installedVersionSpy.mockResolvedValue('1.0.0')
+
+    const result = await upgradeSelf({
+      canAutoUpdate: true,
+      currentVersion: '1.0.0',
+      executablePath: '/usr/local/bin/quantex',
+      installSource: 'npm',
+      latestVersion: '1.1.0',
+      managedRegistry: 'https://registry.npmjs.org',
+      packageRoot: '/usr/local/lib/node_modules/quantex-cli',
+      recommendedUpgradeCommand: 'quantex upgrade',
+      updateChannel: 'stable',
+    })
+
+    expect(result).toEqual({
+      error: {
+        detail: {
+          expectedVersion: '1.1.0',
+          observedVersion: '1.0.0',
+        },
+        kind: 'verify',
+        message: 'Managed self-upgrade installed version 1.0.0, but expected 1.1.0.',
+      },
+      installSource: 'npm',
+      success: false,
+    })
   })
 })

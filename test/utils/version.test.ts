@@ -169,7 +169,9 @@ describe('getLatestVersion', () => {
     expect(await getLatestVersion('some-package')).toBe('2.0.0')
     expect(await getLatestVersion('some-package')).toBe('2.0.0')
     expect(mockFetch).toHaveBeenCalledTimes(1)
-    expect(readFileSync(join(tempConfigDir, 'cache', 'versions.json'), 'utf8')).toContain('"npm:some-package:latest"')
+    expect(readFileSync(join(tempConfigDir, 'cache', 'versions.json'), 'utf8')).toContain(
+      '"npm:https://registry.npmjs.org:some-package:latest"',
+    )
   })
 
   it('retries failed version requests before succeeding', async () => {

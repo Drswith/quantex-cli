@@ -12,10 +12,12 @@ import { fileURLToPath } from 'node:url'
 import { loadConfig } from '../config'
 import { BUILD_PACKAGE_NAME, BUILD_VERSION } from '../generated/build-meta'
 import { getSelfState, setSelfInstallSource } from '../state'
-import { getLatestVersion } from '../utils/version'
+import { OFFICIAL_NPM_REGISTRY } from '../utils/registry'
+import { getInstalledVersion, getLatestVersion } from '../utils/version'
 import { acquireSelfUpgradeLock } from './lock'
 import { getSelfUpgradeProvider } from './providers'
 import { getSelfUpgradeRecoveryHint } from './recovery'
+import { resolveManagedSelfUpdateRegistry } from './registry'
 import { fetchBinaryReleaseManifest, getSelfUpdateChannel, resolveBinaryReleaseAsset } from './release'
 
 const CLI_NPM_PACKAGE_NAME = BUILD_PACKAGE_NAME
@@ -32,16 +34,19 @@ export async function inspectSelf(options?: { updateChannel?: SelfUpdateChannel 
   const installSource = await reconcileSelfInstallSource(state.installSource, detectedInstallSource)
   const config = await loadConfig()
   const updateChannel = getSelfUpdateChannel(options?.updateChannel, config.selfUpdateChannel)
-  const latestVersion = await resolveSelfLatestVersion(installSource, executablePath, updateChannel)
+  const latestVersionState = await resolveSelfLatestVersion(installSource, executablePath, updateChannel, config)
 
   return {
     canAutoUpdate: canAutoUpdateSelf(installSource),
     currentVersion: metadata.version || BUILD_VERSION,
     executablePath,
     installSource,
-    latestVersion,
+    latestVersion: latestVersionState.installableLatestVersion,
+    managedRegistry: latestVersionState.managedRegistry,
+    managedRegistryIsOverride: latestVersionState.managedRegistryIsOverride,
     packageRoot: metadata.packageRoot,
     recommendedUpgradeCommand: canAutoUpdateSelf(installSource) ? 'quantex upgrade' : undefined,
+    upstreamLatestVersion: latestVersionState.upstreamLatestVersion,
     updateChannel,
   }
 }
@@ -62,7 +67,8 @@ export async function upgradeSelf(inspection?: SelfInspection): Promise<SelfUpda
   }
 
   try {
-    return await getSelfUpgradeProvider(resolvedInspection).upgrade(resolvedInspection)
+    const result = await getSelfUpgradeProvider(resolvedInspection).upgrade(resolvedInspection)
+    return verifyManagedSelfUpgradeResult(resolvedInspection, result)
   } finally {
     await releaseLock()
   }
@@ -146,18 +152,102 @@ async function resolveSelfLatestVersion(
   installSource: SelfInstallSource,
   executablePath: string,
   updateChannel: SelfUpdateChannel,
-): Promise<string | undefined> {
+  config: Awaited<ReturnType<typeof loadConfig>>,
+): Promise<{
+  installableLatestVersion?: string
+  managedRegistry?: string
+  managedRegistryIsOverride?: boolean
+  upstreamLatestVersion?: string
+}> {
   if (installSource === 'binary') {
     try {
       const manifest = await fetchBinaryReleaseManifest(updateChannel)
       const asset = resolveBinaryReleaseAsset(manifest, executablePath)
-      return asset ? manifest.version : undefined
+      return {
+        installableLatestVersion: asset ? manifest.version : undefined,
+      }
     } catch {
-      return undefined
+      return {}
     }
   }
 
-  return getLatestVersion(CLI_NPM_PACKAGE_NAME, updateChannel === 'beta' ? 'beta' : 'latest')
+  const distTag = updateChannel === 'beta' ? 'beta' : 'latest'
+  const upstreamLatestVersion = await getLatestVersion(CLI_NPM_PACKAGE_NAME, distTag, {
+    registry: OFFICIAL_NPM_REGISTRY,
+  })
+
+  if (installSource === 'bun' || installSource === 'npm') {
+    const managedRegistry = await resolveManagedSelfUpdateRegistry(installSource, config)
+    return {
+      installableLatestVersion: await getLatestVersion(CLI_NPM_PACKAGE_NAME, distTag, {
+        registry: managedRegistry?.registry,
+      }),
+      managedRegistry: managedRegistry?.registry,
+      managedRegistryIsOverride: managedRegistry?.isOverride ?? false,
+      upstreamLatestVersion,
+    }
+  }
+
+  return {
+    installableLatestVersion: upstreamLatestVersion,
+    upstreamLatestVersion,
+  }
+}
+
+async function verifyManagedSelfUpgradeResult(
+  inspection: SelfInspection,
+  result: SelfUpdateResult,
+): Promise<SelfUpdateResult> {
+  if (!result.success) return result
+
+  if (inspection.installSource !== 'bun' && inspection.installSource !== 'npm') return result
+
+  const observedVersion = await getInstalledVersion(inspection.executablePath)
+  if (!observedVersion) {
+    return {
+      error: {
+        kind: 'verify',
+        message: 'Managed self-upgrade finished but Quantex could not verify the installed version afterwards.',
+      },
+      installSource: inspection.installSource,
+      success: false,
+    }
+  }
+
+  const expectedVersion = result.newVersion ?? inspection.latestVersion
+  if (expectedVersion && observedVersion !== expectedVersion) {
+    return {
+      error: {
+        detail: {
+          expectedVersion,
+          observedVersion,
+        },
+        kind: 'verify',
+        message: `Managed self-upgrade installed version ${observedVersion}, but expected ${expectedVersion}.`,
+      },
+      installSource: inspection.installSource,
+      success: false,
+    }
+  }
+
+  if (!expectedVersion && observedVersion === inspection.currentVersion) {
+    return {
+      error: {
+        detail: {
+          observedVersion,
+        },
+        kind: 'verify',
+        message: 'Managed self-upgrade completed without changing the installed Quantex version.',
+      },
+      installSource: inspection.installSource,
+      success: false,
+    }
+  }
+
+  return {
+    ...result,
+    newVersion: observedVersion,
+  }
 }
 
 async function readPackageJson(packageJsonPath: string): Promise<{ name?: string; version?: string } | undefined> {
@@ -186,6 +276,7 @@ function resolveModulePath(moduleUrl: string): string {
 }
 
 export { acquireSelfUpgradeLock, getSelfUpgradeLockPath } from './lock'
+export { resolveManagedSelfUpdateRegistry } from './registry'
 export { getSelfUpgradeRecoveryHint, getSelfUpgradeRecoveryHintForInspection } from './recovery'
 export {
   fetchBinaryReleaseChecksum,
