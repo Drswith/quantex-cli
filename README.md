@@ -215,7 +215,7 @@ Quantex 使用 release-please 维护 Release PR，发布说明以 GitHub Release
 
 如果你要参与开发或让 coding agent 在本仓库内工作，请从这些入口开始：
 
-- [AGENTS.md](./AGENTS.md)：仓库级 agent 指令、架构和命令约定。
+- [AGENTS.md](./AGENTS.md)：仓库级 agent 执行手册，包含流程守卫、验证门槛和 trigger-based pointers。
 - [docs/README.md](./docs/README.md)：ADR、runbook、session、postmortem 等项目文档入口。
 - [openspec/README.md](./openspec/README.md)：OpenSpec / OPSX 变更流程。
 - [docs/github-collaboration.md](./docs/github-collaboration.md)：Issue、PR、Discussion 协作流程。

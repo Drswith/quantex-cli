@@ -215,7 +215,7 @@ Quantex uses release-please Release PRs. GitHub Releases are the canonical relea
 
 If you are contributing to this repository or letting a coding agent work here, start from these entry points:
 
-- [AGENTS.md](./AGENTS.md): repository-level agent instructions, architecture, and command conventions.
+- [AGENTS.md](./AGENTS.md): repository-level execution handbook with workflow guardrails, validation gates, and trigger-based pointers.
 - [docs/README.md](./docs/README.md): project docs for ADRs, runbooks, sessions, and postmortems.
 - [openspec/README.md](./openspec/README.md): OpenSpec / OPSX change workflow.
 - [docs/github-collaboration.md](./docs/github-collaboration.md): Issue, PR, and Discussion collaboration flow.
