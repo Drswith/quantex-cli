@@ -2,6 +2,13 @@
 
 This changelog is maintained by release-please Release PRs.
 
+## [0.4.2](https://github.com/Drswith/quantex-cli/compare/v0.4.1...v0.4.2) (2026-04-28)
+
+
+### Bug Fixes
+
+* **update:** skip untracked path agents in update-all ([#89](https://github.com/Drswith/quantex-cli/issues/89)) ([6db58aa](https://github.com/Drswith/quantex-cli/commit/6db58aa75226b28fd7835d061842ff66b9afb75f))
+
 ## [0.4.1](https://github.com/Drswith/quantex-cli/compare/v0.4.0...v0.4.1) (2026-04-28)
 
 
