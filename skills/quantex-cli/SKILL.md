@@ -7,6 +7,8 @@ description: Use this skill when working with Quantex CLI to install, inspect, e
 
 Use this skill when the task is about operating AI agent CLIs through Quantex rather than invoking each agent tool ad hoc.
 
+`qtx` is the preferred short user-facing entry point in the product README. This skill keeps the explicit `quantex` form in automation examples because it is clearer in prompts, logs, and durable runbooks; treat the two names as equivalent unless a command example explicitly depends on the published package-manager shim form.
+
 ## When to use
 
 Reach for this skill when you need to:
@@ -53,7 +55,7 @@ Prefer `inspect`, `ensure`, `resolve`, and `exec` over scraping human-readable `
 
 Quantex is `human-friendly + agent-friendly`.
 
-- Use `quantex <agent>` for human shortcut flows
+- Use `qtx <agent>` or `quantex <agent>` for human shortcut flows; the README prefers `qtx` as the shorter copyable path
 - Use `quantex exec <agent> -- [args...]` for automation and agent-safe invocation
 - Use `--json` or `--output ndjson` when another agent or tool will parse the result
 - Use `--non-interactive` when prompts would be unsafe

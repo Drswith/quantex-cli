@@ -16,7 +16,7 @@
 
 </div>
 
-Quantex 是一个 `human-friendly + agent-friendly` 的 agent lifecycle CLI。它帮你把 Claude Code、Codex、Gemini、Kilo Code、Cursor、OpenCode 等 AI 编程助手的生命周期操作统一到一组稳定命令里：人可以直接用，自动化脚本和 coding agent 也可以用结构化输出可靠调用。
+Quantex 是一个 `human-friendly + agent-friendly` 的 agent lifecycle CLI。它帮你把 Claude Code、Codex、Gemini、Kilo Code、Cursor、OpenCode 等 AI 编程助手的生命周期操作统一到一组稳定命令里：人可以直接用，自动化脚本和 coding agent 也可以用结构化输出可靠调用。本文默认使用更短的 `qtx` 作为推荐入口，`quantex` 是完全等价的完整命令名。
 
 ## 为什么用 Quantex
 
@@ -42,9 +42,9 @@ npx skills add Drswith/quantex-cli --list
 随后让 agent 发现 Quantex 的稳定命令和输出契约：
 
 ```bash
-npm exec --yes --package quantex-cli -- quantex capabilities --json
-npm exec --yes --package quantex-cli -- quantex commands --json
-npm exec --yes --package quantex-cli -- quantex schema --json
+npm exec --yes --package quantex-cli -- qtx capabilities --json
+npm exec --yes --package quantex-cli -- qtx commands --json
+npm exec --yes --package quantex-cli -- qtx schema --json
 ```
 
 如果 agent 正在这个仓库内参与开发，请把下面这段作为启动提示：
@@ -84,81 +84,99 @@ Windows PowerShell：
 irm https://raw.githubusercontent.com/Drswith/quantex-cli/main/install.ps1 | iex
 ```
 
-安装后可以使用完整命令 `quantex`，也可以使用短别名 `qtx`。
+安装后推荐直接使用 `qtx`；如果你更偏好完整命令名，也可以使用完全等价的 `quantex`。
+
+## 免安装试用
+
+如果你已经有 Quantex 当前要求的运行时环境，可以先不做全局安装，直接试用只读命令：
+
+```bash
+bunx quantex-cli list
+npx --yes --package quantex-cli qtx capabilities --json
+npm exec --yes --package quantex-cli -- qtx inspect codex --json
+pnpm --package=quantex-cli dlx qtx doctor
+```
+
+注意事项：
+
+- 这些命令适合 `list`、`info`、`inspect`、`doctor`、`capabilities`、`commands`、`schema` 这类只读或发现型操作。
+- 当前已发布包的 CLI 入口通过 `bun` 执行，所以即使走 `npx` / `npm exec` / `pnpm dlx`，运行环境里也仍然需要可用的 `bun`。
+- `install`、`ensure`、`update`、`uninstall`、`upgrade` 这类会写状态或依赖已记录安装来源的操作，仍然建议先按上面的方式正常安装再执行。
 
 ## 快速开始
 
 安装并启动一个 agent：
 
 ```bash
-quantex install claude
-quantex exec claude --install if-missing -- --help
+qtx install claude
+qtx exec claude --install if-missing -- --help
 ```
 
 确保 agent 可用，适合脚本或其他 agent 调用：
 
 ```bash
-quantex ensure codex --json
+qtx ensure codex --json
 ```
 
 查看 agent 状态和可执行入口：
 
 ```bash
-quantex inspect codex --json
-quantex resolve codex --json
+qtx inspect codex --json
+qtx resolve codex --json
 ```
 
 更新单个 agent 或全部已安装 agent：
 
 ```bash
-quantex update claude
-quantex update --all
+qtx update claude
+qtx update --all
 ```
 
 升级 Quantex 自身：
 
 ```bash
-quantex upgrade
-quantex upgrade --check
-quantex upgrade --channel beta
+qtx upgrade
+qtx upgrade --check
+qtx upgrade --channel beta
 ```
 
 ## 常用命令
 
-| 命令 | 作用 |
-|------|------|
-| `quantex install <agent>` / `qtx i` | 安装 agent |
-| `quantex ensure <agent>` | 幂等确保 agent 已安装 |
-| `quantex update <agent>` / `qtx u` | 更新 agent |
-| `quantex update --all` | 更新所有已安装 agent |
-| `quantex uninstall <agent>` / `qtx rm` | 卸载 agent |
-| `quantex list` / `qtx ls` | 列出所有支持的 agent |
-| `quantex info <agent>` | 查看 agent 详情 |
-| `quantex inspect <agent>` | 查看结构化状态 |
-| `quantex resolve <agent>` | 解析可执行入口 |
-| `quantex exec <agent> -- [args...]` | 以显式策略运行 agent |
-| `quantex <agent> [args...]` | 快捷启动 agent |
-| `quantex capabilities` | 查看当前环境能力 |
-| `quantex commands` | 查看稳定命令目录 |
-| `quantex schema` | 查看结构化输出 schema |
-| `quantex config` | 管理配置 |
-| `quantex doctor` | 检查环境和恢复建议 |
+| 推荐命令 | 等价长命令 | 作用 |
+|------|------|------|
+| `qtx i <agent>` | `quantex install <agent>` | 安装 agent |
+| `qtx ensure <agent>` | `quantex ensure <agent>` | 幂等确保 agent 已安装 |
+| `qtx u <agent>` | `quantex update <agent>` | 更新 agent |
+| `qtx update --all` | `quantex update --all` | 更新所有已安装 agent |
+| `qtx rm <agent>` | `quantex uninstall <agent>` | 卸载 agent |
+| `qtx ls` | `quantex list` | 列出所有支持的 agent |
+| `qtx info <agent>` | `quantex info <agent>` | 查看 agent 详情 |
+| `qtx inspect <agent>` | `quantex inspect <agent>` | 查看结构化状态 |
+| `qtx resolve <agent>` | `quantex resolve <agent>` | 解析可执行入口 |
+| `qtx exec <agent> -- [args...]` | `quantex exec <agent> -- [args...]` | 以显式策略运行 agent |
+| `qtx <agent> [args...]` | `quantex <agent> [args...]` | 快捷启动 agent |
+| `qtx capabilities` | `quantex capabilities` | 查看当前环境能力 |
+| `qtx commands` | `quantex commands` | 查看稳定命令目录 |
+| `qtx schema` | `quantex schema` | 查看结构化输出 schema |
+| `qtx config` | `quantex config` | 管理配置 |
+| `qtx doctor` | `quantex doctor` | 检查环境和恢复建议 |
 
 ## 支持的 Agent
 
 | Agent | 启动命令 | 描述 |
 |-------|----------|------|
-| Claude Code | `quantex claude` | Anthropic 官方 AI 编程助手 CLI |
-| Codex CLI | `quantex codex` | OpenAI 官方 AI 编程助手 CLI |
-| GitHub Copilot CLI | `quantex copilot` | GitHub Copilot 命令行工具 |
-| Cursor CLI | `quantex cursor` | Cursor AI 编程助手命令行工具 |
-| Droid | `quantex droid` | Factory AI 软件工程 Agent CLI |
-| Gemini CLI | `quantex gemini` | Google 开源 AI 编程助手 CLI |
-| Kilo Code CLI | `quantex kilo` | Kilo 官方 AI 编程助手 CLI |
-| OpenCode | `quantex opencode` | 开源 AI 编程 CLI |
-| Pi | `quantex pi` | 极简可扩展的终端编程 Agent |
+| Claude Code | `qtx claude` | Anthropic 官方 AI 编程助手 CLI |
+| Codex CLI | `qtx codex` | OpenAI 官方 AI 编程助手 CLI |
+| GitHub Copilot CLI | `qtx copilot` | GitHub Copilot 命令行工具 |
+| Cursor CLI | `qtx cursor` | Cursor AI 编程助手命令行工具 |
+| Droid | `qtx droid` | Factory AI 软件工程 Agent CLI |
+| Gemini CLI | `qtx gemini` | Google 开源 AI 编程助手 CLI |
+| Kilo Code CLI | `qtx kilo` | Kilo 官方 AI 编程助手 CLI |
+| OpenCode | `qtx opencode` | 开源 AI 编程 CLI |
+| Pi | `qtx pi` | 极简可扩展的终端编程 Agent |
+| Qoder CLI | `qtx qoder` | Qoder 官方 AI 编程助手 CLI |
 
-`qtx` 是 `quantex` 的短别名，例如 `qtx codex`、`qtx ensure claude`。
+如果你更偏好显式长命令，上表里的 `qtx` 都可以直接替换成 `quantex`。
 
 ## 面向自动化和 Agent
 

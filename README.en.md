@@ -16,7 +16,7 @@ Manage AI coding assistant CLIs from one lifecycle-focused command line.
 
 </div>
 
-Quantex is a `human-friendly + agent-friendly` lifecycle CLI for AI coding agents. It gives Claude Code, Codex, Gemini, Kilo Code, Cursor, OpenCode, and other assistant CLIs a shared surface for installation, inspection, updates, removal, execution, and machine-readable automation.
+Quantex is a `human-friendly + agent-friendly` lifecycle CLI for AI coding agents. It gives Claude Code, Codex, Gemini, Kilo Code, Cursor, OpenCode, and other assistant CLIs a shared surface for installation, inspection, updates, removal, execution, and machine-readable automation. This README uses the shorter `qtx` form as the recommended entry point, while `quantex` remains the fully equivalent long command name.
 
 ## Why Quantex
 
@@ -42,9 +42,9 @@ npx skills add Drswith/quantex-cli --list
 Then let the agent discover Quantex's stable commands and output contracts:
 
 ```bash
-npm exec --yes --package quantex-cli -- quantex capabilities --json
-npm exec --yes --package quantex-cli -- quantex commands --json
-npm exec --yes --package quantex-cli -- quantex schema --json
+npm exec --yes --package quantex-cli -- qtx capabilities --json
+npm exec --yes --package quantex-cli -- qtx commands --json
+npm exec --yes --package quantex-cli -- qtx schema --json
 ```
 
 If the agent is contributing inside this repository, use this as the bootstrap prompt:
@@ -84,81 +84,99 @@ Windows PowerShell:
 irm https://raw.githubusercontent.com/Drswith/quantex-cli/main/install.ps1 | iex
 ```
 
-After installation, use `quantex` or its short alias `qtx`.
+After installation, prefer `qtx` for the shortest copyable path. If you prefer the explicit long form, `quantex` is fully equivalent.
+
+## Try It Without Installing
+
+If your environment already provides the runtime Quantex currently expects, you can try read-only commands before doing a global install:
+
+```bash
+bunx quantex-cli list
+npx --yes --package quantex-cli qtx capabilities --json
+npm exec --yes --package quantex-cli -- qtx inspect codex --json
+pnpm --package=quantex-cli dlx qtx doctor
+```
+
+Notes:
+
+- These commands are intended for read-only and discovery-oriented flows such as `list`, `info`, `inspect`, `doctor`, `capabilities`, `commands`, and `schema`.
+- The currently published package executes its CLI entrypoint through `bun`, so `npx` / `npm exec` / `pnpm dlx` still require a working `bun` on `PATH`.
+- For `install`, `ensure`, `update`, `uninstall`, `upgrade`, or any flow that should record install-source state, prefer a normal install first.
 
 ## Quick Start
 
 Install and run an agent:
 
 ```bash
-quantex install claude
-quantex exec claude --install if-missing -- --help
+qtx install claude
+qtx exec claude --install if-missing -- --help
 ```
 
 Ensure an agent is available, which is useful for scripts and other agents:
 
 ```bash
-quantex ensure codex --json
+qtx ensure codex --json
 ```
 
 Inspect agent state and resolve its executable:
 
 ```bash
-quantex inspect codex --json
-quantex resolve codex --json
+qtx inspect codex --json
+qtx resolve codex --json
 ```
 
 Update one agent or all installed agents:
 
 ```bash
-quantex update claude
-quantex update --all
+qtx update claude
+qtx update --all
 ```
 
 Upgrade Quantex itself:
 
 ```bash
-quantex upgrade
-quantex upgrade --check
-quantex upgrade --channel beta
+qtx upgrade
+qtx upgrade --check
+qtx upgrade --channel beta
 ```
 
 ## Common Commands
 
-| Command | Description |
-|---------|-------------|
-| `quantex install <agent>` / `qtx i` | Install an agent |
-| `quantex ensure <agent>` | Idempotently ensure an agent is installed |
-| `quantex update <agent>` / `qtx u` | Update an agent |
-| `quantex update --all` | Update all installed agents |
-| `quantex uninstall <agent>` / `qtx rm` | Uninstall an agent |
-| `quantex list` / `qtx ls` | List supported agents |
-| `quantex info <agent>` | Show agent details |
-| `quantex inspect <agent>` | Return structured agent state |
-| `quantex resolve <agent>` | Resolve the executable entrypoint |
-| `quantex exec <agent> -- [args...]` | Run an agent with explicit policy |
-| `quantex <agent> [args...]` | Shortcut-run an agent |
-| `quantex capabilities` | Show environment capabilities |
-| `quantex commands` | Show the stable command catalog |
-| `quantex schema` | Show structured output schemas |
-| `quantex config` | Manage configuration |
-| `quantex doctor` | Diagnose environment and recovery guidance |
+| Preferred Command | Equivalent Long Form | Description |
+|---------|-------------|-------------|
+| `qtx i <agent>` | `quantex install <agent>` | Install an agent |
+| `qtx ensure <agent>` | `quantex ensure <agent>` | Idempotently ensure an agent is installed |
+| `qtx u <agent>` | `quantex update <agent>` | Update an agent |
+| `qtx update --all` | `quantex update --all` | Update all installed agents |
+| `qtx rm <agent>` | `quantex uninstall <agent>` | Uninstall an agent |
+| `qtx ls` | `quantex list` | List supported agents |
+| `qtx info <agent>` | `quantex info <agent>` | Show agent details |
+| `qtx inspect <agent>` | `quantex inspect <agent>` | Return structured agent state |
+| `qtx resolve <agent>` | `quantex resolve <agent>` | Resolve the executable entrypoint |
+| `qtx exec <agent> -- [args...]` | `quantex exec <agent> -- [args...]` | Run an agent with explicit policy |
+| `qtx <agent> [args...]` | `quantex <agent> [args...]` | Shortcut-run an agent |
+| `qtx capabilities` | `quantex capabilities` | Show environment capabilities |
+| `qtx commands` | `quantex commands` | Show the stable command catalog |
+| `qtx schema` | `quantex schema` | Show structured output schemas |
+| `qtx config` | `quantex config` | Manage configuration |
+| `qtx doctor` | `quantex doctor` | Diagnose environment and recovery guidance |
 
 ## Supported Agents
 
 | Agent | Run Command | Description |
 |-------|-------------|-------------|
-| Claude Code | `quantex claude` | Anthropic's official AI coding assistant CLI |
-| Codex CLI | `quantex codex` | OpenAI's official AI coding assistant CLI |
-| GitHub Copilot CLI | `quantex copilot` | GitHub Copilot command-line tool |
-| Cursor CLI | `quantex cursor` | Cursor AI coding assistant CLI |
-| Droid | `quantex droid` | Factory AI software engineering agent CLI |
-| Gemini CLI | `quantex gemini` | Google's open-source AI coding assistant CLI |
-| Kilo Code CLI | `quantex kilo` | Kilo's official AI coding assistant CLI |
-| OpenCode | `quantex opencode` | Open-source AI coding CLI |
-| Pi | `quantex pi` | Minimal and extensible terminal coding agent |
+| Claude Code | `qtx claude` | Anthropic's official AI coding assistant CLI |
+| Codex CLI | `qtx codex` | OpenAI's official AI coding assistant CLI |
+| GitHub Copilot CLI | `qtx copilot` | GitHub Copilot command-line tool |
+| Cursor CLI | `qtx cursor` | Cursor AI coding assistant CLI |
+| Droid | `qtx droid` | Factory AI software engineering agent CLI |
+| Gemini CLI | `qtx gemini` | Google's open-source AI coding assistant CLI |
+| Kilo Code CLI | `qtx kilo` | Kilo's official AI coding assistant CLI |
+| OpenCode | `qtx opencode` | Open-source AI coding CLI |
+| Pi | `qtx pi` | Minimal and extensible terminal coding agent |
+| Qoder CLI | `qtx qoder` | Qoder's official AI coding assistant CLI |
 
-`qtx` is the short alias for `quantex`, for example `qtx codex` or `qtx ensure claude`.
+If you prefer the explicit long form, replace `qtx` with `quantex` in the examples above.
 
 ## Automation And Agents
 
