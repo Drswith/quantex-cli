@@ -5,7 +5,13 @@ import { afterAll, beforeEach, describe, expect, it, vi } from 'vitest'
 import * as config from '../../src/config'
 import * as binaryPm from '../../src/package-manager/binary'
 import * as bunPm from '../../src/package-manager/bun'
-import { installAgent, uninstallAgent, updateAgent, updateAgentsByType } from '../../src/package-manager/index'
+import {
+  installAgent,
+  trackInstalledAgent,
+  uninstallAgent,
+  updateAgent,
+  updateAgentsByType,
+} from '../../src/package-manager/index'
 import * as npmPm from '../../src/package-manager/npm'
 import * as state from '../../src/state'
 import * as detectUtils from '../../src/utils/detect'
@@ -147,6 +153,32 @@ describe('installAgent', () => {
     bunInstallSpy.mockResolvedValue(false)
     npmInstallSpy.mockResolvedValue(false)
     expect(await installAgent(testAgent)).toEqual({ success: false })
+  })
+})
+
+describe('trackInstalledAgent', () => {
+  it('persists an existing unmanaged install without running installers', async () => {
+    setInstalledAgentStateSpy.mockResolvedValue()
+
+    const installedState = await trackInstalledAgent(
+      {
+        ...testAgent,
+        packages: undefined,
+      },
+      { type: 'script', command: 'curl https://example.com/install | bash' },
+    )
+
+    expect(installedState).toEqual({
+      agentName: 'test-agent',
+      command: 'curl https://example.com/install | bash',
+      installType: 'script',
+      packageName: undefined,
+      packageTargetKind: undefined,
+    })
+    expect(setInstalledAgentStateSpy).toHaveBeenCalledWith(installedState)
+    expect(bunInstallSpy).not.toHaveBeenCalled()
+    expect(npmInstallSpy).not.toHaveBeenCalled()
+    expect(binarySpy).not.toHaveBeenCalled()
   })
 })
 
