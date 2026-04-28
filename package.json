@@ -1,6 +1,6 @@
 {
   "name": "quantex-cli",
-  "version": "0.4.0",
+  "version": "0.4.1",
   "description": "统一的 AI Agent CLI 管理工具，支持安装、更新、卸载、查询、快捷启动主流 AI 编程助手",
   "keywords": [],
   "homepage": "https://github.com/Drswith/quantex-cli#readme",
