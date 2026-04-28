@@ -201,6 +201,13 @@ If Quantex warns that upstream npm is newer than the selected registry:
 - the selected registry is the authoritative source for whether `qtx upgrade` can install a newer version right now
 - wait for the mirror to sync, or point Quantex self-upgrade at a different registry with `QTX_SELF_UPDATE_REGISTRY` or `selfUpdateRegistry`
 
+If Bun reports success but the installed `qtx --version` does not move:
+
+- inspect `~/.bun/install/global/package.json` for the stored `quantex-cli` range
+- inspect `~/.bun/install/global/bun.lock` for the resolved version and tarball registry
+- prefer the self-upgrade path that re-declares the direct package target with `bun add -g quantex-cli@<tag>` instead of relying on global `bun update`
+- npm has a similar range-sensitive `update` behavior; use `npm install -g quantex-cli@<tag>` when the intent is to replace the direct global package target
+
 ### 7. Reproduce the CI release verification path locally
 
 The closest local sequence to the release verification workflow is:

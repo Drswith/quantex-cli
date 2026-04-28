@@ -21,7 +21,7 @@ The self-upgrade system SHALL choose an upgrade strategy based on the detected i
 
 ### Requirement: Managed self-upgrade MUST keep registry checks and installs consistent
 
-Managed self-upgrade SHALL use the same resolved registry for package-manager version checks and managed-install execution.
+Managed self-upgrade SHALL use the same resolved registry for package-manager version checks and managed-install execution, and SHALL install the selected package tag directly instead of relying on package-manager update semantics.
 
 #### Scenario: Managed self-upgrade follows the selected registry
 
@@ -30,6 +30,15 @@ Managed self-upgrade SHALL use the same resolved registry for package-manager ve
 - WHEN the user runs `quantex upgrade --check` or `quantex upgrade`
 - THEN Quantex checks the installable latest version through that same registry
 - AND any managed self-upgrade command uses that same registry for installation
+
+#### Scenario: Managed self-upgrade re-declares the selected package tag
+
+- GIVEN Quantex was installed via `bun` or `npm`
+- AND a selected dist tag is resolved from the requested update channel
+- WHEN Quantex performs managed self-upgrade
+- THEN the Bun path executes a global add for `quantex-cli@<tag>`
+- AND the npm path executes a global install for `quantex-cli@<tag>`
+- AND Quantex does not rely on the existing global package range or lockfile entry to choose the self-upgrade target
 
 #### Scenario: Self-upgrade uses a Quantex-specific registry override
 

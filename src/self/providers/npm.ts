@@ -9,9 +9,8 @@ export const npmSelfUpgradeProvider: SelfUpgradeProvider = {
   getRecoveryHint: inspection =>
     `npm install -g ${BUILD_PACKAGE_NAME}@${inspection.updateChannel === 'beta' ? 'beta' : 'latest'}`,
   async upgrade(inspection: SelfInspection): Promise<SelfUpdateResult> {
-    const success = await npmPm.update(
+    const success = await npmPm.install(
       BUILD_PACKAGE_NAME,
-      'latest-major',
       inspection.updateChannel === 'beta' ? 'beta' : 'latest',
       inspection.managedRegistry,
     )

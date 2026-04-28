@@ -3,6 +3,7 @@
 - [x] 1.1 Add OpenSpec proposal, design, and spec deltas for registry-consistent managed self-upgrade behavior.
 - [x] 1.2 Implement self-upgrade registry resolution, managed latest-version checks, and post-upgrade version verification.
 - [x] 1.3 Surface mirror-lag warnings and recovery messaging in upgrade output without changing binary self-upgrade behavior.
+- [x] 1.4 Use explicit global add/install for managed self-upgrade so Bun/npm global lock ranges cannot hold Quantex on an older direct dependency target.
 
 ## 2. Docs And Validation
 

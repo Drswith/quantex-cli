@@ -13,7 +13,9 @@ import * as releaseSelf from '../src/self/release'
 import * as version from '../src/utils/version'
 
 const getConfigDirSpy = vi.spyOn(config, 'getConfigDir')
+const bunInstallSpy = vi.spyOn(bunPm, 'install')
 const bunUpdateSpy = vi.spyOn(bunPm, 'update')
+const npmInstallSpy = vi.spyOn(npmPm, 'install')
 const npmUpdateSpy = vi.spyOn(npmPm, 'update')
 const binaryUpgradeSpy = vi.spyOn(binarySelf, 'upgradeStandaloneBinary')
 const releaseManifestSpy = vi.spyOn(releaseSelf, 'fetchBinaryReleaseManifest')
@@ -25,7 +27,9 @@ const originalArch = process.arch
 
 afterAll(() => {
   getConfigDirSpy.mockRestore()
+  bunInstallSpy.mockRestore()
   bunUpdateSpy.mockRestore()
+  npmInstallSpy.mockRestore()
   npmUpdateSpy.mockRestore()
   binaryUpgradeSpy.mockRestore()
   releaseManifestSpy.mockRestore()
@@ -38,7 +42,9 @@ afterAll(() => {
 describe('self helpers', () => {
   beforeEach(() => {
     getConfigDirSpy.mockReturnValue(tempConfigDir)
+    bunInstallSpy.mockClear()
     bunUpdateSpy.mockClear()
+    npmInstallSpy.mockClear()
     npmUpdateSpy.mockClear()
     binaryUpgradeSpy.mockClear()
     releaseManifestSpy.mockClear()
@@ -96,7 +102,7 @@ describe('self helpers', () => {
 
   it('upgrades through bun when bun is the detected install source', async () => {
     const { getSelfUpgradeLockPath, upgradeSelf } = await import('../src/self')
-    bunUpdateSpy.mockResolvedValue(true)
+    bunInstallSpy.mockResolvedValue(true)
     installedVersionSpy.mockResolvedValue('1.1.0')
 
     const result = await upgradeSelf({
@@ -117,13 +123,14 @@ describe('self helpers', () => {
       newVersion: '1.1.0',
       success: true,
     })
-    expect(bunUpdateSpy).toHaveBeenCalledWith('quantex-cli', 'latest-major', 'latest', 'https://registry.npmjs.org')
+    expect(bunInstallSpy).toHaveBeenCalledWith('quantex-cli', 'latest', 'https://registry.npmjs.org')
+    expect(bunUpdateSpy).not.toHaveBeenCalled()
     expect(existsSync(getSelfUpgradeLockPath())).toBe(false)
   })
 
   it('upgrades through npm when npm is the detected install source', async () => {
     const { upgradeSelf } = await import('../src/self')
-    npmUpdateSpy.mockResolvedValue(true)
+    npmInstallSpy.mockResolvedValue(true)
     installedVersionSpy.mockResolvedValue('1.1.0')
 
     const result = await upgradeSelf({
@@ -144,7 +151,8 @@ describe('self helpers', () => {
       newVersion: '1.1.0',
       success: true,
     })
-    expect(npmUpdateSpy).toHaveBeenCalledWith('quantex-cli', 'latest-major', 'latest', 'https://registry.npmjs.org')
+    expect(npmInstallSpy).toHaveBeenCalledWith('quantex-cli', 'latest', 'https://registry.npmjs.org')
+    expect(npmUpdateSpy).not.toHaveBeenCalled()
   })
 
   it('reports source installs as unsupported for auto-update', async () => {
@@ -293,6 +301,7 @@ describe('self helpers', () => {
         installSource: 'bun',
         success: false,
       })
+      expect(bunInstallSpy).not.toHaveBeenCalled()
       expect(bunUpdateSpy).not.toHaveBeenCalled()
     } finally {
       await rm(lockPath, { recursive: true, force: true })
@@ -409,7 +418,7 @@ describe('self helpers', () => {
 
   it('fails managed self-upgrade verification when the installed version does not change', async () => {
     const { upgradeSelf } = await import('../src/self')
-    npmUpdateSpy.mockResolvedValue(true)
+    npmInstallSpy.mockResolvedValue(true)
     installedVersionSpy.mockResolvedValue('1.0.0')
 
     const result = await upgradeSelf({

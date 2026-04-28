@@ -44,11 +44,18 @@ After Bun/npm upgrades report success, Quantex will run the current executable w
 
 This mirrors the existing binary self-upgrade safety bar and closes the false-success gap from mirrored registries.
 
+### Re-declare the self package target during managed upgrades
+
+Managed self-upgrade will execute Bun and npm as explicit global installs of the selected dist tag: `bun add -g quantex-cli@<tag>` and `npm install -g quantex-cli@<tag>`. This keeps self-upgrade from depending on the existing global package range such as `^0.2.0` or on lockfile entries produced by an earlier global install.
+
+Agent updates will continue using the existing update strategy. That keeps the stronger direct-package replacement semantics scoped to Quantex's own self-upgrade path instead of changing managed agent lifecycle behavior in this change.
+
 ## Risks / Trade-offs
 
 - [Extra registry lookups for upstream comparison] -> Mitigation: only perform the official comparison for managed installs and reuse existing response caching.
 - [Package-manager registry detection may differ across user environments] -> Mitigation: support explicit Quantex-only overrides and fall back to official npm only when detection fails.
 - [Added config surface can confuse users if over-documented] -> Mitigation: keep README guidance short and move detailed troubleshooting to the runbook.
+- [Direct global installs can rewrite Bun/npm global package state] -> Mitigation: use this only for the Quantex self package and keep agent update behavior unchanged.
 
 ## Migration Plan
 

@@ -9,9 +9,8 @@ export const bunSelfUpgradeProvider: SelfUpgradeProvider = {
   getRecoveryHint: inspection =>
     `bun add -g ${BUILD_PACKAGE_NAME}@${inspection.updateChannel === 'beta' ? 'beta' : 'latest'}`,
   async upgrade(inspection: SelfInspection): Promise<SelfUpdateResult> {
-    const success = await bunPm.update(
+    const success = await bunPm.install(
       BUILD_PACKAGE_NAME,
-      'latest-major',
       inspection.updateChannel === 'beta' ? 'beta' : 'latest',
       inspection.managedRegistry,
     )
