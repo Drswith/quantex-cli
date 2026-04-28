@@ -147,7 +147,6 @@ jobs:
 
   test:
     needs: classify
-    if: ${{ needs.classify.outputs.run_test_matrix == 'true' }}
     runs-on: ${{ matrix.os }}
 
     strategy:
@@ -156,12 +155,22 @@ jobs:
       fail-fast: false
 
     steps:
-      - uses: actions/checkout@v4
+      - name: Skip full matrix for process-only changes
+        if: ${{ needs.classify.outputs.run_test_matrix != 'true' }}
+        env:
+          CHANGE_SCOPE: ${{ needs.classify.outputs.scope }}
+        run: |
+          echo "Process-only change detected (${CHANGE_SCOPE}); preserving required matrix check context without running full platform tests."
+
+      - if: ${{ needs.classify.outputs.run_test_matrix == 'true' }}
+        uses: actions/checkout@v4
       - uses: oven-sh/setup-bun@v2
+        if: ${{ needs.classify.outputs.run_test_matrix == 'true' }}
         with:
           bun-version: 1.3.11
 
       - uses: actions/cache@v4
+        if: ${{ needs.classify.outputs.run_test_matrix == 'true' }}
         with:
           path: |
             .bun/install/cache
@@ -170,10 +179,12 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-bun-
 
-      - run: bun install --frozen-lockfile --ignore-scripts --no-progress
-      - run: bun run build
-      - if: runner.os == 'Windows' && github.event_name != 'pull_request'
+      - if: ${{ needs.classify.outputs.run_test_matrix == 'true' }}
+        run: bun install --frozen-lockfile --ignore-scripts --no-progress
+      - if: ${{ needs.classify.outputs.run_test_matrix == 'true' }}
+        run: bun run build
+      - if: ${{ needs.classify.outputs.run_test_matrix == 'true' && runner.os == 'Windows' && github.event_name != 'pull_request' }}
         run: bun run test -- --pool=threads
 
-      - if: runner.os != 'Windows'
+      - if: ${{ needs.classify.outputs.run_test_matrix == 'true' && runner.os != 'Windows' }}
         run: bun run test
