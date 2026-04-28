@@ -17,8 +17,7 @@ export async function upgradeStandaloneBinary(
 
   try {
     response = await fetch(downloadUrl)
-  }
-  catch (error) {
+  } catch (error) {
     return createBinaryFailure('network', `Failed to download ${downloadUrl}.`, error)
   }
 
@@ -64,21 +63,17 @@ export async function upgradeStandaloneBinary(
     return {
       success: true,
     }
-  }
-  catch (error) {
+  } catch (error) {
     return createBinaryFailure(resolveBinaryErrorKind(error), 'Failed to replace the current Quantex binary.', error)
-  }
-  finally {
-    if (process.platform !== 'win32')
-      await rm(tempDir, { recursive: true, force: true })
+  } finally {
+    if (process.platform !== 'win32') await rm(tempDir, { recursive: true, force: true })
   }
 }
 
 async function resolveExecutableMode(executablePath: string): Promise<number> {
   try {
     return (await stat(executablePath)).mode & 0o777
-  }
-  catch {
+  } catch {
     return 0o755
   }
 }
@@ -91,28 +86,37 @@ function scheduleWindowsBinaryReplacement(
   expectedVersion?: string,
 ): BinaryUpgradeResult {
   try {
-    const command = createWindowsReplacementCommand(tempPath, executablePath, backupPath, tempDir, process.pid, expectedVersion)
-    const proc = Bun.spawn([
-      'powershell.exe',
-      '-NoProfile',
-      '-NonInteractive',
-      '-ExecutionPolicy',
-      'Bypass',
-      '-WindowStyle',
-      'Hidden',
-      '-Command',
-      command,
-    ], {
-      stdio: ['ignore', 'ignore', 'ignore'] as const,
-      windowsHide: true,
-    })
+    const command = createWindowsReplacementCommand(
+      tempPath,
+      executablePath,
+      backupPath,
+      tempDir,
+      process.pid,
+      expectedVersion,
+    )
+    const proc = Bun.spawn(
+      [
+        'powershell.exe',
+        '-NoProfile',
+        '-NonInteractive',
+        '-ExecutionPolicy',
+        'Bypass',
+        '-WindowStyle',
+        'Hidden',
+        '-Command',
+        command,
+      ],
+      {
+        stdio: ['ignore', 'ignore', 'ignore'] as const,
+        windowsHide: true,
+      },
+    )
 
     proc.unref?.()
     return {
       success: true,
     }
-  }
-  catch (error) {
+  } catch (error) {
     return createBinaryFailure('locked', 'Failed to schedule Windows binary replacement.', error)
   }
 }
@@ -165,14 +169,10 @@ function createWindowsReplacementCommand(
 }
 
 function escapePowerShellString(value: string): string {
-  return value.replaceAll('\'', '\'\'')
+  return value.replaceAll("'", "''")
 }
 
-function createBinaryFailure(
-  kind: SelfUpgradeErrorKind,
-  message: string,
-  detail?: unknown,
-): BinaryUpgradeResult {
+function createBinaryFailure(kind: SelfUpgradeErrorKind, message: string, detail?: unknown): BinaryUpgradeResult {
   return {
     error: {
       detail,
@@ -186,11 +186,9 @@ function createBinaryFailure(
 function resolveBinaryErrorKind(error: unknown): SelfUpgradeErrorKind {
   const code = typeof error === 'object' && error && 'code' in error ? String((error as { code?: unknown }).code) : ''
 
-  if (code === 'EACCES' || code === 'EPERM')
-    return 'permission'
+  if (code === 'EACCES' || code === 'EPERM') return 'permission'
 
-  if (code === 'EBUSY')
-    return 'locked'
+  if (code === 'EBUSY') return 'locked'
 
   return 'unknown'
 }
@@ -201,8 +199,7 @@ async function restoreStandaloneBinary(backupPath: string, executablePath: strin
 }
 
 async function verifyStandaloneBinary(executablePath: string, expectedVersion?: string): Promise<BinaryUpgradeResult> {
-  if (!expectedVersion)
-    return { success: true }
+  if (!expectedVersion) return { success: true }
 
   try {
     const proc = Bun.spawn([executablePath, '--version'], {
@@ -212,18 +209,23 @@ async function verifyStandaloneBinary(executablePath: string, expectedVersion?: 
     const exitCode = await proc.exited
 
     if (exitCode !== 0) {
-      return createBinaryFailure('verify', `The upgraded Quantex binary exited with code ${exitCode} during verification.`)
+      return createBinaryFailure(
+        'verify',
+        `The upgraded Quantex binary exited with code ${exitCode} during verification.`,
+      )
     }
 
     if (!stdout.includes(expectedVersion)) {
-      return createBinaryFailure('verify', `The upgraded Quantex binary reported an unexpected version during verification.`)
+      return createBinaryFailure(
+        'verify',
+        `The upgraded Quantex binary reported an unexpected version during verification.`,
+      )
     }
 
     return {
       success: true,
     }
-  }
-  catch (error) {
+  } catch (error) {
     return createBinaryFailure('verify', 'Failed to execute the upgraded Quantex binary for verification.', error)
   }
 }

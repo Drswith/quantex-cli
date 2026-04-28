@@ -6,6 +6,5 @@ void runPostinstall()
 async function runPostinstall(): Promise<void> {
   try {
     await persistDetectedPackageManagerInstallSource(process.env)
-  }
-  catch {}
+  } catch {}
 }

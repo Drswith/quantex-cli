@@ -9,14 +9,14 @@ import { isBrewAvailable, isBunAvailable, isNpmAvailable, isWingetAvailable } fr
 
 type DoctorIssueCategory = 'agent' | 'installers' | 'self'
 type DoctorIssueSubjectKind = 'agent' | 'self' | 'system'
-type DoctorSuggestedAction
-  = 'follow-manual-agent-update'
-    | 'inspect-agent-install-source'
-    | 'reinstall-self-with-auto-update-source'
-    | 'restore-managed-installer'
-    | 'restore-self-installer'
-    | 'run-agent-self-update'
-    | 'run-self-upgrade'
+type DoctorSuggestedAction =
+  | 'follow-manual-agent-update'
+  | 'inspect-agent-install-source'
+  | 'reinstall-self-with-auto-update-source'
+  | 'restore-managed-installer'
+  | 'restore-self-installer'
+  | 'run-agent-self-update'
+  | 'run-self-upgrade'
 
 interface DoctorIssue {
   blocking: boolean
@@ -75,7 +75,11 @@ export async function doctorCommand(): Promise<CommandResult<DoctorData>> {
       installedVersion: inspection.installedVersion,
       latestVersion: inspection.latestVersion,
       lifecycle: inspection.lifecycle,
-      outdated: Boolean(inspection.installedVersion && inspection.latestVersion && inspection.installedVersion !== inspection.latestVersion),
+      outdated: Boolean(
+        inspection.installedVersion &&
+        inspection.latestVersion &&
+        inspection.installedVersion !== inspection.latestVersion,
+      ),
       sourceLabel: inspection.sourceLabel,
     }))
   const issues: DoctorIssue[] = []
@@ -88,7 +92,8 @@ export async function doctorCommand(): Promise<CommandResult<DoctorData>> {
       category: 'installers',
       code: 'NO_MANAGED_INSTALLER',
       docsRef: troubleshootingDocsRef,
-      message: 'No managed installer found. Install bun, npm, brew, or winget before relying on managed lifecycle operations.',
+      message:
+        'No managed installer found. Install bun, npm, brew, or winget before relying on managed lifecycle operations.',
       severity: 'warning',
       subject: { kind: 'system' },
       suggestedAction: 'restore-managed-installer',
@@ -96,7 +101,10 @@ export async function doctorCommand(): Promise<CommandResult<DoctorData>> {
     })
   }
 
-  if ((selfInspection.installSource === 'bun' && !bunAvailable) || (selfInspection.installSource === 'npm' && !npmAvailable)) {
+  if (
+    (selfInspection.installSource === 'bun' && !bunAvailable) ||
+    (selfInspection.installSource === 'npm' && !npmAvailable)
+  ) {
     issues.push({
       blocking: true,
       category: 'self',
@@ -159,15 +167,18 @@ export async function doctorCommand(): Promise<CommandResult<DoctorData>> {
       })
     }
 
-    const outdated = Boolean(inspection.installedVersion && inspection.latestVersion && inspection.installedVersion !== inspection.latestVersion)
-    if (!outdated)
-      continue
+    const outdated = Boolean(
+      inspection.installedVersion &&
+      inspection.latestVersion &&
+      inspection.installedVersion !== inspection.latestVersion,
+    )
+    if (!outdated) continue
 
-    if (inspection.lifecycle === 'managed')
-      continue
+    if (inspection.lifecycle === 'managed') continue
 
-    const recoveryHint = getAgentUpdateFailureHint(inspection.agent, inspection.agent.selfUpdate ? 'self-update' : 'manual-hint')
-      ?? getManualAgentUpdateMessage(inspection.agent)
+    const recoveryHint =
+      getAgentUpdateFailureHint(inspection.agent, inspection.agent.selfUpdate ? 'self-update' : 'manual-hint') ??
+      getManualAgentUpdateMessage(inspection.agent)
 
     issues.push({
       blocking: false,
@@ -182,36 +193,38 @@ export async function doctorCommand(): Promise<CommandResult<DoctorData>> {
     })
   }
 
-  return emitCommandResult(createSuccessResult<DoctorData>({
-    action: 'doctor',
-    data: {
-      agents: installedAgents,
-      issues,
-      installers: {
-        brew: brewAvailable,
-        bun: bunAvailable,
-        npm: npmAvailable,
-        winget: wingetAvailable,
+  return emitCommandResult(
+    createSuccessResult<DoctorData>({
+      action: 'doctor',
+      data: {
+        agents: installedAgents,
+        issues,
+        installers: {
+          brew: brewAvailable,
+          bun: bunAvailable,
+          npm: npmAvailable,
+          winget: wingetAvailable,
+        },
+        self: {
+          canAutoUpdate: selfInspection.canAutoUpdate,
+          currentVersion: selfInspection.currentVersion,
+          installSource: selfInspection.installSource,
+          latestVersion: selfInspection.latestVersion,
+          outdated: Boolean(selfOutdated),
+          recoveryHint: selfOutdated ? getSelfUpgradeRecoveryHintForInspection(selfInspection) : undefined,
+        },
       },
-      self: {
-        canAutoUpdate: selfInspection.canAutoUpdate,
-        currentVersion: selfInspection.currentVersion,
-        installSource: selfInspection.installSource,
-        latestVersion: selfInspection.latestVersion,
-        outdated: Boolean(selfOutdated),
-        recoveryHint: selfOutdated ? getSelfUpgradeRecoveryHintForInspection(selfInspection) : undefined,
+      target: {
+        kind: 'system',
+        name: 'doctor',
       },
-    },
-    target: {
-      kind: 'system',
-      name: 'doctor',
-    },
-  }), renderDoctorHuman)
+    }),
+    renderDoctorHuman,
+  )
 }
 
 function renderDoctorHuman(result: { data?: DoctorData }): void {
-  if (!result.data)
-    return
+  if (!result.data) return
 
   console.log(pc.bold('\nQuantex CLI Environment Check\n'))
 
@@ -226,30 +239,30 @@ function renderDoctorHuman(result: { data?: DoctorData }): void {
   console.log(`  Source:       ${result.data.self.installSource}`)
   console.log(`  Auto-update:  ${result.data.self.canAutoUpdate ? pc.green('supported') : pc.yellow('unsupported')}`)
   if (result.data.self.latestVersion) {
-    console.log(`  Latest:       ${result.data.self.latestVersion}${result.data.self.outdated ? pc.yellow(' (update available)') : ''}`)
+    console.log(
+      `  Latest:       ${result.data.self.latestVersion}${result.data.self.outdated ? pc.yellow(' (update available)') : ''}`,
+    )
   }
-  if (result.data.self.recoveryHint)
-    console.log(`  Recovery:     ${result.data.self.recoveryHint}`)
+  if (result.data.self.recoveryHint) console.log(`  Recovery:     ${result.data.self.recoveryHint}`)
 
   console.log(`\n${pc.bold('Installed Agents:')}`)
   if (result.data.agents.length === 0) {
     console.log(pc.dim('  No agents installed'))
-  }
-  else {
+  } else {
     for (const agent of result.data.agents) {
-      console.log(`  ${agent.displayName}: ${agent.installedVersion ?? 'unknown'} [${agent.lifecycle}; ${agent.sourceLabel}]${agent.outdated ? pc.yellow(` (update available: ${agent.latestVersion})`) : ''}`)
+      console.log(
+        `  ${agent.displayName}: ${agent.installedVersion ?? 'unknown'} [${agent.lifecycle}; ${agent.sourceLabel}]${agent.outdated ? pc.yellow(` (update available: ${agent.latestVersion})`) : ''}`,
+      )
     }
   }
 
   console.log(`\n${pc.bold('Issues:')}`)
   if (result.data.issues.length === 0) {
     console.log(pc.green('  No issues found.'))
-  }
-  else {
+  } else {
     for (const issue of result.data.issues) {
       console.log(pc.yellow(`  - ${issue.message}`))
-      if (issue.suggestedCommands.length > 0)
-        console.log(pc.dim(`    Next: ${issue.suggestedCommands.join(' | ')}`))
+      if (issue.suggestedCommands.length > 0) console.log(pc.dim(`    Next: ${issue.suggestedCommands.join(' | ')}`))
     }
   }
 
@@ -259,10 +272,8 @@ function renderDoctorHuman(result: { data?: DoctorData }): void {
 function getSelfRecoveryCommands(installSource: string, updateChannel: 'stable' | 'beta'): string[] {
   const versionTag = updateChannel === 'beta' ? 'beta' : 'latest'
 
-  if (installSource === 'bun')
-    return [`bun add -g ${BUILD_PACKAGE_NAME}@${versionTag}`]
-  if (installSource === 'npm')
-    return [`npm install -g ${BUILD_PACKAGE_NAME}@${versionTag}`]
+  if (installSource === 'bun') return [`bun add -g ${BUILD_PACKAGE_NAME}@${versionTag}`]
+  if (installSource === 'npm') return [`npm install -g ${BUILD_PACKAGE_NAME}@${versionTag}`]
 
   return []
 }

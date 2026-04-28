@@ -3,7 +3,14 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterAll, afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import * as config from '../src/config'
-import { getSelfState, getStateFilePath, getStateLockPath, loadState, saveState, setSelfInstallSource } from '../src/state'
+import {
+  getSelfState,
+  getStateFilePath,
+  getStateLockPath,
+  loadState,
+  saveState,
+  setSelfInstallSource,
+} from '../src/state'
 import { acquireResourceLock } from '../src/utils/lock'
 
 const tempHome = join(tmpdir(), `quantex-state-test-${Date.now()}`)
@@ -20,21 +27,27 @@ describe('state helpers', () => {
   })
 
   afterEach(() => {
-    if (existsSync(tempDir))
-      rmSync(tempDir, { recursive: true, force: true })
+    if (existsSync(tempDir)) rmSync(tempDir, { recursive: true, force: true })
   })
 
   it('loads legacy state files without a self section', async () => {
     const stateFilePath = getStateFilePath()
     mkdirSync(tempDir, { recursive: true })
-    writeFileSync(stateFilePath, `${JSON.stringify({
-      installedAgents: {
-        codex: {
-          agentName: 'codex',
-          installType: 'bun',
+    writeFileSync(
+      stateFilePath,
+      `${JSON.stringify(
+        {
+          installedAgents: {
+            codex: {
+              agentName: 'codex',
+              installType: 'bun',
+            },
+          },
         },
-      },
-    }, null, 2)}\n`)
+        null,
+        2,
+      )}\n`,
+    )
 
     const state = await loadState()
 
@@ -59,10 +72,12 @@ describe('state helpers', () => {
       scope: ['state'],
     })
 
-    await expect(saveState({
-      installedAgents: {},
-      self: {},
-    })).rejects.toMatchObject({
+    await expect(
+      saveState({
+        installedAgents: {},
+        self: {},
+      }),
+    ).rejects.toMatchObject({
       lockPath: getStateLockPath(),
       name: 'ResourceLockError',
       resource: 'state',

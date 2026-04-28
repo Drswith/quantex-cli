@@ -13,10 +13,7 @@ export const qoder: AgentDefinition = {
     command: ['qodercli', 'update'],
   },
   platforms: {
-    windows: [
-      bunInstall(),
-      npmInstall(),
-    ],
+    windows: [bunInstall(), npmInstall()],
     macos: [
       bunInstall(),
       npmInstall(),

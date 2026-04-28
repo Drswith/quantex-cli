@@ -13,11 +13,7 @@ export const droid: AgentDefinition = {
     command: ['droid', 'update'],
   },
   platforms: {
-    windows: [
-      bunInstall(),
-      npmInstall(),
-      scriptInstall('irm https://app.factory.ai/cli/windows | iex'),
-    ],
+    windows: [bunInstall(), npmInstall(), scriptInstall('irm https://app.factory.ai/cli/windows | iex')],
     macos: [
       bunInstall(),
       npmInstall(),

@@ -13,7 +13,7 @@
   - `lint:fix` -> `oxlint --fix`
   - `format` -> `oxfmt`
   - `format:check` -> `oxfmt --check`
-- [x] 2.2 Update the `lint-staged` config so that supported file globs run `oxfmt --write` first, then `oxlint --fix`, with extensions limited to supported code/config sources and excluding Markdown.
+- [x] 2.2 Update the `lint-staged` config so that staged JavaScript/TypeScript files run `oxfmt --write` first and then `oxlint --fix`, while other supported code/config files run `oxfmt --write` only; keep Markdown excluded.
 - [x] 2.3 Verify `simple-git-hooks` pre-commit still wires through `bun install --frozen-lockfile && npx lint-staged`; no shape change required for the new `lint-staged` array form.
 
 ## 3. CI and release workflows

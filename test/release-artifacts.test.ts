@@ -12,8 +12,12 @@ import {
 
 describe('release artifacts helpers', () => {
   it('normalizes repository URLs', () => {
-    expect(normalizeRepositoryUrl('git+https://github.com/Drswith/quantex-cli.git')).toBe('https://github.com/Drswith/quantex-cli')
-    expect(normalizeRepositoryUrl('git@github.com:Drswith/quantex-cli.git')).toBe('https://github.com/Drswith/quantex-cli')
+    expect(normalizeRepositoryUrl('git+https://github.com/Drswith/quantex-cli.git')).toBe(
+      'https://github.com/Drswith/quantex-cli',
+    )
+    expect(normalizeRepositoryUrl('git@github.com:Drswith/quantex-cli.git')).toBe(
+      'https://github.com/Drswith/quantex-cli',
+    )
     expect(normalizeRepositoryUrl(undefined)).toBe('https://github.com/Drswith/quantex-cli')
   })
 
@@ -25,17 +29,21 @@ describe('release artifacts helpers', () => {
   })
 
   it('parses checksum files', () => {
-    expect(parseChecksums(`abc  quantex-darwin-arm64\n123 *quantex-linux-x64\n`)).toEqual(new Map([
-      ['quantex-darwin-arm64', 'abc'],
-      ['quantex-linux-x64', '123'],
-    ]))
+    expect(parseChecksums(`abc  quantex-darwin-arm64\n123 *quantex-linux-x64\n`)).toEqual(
+      new Map([
+        ['quantex-darwin-arm64', 'abc'],
+        ['quantex-linux-x64', '123'],
+      ]),
+    )
   })
 
   it('formats checksum files deterministically', () => {
-    expect(formatChecksums([
-      { checksum: 'b', name: 'quantex-linux-x64' },
-      { checksum: 'a', name: 'quantex-darwin-arm64' },
-    ])).toBe('a  quantex-darwin-arm64\nb  quantex-linux-x64\n')
+    expect(
+      formatChecksums([
+        { checksum: 'b', name: 'quantex-linux-x64' },
+        { checksum: 'a', name: 'quantex-darwin-arm64' },
+      ]),
+    ).toBe('a  quantex-darwin-arm64\nb  quantex-linux-x64\n')
   })
 
   it('resolves release channel from version', () => {
@@ -83,11 +91,13 @@ describe('release artifacts helpers', () => {
   })
 
   it('fails manifest generation when a checksum is missing', () => {
-    expect(() => createReleaseManifest({
-      checksums: new Map(),
-      files: [{ name: 'quantex-darwin-arm64', size: 11 }],
-      version: '1.2.3',
-    })).toThrow('Missing checksum entry for quantex-darwin-arm64.')
+    expect(() =>
+      createReleaseManifest({
+        checksums: new Map(),
+        files: [{ name: 'quantex-darwin-arm64', size: 11 }],
+        version: '1.2.3',
+      }),
+    ).toThrow('Missing checksum entry for quantex-darwin-arm64.')
   })
 
   it('validates manifest/checksum consistency', () => {
@@ -103,32 +113,29 @@ describe('release artifacts helpers', () => {
     const mismatchedChecksums = new Map(checksums)
     mismatchedChecksums.set('quantex-darwin-arm64', 'z'.repeat(64))
 
-    expect(() => validateReleaseManifest(manifest, mismatchedChecksums)).toThrow('manifest.json checksum mismatch for quantex-darwin-arm64.')
+    expect(() => validateReleaseManifest(manifest, mismatchedChecksums)).toThrow(
+      'manifest.json checksum mismatch for quantex-darwin-arm64.',
+    )
   })
 
   it('requires the complete release asset matrix', () => {
     const manifest = createReleaseManifest({
-      checksums: new Map([
-        ['quantex-darwin-arm64', 'a'.repeat(64)],
-      ]),
+      checksums: new Map([['quantex-darwin-arm64', 'a'.repeat(64)]]),
       files: [{ name: 'quantex-darwin-arm64', size: 11 }],
       version: '1.2.3',
     })
 
-    expect(() => validateReleaseManifest(manifest, new Map([
-      ['quantex-darwin-arm64', 'a'.repeat(64)],
-    ]))).toThrow('manifest.json is missing required release asset: quantex-darwin-x64.')
+    expect(() => validateReleaseManifest(manifest, new Map([['quantex-darwin-arm64', 'a'.repeat(64)]]))).toThrow(
+      'manifest.json is missing required release asset: quantex-darwin-x64.',
+    )
   })
 })
 
 function createRequiredChecksums(): Map<string, string> {
-  return new Map(REQUIRED_RELEASE_ASSET_NAMES.map((name, index) => [
-    name,
-    String(index + 1).repeat(64),
-  ]))
+  return new Map(REQUIRED_RELEASE_ASSET_NAMES.map((name, index) => [name, String(index + 1).repeat(64)]))
 }
 
-function createRequiredFiles(): Array<{ name: string, size: number }> {
+function createRequiredFiles(): Array<{ name: string; size: number }> {
   return REQUIRED_RELEASE_ASSET_NAMES.map((name, index) => ({
     name,
     size: index + 1,

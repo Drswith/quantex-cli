@@ -15,31 +15,15 @@ interface UpgradeCommandData {
   status: 'check-unavailable' | 'manual-required' | 'up-to-date' | 'update-available' | 'updated'
 }
 
-export async function upgradeCommand(options: { channel?: SelfUpdateChannel, check?: boolean } = {}): Promise<CommandResult<UpgradeCommandData>> {
+export async function upgradeCommand(
+  options: { channel?: SelfUpdateChannel; check?: boolean } = {},
+): Promise<CommandResult<UpgradeCommandData>> {
   const inspection = await inspectSelf({ updateChannel: options.channel })
   const dryRun = isDryRunEnabled()
 
   if (inspection.latestVersion && inspection.latestVersion === inspection.currentVersion) {
-    return emitCommandResult(createSuccessResult<UpgradeCommandData>({
-      action: 'upgrade',
-      data: {
-        canAutoUpdate: inspection.canAutoUpdate,
-        channel: inspection.updateChannel,
-        currentVersion: inspection.currentVersion,
-        installSource: inspection.installSource,
-        latestVersion: inspection.latestVersion,
-        status: 'up-to-date',
-      },
-      target: {
-        kind: 'self',
-        name: 'quantex',
-      },
-    }), renderUpgradeHuman)
-  }
-
-  if (options.check || dryRun) {
-    if (inspection.latestVersion) {
-      return emitCommandResult(createSuccessResult<UpgradeCommandData>({
+    return emitCommandResult(
+      createSuccessResult<UpgradeCommandData>({
         action: 'upgrade',
         data: {
           canAutoUpdate: inspection.canAutoUpdate,
@@ -47,45 +31,124 @@ export async function upgradeCommand(options: { channel?: SelfUpdateChannel, che
           currentVersion: inspection.currentVersion,
           installSource: inspection.installSource,
           latestVersion: inspection.latestVersion,
-          status: 'update-available',
+          status: 'up-to-date',
         },
-        exitCode: options.check ? 1 : undefined,
         target: {
           kind: 'self',
           name: 'quantex',
         },
-        warnings: dryRun
-          ? [{
-              code: 'DRY_RUN',
-              message: 'Dry run: would upgrade Quantex CLI.',
-            }]
-          : [],
-      }), renderUpgradeHuman)
+      }),
+      renderUpgradeHuman,
+    )
+  }
+
+  if (options.check || dryRun) {
+    if (inspection.latestVersion) {
+      return emitCommandResult(
+        createSuccessResult<UpgradeCommandData>({
+          action: 'upgrade',
+          data: {
+            canAutoUpdate: inspection.canAutoUpdate,
+            channel: inspection.updateChannel,
+            currentVersion: inspection.currentVersion,
+            installSource: inspection.installSource,
+            latestVersion: inspection.latestVersion,
+            status: 'update-available',
+          },
+          exitCode: options.check ? 1 : undefined,
+          target: {
+            kind: 'self',
+            name: 'quantex',
+          },
+          warnings: dryRun
+            ? [
+                {
+                  code: 'DRY_RUN',
+                  message: 'Dry run: would upgrade Quantex CLI.',
+                },
+              ]
+            : [],
+        }),
+        renderUpgradeHuman,
+      )
     }
 
-    return emitCommandResult(createErrorResult<UpgradeCommandData>({
-      action: 'upgrade',
-      data: {
-        canAutoUpdate: inspection.canAutoUpdate,
-        channel: inspection.updateChannel,
-        currentVersion: inspection.currentVersion,
-        installSource: inspection.installSource,
-        status: 'check-unavailable',
-      },
-      error: {
-        code: 'NETWORK_ERROR',
-        message: 'Unable to determine the latest Quantex CLI version.',
-      },
-      target: {
-        kind: 'self',
-        name: 'quantex',
-      },
-    }), renderUpgradeHuman)
+    return emitCommandResult(
+      createErrorResult<UpgradeCommandData>({
+        action: 'upgrade',
+        data: {
+          canAutoUpdate: inspection.canAutoUpdate,
+          channel: inspection.updateChannel,
+          currentVersion: inspection.currentVersion,
+          installSource: inspection.installSource,
+          status: 'check-unavailable',
+        },
+        error: {
+          code: 'NETWORK_ERROR',
+          message: 'Unable to determine the latest Quantex CLI version.',
+        },
+        target: {
+          kind: 'self',
+          name: 'quantex',
+        },
+      }),
+      renderUpgradeHuman,
+    )
   }
 
   if (!inspection.canAutoUpdate) {
     const manualCommand = getSelfUpgradeRecoveryHintForInspection(inspection)
-    return emitCommandResult(createErrorResult<UpgradeCommandData>({
+    return emitCommandResult(
+      createErrorResult<UpgradeCommandData>({
+        action: 'upgrade',
+        data: {
+          canAutoUpdate: inspection.canAutoUpdate,
+          channel: inspection.updateChannel,
+          currentVersion: inspection.currentVersion,
+          installSource: inspection.installSource,
+          latestVersion: inspection.latestVersion,
+          recoveryHint: manualCommand,
+          status: 'manual-required',
+        },
+        error: {
+          code: 'MANUAL_ACTION_REQUIRED',
+          message: `Quantex CLI cannot auto-update from the current install source: ${inspection.installSource}.`,
+        },
+        target: {
+          kind: 'self',
+          name: 'quantex',
+        },
+      }),
+      renderUpgradeHuman,
+    )
+  }
+
+  const result = await upgradeSelf(inspection)
+  if (result.success) {
+    return emitCommandResult(
+      createSuccessResult<UpgradeCommandData>({
+        action: 'upgrade',
+        data: {
+          canAutoUpdate: inspection.canAutoUpdate,
+          channel: inspection.updateChannel,
+          currentVersion: inspection.currentVersion,
+          installSource: inspection.installSource,
+          latestVersion: inspection.latestVersion,
+          status: 'updated',
+        },
+        target: {
+          kind: 'self',
+          name: 'quantex',
+        },
+      }),
+      renderUpgradeHuman,
+    )
+  }
+
+  const manualCommand = getSelfUpgradeRecoveryHintForInspection(inspection, result)
+
+  return emitCommandResult(
+    createErrorResult<UpgradeCommandData>({
       action: 'upgrade',
       data: {
         canAutoUpdate: inspection.canAutoUpdate,
@@ -97,74 +160,38 @@ export async function upgradeCommand(options: { channel?: SelfUpdateChannel, che
         status: 'manual-required',
       },
       error: {
-        code: 'MANUAL_ACTION_REQUIRED',
-        message: `Quantex CLI cannot auto-update from the current install source: ${inspection.installSource}.`,
+        code: 'UPGRADE_FAILED',
+        details: result.error?.kind
+          ? {
+              kind: result.error.kind,
+            }
+          : undefined,
+        message: result.error?.message ?? 'Failed to upgrade Quantex CLI.',
       },
       target: {
         kind: 'self',
         name: 'quantex',
       },
-    }), renderUpgradeHuman)
-  }
-
-  const result = await upgradeSelf(inspection)
-  if (result.success) {
-    return emitCommandResult(createSuccessResult<UpgradeCommandData>({
-      action: 'upgrade',
-      data: {
-        canAutoUpdate: inspection.canAutoUpdate,
-        channel: inspection.updateChannel,
-        currentVersion: inspection.currentVersion,
-        installSource: inspection.installSource,
-        latestVersion: inspection.latestVersion,
-        status: 'updated',
-      },
-      target: {
-        kind: 'self',
-        name: 'quantex',
-      },
-    }), renderUpgradeHuman)
-  }
-
-  const manualCommand = getSelfUpgradeRecoveryHintForInspection(inspection, result)
-
-  return emitCommandResult(createErrorResult<UpgradeCommandData>({
-    action: 'upgrade',
-    data: {
-      canAutoUpdate: inspection.canAutoUpdate,
-      channel: inspection.updateChannel,
-      currentVersion: inspection.currentVersion,
-      installSource: inspection.installSource,
-      latestVersion: inspection.latestVersion,
-      recoveryHint: manualCommand,
-      status: 'manual-required',
-    },
-    error: {
-      code: 'UPGRADE_FAILED',
-      details: result.error?.kind
-        ? {
-            kind: result.error.kind,
-          }
-        : undefined,
-      message: result.error?.message ?? 'Failed to upgrade Quantex CLI.',
-    },
-    target: {
-      kind: 'self',
-      name: 'quantex',
-    },
-    warnings: manualCommand
-      ? [{
-          code: 'MANUAL_RECOVERY',
-          message: `Manual recovery: ${manualCommand}`,
-        }]
-      : [],
-  }), renderUpgradeHuman)
+      warnings: manualCommand
+        ? [
+            {
+              code: 'MANUAL_RECOVERY',
+              message: `Manual recovery: ${manualCommand}`,
+            },
+          ]
+        : [],
+    }),
+    renderUpgradeHuman,
+  )
 }
 
-function renderUpgradeHuman(result: { data?: UpgradeCommandData, error: { code?: string, message: string } | null, warnings: Array<{ message: string }> }): void {
+function renderUpgradeHuman(result: {
+  data?: UpgradeCommandData
+  error: { code?: string; message: string } | null
+  warnings: Array<{ message: string }>
+}): void {
   if (!result.data) {
-    if (result.error)
-      printError(pc.red(result.error.message))
+    if (result.error) printError(pc.red(result.error.message))
     return
   }
 
@@ -174,23 +201,23 @@ function renderUpgradeHuman(result: { data?: UpgradeCommandData, error: { code?:
   }
 
   if (result.data.status === 'update-available') {
-    const prefix = result.warnings.some(warning => warning.message.includes('Dry run'))
-      ? 'Dry run: '
-      : ''
-    printWarn(pc.yellow(`${prefix}Update available for Quantex CLI: ${result.data.currentVersion} -> ${result.data.latestVersion} (${result.data.channel}).`))
+    const prefix = result.warnings.some(warning => warning.message.includes('Dry run')) ? 'Dry run: ' : ''
+    printWarn(
+      pc.yellow(
+        `${prefix}Update available for Quantex CLI: ${result.data.currentVersion} -> ${result.data.latestVersion} (${result.data.channel}).`,
+      ),
+    )
     return
   }
 
   if (result.data.status === 'check-unavailable') {
-    if (result.error)
-      printWarn(pc.yellow(result.error.message))
+    if (result.error) printWarn(pc.yellow(result.error.message))
     return
   }
 
   if (result.data.status === 'manual-required' && result.error?.code === 'MANUAL_ACTION_REQUIRED') {
     printWarn(pc.yellow(result.error.message))
-    if (result.data.recoveryHint)
-      printWarn(pc.cyan(`Next step: ${result.data.recoveryHint}`))
+    if (result.data.recoveryHint) printWarn(pc.cyan(`Next step: ${result.data.recoveryHint}`))
     return
   }
 
@@ -207,6 +234,5 @@ function renderUpgradeHuman(result: { data?: UpgradeCommandData, error: { code?:
 
   printError(pc.red('Failed to upgrade Quantex CLI.'))
   printWarn(pc.yellow(`Reason: ${result.error.message}`))
-  for (const warning of result.warnings)
-    printWarn(pc.cyan(warning.message.replace(/^Manual recovery:/, 'Next step:')))
+  for (const warning of result.warnings) printWarn(pc.cyan(warning.message.replace(/^Manual recovery:/, 'Next step:')))
 }

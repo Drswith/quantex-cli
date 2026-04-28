@@ -16,13 +16,15 @@ describe('error exit codes', () => {
   })
 
   it('prefers explicit exit codes from command results', () => {
-    expect(getExitCodeForResult({
-      error: {
-        code: 'UPDATE_FAILED',
-        message: 'update failed',
-      },
-      exitCode: 42,
-      ok: false,
-    })).toBe(42)
+    expect(
+      getExitCodeForResult({
+        error: {
+          code: 'UPDATE_FAILED',
+          message: 'update failed',
+        },
+        exitCode: 42,
+        ok: false,
+      }),
+    ).toBe(42)
   })
 })

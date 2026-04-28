@@ -23,69 +23,78 @@ interface InstallCommandData {
 export async function installCommand(agentName: string): Promise<CommandResult<InstallCommandData>> {
   const resolved = await resolveAgentInspection(agentName)
   if (!resolved) {
-    return emitCommandResult(createErrorResult<InstallCommandData>({
-      action: 'install',
-      error: {
-        code: 'AGENT_NOT_FOUND',
-        details: {
-          input: agentName,
+    return emitCommandResult(
+      createErrorResult<InstallCommandData>({
+        action: 'install',
+        error: {
+          code: 'AGENT_NOT_FOUND',
+          details: {
+            input: agentName,
+          },
+          message: `Unknown agent: ${agentName}`,
         },
-        message: `Unknown agent: ${agentName}`,
-      },
-      target: {
-        kind: 'agent',
-        name: agentName,
-      },
-    }), renderInstallHuman)
+        target: {
+          kind: 'agent',
+          name: agentName,
+        },
+      }),
+      renderInstallHuman,
+    )
   }
 
   const { agent, inspection } = resolved
   if (inspection.inPath) {
-    return emitCommandResult(createSuccessResult<InstallCommandData>({
-      action: 'install',
-      data: {
-        agent: {
-          displayName: agent.displayName,
+    return emitCommandResult(
+      createSuccessResult<InstallCommandData>({
+        action: 'install',
+        data: {
+          agent: {
+            displayName: agent.displayName,
+            name: agent.name,
+          },
+          changed: false,
+          installed: true,
+        },
+        target: {
+          kind: 'agent',
           name: agent.name,
         },
-        changed: false,
-        installed: true,
-      },
-      target: {
-        kind: 'agent',
-        name: agent.name,
-      },
-      warnings: [
-        {
-          code: 'ALREADY_INSTALLED',
-          message: `${agent.displayName} is already installed.`,
-        },
-      ],
-    }), renderInstallHuman)
+        warnings: [
+          {
+            code: 'ALREADY_INSTALLED',
+            message: `${agent.displayName} is already installed.`,
+          },
+        ],
+      }),
+      renderInstallHuman,
+    )
   }
 
   if (isDryRunEnabled()) {
-    return emitCommandResult(createSuccessResult<InstallCommandData>({
-      action: 'install',
-      data: {
-        agent: {
-          displayName: agent.displayName,
+    return emitCommandResult(
+      createSuccessResult<InstallCommandData>({
+        action: 'install',
+        data: {
+          agent: {
+            displayName: agent.displayName,
+            name: agent.name,
+          },
+          changed: false,
+          installed: false,
+        },
+        target: {
+          kind: 'agent',
           name: agent.name,
         },
-        changed: false,
-        installed: false,
-      },
-      target: {
-        kind: 'agent',
-        name: agent.name,
-      },
-      warnings: [
-        {
-          code: 'DRY_RUN',
-          message: `Dry run: would install ${agent.displayName}.`,
-        },
-      ],
-    }), renderInstallHuman)
+        warnings: [
+          {
+            code: 'DRY_RUN',
+            message: `Dry run: would install ${agent.displayName}.`,
+          },
+        ],
+      }),
+      renderInstallHuman,
+    )
   }
 
   emitCommandEvent({
@@ -106,86 +115,96 @@ export async function installCommand(agentName: string): Promise<CommandResult<I
   let result
   try {
     result = await installAgent(agent)
-  }
-  catch (error) {
+  } catch (error) {
     if (isResourceLockError(error)) {
-      return emitCommandResult(createErrorResult<InstallCommandData>({
-        action: 'install',
-        data: {
-          agent: {
-            displayName: agent.displayName,
-            name: agent.name,
+      return emitCommandResult(
+        createErrorResult<InstallCommandData>({
+          action: 'install',
+          data: {
+            agent: {
+              displayName: agent.displayName,
+              name: agent.name,
+            },
+            changed: false,
+            installed: false,
           },
-          changed: false,
-          installed: false,
-        },
-        ...createResourceLockedError(error, {
-          kind: 'agent',
-          name: agent.name,
+          ...createResourceLockedError(error, {
+            kind: 'agent',
+            name: agent.name,
+          }),
         }),
-      }), renderInstallHuman)
+        renderInstallHuman,
+      )
     }
 
     throw error
   }
 
   if (result.success) {
-    return emitCommandResult(createSuccessResult<InstallCommandData>({
+    return emitCommandResult(
+      createSuccessResult<InstallCommandData>({
+        action: 'install',
+        data: {
+          agent: {
+            displayName: agent.displayName,
+            name: agent.name,
+          },
+          changed: true,
+          installState: result.installedState
+            ? {
+                installType: result.installedState.installType,
+                packageName: result.installedState.packageName,
+              }
+            : undefined,
+          installed: true,
+        },
+        target: {
+          kind: 'agent',
+          name: agent.name,
+        },
+      }),
+      renderInstallHuman,
+    )
+  }
+
+  return emitCommandResult(
+    createErrorResult<InstallCommandData>({
       action: 'install',
       data: {
         agent: {
           displayName: agent.displayName,
           name: agent.name,
         },
-        changed: true,
-        installState: result.installedState
-          ? {
-              installType: result.installedState.installType,
-              packageName: result.installedState.packageName,
-            }
-          : undefined,
-        installed: true,
+        changed: false,
+        installed: false,
+      },
+      error: {
+        code: 'INSTALL_FAILED',
+        message: `Failed to install ${agent.displayName}.`,
       },
       target: {
         kind: 'agent',
         name: agent.name,
       },
-    }), renderInstallHuman)
-  }
-
-  return emitCommandResult(createErrorResult<InstallCommandData>({
-    action: 'install',
-    data: {
-      agent: {
-        displayName: agent.displayName,
-        name: agent.name,
-      },
-      changed: false,
-      installed: false,
-    },
-    error: {
-      code: 'INSTALL_FAILED',
-      message: `Failed to install ${agent.displayName}.`,
-    },
-    target: {
-      kind: 'agent',
-      name: agent.name,
-    },
-  }), renderInstallHuman)
+    }),
+    renderInstallHuman,
+  )
 }
 
-function renderInstallHuman(result: { data?: InstallCommandData, error: { message: string } | null, warnings: Array<{ message: string }> }): void {
+function renderInstallHuman(result: {
+  data?: InstallCommandData
+  error: { message: string } | null
+  warnings: Array<{ message: string }>
+}): void {
   if (result.error) {
     printError(pc.red(result.error.message))
     return
   }
 
-  if (!result.data)
-    return
+  if (!result.data) return
 
   if (result.warnings.length > 0) {
-    for (const warning of result.warnings)
-      printWarn(pc.yellow(warning.message))
+    for (const warning of result.warnings) printWarn(pc.yellow(warning.message))
     return
   }
 

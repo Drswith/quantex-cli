@@ -89,14 +89,24 @@ describe('updateCommand', () => {
     updateAgentsByTypeSpy.mockResolvedValue(true)
     updateSpy.mockResolvedValue({ success: true })
     await updateCommand('test-agent', false)
-    expect(updateAgentsByTypeSpy).toHaveBeenCalledWith('bun', [{ packageName: 'test-pkg', packageTargetKind: undefined }])
+    expect(updateAgentsByTypeSpy).toHaveBeenCalledWith('bun', [
+      { packageName: 'test-pkg', packageTargetKind: undefined },
+    ])
     expect(updateSpy).not.toHaveBeenCalled()
-    expect(stdoutWriteSpy).toHaveBeenCalledWith(expect.stringContaining('Updating Test Agent via managed/bun... (1.0.0 -> 2.0.0)'))
+    expect(stdoutWriteSpy).toHaveBeenCalledWith(
+      expect.stringContaining('Updating Test Agent via managed/bun... (1.0.0 -> 2.0.0)'),
+    )
     expect(stdoutWriteSpy).toHaveBeenCalledWith(expect.stringContaining('updated successfully'))
   })
 
   it('batches known package-manager updates for --all', async () => {
-    const agent2 = { ...testAgent, name: 'agent2', binaryName: 'bin2', packages: { npm: 'pkg2' }, displayName: 'Agent 2' }
+    const agent2 = {
+      ...testAgent,
+      name: 'agent2',
+      binaryName: 'bin2',
+      packages: { npm: 'pkg2' },
+      displayName: 'Agent 2',
+    }
     allAgentsSpy.mockReturnValue([testAgent, agent2])
     binaryInPathSpy.mockResolvedValue(true)
     installedVerSpy.mockResolvedValue('1.0.0')

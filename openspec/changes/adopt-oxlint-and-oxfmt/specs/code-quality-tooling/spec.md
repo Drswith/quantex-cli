@@ -64,14 +64,14 @@ The oxfmt configuration SHALL enable `package.json` script sorting to minimize m
 
 ### Requirement: Pre-commit lint and format enforcement
 
-The repository SHALL enforce lint and format on staged files before each commit through `simple-git-hooks` and `lint-staged`. The pre-commit hook MUST run `oxfmt` to write formatted output before running `oxlint --fix`, so that the linter sees post-formatter content.
+The repository SHALL enforce lint and format on staged files before each commit through `simple-git-hooks` and `lint-staged`. The pre-commit hook MUST run `oxfmt` on staged files supported by the formatter, and MUST run `oxlint --fix` only on staged JavaScript or TypeScript files after formatting, so that the linter sees post-formatter content without being invoked on unsupported file types.
 
 #### Scenario: Contributor commits a staged file
 
-- **GIVEN** a contributor stages a file matched by `lint-staged` globs
+- **GIVEN** a contributor stages files matched by `lint-staged` globs
 - **WHEN** the pre-commit hook runs
-- **THEN** the hook first invokes `oxfmt` on the staged files to write formatting fixes
-- **AND** then invokes `oxlint --fix` on the same files
+- **THEN** the hook invokes `oxfmt` on staged formatter-supported files to write formatting fixes
+- **AND** then invokes `oxlint --fix` on staged JavaScript or TypeScript files
 - **AND** if either step fails, the commit is aborted
 
 ### Requirement: CI lint and format gate

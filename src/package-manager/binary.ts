@@ -13,8 +13,7 @@ export async function runBinaryInstall(commandOrFn: string | ((platform: Platfor
     }
 
     return (await waitForSpawnedCommand(spawnWithQuantexStdio(['sh', '-c', command]))) === 0
-  }
-  catch {
+  } catch {
     return false
   }
 }

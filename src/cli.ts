@@ -1,8 +1,8 @@
 #!/usr/bin/env bun
 
 import type { CommandResult, CommandTarget } from './output/types'
-import process from 'node:process'
 import { program } from 'commander'
+import process from 'node:process'
 import { getAgentByNameOrAlias } from './agents'
 import { resetCliContext, resolveCliContext, setCliContext } from './cli-context'
 import { executeCommandWithRuntime } from './command-runtime'
@@ -32,8 +32,7 @@ program
 program.hook('preAction', (_command, actionCommand) => {
   try {
     setCliContext(resolveCliContext(actionCommand.optsWithGlobals()))
-  }
-  catch (error) {
+  } catch (error) {
     console.log(pc.red(error instanceof Error ? error.message : String(error)))
     process.exit(2)
   }
@@ -223,14 +222,15 @@ program
   .description('升级 Quantex CLI')
   .option('--channel <channel>', 'Update channel: stable or beta')
   .option('--check', 'Only check whether an update is available')
-  .action(async (options: { channel?: string, check?: boolean }) => {
+  .action(async (options: { channel?: string; check?: boolean }) => {
     const { upgradeCommand } = await import('./commands/upgrade')
     process.exitCode = await executeCliCommand({
       action: 'upgrade',
-      run: () => upgradeCommand({
-        channel: options.channel === 'beta' ? 'beta' : undefined,
-        check: options.check ?? false,
-      }),
+      run: () =>
+        upgradeCommand({
+          channel: options.channel === 'beta' ? 'beta' : undefined,
+          check: options.check ?? false,
+        }),
       target: { kind: 'self', name: 'quantex' },
     })
   })
@@ -267,21 +267,22 @@ if (shortcutInvocation) {
   const agent = getAgentByNameOrAlias(shortcutInvocation.agentName)
   if (agent) {
     try {
-      setCliContext(resolveCliContext({
-        color: shortcutInvocation.color,
-        dryRun: shortcutInvocation.dryRun,
-        idempotencyKey: shortcutInvocation.idempotencyKey,
-        logLevel: shortcutInvocation.logLevel,
-        noCache: shortcutInvocation.noCache,
-        nonInteractive: shortcutInvocation.nonInteractive,
-        quiet: shortcutInvocation.quiet,
-        refresh: shortcutInvocation.refresh,
-        runId: shortcutInvocation.runId,
-        timeout: shortcutInvocation.timeout,
-        yes: shortcutInvocation.yes,
-      }))
-    }
-    catch (error) {
+      setCliContext(
+        resolveCliContext({
+          color: shortcutInvocation.color,
+          dryRun: shortcutInvocation.dryRun,
+          idempotencyKey: shortcutInvocation.idempotencyKey,
+          logLevel: shortcutInvocation.logLevel,
+          noCache: shortcutInvocation.noCache,
+          nonInteractive: shortcutInvocation.nonInteractive,
+          quiet: shortcutInvocation.quiet,
+          refresh: shortcutInvocation.refresh,
+          runId: shortcutInvocation.runId,
+          timeout: shortcutInvocation.timeout,
+          yes: shortcutInvocation.yes,
+        }),
+      )
+    } catch (error) {
       console.log(pc.red(error instanceof Error ? error.message : String(error)))
       process.exit(2)
     }
@@ -292,8 +293,7 @@ if (shortcutInvocation) {
         nonInteractive: shortcutInvocation.nonInteractive,
       })
       process.exit(code)
-    }
-    finally {
+    } finally {
       resetCliContext()
     }
   }
@@ -318,10 +318,9 @@ interface ShortcutInvocation {
   yes?: boolean
 }
 
-function extractExecPassthroughArgs(command: { args: string[], processedArgs: string[] }): string[] {
+function extractExecPassthroughArgs(command: { args: string[]; processedArgs: string[] }): string[] {
   const rawArgs = command.processedArgs.at(-1)
-  if (Array.isArray(rawArgs))
-    return rawArgs
+  if (Array.isArray(rawArgs)) return rawArgs
 
   return command.args.slice(1)
 }
@@ -354,8 +353,7 @@ function resolveShortcutInvocation(argv: string[], knownCommandNames: Set<string
 
     if (arg === '--output') {
       const value = argv[index + 1]
-      if (!value)
-        return { agentArgs: [], agentName: '', error: '--output requires a value' }
+      if (!value) return { agentArgs: [], agentName: '', error: '--output requires a value' }
       outputMode = value
       index += 2
       continue
@@ -381,8 +379,7 @@ function resolveShortcutInvocation(argv: string[], knownCommandNames: Set<string
 
     if (arg === '--color') {
       const value = argv[index + 1]
-      if (!value)
-        return { agentArgs: [], agentName: '', error: '--color requires a value' }
+      if (!value) return { agentArgs: [], agentName: '', error: '--color requires a value' }
       color = value
       index += 2
       continue
@@ -390,8 +387,7 @@ function resolveShortcutInvocation(argv: string[], knownCommandNames: Set<string
 
     if (arg === '--log-level') {
       const value = argv[index + 1]
-      if (!value)
-        return { agentArgs: [], agentName: '', error: '--log-level requires a value' }
+      if (!value) return { agentArgs: [], agentName: '', error: '--log-level requires a value' }
       logLevel = value
       index += 2
       continue
@@ -417,8 +413,7 @@ function resolveShortcutInvocation(argv: string[], knownCommandNames: Set<string
 
     if (arg === '--idempotency-key') {
       const value = argv[index + 1]
-      if (!value)
-        return { agentArgs: [], agentName: '', error: '--idempotency-key requires a value' }
+      if (!value) return { agentArgs: [], agentName: '', error: '--idempotency-key requires a value' }
       idempotencyKey = value
       index += 2
       continue
@@ -426,8 +421,7 @@ function resolveShortcutInvocation(argv: string[], knownCommandNames: Set<string
 
     if (arg === '--run-id') {
       const value = argv[index + 1]
-      if (!value)
-        return { agentArgs: [], agentName: '', error: '--run-id requires a value' }
+      if (!value) return { agentArgs: [], agentName: '', error: '--run-id requires a value' }
       runId = value
       index += 2
       continue
@@ -435,21 +429,27 @@ function resolveShortcutInvocation(argv: string[], knownCommandNames: Set<string
 
     if (arg === '--timeout') {
       const value = argv[index + 1]
-      if (!value)
-        return { agentArgs: [], agentName: '', error: '--timeout requires a value' }
+      if (!value) return { agentArgs: [], agentName: '', error: '--timeout requires a value' }
       timeout = value
       index += 2
       continue
     }
 
-    if (arg.startsWith('-'))
-      return undefined
+    if (arg.startsWith('-')) return undefined
 
-    if (knownCommandNames.has(arg))
-      return undefined
+    if (knownCommandNames.has(arg)) return undefined
 
-    if (jsonOutputRequested || outputMode === 'json' || outputMode === 'ndjson' || (autoAgentFriendly && outputMode !== 'human'))
-      return { agentArgs: [], agentName: '', error: 'Structured output is not supported for shortcut agent execution yet. Use a management command instead.' }
+    if (
+      jsonOutputRequested ||
+      outputMode === 'json' ||
+      outputMode === 'ndjson' ||
+      (autoAgentFriendly && outputMode !== 'human')
+    )
+      return {
+        agentArgs: [],
+        agentName: '',
+        error: 'Structured output is not supported for shortcut agent execution yet. Use a management command instead.',
+      }
 
     return {
       agentArgs: argv.slice(index + 1),
@@ -471,7 +471,11 @@ function resolveShortcutInvocation(argv: string[], knownCommandNames: Set<string
   return undefined
 }
 
-async function executeCliCommand<T>(options: { action: string, run: () => Promise<CommandResult<T>>, target?: CommandTarget }): Promise<number> {
+async function executeCliCommand<T>(options: {
+  action: string
+  run: () => Promise<CommandResult<T>>
+  target?: CommandTarget
+}): Promise<number> {
   const result = await executeCommandWithRuntime(options)
   return getExitCodeForResult(result)
 }

@@ -13,17 +13,8 @@ export const pi: AgentDefinition = {
     command: ['pi', 'update'],
   },
   platforms: {
-    windows: [
-      bunInstall(),
-      npmInstall(),
-    ],
-    macos: [
-      bunInstall(),
-      npmInstall(),
-    ],
-    linux: [
-      bunInstall(),
-      npmInstall(),
-    ],
+    windows: [bunInstall(), npmInstall()],
+    macos: [bunInstall(), npmInstall()],
+    linux: [bunInstall(), npmInstall()],
   },
 }

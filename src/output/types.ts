@@ -1,5 +1,5 @@
-import type { CliErrorCode } from '../errors'
 import type { FreshnessSource, OutputMode } from '../cli-context'
+import type { CliErrorCode } from '../errors'
 
 export interface CommandTarget {
   kind: 'agent' | 'config' | 'self' | 'system'

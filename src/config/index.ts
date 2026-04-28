@@ -1,11 +1,11 @@
-import type { Jiti } from 'jiti'
 import type { SelfUpdateChannel } from '../self/types'
+import type { Jiti } from 'jiti'
+import { loadConfig as c12LoadConfig } from 'c12'
 import { mkdir, readFile } from 'node:fs/promises'
 import { homedir } from 'node:os'
 import { join } from 'node:path'
 import process from 'node:process'
 import { pathToFileURL } from 'node:url'
-import { loadConfig as c12LoadConfig } from 'c12'
 import { defaultConfig } from './default'
 
 export type NpmBunUpdateStrategy = 'latest-major' | 'respect-semver'
@@ -52,7 +52,8 @@ export async function loadConfig(): Promise<QuantexConfig> {
     defaultPackageManager: normalizedConfig.defaultPackageManager === 'npm' ? 'npm' : 'bun',
     networkRetries: normalizePositiveInteger(normalizedConfig.networkRetries, 2),
     networkTimeoutMs: normalizePositiveInteger(normalizedConfig.networkTimeoutMs, 10000),
-    npmBunUpdateStrategy: normalizedConfig.npmBunUpdateStrategy === 'respect-semver' ? 'respect-semver' : 'latest-major',
+    npmBunUpdateStrategy:
+      normalizedConfig.npmBunUpdateStrategy === 'respect-semver' ? 'respect-semver' : 'latest-major',
     selfUpdateChannel: normalizedConfig.selfUpdateChannel === 'beta' ? 'beta' : 'stable',
     versionCacheTtlHours: normalizePositiveInteger(normalizedConfig.versionCacheTtlHours, 6),
   } as QuantexConfig
@@ -68,13 +69,11 @@ export async function saveConfig(config: Record<string, unknown>): Promise<void>
 }
 
 function normalizePositiveInteger(value: unknown, fallback: number): number {
-  if (typeof value === 'number' && Number.isInteger(value) && value > 0)
-    return value
+  if (typeof value === 'number' && Number.isInteger(value) && value > 0) return value
 
   if (typeof value === 'string') {
     const parsed = Number.parseInt(value, 10)
-    if (Number.isInteger(parsed) && parsed > 0)
-      return parsed
+    if (Number.isInteger(parsed) && parsed > 0) return parsed
   }
 
   return fallback

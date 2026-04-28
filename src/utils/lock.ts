@@ -24,13 +24,15 @@ export function isResourceLockError(error: unknown): error is ResourceLockError 
 }
 
 export function getResourceLockPath(scope: readonly string[]): string {
-  const normalizedScope = scope.map(segment =>
-    segment
-      .trim()
-      .replaceAll(/[^\w.-]+/g, '-')
-      .replaceAll(/-+/g, '-')
-      .replaceAll(/^-|-$/g, ''),
-  ).filter(Boolean)
+  const normalizedScope = scope
+    .map(segment =>
+      segment
+        .trim()
+        .replaceAll(/[^\w.-]+/g, '-')
+        .replaceAll(/-+/g, '-')
+        .replaceAll(/^-|-$/g, ''),
+    )
+    .filter(Boolean)
   const pathSegments = normalizedScope.length > 0 ? normalizedScope : ['default']
   const parentSegments = pathSegments.slice(0, -1)
   const lockName = `${pathSegments.at(-1)}.lock`
@@ -44,8 +46,7 @@ export async function acquireResourceLock(options: ResourceLockOptions): Promise
 
   try {
     await mkdir(lockPath, { recursive: false })
-  }
-  catch (error) {
+  } catch (error) {
     if (typeof error === 'object' && error && 'code' in error && (error as { code?: unknown }).code === 'EEXIST')
       throw new ResourceLockError(options.resource, lockPath)
 
@@ -62,8 +63,7 @@ export async function withResourceLock<T>(options: ResourceLockOptions, run: () 
 
   try {
     return await run()
-  }
-  finally {
+  } finally {
     await release()
   }
 }
