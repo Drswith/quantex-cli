@@ -17,6 +17,8 @@
   },
   "files": [
     "dist",
+    "!dist/bin",
+    "!dist/bin/**",
     "scripts/postinstall.cjs"
   ],
   "type": "module",
@@ -44,6 +46,7 @@
     "openspec:show": "openspec show --no-interactive",
     "openspec:status": "openspec status --json",
     "openspec:validate": "openspec validate --all --no-interactive",
+    "package:check": "bun run scripts/verify-package-distribution.ts",
     "postinstall": "node scripts/postinstall.cjs",
     "prebuild": "bun run scripts/write-build-metadata.ts",
     "prepare": "simple-git-hooks",
