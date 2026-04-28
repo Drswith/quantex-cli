@@ -44,4 +44,4 @@
 - [x] 6.2 Ran `bun run typecheck` (clean) and `bun run test` (40 files / 297 tests passing).
 - [x] 6.3 Ran `bun run openspec:validate` (8/8 passing) and `bun run memory:check` (passed).
 - [x] 6.4 Ran `bun run build` (130 KB output, complete in <1s).
-- [ ] 6.5 Stage, commit, push, and open a pull request documenting the toolchain versions, the format reflow commit boundary, and the expected archive follow-up after merge.
+- [x] 6.5 Stage, commit, push, and open a pull request documenting the toolchain versions, the format reflow commit boundary, and the expected archive follow-up after merge.
