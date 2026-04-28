@@ -25,6 +25,7 @@ jobs:
               '## Summary',
               '## Linked Artifacts',
               '## Validation',
+              '## Release Intent',
               '## Docs Updated',
               '## Scope Check',
               '## Closure Check',
@@ -111,3 +112,71 @@ jobs:
                 `Changed files: ${changedFiles.join(', ')}`,
               ].join('\n'))
             }
+
+      - name: Validate product release intent
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const pullRequest = context.payload.pull_request
+            const title = pullRequest.title || ''
+            const body = pullRequest.body || ''
+            const headBranch = pullRequest.head.ref || ''
+
+            if (headBranch.startsWith('release-please--branches--'))
+              return
+
+            const files = await github.paginate(github.rest.pulls.listFiles, {
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              pull_number: pullRequest.number,
+              per_page: 100,
+            })
+
+            const changedFiles = files.map(file => file.filename)
+            const productImpactingFiles = changedFiles.filter(fileName => {
+              return fileName.startsWith('src/')
+                || fileName.startsWith('skills/quantex-cli/')
+                || fileName.startsWith('scripts/')
+                || fileName === 'package.json'
+                || fileName === 'bun.lock'
+                || fileName === 'install.sh'
+                || fileName === 'install.ps1'
+                || fileName === 'tsdown.config.ts'
+            })
+
+            if (productImpactingFiles.length === 0)
+              return
+
+            const releaseWorthyTitle = /^(feat|fix|perf)(\(.+\))?!?:/.test(title)
+              || /^[a-z]+(\(.+\))?!:/.test(title)
+            const releaseWorthyBody = /\nBREAKING CHANGE:/.test(`\n${body}`)
+
+            if (releaseWorthyTitle || releaseWorthyBody)
+              return
+
+            const releaseIntentMatch = body.match(/## Release Intent\s*([\s\S]*?)\n## /)
+              ?? body.match(/## Release Intent\s*([\s\S]*)$/)
+            const releaseIntent = releaseIntentMatch ? releaseIntentMatch[1].trim() : ''
+
+            const notApplicableMatch = releaseIntent.match(/release\s*:\s*not applicable\s*[-:]\s*(.+)/i)
+            const reason = notApplicableMatch ? notApplicableMatch[1].trim() : ''
+            const normalizedReason = reason.toLowerCase()
+            const placeholderReasons = new Set([
+              '',
+              'n/a',
+              'none',
+              'not applicable',
+              'tbd',
+              '(none)',
+            ])
+
+            if (notApplicableMatch && !placeholderReasons.has(normalizedReason))
+              return
+
+            core.setFailed([
+              'Product-impacting PRs must not silently skip release automation.',
+              'Use a release-worthy PR title such as feat:, fix:, perf:, or type!: when the change should release.',
+              'If no release is needed, add a meaningful line under "## Release Intent":',
+              'Release: not applicable - <reason>',
+              `Product-impacting files: ${productImpactingFiles.join(', ')}`,
+            ].join('\n'))

@@ -17,6 +17,13 @@ Describe the change and why it exists.
 - [ ] `bun run test` (if behavior changed)
 - [ ] Not run, explained below
 
+## Release Intent
+
+- Release: not applicable - docs/process/test-only change
+- Release: patch - bug fix
+- Release: minor - user-facing feature
+- Release: major - breaking change
+
 ## Docs Updated
 
 - [ ] Not needed
