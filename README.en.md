@@ -140,6 +140,8 @@ qtx upgrade --check
 qtx upgrade --channel beta
 ```
 
+Note: `qtx upgrade` follows the registry actually used by the current Bun/npm self-upgrade path. If you use a mirror and it lags behind npm, the newest upstream release may not be installable from that registry yet. In that case, retry later or set `selfUpdateRegistry` / `QTX_SELF_UPDATE_REGISTRY` so Quantex self-upgrade uses a different registry without affecting your other projects.
+
 ## Common Commands
 
 | Preferred Command | Equivalent Long Form | Description |
@@ -213,11 +215,14 @@ User configuration lives at `~/.quantex/config.json`:
   "defaultPackageManager": "bun",
   "npmBunUpdateStrategy": "latest-major",
   "selfUpdateChannel": "stable",
+  "selfUpdateRegistry": "https://registry.npmjs.org",
   "networkRetries": 2,
   "networkTimeoutMs": 10000,
   "versionCacheTtlHours": 6
 }
 ```
+
+`selfUpdateRegistry` only affects the registry used when Quantex upgrades itself through Bun/npm. It does not change the default install source for your other projects. For a one-off override, use the `QTX_SELF_UPDATE_REGISTRY` environment variable.
 
 Runtime state lives at `~/.quantex/state.json`. Quantex records the actual install source for agents and itself, which powers grouped `update --all` execution, `doctor` recovery guidance, and self-upgrade source detection.
 

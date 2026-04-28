@@ -1,6 +1,7 @@
 import type { AgentVersionProbe } from '../agents'
 import process from 'node:process'
 import { fetchJsonWithCache } from './network'
+import { buildRegistryPackageVersionUrl, OFFICIAL_NPM_REGISTRY, normalizeRegistryUrl } from './registry'
 
 // 通用版本号提取正则，匹配 v1.2.3 或 1.2.3 等格式
 const VERSION_PATTERN = /v?(\d+\.\d+\.\d+(?:-[a-z0-9.]+)?)/i
@@ -30,11 +31,16 @@ export async function getInstalledVersion(
   }
 }
 
-export async function getLatestVersion(packageName: string, distTag: string = 'latest'): Promise<string | undefined> {
+export async function getLatestVersion(
+  packageName: string,
+  distTag: string = 'latest',
+  options: { registry?: string } = {},
+): Promise<string | undefined> {
   try {
+    const registry = normalizeRegistryUrl(options.registry) ?? OFFICIAL_NPM_REGISTRY
     const data = await fetchJsonWithCache<{ version: string }>(
-      `https://registry.npmjs.org/${packageName}/${distTag}`,
-      `npm:${packageName}:${distTag}`,
+      buildRegistryPackageVersionUrl(packageName, distTag, registry),
+      `npm:${registry}:${packageName}:${distTag}`,
     )
     return data?.version
   } catch {

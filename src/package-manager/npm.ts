@@ -1,9 +1,22 @@
 import type { RegistryUpdateStrategy } from './bun'
 import { spawnWithQuantexStdio, waitForSpawnedCommand } from '../utils/child-process'
+import { normalizeRegistryUrl } from '../utils/registry'
 
-export async function install(packageName: string): Promise<boolean> {
+export async function install(packageName: string, distTag?: string, registry?: string): Promise<boolean> {
   try {
-    return (await waitForSpawnedCommand(spawnWithQuantexStdio(['npm', 'i', '-g', packageName]))) === 0
+    const targetPackage = distTag ? `${packageName}@${distTag}` : packageName
+    const resolvedRegistry = normalizeRegistryUrl(registry)
+    return (
+      (await waitForSpawnedCommand(
+        spawnWithQuantexStdio([
+          'npm',
+          'install',
+          '-g',
+          targetPackage,
+          ...(resolvedRegistry ? ['--registry', resolvedRegistry] : []),
+        ]),
+      )) === 0
+    )
   } catch {
     return false
   }
@@ -13,14 +26,22 @@ export async function update(
   packageName: string,
   strategy: RegistryUpdateStrategy = 'latest-major',
   distTag: string = 'latest',
+  registry?: string,
 ): Promise<boolean> {
   try {
+    const resolvedRegistry = normalizeRegistryUrl(registry)
     return (
       (await waitForSpawnedCommand(
         spawnWithQuantexStdio(
           strategy === 'latest-major'
-            ? ['npm', 'install', '-g', `${packageName}@${distTag}`]
-            : ['npm', 'update', '-g', packageName],
+            ? [
+                'npm',
+                'install',
+                '-g',
+                `${packageName}@${distTag}`,
+                ...(resolvedRegistry ? ['--registry', resolvedRegistry] : []),
+              ]
+            : ['npm', 'update', '-g', packageName, ...(resolvedRegistry ? ['--registry', resolvedRegistry] : [])],
         ),
       )) === 0
     )

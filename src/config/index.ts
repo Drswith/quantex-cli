@@ -6,6 +6,7 @@ import { homedir } from 'node:os'
 import { join } from 'node:path'
 import process from 'node:process'
 import { pathToFileURL } from 'node:url'
+import { normalizeRegistryUrl } from '../utils/registry'
 import { defaultConfig } from './default'
 
 export type NpmBunUpdateStrategy = 'latest-major' | 'respect-semver'
@@ -16,6 +17,7 @@ export interface QuantexConfig {
   networkTimeoutMs: number
   npmBunUpdateStrategy: NpmBunUpdateStrategy
   selfUpdateChannel: SelfUpdateChannel
+  selfUpdateRegistry?: string
   versionCacheTtlHours: number
   [key: string]: unknown
 }
@@ -55,6 +57,10 @@ export async function loadConfig(): Promise<QuantexConfig> {
     npmBunUpdateStrategy:
       normalizedConfig.npmBunUpdateStrategy === 'respect-semver' ? 'respect-semver' : 'latest-major',
     selfUpdateChannel: normalizedConfig.selfUpdateChannel === 'beta' ? 'beta' : 'stable',
+    selfUpdateRegistry:
+      typeof normalizedConfig.selfUpdateRegistry === 'string'
+        ? normalizeRegistryUrl(normalizedConfig.selfUpdateRegistry)
+        : undefined,
     versionCacheTtlHours: normalizePositiveInteger(normalizedConfig.versionCacheTtlHours, 6),
   } as QuantexConfig
 }

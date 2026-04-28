@@ -1,4 +1,5 @@
 import type { CommandResult } from '../output/types'
+import type { CommandWarning } from '../output/types'
 import type { SelfUpdateChannel } from '../self'
 import { createErrorResult, createSuccessResult, emitCommandResult } from '../output'
 import { getSelfUpgradeRecoveryHintForInspection, inspectSelf, upgradeSelf } from '../self'
@@ -20,6 +21,7 @@ export async function upgradeCommand(
 ): Promise<CommandResult<UpgradeCommandData>> {
   const inspection = await inspectSelf({ updateChannel: options.channel })
   const dryRun = isDryRunEnabled()
+  const registryWarnings = getManagedRegistryWarnings(inspection)
 
   if (inspection.latestVersion && inspection.latestVersion === inspection.currentVersion) {
     return emitCommandResult(
@@ -37,6 +39,7 @@ export async function upgradeCommand(
           kind: 'self',
           name: 'quantex',
         },
+        warnings: registryWarnings,
       }),
       renderUpgradeHuman,
     )
@@ -60,14 +63,17 @@ export async function upgradeCommand(
             kind: 'self',
             name: 'quantex',
           },
-          warnings: dryRun
-            ? [
-                {
-                  code: 'DRY_RUN',
-                  message: 'Dry run: would upgrade Quantex CLI.',
-                },
-              ]
-            : [],
+          warnings: [
+            ...registryWarnings,
+            ...(dryRun
+              ? [
+                  {
+                    code: 'DRY_RUN',
+                    message: 'Dry run: would upgrade Quantex CLI.',
+                  },
+                ]
+              : []),
+          ],
         }),
         renderUpgradeHuman,
       )
@@ -91,6 +97,7 @@ export async function upgradeCommand(
           kind: 'self',
           name: 'quantex',
         },
+        warnings: registryWarnings,
       }),
       renderUpgradeHuman,
     )
@@ -118,6 +125,7 @@ export async function upgradeCommand(
           kind: 'self',
           name: 'quantex',
         },
+        warnings: registryWarnings,
       }),
       renderUpgradeHuman,
     )
@@ -140,6 +148,7 @@ export async function upgradeCommand(
           kind: 'self',
           name: 'quantex',
         },
+        warnings: registryWarnings,
       }),
       renderUpgradeHuman,
     )
@@ -172,14 +181,17 @@ export async function upgradeCommand(
         kind: 'self',
         name: 'quantex',
       },
-      warnings: manualCommand
-        ? [
-            {
-              code: 'MANUAL_RECOVERY',
-              message: `Manual recovery: ${manualCommand}`,
-            },
-          ]
-        : [],
+      warnings: [
+        ...registryWarnings,
+        ...(manualCommand
+          ? [
+              {
+                code: 'MANUAL_RECOVERY',
+                message: `Manual recovery: ${manualCommand}`,
+              },
+            ]
+          : []),
+      ],
     }),
     renderUpgradeHuman,
   )
@@ -188,7 +200,7 @@ export async function upgradeCommand(
 function renderUpgradeHuman(result: {
   data?: UpgradeCommandData
   error: { code?: string; message: string } | null
-  warnings: Array<{ message: string }>
+  warnings: CommandWarning[]
 }): void {
   if (!result.data) {
     if (result.error) printError(pc.red(result.error.message))
@@ -197,6 +209,7 @@ function renderUpgradeHuman(result: {
 
   if (result.data.status === 'up-to-date') {
     printInfo(pc.green(`Quantex CLI is already up to date (${result.data.currentVersion}).`))
+    renderInformationalWarnings(result.warnings)
     return
   }
 
@@ -207,11 +220,13 @@ function renderUpgradeHuman(result: {
         `${prefix}Update available for Quantex CLI: ${result.data.currentVersion} -> ${result.data.latestVersion} (${result.data.channel}).`,
       ),
     )
+    renderInformationalWarnings(result.warnings)
     return
   }
 
   if (result.data.status === 'check-unavailable') {
     if (result.error) printWarn(pc.yellow(result.error.message))
+    renderInformationalWarnings(result.warnings)
     return
   }
 
@@ -229,10 +244,35 @@ function renderUpgradeHuman(result: {
 
   if (!result.error) {
     printInfo(pc.green('Quantex CLI upgraded successfully.'))
+    renderInformationalWarnings(result.warnings)
     return
   }
 
   printError(pc.red('Failed to upgrade Quantex CLI.'))
   printWarn(pc.yellow(`Reason: ${result.error.message}`))
   for (const warning of result.warnings) printWarn(pc.cyan(warning.message.replace(/^Manual recovery:/, 'Next step:')))
+}
+
+function getManagedRegistryWarnings(inspection: Awaited<ReturnType<typeof inspectSelf>>): CommandWarning[] {
+  if (!inspection.latestVersion || !inspection.upstreamLatestVersion) return []
+  if (inspection.latestVersion === inspection.upstreamLatestVersion) return []
+  if (inspection.installSource !== 'bun' && inspection.installSource !== 'npm') return []
+
+  return [
+    {
+      code: 'MIRROR_LAG',
+      details: {
+        installableLatestVersion: inspection.latestVersion,
+        upstreamLatestVersion: inspection.upstreamLatestVersion,
+      },
+      message: `The selected registry currently installs ${inspection.latestVersion}, while upstream npm has ${inspection.upstreamLatestVersion}. Retry later or set selfUpdateRegistry / QTX_SELF_UPDATE_REGISTRY to another registry if you need the upstream release now.`,
+    },
+  ]
+}
+
+function renderInformationalWarnings(warnings: CommandWarning[]): void {
+  for (const warning of warnings) {
+    if (warning.code === 'DRY_RUN' || warning.code === 'MANUAL_RECOVERY') continue
+    printWarn(pc.yellow(warning.message))
+  }
 }

@@ -18,7 +18,17 @@ describe('npm install', () => {
     const { install } = await import('../../src/package-manager/npm')
     mockSpawn.mockReturnValue({ exited: Promise.resolve(), exitCode: 0 })
     expect(await install('some-package')).toBe(true)
-    expect(mockSpawn).toHaveBeenCalledWith(['npm', 'i', '-g', 'some-package'], expect.any(Object))
+    expect(mockSpawn).toHaveBeenCalledWith(['npm', 'install', '-g', 'some-package'], expect.any(Object))
+  })
+
+  it('supports explicit tags and registries', async () => {
+    const { install } = await import('../../src/package-manager/npm')
+    mockSpawn.mockReturnValue({ exited: Promise.resolve(), exitCode: 0 })
+    expect(await install('some-package', 'latest', 'https://registry.npmjs.org/')).toBe(true)
+    expect(mockSpawn).toHaveBeenCalledWith(
+      ['npm', 'install', '-g', 'some-package@latest', '--registry', 'https://registry.npmjs.org'],
+      expect.any(Object),
+    )
   })
 
   it('returns false on failure', async () => {
