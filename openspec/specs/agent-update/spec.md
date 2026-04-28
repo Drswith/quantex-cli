@@ -69,6 +69,24 @@ Batch agent updates SHALL prioritize recorded actual install sources over candid
 - THEN Quantex does not execute managed update or self-update operations for that agent
 - AND the batch result explains that the agent was detected in `PATH` but is not tracked as a Quantex-managed install
 
+#### Scenario: Adopting a safely identifiable existing install
+
+- GIVEN a supported agent binary is available in `PATH`
+- AND Quantex has no recorded install state for that agent
+- AND the current platform exposes exactly one supported unmanaged install method for that agent
+- WHEN the user runs `quantex install <agent>` or `quantex ensure <agent>`
+- THEN Quantex records that install method as the agent's install state without re-running an installer
+- AND later `quantex update --all` plans updates from that recorded state
+
+#### Scenario: Refusing to guess an ambiguous existing install source
+
+- GIVEN a supported agent binary is available in `PATH`
+- AND Quantex has no recorded install state for that agent
+- AND the current platform exposes multiple plausible install methods or no unambiguous unmanaged install method
+- WHEN the user runs `quantex install <agent>` or `quantex ensure <agent>`
+- THEN Quantex does not invent or overwrite install state for that agent
+- AND the command explains that the install remains untracked
+
 ### Requirement: Agent update state MUST remain visible in diagnostics
 
 Agent update behavior SHALL be inspectable through user-facing diagnostic commands.
