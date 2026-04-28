@@ -3,6 +3,7 @@
 - [x] 1.1 Add a required `## Release Intent` section to PR body validation.
 - [x] 1.2 Add product-impacting file detection and release-intent enforcement to PR Governance.
 - [x] 1.3 Keep release-please PRs compatible with the updated governance.
+- [x] 1.4 Keep generated OpenSpec archive PRs compatible with the updated governance.
 
 ## 2. Documentation
 

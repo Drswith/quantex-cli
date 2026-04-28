@@ -104,6 +104,10 @@ jobs:
           - [ ] \`bun run test\` (if behavior changed)
           - [x] Not run, explained below
 
+          ## Release Intent
+
+          - Release: not applicable - OpenSpec archive closure only
+
           ## Docs Updated
 
           - [ ] Not needed
