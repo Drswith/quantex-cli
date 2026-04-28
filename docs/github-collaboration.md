@@ -76,11 +76,12 @@ Clean up merged or abandoned worktrees with `git worktree remove <path>` and `gi
 Quantex uses release-please to keep publishing compatible with protected `main` and source-visible versions.
 
 1. Merge one or more normal change PRs to `main`.
-2. The `Release` workflow runs release-please on the resulting `main` push.
-3. If the merged commits warrant a version bump, release-please creates or updates a Release PR.
-4. The Release PR updates `CHANGELOG.md`, `package.json`, `.release-please-manifest.json`, and `src/generated/build-meta.ts`.
-5. `Release PR Automerge` validates the generated Release PR and enables auto-merge.
-6. The `Release` workflow creates the tag and GitHub Release, then builds artifacts, publishes npm through trusted publishing, and uploads binaries.
+2. The merge-gating `CI` workflow runs on the resulting `main` push. Product-impacting changes keep the normal cross-platform test matrix; process-only changes may skip the expensive platform jobs while still publishing the same required check contexts.
+3. After that `main` CI run completes successfully, the `Release` workflow runs release-please for the exact merged SHA.
+4. If the merged commits warrant a version bump, release-please creates or updates a Release PR.
+5. The Release PR updates `CHANGELOG.md`, `package.json`, `.release-please-manifest.json`, and `src/generated/build-meta.ts`.
+6. `Release PR Automerge` validates the generated Release PR and enables auto-merge.
+7. After the Release PR merge produces another successful `main` CI run, the `Release` workflow creates the tag and GitHub Release, then builds artifacts, publishes npm through trusted publishing, and uploads binaries.
 
 This keeps normal product changes behind PR review while making the release version visible in the source tree at the tagged commit.
 
@@ -100,6 +101,8 @@ Release PR creation relies on merged commit metadata. In practice that means:
 - `docs:`, `test:`, `ci:`, and `chore:` do not create a release unless the commit metadata is explicitly changed to do so later
 
 For PRs that only touch workflow, documentation, project-memory, or release-please configuration files, use `ci:`, `chore:`, or `docs:` titles. PR Governance blocks release-worthy metadata for those scopes so release-process changes do not accidentally create stable product Release PRs.
+
+Protected-branch release automation now keys off successful push-side CI completion rather than racing the raw `push` event. A failed `main` or `beta` CI run therefore blocks automated Release PR creation and publication until the branch is green again.
 
 The stable release-please config may include a temporary `last-release-sha` anchor after release-governance incidents. Treat it as a recovery boundary, not a permanent release policy; remove or advance it after the next intentional stable release lands.
 
