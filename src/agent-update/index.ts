@@ -1,4 +1,4 @@
-export { getAgentUpdateFailureHint, getManualAgentUpdateMessage } from './messages'
+export { getAgentUpdateFailureHint, getManualAgentUpdateMessage, getUntrackedPathAgentUpdateMessage } from './messages'
 export {
   agentUpdateProviders,
   canResolveAgentUpdate,

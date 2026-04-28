@@ -30,6 +30,7 @@ export interface PlannedAgentUpdates {
   grouped: ManagedUpdateBucket[]
   manual: PendingAgentUpdate[]
   skippedManualCheck: AgentInspection[]
+  untrackedInPath: AgentInspection[]
   upToDate: AgentInspection[]
 }
 
@@ -51,7 +52,9 @@ export async function getSingleAgentUpdateStatus(agent: AgentDefinition): Promis
 }
 
 export async function planAgentUpdates(): Promise<PlannedAgentUpdates> {
-  return buildPlannedAgentUpdates(await inspectRegisteredAgents())
+  return buildPlannedAgentUpdates(await inspectRegisteredAgents(), {
+    skipUntrackedInPath: true,
+  })
 }
 
 export async function planSingleAgentUpdate(
@@ -64,8 +67,13 @@ export async function planSingleAgentUpdate(
   }
 }
 
-function buildPlannedAgentUpdates(inspections: AgentInspection[]): PlannedAgentUpdates {
-  const plan = updatePlanning.createUpdatePlan(inspections)
+function buildPlannedAgentUpdates(
+  inspections: AgentInspection[],
+  options: {
+    skipUntrackedInPath?: boolean
+  } = {},
+): PlannedAgentUpdates {
+  const plan = updatePlanning.createUpdatePlan(inspections, options)
   const grouped = groupedInstallerOrder
     .map(type => createManagedUpdateBucket(type, plan.grouped[type]))
     .filter((bucket): bucket is ManagedUpdateBucket => bucket !== undefined)
@@ -75,6 +83,7 @@ function buildPlannedAgentUpdates(inspections: AgentInspection[]): PlannedAgentU
     grouped,
     manual: plan.manual.map(entry => toPendingAgentUpdate(entry.inspection)),
     skippedManualCheck: plan.skippedManualCheck,
+    untrackedInPath: plan.untrackedInPath,
     upToDate: plan.upToDate,
   }
 }

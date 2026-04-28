@@ -13,6 +13,7 @@ import {
   kilo,
   opencode,
   pi,
+  qoder,
 } from '../src/index'
 
 describe('agent registry', () => {
@@ -77,6 +78,14 @@ describe('agent definitions', () => {
     expect(agent!.binaryName).toBe('kilo')
   })
 
+  it('qoder has correct structure', () => {
+    const agent = getAgentByNameOrAlias('qoder')
+    expect(agent).toBeDefined()
+    expect(agent!.displayName).toBe('Qoder CLI')
+    expect(agent!.packages?.npm).toBe('@qoder-ai/qodercli')
+    expect(agent!.binaryName).toBe('qodercli')
+  })
+
   it('re-exports all built-in agents from root index', () => {
     expect(codex.name).toBe('codex')
     expect(copilot.name).toBe('copilot')
@@ -86,6 +95,7 @@ describe('agent definitions', () => {
     expect(kilo.name).toBe('kilo')
     expect(opencode.name).toBe('opencode')
     expect(pi.name).toBe('pi')
+    expect(qoder.name).toBe('qoder')
   })
 })
 
