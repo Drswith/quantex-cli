@@ -319,6 +319,11 @@ describe('qoder', () => {
     ).toBeDefined()
     expect(qoder.platforms.windows!.find(m => m.type === 'brew')).toBeUndefined()
   })
+
+  it('uses qodercli as the executable binary while keeping qoder as the slug', () => {
+    expect(qoder.name).toBe('qoder')
+    expect(qoder.binaryName).toBe('qodercli')
+  })
 })
 
 describe('install command formatting', () => {

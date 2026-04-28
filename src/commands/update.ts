@@ -2,7 +2,12 @@ import type { AgentDefinition, InstallMethod, ManagedInstallType } from '../agen
 import type { CommandResult } from '../output/types'
 import type { ManagedPackageSpec } from '../package-manager'
 import type { InstalledAgentState } from '../state'
-import { getAgentUpdateFailureHint, getAgentUpdateStrategy, getManualAgentUpdateMessage } from '../agent-update'
+import {
+  getAgentUpdateFailureHint,
+  getAgentUpdateStrategy,
+  getManualAgentUpdateMessage,
+  getUntrackedPathAgentUpdateMessage,
+} from '../agent-update'
 import { createErrorResult, createSuccessResult, emitCommandEvent, emitCommandResult } from '../output'
 import { updateAgent, updateAgentsByType } from '../package-manager'
 import { resolveAgent } from '../services/agents'
@@ -245,6 +250,15 @@ async function executePlannedUpdates(
     pushUpdateResult(results, {
       displayName: inspection.agent.displayName,
       message: getManualAgentUpdateMessage(inspection.agent),
+      name: inspection.agent.name,
+      status: 'manual-required',
+    })
+  }
+
+  for (const inspection of plan.untrackedInPath) {
+    pushUpdateResult(results, {
+      displayName: inspection.agent.displayName,
+      message: getUntrackedPathAgentUpdateMessage(inspection.agent),
       name: inspection.agent.name,
       status: 'manual-required',
     })
