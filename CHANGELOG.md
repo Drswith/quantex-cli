@@ -2,6 +2,13 @@
 
 This changelog is maintained by release-please Release PRs.
 
+## [0.4.7](https://github.com/Drswith/quantex-cli/compare/v0.4.6...v0.4.7) (2026-04-28)
+
+
+### Bug Fixes
+
+* **agent-update:** verify self-update version changes ([#105](https://github.com/Drswith/quantex-cli/issues/105)) ([28990de](https://github.com/Drswith/quantex-cli/commit/28990de8de9c6250b585ae109cf5acb72d25c201))
+
 ## [0.4.6](https://github.com/Drswith/quantex-cli/compare/v0.4.5...v0.4.6) (2026-04-28)
 
 
