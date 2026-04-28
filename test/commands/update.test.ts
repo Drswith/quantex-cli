@@ -225,7 +225,7 @@ describe('updateCommand', () => {
 
     allAgentsSpy.mockReturnValue([selfUpdatingAgent])
     binaryInPathSpy.mockResolvedValue(true)
-    installedVerSpy.mockResolvedValue('1.0.0')
+    installedVerSpy.mockResolvedValueOnce('1.0.0').mockResolvedValueOnce('2.0.0')
     latestVerSpy.mockResolvedValue(undefined)
     installedStateSpy.mockResolvedValue({
       agentName: 'self-updating-agent',
@@ -246,8 +246,43 @@ describe('updateCommand', () => {
     )
 
     const output = stdoutWriteSpy.mock.calls.map((c: any[]) => c[0]).join('\n')
-    expect(output).toContain('Updating Self Updating Agent via self-update... (1.0.0 -> latest)')
+    expect(output).toContain('Updating Self Updating Agent via self-update... (1.0.0 -> 2.0.0)')
     expect(output).toContain('Self Updating Agent updated successfully')
+  })
+
+  it('reports self-update as up to date when the version does not change', async () => {
+    const selfUpdatingAgent = {
+      ...testAgent,
+      name: 'self-updating-agent',
+      binaryName: 'self-updating-bin',
+      displayName: 'Self Updating Agent',
+      packages: undefined,
+      selfUpdate: {
+        command: ['self-updating-bin', 'update'],
+      },
+      platforms: {
+        linux: [{ type: 'script' as const, command: 'curl https://example.com/install | bash' }],
+        macos: [{ type: 'script' as const, command: 'curl https://example.com/install | bash' }],
+        windows: [{ type: 'script' as const, command: 'irm https://example.com/install | iex' }],
+      },
+    }
+
+    agentSpy.mockReturnValue(selfUpdatingAgent)
+    binaryInPathSpy.mockResolvedValue(true)
+    installedVerSpy.mockResolvedValueOnce('1.0.0').mockResolvedValueOnce('1.0.0')
+    latestVerSpy.mockResolvedValue(undefined)
+    installedStateSpy.mockResolvedValue({
+      agentName: 'self-updating-agent',
+      installType: 'script',
+      command: 'curl https://example.com/install | bash',
+    })
+    updateSpy.mockResolvedValue({ success: true })
+
+    await updateCommand('self-updating-agent', false)
+
+    const output = stdoutWriteSpy.mock.calls.map((c: any[]) => c[0]).join('\n')
+    expect(output).toContain('Self Updating Agent is up to date (1.0.0)')
+    expect(output).not.toContain('Self Updating Agent updated successfully')
   })
 
   it('still allows explicit single-agent updates for untracked PATH installs with self-update support', async () => {
@@ -269,7 +304,7 @@ describe('updateCommand', () => {
 
     agentSpy.mockReturnValue(selfUpdatingAgent)
     binaryInPathSpy.mockResolvedValue(true)
-    installedVerSpy.mockResolvedValue('1.0.0')
+    installedVerSpy.mockResolvedValueOnce('1.0.0').mockResolvedValueOnce('2.0.0')
     latestVerSpy.mockResolvedValue(undefined)
     installedStateSpy.mockResolvedValue(undefined)
     updateSpy.mockResolvedValue({ success: true })
@@ -278,7 +313,7 @@ describe('updateCommand', () => {
 
     expect(updateSpy).toHaveBeenCalledWith(selfUpdatingAgent, undefined)
     const output = stdoutWriteSpy.mock.calls.map((c: any[]) => c[0]).join('\n')
-    expect(output).toContain('Updating Self Updating Agent via self-update... (1.0.0 -> latest)')
+    expect(output).toContain('Updating Self Updating Agent via self-update... (1.0.0 -> 2.0.0)')
     expect(output).toContain('Self Updating Agent updated successfully')
   })
 
