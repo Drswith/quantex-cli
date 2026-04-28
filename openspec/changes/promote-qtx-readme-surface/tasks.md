@@ -16,6 +16,6 @@
 
 ## 4. Delivery Closure
 
-- [ ] 4.1 Commit the README change set with linked issue/OpenSpec context.
-- [ ] 4.2 Push the branch and open a PR linked to Issue #75 and the OpenSpec change.
-- [ ] 4.3 Comment on Discussion #69 with the issue/PR/follow-up links and close it once the implementation handoff is durable.
+- [x] 4.1 Commit the README change set with linked issue/OpenSpec context.
+- [x] 4.2 Push the branch and open a PR linked to Issue #75 and the OpenSpec change.
+- [x] 4.3 Comment on Discussion #69 with the issue/PR/follow-up links and close it once the implementation handoff is durable.
