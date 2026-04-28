@@ -34,6 +34,7 @@ describe('upgradeCommand', () => {
       executablePath: '/tmp/quantex',
       installSource: 'npm',
       latestVersion: '1.0.0',
+      managedRegistry: 'https://registry.npmjs.org',
       packageRoot: '/tmp/quantex',
       recommendedUpgradeCommand: 'quantex upgrade',
       updateChannel: 'stable',
@@ -43,6 +44,31 @@ describe('upgradeCommand', () => {
 
     expect(upgradeSelfSpy).not.toHaveBeenCalled()
     expect(stdoutWriteSpy).toHaveBeenCalledWith(expect.stringContaining('already up to date'))
+  })
+
+  it('warns when upstream npm is newer than the selected registry', async () => {
+    inspectSelfSpy.mockResolvedValue({
+      canAutoUpdate: true,
+      currentVersion: '1.0.0',
+      executablePath: '/tmp/quantex',
+      installSource: 'npm',
+      latestVersion: '1.0.0',
+      managedRegistry: 'https://registry.npmmirror.com',
+      packageRoot: '/tmp/quantex',
+      recommendedUpgradeCommand: 'quantex upgrade',
+      updateChannel: 'stable',
+      upstreamLatestVersion: '1.1.0',
+    })
+
+    const result = await upgradeCommand()
+
+    expect(result.ok).toBe(true)
+    expect(result.warnings).toContainEqual(
+      expect.objectContaining({
+        code: 'MIRROR_LAG',
+      }),
+    )
+    expect(stdoutWriteSpy).toHaveBeenCalledWith(expect.stringContaining('selected registry currently installs 1.0.0'))
   })
 
   it('refuses to auto-update from unsupported install sources', async () => {

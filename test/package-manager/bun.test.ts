@@ -30,6 +30,16 @@ describe('bun install', () => {
     expect(mockSpawn).toHaveBeenCalledWith(['bun', 'pm', '-g', 'untrusted'], expect.any(Object))
   })
 
+  it('supports explicit tags and registries', async () => {
+    const { install } = await import('../../src/package-manager/bun')
+    mockSpawn.mockReturnValueOnce(createProc(0)).mockReturnValueOnce(createProc(0, ''))
+    expect(await install('some-package', 'latest', 'https://registry.npmjs.org/')).toBe(true)
+    expect(mockSpawn).toHaveBeenCalledWith(
+      ['bun', 'add', '-g', '--registry', 'https://registry.npmjs.org', 'some-package@latest'],
+      expect.any(Object),
+    )
+  })
+
   it('returns false on failure', async () => {
     const { install } = await import('../../src/package-manager/bun')
     mockSpawn.mockReturnValue(createProc(1))

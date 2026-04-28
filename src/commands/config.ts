@@ -3,6 +3,7 @@ import { isNpmBunUpdateStrategy, loadConfig, saveConfig } from '../config'
 import { defaultConfig } from '../config/default'
 import { createErrorResult, createSuccessResult, emitCommandResult } from '../output'
 import { pc } from '../utils/color'
+import { normalizeRegistryUrl } from '../utils/registry'
 
 interface ConfigCommandData {
   action: 'get' | 'list' | 'reset' | 'set'
@@ -132,6 +133,22 @@ export async function configCommand(
           renderConfigHuman,
         )
       }
+      if (key === 'selfUpdateRegistry' && !normalizeRegistryUrl(value)) {
+        return emitCommandResult(
+          createErrorResult<ConfigCommandData>({
+            action: 'config',
+            error: {
+              code: 'INVALID_ARGUMENT',
+              message: 'selfUpdateRegistry must be a valid absolute URL',
+            },
+            target: {
+              kind: 'config',
+              name: key,
+            },
+          }),
+          renderConfigHuman,
+        )
+      }
       if (['networkRetries', 'networkTimeoutMs', 'versionCacheTtlHours'].includes(key)) {
         const parsed = Number.parseInt(value, 10)
         if (!Number.isInteger(parsed) || parsed <= 0) {
@@ -159,7 +176,9 @@ export async function configCommand(
 
       existing[key] = ['networkRetries', 'networkTimeoutMs', 'versionCacheTtlHours'].includes(key)
         ? Number.parseInt(value, 10)
-        : value
+        : key === 'selfUpdateRegistry'
+          ? normalizeRegistryUrl(value)
+          : value
       await saveConfig(existing)
       return emitCommandResult(
         createSuccessResult<ConfigCommandData>({

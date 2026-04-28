@@ -7,8 +7,11 @@ export interface SelfInspection {
   executablePath: string
   installSource: SelfInstallSource
   latestVersion?: string
+  managedRegistry?: string
+  managedRegistryIsOverride?: boolean
   packageRoot: string
   recommendedUpgradeCommand?: string
+  upstreamLatestVersion?: string
   updateChannel: SelfUpdateChannel
 }
 

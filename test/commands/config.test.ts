@@ -92,6 +92,7 @@ describe('configCommand', () => {
     expect(content.networkTimeoutMs).toBe(10000)
     expect(content.npmBunUpdateStrategy).toBe('latest-major')
     expect(content.selfUpdateChannel).toBe('stable')
+    expect(content.selfUpdateRegistry).toBeUndefined()
     expect(content.versionCacheTtlHours).toBe(6)
     expect(logSpy).toHaveBeenCalledWith(expect.stringContaining('reset to defaults'))
   })
@@ -136,9 +137,32 @@ describe('configCommand', () => {
     expect(logSpy).toHaveBeenCalledWith(expect.stringContaining('Set selfUpdateChannel = beta'))
   })
 
+  it('sets selfUpdateRegistry', async () => {
+    loadConfigSpy.mockResolvedValue({
+      defaultPackageManager: 'bun',
+      networkRetries: 2,
+      networkTimeoutMs: 10000,
+      npmBunUpdateStrategy: 'latest-major',
+      selfUpdateChannel: 'stable',
+      selfUpdateRegistry: undefined,
+      versionCacheTtlHours: 6,
+    })
+    await configCommand('set', 'selfUpdateRegistry', 'https://registry.npmjs.org/')
+    const configPath = join(tempDir, 'config.json')
+    const content = JSON.parse(readFileSync(configPath, 'utf8'))
+    expect(content.selfUpdateRegistry).toBe('https://registry.npmjs.org')
+    expect(logSpy).toHaveBeenCalledWith(expect.stringContaining('Set selfUpdateRegistry = https://registry.npmjs.org'))
+  })
+
   it('rejects invalid selfUpdateChannel', async () => {
     await configCommand('set', 'selfUpdateChannel', 'nightly')
     expect(logSpy).toHaveBeenCalledWith(expect.stringContaining('selfUpdateChannel must be stable or beta'))
+    expect(existsSync(join(tempDir, 'config.json'))).toBe(false)
+  })
+
+  it('rejects invalid selfUpdateRegistry', async () => {
+    await configCommand('set', 'selfUpdateRegistry', 'npmjs')
+    expect(logSpy).toHaveBeenCalledWith(expect.stringContaining('selfUpdateRegistry must be a valid absolute URL'))
     expect(existsSync(join(tempDir, 'config.json'))).toBe(false)
   })
 

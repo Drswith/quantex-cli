@@ -16,7 +16,9 @@ const installSpy = vi.spyOn(pm, 'installAgent')
 const binaryInPathSpy = vi.spyOn(detect, 'isBinaryInPath')
 
 const mockSpawn = vi.fn()
+const mockFetch = vi.fn()
 let originalSpawn: typeof Bun.spawn
+const originalFetch = globalThis.fetch
 
 const testAgent = {
   name: 'test-agent',
@@ -35,15 +37,19 @@ const testAgent = {
 beforeEach(() => {
   originalSpawn = Bun.spawn
   Bun.spawn = mockSpawn as any
+  globalThis.fetch = mockFetch as any
   agentSpy.mockClear()
   installSpy.mockClear()
   binaryInPathSpy.mockClear()
   mockPrompts.mockClear()
   mockSpawn.mockClear()
+  mockFetch.mockClear()
+  mockFetch.mockResolvedValue(new Response(JSON.stringify({ version: '1.0.0' }), { status: 200 }))
 })
 
 afterEach(() => {
   Bun.spawn = originalSpawn
+  globalThis.fetch = originalFetch
 })
 
 afterAll(() => {

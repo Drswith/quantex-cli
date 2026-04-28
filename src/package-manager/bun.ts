@@ -1,10 +1,16 @@
 import { spawnWithQuantexStdio, waitForSpawnedCommand } from '../utils/child-process'
+import { normalizeRegistryUrl } from '../utils/registry'
 
 export type RegistryUpdateStrategy = 'latest-major' | 'respect-semver'
 
-export async function install(packageName: string): Promise<boolean> {
+export async function install(packageName: string, distTag?: string, registry?: string): Promise<boolean> {
   try {
-    return await runGlobalBunCommandWithTrust(['bun', 'add', '-g', packageName], [packageName])
+    const targetPackage = distTag ? `${packageName}@${distTag}` : packageName
+    const resolvedRegistry = normalizeRegistryUrl(registry)
+    return await runGlobalBunCommandWithTrust(
+      ['bun', 'add', '-g', ...(resolvedRegistry ? ['--registry', resolvedRegistry] : []), targetPackage],
+      [packageName],
+    )
   } catch {
     return false
   }
@@ -14,11 +20,20 @@ export async function update(
   packageName: string,
   strategy: RegistryUpdateStrategy = 'latest-major',
   distTag: string = 'latest',
+  registry?: string,
 ): Promise<boolean> {
   try {
     const targetPackage = distTag === 'latest' ? packageName : `${packageName}@${distTag}`
+    const resolvedRegistry = normalizeRegistryUrl(registry)
     return await runGlobalBunCommandWithTrust(
-      ['bun', 'update', '-g', ...(strategy === 'latest-major' ? ['--latest'] : []), targetPackage],
+      [
+        'bun',
+        'update',
+        '-g',
+        ...(strategy === 'latest-major' ? ['--latest'] : []),
+        ...(resolvedRegistry ? ['--registry', resolvedRegistry] : []),
+        targetPackage,
+      ],
       [packageName],
     )
   } catch {
