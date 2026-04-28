@@ -7,7 +7,7 @@ interface PackageJsonShape {
   version?: string
 }
 
-const packageJson = await Bun.file(new URL('../package.json', import.meta.url)).json() as PackageJsonShape
+const packageJson = (await Bun.file(new URL('../package.json', import.meta.url)).json()) as PackageJsonShape
 const version = packageJson.version ?? '0.0.0'
 const binDir = new URL('../dist/bin/', import.meta.url)
 const checksumContents = await readFile(new URL('../dist/bin/SHA256SUMS.txt', import.meta.url), 'utf8')
@@ -24,7 +24,9 @@ const binaryFiles = await Promise.all(
 const manifest = createReleaseManifest({
   checksums,
   files: binaryFiles,
-  repositoryUrl: normalizeRepositoryUrl(typeof packageJson.repository === 'string' ? packageJson.repository : packageJson.repository?.url),
+  repositoryUrl: normalizeRepositoryUrl(
+    typeof packageJson.repository === 'string' ? packageJson.repository : packageJson.repository?.url,
+  ),
   version,
 })
 

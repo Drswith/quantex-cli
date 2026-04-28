@@ -42,10 +42,18 @@ describe('commandsCommand', () => {
     expect(payload.data.commands.some((command: { name: string }) => command.name === 'inspect')).toBe(true)
     expect(payload.data.commands.some((command: { name: string }) => command.name === 'resolve')).toBe(true)
     expect(payload.data.commands.some((command: { name: string }) => command.name === 'schema')).toBe(true)
-    expect(payload.data.commands.find((command: { flags: string[], name: string }) => command.name === 'install')?.flags).toContain('--yes')
-    expect(payload.data.commands.find((command: { flags: string[], name: string }) => command.name === 'install')?.flags).toContain('--dry-run')
-    expect(payload.data.commands.find((command: { flags: string[], name: string }) => command.name === 'inspect')?.flags).toContain('--refresh')
-    expect(payload.data.commands.find((command: { flags: string[], name: string }) => command.name === 'inspect')?.flags).toContain('--no-cache')
+    expect(
+      payload.data.commands.find((command: { flags: string[]; name: string }) => command.name === 'install')?.flags,
+    ).toContain('--yes')
+    expect(
+      payload.data.commands.find((command: { flags: string[]; name: string }) => command.name === 'install')?.flags,
+    ).toContain('--dry-run')
+    expect(
+      payload.data.commands.find((command: { flags: string[]; name: string }) => command.name === 'inspect')?.flags,
+    ).toContain('--refresh')
+    expect(
+      payload.data.commands.find((command: { flags: string[]; name: string }) => command.name === 'inspect')?.flags,
+    ).toContain('--no-cache')
     expect(payload.meta.runId).toBe('commands-run-id')
   })
 })

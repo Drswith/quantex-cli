@@ -16,7 +16,7 @@ export const cliErrorCodes = [
   'UPGRADE_FAILED',
 ] as const
 
-export type CliErrorCode = typeof cliErrorCodes[number]
+export type CliErrorCode = (typeof cliErrorCodes)[number]
 
 export function getExitCodeForError(code: CliErrorCode): number {
   switch (code) {
@@ -44,11 +44,9 @@ export function getExitCodeForError(code: CliErrorCode): number {
 }
 
 export function getExitCodeForResult(result: Pick<CommandResult, 'ok' | 'error' | 'exitCode'>): number {
-  if (result.exitCode !== undefined)
-    return result.exitCode
+  if (result.exitCode !== undefined) return result.exitCode
 
-  if (result.ok)
-    return 0
+  if (result.ok) return 0
 
   return result.error ? getExitCodeForError(result.error.code) : 1
 }

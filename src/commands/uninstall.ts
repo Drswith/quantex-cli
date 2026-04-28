@@ -19,26 +19,53 @@ interface UninstallCommandData {
 export async function uninstallCommand(agentName: string): Promise<CommandResult<UninstallCommandData>> {
   const agent = resolveAgent(agentName)
   if (!agent) {
-    return emitCommandResult(createErrorResult<UninstallCommandData>({
-      action: 'uninstall',
-      error: {
-        code: 'AGENT_NOT_FOUND',
-        details: {
-          input: agentName,
+    return emitCommandResult(
+      createErrorResult<UninstallCommandData>({
+        action: 'uninstall',
+        error: {
+          code: 'AGENT_NOT_FOUND',
+          details: {
+            input: agentName,
+          },
+          message: `Unknown agent: ${agentName}`,
         },
-        message: `Unknown agent: ${agentName}`,
-      },
-      target: {
-        kind: 'agent',
-        name: agentName,
-      },
-    }), renderUninstallHuman)
+        target: {
+          kind: 'agent',
+          name: agentName,
+        },
+      }),
+      renderUninstallHuman,
+    )
   }
 
   if (isDryRunEnabled()) {
     const installedState = await getInstalledAgentState(agent.name)
     if (!installedState) {
-      return emitCommandResult(createErrorResult<UninstallCommandData>({
+      return emitCommandResult(
+        createErrorResult<UninstallCommandData>({
+          action: 'uninstall',
+          data: {
+            agent: {
+              displayName: agent.displayName,
+              name: agent.name,
+            },
+            changed: false,
+          },
+          error: {
+            code: 'UNINSTALL_FAILED',
+            message: `Failed to uninstall ${agent.displayName}.`,
+          },
+          target: {
+            kind: 'agent',
+            name: agent.name,
+          },
+        }),
+        renderUninstallHuman,
+      )
+    }
+
+    return emitCommandResult(
+      createSuccessResult<UninstallCommandData>({
         action: 'uninstall',
         data: {
           agent: {
@@ -47,18 +74,70 @@ export async function uninstallCommand(agentName: string): Promise<CommandResult
           },
           changed: false,
         },
-        error: {
-          code: 'UNINSTALL_FAILED',
-          message: `Failed to uninstall ${agent.displayName}.`,
+        target: {
+          kind: 'agent',
+          name: agent.name,
+        },
+        warnings: [
+          {
+            code: 'DRY_RUN',
+            message: `Dry run: would uninstall ${agent.displayName}.`,
+          },
+        ],
+      }),
+      renderUninstallHuman,
+    )
+  }
+
+  let success
+  try {
+    success = await uninstallAgent(agent)
+  } catch (error) {
+    if (isResourceLockError(error)) {
+      return emitCommandResult(
+        createErrorResult<UninstallCommandData>({
+          action: 'uninstall',
+          data: {
+            agent: {
+              displayName: agent.displayName,
+              name: agent.name,
+            },
+            changed: false,
+          },
+          ...createResourceLockedError(error, {
+            kind: 'agent',
+            name: agent.name,
+          }),
+        }),
+        renderUninstallHuman,
+      )
+    }
+
+    throw error
+  }
+
+  if (success) {
+    return emitCommandResult(
+      createSuccessResult<UninstallCommandData>({
+        action: 'uninstall',
+        data: {
+          agent: {
+            displayName: agent.displayName,
+            name: agent.name,
+          },
+          changed: true,
         },
         target: {
           kind: 'agent',
           name: agent.name,
         },
-      }), renderUninstallHuman)
-    }
+      }),
+      renderUninstallHuman,
+    )
+  }
 
-    return emitCommandResult(createSuccessResult<UninstallCommandData>({
+  return emitCommandResult(
+    createErrorResult<UninstallCommandData>({
       action: 'uninstall',
       data: {
         agent: {
@@ -67,93 +146,33 @@ export async function uninstallCommand(agentName: string): Promise<CommandResult
         },
         changed: false,
       },
-      target: {
-        kind: 'agent',
-        name: agent.name,
-      },
-      warnings: [
-        {
-          code: 'DRY_RUN',
-          message: `Dry run: would uninstall ${agent.displayName}.`,
-        },
-      ],
-    }), renderUninstallHuman)
-  }
-
-  let success
-  try {
-    success = await uninstallAgent(agent)
-  }
-  catch (error) {
-    if (isResourceLockError(error)) {
-      return emitCommandResult(createErrorResult<UninstallCommandData>({
-        action: 'uninstall',
-        data: {
-          agent: {
-            displayName: agent.displayName,
-            name: agent.name,
-          },
-          changed: false,
-        },
-        ...createResourceLockedError(error, {
-          kind: 'agent',
-          name: agent.name,
-        }),
-      }), renderUninstallHuman)
-    }
-
-    throw error
-  }
-
-  if (success) {
-    return emitCommandResult(createSuccessResult<UninstallCommandData>({
-      action: 'uninstall',
-      data: {
-        agent: {
-          displayName: agent.displayName,
-          name: agent.name,
-        },
-        changed: true,
+      error: {
+        code: 'UNINSTALL_FAILED',
+        message: `Failed to uninstall ${agent.displayName}.`,
       },
       target: {
         kind: 'agent',
         name: agent.name,
       },
-    }), renderUninstallHuman)
-  }
-
-  return emitCommandResult(createErrorResult<UninstallCommandData>({
-    action: 'uninstall',
-    data: {
-      agent: {
-        displayName: agent.displayName,
-        name: agent.name,
-      },
-      changed: false,
-    },
-    error: {
-      code: 'UNINSTALL_FAILED',
-      message: `Failed to uninstall ${agent.displayName}.`,
-    },
-    target: {
-      kind: 'agent',
-      name: agent.name,
-    },
-  }), renderUninstallHuman)
+    }),
+    renderUninstallHuman,
+  )
 }
 
-function renderUninstallHuman(result: { data?: UninstallCommandData, error: { message: string } | null, warnings?: Array<{ message: string }> }): void {
+function renderUninstallHuman(result: {
+  data?: UninstallCommandData
+  error: { message: string } | null
+  warnings?: Array<{ message: string }>
+}): void {
   if (result.error) {
     printError(pc.red(result.error.message))
     return
   }
 
-  if (!result.data)
-    return
+  if (!result.data) return
 
   if (result.warnings && result.warnings.length > 0) {
-    for (const warning of result.warnings)
-      printWarn(pc.yellow(warning.message))
+    for (const warning of result.warnings) printWarn(pc.yellow(warning.message))
     return
   }
 

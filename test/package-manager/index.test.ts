@@ -37,10 +37,7 @@ const testAgent = {
   packages: { npm: 'test-pkg' },
   binaryName: 'test-bin',
   platforms: {
-    linux: [
-      { type: 'bun' as const },
-      { type: 'npm' as const },
-    ],
+    linux: [{ type: 'bun' as const }, { type: 'npm' as const }],
   },
 }
 
@@ -76,8 +73,7 @@ beforeEach(() => {
 })
 
 beforeEach(() => {
-  if (existsSync(tempDir))
-    rmSync(tempDir, { force: true, recursive: true })
+  if (existsSync(tempDir)) rmSync(tempDir, { force: true, recursive: true })
 })
 
 afterAll(() => {
@@ -168,11 +164,13 @@ describe('updateAgent', () => {
     bunUpdateSpy.mockResolvedValue(true)
     setInstalledAgentStateSpy.mockResolvedValue()
 
-    expect(await updateAgent(testAgent, {
-      agentName: 'test-agent',
-      installType: 'bun',
-      packageName: 'test-pkg',
-    })).toMatchObject({ success: true })
+    expect(
+      await updateAgent(testAgent, {
+        agentName: 'test-agent',
+        installType: 'bun',
+        packageName: 'test-pkg',
+      }),
+    ).toMatchObject({ success: true })
 
     expect(bunUpdateSpy).toHaveBeenCalledWith('test-pkg', 'latest-major')
     expect(npmUpdateSpy).not.toHaveBeenCalled()
@@ -203,9 +201,7 @@ describe('updateAgent', () => {
         command: ['test-bin', 'update'],
       },
       platforms: {
-        linux: [
-          { type: 'script' as const, command: 'curl https://example.com/install | bash' },
-        ],
+        linux: [{ type: 'script' as const, command: 'curl https://example.com/install | bash' }],
       },
     }
 
@@ -226,9 +222,7 @@ describe('updateAgent', () => {
         fallbackCommands: [['test-bin', 'upgrade']],
       },
       platforms: {
-        linux: [
-          { type: 'script' as const, command: 'curl https://example.com/install | bash' },
-        ],
+        linux: [{ type: 'script' as const, command: 'curl https://example.com/install | bash' }],
       },
     }
 
@@ -269,11 +263,13 @@ describe('updateAgent', () => {
     bunUpdateSpy.mockResolvedValue(false)
     binarySpy.mockResolvedValue(true)
 
-    expect(await updateAgent(dualModeAgent, {
-      agentName: 'test-agent',
-      installType: 'bun',
-      packageName: 'test-pkg',
-    })).toMatchObject({ success: true })
+    expect(
+      await updateAgent(dualModeAgent, {
+        agentName: 'test-agent',
+        installType: 'bun',
+        packageName: 'test-pkg',
+      }),
+    ).toMatchObject({ success: true })
     expect(bunUpdateSpy).toHaveBeenCalledWith('test-pkg', 'latest-major')
     expect(binarySpy).toHaveBeenCalledWith('test-bin update')
   })
@@ -284,11 +280,13 @@ describe('updateAgentsByType', () => {
     isBunSpy.mockResolvedValue(true)
     bunUpdateManySpy.mockResolvedValue(true)
 
-    expect(await updateAgentsByType('bun', [
-      { packageName: 'test-pkg' },
-      { packageName: 'test-pkg' },
-      { packageName: 'other-pkg' },
-    ])).toBe(true)
+    expect(
+      await updateAgentsByType('bun', [
+        { packageName: 'test-pkg' },
+        { packageName: 'test-pkg' },
+        { packageName: 'other-pkg' },
+      ]),
+    ).toBe(true)
     expect(bunUpdateManySpy).toHaveBeenCalledWith(['test-pkg', 'other-pkg'], 'latest-major')
   })
 })

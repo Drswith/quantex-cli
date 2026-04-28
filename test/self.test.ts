@@ -165,19 +165,28 @@ describe('self helpers', () => {
   })
 
   it('upgrades standalone binaries through release downloads', async () => {
-    const { getBinaryReleaseAssetName, getSelfUpdateChannel, getSelfUpgradeRecoveryHint, parseBinaryReleaseChecksum, resolveBinaryReleaseAsset, upgradeSelf } = await import('../src/self')
+    const {
+      getBinaryReleaseAssetName,
+      getSelfUpdateChannel,
+      getSelfUpgradeRecoveryHint,
+      parseBinaryReleaseChecksum,
+      resolveBinaryReleaseAsset,
+      upgradeSelf,
+    } = await import('../src/self')
     Object.defineProperty(process, 'platform', { value: 'darwin' })
     Object.defineProperty(process, 'arch', { value: 'arm64' })
     const downloadUrl = 'https://example.com/releases/download/v1.1.0/quantex-darwin-arm64'
 
     releaseManifestSpy.mockResolvedValue({
-      assets: [{
-        arch: 'arm64',
-        checksum: 'abc123',
-        downloadUrl,
-        name: 'quantex-darwin-arm64',
-        platform: 'darwin',
-      }],
+      assets: [
+        {
+          arch: 'arm64',
+          checksum: 'abc123',
+          downloadUrl,
+          name: 'quantex-darwin-arm64',
+          platform: 'darwin',
+        },
+      ],
       channel: 'stable',
       version: '1.1.0',
     })
@@ -199,48 +208,56 @@ describe('self helpers', () => {
       installSource: 'binary',
       newVersion: '1.1.0',
     })
-    expect(binaryUpgradeSpy).toHaveBeenCalledWith(
-      downloadUrl,
-      '/usr/local/bin/qtx',
-      'abc123',
-      '1.1.0',
-    )
-    expect(getSelfUpgradeRecoveryHint('binary', '/usr/local/bin/qtx', 'stable', {
-      error: {
-        kind: 'network',
-        message: 'offline',
-      },
-      installSource: 'binary',
-      success: false,
-    })).toContain('check network access')
+    expect(binaryUpgradeSpy).toHaveBeenCalledWith(downloadUrl, '/usr/local/bin/qtx', 'abc123', '1.1.0')
+    expect(
+      getSelfUpgradeRecoveryHint('binary', '/usr/local/bin/qtx', 'stable', {
+        error: {
+          kind: 'network',
+          message: 'offline',
+        },
+        installSource: 'binary',
+        success: false,
+      }),
+    ).toContain('check network access')
     expect(parseBinaryReleaseChecksum(`abc123  quantex-darwin-arm64\n`, 'quantex-darwin-arm64')).toBeUndefined()
-    expect(parseBinaryReleaseChecksum(`${'a'.repeat(64)}  quantex-darwin-arm64\n`, 'quantex-darwin-arm64')).toBe('a'.repeat(64))
+    expect(parseBinaryReleaseChecksum(`${'a'.repeat(64)}  quantex-darwin-arm64\n`, 'quantex-darwin-arm64')).toBe(
+      'a'.repeat(64),
+    )
     expect(getSelfUpdateChannel(undefined, 'stable', { QUANTEX_UPDATE_CHANNEL: 'beta' })).toBe('beta')
-    expect(resolveBinaryReleaseAsset({
-      assets: [{
-        arch: 'arm64',
-        checksum: 'abc123',
-        downloadUrl: 'https://example.com/quantex-darwin-arm64',
-        name: 'quantex-darwin-arm64',
-        platform: 'darwin',
-      }],
-      channel: 'stable',
-      version: '1.1.0',
-    }, '/usr/local/bin/qtx')?.name).toBe(getBinaryReleaseAssetName('/usr/local/bin/qtx'))
+    expect(
+      resolveBinaryReleaseAsset(
+        {
+          assets: [
+            {
+              arch: 'arm64',
+              checksum: 'abc123',
+              downloadUrl: 'https://example.com/quantex-darwin-arm64',
+              name: 'quantex-darwin-arm64',
+              platform: 'darwin',
+            },
+          ],
+          channel: 'stable',
+          version: '1.1.0',
+        },
+        '/usr/local/bin/qtx',
+      )?.name,
+    ).toBe(getBinaryReleaseAssetName('/usr/local/bin/qtx'))
   })
 
   it('derives manual recovery hints through the provider registry', async () => {
     const { getSelfUpgradeRecoveryHint, getSelfUpgradeRecoveryHintForInspection } = await import('../src/self')
 
     expect(getSelfUpgradeRecoveryHint('bun', '/Users/test/.bun/bin/qtx', 'beta')).toBe('bun add -g quantex-cli@beta')
-    expect(getSelfUpgradeRecoveryHintForInspection({
-      canAutoUpdate: true,
-      currentVersion: '1.0.0',
-      executablePath: '/usr/local/bin/qtx',
-      installSource: 'npm',
-      packageRoot: '/usr/local/lib/node_modules/quantex-cli',
-      updateChannel: 'stable',
-    })).toBe('npm install -g quantex-cli@latest')
+    expect(
+      getSelfUpgradeRecoveryHintForInspection({
+        canAutoUpdate: true,
+        currentVersion: '1.0.0',
+        executablePath: '/usr/local/bin/qtx',
+        installSource: 'npm',
+        packageRoot: '/usr/local/lib/node_modules/quantex-cli',
+        updateChannel: 'stable',
+      }),
+    ).toBe('npm install -g quantex-cli@latest')
   })
 
   it('returns a locked error when another self upgrade is already running', async () => {
@@ -270,8 +287,7 @@ describe('self helpers', () => {
         success: false,
       })
       expect(bunUpdateSpy).not.toHaveBeenCalled()
-    }
-    finally {
+    } finally {
       await rm(lockPath, { recursive: true, force: true })
     }
   })
@@ -283,13 +299,18 @@ describe('self helpers', () => {
     const packageJsonPath = join(packageRoot, 'package.json')
 
     await mkdir(join(packageRoot, 'dist'), { recursive: true })
-    await writeFile(packageJsonPath, JSON.stringify({
-      name: 'quantex-cli',
-      version: '1.2.3',
-    }))
+    await writeFile(
+      packageJsonPath,
+      JSON.stringify({
+        name: 'quantex-cli',
+        version: '1.2.3',
+      }),
+    )
 
     try {
-      const metadata = await resolveSelfPackageMetadata(pathToFileURL(join(packageRoot, 'dist', 'self-abc123.mjs')).href)
+      const metadata = await resolveSelfPackageMetadata(
+        pathToFileURL(join(packageRoot, 'dist', 'self-abc123.mjs')).href,
+      )
 
       expect(metadata).toEqual({
         foundPackageJson: true,
@@ -297,8 +318,7 @@ describe('self helpers', () => {
         packageRoot,
         version: '1.2.3',
       })
-    }
-    finally {
+    } finally {
       await rm(tempRoot, { recursive: true, force: true })
     }
   })

@@ -71,8 +71,7 @@ function normalizeMarkdownEof(rootDir: string): void {
     const contents = readFileSync(filePath, 'utf8')
     const normalized = contents.replace(/\n+$/u, '\n')
 
-    if (normalized !== contents)
-      writeFileSync(filePath, normalized)
+    if (normalized !== contents) writeFileSync(filePath, normalized)
   }
 }
 
@@ -87,8 +86,7 @@ if (mode === '--check') {
 
 const archivedChanges = getCompletedChanges()
 
-for (const changeName of archivedChanges)
-  runOpenSpec(['archive', '--yes', changeName])
+for (const changeName of archivedChanges) runOpenSpec(['archive', '--yes', changeName])
 
 normalizeMarkdownEof(join(process.cwd(), 'openspec'))
 

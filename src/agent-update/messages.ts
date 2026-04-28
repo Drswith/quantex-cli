@@ -12,8 +12,7 @@ export function getAgentUpdateFailureHint(
   if (strategy === 'self-update' && agent.selfUpdate)
     return `Try running ${agent.selfUpdate.command.join(' ')} directly.`
 
-  if (strategy === 'manual-hint')
-    return `Check ${agent.homepage} for the recommended update path.`
+  if (strategy === 'manual-hint') return `Check ${agent.homepage} for the recommended update path.`
 
   return undefined
 }

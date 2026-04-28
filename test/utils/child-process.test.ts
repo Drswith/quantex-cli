@@ -36,9 +36,12 @@ describe('spawnWithQuantexStdio', () => {
     const exitCode = await waitForSpawnedCommand(handle)
 
     expect(exitCode).toBe(0)
-    expect(mockSpawn).toHaveBeenCalledWith(['npm', '--version'], expect.objectContaining({
-      stdio: ['inherit', 'inherit', 'inherit'],
-    }))
+    expect(mockSpawn).toHaveBeenCalledWith(
+      ['npm', '--version'],
+      expect.objectContaining({
+        stdio: ['inherit', 'inherit', 'inherit'],
+      }),
+    )
     expect(stderrWriteSpy).not.toHaveBeenCalled()
   })
 
@@ -59,9 +62,12 @@ describe('spawnWithQuantexStdio', () => {
     const exitCode = await waitForSpawnedCommand(handle)
 
     expect(exitCode).toBe(0)
-    expect(mockSpawn).toHaveBeenCalledWith(['npm', '--version'], expect.objectContaining({
-      stdio: ['ignore', 'pipe', 'pipe'],
-    }))
+    expect(mockSpawn).toHaveBeenCalledWith(
+      ['npm', '--version'],
+      expect.objectContaining({
+        stdio: ['ignore', 'pipe', 'pipe'],
+      }),
+    )
     expect(stderrWriteSpy).toHaveBeenCalledWith('installer stdout')
     expect(stderrWriteSpy).toHaveBeenCalledWith('installer stderr')
   })

@@ -55,7 +55,10 @@ describe('npm updateMany', () => {
     const { updateMany } = await import('../../src/package-manager/npm')
     mockSpawn.mockReturnValue({ exited: Promise.resolve(), exitCode: 0 })
     expect(await updateMany(['some-package', 'other-package'])).toBe(true)
-    expect(mockSpawn).toHaveBeenCalledWith(['npm', 'install', '-g', 'some-package@latest', 'other-package@latest'], expect.any(Object))
+    expect(mockSpawn).toHaveBeenCalledWith(
+      ['npm', 'install', '-g', 'some-package@latest', 'other-package@latest'],
+      expect.any(Object),
+    )
   })
 
   it('supports respect-semver strategy', async () => {

@@ -10,10 +10,8 @@ export async function acquireSelfUpgradeLock(): Promise<(() => Promise<void>) | 
       resource: 'self upgrade',
       scope: ['self-upgrade'],
     })
-  }
-  catch (error) {
-    if (isResourceLockError(error))
-      return undefined
+  } catch (error) {
+    if (isResourceLockError(error)) return undefined
 
     throw error
   }

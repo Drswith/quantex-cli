@@ -14,14 +14,8 @@ export const cursor: AgentDefinition = {
     command: ['agent', '--version'],
   },
   platforms: {
-    windows: [
-      scriptInstall('irm \'https://cursor.com/install?win32=true\' | iex'),
-    ],
-    macos: [
-      scriptInstall('curl https://cursor.com/install -fsS | bash'),
-    ],
-    linux: [
-      scriptInstall('curl https://cursor.com/install -fsS | bash'),
-    ],
+    windows: [scriptInstall("irm 'https://cursor.com/install?win32=true' | iex")],
+    macos: [scriptInstall('curl https://cursor.com/install -fsS | bash')],
+    linux: [scriptInstall('curl https://cursor.com/install -fsS | bash')],
   },
 }

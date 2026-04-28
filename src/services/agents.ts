@@ -14,8 +14,7 @@ export function resolveAgent(agentName: string): AgentDefinition | undefined {
 
 export async function resolveAgentInspection(agentName: string): Promise<ResolvedAgentInspection | undefined> {
   const agent = resolveAgent(agentName)
-  if (!agent)
-    return undefined
+  if (!agent) return undefined
 
   return {
     agent,

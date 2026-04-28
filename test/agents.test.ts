@@ -44,12 +44,10 @@ function validateAgent(agent: AgentDefinition): void {
   expect(agent.binaryName).toBeTruthy()
   if (agent.selfUpdate) {
     expect(agent.selfUpdate.command.length).toBeGreaterThan(0)
-    for (const part of agent.selfUpdate.command)
-      expect(part).toBeTruthy()
+    for (const part of agent.selfUpdate.command) expect(part).toBeTruthy()
     for (const fallback of agent.selfUpdate.fallbackCommands ?? []) {
       expect(fallback.length).toBeGreaterThan(0)
-      for (const part of fallback)
-        expect(part).toBeTruthy()
+      for (const part of fallback) expect(part).toBeTruthy()
     }
   }
   expect(Object.keys(agent.platforms).length).toBeGreaterThan(0)
@@ -79,13 +77,21 @@ describe('claude', () => {
   })
 
   it('curl install returns correct strings per platform', () => {
-    expect(claude.platforms.windows!.find(m => m.type === 'script' && m.command.includes('claude.ai/install.ps1'))).toBeDefined()
-    expect(claude.platforms.macos!.find(m => m.type === 'script' && m.command.includes('claude.ai/install.sh'))).toBeDefined()
-    expect(claude.platforms.linux!.find(m => m.type === 'script' && m.command.includes('claude.ai/install.sh'))).toBeDefined()
+    expect(
+      claude.platforms.windows!.find(m => m.type === 'script' && m.command.includes('claude.ai/install.ps1')),
+    ).toBeDefined()
+    expect(
+      claude.platforms.macos!.find(m => m.type === 'script' && m.command.includes('claude.ai/install.sh')),
+    ).toBeDefined()
+    expect(
+      claude.platforms.linux!.find(m => m.type === 'script' && m.command.includes('claude.ai/install.sh')),
+    ).toBeDefined()
   })
 
   it('package manager install returns correct strings per platform', () => {
-    expect(claude.platforms.windows!.find(m => m.type === 'winget' && m.packageName === 'Anthropic.ClaudeCode')).toBeDefined()
+    expect(
+      claude.platforms.windows!.find(m => m.type === 'winget' && m.packageName === 'Anthropic.ClaudeCode'),
+    ).toBeDefined()
     expect(claude.platforms.macos!.find(m => m.type === 'brew' && m.packageName === 'claude-code')).toBeDefined()
     expect(claude.platforms.linux!.find(m => m.type === 'brew' && m.packageName === 'claude-code')).toBeDefined()
   })
@@ -120,7 +126,9 @@ describe('copilot', () => {
   })
 
   it('script install returns correct strings per platform', () => {
-    expect(copilot.platforms.windows!.find(m => m.type === 'winget' && m.packageName === 'GitHub.Copilot')).toBeDefined()
+    expect(
+      copilot.platforms.windows!.find(m => m.type === 'winget' && m.packageName === 'GitHub.Copilot'),
+    ).toBeDefined()
     expect(copilot.platforms.macos!.find(m => m.type === 'script' && m.command.includes('curl'))).toBeDefined()
     expect(copilot.platforms.linux!.find(m => m.type === 'script' && m.command.includes('curl'))).toBeDefined()
   })
@@ -161,13 +169,25 @@ describe('droid', () => {
 
   it('curl install returns correct strings per platform', () => {
     expect(droid.platforms.windows!.find(m => m.type === 'script' && m.command.includes('irm'))).toBeDefined()
-    expect(droid.platforms.macos!.find(m => m.type === 'script' && m.command.includes('app.factory.ai/cli'))).toBeDefined()
-    expect(droid.platforms.linux!.find(m => m.type === 'script' && m.command.includes('app.factory.ai/cli'))).toBeDefined()
+    expect(
+      droid.platforms.macos!.find(m => m.type === 'script' && m.command.includes('app.factory.ai/cli')),
+    ).toBeDefined()
+    expect(
+      droid.platforms.linux!.find(m => m.type === 'script' && m.command.includes('app.factory.ai/cli')),
+    ).toBeDefined()
   })
 
   it('brew install returns correct strings per platform', () => {
-    expect(droid.platforms.macos!.find(m => m.type === 'brew' && m.packageName === 'droid' && m.packageTargetKind === 'cask')).toBeDefined()
-    expect(droid.platforms.linux!.find(m => m.type === 'brew' && m.packageName === 'droid' && m.packageTargetKind === 'cask')).toBeDefined()
+    expect(
+      droid.platforms.macos!.find(
+        m => m.type === 'brew' && m.packageName === 'droid' && m.packageTargetKind === 'cask',
+      ),
+    ).toBeDefined()
+    expect(
+      droid.platforms.linux!.find(
+        m => m.type === 'brew' && m.packageName === 'droid' && m.packageTargetKind === 'cask',
+      ),
+    ).toBeDefined()
     expect(droid.platforms.windows!.find(m => m.type === 'brew')).toBeUndefined()
   })
 })
@@ -201,14 +221,22 @@ describe('opencode', () => {
   })
 
   it('curl install returns correct strings per platform', () => {
-    expect(opencode.platforms.macos!.find(m => m.type === 'script' && m.command.includes('opencode.ai/install'))).toBeDefined()
-    expect(opencode.platforms.linux!.find(m => m.type === 'script' && m.command.includes('opencode.ai/install'))).toBeDefined()
+    expect(
+      opencode.platforms.macos!.find(m => m.type === 'script' && m.command.includes('opencode.ai/install')),
+    ).toBeDefined()
+    expect(
+      opencode.platforms.linux!.find(m => m.type === 'script' && m.command.includes('opencode.ai/install')),
+    ).toBeDefined()
     expect(opencode.platforms.windows!.find(m => m.type === 'script')).toBeUndefined()
   })
 
   it('brew install returns correct strings per platform', () => {
-    expect(opencode.platforms.macos!.find(m => m.type === 'brew' && m.packageName === 'anomalyco/tap/opencode')).toBeDefined()
-    expect(opencode.platforms.linux!.find(m => m.type === 'brew' && m.packageName === 'anomalyco/tap/opencode')).toBeDefined()
+    expect(
+      opencode.platforms.macos!.find(m => m.type === 'brew' && m.packageName === 'anomalyco/tap/opencode'),
+    ).toBeDefined()
+    expect(
+      opencode.platforms.linux!.find(m => m.type === 'brew' && m.packageName === 'anomalyco/tap/opencode'),
+    ).toBeDefined()
     expect(opencode.platforms.windows!.find(m => m.type === 'brew')).toBeUndefined()
   })
 })
@@ -269,14 +297,26 @@ describe('qoder', () => {
   })
 
   it('curl install returns correct strings per platform', () => {
-    expect(qoder.platforms.macos!.find(m => m.type === 'script' && m.command.includes('qoder.com/install'))).toBeDefined()
-    expect(qoder.platforms.linux!.find(m => m.type === 'script' && m.command.includes('qoder.com/install'))).toBeDefined()
+    expect(
+      qoder.platforms.macos!.find(m => m.type === 'script' && m.command.includes('qoder.com/install')),
+    ).toBeDefined()
+    expect(
+      qoder.platforms.linux!.find(m => m.type === 'script' && m.command.includes('qoder.com/install')),
+    ).toBeDefined()
     expect(qoder.platforms.windows!.find(m => m.type === 'script')).toBeUndefined()
   })
 
   it('brew install returns correct strings per platform', () => {
-    expect(qoder.platforms.macos!.find(m => m.type === 'brew' && m.packageName === 'qoderai/qoder/qodercli' && m.packageTargetKind === 'cask')).toBeDefined()
-    expect(qoder.platforms.linux!.find(m => m.type === 'brew' && m.packageName === 'qoderai/qoder/qodercli' && m.packageTargetKind === 'cask')).toBeDefined()
+    expect(
+      qoder.platforms.macos!.find(
+        m => m.type === 'brew' && m.packageName === 'qoderai/qoder/qodercli' && m.packageTargetKind === 'cask',
+      ),
+    ).toBeDefined()
+    expect(
+      qoder.platforms.linux!.find(
+        m => m.type === 'brew' && m.packageName === 'qoderai/qoder/qodercli' && m.packageTargetKind === 'cask',
+      ),
+    ).toBeDefined()
     expect(qoder.platforms.windows!.find(m => m.type === 'brew')).toBeUndefined()
   })
 })

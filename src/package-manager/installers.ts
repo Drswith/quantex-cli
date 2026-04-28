@@ -20,7 +20,11 @@ export interface ManagedInstaller {
   isAvailable: () => Promise<boolean>
   install: (packageName: string, packageTargetKind?: PackageTargetKind) => Promise<boolean>
   uninstall: (packageName: string, packageTargetKind?: PackageTargetKind) => Promise<boolean>
-  update: (packageName: string, packageTargetKind?: PackageTargetKind, options?: ManagedInstallerUpdateOptions) => Promise<boolean>
+  update: (
+    packageName: string,
+    packageTargetKind?: PackageTargetKind,
+    options?: ManagedInstallerUpdateOptions,
+  ) => Promise<boolean>
   updateMany: (packages: ManagedPackageSpec[], options?: ManagedInstallerUpdateOptions) => Promise<boolean>
 }
 
@@ -38,16 +42,26 @@ const managedInstallers: Record<ManagedInstallType, ManagedInstaller> = {
     isAvailable: async () => isBunAvailable(),
     install: async packageName => bunPm.install(packageName),
     uninstall: async packageName => bunPm.uninstall(packageName),
-    update: async (packageName, _packageTargetKind, options) => bunPm.update(packageName, options?.npmBunUpdateStrategy),
-    updateMany: async (packages, options) => bunPm.updateMany(packages.map(pkg => pkg.packageName), options?.npmBunUpdateStrategy),
+    update: async (packageName, _packageTargetKind, options) =>
+      bunPm.update(packageName, options?.npmBunUpdateStrategy),
+    updateMany: async (packages, options) =>
+      bunPm.updateMany(
+        packages.map(pkg => pkg.packageName),
+        options?.npmBunUpdateStrategy,
+      ),
   },
   npm: {
     type: 'npm',
     isAvailable: async () => isNpmAvailable(),
     install: async packageName => npmPm.install(packageName),
     uninstall: async packageName => npmPm.uninstall(packageName),
-    update: async (packageName, _packageTargetKind, options) => npmPm.update(packageName, options?.npmBunUpdateStrategy),
-    updateMany: async (packages, options) => npmPm.updateMany(packages.map(pkg => pkg.packageName), options?.npmBunUpdateStrategy),
+    update: async (packageName, _packageTargetKind, options) =>
+      npmPm.update(packageName, options?.npmBunUpdateStrategy),
+    updateMany: async (packages, options) =>
+      npmPm.updateMany(
+        packages.map(pkg => pkg.packageName),
+        options?.npmBunUpdateStrategy,
+      ),
   },
   winget: {
     type: 'winget',

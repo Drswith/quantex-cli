@@ -22,7 +22,9 @@ export function createSuccessResult<T>(options: Omit<CreateResultOptions<T>, 'er
   })
 }
 
-export function createErrorResult<T>(options: Omit<CreateResultOptions<T>, 'ok'> & { error: CommandError }): CommandResult<T> {
+export function createErrorResult<T>(
+  options: Omit<CreateResultOptions<T>, 'ok'> & { error: CommandError },
+): CommandResult<T> {
   return createCommandResult({
     ...options,
     ok: false,
@@ -33,17 +35,18 @@ interface EmitBehaviorOptions {
   force?: boolean
 }
 
-export function emitCommandResult<T>(result: CommandResult<T>, renderHuman: HumanRenderer<T>, behavior: EmitBehaviorOptions = {}): CommandResult<T> {
+export function emitCommandResult<T>(
+  result: CommandResult<T>,
+  renderHuman: HumanRenderer<T>,
+  behavior: EmitBehaviorOptions = {},
+): CommandResult<T> {
   const context = getCliContext()
-  if (context.cancelled && !behavior.force)
-    return result
+  if (context.cancelled && !behavior.force) return result
 
-  if (context.outputMode === 'json')
-    console.log(JSON.stringify(result, null, 2))
+  if (context.outputMode === 'json') console.log(JSON.stringify(result, null, 2))
   else if (context.outputMode === 'ndjson')
     emitNdjsonEvent<CommandResult<T>>({ action: result.action, data: result, target: result.target, type: 'result' })
-  else
-    renderHuman(result)
+  else renderHuman(result)
 
   return result
 }
@@ -55,12 +58,13 @@ interface EmitCommandEventOptions<T> {
   type: CommandEvent['type']
 }
 
-export function emitCommandEvent<T>(options: EmitCommandEventOptions<T>, behavior: EmitBehaviorOptions = {}): CommandEvent<T> | undefined {
+export function emitCommandEvent<T>(
+  options: EmitCommandEventOptions<T>,
+  behavior: EmitBehaviorOptions = {},
+): CommandEvent<T> | undefined {
   const context = getCliContext()
-  if (context.cancelled && !behavior.force)
-    return undefined
-  if (context.outputMode !== 'ndjson')
-    return undefined
+  if (context.cancelled && !behavior.force) return undefined
+  if (context.outputMode !== 'ndjson') return undefined
 
   return emitNdjsonEvent(options)
 }

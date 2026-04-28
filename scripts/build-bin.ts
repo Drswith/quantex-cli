@@ -11,9 +11,7 @@ const targets = [
 
 async function buildBin(): Promise<void> {
   const filter = process.argv[2]
-  const filtered = filter
-    ? targets.filter(t => t.target.includes(filter))
-    : targets
+  const filtered = filter ? targets.filter(t => t.target.includes(filter)) : targets
 
   if (filtered.length === 0) {
     console.error('No matching targets')
@@ -26,10 +24,7 @@ async function buildBin(): Promise<void> {
 
   for (const { target, outfile } of filtered) {
     console.log(`Building ${target}...`)
-    await Promise.all([
-      rm(outfile, { force: true }),
-      rm(`${outfile}.exe`, { force: true }),
-    ])
+    await Promise.all([rm(outfile, { force: true }), rm(`${outfile}.exe`, { force: true })])
 
     const result = await Bun.build({
       entrypoints: ['./src/cli.ts'],
@@ -40,10 +35,8 @@ async function buildBin(): Promise<void> {
     if (!result.success) {
       hasFailure = true
       console.error(`  ❌ ${target} failed:`)
-      for (const log of result.logs)
-        console.error(`    ${log}`)
-    }
-    else {
+      for (const log of result.logs) console.error(`    ${log}`)
+    } else {
       console.log(`  ✅ ${outfile}`)
     }
   }

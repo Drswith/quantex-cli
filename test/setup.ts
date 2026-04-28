@@ -3,7 +3,7 @@ import { afterEach } from 'vitest'
 import { resetCliContext } from '../src/cli-context'
 
 if (!globalThis.Bun) {
-  (globalThis as any).Bun = {
+  ;(globalThis as any).Bun = {
     spawn: (..._args: any[]) => {
       throw new Error('Bun.spawn not available in vitest')
     },

@@ -23,19 +23,25 @@ describe('self state reconciliation', () => {
   })
 
   afterEach(() => {
-    if (existsSync(tempDir))
-      rmSync(tempDir, { recursive: true, force: true })
+    if (existsSync(tempDir)) rmSync(tempDir, { recursive: true, force: true })
   })
 
   it('refreshes stored self install source when runtime detection disagrees', async () => {
     const stateFilePath = join(tempDir, 'state.json')
     mkdirSync(tempDir, { recursive: true })
-    await Bun.write(stateFilePath, `${JSON.stringify({
-      installedAgents: {},
-      self: {
-        installSource: 'bun',
-      },
-    }, null, 2)}\n`)
+    await Bun.write(
+      stateFilePath,
+      `${JSON.stringify(
+        {
+          installedAgents: {},
+          self: {
+            installSource: 'bun',
+          },
+        },
+        null,
+        2,
+      )}\n`,
+    )
 
     const { inspectSelf } = await import('../src/self')
     const inspection = await inspectSelf()

@@ -96,7 +96,9 @@ describe('upgradeCommand', () => {
     })
 
     expect(stdoutWriteSpy).toHaveBeenCalledWith(expect.stringContaining('Failed to upgrade Quantex CLI'))
-    expect(stdoutWriteSpy).toHaveBeenCalledWith(expect.stringContaining('Reason: Failed to update quantex-cli through Bun.'))
+    expect(stdoutWriteSpy).toHaveBeenCalledWith(
+      expect.stringContaining('Reason: Failed to update quantex-cli through Bun.'),
+    )
     expect(stdoutWriteSpy).toHaveBeenCalledWith(expect.stringContaining('Next step: bun add -g quantex-cli@latest'))
   })
 
@@ -193,7 +195,9 @@ describe('upgradeCommand', () => {
     })
 
     expect(stdoutWriteSpy).toHaveBeenCalledWith(expect.stringContaining('Another qtx upgrade is already running.'))
-    expect(stdoutWriteSpy).toHaveBeenCalledWith(expect.stringContaining('already running; wait for it to finish and retry'))
+    expect(stdoutWriteSpy).toHaveBeenCalledWith(
+      expect.stringContaining('already running; wait for it to finish and retry'),
+    )
   })
 
   it('runs self upgrade when a managed source is detected', async () => {

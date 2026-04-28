@@ -72,23 +72,23 @@ export function resolveCliContext(options: CliContextOptions = {}): CliContext {
   const stdinInteractive = process.stdin.isTTY !== false
   const stdoutInteractive = process.stdout.isTTY !== false
   const autoAgentFriendly = !stdinInteractive || !stdoutInteractive
-  const outputMode = options.json || options.output === 'json'
-    ? 'json'
-    : options.output === 'ndjson'
-      ? 'ndjson'
-      : options.output === 'human'
-        ? 'human'
-        : autoAgentFriendly
-          ? 'json'
-          : 'human'
+  const outputMode =
+    options.json || options.output === 'json'
+      ? 'json'
+      : options.output === 'ndjson'
+        ? 'ndjson'
+        : options.output === 'human'
+          ? 'human'
+          : autoAgentFriendly
+            ? 'json'
+            : 'human'
   const timeoutMs = options.timeout === undefined ? undefined : parseDurationToMs(options.timeout)
   const colorMode = resolveColorMode(options.color)
   const logLevel = resolveLogLevel(options.logLevel)
 
   if (options.timeout !== undefined && timeoutMs === undefined)
     throw new Error(`Invalid timeout value: ${options.timeout}`)
-  if (options.refresh && options.noCache)
-    throw new Error('Cannot combine --refresh with --no-cache.')
+  if (options.refresh && options.noCache) throw new Error('Cannot combine --refresh with --no-cache.')
 
   return {
     assumeYes: options.yes,
@@ -107,14 +107,12 @@ export function resolveCliContext(options: CliContextOptions = {}): CliContext {
 }
 
 export function markCliContextCancelled(): void {
-  if (currentContext)
-    currentContext.cancelled = true
+  if (currentContext) currentContext.cancelled = true
 }
 
 export function cancelCliContextOperations(): void {
   markCliContextCancelled()
-  for (const handler of cancellationHandlers)
-    handler()
+  for (const handler of cancellationHandlers) handler()
   cancellationHandlers.clear()
 }
 
@@ -136,7 +134,8 @@ export function recordCliFreshness(freshness: CliFreshness): void {
   context.freshness = {
     fetchedAt: context.freshness.fetchedAt <= freshness.fetchedAt ? context.freshness.fetchedAt : freshness.fetchedAt,
     source: context.freshness.source === 'network' && freshness.source === 'network' ? 'network' : 'cache',
-    staleAfter: context.freshness.staleAfter <= freshness.staleAfter ? context.freshness.staleAfter : freshness.staleAfter,
+    staleAfter:
+      context.freshness.staleAfter <= freshness.staleAfter ? context.freshness.staleAfter : freshness.staleAfter,
   }
 }
 
@@ -145,21 +144,16 @@ function createDefaultCliContext(): CliContext {
 }
 
 function resolveColorMode(value: string | undefined): ColorMode {
-  if (value === undefined || value === 'auto')
-    return 'auto'
-  if (value === 'always')
-    return 'always'
-  if (value === 'never')
-    return 'never'
+  if (value === undefined || value === 'auto') return 'auto'
+  if (value === 'always') return 'always'
+  if (value === 'never') return 'never'
 
   throw new Error(`Invalid color mode: ${value}`)
 }
 
 function resolveLogLevel(value: string | undefined): LogLevel {
-  if (value === undefined || value === 'info')
-    return 'info'
-  if (value === 'silent' || value === 'error' || value === 'warn' || value === 'debug')
-    return value
+  if (value === undefined || value === 'info') return 'info'
+  if (value === 'silent' || value === 'error' || value === 'warn' || value === 'debug') return value
 
   throw new Error(`Invalid log level: ${value}`)
 }

@@ -2,7 +2,12 @@ import { existsSync, mkdirSync, readFileSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterEach, describe, expect, it } from 'vitest'
-import { getIdempotencyDir, getIdempotencyFilePath, loadIdempotencyRecord, saveIdempotencyRecord } from '../src/idempotency'
+import {
+  getIdempotencyDir,
+  getIdempotencyFilePath,
+  loadIdempotencyRecord,
+  saveIdempotencyRecord,
+} from '../src/idempotency'
 import { createSuccessResult } from '../src/output'
 
 describe('idempotency storage', () => {

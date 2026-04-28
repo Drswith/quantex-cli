@@ -77,9 +77,12 @@
     "pre-commit": "bun install --frozen-lockfile && npx lint-staged"
   },
   "lint-staged": {
-    "*.{js,mjs,cjs,jsx,ts,mts,cts,tsx,json,jsonc,json5,yml,yaml,html,css,scss,less}": [
+    "*.{js,mjs,cjs,jsx,ts,mts,cts,tsx}": [
       "oxfmt --write",
       "oxlint --fix"
+    ],
+    "*.{json,jsonc,json5,yml,yaml,html,css,scss,less}": [
+      "oxfmt --write"
     ]
   },
   "packageManager": "bun@1.3.11"
