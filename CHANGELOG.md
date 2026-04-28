@@ -2,6 +2,13 @@
 
 This changelog is maintained by release-please Release PRs.
 
+## [0.4.6](https://github.com/Drswith/quantex-cli/compare/v0.4.5...v0.4.6) (2026-04-28)
+
+
+### Bug Fixes
+
+* **self-upgrade:** remove managed postinstall hook ([#102](https://github.com/Drswith/quantex-cli/issues/102)) ([ece1930](https://github.com/Drswith/quantex-cli/commit/ece19302374f97fb5da60c3821ee3856c8229161))
+
 ## [0.4.5](https://github.com/Drswith/quantex-cli/compare/v0.4.4...v0.4.5) (2026-04-28)
 
 
