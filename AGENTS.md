@@ -125,7 +125,7 @@ bun run release:artifacts
 - 改 durable workflow、project memory、GitHub collaboration：
   `openspec/README.md`、`openspec/config.yaml`、`docs/README.md`、`docs/github-collaboration.md`、`openspec/specs/project-memory/spec.md`
 - 改产品介绍、安装方式、用户理解：
-  `README.md`、`README.en.md`、`openspec/specs/product-readme/spec.md`
+  `README.md`、`README.zh-CN.md`、`README.en.md`、`openspec/specs/product-readme/spec.md`
 - 改 lint / format 工具链、IDE 推荐扩展、pre-commit 钩子：
   `.oxlintrc.json`、`.oxfmtrc.json`、`package.json` (`scripts`、`lint-staged`、`simple-git-hooks`)、`.vscode/extensions.json`、`.vscode/settings.json`、`openspec/specs/code-quality-tooling/spec.md`
 - 需要真实类型或默认值时，不要复制片段；直接看源码：
