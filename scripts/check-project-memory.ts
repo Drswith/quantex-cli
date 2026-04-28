@@ -3,7 +3,7 @@ import { resolve } from 'node:path'
 import process from 'node:process'
 
 const rootDir = resolve(import.meta.dir, '..')
-const allowedRootMarkdownFiles = new Set(['AGENTS.md', 'CHANGELOG.md', 'README.en.md', 'README.md'])
+const allowedRootMarkdownFiles = new Set(['AGENTS.md', 'CHANGELOG.md', 'README.en.md', 'README.md', 'README.zh-CN.md'])
 
 const issues: string[] = []
 
