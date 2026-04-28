@@ -16,6 +16,7 @@ import { pc } from '../utils/color'
 import { canAutoUpdateAgent, canUpdateInstallType } from '../utils/install'
 import { isResourceLockError } from '../utils/lock'
 import { isDryRunEnabled, printError, printInfo, printWarn } from '../utils/user-output'
+import { getInstalledVersion } from '../utils/version'
 
 type UpdateStatus = 'failed' | 'locked' | 'manual-required' | 'planned' | 'up-to-date' | 'updated'
 
@@ -413,6 +414,32 @@ async function performUpdate(
   }
 
   if (result.success) {
+    if (strategy === 'self-update') {
+      const verifiedVersion = await getInstalledVersion(agent.binaryName, agent.versionProbe)
+
+      if (installedVersion && verifiedVersion) {
+        if (verifiedVersion === installedVersion) {
+          return {
+            displayName: agent.displayName,
+            installedVersion: verifiedVersion,
+            latestVersion: verifiedVersion,
+            name: agent.name,
+            status: 'up-to-date',
+            strategy,
+          }
+        }
+
+        return {
+          displayName: agent.displayName,
+          installedVersion,
+          latestVersion: verifiedVersion,
+          name: agent.name,
+          status: 'updated',
+          strategy,
+        }
+      }
+    }
+
     return {
       displayName: agent.displayName,
       installedVersion,
