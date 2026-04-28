@@ -2,6 +2,13 @@
 
 This changelog is maintained by release-please Release PRs.
 
+## [0.4.1](https://github.com/Drswith/quantex-cli/compare/v0.4.0...v0.4.1) (2026-04-28)
+
+
+### Bug Fixes
+
+* align self-upgrade with managed registries ([165c2cc](https://github.com/Drswith/quantex-cli/commit/165c2cc6fe08e45635869c5960592bb34674f9c0))
+
 ## [0.4.0](https://github.com/Drswith/quantex-cli/compare/v0.3.0...v0.4.0) (2026-04-27)
 
 
