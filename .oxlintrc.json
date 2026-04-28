@@ -1,0 +1,38 @@
+{
+  "$schema": "./node_modules/oxlint/configuration_schema.json",
+  "plugins": ["typescript", "unicorn", "import", "oxc", "promise", "node"],
+  "categories": {
+    "correctness": "error",
+    "suspicious": "warn"
+  },
+  "env": {
+    "node": true,
+    "es2024": true
+  },
+  "ignorePatterns": ["dist", "node_modules", ".bun", "src/generated", "test/fixtures"],
+  "rules": {
+    "no-console": ["error", { "allow": ["warn", "error"] }],
+    "typescript/ban-ts-comment": [
+      "error",
+      {
+        "ts-ignore": "allow-with-description"
+      }
+    ],
+    "unicorn/no-array-sort": "off"
+  },
+  "overrides": [
+    {
+      "files": ["src/cli.ts", "src/commands/**", "src/command-runtime.ts", "src/output/**"],
+      "rules": {
+        "no-console": "off"
+      }
+    },
+    {
+      "files": ["scripts/**", "test/**"],
+      "rules": {
+        "no-console": "off",
+        "no-unused-vars": "off"
+      }
+    }
+  ]
+}

@@ -13,6 +13,7 @@ Describe the change and why it exists.
 
 - [ ] `bun run memory:check`
 - [ ] `bun run lint`
+- [ ] `bun run format:check`
 - [ ] `bun run typecheck`
 - [ ] `bun run test` (if behavior changed)
 - [ ] Not run, explained below

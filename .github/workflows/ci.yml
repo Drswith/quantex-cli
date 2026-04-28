@@ -45,6 +45,7 @@ jobs:
       - run: bun run memory:check
       - run: bun run openspec:validate
       - run: bun run lint
+      - run: bun run format:check
       - run: bun run typecheck
 
   test:

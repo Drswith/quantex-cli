@@ -187,6 +187,7 @@ The closest local sequence to the release verification workflow is:
 ```bash
 bun install --frozen-lockfile
 bun run lint
+bun run format:check
 bun run typecheck
 bun run build
 bun run build:bin

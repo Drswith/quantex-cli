@@ -125,6 +125,10 @@ jobs:
         if: ${{ steps.release.outputs.release_created }}
         run: bun run lint
 
+      - name: Format check
+        if: ${{ steps.release.outputs.release_created }}
+        run: bun run format:check
+
       - name: Typecheck
         if: ${{ steps.release.outputs.release_created }}
         run: bun run typecheck
