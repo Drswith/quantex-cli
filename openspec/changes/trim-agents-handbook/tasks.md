@@ -11,4 +11,4 @@
 ## 3. Validation And Delivery
 
 - [x] 3.1 Run `bun run openspec:validate`, `bun run memory:check`, `bun run lint`, and `bun run typecheck`.
-- [ ] 3.2 Commit, push, and open the implementation PR while reporting any remaining merge or archive closure.
+- [x] 3.2 Commit, push, and open the implementation PR while reporting any remaining merge or archive closure.
