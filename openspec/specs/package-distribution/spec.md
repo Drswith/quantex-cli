@@ -1,8 +1,11 @@
 # package-distribution Specification
 
 ## Purpose
-TBD - created by archiving change reduce-release-artifact-size. Update Purpose after archive.
+
+Define the current observable contract for what the managed-install npm package may ship when standalone release binaries also exist in the working tree.
+
 ## Requirements
+
 ### Requirement: Managed-install package MUST exclude standalone release binaries
 
 The npm package consumed by Bun and npm managed installs SHALL exclude standalone release binaries and release-only metadata, even when those files exist locally because release assets were built before publish.
