@@ -116,7 +116,7 @@ Common symptoms and likely causes:
 
 - `dist/bin/...` still appears in the pack output:
   `package.json#files` or another packaging rule started including standalone release artifacts again
-- missing `dist/cli.mjs`, `dist/index.mjs`, or `scripts/postinstall.cjs`:
+- missing `dist/cli.mjs` or `dist/index.mjs`:
   the packlist was tightened too far and now drops files required by Bun/npm installs
 
 ### 4. Inspect manifest and checksum consistency
@@ -204,14 +204,13 @@ If the wrong provider is chosen, inspect install-source detection before touchin
 Relevant code paths:
 
 - `src/self/index.ts`
-- `src/self/install-state.ts`
 - `src/state/index.ts`
 
 Useful checks:
 
 - whether `state.self.installSource` exists and matches reality
 - whether Quantex is running from a package-manager install, source checkout, or standalone binary
-- whether postinstall wrote package-manager install source correctly
+- whether runtime self inspection wrote package-manager install source correctly after the first self-facing command
 
 For managed self-upgrade registry mismatches, also check:
 
