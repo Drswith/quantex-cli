@@ -20,10 +20,8 @@ describe('executeCommandWithRuntime', () => {
 
   afterEach(() => {
     logSpy.mockRestore()
-    if (originalHome === undefined)
-      delete process.env.HOME
-    else
-      process.env.HOME = originalHome
+    if (originalHome === undefined) delete process.env.HOME
+    else process.env.HOME = originalHome
     rmSync(tempHome, { force: true, recursive: true })
   })
 
@@ -63,16 +61,17 @@ describe('executeCommandWithRuntime', () => {
 
     const result = await executeCommandWithRuntime({
       action: 'list',
-      run: async () => createSuccessResult({
-        action: 'list',
-        data: {
-          agents: [],
-        },
-        target: {
-          kind: 'system',
-          name: 'agents',
-        },
-      }),
+      run: async () =>
+        createSuccessResult({
+          action: 'list',
+          data: {
+            agents: [],
+          },
+          target: {
+            kind: 'system',
+            name: 'agents',
+          },
+        }),
       target: {
         kind: 'system',
         name: 'agents',
@@ -84,16 +83,18 @@ describe('executeCommandWithRuntime', () => {
   })
 
   it('replays the stored result for a repeated idempotency key', async () => {
-    const run = vi.fn(async () => createSuccessResult({
-      action: 'install',
-      data: {
-        installed: true,
-      },
-      target: {
-        kind: 'agent',
-        name: 'codex',
-      },
-    }))
+    const run = vi.fn(async () =>
+      createSuccessResult({
+        action: 'install',
+        data: {
+          installed: true,
+        },
+        target: {
+          kind: 'agent',
+          name: 'codex',
+        },
+      }),
+    )
 
     setCliContext({
       idempotencyKey: 'install-codex',

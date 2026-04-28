@@ -38,12 +38,10 @@ async function getManagedUpdateOptions(): Promise<ManagedInstallerUpdateOptions>
 export async function getOrderedInstallMethods(agent: AgentDefinition): Promise<InstallMethod[]> {
   const platform = getPlatform()
   const methods = agent.platforms[platform]
-  if (!methods)
-    return []
+  if (!methods) return []
 
   const preferredType = await getPreferredManagedInstallType()
-  if (!preferredType)
-    return [...methods]
+  if (!preferredType) return [...methods]
 
   return [
     ...methods.filter(method => method.type === preferredType),
@@ -59,11 +57,9 @@ async function executeManagedMethod(
   updateStrategy?: NpmBunUpdateStrategy,
 ): Promise<boolean> {
   const installer = getManagedInstaller(type)
-  if (!await installer.isAvailable())
-    return false
+  if (!(await installer.isAvailable())) return false
 
-  if (action === 'install')
-    return installer.install(packageName, packageTargetKind)
+  if (action === 'install') return installer.install(packageName, packageTargetKind)
 
   if (action === 'update')
     return installer.update(packageName, packageTargetKind, { npmBunUpdateStrategy: updateStrategy })
@@ -79,17 +75,14 @@ async function executeMethod(
 ): Promise<boolean> {
   if (isManagedInstallType(method.type)) {
     const packageName = getManagedPackageName(agent, method)
-    if (!packageName)
-      return false
+    if (!packageName) return false
 
     return executeManagedMethod(method.type, packageName, method.packageTargetKind, action, updateStrategy)
   }
 
-  if (action === 'update' && !canUpdateInstallType(method.type))
-    return false
+  if (action === 'update' && !canUpdateInstallType(method.type)) return false
 
-  if (!method.command)
-    return false
+  if (!method.command) return false
 
   return runBinaryInstall(method.command)
 }
@@ -100,30 +93,23 @@ async function executeInstalledState(
   updateStrategy?: NpmBunUpdateStrategy,
 ): Promise<boolean> {
   if (isManagedInstallType(state.installType)) {
-    if (!state.packageName)
-      return false
+    if (!state.packageName) return false
 
     return executeManagedMethod(state.installType, state.packageName, state.packageTargetKind, action, updateStrategy)
   }
 
-  if (action !== 'install' || !state.command)
-    return false
+  if (action !== 'install' || !state.command) return false
 
   return runBinaryInstall(state.command)
 }
 
 async function executeAgentUpdateCommand(agent: AgentDefinition): Promise<boolean> {
-  if (!agent.selfUpdate)
-    return false
+  if (!agent.selfUpdate) return false
 
-  const commands = [
-    agent.selfUpdate.command,
-    ...(agent.selfUpdate.fallbackCommands ?? []),
-  ]
+  const commands = [agent.selfUpdate.command, ...(agent.selfUpdate.fallbackCommands ?? [])]
 
   for (const command of commands) {
-    if (await runBinaryInstall(command.join(' ')))
-      return true
+    if (await runBinaryInstall(command.join(' '))) return true
   }
 
   return false
@@ -159,12 +145,15 @@ export async function installAgent(agent: AgentDefinition): Promise<AgentOperati
   })
 }
 
-export async function updateAgent(agent: AgentDefinition, preferredState?: InstalledAgentState): Promise<AgentOperationResult> {
+export async function updateAgent(
+  agent: AgentDefinition,
+  preferredState?: InstalledAgentState,
+): Promise<AgentOperationResult> {
   return withResourceLock(lifecycleLock, async () => {
     const { npmBunUpdateStrategy } = await getManagedUpdateOptions()
     const methods = await getOrderedInstallMethods(agent)
 
-    if (preferredState && await executeInstalledState(preferredState, 'update', npmBunUpdateStrategy)) {
+    if (preferredState && (await executeInstalledState(preferredState, 'update', npmBunUpdateStrategy))) {
       await setInstalledAgentState(preferredState)
       return {
         success: true,
@@ -183,8 +172,7 @@ export async function updateAgent(agent: AgentDefinition, preferredState?: Insta
       }
     }
 
-    if (await executeAgentUpdateCommand(agent))
-      return { success: true }
+    if (await executeAgentUpdateCommand(agent)) return { success: true }
 
     if (preferredState) {
       for (const method of methods) {
@@ -203,12 +191,15 @@ export async function updateAgent(agent: AgentDefinition, preferredState?: Insta
 
 export async function updateAgentsByType(type: ManagedInstallType, packages: ManagedPackageSpec[]): Promise<boolean> {
   return withResourceLock(lifecycleLock, async () => {
-    const uniquePackages = [...new Map(packages
-      .filter(pkg => pkg.packageName)
-      .map(pkg => [`${pkg.packageTargetKind ?? 'package'}:${pkg.packageName}`, pkg])).values()]
+    const uniquePackages = [
+      ...new Map(
+        packages
+          .filter(pkg => pkg.packageName)
+          .map(pkg => [`${pkg.packageTargetKind ?? 'package'}:${pkg.packageName}`, pkg]),
+      ).values(),
+    ]
     const installer = getManagedInstaller(type)
-    if (!await installer.isAvailable())
-      return false
+    if (!(await installer.isAvailable())) return false
     return installer.updateMany(uniquePackages, await getManagedUpdateOptions())
   })
 }
@@ -216,12 +207,10 @@ export async function updateAgentsByType(type: ManagedInstallType, packages: Man
 export async function uninstallAgent(agent: AgentDefinition): Promise<boolean> {
   return withResourceLock(lifecycleLock, async () => {
     const installedState = await getInstalledAgentState(agent.name)
-    if (!installedState)
-      return false
+    if (!installedState) return false
 
     const success = await executeInstalledState(installedState, 'uninstall')
-    if (success)
-      await removeInstalledAgentState(agent.name)
+    if (success) await removeInstalledAgentState(agent.name)
     return success
   })
 }

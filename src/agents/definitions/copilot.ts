@@ -10,9 +10,7 @@ export const copilot: AgentDefinition = {
   },
   binaryName: 'copilot',
   platforms: {
-    windows: [
-      wingetInstall('GitHub.Copilot'),
-    ],
+    windows: [wingetInstall('GitHub.Copilot')],
     macos: [
       bunInstall(),
       npmInstall(),

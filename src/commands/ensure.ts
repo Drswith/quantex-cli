@@ -23,69 +23,78 @@ interface EnsureCommandData {
 export async function ensureCommand(agentName: string): Promise<CommandResult<EnsureCommandData>> {
   const resolved = await resolveAgentInspection(agentName)
   if (!resolved) {
-    return emitCommandResult(createErrorResult<EnsureCommandData>({
-      action: 'ensure',
-      error: {
-        code: 'AGENT_NOT_FOUND',
-        details: {
-          input: agentName,
+    return emitCommandResult(
+      createErrorResult<EnsureCommandData>({
+        action: 'ensure',
+        error: {
+          code: 'AGENT_NOT_FOUND',
+          details: {
+            input: agentName,
+          },
+          message: `Unknown agent: ${agentName}`,
         },
-        message: `Unknown agent: ${agentName}`,
-      },
-      target: {
-        kind: 'agent',
-        name: agentName,
-      },
-    }), renderEnsureHuman)
+        target: {
+          kind: 'agent',
+          name: agentName,
+        },
+      }),
+      renderEnsureHuman,
+    )
   }
 
   const { agent, inspection } = resolved
   if (inspection.inPath) {
-    return emitCommandResult(createSuccessResult<EnsureCommandData>({
-      action: 'ensure',
-      data: {
-        agent: {
-          displayName: agent.displayName,
+    return emitCommandResult(
+      createSuccessResult<EnsureCommandData>({
+        action: 'ensure',
+        data: {
+          agent: {
+            displayName: agent.displayName,
+            name: agent.name,
+          },
+          changed: false,
+          installed: true,
+        },
+        target: {
+          kind: 'agent',
           name: agent.name,
         },
-        changed: false,
-        installed: true,
-      },
-      target: {
-        kind: 'agent',
-        name: agent.name,
-      },
-      warnings: [
-        {
-          code: 'ALREADY_INSTALLED',
-          message: `${agent.displayName} is already installed.`,
-        },
-      ],
-    }), renderEnsureHuman)
+        warnings: [
+          {
+            code: 'ALREADY_INSTALLED',
+            message: `${agent.displayName} is already installed.`,
+          },
+        ],
+      }),
+      renderEnsureHuman,
+    )
   }
 
   if (isDryRunEnabled()) {
-    return emitCommandResult(createSuccessResult<EnsureCommandData>({
-      action: 'ensure',
-      data: {
-        agent: {
-          displayName: agent.displayName,
+    return emitCommandResult(
+      createSuccessResult<EnsureCommandData>({
+        action: 'ensure',
+        data: {
+          agent: {
+            displayName: agent.displayName,
+            name: agent.name,
+          },
+          changed: false,
+          installed: false,
+        },
+        target: {
+          kind: 'agent',
           name: agent.name,
         },
-        changed: false,
-        installed: false,
-      },
-      target: {
-        kind: 'agent',
-        name: agent.name,
-      },
-      warnings: [
-        {
-          code: 'DRY_RUN',
-          message: `Dry run: would install ${agent.displayName}.`,
-        },
-      ],
-    }), renderEnsureHuman)
+        warnings: [
+          {
+            code: 'DRY_RUN',
+            message: `Dry run: would install ${agent.displayName}.`,
+          },
+        ],
+      }),
+      renderEnsureHuman,
+    )
   }
 
   emitCommandEvent({
@@ -106,86 +115,96 @@ export async function ensureCommand(agentName: string): Promise<CommandResult<En
   let result
   try {
     result = await installAgent(agent)
-  }
-  catch (error) {
+  } catch (error) {
     if (isResourceLockError(error)) {
-      return emitCommandResult(createErrorResult<EnsureCommandData>({
-        action: 'ensure',
-        data: {
-          agent: {
-            displayName: agent.displayName,
-            name: agent.name,
+      return emitCommandResult(
+        createErrorResult<EnsureCommandData>({
+          action: 'ensure',
+          data: {
+            agent: {
+              displayName: agent.displayName,
+              name: agent.name,
+            },
+            changed: false,
+            installed: false,
           },
-          changed: false,
-          installed: false,
-        },
-        ...createResourceLockedError(error, {
-          kind: 'agent',
-          name: agent.name,
+          ...createResourceLockedError(error, {
+            kind: 'agent',
+            name: agent.name,
+          }),
         }),
-      }), renderEnsureHuman)
+        renderEnsureHuman,
+      )
     }
 
     throw error
   }
 
   if (result.success) {
-    return emitCommandResult(createSuccessResult<EnsureCommandData>({
+    return emitCommandResult(
+      createSuccessResult<EnsureCommandData>({
+        action: 'ensure',
+        data: {
+          agent: {
+            displayName: agent.displayName,
+            name: agent.name,
+          },
+          changed: true,
+          installState: result.installedState
+            ? {
+                installType: result.installedState.installType,
+                packageName: result.installedState.packageName,
+              }
+            : undefined,
+          installed: true,
+        },
+        target: {
+          kind: 'agent',
+          name: agent.name,
+        },
+      }),
+      renderEnsureHuman,
+    )
+  }
+
+  return emitCommandResult(
+    createErrorResult<EnsureCommandData>({
       action: 'ensure',
       data: {
         agent: {
           displayName: agent.displayName,
           name: agent.name,
         },
-        changed: true,
-        installState: result.installedState
-          ? {
-              installType: result.installedState.installType,
-              packageName: result.installedState.packageName,
-            }
-          : undefined,
-        installed: true,
+        changed: false,
+        installed: false,
+      },
+      error: {
+        code: 'INSTALL_FAILED',
+        message: `Failed to install ${agent.displayName}.`,
       },
       target: {
         kind: 'agent',
         name: agent.name,
       },
-    }), renderEnsureHuman)
-  }
-
-  return emitCommandResult(createErrorResult<EnsureCommandData>({
-    action: 'ensure',
-    data: {
-      agent: {
-        displayName: agent.displayName,
-        name: agent.name,
-      },
-      changed: false,
-      installed: false,
-    },
-    error: {
-      code: 'INSTALL_FAILED',
-      message: `Failed to install ${agent.displayName}.`,
-    },
-    target: {
-      kind: 'agent',
-      name: agent.name,
-    },
-  }), renderEnsureHuman)
+    }),
+    renderEnsureHuman,
+  )
 }
 
-function renderEnsureHuman(result: { data?: EnsureCommandData, error: { message: string } | null, warnings: Array<{ message: string }> }): void {
+function renderEnsureHuman(result: {
+  data?: EnsureCommandData
+  error: { message: string } | null
+  warnings: Array<{ message: string }>
+}): void {
   if (result.error) {
     printError(pc.red(result.error.message))
     return
   }
 
-  if (!result.data)
-    return
+  if (!result.data) return
 
   if (result.warnings.length > 0) {
-    for (const warning of result.warnings)
-      printWarn(pc.yellow(warning.message))
+    for (const warning of result.warnings) printWarn(pc.yellow(warning.message))
     return
   }
 

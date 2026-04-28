@@ -1,14 +1,12 @@
 import { writeFile } from 'node:fs/promises'
 
-const packageJson = await Bun.file(new URL('../package.json', import.meta.url)).json() as {
+const packageJson = (await Bun.file(new URL('../package.json', import.meta.url)).json()) as {
   name?: string
   repository?: string | { url?: string }
   version?: string
 }
 
-const repositoryUrl = typeof packageJson.repository === 'string'
-  ? packageJson.repository
-  : packageJson.repository?.url
+const repositoryUrl = typeof packageJson.repository === 'string' ? packageJson.repository : packageJson.repository?.url
 
 const content = [
   `export const BUILD_PACKAGE_NAME = '${escapeSingleQuotedString(packageJson.name ?? 'quantex-cli')}'`,
@@ -19,19 +17,17 @@ const content = [
 
 await writeFile(new URL('../src/generated/build-meta.ts', import.meta.url), content, 'utf8')
 
-function normalizeRepositoryUrl(repositoryUrl?: string): string | undefined {
-  if (!repositoryUrl)
-    return undefined
+function normalizeRepositoryUrl(inputUrl?: string): string | undefined {
+  if (!inputUrl) return undefined
 
-  if (repositoryUrl.startsWith('git+'))
-    return repositoryUrl.slice(4).replace(/\.git$/, '')
+  if (inputUrl.startsWith('git+')) return inputUrl.slice(4).replace(/\.git$/, '')
 
-  if (repositoryUrl.startsWith('git@github.com:'))
-    return repositoryUrl.replace('git@github.com:', 'https://github.com/').replace(/\.git$/, '')
+  if (inputUrl.startsWith('git@github.com:'))
+    return inputUrl.replace('git@github.com:', 'https://github.com/').replace(/\.git$/, '')
 
-  return repositoryUrl.replace(/\.git$/, '')
+  return inputUrl.replace(/\.git$/, '')
 }
 
 function escapeSingleQuotedString(value: string): string {
-  return value.replaceAll('\\', '\\\\').replaceAll('\'', '\\\'')
+  return value.replaceAll('\\', '\\\\').replaceAll("'", "\\'")
 }

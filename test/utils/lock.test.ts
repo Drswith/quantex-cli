@@ -18,8 +18,7 @@ describe('resource locks', () => {
   })
 
   afterEach(() => {
-    if (existsSync(tempDir))
-      rmSync(tempDir, { force: true, recursive: true })
+    if (existsSync(tempDir)) rmSync(tempDir, { force: true, recursive: true })
   })
 
   it('throws a stable conflict error when the same lock is already held', async () => {
@@ -28,10 +27,12 @@ describe('resource locks', () => {
       scope: ['agent-lifecycle'],
     })
 
-    await expect(acquireResourceLock({
-      resource: 'agent lifecycle',
-      scope: ['agent-lifecycle'],
-    })).rejects.toMatchObject({
+    await expect(
+      acquireResourceLock({
+        resource: 'agent lifecycle',
+        scope: ['agent-lifecycle'],
+      }),
+    ).rejects.toMatchObject({
       lockPath: getResourceLockPath(['agent-lifecycle']),
       name: 'ResourceLockError',
       resource: 'agent lifecycle',

@@ -57,69 +57,69 @@ export async function capabilitiesCommand(): Promise<CommandResult<CapabilitiesD
     inspectSelf(),
   ])
 
-  return emitCommandResult(createSuccessResult<CapabilitiesData>({
-    action: 'capabilities',
-    data: {
-      agents: getAllAgents().map(agent => agent.name),
-      features: {
-        assumeYes: true,
-        cacheBypass: true,
-        cacheRefresh: true,
-        channels: ['stable', 'beta'],
-        colorModes: ['auto', 'always', 'never'],
-        dryRun: true,
-        execInstallPolicies: ['never', 'if-missing', 'always'],
-        freshnessMetadata: true,
-        idempotencyKey: true,
-        logLevels: ['silent', 'error', 'warn', 'info', 'debug'],
-        quietLogs: true,
-        selfUpgrade: selfInspection.canAutoUpdate,
-        timeout: true,
+  return emitCommandResult(
+    createSuccessResult<CapabilitiesData>({
+      action: 'capabilities',
+      data: {
+        agents: getAllAgents().map(agent => agent.name),
+        features: {
+          assumeYes: true,
+          cacheBypass: true,
+          cacheRefresh: true,
+          channels: ['stable', 'beta'],
+          colorModes: ['auto', 'always', 'never'],
+          dryRun: true,
+          execInstallPolicies: ['never', 'if-missing', 'always'],
+          freshnessMetadata: true,
+          idempotencyKey: true,
+          logLevels: ['silent', 'error', 'warn', 'info', 'debug'],
+          quietLogs: true,
+          selfUpgrade: selfInspection.canAutoUpdate,
+          timeout: true,
+        },
+        installers: {
+          brew: {
+            available: brewAvailable,
+            reason: brewAvailable ? undefined : getUnavailableReason('brew'),
+          },
+          bun: {
+            available: bunAvailable,
+            reason: bunAvailable ? undefined : getUnavailableReason('bun'),
+          },
+          npm: {
+            available: npmAvailable,
+            reason: npmAvailable ? undefined : getUnavailableReason('npm'),
+          },
+          winget: {
+            available: wingetAvailable,
+            reason: wingetAvailable ? undefined : getUnavailableReason('winget'),
+          },
+        },
+        outputModes: ['human', 'json', 'ndjson'],
+        platform: {
+          arch: process.arch,
+          os: getPlatform(),
+        },
       },
-      installers: {
-        brew: {
-          available: brewAvailable,
-          reason: brewAvailable ? undefined : getUnavailableReason('brew'),
-        },
-        bun: {
-          available: bunAvailable,
-          reason: bunAvailable ? undefined : getUnavailableReason('bun'),
-        },
-        npm: {
-          available: npmAvailable,
-          reason: npmAvailable ? undefined : getUnavailableReason('npm'),
-        },
-        winget: {
-          available: wingetAvailable,
-          reason: wingetAvailable ? undefined : getUnavailableReason('winget'),
-        },
+      target: {
+        kind: 'system',
+        name: 'capabilities',
       },
-      outputModes: ['human', 'json', 'ndjson'],
-      platform: {
-        arch: process.arch,
-        os: getPlatform(),
-      },
-    },
-    target: {
-      kind: 'system',
-      name: 'capabilities',
-    },
-  }), renderCapabilitiesHuman)
+    }),
+    renderCapabilitiesHuman,
+  )
 }
 
 function getUnavailableReason(installer: 'brew' | 'bun' | 'npm' | 'winget'): string {
-  if (installer === 'winget' && process.platform !== 'win32')
-    return 'not-on-platform'
+  if (installer === 'winget' && process.platform !== 'win32') return 'not-on-platform'
 
-  if (installer === 'brew' && process.platform === 'win32')
-    return 'not-on-platform'
+  if (installer === 'brew' && process.platform === 'win32') return 'not-on-platform'
 
   return 'not-found'
 }
 
 function renderCapabilitiesHuman(result: { data?: CapabilitiesData }): void {
-  if (!result.data)
-    return
+  if (!result.data) return
 
   console.log(pc.bold('\nQuantex Capabilities\n'))
   console.log(`  Platform:     ${result.data.platform.os}/${result.data.platform.arch}`)
@@ -149,9 +149,8 @@ function renderCapabilitiesHuman(result: { data?: CapabilitiesData }): void {
   console.log()
 }
 
-function formatCapabilityAvailability(value: { available: boolean, reason?: string }): string {
-  if (value.available)
-    return pc.green('available')
+function formatCapabilityAvailability(value: { available: boolean; reason?: string }): string {
+  if (value.available) return pc.green('available')
 
   return pc.red(value.reason ?? 'not-found')
 }

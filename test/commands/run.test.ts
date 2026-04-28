@@ -150,7 +150,9 @@ describe('runCommand', () => {
     expect(payload.action).toBe('exec')
     expect(payload.error.code).toBe('INTERACTION_REQUIRED')
     expect(payload.data.execution.installGuidance.suggestedAction).toBe('rerun-with-install-policy')
-    expect(payload.data.execution.installGuidance.suggestedExecCommand).toBe('quantex exec test-agent --install if-missing -- --help')
+    expect(payload.data.execution.installGuidance.suggestedExecCommand).toBe(
+      'quantex exec test-agent --install if-missing -- --help',
+    )
   })
 
   it('returns agent-not-installed when install policy is never', async () => {
@@ -182,7 +184,9 @@ describe('runCommand', () => {
     expect(payload.action).toBe('exec')
     expect(payload.error.code).toBe('AGENT_NOT_INSTALLED')
     expect(payload.data.execution.installGuidance.suggestedEnsureCommand).toBe('quantex ensure test-agent')
-    expect(payload.data.execution.installGuidance.suggestedExecCommand).toBe('quantex exec test-agent --install if-missing -- --help')
+    expect(payload.data.execution.installGuidance.suggestedExecCommand).toBe(
+      'quantex exec test-agent --install if-missing -- --help',
+    )
   })
 
   it('installs automatically when install policy is if-missing', async () => {
@@ -222,7 +226,11 @@ describe('runCommand', () => {
     agentSpy.mockReturnValue(testAgent)
     binaryInPathSpy.mockResolvedValue(false)
 
-    const code = await runCommand('test-agent', ['--help'], { dryRun: true, install: 'if-missing', nonInteractive: true })
+    const code = await runCommand('test-agent', ['--help'], {
+      dryRun: true,
+      install: 'if-missing',
+      nonInteractive: true,
+    })
 
     expect(code).toBe(0)
     expect(mockPrompts).not.toHaveBeenCalled()
@@ -234,7 +242,7 @@ describe('runCommand', () => {
     let resolveExited: (() => void) | undefined
     const proc: any = {
       exitCode: null,
-      exited: new Promise<void>((resolve) => {
+      exited: new Promise<void>(resolve => {
         resolveExited = resolve
       }),
       kill: vi.fn(() => {
@@ -252,8 +260,7 @@ describe('runCommand', () => {
     agentSpy.mockReturnValue(testAgent)
     binaryInPathSpy.mockResolvedValue(true)
     mockSpawn.mockImplementation((command: string[]) => {
-      if (command[1] === '--help')
-        return proc
+      if (command[1] === '--help') return proc
 
       if (command[1] === '--version') {
         return {
@@ -283,7 +290,7 @@ describe('runCommand', () => {
     let resolveExited: (() => void) | undefined
     const proc: any = {
       exitCode: null,
-      exited: new Promise<void>((resolve) => {
+      exited: new Promise<void>(resolve => {
         resolveExited = resolve
       }),
       kill: vi.fn(() => {
@@ -295,8 +302,7 @@ describe('runCommand', () => {
     agentSpy.mockReturnValue(testAgent)
     binaryInPathSpy.mockResolvedValue(true)
     mockSpawn.mockImplementation((command: string[]) => {
-      if (command[1] === '--help')
-        return proc
+      if (command[1] === '--help') return proc
 
       if (command[1] === '--version') {
         return {

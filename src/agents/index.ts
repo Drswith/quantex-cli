@@ -10,18 +10,7 @@ import { opencode } from './definitions/opencode'
 import { pi } from './definitions/pi'
 import { qoder } from './definitions/qoder'
 
-const agents: AgentDefinition[] = [
-  claude,
-  codex,
-  copilot,
-  cursor,
-  droid,
-  gemini,
-  kilo,
-  opencode,
-  pi,
-  qoder,
-]
+const agents: AgentDefinition[] = [claude, codex, copilot, cursor, droid, gemini, kilo, opencode, pi, qoder]
 
 export function getAllAgents(): AgentDefinition[] {
   return agents

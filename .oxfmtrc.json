@@ -1,0 +1,50 @@
+{
+  "$schema": "./node_modules/oxfmt/configuration_schema.json",
+  "singleQuote": true,
+  "semi": false,
+  "trailingComma": "all",
+  "arrowParens": "avoid",
+  "printWidth": 120,
+  "tabWidth": 2,
+  "useTabs": false,
+  "endOfLine": "lf",
+  "sortImports": {
+    "newlinesBetween": false,
+    "partitionByNewline": true,
+    "sortSideEffects": false,
+    "groups": [
+      "type-import",
+      ["value-builtin", "value-external"],
+      "value-internal",
+      ["value-parent", "value-sibling", "value-index"],
+      ["side_effect", "side_effect_style"],
+      "unknown"
+    ]
+  },
+  "sortPackageJson": {
+    "sortScripts": true
+  },
+  "ignorePatterns": [
+    "dist",
+    "node_modules",
+    ".bun",
+    "bun.lock",
+    "**/*.md",
+    "**/*.mdx",
+    "src/generated",
+    "test/fixtures",
+    "openspec/changes/archive",
+    "docs/archive",
+    "CHANGELOG.md",
+    ".release-please-manifest.json",
+    "release-please-config*.json",
+    ".claude",
+    ".codex",
+    ".cursor",
+    ".gemini",
+    ".opencode",
+    ".github/prompts",
+    ".github/skills",
+    "skills"
+  ]
+}

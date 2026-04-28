@@ -29,8 +29,7 @@ export function createUpdatePlan(inspections: AgentInspection[]): UpdatePlan {
   const upToDate: AgentInspection[] = []
 
   for (const inspection of inspections) {
-    if (!inspection.inPath)
-      continue
+    if (!inspection.inPath) continue
 
     if (shouldSkipUnknownManualUpdate(inspection)) {
       skippedManualCheck.push(inspection)
@@ -48,13 +47,14 @@ export function createUpdatePlan(inspections: AgentInspection[]): UpdatePlan {
       methods: inspection.methods,
     })
 
-    const installerType = strategy.strategy === 'managed'
-      ? strategy.getManagedInstallerType?.({
-          agent: inspection.agent,
-          installedState: inspection.installedState,
-          methods: inspection.methods,
-        })
-      : undefined
+    const installerType =
+      strategy.strategy === 'managed'
+        ? strategy.getManagedInstallerType?.({
+            agent: inspection.agent,
+            installedState: inspection.installedState,
+            methods: inspection.methods,
+          })
+        : undefined
     if (installerType) {
       const entry: UpdatePlanEntry = {
         inspection,
@@ -80,7 +80,9 @@ export function createUpdatePlan(inspections: AgentInspection[]): UpdatePlan {
   }
 }
 
-export function isInspectionUpdateAvailable(inspection: Pick<AgentInspection, 'installedVersion' | 'latestVersion'>): boolean {
+export function isInspectionUpdateAvailable(
+  inspection: Pick<AgentInspection, 'installedVersion' | 'latestVersion'>,
+): boolean {
   if (inspection.installedVersion && inspection.latestVersion)
     return inspection.installedVersion !== inspection.latestVersion
 

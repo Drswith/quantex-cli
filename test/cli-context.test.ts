@@ -8,10 +8,8 @@ describe('resolveCliContext', () => {
   const originalStdoutIsTTY = process.stdout.isTTY
 
   afterEach(() => {
-    if (previousRunId === undefined)
-      delete process.env.QUANTEX_RUN_ID
-    else
-      process.env.QUANTEX_RUN_ID = previousRunId
+    if (previousRunId === undefined) delete process.env.QUANTEX_RUN_ID
+    else process.env.QUANTEX_RUN_ID = previousRunId
     Object.defineProperty(process.stdin, 'isTTY', { configurable: true, value: originalStdinIsTTY })
     Object.defineProperty(process.stdout, 'isTTY', { configurable: true, value: originalStdoutIsTTY })
     resetCliContext()
@@ -58,7 +56,9 @@ describe('resolveCliContext', () => {
   })
 
   it('rejects conflicting refresh flags', () => {
-    expect(() => resolveCliContext({ noCache: true, refresh: true })).toThrow('Cannot combine --refresh with --no-cache.')
+    expect(() => resolveCliContext({ noCache: true, refresh: true })).toThrow(
+      'Cannot combine --refresh with --no-cache.',
+    )
   })
 
   it('parses color mode when provided', () => {

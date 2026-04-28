@@ -34,8 +34,7 @@ afterEach(() => {
   mockSpawn.mockClear()
   mockFetch.mockClear()
   loadConfigSpy.mockClear()
-  if (existsSync(tempConfigDir))
-    rmSync(tempConfigDir, { recursive: true, force: true })
+  if (existsSync(tempConfigDir)) rmSync(tempConfigDir, { recursive: true, force: true })
 })
 
 function createMockProcess(exitCode: number, stdout = '') {
@@ -76,7 +75,9 @@ describe('getInstalledVersion', () => {
 
   it('extracts version from multi-line output (first line)', async () => {
     const { getInstalledVersion } = await import('../../src/utils/version')
-    mockSpawn.mockReturnValue(createMockProcess(0, 'GitHub Copilot CLI 1.0.20.\nRun \'copilot update\' to check for updates.\n'))
+    mockSpawn.mockReturnValue(
+      createMockProcess(0, "GitHub Copilot CLI 1.0.20.\nRun 'copilot update' to check for updates.\n"),
+    )
     const version = await getInstalledVersion('copilot')
     expect(version).toBe('1.0.20')
   })
@@ -158,10 +159,12 @@ describe('getLatestVersion', () => {
 
   it('caches npm registry responses to disk', async () => {
     const { getLatestVersion } = await import('../../src/utils/version')
-    mockFetch.mockResolvedValueOnce(new Response(JSON.stringify({ version: '2.0.0' }), {
-      headers: { etag: '"abc"' },
-      status: 200,
-    }))
+    mockFetch.mockResolvedValueOnce(
+      new Response(JSON.stringify({ version: '2.0.0' }), {
+        headers: { etag: '"abc"' },
+        status: 200,
+      }),
+    )
 
     expect(await getLatestVersion('some-package')).toBe('2.0.0')
     expect(await getLatestVersion('some-package')).toBe('2.0.0')

@@ -12,7 +12,14 @@ export interface SelfInspection {
   updateChannel: SelfUpdateChannel
 }
 
-export type SelfUpgradeErrorKind = 'checksum' | 'locked' | 'network' | 'permission' | 'unknown' | 'unsupported' | 'verify'
+export type SelfUpgradeErrorKind =
+  | 'checksum'
+  | 'locked'
+  | 'network'
+  | 'permission'
+  | 'unknown'
+  | 'unsupported'
+  | 'verify'
 
 export interface SelfUpgradeError {
   detail?: unknown

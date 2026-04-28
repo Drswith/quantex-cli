@@ -1,18 +1,25 @@
 import type { SelfInspection, SelfUpdateResult } from '../types'
 import type { SelfUpgradeProvider } from './types'
 import { upgradeStandaloneBinary } from '../binary'
-import { fetchBinaryReleaseManifest, getBinaryReleaseAssetName, getBinaryReleaseDownloadUrl, resolveBinaryReleaseAsset } from '../release'
+import {
+  fetchBinaryReleaseManifest,
+  getBinaryReleaseAssetName,
+  getBinaryReleaseDownloadUrl,
+  resolveBinaryReleaseAsset,
+} from '../release'
 
 export const binarySelfUpgradeProvider: SelfUpgradeProvider = {
   source: 'binary',
   canHandle: inspection => inspection.installSource === 'binary',
   getRecoveryHint: (inspection, result) => {
-    const downloadUrl = result?.error?.detail && typeof result.error.detail === 'object' && 'downloadUrl' in (result.error.detail as Record<string, unknown>)
-      ? String((result.error.detail as Record<string, unknown>).downloadUrl)
-      : getBinaryReleaseDownloadUrl(inspection.executablePath)
+    const downloadUrl =
+      result?.error?.detail &&
+      typeof result.error.detail === 'object' &&
+      'downloadUrl' in (result.error.detail as Record<string, unknown>)
+        ? String((result.error.detail as Record<string, unknown>).downloadUrl)
+        : getBinaryReleaseDownloadUrl(inspection.executablePath)
 
-    if (!downloadUrl)
-      return undefined
+    if (!downloadUrl) return undefined
 
     if (result?.error?.kind === 'locked')
       return `close other qtx processes and retry, or download and replace the binary from ${downloadUrl}`
@@ -42,8 +49,7 @@ export const binarySelfUpgradeProvider: SelfUpgradeProvider = {
     let manifest
     try {
       manifest = await fetchBinaryReleaseManifest(inspection.updateChannel)
-    }
-    catch (error) {
+    } catch (error) {
       return {
         error: {
           detail: error,
@@ -78,18 +84,21 @@ export const binarySelfUpgradeProvider: SelfUpgradeProvider = {
       manifest.version,
     )
 
-    const enrichedResult = !result.success && result.error
-      ? {
-          ...result,
-          error: {
-            ...result.error,
-            detail: {
-              ...(typeof result.error.detail === 'object' && result.error.detail ? result.error.detail as Record<string, unknown> : {}),
-              downloadUrl: asset.downloadUrl,
+    const enrichedResult =
+      !result.success && result.error
+        ? {
+            ...result,
+            error: {
+              ...result.error,
+              detail: {
+                ...(typeof result.error.detail === 'object' && result.error.detail
+                  ? (result.error.detail as Record<string, unknown>)
+                  : {}),
+                downloadUrl: asset.downloadUrl,
+              },
             },
-          },
-        }
-      : result
+          }
+        : result
 
     return {
       ...enrichedResult,

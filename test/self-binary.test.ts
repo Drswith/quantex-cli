@@ -23,8 +23,7 @@ afterEach(() => {
 })
 
 function expectExecutableBits(mode: number): void {
-  if (originalPlatform === 'win32')
-    return
+  if (originalPlatform === 'win32') return
 
   expect(mode & 0o111).toBeGreaterThan(0)
 }
@@ -41,7 +40,9 @@ describe('upgradeStandaloneBinary', () => {
     Object.defineProperty(process, 'platform', { value: 'win32' })
 
     await writeFile(executablePath, 'old-binary', 'utf8')
-    globalThis.fetch = vi.fn().mockResolvedValue(new Response(Buffer.from('new-binary'), { status: 200 })) as unknown as typeof fetch
+    globalThis.fetch = vi
+      .fn()
+      .mockResolvedValue(new Response(Buffer.from('new-binary'), { status: 200 })) as unknown as typeof fetch
     const checksum = createHash('sha256').update('new-binary').digest('hex')
 
     try {
@@ -58,8 +59,7 @@ describe('upgradeStandaloneBinary', () => {
         stdio: ['ignore', 'ignore', 'ignore'],
         windowsHide: true,
       })
-    }
-    finally {
+    } finally {
       await rm(tempRoot, { recursive: true, force: true })
     }
   })
@@ -73,17 +73,18 @@ describe('upgradeStandaloneBinary', () => {
     await writeFile(executablePath, 'old-binary', 'utf8')
     await chmod(executablePath, 0o755)
 
-    globalThis.fetch = vi.fn().mockResolvedValue(new Response(Buffer.from('new-binary'), { status: 200 })) as unknown as typeof fetch
+    globalThis.fetch = vi
+      .fn()
+      .mockResolvedValue(new Response(Buffer.from('new-binary'), { status: 200 })) as unknown as typeof fetch
     const checksum = createHash('sha256').update('new-binary').digest('hex')
 
     try {
       expect(await upgradeStandaloneBinary('https://example.com/qtx', executablePath, checksum)).toEqual({
         success: true,
       })
-      expect((await readFile(executablePath, 'utf8'))).toBe('new-binary')
+      expect(await readFile(executablePath, 'utf8')).toBe('new-binary')
       expectExecutableBits((await stat(executablePath)).mode)
-    }
-    finally {
+    } finally {
       await rm(tempRoot, { recursive: true, force: true })
     }
   })
@@ -103,7 +104,9 @@ describe('upgradeStandaloneBinary', () => {
     await chmod(executablePath, 0o755)
 
     Bun.spawn = mockSpawn as typeof Bun.spawn
-    globalThis.fetch = vi.fn().mockResolvedValue(new Response(Buffer.from(replacement), { status: 200 })) as unknown as typeof fetch
+    globalThis.fetch = vi
+      .fn()
+      .mockResolvedValue(new Response(Buffer.from(replacement), { status: 200 })) as unknown as typeof fetch
     const checksum = createHash('sha256').update(replacement).digest('hex')
 
     try {
@@ -113,8 +116,7 @@ describe('upgradeStandaloneBinary', () => {
       expect(await readFile(executablePath, 'utf8')).toBe(replacement)
       expectExecutableBits((await stat(executablePath)).mode)
       expect(existsSync(`${executablePath}.bak`)).toBe(false)
-    }
-    finally {
+    } finally {
       await rm(tempRoot, { recursive: true, force: true })
     }
   })
@@ -136,7 +138,9 @@ describe('upgradeStandaloneBinary', () => {
 
     await writeFile(executablePath, 'old-binary', 'utf8')
     await chmod(executablePath, 0o755)
-    globalThis.fetch = vi.fn().mockResolvedValue(new Response(Buffer.from('new-binary'), { status: 200 })) as unknown as typeof fetch
+    globalThis.fetch = vi
+      .fn()
+      .mockResolvedValue(new Response(Buffer.from('new-binary'), { status: 200 })) as unknown as typeof fetch
 
     try {
       const result = await upgradeStandaloneBinary('https://example.com/qtx', executablePath, 'deadbeef')
@@ -144,8 +148,7 @@ describe('upgradeStandaloneBinary', () => {
       expect(result.success).toBe(false)
       expect(result.error?.kind).toBe('checksum')
       expect(await readFile(executablePath, 'utf8')).toBe('old-binary')
-    }
-    finally {
+    } finally {
       await rm(tempRoot, { recursive: true, force: true })
     }
   })
@@ -165,7 +168,9 @@ describe('upgradeStandaloneBinary', () => {
     await writeFile(executablePath, original, 'utf8')
     await chmod(executablePath, 0o755)
     Bun.spawn = mockSpawn as typeof Bun.spawn
-    globalThis.fetch = vi.fn().mockResolvedValue(new Response(Buffer.from(replacement), { status: 200 })) as unknown as typeof fetch
+    globalThis.fetch = vi
+      .fn()
+      .mockResolvedValue(new Response(Buffer.from(replacement), { status: 200 })) as unknown as typeof fetch
     const checksum = createHash('sha256').update(replacement).digest('hex')
 
     try {
@@ -175,8 +180,7 @@ describe('upgradeStandaloneBinary', () => {
       expect(result.error?.kind).toBe('verify')
       expect(await readFile(executablePath, 'utf8')).toBe(original)
       expect(existsSync(`${executablePath}.bak`)).toBe(false)
-    }
-    finally {
+    } finally {
       await rm(tempRoot, { recursive: true, force: true })
     }
   })

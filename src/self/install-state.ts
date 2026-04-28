@@ -11,26 +11,26 @@ interface PersistedState {
   }
 }
 
-export function detectPackageManagerSelfInstallSource(env: NodeJS.ProcessEnv = process.env): SelfInstallSource | undefined {
-  if (!isGlobalPackageInstall(env))
-    return undefined
+export function detectPackageManagerSelfInstallSource(
+  env: NodeJS.ProcessEnv = process.env,
+): SelfInstallSource | undefined {
+  if (!isGlobalPackageInstall(env)) return undefined
 
   const userAgent = env.npm_config_user_agent?.toLowerCase() ?? ''
 
-  if (userAgent.startsWith('bun/'))
-    return 'bun'
+  if (userAgent.startsWith('bun/')) return 'bun'
 
-  if (userAgent.startsWith('npm/'))
-    return 'npm'
+  if (userAgent.startsWith('npm/')) return 'npm'
 
   return undefined
 }
 
-export async function persistDetectedPackageManagerInstallSource(env: NodeJS.ProcessEnv = process.env): Promise<boolean> {
+export async function persistDetectedPackageManagerInstallSource(
+  env: NodeJS.ProcessEnv = process.env,
+): Promise<boolean> {
   const installSource = detectPackageManagerSelfInstallSource(env)
 
-  if (!installSource)
-    return false
+  if (!installSource) return false
 
   await persistSelfInstallSourceToState(installSource, env)
   return true
@@ -70,8 +70,7 @@ function resolveHomeDir(env: NodeJS.ProcessEnv): string {
 async function readStateFile(stateFilePath: string): Promise<PersistedState> {
   try {
     return JSON.parse(await readFile(stateFilePath, 'utf8')) as PersistedState
-  }
-  catch {
+  } catch {
     return {}
   }
 }

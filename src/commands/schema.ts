@@ -140,7 +140,21 @@ const schemaCatalog: SchemaDocument[] = [
             selfUpgrade: { type: 'boolean' },
             timeout: { type: 'boolean' },
           },
-          required: ['assumeYes', 'cacheBypass', 'cacheRefresh', 'channels', 'colorModes', 'dryRun', 'execInstallPolicies', 'freshnessMetadata', 'idempotencyKey', 'logLevels', 'quietLogs', 'selfUpgrade', 'timeout'],
+          required: [
+            'assumeYes',
+            'cacheBypass',
+            'cacheRefresh',
+            'channels',
+            'colorModes',
+            'dryRun',
+            'execInstallPolicies',
+            'freshnessMetadata',
+            'idempotencyKey',
+            'logLevels',
+            'quietLogs',
+            'selfUpgrade',
+            'timeout',
+          ],
           type: 'object',
         },
         installers: { type: 'object' },
@@ -247,7 +261,16 @@ const schemaCatalog: SchemaDocument[] = [
                 type: 'array',
               },
             },
-            required: ['blocking', 'category', 'code', 'message', 'severity', 'subject', 'suggestedAction', 'suggestedCommands'],
+            required: [
+              'blocking',
+              'category',
+              'code',
+              'message',
+              'severity',
+              'subject',
+              'suggestedAction',
+              'suggestedCommands',
+            ],
             type: 'object',
           },
           type: 'array',
@@ -316,7 +339,13 @@ const schemaCatalog: SchemaDocument[] = [
                 suggestedEnsureCommand: { type: 'string' },
                 suggestedExecCommand: { type: 'string' },
               },
-              required: ['docsRef', 'installMethods', 'suggestedAction', 'suggestedEnsureCommand', 'suggestedExecCommand'],
+              required: [
+                'docsRef',
+                'installMethods',
+                'suggestedAction',
+                'suggestedEnsureCommand',
+                'suggestedExecCommand',
+              ],
               type: 'object',
             },
             installPolicy: { type: 'string' },
@@ -454,47 +483,50 @@ const schemaCatalog: SchemaDocument[] = [
 ]
 
 export async function schemaCommand(commandName?: string): Promise<CommandResult<SchemaCommandData>> {
-  const commands = commandName
-    ? schemaCatalog.filter(schema => schema.name === commandName)
-    : schemaCatalog
+  const commands = commandName ? schemaCatalog.filter(schema => schema.name === commandName) : schemaCatalog
 
   if (commandName && commands.length === 0) {
-    return emitCommandResult(createErrorResult<SchemaCommandData>({
-      action: 'schema',
-      error: {
-        code: 'INVALID_ARGUMENT',
-        details: {
-          command: commandName,
+    return emitCommandResult(
+      createErrorResult<SchemaCommandData>({
+        action: 'schema',
+        error: {
+          code: 'INVALID_ARGUMENT',
+          details: {
+            command: commandName,
+          },
+          message: `Unknown schema target: ${commandName}`,
         },
-        message: `Unknown schema target: ${commandName}`,
+        target: {
+          kind: 'system',
+          name: 'schema',
+        },
+      }),
+      renderSchemaHuman,
+    )
+  }
+
+  return emitCommandResult(
+    createSuccessResult<SchemaCommandData>({
+      action: 'schema',
+      data: {
+        commands,
       },
       target: {
         kind: 'system',
         name: 'schema',
       },
-    }), renderSchemaHuman)
-  }
-
-  return emitCommandResult(createSuccessResult<SchemaCommandData>({
-    action: 'schema',
-    data: {
-      commands,
-    },
-    target: {
-      kind: 'system',
-      name: 'schema',
-    },
-  }), renderSchemaHuman)
+    }),
+    renderSchemaHuman,
+  )
 }
 
-function renderSchemaHuman(result: { data?: SchemaCommandData, error: { message: string } | null }): void {
+function renderSchemaHuman(result: { data?: SchemaCommandData; error: { message: string } | null }): void {
   if (result.error) {
     console.log(pc.red(result.error.message))
     return
   }
 
-  if (!result.data)
-    return
+  if (!result.data) return
 
   console.log(pc.bold('\nQuantex Schemas\n'))
   for (const schema of result.data.commands) {

@@ -18,26 +18,29 @@ interface ListedAgent {
 export async function listCommand(): Promise<CommandResult<{ agents: ListedAgent[] }>> {
   const inspections = await inspectRegisteredAgents()
 
-  return emitCommandResult(createSuccessResult<{ agents: ListedAgent[] }>({
-    action: 'list',
-    data: {
-      agents: inspections.map(inspection => ({
-        binaryName: inspection.agent.binaryName,
-        displayName: inspection.agent.displayName,
-        installed: inspection.inPath,
-        installedVersion: inspection.installedVersion,
-        latestVersion: inspection.latestVersion,
-        lifecycle: inspection.lifecycle,
-        name: inspection.agent.name,
-        sourceLabel: inspection.sourceLabel,
-        updateLabel: inspection.updateLabel,
-      })),
-    },
-    target: {
-      kind: 'system',
-      name: 'agents',
-    },
-  }), renderListHuman)
+  return emitCommandResult(
+    createSuccessResult<{ agents: ListedAgent[] }>({
+      action: 'list',
+      data: {
+        agents: inspections.map(inspection => ({
+          binaryName: inspection.agent.binaryName,
+          displayName: inspection.agent.displayName,
+          installed: inspection.inPath,
+          installedVersion: inspection.installedVersion,
+          latestVersion: inspection.latestVersion,
+          lifecycle: inspection.lifecycle,
+          name: inspection.agent.name,
+          sourceLabel: inspection.sourceLabel,
+          updateLabel: inspection.updateLabel,
+        })),
+      },
+      target: {
+        kind: 'system',
+        name: 'agents',
+      },
+    }),
+    renderListHuman,
+  )
 }
 
 function renderListHuman(result: { data?: { agents: ListedAgent[] } }): void {
@@ -50,7 +53,9 @@ function renderListHuman(result: { data?: { agents: ListedAgent[] } }): void {
     const updateStr = agent.installed ? pc.cyan(agent.updateLabel) : ''
     const sourceStr = agent.installed ? pc.dim(agent.sourceLabel) : ''
 
-    console.log(`  ${nameStr} ${statusStr}  ${versionStr}${updateStr ? `  ${updateStr}` : ''}${sourceStr ? `  ${sourceStr}` : ''}`)
+    console.log(
+      `  ${nameStr} ${statusStr}  ${versionStr}${updateStr ? `  ${updateStr}` : ''}${sourceStr ? `  ${sourceStr}` : ''}`,
+    )
   }
 
   console.log()

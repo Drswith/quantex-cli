@@ -3,8 +3,7 @@ import { spawnWithQuantexStdio, waitForSpawnedCommand } from '../utils/child-pro
 async function runWingetCommand(action: 'install' | 'upgrade' | 'uninstall', packageName: string): Promise<boolean> {
   try {
     return (await waitForSpawnedCommand(spawnWithQuantexStdio(['winget', action, '--id', packageName, '-e']))) === 0
-  }
-  catch {
+  } catch {
     return false
   }
 }
@@ -19,8 +18,7 @@ export async function update(packageName: string): Promise<boolean> {
 
 export async function updateMany(packages: Array<{ packageName: string }>): Promise<boolean> {
   for (const pkg of packages) {
-    if (!await update(pkg.packageName))
-      return false
+    if (!(await update(pkg.packageName))) return false
   }
 
   return true

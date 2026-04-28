@@ -114,7 +114,9 @@ describe('configCommand', () => {
 
   it('rejects invalid npmBunUpdateStrategy', async () => {
     await configCommand('set', 'npmBunUpdateStrategy', 'invalid')
-    expect(logSpy).toHaveBeenCalledWith(expect.stringContaining('npmBunUpdateStrategy must be latest-major or respect-semver'))
+    expect(logSpy).toHaveBeenCalledWith(
+      expect.stringContaining('npmBunUpdateStrategy must be latest-major or respect-semver'),
+    )
     expect(existsSync(join(tempDir, 'config.json'))).toBe(false)
   })
 

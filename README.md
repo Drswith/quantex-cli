@@ -52,7 +52,7 @@ npm exec --yes --package quantex-cli -- qtx schema --json
 ```text
 Read AGENTS.md, openspec/README.md, and skills/quantex-cli/SKILL.md first.
 For non-trivial changes, use the OpenSpec / OPSX workflow.
-Before finishing, run bun run lint and bun run typecheck.
+Before finishing, run bun run lint, bun run format:check, and bun run typecheck.
 If command behavior changed, also run bun run test.
 ```
 
@@ -245,6 +245,7 @@ Quantex 使用 release-please 维护 Release PR，发布说明以 GitHub Release
 bun install
 bun run dev
 bun run lint
+bun run format:check
 bun run typecheck
 bun run test
 bun run build

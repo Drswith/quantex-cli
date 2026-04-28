@@ -3,9 +3,12 @@ import process from 'node:process'
 
 export function getPlatform(): Platform {
   switch (process.platform) {
-    case 'win32': return 'windows'
-    case 'darwin': return 'macos'
-    default: return 'linux'
+    case 'win32':
+      return 'windows'
+    case 'darwin':
+      return 'macos'
+    default:
+      return 'linux'
   }
 }
 
@@ -14,8 +17,7 @@ async function isCommandAvailable(command: string): Promise<boolean> {
     const proc = Bun.spawn([command, '--version'], { stdout: 'pipe', stderr: 'pipe' })
     await proc.exited
     return proc.exitCode === 0
-  }
-  catch {
+  } catch {
     return false
   }
 }
@@ -42,8 +44,7 @@ export async function isBinaryInPath(binaryName: string): Promise<boolean> {
     const proc = Bun.spawn([cmd, binaryName], { stdout: 'pipe', stderr: 'pipe' })
     await proc.exited
     return proc.exitCode === 0
-  }
-  catch {
+  } catch {
     return false
   }
 }
