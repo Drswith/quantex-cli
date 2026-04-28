@@ -15,6 +15,17 @@ The project SHALL store long-lived project memory in versioned repository artifa
 - THEN the contributor writes it into the canonical directory defined in `docs/README.md`
 - AND does not create a new root-level ad hoc markdown file for that category
 
+### Requirement: Root markdown allowlist SHALL track canonical README entry points
+
+Repository-native project-memory checks MUST allow the current canonical root README files used for the product landing page and language switching.
+
+#### Scenario: Repository checks root markdown files
+
+- **WHEN** `bun run memory:check` evaluates root-level markdown files
+- **THEN** it allows `README.md` as the canonical English landing page
+- **AND** it allows `README.zh-CN.md` as the Simplified Chinese product entry point
+- **AND** it may continue allowing compatibility README aliases that remain intentionally present
+
 ### Requirement: AGENTS.md must stay a thin execution handbook
 
 The project SHALL keep `AGENTS.md` as a thin but self-contained execution handbook for coding agents. The file SHALL inline only the mission, non-goals, quickstart, hard constraints, validation triggers, intake and closure gates, file-scoped red lines, and trigger-based pointers needed to route detailed knowledge.
