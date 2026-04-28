@@ -1,329 +1,130 @@
 # AGENTS.md
 
-## Project
-
-Quantex CLI — 统一的 AI Agent CLI 管理工具，支持安装、更新、卸载、查询、快捷启动主流 AI 编程助手。
-
-项目定位补充：
+## Mission
 
 - Quantex 是 `human-friendly + agent-friendly` 的 `agent lifecycle CLI`
 - 主线聚焦 agent 的安装、检查、确保可用、更新、卸载、能力发现与稳定执行契约
 - 不把主线推进成 workflow orchestration platform
 - `batch / stdin pipe / apply / daemon / MCP server` 等能力默认视为扩展议题，不作为主线目标
 
-## Tech Stack
+## Agent Quickstart
 
-- **Runtime**: Bun（运行时、包管理器）
-- **Build**: tsdown（基于 rolldown）
-- **Test**: Vitest
-- **Language**: TypeScript (strict mode)
-- **Lint**: @antfu/eslint-config
-- **Dependencies**: commander, c12, picocolors, prompts
+1. 先分类当前请求，判断是否触发 OpenSpec intake gate。
+2. 只要改动 observable behavior、durable workflow、project memory 或 product-facing docs，就先选择或创建 OpenSpec change。
+3. 用 `bun run openspec:status -- --change <id>` 和 `bun run openspec:instructions -- <artifact> --change <id>` 确认下一步。
+4. 先做最小闭环实现，再同步更新相关 spec、ADR、session、issue 或 docs。
+5. 改完后至少跑 `bun run lint` 和 `bun run typecheck`；如果动了行为，也跑 `bun run test`。
+6. 结束前报告 validation、OpenSpec、git、commit、push、PR、release、archive closure 状态。
 
-## Work Intake Gate
+## Must
 
-Before implementation or file edits, classify the requested work.
+- 实现前先过 intake gate；用户说“直接开始”或“做到闭环”为授权推进，不是授权跳过流程。
+- 非平凡行为或 durable-process 改动必须先有 OpenSpec change，再做文件编辑。
+- GitHub Discussion 不是长期依据；要把结论提升为 issue、OpenSpec、ADR、runbook 或 session summary。
+- `AGENTS.md` 必须保持薄且高信号：只内联立即影响执行的规则，把易漂移细节指向 source of truth。
+- 修改项目记忆、协作流程、发布流程、行为契约时，同步更新对应 repo-native artifacts。
 
-This gate is mandatory for implementation, continuation, completion, and direct-execution requests. User urgency or execution-oriented wording authorizes progress, but it does not skip project workflow.
+## Must Not
 
-Use an existing OpenSpec change or create a new one before editing when the work changes any of these:
+- 不要把 Quantex 主线扩展成 workflow orchestration platform。
+- 不要因为用户催促、测试通过或任务勾选完成，就跳过 commit / push / PR / archive closure 检查。
+- 不要在 `AGENTS.md` 里复制大段目录树、类型定义、完整命令表或其他易漂移内容。
+- 不要新建 ad hoc root-level markdown；先把内容归类到 `openspec/` 或 `docs/`。
 
-- observable CLI behavior
-- stable structured output, schema, command catalog, or machine-readable contract
-- agent registry/catalog fields, install methods, update strategy, or version probing
-- configuration, state, cache, release, publishing, or upgrade behavior
-- architecture boundaries such as `core`, `surface`, services, package-manager, or self-upgrade
-- project memory policy, durable workflow, OPSX/OpenSpec rules, ADR/runbook process, or GitHub collaboration flow
-- product-facing documentation that changes how users understand installation, commands, release, or agent-facing usage
+## Validation
 
-Allowed no-OpenSpec cases:
-
-- typo or formatting-only edits
-- small docs wording cleanup that does not change product/process meaning
-- mechanical maintenance with no behavior, contract, or durable-process impact
-- test-only cleanup that does not redefine expected behavior
-
-When proceeding without OpenSpec, briefly state the classification. When uncertain, choose OpenSpec first.
-
-## Delivery Closure Gate
-
-Before saying work is complete, check the delivery state. Do not equate “tests passed” with “closed loop”.
-
-For any turn that changed files, the agent must verify and report:
-
-- validation state: relevant commands run, or why they could not run
-- OpenSpec state: active change complete, not needed, archived, or pending post-merge archive automation
-- git state: working tree clean or exact remaining files
-- commit state: committed or intentionally uncommitted with reason
-- remote state: pushed or not pushed with reason
-- PR state: opened/updated/merged, or not applicable with reason
-- release state: not applicable, pending release automation, or verified release result
-
-Closure levels:
-
-- local implementation: files changed and local validation passed
-- repository delivery: changes committed and working tree clean
-- PR delivery: branch pushed and PR opened with validation and linked artifacts
-- merge delivery: PR merged into the target branch
-- OpenSpec archive closure: accepted spec delta synced and the change archived after merge
-- release closure: release workflow completed when the change is release-worthy
-
-When the user asks for continuation or closure, continue to the next applicable closure level instead of stopping at local implementation. If a protected branch, required check, review, release workflow, or post-merge archive automation prevents immediate closure, state the blocker and the exact remaining owner.
-
-## Commands
+基础命令：
 
 ```bash
 bun install
-bun run dev
-bun run test
-bun run test:watch
 bun run lint
-bun run lint:fix
 bun run typecheck
+bun run test
 bun run openspec:list
 bun run openspec:status -- --change <change-id>
 bun run openspec:validate
+bun run memory:check
 bun run build
 bun run build:bin
 bun run release:artifacts
 ```
 
-Run `bun run lint` and `bun run typecheck` after making changes. If you touched behavior, run `bun run test` too.
+触发规则：
 
-## Code Style
+- 改了任意文件：跑 `bun run lint` 和 `bun run typecheck`
+- 改了 CLI 行为、结构化输出、契约或集成逻辑：再跑 `bun run test`
+- 改了 OpenSpec / docs / project memory 流程：跑 `bun run openspec:validate`，必要时跑 `bun run memory:check`
+- 改了构建、发布、自升级或 release artifacts：补跑 `bun run build`、`bun run build:bin`、`bun run release:artifacts`
 
-- 遵循 `@antfu/eslint-config` 规范
-- 不添加注释，除非用户要求
-- 使用 ESM（`"type": "module"`）
-- TypeScript strict mode + strictNullChecks
+## Work Intake Gate
 
-## Architecture
+实现、续做、收尾、直接执行类请求都必须先分类。
 
-实现与设计原则：
+如果改动涉及以下任一项，先创建或选择 OpenSpec change：
 
-- `core` 负责 agent registry、inspection、services、package-manager、state/self 等生命周期能力
-- `surface` 负责 human CLI、JSON、NDJSON 等对外契约
-- 命令最终产物是 typed result object，CLI 只是 renderer 之一
-- 优先增强单次调用的可靠性、可发现性与非交互契约，不扩张为工作流编排平台
+- observable CLI behavior
+- stable structured output、schema、command catalog 或 machine-readable contract
+- agent registry/catalog fields、install methods、update strategy 或 version probing
+- configuration、state、cache、release、publishing 或 upgrade behavior
+- architecture boundaries，如 `core`、`surface`、services、package-manager、self-upgrade
+- project memory policy、durable workflow、OPSX/OpenSpec rules、ADR/runbook process、GitHub collaboration flow
+- product-facing documentation that changes how users understand installation、commands、release 或 agent-facing usage
 
-```text
-src/
-├── index.ts                # 导出核心 API
-├── cli.ts                  # CLI 入口（commander）
-├── postinstall.ts          # 发布包安装后的 self state best-effort 落盘
-├── generated/
-│   └── build-meta.ts       # 构建时注入的版本与仓库元数据
-├── commands/
-│   ├── install.ts
-│   ├── update.ts
-│   ├── upgrade.ts
-│   ├── uninstall.ts
-│   ├── list.ts
-│   ├── info.ts
-│   ├── inspect.ts
-│   ├── ensure.ts
-│   ├── resolve.ts
-│   ├── exec.ts
-│   ├── capabilities.ts
-│   ├── commands.ts
-│   ├── schema.ts
-│   ├── run.ts
-│   ├── config.ts
-│   └── doctor.ts
-├── agents/
-│   ├── index.ts
-│   ├── types.ts
-│   ├── methods.ts
-│   └── definitions/
-├── agent-update/           # agent 更新策略层（managed/self-update/manual-hint）
-│   ├── index.ts
-│   ├── messages.ts
-│   ├── providers.ts
-│   └── types.ts
-├── inspection/
-│   ├── index.ts
-│   └── agents.ts
-├── package-manager/
-│   ├── index.ts
-│   ├── installers.ts
-│   ├── capabilities.ts
-│   ├── bun.ts
-│   ├── npm.ts
-│   ├── brew.ts
-│   ├── winget.ts
-│   └── binary.ts
-├── planning/
-│   ├── index.ts
-│   └── updates.ts
-├── services/
-│   ├── index.ts
-│   ├── agents.ts
-│   └── update.ts
-├── self/                   # Quantex CLI 自升级
-│   ├── index.ts
-│   ├── types.ts
-│   ├── recovery.ts
-│   ├── release.ts
-│   ├── lock.ts
-│   ├── binary.ts
-│   ├── install-state.ts
-│   └── providers/
-├── release-artifacts/      # release manifest/checksum 生成与校验
-│   └── index.ts
-├── state/
-│   └── index.ts
-├── state.ts
-├── config/
-│   ├── default.ts
-│   └── index.ts
-└── utils/
-    ├── color.ts
-    ├── detect.ts
-    ├── exec.ts
-    ├── install.ts
-    ├── lock.ts
-    ├── lifecycle-errors.ts
-    ├── network.ts
-    ├── user-output.ts
-    └── version.ts
-```
+只有这些情况可以不走 OpenSpec：
 
-## Key Types
+- typo 或 formatting-only edits
+- 不改变产品/流程含义的小型 wording cleanup
+- 没有行为、契约或 durable-process 影响的机械维护
+- 不重定义预期行为的 test-only cleanup
 
-```ts
-type Platform = 'windows' | 'macos' | 'linux'
-type ManagedInstallType = 'bun' | 'npm' | 'brew' | 'winget'
-type InstallType = ManagedInstallType | 'script' | 'binary'
-type PackageTargetKind = 'package' | 'cask' | 'id'
+如果不走 OpenSpec，要先简短说明分类；拿不准时，优先走 OpenSpec。
 
-interface InstallMethod {
-  type: InstallType
-  command?: string
-  packageName?: string
-  packageTargetKind?: PackageTargetKind
-}
+## Delivery Closure Gate
 
-interface AgentSelfUpdate {
-  command: string[]
-  fallbackCommands?: string[][]
-  versionAfter?: 'same-process' | 'respawn'
-}
+任何改过文件的回合，在宣称完成前都要检查并报告：
 
-interface AgentVersionProbe {
-  command?: string[]
-  parser?: (stdout: string) => string | undefined
-}
+- validation state
+- OpenSpec state
+- git state
+- commit state
+- remote state
+- PR state
+- release state
 
-interface AgentDefinition {
-  name: string
-  lookupAliases?: string[]
-  displayName: string
-  homepage: string
-  packages?: {
-    npm?: string
-  }
-  platforms: Partial<Record<Platform, InstallMethod[]>>
-  binaryName: string
-  selfUpdate?: AgentSelfUpdate
-  versionProbe?: AgentVersionProbe
-}
+闭环层级：
 
-type SelfInstallSource = 'bun' | 'npm' | 'binary' | 'source' | 'unknown'
-type SelfUpdateChannel = 'stable' | 'beta'
-type AgentUpdateStrategy = 'managed' | 'self-update' | 'manual-hint'
-```
+- local implementation：文件已改且本地验证通过
+- repository delivery：已提交且 working tree clean
+- PR delivery：分支已推送且 PR 已创建
+- merge delivery：PR 已合入目标分支
+- OpenSpec archive closure：spec delta 已同步且 change 已归档
+- release closure：需要发布时，发布自动化已完成
 
-- `packages.npm` 表示 agent 对应的 npm 包名
-- `InstallMethod.packageName` 表示安装器专用标识：npm/bun 用包名，brew 用 formula/cask 标识，winget 用 package ID
-- `selfUpdate` 表示 agent 自带更新命令
-- `versionProbe` 用于覆盖默认 `<binary> --version`
+如果用户要求“继续”或“闭环”，就推进到下一个可达层级，而不是停在本地实现。若受保护分支、必需检查、评审、发布流程或 archive follow-up 阻塞，要明确剩余 owner。
 
-## CLI Commands
+## File-Scoped Red Lines
 
-| Command | Description |
-|---------|-------------|
-| `quantex install <agent>` / `quantex i` | 安装 agent |
-| `quantex update <agent>` / `quantex u` | 更新 agent |
-| `quantex update --all` | 更新所有已安装的 agent，按安装来源和策略分组执行 |
-| `quantex upgrade` | 升级 Quantex CLI 自身 |
-| `quantex upgrade --check` | 只检查 Quantex CLI 是否有更新 |
-| `quantex upgrade --channel beta` | 使用 beta channel 检查或升级 |
-| `quantex uninstall <agent>` / `quantex rm` | 卸载 agent |
-| `quantex list` / `quantex ls` | 列出所有 agent |
-| `quantex info <agent>` | 查看 agent 详情 |
-| `quantex inspect <agent>` | 查看 agent 结构化状态 |
-| `quantex ensure <agent>` | 确保 agent 已安装 |
-| `quantex resolve <agent>` | 解析 agent 可执行入口 |
-| `quantex exec <agent> -- [args...]` | 以显式策略运行 agent |
-| `quantex capabilities` | 查看当前环境与 surface 能力 |
-| `quantex commands` | 查看稳定命令目录 |
-| `quantex schema` | 查看结构化输出 schema |
-| `quantex <agent> [args...]` | 快捷启动 agent |
-| `quantex config` | 配置管理 |
-| `quantex doctor` | 环境检查 |
+- `AGENTS.md`：只保留 mission、gates、validation、red lines 和 trigger-based pointers；不要重新长成 README、架构转储或命令镜像。
+- `openspec/specs/`：写当前生效的行为/流程契约，不写临时实现笔记。
+- `openspec/changes/`：存活跃 change；只有合并后且 spec 已同步时才归档到 `openspec/changes/archive/`。
+- `docs/adr/`：只记录会持续影响未来决策的长期选择。
+- `docs/sessions/`：记录讨论摘要；稳定结论继续上升到 ADR、OpenSpec、runbook 或 issue。
+- `src/generated/build-meta.ts`、`dist/`、release artifacts：视为生成物或发布产物，除非任务明确需要，不手工当作 source of truth 改写。
 
-## Config
+## Trigger-Based Pointers
 
-- Path: `~/.quantex/config.json`
-- Loaded via c12 with defaults → user config → env override merging
-- `defaultPackageManager`: 控制托管安装器的优先尝试顺序
-- `npmBunUpdateStrategy`: 控制 npm / Bun 更新时是直接升到最新版本，还是遵循 semver 约束
-- `selfUpdateChannel`: 控制 Quantex CLI 自升级默认 channel
-- `networkRetries`: 网络请求重试次数
-- `networkTimeoutMs`: 网络请求超时时间
-- `versionCacheTtlHours`: registry / release manifest / GitHub release 查询缓存 TTL
-
-## State
-
-- Path: `~/.quantex/state.json`
-- Stores runtime state for:
-  - each agent's actual install source
-  - Quantex CLI 自身的 `self.installSource`
-- Used by:
-  - `quantex update --all` 的分组批量更新
-  - self upgrade 的来源判断
-  - `list` / `info` / `doctor` 的来源与恢复提示
-
-## Ordering Semantics
-
-- Agent 安装方式按定义数组顺序表达回退顺序
-- `defaultPackageManager` 只会把匹配的托管安装器前置，不再依赖单独的 `priority` 字段
-- `npmBunUpdateStrategy` 默认是 `latest-major`
-- agent 更新策略优先级是：
-  - `managed`
-  - `self-update`
-  - `manual-hint`
-- self upgrade provider 按安装来源分派：
-  - `bun`
-  - `npm`
-  - `binary`
-  - `source`
-
-## Release Artifacts
-
-- `scripts/write-release-checksums.ts` 生成 `dist/bin/SHA256SUMS.txt`
-- `scripts/generate-release-manifest.ts` 生成 `dist/bin/manifest.json`
-- `scripts/verify-release-artifacts.ts` 校验 manifest 与 checksum 一致性
-- `bun run release:artifacts` 会串联以上三步
-
-## Project Memory System
-
-- Canonical project memory now lives in:
-  - `docs/`
-  - `openspec/`
-- Before creating a new markdown file, classify it first:
-  - behavior contract or non-trivial change proposal → `openspec/`
-  - durable design decision → `docs/adr/`
-  - troubleshooting or recovery knowledge → `docs/runbooks/`
-  - session summary → `docs/sessions/`
-  - incident review → `docs/postmortems/`
-  - future executable work → GitHub issue
-- Treat discussion notes as an intermediate artifact. Promote stable outcomes into specs, ADRs, runbooks, or GitHub issues.
-- Use OPSX actions for non-trivial changes when supported by the current agent: explore/propose/apply/archive. For CLI-driven work, use `openspec status --json` and `openspec instructions ... --json` to decide the next artifact or implementation step.
-- Treat an OpenSpec-backed change as fully done only after its implementation has merged, its spec delta has been synced, and the change has been archived into `openspec/changes/archive/`.
-- On protected branches, prefer the archive follow-up PR flow instead of leaving completed changes active in `openspec/changes/`.
-- Legacy root markdown files are transition artifacts. Their target homes are tracked in `docs/project-memory-migration.md`.
-- When implementation changes behavior or durable process, update the relevant OpenSpec spec/change, ADR, or runbook in the same change whenever practical.
+- 改 agent catalog、install metadata、version probe、update strategy：
+  `src/agents/types.ts`、`src/agents/definitions/`、`src/agent-update/`、`openspec/specs/agent-catalog/spec.md`、`openspec/specs/agent-update/spec.md`
+- 改 CLI surface、稳定命令目录或 schema：
+  `src/commands/`、`src/cli.ts`、`src/index.ts`、`quantex commands --json`、`quantex schema --json`
+- 改 config、state、self-upgrade、release artifacts：
+  `src/config/`、`src/state/`、`src/self/`、`src/release-artifacts/`、`openspec/specs/self-upgrade/spec.md`、`docs/releases.md`
+- 改 durable workflow、project memory、GitHub collaboration：
+  `openspec/README.md`、`openspec/config.yaml`、`docs/README.md`、`docs/github-collaboration.md`、`openspec/specs/project-memory/spec.md`
+- 改产品介绍、安装方式、用户理解：
+  `README.md`、`README.en.md`、`openspec/specs/product-readme/spec.md`
+- 需要真实类型或默认值时，不要复制片段；直接看源码：
+  `src/agents/types.ts`、`src/self/types.ts`、`src/config/default.ts`
 
 ## Notes
 
