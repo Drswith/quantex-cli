@@ -1,7 +1,11 @@
 name: Release
 
 on:
-  push:
+  workflow_run:
+    workflows:
+      - CI
+    types:
+      - completed
     branches:
       - main
       - beta
@@ -14,17 +18,34 @@ permissions:
   pull-requests: write
 
 concurrency:
-  group: release-${{ github.ref_name }}
+  group: release-${{ github.event.workflow_run.head_branch || github.ref_name }}
   cancel-in-progress: false
 
 jobs:
   release:
+    if: >-
+      github.event_name == 'workflow_dispatch'
+      || (
+        github.event.workflow_run.event == 'push'
+        && github.event.workflow_run.conclusion == 'success'
+      )
     runs-on: ubuntu-latest
     steps:
-      - name: Select release channel
-        id: channel
+      - name: Select release context
+        id: context
         run: |
-          if [ "${GITHUB_REF_NAME}" = "beta" ]; then
+          if [ "${GITHUB_EVENT_NAME}" = "workflow_run" ]; then
+            target_branch="${{ github.event.workflow_run.head_branch }}"
+            target_sha="${{ github.event.workflow_run.head_sha }}"
+          else
+            target_branch="${GITHUB_REF_NAME}"
+            target_sha="${GITHUB_SHA}"
+          fi
+
+          echo "target_branch=${target_branch}" >> "$GITHUB_OUTPUT"
+          echo "target_sha=${target_sha}" >> "$GITHUB_OUTPUT"
+
+          if [ "${target_branch}" = "beta" ]; then
             echo "config_file=release-please-config.beta.json" >> "$GITHUB_OUTPUT"
             echo "npm_tag=beta" >> "$GITHUB_OUTPUT"
           else
@@ -32,14 +53,18 @@ jobs:
             echo "npm_tag=latest" >> "$GITHUB_OUTPUT"
           fi
 
+      - name: Checkout source
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ref: ${{ steps.context.outputs.target_sha }}
+
       - name: Detect release relevance
         id: release-scope
-        env:
-          HEAD_COMMIT_MESSAGE: ${{ github.event.head_commit.message }}
         run: |
           run_release=false
           is_release_commit=false
-          message="$HEAD_COMMIT_MESSAGE"
+          message="$(git log -1 --pretty=%B "${{ steps.context.outputs.target_sha }}")"
           first_line="${message%%$'\n'*}"
 
           if [[ "$first_line" =~ ^chore:\ release ]]; then
@@ -50,8 +75,6 @@ jobs:
             run_release=true
           else
             if [[ "$first_line" =~ ^(feat|fix|perf)(\(.+\))?!?: ]]; then
-              run_release=true
-            elif [[ "$first_line" =~ ^[a-z]+(\(.+\))?!: ]]; then
               run_release=true
             elif [[ "$first_line" =~ ^chore:\ release ]]; then
               run_release=true
@@ -77,8 +100,8 @@ jobs:
         uses: googleapis/release-please-action@v4.1.5
         with:
           token: ${{ steps.release-bot-token.outputs.token }}
-          target-branch: ${{ github.ref_name }}
-          config-file: ${{ steps.channel.outputs.config_file }}
+          target-branch: ${{ steps.context.outputs.target_branch }}
+          config-file: ${{ steps.context.outputs.config_file }}
           manifest-file: .release-please-manifest.json
           skip-github-release: true
 
@@ -88,8 +111,8 @@ jobs:
         uses: googleapis/release-please-action@v4.1.5
         with:
           token: ${{ steps.release-bot-token.outputs.token }}
-          target-branch: ${{ github.ref_name }}
-          config-file: ${{ steps.channel.outputs.config_file }}
+          target-branch: ${{ steps.context.outputs.target_branch }}
+          config-file: ${{ steps.context.outputs.config_file }}
           manifest-file: .release-please-manifest.json
           skip-github-pull-request: true
 
@@ -159,7 +182,7 @@ jobs:
 
       - name: Publish npm package
         if: ${{ steps.release.outputs.release_created }}
-        run: npm publish --access public --ignore-scripts --tag ${{ steps.channel.outputs.npm_tag }}
+        run: npm publish --access public --ignore-scripts --tag ${{ steps.context.outputs.npm_tag }}
 
       - name: Upload release artifacts
         if: ${{ steps.release.outputs.release_created }}
