@@ -1,3 +1,4 @@
+import process from 'node:process'
 import { afterAll, afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import * as agents from '../../src/agents'
 import { setCliContext } from '../../src/cli-context'
@@ -51,6 +52,11 @@ const scriptOnlyAgent = {
   },
 }
 
+const expectedScriptInstallCommand =
+  process.platform === 'win32'
+    ? scriptOnlyAgent.platforms.windows[0].command
+    : scriptOnlyAgent.platforms.macos[0].command
+
 describe('installCommand', () => {
   let logSpy: ReturnType<typeof vi.spyOn>
   let stdoutWriteSpy: ReturnType<typeof vi.spyOn>
@@ -99,7 +105,7 @@ describe('installCommand', () => {
     trackSpy.mockResolvedValue({
       agentName: 'script-agent',
       installType: 'script',
-      command: 'curl https://example.com/install | bash',
+      command: expectedScriptInstallCommand,
     })
 
     await installCommand('script-agent')
@@ -107,7 +113,7 @@ describe('installCommand', () => {
     expect(trackSpy).toHaveBeenCalledWith(
       scriptOnlyAgent,
       expect.objectContaining({
-        command: 'curl https://example.com/install | bash',
+        command: expectedScriptInstallCommand,
         type: 'script',
       }),
     )
