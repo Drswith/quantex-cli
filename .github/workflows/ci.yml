@@ -22,8 +22,105 @@ env:
 
 permissions:
   contents: read
+  pull-requests: read
 
 jobs:
+  classify:
+    runs-on: ubuntu-latest
+    outputs:
+      changed_files: ${{ steps.classify.outputs.changed_files }}
+      run_test_matrix: ${{ steps.classify.outputs.run_test_matrix }}
+      scope: ${{ steps.classify.outputs.scope }}
+    steps:
+      - name: Classify change scope
+        id: classify
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const productImpactingPrefixes = [
+              'src/',
+              'scripts/',
+              'skills/quantex-cli/',
+            ]
+            const productImpactingFiles = new Set([
+              'package.json',
+              'bun.lock',
+              'install.sh',
+              'install.ps1',
+              'tsdown.config.ts',
+            ])
+            const processOnlyFiles = new Set([
+              'release-please-config.json',
+              'release-please-config.beta.json',
+              '.release-please-manifest.json',
+            ])
+            const processOnlyPrefixes = [
+              '.github/',
+              'docs/',
+              'openspec/',
+            ]
+
+            async function listChangedFiles() {
+              if (context.eventName === 'pull_request') {
+                const files = await github.paginate(github.rest.pulls.listFiles, {
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  pull_number: context.payload.pull_request.number,
+                  per_page: 100,
+                })
+                return files.map(file => file.filename)
+              }
+
+              if (context.eventName === 'push') {
+                const before = context.payload.before
+                const after = context.payload.after || context.sha
+
+                if (!before || /^0+$/.test(before))
+                  return null
+
+                const { data } = await github.rest.repos.compareCommits({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  base: before,
+                  head: after,
+                })
+
+                return data.files?.map(file => file.filename) ?? []
+              }
+
+              return null
+            }
+
+            function isProductImpacting(fileName) {
+              return productImpactingPrefixes.some(prefix => fileName.startsWith(prefix))
+                || productImpactingFiles.has(fileName)
+            }
+
+            function isProcessOnly(fileName) {
+              return processOnlyPrefixes.some(prefix => fileName.startsWith(prefix))
+                || processOnlyFiles.has(fileName)
+            }
+
+            const changedFiles = await listChangedFiles()
+
+            if (!changedFiles || changedFiles.length === 0) {
+              core.info('No changed-file diff available for this event; defaulting to the full test matrix.')
+              core.setOutput('changed_files', '[]')
+              core.setOutput('run_test_matrix', 'true')
+              core.setOutput('scope', 'unknown')
+              return
+            }
+
+            const productImpacting = changedFiles.some(isProductImpacting)
+            const processOnly = changedFiles.every(isProcessOnly)
+            const runTestMatrix = !processOnly
+            const scope = processOnly ? 'process-only' : (productImpacting ? 'product-impacting' : 'mixed')
+
+            core.info(`Changed files (${scope}): ${changedFiles.join(', ')}`)
+            core.setOutput('changed_files', JSON.stringify(changedFiles))
+            core.setOutput('run_test_matrix', String(runTestMatrix))
+            core.setOutput('scope', scope)
+
   lint:
     runs-on: ubuntu-latest
     steps:
@@ -49,6 +146,7 @@ jobs:
       - run: bun run typecheck
 
   test:
+    needs: classify
     runs-on: ${{ matrix.os }}
 
     strategy:
@@ -57,12 +155,22 @@ jobs:
       fail-fast: false
 
     steps:
-      - uses: actions/checkout@v4
+      - name: Skip full matrix for process-only changes
+        if: ${{ needs.classify.outputs.run_test_matrix != 'true' }}
+        env:
+          CHANGE_SCOPE: ${{ needs.classify.outputs.scope }}
+        run: |
+          echo "Process-only change detected (${CHANGE_SCOPE}); preserving required matrix check context without running full platform tests."
+
+      - if: ${{ needs.classify.outputs.run_test_matrix == 'true' }}
+        uses: actions/checkout@v4
       - uses: oven-sh/setup-bun@v2
+        if: ${{ needs.classify.outputs.run_test_matrix == 'true' }}
         with:
           bun-version: 1.3.11
 
       - uses: actions/cache@v4
+        if: ${{ needs.classify.outputs.run_test_matrix == 'true' }}
         with:
           path: |
             .bun/install/cache
@@ -71,10 +179,12 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-bun-
 
-      - run: bun install --frozen-lockfile --ignore-scripts --no-progress
-      - run: bun run build
-      - if: runner.os == 'Windows' && github.event_name != 'pull_request'
+      - if: ${{ needs.classify.outputs.run_test_matrix == 'true' }}
+        run: bun install --frozen-lockfile --ignore-scripts --no-progress
+      - if: ${{ needs.classify.outputs.run_test_matrix == 'true' }}
+        run: bun run build
+      - if: ${{ needs.classify.outputs.run_test_matrix == 'true' && runner.os == 'Windows' && github.event_name != 'pull_request' }}
         run: bun run test -- --pool=threads
 
-      - if: runner.os != 'Windows'
+      - if: ${{ needs.classify.outputs.run_test_matrix == 'true' && runner.os != 'Windows' }}
         run: bun run test
