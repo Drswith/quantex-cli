@@ -33,6 +33,15 @@ The self-upgrade system SHALL persist self install-source knowledge and reconcil
 - WHEN Quantex inspects self-upgrade state
 - THEN it updates the stored install source to the runtime-detected value
 
+#### Scenario: Persisting a managed install source lazily on first inspection
+
+- GIVEN Quantex was installed through a global `bun` or `npm` managed install
+- AND `state.self.installSource` is not yet present
+- WHEN the user runs a self-inspection surface such as `quantex upgrade`, `quantex upgrade --check`, `quantex doctor`, or `quantex capabilities`
+- THEN Quantex detects the managed install source from runtime package metadata or executable layout
+- AND it writes that detected source into `state.self.installSource`
+- AND later self-upgrade planning uses the stored managed install source without requiring an install-time package script
+
 ### Requirement: Self-upgrade MUST route by install source
 
 The self-upgrade system SHALL choose an upgrade strategy based on the detected install source, and managed self-upgrades SHALL resolve the package registry they use before checking for or performing an upgrade.
