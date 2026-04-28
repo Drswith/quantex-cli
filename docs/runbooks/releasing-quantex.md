@@ -53,6 +53,7 @@ After the Release PR is merged, the release workflow reruns:
 
 - `bun run memory:check`
 - `bun run lint`
+- `bun run format:check`
 - `bun run typecheck`
 - `bun run test`
 
@@ -145,6 +146,7 @@ The closest local verification path for release artifacts remains:
 ```bash
 bun install --frozen-lockfile
 bun run lint
+bun run format:check
 bun run typecheck
 bun run build
 bun run build:bin
