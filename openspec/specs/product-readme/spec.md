@@ -82,3 +82,13 @@ The product README SHALL include a first-class no-install try-it-out section tha
 
 - **WHEN** a user reads the no-install try-it-out guidance
 - **THEN** the README directs install, update, uninstall, and other state-writing flows back to the normal installation paths instead of promoting them as first-class no-install usage
+
+### Requirement: README warns that self-upgrade follows the active registry
+
+The product README SHALL explain that `qtx upgrade` uses the registry selected for the current Bun/npm self-upgrade path and that mirrors can lag behind the official npm release.
+
+#### Scenario: User reads upgrade guidance while using a mirror
+
+- **WHEN** a user reads the installation or upgrade guidance in `README.md` or `README.en.md`
+- **THEN** the documentation explains that `qtx upgrade` follows the active Bun/npm registry
+- **AND** it warns that a lagging mirror can delay installation of the newest upstream release
