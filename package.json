@@ -54,6 +54,8 @@
     "release:artifacts": "bun run scripts/write-release-checksums.ts && bun run scripts/generate-release-manifest.ts && bun run scripts/verify-release-artifacts.ts",
     "release:smoke": "bun run scripts/verify-release-smoke.ts",
     "test": "vitest run",
+    "test:container": "bun run scripts/test-container.ts",
+    "test:sandbox": "bun run scripts/test-sandbox.ts",
     "test:watch": "vitest",
     "typecheck": "tsc --noEmit"
   },

@@ -3,9 +3,7 @@
 ## Purpose
 
 Define the current observable repository contract for linting, formatting, pre-commit enforcement, IDE defaults, and contributor-facing validation guidance.
-
 ## Requirements
-
 ### Requirement: Repository code quality toolchain
 
 The repository SHALL use `oxlint` as the only linter and `oxfmt` as the only formatter for JavaScript, TypeScript, JSON, YAML, and other repository-managed code/config sources that are explicitly included in formatter configuration. Markdown sources MUST remain outside the default oxfmt surface unless a future OpenSpec change expands that scope. ESLint, `@antfu/eslint-config`, Prettier, and Biome MUST NOT be reintroduced as parallel lint or format tools without superseding this requirement through a new OpenSpec change.
@@ -183,3 +181,40 @@ The repository SHALL pin `oxlint` using a caret range on its current major (allo
 - **WHEN** the package manager resolves the caret range during `bun install`
 - **THEN** no manual version bump is required
 - **AND** if a regression appears, the maintainer narrows the caret range or pins the version in a dedicated pull request
+
+### Requirement: Optional isolation validation commands
+
+The repository SHALL expose `bun run test:sandbox` and `bun run test:container` as optional maintainer-facing validation commands for running real Quantex agent lifecycle smoke checks inside isolated Bun environments. These commands MUST complement rather than replace the canonical local `bun run test` workflow.
+
+#### Scenario: Modal remote command fails
+
+- **WHEN** the remote lifecycle smoke command invoked by `bun run test:sandbox` exits non-zero
+- **THEN** `bun run test:sandbox` exits non-zero even if the Modal CLI process itself reports success
+- **AND** the local command output preserves enough remote stdout and stderr to diagnose the failed lifecycle stage
+
+#### Scenario: Expanded smoke list includes opencode preinstall adoption
+
+- **WHEN** the isolated lifecycle smoke script runs `adopt-preinstalled` for `opencode`
+- **THEN** it preinstalls the `opencode-ai` package before asking Quantex to adopt the existing install
+
+#### Scenario: Maintainer compares local and CI sandbox defaults
+
+- **WHEN** a maintainer runs the local Docker isolation command without overriding agents
+- **THEN** the lifecycle smoke script uses `pi,qoder` as the local default agent list
+- **AND** the dedicated GitHub Actions sandbox workflow overrides the agent list to `pi,opencode`
+
+### Requirement: Modal-backed isolation workflow remains separate from merge-gating CI
+
+The repository SHALL keep Modal-backed isolation validation in a dedicated GitHub Actions workflow instead of adding it to the merge-gating `ci.yml` workflow.
+
+#### Scenario: Documentation-only merge reaches a protected branch
+
+- **WHEN** a merge to `main` or `beta` changes only documentation or OpenSpec archive files
+- **THEN** the dedicated Modal sandbox workflow does not run automatically from the protected-branch push
+- **AND** maintainers can still start the sandbox workflow manually
+
+#### Scenario: Lifecycle-sensitive merge reaches a protected branch
+
+- **WHEN** a merge to `main` or `beta` changes agent definitions, lifecycle commands, install/update helpers, sandbox scripts, package metadata, or the sandbox workflow itself
+- **THEN** the dedicated Modal sandbox workflow runs automatically from the protected-branch push
+

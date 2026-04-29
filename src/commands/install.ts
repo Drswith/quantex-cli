@@ -72,7 +72,10 @@ export async function installCommand(agentName: string): Promise<CommandResult<I
       )
     }
 
-    const adoptableMethod = getAdoptableExistingInstallMethod(inspection.methods)
+    const adoptableMethod = getAdoptableExistingInstallMethod(
+      inspection.methods,
+      inspection.resolvedBinaryPath ?? inspection.binaryPath,
+    )
     if (adoptableMethod) {
       if (isDryRunEnabled()) {
         return emitCommandResult(

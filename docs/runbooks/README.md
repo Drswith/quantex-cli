@@ -16,7 +16,9 @@ Start from [_template.md](./_template.md).
 
 Current canonical runbooks:
 
+- [modal-sandbox-testing.md](./modal-sandbox-testing.md)
 - [quantex-troubleshooting.md](./quantex-troubleshooting.md)
+- [quantex-task-start.md](./quantex-task-start.md)
 - [releasing-quantex.md](./releasing-quantex.md)
 - [release-and-self-upgrade-debugging.md](./release-and-self-upgrade-debugging.md)
 - [worktree-task-execution.md](./worktree-task-execution.md)

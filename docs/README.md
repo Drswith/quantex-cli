@@ -47,6 +47,7 @@ GitHub workflow guidance:
 - [github-collaboration.md](./github-collaboration.md)
 - [releases.md](./releases.md)
 - [skill-installation-and-distribution.md](./skill-installation-and-distribution.md)
+- [agent-support-matrix.md](./agent-support-matrix.md)
 
 Operational runbooks:
 
