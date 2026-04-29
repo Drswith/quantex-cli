@@ -130,11 +130,30 @@ export function getLatestVersionPackage(
   return agent.packages.npm
 }
 
-export function getAdoptableExistingInstallMethod(methods: InstallMethod[]): InstallMethod | undefined {
+export function getAdoptableExistingInstallMethod(
+  methods: InstallMethod[],
+  binaryPath?: string,
+): InstallMethod | undefined {
+  const inferredManagedType = inferManagedInstallTypeFromBinaryPath(binaryPath)
+  if (inferredManagedType) {
+    const inferredMethod = methods.find(method => method.type === inferredManagedType)
+    if (inferredMethod) return inferredMethod
+  }
+
   if (methods.length !== 1) return undefined
 
   const [method] = methods
   if (method.type !== 'script' && method.type !== 'binary') return undefined
 
   return method
+}
+
+function inferManagedInstallTypeFromBinaryPath(binaryPath?: string): 'bun' | 'npm' | undefined {
+  if (!binaryPath) return undefined
+
+  const normalized = binaryPath.replaceAll('\\', '/')
+  if (normalized.includes('/.bun/bin/') || normalized.includes('/.bun/install/global/')) return 'bun'
+  if (normalized.includes('/node_modules/.bin/') || normalized.includes('/node_modules/')) return 'npm'
+
+  return undefined
 }
