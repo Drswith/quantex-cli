@@ -24,6 +24,23 @@ Use this skill at the start of every Quantex repository session, and again befor
 4. Run `bun run openspec:list` to identify active changes.
 5. Classify the user request before editing files.
 
+## Task Start Entry
+
+Use this canonical entry when a user starts or resumes Quantex work from a fresh agent conversation:
+
+```text
+Use quantex-agent-runtime.
+Activate Superpowers first if this environment supports it.
+Read AGENTS.md, skills/quantex-agent-runtime/SKILL.md, and openspec/README.md.
+Check git status, the current branch, git worktree list, and bun run openspec:list.
+If this will create commits or a PR, do not work on main; create or switch to a dedicated worktree branch named <agent>/<task-slug>.
+Classify the request through the OpenSpec intake gate before editing files.
+If OpenSpec is required, create or select the change and use openspec status/instructions to drive implementation.
+Continue through validation, commit, push, PR delivery, and archive-closure reporting as far as permissions allow.
+```
+
+If the current agent has a slash command, skill command, or equivalent native entry for `quantex-agent-runtime`, use that native entry first. If it does not, paste the text entry above. The slash command is only a launcher; OpenSpec, git worktrees, branches, PRs, and archive closure remain the source of truth.
+
 ## Intake
 
 Create or select an OpenSpec change before implementation when the work affects:
