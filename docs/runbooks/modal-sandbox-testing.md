@@ -90,7 +90,7 @@ For local broad-agent coverage without the slower upstream install path, `qoder`
 QTX_ISOLATION_SCENARIOS=managed QTX_ISOLATION_AGENTS=qoder bun run test:container
 ```
 
-The dedicated GitHub Actions workflow runs the Modal path with `QTX_ISOLATION_AGENTS=pi,opencode` and a longer command timeout so remote validation covers the lightweight baseline plus opencode under better network conditions.
+The dedicated GitHub Actions workflow runs the Modal path with `QTX_ISOLATION_AGENTS=pi,opencode` and a longer command timeout so remote validation covers the lightweight baseline plus opencode under better network conditions. Protected-branch pushes only trigger the workflow when lifecycle-sensitive files change; docs-only and OpenSpec archive-only merges do not start Modal automatically.
 
 ## Triage order
 
