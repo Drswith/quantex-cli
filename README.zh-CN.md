@@ -50,8 +50,8 @@ npm exec --yes --package quantex-cli -- qtx schema --json
 如果 agent 正在这个仓库内参与开发，请把下面这段作为启动提示：
 
 ```text
-Read AGENTS.md, openspec/README.md, and skills/quantex-cli/SKILL.md first.
-For non-trivial changes, use the OpenSpec / OPSX workflow.
+Activate Superpowers if available, then read AGENTS.md, openspec/README.md, skills/quantex-agent-runtime/SKILL.md, and skills/quantex-cli/SKILL.md.
+For non-trivial changes, use OpenSpec through the Quantex agent runtime.
 Before finishing, run bun run lint, bun run format:check, and bun run typecheck.
 If command behavior changed, also run bun run test.
 ```

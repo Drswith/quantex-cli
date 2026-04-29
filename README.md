@@ -50,8 +50,8 @@ npm exec --yes --package quantex-cli -- qtx schema --json
 If the agent is contributing inside this repository, use this as the bootstrap prompt:
 
 ```text
-Read AGENTS.md, openspec/README.md, and skills/quantex-cli/SKILL.md first.
-For non-trivial changes, use the OpenSpec / OPSX workflow.
+Activate Superpowers if available, then read AGENTS.md, openspec/README.md, skills/quantex-agent-runtime/SKILL.md, and skills/quantex-cli/SKILL.md.
+For non-trivial changes, use OpenSpec through the Quantex agent runtime.
 Before finishing, run bun run lint, bun run format:check, and bun run typecheck.
 If command behavior changed, also run bun run test.
 ```

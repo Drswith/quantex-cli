@@ -6,9 +6,10 @@ context: |
   Product scope: agent installation, inspection, ensure, update, uninstall, discovery, execution, self-upgrade, and stable machine-readable contracts.
   Non-goal: do not turn Quantex into a workflow orchestration platform.
   Release: protected main with release-please Release PRs, GitHub Actions trusted publishing, and GitHub App release automation.
+  Agent runtime: Superpowers is the preferred cross-agent session runtime; skills/quantex-agent-runtime/SKILL.md carries Quantex-specific intake, validation, artifact-routing, and closure rules.
   Project memory: OpenSpec owns non-trivial behavior or durable-process changes; GitHub issues track executable work; ADRs record durable decisions; runbooks record repeatable operations.
   Work intake gate: before implementation or file edits, classify whether the work requires OpenSpec. OpenSpec is required for observable CLI behavior, structured output/schema, agent catalog metadata, configuration/state, release/upgrade, architecture-boundary, durable-process, and product-facing documentation changes. Execution-oriented, continuation, or closure intent does not skip this gate.
-  Delivery closure gate: before reporting work as complete, check validation, OpenSpec status, git status, commit, push, PR, merge, release, and archive closure as applicable. Distinguish local implementation from PR delivery, merge delivery, OpenSpec archive closure, and release closure.
+  Delivery closure gate: before reporting work as complete, check validation, OpenSpec status, git status, commit, push, PR, merge, release, and archive closure as applicable. Distinguish local implementation from PR delivery, merge delivery, OpenSpec archive closure, and release closure. Archive closure is agent-driven rather than bot-driven.
 
 rules:
   proposal:

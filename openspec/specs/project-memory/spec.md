@@ -109,16 +109,44 @@ The project SHALL preserve completed historical task contracts under `openspec/c
 - THEN the contributor reads the migrated archived change under `openspec/changes/archive/`
 - AND uses `openspec/changes/archive/qtx-task-history.md` as the index
 
+### Requirement: Superpowers SHALL provide the cross-agent session runtime
+
+Quantex SHALL use Superpowers as the preferred cross-agent runtime for coding-agent session startup, planning, implementation discipline, verification, and delivery closure. OpenSpec SHALL remain the source of truth for non-trivial change contracts and accepted project-memory state.
+
+#### Scenario: Agent starts a Quantex session with Superpowers available
+
+- **WHEN** a coding agent starts a new Quantex repository session
+- **AND** Superpowers is available in that agent environment
+- **THEN** the agent MUST activate Superpowers before planning or editing
+- **AND** it MUST use the central Quantex agent runtime skill for repository-specific intake, validation, artifact routing, and closure rules
+
+#### Scenario: Agent starts without Superpowers available
+
+- **WHEN** a coding agent starts a Quantex repository session
+- **AND** Superpowers is not available in that agent environment
+- **THEN** the agent MUST follow the bootstrap fallback in `AGENTS.md`
+- **AND** it MUST still use OpenSpec and repository validation commands as the source-of-truth workflow
+
+### Requirement: Agent-specific workflow files SHALL stay thin
+
+The repository SHALL NOT maintain full copied OPSX workflow instructions separately for each supported coding agent. Agent-specific directories MAY contain thin bootstrap files whose purpose is to route the agent to Superpowers, the central Quantex runtime skill, and repo-native OpenSpec artifacts.
+
+#### Scenario: Maintainer updates Quantex workflow rules
+
+- **WHEN** Quantex workflow rules change
+- **THEN** the maintainer updates the central runtime skill, OpenSpec specs, or canonical docs
+- **AND** agent-specific bootstrap files remain short pointers rather than full duplicate workflow copies
+
 ### Requirement: OPSX actions MUST be available across supported coding agents
 
-The project SHALL initialize OpenSpec OPSX integrations for the supported coding agents instead of relying on Codex-only workflow instructions.
+The project SHALL make OpenSpec actions available across supported coding agents through the Superpowers-backed Quantex agent runtime. The runtime SHALL instruct agents to use official OpenSpec CLI commands such as `openspec status`, `openspec instructions`, `openspec validate`, and `openspec archive` instead of relying on copied per-agent OPSX command bodies.
 
 #### Scenario: Agent starts a non-trivial change
 
 - GIVEN a supported coding agent is asked to plan a non-trivial behavior or durable-process change
 - WHEN the agent needs workflow guidance
-- THEN it can use the generated OPSX integration for explore, propose, apply, and archive actions
-- AND shared project-specific guidance comes from `openspec/config.yaml`
+- THEN it can use the Superpowers-backed Quantex runtime to choose explore, propose, apply, and archive behavior
+- AND shared project-specific guidance comes from the central runtime skill, `openspec/config.yaml`, and current OpenSpec artifacts
 
 ### Requirement: Canonical docs must stay aligned with implementation
 
@@ -133,19 +161,21 @@ When implementation changes behavior, risk handling, or durable process, the cor
 
 ### Requirement: Completed OpenSpec changes MUST reach archive closure
 
-When a non-trivial change is tracked in OpenSpec, the project SHALL treat implementation merge and archive closure as separate lifecycle moments, and SHALL close the change by archiving it after its accepted spec delta is synced.
+When a non-trivial change is tracked in OpenSpec, the project SHALL treat implementation merge and archive closure as separate lifecycle moments, and SHALL close the change by archiving it after its accepted spec delta is synced. Archive closure SHALL be owned by the agent-driven delivery workflow instead of repository automation that automatically opens and merges archive PRs.
 
 #### Scenario: Completed change lands on a protected branch
 
 - **WHEN** an OpenSpec-backed implementation PR merges to a protected branch such as `main` or `beta`
 - **THEN** the project keeps the merged code as implemented work
-- **AND** follows up by archiving the completed change instead of leaving it indefinitely under `openspec/changes/`
+- **AND** an agent using the Quantex runtime follows up by syncing accepted spec deltas and archiving the completed change
+- **AND** the agent reports whether archive closure is complete or still pending
 
-#### Scenario: Repository automation performs archive follow-up
+#### Scenario: Agent performs archive follow-up
 
-- **WHEN** the repository detects completed active OpenSpec changes on a protected branch
-- **THEN** it creates a follow-up archive PR rather than silently treating the change as already closed
-- **AND** that PR syncs spec changes and moves the completed change into `openspec/changes/archive/`
+- **WHEN** an agent resumes archive closure for a completed OpenSpec change
+- **THEN** it MUST run the relevant OpenSpec status and archive commands
+- **AND** it MUST run `bun run openspec:validate`
+- **AND** it MUST deliver the archive change through the normal commit, push, and PR path when protected branches prevent direct closure
 
 ### Requirement: Work Intake Gate
 
@@ -193,7 +223,7 @@ Agents and contributors SHALL perform delivery closure checks before reporting i
 - **GIVEN** work was tracked by an OpenSpec change
 - **WHEN** the agent creates or updates the implementation PR
 - **THEN** the agent MUST state whether the OpenSpec change remains active by design until merge
-- **AND** the agent MUST identify whether archive closure is pending, already complete, or delegated to repository automation
+- **AND** the agent MUST identify whether archive closure is pending, already complete, or delegated to a Superpowers/Quantex-runtime follow-up
 
 #### Scenario: User requests closure
 
