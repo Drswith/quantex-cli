@@ -31,6 +31,7 @@
 - 不要把 Quantex 主线扩展成 workflow orchestration platform。
 - 不要因为用户催促、测试通过或任务勾选完成，就跳过 commit / push / PR / archive closure 检查。
 - 不要重新在各 agent 目录复制完整 OPSX workflow；只保留薄 bootstrap，具体规则走 central runtime skill 和 OpenSpec。
+- 不要新增 `pr:create` 等 repo-local workflow 包装命令；优先使用 Superpowers/runtime 指令、OpenSpec、GitHub Actions、原生 CLI 和窄验证器。
 - 不要在 `AGENTS.md` 里复制大段目录树、类型定义、完整命令表或其他易漂移内容。
 - 不要新建 ad hoc root-level markdown；先把内容归类到 `openspec/` 或 `docs/`。
 
@@ -96,6 +97,8 @@ bun run release:artifacts
 - remote state
 - PR state
 - release state
+
+创建或编辑 PR body 前，必须先基于 `.github/pull_request_template.md` 写入 body 文件，运行 `bun run pr:body:check -- --body-file <body-file> --title "<title>"`，再用 `gh pr create --body-file <body-file>` 或 `gh pr edit --body-file <body-file>`；不要手写 inline `gh pr create --body "$(cat <<EOF ...)"`，也不要新增 repo-local PR 创建包装命令。
 
 闭环层级：
 

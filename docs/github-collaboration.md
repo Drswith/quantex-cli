@@ -47,6 +47,16 @@ Use explicit closure language when handing work between agents, reviewers, and a
 
 Agents should not summarize a task as simply "done" when the current state is only local implementation or PR delivery. If the next step belongs to CI, reviewer approval, release automation, or agent-driven OpenSpec archive closure, name that owner explicitly.
 
+## Pull request body preflight
+
+PR descriptions are part of the delivery contract, not a best-effort summary. Before creating or editing a PR body, agents should:
+
+1. Prepare a body file based on `.github/pull_request_template.md`.
+2. Run `bun run pr:body:check -- --body-file <body-file> --title "<title>"`.
+3. Use `gh pr create --body-file <body-file>` or `gh pr edit --body-file <body-file>`.
+
+Do not hand-write inline `gh pr create --body "$(cat <<EOF ...)"` payloads. Also do not add a repo-local `pr:create` wrapper only to sequence these steps; keep PR creation on the native GitHub CLI and keep repository code focused on shared validation.
+
 ## Worktree-backed implementation
 
 For implementation that is expected to create commits or a PR, Quantex defaults to a dedicated git worktree rather than switching the user's active workspace in place.
@@ -112,8 +122,8 @@ The repository now includes:
 
 - issue forms in `.github/ISSUE_TEMPLATE/`
 - a PR template in `.github/pull_request_template.md`
-- discussion forms in `.github/DISCUSSION_TEMPLATE/`
 - a PR body validation workflow in `.github/workflows/pr-governance.yml`
+- discussion forms in `.github/DISCUSSION_TEMPLATE/`
 
 ## Manual GitHub setup still required
 
