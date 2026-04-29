@@ -15,6 +15,7 @@ Use these directories as the canonical places to write project knowledge:
 | `docs/postmortems/` | Failure analysis and lessons learned after incidents or costly mistakes |
 | `docs/sessions/` | Concise discussion summaries and decisions from a working session |
 | `openspec/changes/archive/` | Completed OpenSpec changes, including migrated historical task contracts |
+| `skills/quantex-agent-runtime/` | Central Superpowers-backed runtime rules for coding-agent sessions |
 
 Do not create new root-level ad hoc markdown files for these categories.
 
@@ -34,11 +35,12 @@ This keeps the project memory compact, searchable, and safe for future agent ite
 
 For a typical feature or refactor:
 
-1. Start with a session summary if the discussion materially changes project direction.
-2. Create or update an OpenSpec artifact for any non-trivial behavior or durable process change.
-3. Record an ADR if the change introduces a lasting design or scope decision.
-4. Use GitHub issues for executable work tracking.
-5. Update a runbook or postmortem if the work revealed a reusable debugging or recovery pattern.
+1. Activate Superpowers when available and follow `skills/quantex-agent-runtime/SKILL.md`.
+2. Start with a session summary if the discussion materially changes project direction.
+3. Create or update an OpenSpec artifact for any non-trivial behavior or durable process change.
+4. Record an ADR if the change introduces a lasting design or scope decision.
+5. Use GitHub issues for executable work tracking.
+6. Update a runbook or postmortem if the work revealed a reusable debugging or recovery pattern.
 
 GitHub workflow guidance:
 
