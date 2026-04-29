@@ -6,4 +6,4 @@
 - [x] Run `bun run lint` — pass
 - [x] Run `bun run format:check` — pass
 - [x] Run `bun run typecheck` — pass
-- [x] Run `bun run test` — 341 passed
+- [x] Run `bun run test` — pass in CI and implementation PR validation
