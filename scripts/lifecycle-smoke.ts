@@ -14,7 +14,7 @@ interface JsonResult {
   warnings?: Array<{ code?: string; message?: string }>
 }
 
-const DEFAULT_SMOKE_AGENTS = ['pi']
+const DEFAULT_SMOKE_AGENTS = ['pi', 'qoder']
 const DEFAULT_SMOKE_SCENARIOS = ['managed', 'adopt-preinstalled', 'ambiguous-multi-method', 'self-binary']
 const DEFAULT_COMMAND_TIMEOUT_MS = Number(process.env.QTX_ISOLATION_COMMAND_TIMEOUT_MS ?? 300_000)
 const agents = resolveSmokeAgents()
@@ -317,6 +317,7 @@ function resolveSmokeScenarios(): string[] {
 function getAgentPackageName(agent: string): string {
   if (agent === 'pi') return '@mariozechner/pi-coding-agent'
   if (agent === 'qoder') return '@qoder-ai/qodercli'
+  if (agent === 'opencode') return 'opencode-ai'
 
   throw new Error(
     `Lifecycle smoke does not know how to preinstall "${agent}". Add its package mapping before including it in adopt-preinstalled.`,

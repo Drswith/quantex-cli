@@ -32,7 +32,7 @@ bun run test:container
 
 This command mounts the current checkout into a local Docker container based on the repository's default Bun image, copies the checkout to an internal temporary work directory, installs repository dependencies there, and then executes the lifecycle smoke script.
 
-The default lifecycle smoke agent is `pi`.
+The default local lifecycle smoke agents are `pi,qoder`.
 
 Default scenarios:
 
@@ -84,13 +84,13 @@ QTX_ISOLATION_SCENARIOS=managed QTX_ISOLATION_AGENTS=qoder bun run test:containe
 
 Individual lifecycle commands time out after `QTX_ISOLATION_COMMAND_TIMEOUT_MS` milliseconds, defaulting to 300 seconds. Broader real-agent runs may need a higher timeout when upstream packages are slow.
 
-For local broad-agent coverage without the slower upstream install path, `qoder` is the preferred multi-install-method agent:
+For local broad-agent coverage without the slower upstream install path, `qoder` is the preferred multi-install-method agent and is included in the local default:
 
 ```bash
 QTX_ISOLATION_SCENARIOS=managed QTX_ISOLATION_AGENTS=qoder bun run test:container
 ```
 
-The dedicated GitHub Actions workflow runs the Modal path with `QTX_ISOLATION_AGENTS=pi,opencode` and a longer command timeout so remote validation covers both the lightweight managed-only default and an upstream package that can be slow from a local network.
+The dedicated GitHub Actions workflow runs the Modal path with `QTX_ISOLATION_AGENTS=pi,opencode` and a longer command timeout so remote validation covers the lightweight baseline plus opencode under better network conditions.
 
 ## Triage order
 
