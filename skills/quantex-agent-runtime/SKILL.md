@@ -102,10 +102,11 @@ Archive closure is agent-driven.
 After an OpenSpec-backed implementation PR merges:
 
 1. Resume from a clean branch based on the protected target branch.
-2. Sync accepted spec deltas into `openspec/specs/`.
-3. Run `bun run openspec:archive -- <change-id>` or the equivalent OpenSpec archive command.
-4. Run `bun run openspec:validate`.
-5. Commit, push, and open the archive PR when protected branches prevent direct archive closure.
+2. Sync accepted spec deltas into `openspec/specs/` when they are not already present.
+3. Run `bun run openspec:archive-closure -- <change-id> --body-file .tmp/archive-pr-body.md`.
+4. Use the generated body file when creating or editing the archive PR.
+5. Run `bun run pr:body:check -- --body-file .tmp/archive-pr-body.md --title "<archive-pr-title>"` if the PR body is edited manually.
+6. Commit, push, and open the archive PR when protected branches prevent direct archive closure.
 
 Do not rely on repository automation to create archive PRs.
 
