@@ -16,6 +16,31 @@ jobs:
   validate-body:
     runs-on: ubuntu-latest
     steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.3.11
+
+      - name: List changed files
+        id: changed-files
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const files = await github.paginate(github.rest.pulls.listFiles, {
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              pull_number: context.payload.pull_request.number,
+              per_page: 100,
+            })
+
+            core.setOutput('changed_files', JSON.stringify(files.map(file => file.filename)))
+
+      - name: Classify pull request scope
+        id: classify
+        env:
+          CHANGED_FILES_JSON: ${{ steps.changed-files.outputs.changed_files }}
+        run: bun run scripts/path-taxonomy.ts
+
       - name: Validate PR body
         uses: actions/github-script@v7
         with:
@@ -73,34 +98,15 @@ jobs:
             }
 
       - name: Validate release trigger scope
+        if: ${{ steps.classify.outputs.scope == 'process-only' }}
+        env:
+          CHANGED_FILES_JSON: ${{ steps.classify.outputs.changed_files }}
         uses: actions/github-script@v7
         with:
           script: |
-            const pullRequest = context.payload.pull_request
-            const title = pullRequest.title || ''
-            const body = pullRequest.body || ''
-
-            const files = await github.paginate(github.rest.pulls.listFiles, {
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              pull_number: pullRequest.number,
-              per_page: 100,
-            })
-
-            const changedFiles = files.map(file => file.filename)
-            const releaseProcessOnly = changedFiles.length > 0
-              && changedFiles.every(fileName => {
-                return fileName.startsWith('.github/')
-                  || fileName.startsWith('docs/')
-                  || fileName.startsWith('openspec/')
-                  || fileName === 'release-please-config.json'
-                  || fileName === 'release-please-config.beta.json'
-                  || fileName === '.release-please-manifest.json'
-              })
-
-            if (!releaseProcessOnly)
-              return
-
+            const title = context.payload.pull_request.title || ''
+            const body = context.payload.pull_request.body || ''
+            const changedFiles = JSON.parse(process.env.CHANGED_FILES_JSON || '[]')
             const releaseWorthyTitle = /^(feat|fix|perf)(\(.+\))?!?:/.test(title)
               || /^[a-z]+(\(.+\))?!:/.test(title)
             const releaseWorthyBody = /\nBREAKING CHANGE:/.test(`\n${body}`)
@@ -114,6 +120,9 @@ jobs:
             }
 
       - name: Validate product release intent
+        if: ${{ steps.classify.outputs.product_impacting == 'true' }}
+        env:
+          PRODUCT_IMPACTING_FILES_JSON: ${{ steps.classify.outputs.product_impacting_files }}
         uses: actions/github-script@v7
         with:
           script: |
@@ -125,27 +134,7 @@ jobs:
             if (headBranch.startsWith('release-please--branches--'))
               return
 
-            const files = await github.paginate(github.rest.pulls.listFiles, {
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              pull_number: pullRequest.number,
-              per_page: 100,
-            })
-
-            const changedFiles = files.map(file => file.filename)
-            const productImpactingFiles = changedFiles.filter(fileName => {
-              return fileName.startsWith('src/')
-                || fileName.startsWith('skills/quantex-cli/')
-                || fileName.startsWith('scripts/')
-                || fileName === 'package.json'
-                || fileName === 'bun.lock'
-                || fileName === 'install.sh'
-                || fileName === 'install.ps1'
-                || fileName === 'tsdown.config.ts'
-            })
-
-            if (productImpactingFiles.length === 0)
-              return
+            const productImpactingFiles = JSON.parse(process.env.PRODUCT_IMPACTING_FILES_JSON || '[]')
 
             const releaseWorthyTitle = /^(feat|fix|perf)(\(.+\))?!?:/.test(title)
               || /^[a-z]+(\(.+\))?!:/.test(title)
