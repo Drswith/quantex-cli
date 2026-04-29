@@ -3,19 +3,21 @@ import { describe, expect, it } from 'vitest'
 
 const prGovernanceWorkflow = readFileSync('.github/workflows/pr-governance.yml', 'utf8')
 const prTemplate = readFileSync('.github/pull_request_template.md', 'utf8')
+const prBodyPolicyScript = readFileSync('scripts/pr-body-policy.ts', 'utf8')
 
 describe('pr governance release intent', () => {
   it('requires a release intent section in PR bodies', () => {
-    expect(prGovernanceWorkflow).toContain("'## Release Intent'")
+    expect(prGovernanceWorkflow).toContain('bun run pr:body:check')
+    expect(prBodyPolicyScript).toContain("'## Release Intent'")
     expect(prTemplate).toContain('## Release Intent')
   })
 
   it('guards product-impacting files from silently skipping release automation', () => {
-    expect(prGovernanceWorkflow).toContain('Validate product release intent')
-    expect(prGovernanceWorkflow).toContain("headBranch.startsWith('release-please--branches--')")
-    expect(prGovernanceWorkflow).toContain('PRODUCT_IMPACTING_FILES_JSON')
+    expect(prGovernanceWorkflow).toContain('bun run pr:body:check')
+    expect(prGovernanceWorkflow).toContain('PR_BODY')
+    expect(prGovernanceWorkflow).toContain('PR_HEAD_BRANCH')
+    expect(prGovernanceWorkflow).toContain('PR_TITLE')
     expect(prGovernanceWorkflow).toContain('bun run scripts/path-taxonomy.ts')
-    expect(prGovernanceWorkflow).toContain('Release: not applicable - <reason>')
   })
 
   it('keeps release-please PR bodies compatible with required governance headings', () => {
