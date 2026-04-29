@@ -115,7 +115,6 @@ Quantex SHALL include Crush (by Charmbracelet) in the supported agent catalog wi
 
 - **WHEN** Quantex plans an update for a Crush installation that supports self-update
 - **THEN** the catalog exposes `crush update` as the agent self-update command
-
 ### Requirement: Kilo CLI MUST use the current supported display name
 
 Quantex SHALL expose the Kilo catalog entry with the display name `Kilo CLI` while keeping the canonical agent slug `kilo`.
