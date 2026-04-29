@@ -13,7 +13,7 @@ describe('workflow classification integration', () => {
 
   it('routes PR governance scope classification through the shared taxonomy script', () => {
     expect(prGovernanceWorkflow).toContain('bun run scripts/path-taxonomy.ts')
-    expect(prGovernanceWorkflow).toContain('steps.classify.outputs.scope')
+    expect(prGovernanceWorkflow).toContain('bun run pr:body:check')
     expect(prGovernanceWorkflow).not.toContain("fileName.startsWith('src/')")
   })
 })
