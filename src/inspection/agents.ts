@@ -9,7 +9,7 @@ import {
   getInstallLifecycle,
   getLatestVersionPackage,
 } from '../utils/install'
-import { getBinaryPath, getInstalledVersion, getLatestVersion } from '../utils/version'
+import { getBinaryPath, getInstalledVersion, getLatestVersion, getResolvedBinaryPath } from '../utils/version'
 
 export interface AgentInspection {
   agent: AgentDefinition
@@ -19,6 +19,7 @@ export interface AgentInspection {
   installedVersion?: string
   latestVersion?: string
   binaryPath?: string
+  resolvedBinaryPath?: string
   sourceLabel: string
   updateLabel: string
   lifecycle: 'managed' | 'unmanaged'
@@ -36,6 +37,7 @@ export async function inspectAgent(agent: AgentDefinition): Promise<AgentInspect
     inPath ? getBinaryPath(agent.binaryName) : Promise.resolve(undefined),
     getLatestVersionForAgent(agent, installedState, methods),
   ])
+  const resolvedBinaryPath = await getResolvedBinaryPath(binaryPath)
 
   return {
     agent,
@@ -45,6 +47,7 @@ export async function inspectAgent(agent: AgentDefinition): Promise<AgentInspect
     installedVersion,
     latestVersion,
     binaryPath,
+    resolvedBinaryPath,
     sourceLabel: formatInstalledSource(installedState),
     updateLabel: formatUpdateManagement(agent, installedState),
     lifecycle: installedState ? getInstallLifecycle(installedState.installType) : 'unmanaged',

@@ -38,9 +38,9 @@ describe('agent registry', () => {
     expect(agent?.name).toBe('cursor')
   })
 
-  it('resolves Kilo by published alias', () => {
-    const agent = getAgentByLookupName('kilocode')
-    expect(agent?.name).toBe('kilo')
+  it('resolves Qoder by executable alias', () => {
+    const agent = getAgentByLookupName('qodercli')
+    expect(agent?.name).toBe('qoder')
   })
 })
 
@@ -73,7 +73,7 @@ describe('agent definitions', () => {
   it('kilo has correct structure', () => {
     const agent = getAgentByNameOrAlias('kilo')
     expect(agent).toBeDefined()
-    expect(agent!.displayName).toBe('Kilo Code CLI')
+    expect(agent!.displayName).toBe('Kilo CLI')
     expect(agent!.packages?.npm).toBe('@kilocode/cli')
     expect(agent!.binaryName).toBe('kilo')
   })

@@ -1,4 +1,5 @@
 import type { AgentVersionProbe } from '../agents'
+import { realpath } from 'node:fs/promises'
 import process from 'node:process'
 import { fetchJsonWithCache } from './network'
 import { buildRegistryPackageVersionUrl, OFFICIAL_NPM_REGISTRY, normalizeRegistryUrl } from './registry'
@@ -58,5 +59,15 @@ export async function getBinaryPath(binaryName: string): Promise<string | undefi
     return text.trim().split('\n')[0]
   } catch {
     return undefined
+  }
+}
+
+export async function getResolvedBinaryPath(binaryPath?: string): Promise<string | undefined> {
+  if (!binaryPath) return undefined
+
+  try {
+    return await realpath(binaryPath)
+  } catch {
+    return binaryPath
   }
 }
