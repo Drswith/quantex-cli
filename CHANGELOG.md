@@ -2,6 +2,20 @@
 
 This changelog is maintained by release-please Release PRs.
 
+## [0.6.0](https://github.com/Drswith/quantex-cli/compare/v0.5.0...v0.6.0) (2026-04-29)
+
+
+### Features
+
+* **agents:** add Crush agent support ([#131](https://github.com/Drswith/quantex-cli/issues/131)) ([a8effef](https://github.com/Drswith/quantex-cli/commit/a8effef89ef5915da074c40efa47d5bd7743bfe9))
+* **agents:** add Kimi Code CLI support ([#132](https://github.com/Drswith/quantex-cli/issues/132)) ([0ea489d](https://github.com/Drswith/quantex-cli/commit/0ea489ddd0b1c3a37350870d85f03ce8dc9fe690))
+
+
+### Bug Fixes
+
+* **agent-catalog:** align supported agent naming ([#121](https://github.com/Drswith/quantex-cli/issues/121)) ([1f0bc7d](https://github.com/Drswith/quantex-cli/commit/1f0bc7d444ca1fcca4f0d9d797858f9bf5b14d86))
+* propagate modal sandbox failures ([43eb02d](https://github.com/Drswith/quantex-cli/commit/43eb02d52dadfef08b7fc7afc5f0d0b1b19b0e91))
+
 ## [0.5.0](https://github.com/Drswith/quantex-cli/compare/v0.4.7...v0.5.0) (2026-04-29)
 
 
