@@ -9,16 +9,18 @@
 
 ## Agent Quickstart
 
-1. 先分类当前请求，判断是否触发 OpenSpec intake gate。
-2. 只要改动 observable behavior、durable workflow、project memory 或 product-facing docs，就先选择或创建 OpenSpec change。
-3. 用 `bun run openspec:status -- --change <id>` 和 `bun run openspec:instructions -- <artifact> --change <id>` 确认下一步。
-4. 先做最小闭环实现，再同步更新相关 spec、ADR、session、issue 或 docs。
-5. 改完后至少跑 `bun run lint`、`bun run format:check` 和 `bun run typecheck`；如果动了行为，也跑 `bun run test`。
-6. 结束前报告 validation、OpenSpec、git、commit、push、PR、release、archive closure 状态。
+1. 如果当前 agent 环境可用，先激活 Superpowers，再读取 `skills/quantex-agent-runtime/SKILL.md`。
+2. 分类当前请求，判断是否触发 OpenSpec intake gate。
+3. 只要改动 observable behavior、durable workflow、project memory 或 product-facing docs，就先选择或创建 OpenSpec change。
+4. 用 `bun run openspec:status -- --change <id>` 和 `bun run openspec:instructions -- <artifact> --change <id>` 确认下一步。
+5. 先做最小闭环实现，再同步更新相关 spec、ADR、session、issue 或 docs。
+6. 改完后至少跑 `bun run lint`、`bun run format:check` 和 `bun run typecheck`；如果动了行为，也跑 `bun run test`。
+7. 结束前报告 validation、OpenSpec、git、commit、push、PR、release、archive closure 状态。
 
 ## Must
 
 - 实现前先过 intake gate；用户说“直接开始”或“做到闭环”为授权推进，不是授权跳过流程。
+- 跨 agent session 行为默认由 Superpowers + `skills/quantex-agent-runtime/SKILL.md` 承载；OpenSpec 仍是变更契约 source of truth。
 - 非平凡行为或 durable-process 改动必须先有 OpenSpec change，再做文件编辑。
 - GitHub Discussion 不是长期依据；要把结论提升为 issue、OpenSpec、ADR、runbook 或 session summary。
 - `AGENTS.md` 必须保持薄且高信号：只内联立即影响执行的规则，把易漂移细节指向 source of truth。
@@ -28,6 +30,7 @@
 
 - 不要把 Quantex 主线扩展成 workflow orchestration platform。
 - 不要因为用户催促、测试通过或任务勾选完成，就跳过 commit / push / PR / archive closure 检查。
+- 不要重新在各 agent 目录复制完整 OPSX workflow；只保留薄 bootstrap，具体规则走 central runtime skill 和 OpenSpec。
 - 不要在 `AGENTS.md` 里复制大段目录树、类型定义、完整命令表或其他易漂移内容。
 - 不要新建 ad hoc root-level markdown；先把内容归类到 `openspec/` 或 `docs/`。
 
@@ -123,7 +126,7 @@ bun run release:artifacts
 - 改 config、state、self-upgrade、release artifacts：
   `src/config/`、`src/state/`、`src/self/`、`src/release-artifacts/`、`openspec/specs/self-upgrade/spec.md`、`docs/releases.md`
 - 改 durable workflow、project memory、GitHub collaboration：
-  `openspec/README.md`、`openspec/config.yaml`、`docs/README.md`、`docs/github-collaboration.md`、`openspec/specs/project-memory/spec.md`
+  `skills/quantex-agent-runtime/SKILL.md`、`openspec/README.md`、`openspec/config.yaml`、`docs/README.md`、`docs/github-collaboration.md`、`openspec/specs/project-memory/spec.md`
 - 改产品介绍、安装方式、用户理解：
   `README.md`、`README.zh-CN.md`、`README.en.md`、`openspec/specs/product-readme/spec.md`
 - 改 lint / format 工具链、IDE 推荐扩展、pre-commit 钩子：

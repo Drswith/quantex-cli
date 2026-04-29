@@ -32,7 +32,7 @@ Use the repository for:
 5. Create a dedicated branch or worktree-backed branch and open a PR.
 6. Merge only after CI, PR governance, and documentation updates are in place.
 7. Update any affected runbooks, specs, or ADRs; if an OpenSpec change lands, merge its delta into `openspec/specs/` and archive or close the change.
-8. Treat "implementation merged" and "OpenSpec archived" as separate closure steps; a non-trivial change is not fully done until the archive follow-up PR merges.
+8. Treat "implementation merged" and "OpenSpec archived" as separate closure steps; a non-trivial change is not fully done until a Superpowers/Quantex-runtime archive follow-up reaches PR or merge delivery.
 
 ## Delivery closure states
 
@@ -45,7 +45,7 @@ Use explicit closure language when handing work between agents, reviewers, and a
 - OpenSpec archive closure: accepted spec deltas synced and completed changes archived
 - release closure: release workflow completed when commit metadata warrants a release
 
-Agents should not summarize a task as simply "done" when the current state is only local implementation or PR delivery. If the next step belongs to CI, reviewer approval, release automation, or the OpenSpec archive workflow, name that owner explicitly.
+Agents should not summarize a task as simply "done" when the current state is only local implementation or PR delivery. If the next step belongs to CI, reviewer approval, release automation, or agent-driven OpenSpec archive closure, name that owner explicitly.
 
 ## Worktree-backed implementation
 
@@ -159,16 +159,15 @@ Examples:
 - `self-upgrade-hardening`
 - `agent-update-unification`
 
-## OPSX working rule
+## Agent Runtime
 
-For non-trivial behavior or durable-process changes, use OPSX actions rather than ad hoc planning files:
+For non-trivial behavior or durable-process changes, use Superpowers plus the central Quantex runtime skill rather than ad hoc planning files or copied per-agent workflow prompts:
 
-- explore: clarify the problem and inspect existing artifacts
-- propose: create or update OpenSpec artifacts
-- apply: implement tasks and update artifacts as learning happens
-- archive: finalize completed OpenSpec changes after specs are synced
+- `skills/quantex-agent-runtime/SKILL.md`: Quantex-specific session startup, intake, validation, artifact routing, and closure
+- Superpowers skills: brainstorming, worktrees, planning, review, verification, and finishing branch behavior
+- OpenSpec CLI: proposal, design, spec, task, status, instructions, validation, and archive state transitions
 
-On protected branches, archive closure should normally happen through the repository-managed archive PR flow rather than relying on a human to remember the final step after merge or release.
+On protected branches, archive closure is an explicit agent-driven follow-up. A fresh agent session should be able to resume from Superpowers + `skills/quantex-agent-runtime/SKILL.md`, inspect active OpenSpec changes, archive completed work, validate, and deliver the archive PR.
 
 Agents should use `openspec status --change <id> --json` and `openspec instructions <artifact> --change <id> --json` when they need to determine the next artifact or implementation step.
 
