@@ -7,6 +7,26 @@ on:
     branches:
       - main
       - beta
+    paths:
+      - '.github/workflows/sandbox-tests.yml'
+      - 'bun.lock'
+      - 'package.json'
+      - 'scripts/lifecycle-smoke.ts'
+      - 'scripts/test-container.ts'
+      - 'scripts/test-sandbox.ts'
+      - 'src/agents/**'
+      - 'src/agent-update/**'
+      - 'src/commands/**'
+      - 'src/config/**'
+      - 'src/inspection/**'
+      - 'src/package-manager/**'
+      - 'src/self/**'
+      - 'src/state/**'
+      - 'src/testing/**'
+      - 'src/utils/**'
+      - 'test/agents.test.ts'
+      - 'test/testing/**'
+      - 'test/utils/install.test.ts'
 
   schedule:
     - cron: '0 6 * * 2'
