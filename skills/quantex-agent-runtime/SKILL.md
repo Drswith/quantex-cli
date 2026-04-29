@@ -75,6 +75,14 @@ Also run:
 
 ## Delivery Closure
 
+Before creating or editing a pull request body:
+
+1. Prepare the body as a file based on `.github/pull_request_template.md`.
+2. Run `bun run pr:body:check -- --body-file <body-file> --title "<title>"`.
+3. Use the validated file with `gh pr create --body-file <body-file>` or `gh pr edit --body-file <body-file>`.
+
+Do not hand-write inline `gh pr create --body "$(cat <<EOF ...)"` payloads, and do not add a repo-local PR creation wrapper when the native `gh` command plus the validator is enough.
+
 Before final handoff, report:
 
 - validation state
@@ -105,10 +113,16 @@ After an OpenSpec-backed implementation PR merges:
 2. Sync accepted spec deltas into `openspec/specs/` when they are not already present.
 3. Run `bun run openspec:archive-closure -- <change-id> --body-file .tmp/archive-pr-body.md`.
 4. Use the generated body file when creating or editing the archive PR.
-5. Run `bun run pr:body:check -- --body-file .tmp/archive-pr-body.md --title "<archive-pr-title>"` if the PR body is edited manually.
+5. Run `bun run pr:body:check -- --body-file .tmp/archive-pr-body.md --title "<archive-pr-title>"` before creating or editing the archive PR.
 6. Commit, push, and open the archive PR when protected branches prevent direct archive closure.
 
 Do not rely on repository automation to create archive PRs.
+
+## Script Boundary
+
+Repository scripts are executable guardrails: validation, path classification, build metadata, package checks, release artifact generation, and release smoke verification. Prefer Superpowers runtime instructions, OpenSpec artifacts, GitHub Actions, and native CLIs for workflow actions.
+
+Do not add project-specific workflow orchestration commands, such as `pr:create`, when a native CLI action plus a shared validator is sufficient.
 
 ## Artifact Routing
 
