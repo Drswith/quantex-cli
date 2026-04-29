@@ -176,6 +176,7 @@ For non-trivial behavior or durable-process changes, use Superpowers plus the ce
 - `skills/quantex-agent-runtime/SKILL.md`: Quantex-specific session startup, intake, validation, artifact routing, and closure
 - Superpowers skills: brainstorming, worktrees, planning, review, verification, and finishing branch behavior
 - OpenSpec CLI: proposal, design, spec, task, status, instructions, validation, and archive state transitions
+- [Quantex Task Start](./runbooks/quantex-task-start.md): copy-paste start prompt for fresh agent conversations when a native slash or skill launcher is unavailable
 
 On protected branches, archive closure is an explicit agent-driven follow-up. A fresh agent session should be able to resume from Superpowers + `skills/quantex-agent-runtime/SKILL.md`, inspect active OpenSpec changes, archive completed work, validate, and deliver the archive PR.
 

@@ -14,4 +14,6 @@ Then read and follow:
 - `AGENTS.md`
 - `openspec/README.md`
 
+For new task start or resume, use the "Task Start Entry" in the central runtime skill. Native slash or skill commands are only launchers; OpenSpec, worktrees, branches, and PRs remain the source of truth.
+
 Do not use copied OPSX workflow bodies from agent-specific directories. OpenSpec remains the source of truth for change contracts; this bootstrap only routes the session to the central runtime.
