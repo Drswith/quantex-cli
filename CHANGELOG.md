@@ -2,6 +2,13 @@
 
 This changelog is maintained by release-please Release PRs.
 
+## [0.5.0](https://github.com/Drswith/quantex-cli/compare/v0.4.7...v0.5.0) (2026-04-29)
+
+
+### Features
+
+* add Qwen Code agent support ([#116](https://github.com/Drswith/quantex-cli/issues/116)) ([234db8d](https://github.com/Drswith/quantex-cli/commit/234db8ded48e384e219be65d08cbcf817bc6a512))
+
 ## [0.4.7](https://github.com/Drswith/quantex-cli/compare/v0.4.6...v0.4.7) (2026-04-28)
 
 
