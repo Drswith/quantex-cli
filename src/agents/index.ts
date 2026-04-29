@@ -9,8 +9,9 @@ import { kilo } from './definitions/kilo'
 import { opencode } from './definitions/opencode'
 import { pi } from './definitions/pi'
 import { qoder } from './definitions/qoder'
+import { qwen } from './definitions/qwen'
 
-const agents: AgentDefinition[] = [claude, codex, copilot, cursor, droid, gemini, kilo, opencode, pi, qoder]
+const agents: AgentDefinition[] = [claude, codex, copilot, cursor, droid, gemini, kilo, opencode, pi, qoder, qwen]
 
 export function getAllAgents(): AgentDefinition[] {
   return agents
@@ -24,7 +25,7 @@ export function getAgentByNameOrAlias(name: string): AgentDefinition | undefined
   return getAgentByLookupName(name)
 }
 
-export { claude, codex, copilot, cursor, droid, gemini, kilo, opencode, pi, qoder }
+export { claude, codex, copilot, cursor, droid, gemini, kilo, opencode, pi, qoder, qwen }
 export type {
   AgentDefinition,
   AgentPackageMetadata,

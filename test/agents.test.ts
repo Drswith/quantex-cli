@@ -11,12 +11,13 @@ import { kilo } from '../src/agents/definitions/kilo'
 import { opencode } from '../src/agents/definitions/opencode'
 import { pi } from '../src/agents/definitions/pi'
 import { qoder } from '../src/agents/definitions/qoder'
+import { qwen } from '../src/agents/definitions/qwen'
 import { formatInstallMethodCommand } from '../src/utils/install'
 
 describe('agent registry', () => {
   it('returns array with at least 10 agents', () => {
     const agents = getAllAgents()
-    expect(agents.length).toBeGreaterThanOrEqual(10)
+    expect(agents.length).toBeGreaterThanOrEqual(11)
   })
 
   it('finds agent by name', () => {
@@ -323,6 +324,47 @@ describe('qoder', () => {
   it('uses qodercli as the executable binary while keeping qoder as the slug', () => {
     expect(qoder.name).toBe('qoder')
     expect(qoder.binaryName).toBe('qodercli')
+  })
+})
+
+describe('qwen', () => {
+  it('is registered for lookup by alias', () => {
+    expect(getAgentByNameOrAlias('qwen')).toBe(qwen)
+    expect(getAgentByNameOrAlias('qwen-code')).toBe(qwen)
+  })
+
+  it('has valid structure', () => {
+    validateAgent(qwen)
+    expect(qwen.name).toBe('qwen')
+    expect(qwen.lookupAliases).toEqual(['qwen-code'])
+    expect(qwen.displayName).toBe('Qwen Code')
+    expect(qwen.packages?.npm).toBe('@qwen-code/qwen-code')
+    expect(qwen.binaryName).toBe('qwen')
+    expect(qwen.homepage).toBe('https://qwenlm.github.io/qwen-code-docs/')
+  })
+
+  it('script install returns correct strings per platform', () => {
+    expect(
+      qwen.platforms.macos!.find(
+        m => m.type === 'script' && m.command.includes('qwen-code-assets.oss-cn-hangzhou.aliyuncs.com'),
+      ),
+    ).toBeDefined()
+    expect(
+      qwen.platforms.linux!.find(
+        m => m.type === 'script' && m.command.includes('qwen-code-assets.oss-cn-hangzhou.aliyuncs.com'),
+      ),
+    ).toBeDefined()
+    expect(
+      qwen.platforms.windows!.find(
+        m => m.type === 'script' && m.command.includes('qwen-code-assets.oss-cn-hangzhou.aliyuncs.com'),
+      ),
+    ).toBeDefined()
+  })
+
+  it('brew install returns correct strings per platform', () => {
+    expect(qwen.platforms.macos!.find(m => m.type === 'brew' && m.packageName === 'qwen-code')).toBeDefined()
+    expect(qwen.platforms.linux!.find(m => m.type === 'brew' && m.packageName === 'qwen-code')).toBeDefined()
+    expect(qwen.platforms.windows!.find(m => m.type === 'brew')).toBeUndefined()
   })
 })
 
