@@ -6,7 +6,7 @@ Kimi Code CLI (by Moonshot AI) is a terminal-based AI coding agent with growing 
 
 - Add a new `kimi` agent definition (`src/agents/definitions/kimi.ts`) with lifecycle-focused metadata
 - Register the new definition in `src/agents/index.ts`
-- Install methods: official curl/PowerShell install scripts, Homebrew formula (`kimi-cli`), and PyPI-managed install via `uv tool install`
+- Install methods: official curl/PowerShell install scripts only (no npm package; community Homebrew formula exists but is not officially supported and lags behind releases)
 - Self-update command: `uv tool upgrade kimi-cli --no-cache`
 - Binary name: `kimi`
 - Version probe: `kimi --version`
@@ -23,6 +23,6 @@ Kimi Code CLI (by Moonshot AI) is a terminal-based AI coding agent with growing 
 
 ## Impact
 
-- `src/agents/definitions/kimi.ts` (new file)
+- `src/agents/definitions/kimi.ts` (new file — script install only, no bun/npm/brew)
 - `src/agents/index.ts` (add import and array entry)
 - `openspec/specs/agent-catalog/spec.md` (add Kimi Code requirement section)

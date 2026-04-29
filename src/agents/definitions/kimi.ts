@@ -1,5 +1,5 @@
 import type { AgentDefinition } from '../types'
-import { brewInstall, scriptInstall } from '../methods'
+import { scriptInstall } from '../methods'
 
 export const kimi: AgentDefinition = {
   name: 'kimi',
@@ -15,7 +15,7 @@ export const kimi: AgentDefinition = {
   },
   platforms: {
     windows: [scriptInstall('irm https://code.kimi.com/install.ps1 | iex')],
-    macos: [scriptInstall('curl -LsSf https://code.kimi.com/install.sh | bash'), brewInstall('kimi-cli')],
-    linux: [scriptInstall('curl -LsSf https://code.kimi.com/install.sh | bash'), brewInstall('kimi-cli')],
+    macos: [scriptInstall('curl -LsSf https://code.kimi.com/install.sh | bash')],
+    linux: [scriptInstall('curl -LsSf https://code.kimi.com/install.sh | bash')],
   },
 }

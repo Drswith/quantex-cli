@@ -79,7 +79,7 @@ Quantex SHALL include Kimi Code CLI in the supported agent catalog with lifecycl
 #### Scenario: Installing Kimi Code CLI through supported methods
 
 - **WHEN** Quantex renders or executes install options for Kimi Code CLI
-- **THEN** macOS and Linux include the official curl install script and Homebrew formula options
+- **THEN** macOS and Linux include the official curl install script option
 - **AND** Windows includes the official PowerShell install script option
 
 #### Scenario: Planning Kimi Code CLI updates
