@@ -13,8 +13,8 @@ describe('pr governance release intent', () => {
   it('guards product-impacting files from silently skipping release automation', () => {
     expect(prGovernanceWorkflow).toContain('Validate product release intent')
     expect(prGovernanceWorkflow).toContain("headBranch.startsWith('release-please--branches--')")
-    expect(prGovernanceWorkflow).toContain("fileName.startsWith('src/')")
-    expect(prGovernanceWorkflow).toContain("fileName.startsWith('skills/quantex-cli/')")
+    expect(prGovernanceWorkflow).toContain('PRODUCT_IMPACTING_FILES_JSON')
+    expect(prGovernanceWorkflow).toContain('bun run scripts/path-taxonomy.ts')
     expect(prGovernanceWorkflow).toContain('Release: not applicable - <reason>')
   })
 

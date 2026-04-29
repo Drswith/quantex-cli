@@ -32,34 +32,16 @@ jobs:
       run_test_matrix: ${{ steps.classify.outputs.run_test_matrix }}
       scope: ${{ steps.classify.outputs.scope }}
     steps:
-      - name: Classify change scope
-        id: classify
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.3.11
+
+      - name: List changed files
+        id: changed-files
         uses: actions/github-script@v7
         with:
           script: |
-            const productImpactingPrefixes = [
-              'src/',
-              'scripts/',
-              'skills/quantex-cli/',
-            ]
-            const productImpactingFiles = new Set([
-              'package.json',
-              'bun.lock',
-              'install.sh',
-              'install.ps1',
-              'tsdown.config.ts',
-            ])
-            const processOnlyFiles = new Set([
-              'release-please-config.json',
-              'release-please-config.beta.json',
-              '.release-please-manifest.json',
-            ])
-            const processOnlyPrefixes = [
-              '.github/',
-              'docs/',
-              'openspec/',
-            ]
-
             async function listChangedFiles() {
               if (context.eventName === 'pull_request') {
                 const files = await github.paginate(github.rest.pulls.listFiles, {
@@ -91,35 +73,24 @@ jobs:
               return null
             }
 
-            function isProductImpacting(fileName) {
-              return productImpactingPrefixes.some(prefix => fileName.startsWith(prefix))
-                || productImpactingFiles.has(fileName)
-            }
-
-            function isProcessOnly(fileName) {
-              return processOnlyPrefixes.some(prefix => fileName.startsWith(prefix))
-                || processOnlyFiles.has(fileName)
-            }
-
             const changedFiles = await listChangedFiles()
 
             if (!changedFiles || changedFiles.length === 0) {
               core.info('No changed-file diff available for this event; defaulting to the full test matrix.')
               core.setOutput('changed_files', '[]')
-              core.setOutput('run_test_matrix', 'true')
-              core.setOutput('scope', 'unknown')
+              core.setOutput('changed_files_available', 'false')
               return
             }
 
-            const productImpacting = changedFiles.some(isProductImpacting)
-            const processOnly = changedFiles.every(isProcessOnly)
-            const runTestMatrix = !processOnly
-            const scope = processOnly ? 'process-only' : (productImpacting ? 'product-impacting' : 'mixed')
-
-            core.info(`Changed files (${scope}): ${changedFiles.join(', ')}`)
             core.setOutput('changed_files', JSON.stringify(changedFiles))
-            core.setOutput('run_test_matrix', String(runTestMatrix))
-            core.setOutput('scope', scope)
+            core.setOutput('changed_files_available', 'true')
+
+      - name: Classify change scope
+        id: classify
+        env:
+          CHANGED_FILES_AVAILABLE: ${{ steps.changed-files.outputs.changed_files_available }}
+          CHANGED_FILES_JSON: ${{ steps.changed-files.outputs.changed_files }}
+        run: bun run scripts/path-taxonomy.ts
 
   lint:
     runs-on: ubuntu-latest
@@ -155,22 +126,29 @@ jobs:
       fail-fast: false
 
     steps:
-      - name: Skip full matrix for process-only changes
-        if: ${{ needs.classify.outputs.run_test_matrix != 'true' }}
+      - name: Skip full matrix for process-only non-Linux changes
+        if: ${{ needs.classify.outputs.run_test_matrix != 'true' && runner.os != 'Linux' }}
         env:
           CHANGE_SCOPE: ${{ needs.classify.outputs.scope }}
         run: |
           echo "Process-only change detected (${CHANGE_SCOPE}); preserving required matrix check context without running full platform tests."
 
-      - if: ${{ needs.classify.outputs.run_test_matrix == 'true' }}
+      - name: Run minimal Linux build for process-only changes
+        if: ${{ needs.classify.outputs.run_test_matrix != 'true' && runner.os == 'Linux' }}
+        env:
+          CHANGE_SCOPE: ${{ needs.classify.outputs.scope }}
+        run: |
+          echo "Process-only change detected (${CHANGE_SCOPE}); running the minimal Ubuntu build guard while skipping the full test matrix."
+
+      - if: ${{ needs.classify.outputs.run_test_matrix == 'true' || runner.os == 'Linux' }}
         uses: actions/checkout@v4
       - uses: oven-sh/setup-bun@v2
-        if: ${{ needs.classify.outputs.run_test_matrix == 'true' }}
+        if: ${{ needs.classify.outputs.run_test_matrix == 'true' || runner.os == 'Linux' }}
         with:
           bun-version: 1.3.11
 
       - uses: actions/cache@v4
-        if: ${{ needs.classify.outputs.run_test_matrix == 'true' }}
+        if: ${{ needs.classify.outputs.run_test_matrix == 'true' || runner.os == 'Linux' }}
         with:
           path: |
             .bun/install/cache
@@ -179,9 +157,9 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-bun-
 
-      - if: ${{ needs.classify.outputs.run_test_matrix == 'true' }}
+      - if: ${{ needs.classify.outputs.run_test_matrix == 'true' || runner.os == 'Linux' }}
         run: bun install --frozen-lockfile --ignore-scripts --no-progress
-      - if: ${{ needs.classify.outputs.run_test_matrix == 'true' }}
+      - if: ${{ needs.classify.outputs.run_test_matrix == 'true' || runner.os == 'Linux' }}
         run: bun run build
       - if: ${{ needs.classify.outputs.run_test_matrix == 'true' && runner.os == 'Windows' && github.event_name != 'pull_request' }}
         run: bun run test -- --pool=threads
