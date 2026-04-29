@@ -10,6 +10,8 @@ import {
   DEFAULT_MODAL_SANDBOX_IMAGE,
   DEFAULT_MODAL_SANDBOX_SMOKE_ARGS,
   getMissingModalCliMessage,
+  MODAL_REMOTE_EXIT_CODE_MARKER,
+  parseModalRemoteExitCode,
 } from '../../src/testing/modal-sandbox'
 
 describe('buildModalSandboxInvocation', () => {
@@ -29,11 +31,12 @@ describe('buildModalSandboxInvocation', () => {
       '--add-local',
       '/tmp/quantex-cli',
       '--cmd',
-      expect.stringContaining("/bin/bash -lc 'set -euo pipefail"),
+      expect.stringContaining('/bin/bash -lc'),
     ])
     expect(invocation.remoteCommand).toContain("cp -R '/mnt/quantex-cli' /tmp/quantex-work")
     expect(invocation.remoteCommand).toContain('bun install --frozen-lockfile --ignore-scripts --no-progress')
     expect(invocation.remoteCommand).toContain('bun run scripts/lifecycle-smoke.ts')
+    expect(invocation.remoteCommand).toContain(MODAL_REMOTE_EXIT_CODE_MARKER)
   })
 
   it('forwards explicit smoke agent arguments into the remote command', () => {
@@ -44,6 +47,18 @@ describe('buildModalSandboxInvocation', () => {
 
     expect(invocation.smokeArgs).toEqual(['pi', 'opencode'])
     expect(invocation.remoteCommand).toContain("bun run scripts/lifecycle-smoke.ts 'pi' 'opencode'")
+  })
+})
+
+describe('parseModalRemoteExitCode', () => {
+  it('returns the last remote exit-code marker', () => {
+    expect(
+      parseModalRemoteExitCode(`first\n${MODAL_REMOTE_EXIT_CODE_MARKER}=1\nretry\n${MODAL_REMOTE_EXIT_CODE_MARKER}=0`),
+    ).toBe(0)
+  })
+
+  it('returns undefined when the remote marker is missing', () => {
+    expect(parseModalRemoteExitCode('remote command output without marker')).toBeUndefined()
   })
 })
 

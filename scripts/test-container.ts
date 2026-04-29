@@ -4,13 +4,14 @@ import { buildContainerSandboxInvocation, getMissingDockerCliMessage } from '../
 const invocation = buildContainerSandboxInvocation({
   smokeArgs: process.argv.slice(2),
 })
+const defaultLifecycleAgents = 'pi,qoder'
 
 await ensureDockerCliAvailable()
 
 console.log(`Running container isolation validation with image ${invocation.image}`)
 console.log(`Mounted repository path: ${invocation.mountPath}`)
 console.log(
-  `Lifecycle smoke agents: ${invocation.smokeArgs.length > 0 ? invocation.smokeArgs.join(', ') : process.env.QTX_ISOLATION_AGENTS || 'pi'}`,
+  `Lifecycle smoke agents: ${invocation.smokeArgs.length > 0 ? invocation.smokeArgs.join(', ') : process.env.QTX_ISOLATION_AGENTS || defaultLifecycleAgents}`,
 )
 
 const containerProc = Bun.spawn(invocation.command, {
