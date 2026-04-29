@@ -173,7 +173,7 @@ Note: `qtx upgrade` follows the registry actually used by the current Bun/npm se
 | Cursor CLI | `qtx cursor` | Cursor AI coding assistant CLI |
 | Droid | `qtx droid` | Factory AI software engineering agent CLI |
 | Gemini CLI | `qtx gemini` | Google's open-source AI coding assistant CLI |
-| Kilo Code CLI | `qtx kilo` | Kilo's official AI coding assistant CLI |
+| Kilo CLI | `qtx kilo` | Kilo's official AI coding assistant CLI |
 | OpenCode | `qtx opencode` | Open-source AI coding CLI |
 | Pi | `qtx pi` | Minimal and extensible terminal coding agent |
 | Qoder CLI | `qtx qoder` | Qoder's official AI coding assistant CLI |
@@ -253,8 +253,12 @@ bun run lint
 bun run format:check
 bun run typecheck
 bun run test
+bun run test:container
+bun run test:sandbox
 bun run build
 ```
+
+`bun run test:container` is the preferred local isolation pass for host-sensitive lifecycle checks when you want a clean Linux environment without installing Modal locally. It runs Quantex's real CLI lifecycle smoke flow for selected agents, including preinstalled-agent adoption and Quantex standalone-binary self checks, not the unit test suite. `bun run test:sandbox` runs the same smoke flow through Modal and is intended for validating the remote transport or the dedicated GitHub Actions workflow.
 
 ## License
 

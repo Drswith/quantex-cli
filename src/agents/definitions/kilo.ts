@@ -3,8 +3,7 @@ import { bunInstall, npmInstall } from '../methods'
 
 export const kilo: AgentDefinition = {
   name: 'kilo',
-  lookupAliases: ['kilocode'],
-  displayName: 'Kilo Code CLI',
+  displayName: 'Kilo CLI',
   homepage: 'https://kilo.ai/docs/cli',
   packages: {
     npm: '@kilocode/cli',

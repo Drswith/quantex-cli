@@ -173,7 +173,7 @@ qtx upgrade --channel beta
 | Cursor CLI | `qtx cursor` | Cursor AI 编程助手命令行工具 |
 | Droid | `qtx droid` | Factory AI 软件工程 Agent CLI |
 | Gemini CLI | `qtx gemini` | Google 开源 AI 编程助手 CLI |
-| Kilo Code CLI | `qtx kilo` | Kilo 官方 AI 编程助手 CLI |
+| Kilo CLI | `qtx kilo` | Kilo 官方 AI 编程助手 CLI |
 | OpenCode | `qtx opencode` | 开源 AI 编程 CLI |
 | Pi | `qtx pi` | 极简可扩展的终端编程 Agent |
 | Qoder CLI | `qtx qoder` | Qoder 官方 AI 编程助手 CLI |

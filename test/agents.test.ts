@@ -246,8 +246,8 @@ describe('kilo', () => {
   it('has valid structure', () => {
     validateAgent(kilo)
     expect(kilo.name).toBe('kilo')
-    expect(kilo.lookupAliases).toEqual(['kilocode'])
-    expect(kilo.displayName).toBe('Kilo Code CLI')
+    expect(kilo.lookupAliases).toBeUndefined()
+    expect(kilo.displayName).toBe('Kilo CLI')
     expect(kilo.packages?.npm).toBe('@kilocode/cli')
     expect(kilo.binaryName).toBe('kilo')
     expect(kilo.homepage).toBe('https://kilo.ai/docs/cli')
@@ -285,6 +285,10 @@ describe('pi', () => {
 describe('qoder', () => {
   it('is registered for lookup by canonical name', () => {
     expect(getAgentByNameOrAlias('qoder')).toBe(qoder)
+  })
+
+  it('is registered for lookup by executable alias', () => {
+    expect(getAgentByNameOrAlias('qodercli')).toBe(qoder)
   })
 
   it('has valid structure', () => {
@@ -328,15 +332,15 @@ describe('qoder', () => {
 })
 
 describe('qwen', () => {
-  it('is registered for lookup by alias', () => {
+  it('is registered for lookup by canonical name', () => {
     expect(getAgentByNameOrAlias('qwen')).toBe(qwen)
-    expect(getAgentByNameOrAlias('qwen-code')).toBe(qwen)
+    expect(getAgentByNameOrAlias('qwen-code')).toBeUndefined()
   })
 
   it('has valid structure', () => {
     validateAgent(qwen)
     expect(qwen.name).toBe('qwen')
-    expect(qwen.lookupAliases).toEqual(['qwen-code'])
+    expect(qwen.lookupAliases).toBeUndefined()
     expect(qwen.displayName).toBe('Qwen Code')
     expect(qwen.packages?.npm).toBe('@qwen-code/qwen-code')
     expect(qwen.binaryName).toBe('qwen')

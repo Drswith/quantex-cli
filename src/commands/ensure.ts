@@ -72,7 +72,10 @@ export async function ensureCommand(agentName: string): Promise<CommandResult<En
       )
     }
 
-    const adoptableMethod = getAdoptableExistingInstallMethod(inspection.methods)
+    const adoptableMethod = getAdoptableExistingInstallMethod(
+      inspection.methods,
+      inspection.resolvedBinaryPath ?? inspection.binaryPath,
+    )
     if (adoptableMethod) {
       if (isDryRunEnabled()) {
         return emitCommandResult(
