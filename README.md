@@ -173,7 +173,7 @@ Note: `qtx upgrade` follows the registry actually used by the current Bun/npm se
 | Cursor CLI | `qtx cursor` | Cursor AI coding assistant CLI |
 | Droid | `qtx droid` | Factory AI software engineering agent CLI |
 | Gemini CLI | `qtx gemini` | Google's open-source AI coding assistant CLI |
-| Kilo Code CLI | `qtx kilo` | Kilo's official AI coding assistant CLI |
+| Kilo CLI | `qtx kilo` | Kilo's official AI coding assistant CLI |
 | OpenCode | `qtx opencode` | Open-source AI coding CLI |
 | Pi | `qtx pi` | Minimal and extensible terminal coding agent |
 | Qoder CLI | `qtx qoder` | Qoder's official AI coding assistant CLI |

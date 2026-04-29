@@ -3,6 +3,7 @@ import { brewInstall, bunInstall, npmInstall, scriptInstall } from '../methods'
 
 export const qoder: AgentDefinition = {
   name: 'qoder',
+  lookupAliases: ['qodercli'],
   displayName: 'Qoder CLI',
   homepage: 'https://docs.qoder.com/cli/quick-start',
   packages: {

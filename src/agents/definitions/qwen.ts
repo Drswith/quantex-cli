@@ -3,7 +3,6 @@ import { brewInstall, bunInstall, npmInstall, scriptInstall } from '../methods'
 
 export const qwen: AgentDefinition = {
   name: 'qwen',
-  lookupAliases: ['qwen-code'],
   displayName: 'Qwen Code',
   homepage: 'https://qwenlm.github.io/qwen-code-docs/',
   packages: {
