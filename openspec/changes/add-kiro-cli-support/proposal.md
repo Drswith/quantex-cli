@@ -19,7 +19,7 @@ Kiro CLI is Amazon's AI-assisted development CLI. It supports installation via c
    - Install methods:
      - macOS: script (`curl -fsSL https://cli.kiro.dev/install | bash`)
      - Linux: script (`curl -fsSL https://cli.kiro.dev/install | bash`)
-     - Windows: script (`irm 'https://cli.kiro.dev/install.ps1' | iex`), winget (`Amazon.Kiro`)
+     - Windows: script (`irm 'https://cli.kiro.dev/install.ps1' | iex`)
    - Version probe: `kiro-cli --version`
    - No self-update command (auto-updates in background; uninstall via `kiro-cli uninstall`)
 

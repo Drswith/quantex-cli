@@ -1,5 +1,5 @@
 import type { AgentDefinition } from '../types'
-import { scriptInstall, wingetInstall } from '../methods'
+import { scriptInstall } from '../methods'
 
 export const kiro: AgentDefinition = {
   name: 'kiro',
@@ -11,7 +11,7 @@ export const kiro: AgentDefinition = {
     command: ['kiro-cli', '--version'],
   },
   platforms: {
-    windows: [scriptInstall("irm 'https://cli.kiro.dev/install.ps1' | iex"), wingetInstall('Amazon.Kiro')],
+    windows: [scriptInstall("irm 'https://cli.kiro.dev/install.ps1' | iex")],
     macos: [scriptInstall('curl -fsSL https://cli.kiro.dev/install | bash')],
     linux: [scriptInstall('curl -fsSL https://cli.kiro.dev/install | bash')],
   },
