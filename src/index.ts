@@ -21,6 +21,7 @@ export {
   opencode,
   pi,
   qoder,
+  vibe,
 } from './agents'
 export type {
   AgentDefinition,
