@@ -2,6 +2,20 @@
 
 This changelog is maintained by release-please Release PRs.
 
+## [0.12.0](https://github.com/Drswith/quantex-cli/compare/v0.11.0...v0.12.0) (2026-04-30)
+
+
+### Features
+
+* **agents:** add autohand code cli support ([652fc9a](https://github.com/Drswith/quantex-cli/commit/652fc9a5502a71958cd3a5c7f40025db080c9740))
+* **agents:** add Devin for Terminal support ([e24379e](https://github.com/Drswith/quantex-cli/commit/e24379e95913b79550e2908dbe244fb415866a92))
+* **agents:** add OpenHands CLI support ([d7d077e](https://github.com/Drswith/quantex-cli/commit/d7d077eaf3bf88c5aaae0be8c6a4010e2a7aa613))
+
+
+### Bug Fixes
+
+* **ci:** remove stray openhands references from autohand PR ([5c2c1cb](https://github.com/Drswith/quantex-cli/commit/5c2c1cb0473909cec17171aa9e22b203ecc92c34))
+
 ## [0.11.0](https://github.com/Drswith/quantex-cli/compare/v0.10.0...v0.11.0) (2026-04-30)
 
 
