@@ -2,6 +2,13 @@
 
 This changelog is maintained by release-please Release PRs.
 
+## [0.7.0](https://github.com/Drswith/quantex-cli/compare/v0.6.0...v0.7.0) (2026-04-30)
+
+
+### Features
+
+* **agents:** add Goose agent support ([#140](https://github.com/Drswith/quantex-cli/issues/140)) ([7529249](https://github.com/Drswith/quantex-cli/commit/7529249a939c700b2560c7c0d87d1bf3907ef100))
+
 ## [0.6.0](https://github.com/Drswith/quantex-cli/compare/v0.5.0...v0.6.0) (2026-04-29)
 
 
