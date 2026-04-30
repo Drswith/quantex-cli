@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import {
+  autohand,
   codebuddy,
   codex,
   copilot,
@@ -13,6 +14,7 @@ import {
   junie,
   inspectAgent,
   kilo,
+  openhands,
   opencode,
   pi,
   qoder,
@@ -29,6 +31,13 @@ describe('agent registry', () => {
     expect(agent).toBeDefined()
     expect(agent!.name).toBe('auggie')
     expect(agent!.binaryName).toBe('auggie')
+  })
+
+  it('finds autohand by name', () => {
+    const agent = getAgentByNameOrAlias('autohand')
+    expect(agent).toBeDefined()
+    expect(agent!.name).toBe('autohand')
+    expect(agent!.binaryName).toBe('autohand')
   })
 
   it('finds agent by name', () => {
@@ -52,9 +61,21 @@ describe('agent registry', () => {
     expect(agent?.name).toBe('vibe')
   })
 
+  it('finds OpenHands by name', () => {
+    const agent = getAgentByNameOrAlias('openhands')
+    expect(agent).toBeDefined()
+    expect(agent!.name).toBe('openhands')
+    expect(agent!.binaryName).toBe('openhands')
+  })
+
   it('resolves CodeBuddy by package-style alias', () => {
     const agent = getAgentByLookupName('codebuddy-code')
     expect(agent?.name).toBe('codebuddy')
+  })
+
+  it('resolves Autohand by package-style alias', () => {
+    const agent = getAgentByLookupName('autohand-cli')
+    expect(agent?.name).toBe('autohand')
   })
 
   it('resolves Qoder by executable alias', () => {
@@ -89,12 +110,28 @@ describe('agent definitions', () => {
     expect(agent!.binaryName).toBe('codebuddy')
   })
 
+  it('autohand has correct structure', () => {
+    const agent = getAgentByNameOrAlias('autohand')
+    expect(agent).toBeDefined()
+    expect(agent!.displayName).toBe('Autohand Code CLI')
+    expect(agent!.packages?.npm).toBe('autohand-cli')
+    expect(agent!.binaryName).toBe('autohand')
+  })
+
   it('opencode has correct structure', () => {
     const agent = getAgentByNameOrAlias('opencode')
     expect(agent).toBeDefined()
     expect(agent!.displayName).toBe('OpenCode')
     expect(agent!.packages?.npm).toBe('opencode-ai')
     expect(agent!.binaryName).toBe('opencode')
+  })
+
+  it('openhands has correct structure', () => {
+    const agent = getAgentByNameOrAlias('openhands')
+    expect(agent).toBeDefined()
+    expect(agent!.displayName).toBe('OpenHands CLI')
+    expect(agent!.binaryName).toBe('openhands')
+    expect(agent!.homepage).toBe('https://docs.openhands.dev/openhands/usage/cli/installation')
   })
 
   it('kilo has correct structure', () => {
@@ -122,6 +159,7 @@ describe('agent definitions', () => {
   })
 
   it('re-exports all built-in agents from root index', () => {
+    expect(autohand.name).toBe('autohand')
     expect(codebuddy.name).toBe('codebuddy')
     expect(codex.name).toBe('codex')
     expect(copilot.name).toBe('copilot')
@@ -130,6 +168,7 @@ describe('agent definitions', () => {
     expect(gemini.name).toBe('gemini')
     expect(junie.name).toBe('junie')
     expect(kilo.name).toBe('kilo')
+    expect(openhands.name).toBe('openhands')
     expect(opencode.name).toBe('opencode')
     expect(pi.name).toBe('pi')
     expect(qoder.name).toBe('qoder')
