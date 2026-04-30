@@ -2,6 +2,7 @@ import type { AgentDefinition } from '../src/agents/types'
 import { describe, expect, it } from 'vitest'
 import { getAgentByLookupName, getAgentByNameOrAlias, getAllAgents } from '../src/agents'
 import { claude } from '../src/agents/definitions/claude'
+import { codebuddy } from '../src/agents/definitions/codebuddy'
 import { codex } from '../src/agents/definitions/codex'
 import { copilot } from '../src/agents/definitions/copilot'
 import { cursor } from '../src/agents/definitions/cursor'
@@ -114,6 +115,54 @@ describe('codex', () => {
     expect(codex.platforms.macos!.find(m => m.type === 'brew' && m.packageName === 'codex')).toBeDefined()
     expect(codex.platforms.linux!.find(m => m.type === 'brew' && m.packageName === 'codex')).toBeDefined()
     expect(codex.platforms.windows!.find(m => m.type === 'brew')).toBeUndefined()
+  })
+})
+
+describe('codebuddy', () => {
+  it('is registered for lookup by canonical name', () => {
+    expect(getAgentByNameOrAlias('codebuddy')).toBe(codebuddy)
+  })
+
+  it('is registered for lookup by package-style alias', () => {
+    expect(getAgentByNameOrAlias('codebuddy-code')).toBe(codebuddy)
+  })
+
+  it('has valid structure', () => {
+    validateAgent(codebuddy)
+    expect(codebuddy.name).toBe('codebuddy')
+    expect(codebuddy.lookupAliases).toEqual(['codebuddy-code'])
+    expect(codebuddy.displayName).toBe('CodeBuddy Code')
+    expect(codebuddy.packages?.npm).toBe('@tencent-ai/codebuddy-code')
+    expect(codebuddy.binaryName).toBe('codebuddy')
+    expect(codebuddy.homepage).toBe('https://www.codebuddy.cn/docs/cli/installation')
+    expect(codebuddy.selfUpdate?.command).toEqual(['codebuddy', 'update'])
+    expect(codebuddy.versionProbe?.command).toEqual(['codebuddy', '--version'])
+  })
+
+  it('script install returns correct strings per platform', () => {
+    expect(
+      codebuddy.platforms.windows!.find(m => m.type === 'script' && m.command.includes('codebuddy.cn/cli/install.ps1')),
+    ).toBeDefined()
+    expect(
+      codebuddy.platforms.macos!.find(m => m.type === 'script' && m.command.includes('codebuddy.cn/cli/install.sh')),
+    ).toBeDefined()
+    expect(
+      codebuddy.platforms.linux!.find(m => m.type === 'script' && m.command.includes('codebuddy.cn/cli/install.sh')),
+    ).toBeDefined()
+  })
+
+  it('brew install returns correct strings per platform', () => {
+    expect(
+      codebuddy.platforms.macos!.find(
+        m => m.type === 'brew' && m.packageName === 'Tencent-CodeBuddy/tap/codebuddy-code',
+      ),
+    ).toBeDefined()
+    expect(
+      codebuddy.platforms.linux!.find(
+        m => m.type === 'brew' && m.packageName === 'Tencent-CodeBuddy/tap/codebuddy-code',
+      ),
+    ).toBeDefined()
+    expect(codebuddy.platforms.windows!.find(m => m.type === 'brew')).toBeUndefined()
   })
 })
 

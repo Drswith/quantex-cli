@@ -1,6 +1,7 @@
 import type { AgentDefinition } from './types'
 import { amp } from './definitions/amp'
 import { claude } from './definitions/claude'
+import { codebuddy } from './definitions/codebuddy'
 import { codex } from './definitions/codex'
 import { copilot } from './definitions/copilot'
 import { crush } from './definitions/crush'
@@ -21,6 +22,7 @@ import { vibe } from './definitions/vibe'
 const agents: AgentDefinition[] = [
   amp,
   claude,
+  codebuddy,
   codex,
   copilot,
   crush,
@@ -29,8 +31,8 @@ const agents: AgentDefinition[] = [
   forgecode,
   gemini,
   goose,
-  kimi,
   kilo,
+  kimi,
   kiro,
   opencode,
   pi,
@@ -54,6 +56,7 @@ export function getAgentByNameOrAlias(name: string): AgentDefinition | undefined
 export {
   amp,
   claude,
+  codebuddy,
   codex,
   copilot,
   crush,
@@ -62,8 +65,8 @@ export {
   forgecode,
   gemini,
   goose,
-  kimi,
   kilo,
+  kimi,
   kiro,
   opencode,
   pi,
