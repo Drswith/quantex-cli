@@ -167,6 +167,7 @@ qtx upgrade --channel beta
 
 | Agent | 启动命令 | 描述 |
 |-------|----------|------|
+| Auggie CLI | `qtx auggie` | Augment 官方终端编程 Agent CLI |
 | Amp | `qtx amp` | Sourcegraph 前沿 AI 编程 Agent CLI |
 | Claude Code | `qtx claude` | Anthropic 官方 AI 编程助手 CLI |
 | CodeBuddy Code | `qtx codebuddy` | 腾讯官方 AI 编程助手 CLI |

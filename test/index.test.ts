@@ -23,6 +23,13 @@ describe('agent registry', () => {
     expect(agents.length).toBeGreaterThanOrEqual(9)
   })
 
+  it('finds auggie by name', () => {
+    const agent = getAgentByNameOrAlias('auggie')
+    expect(agent).toBeDefined()
+    expect(agent!.name).toBe('auggie')
+    expect(agent!.binaryName).toBe('auggie')
+  })
+
   it('finds agent by name', () => {
     const agent = getAgentByNameOrAlias('claude')
     expect(agent).toBeDefined()
