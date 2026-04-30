@@ -2,6 +2,18 @@
 
 This changelog is maintained by release-please Release PRs.
 
+## [0.9.0](https://github.com/Drswith/quantex-cli/compare/v0.8.0...v0.9.0) (2026-04-30)
+
+
+### Features
+
+* **agents:** add Kiro CLI support ([3d7f676](https://github.com/Drswith/quantex-cli/commit/3d7f676c61f7e28135b214d9bc5c1c910f904c1b))
+
+
+### Bug Fixes
+
+* **agents:** remove unofficial winget install method for Kiro CLI ([83d2de9](https://github.com/Drswith/quantex-cli/commit/83d2de9d312c0fc4d020bab13c989b6755aa1cb3))
+
 ## [0.8.0](https://github.com/Drswith/quantex-cli/compare/v0.7.0...v0.8.0) (2026-04-30)
 
 

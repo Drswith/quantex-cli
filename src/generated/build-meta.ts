@@ -1,3 +1,3 @@
 export const BUILD_PACKAGE_NAME = 'quantex-cli'
 export const BUILD_REPOSITORY_URL = 'https://github.com/Drswith/quantex-cli'
-export const BUILD_VERSION = '0.8.0' // x-release-please-version
+export const BUILD_VERSION = '0.9.0' // x-release-please-version
