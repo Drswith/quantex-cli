@@ -1,4 +1,4 @@
-## NEW Requirements
+## ADDED Requirements
 
 ### Requirement: Amp MUST be a supported lifecycle agent
 
