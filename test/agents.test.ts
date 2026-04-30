@@ -2,6 +2,7 @@ import type { AgentDefinition } from '../src/agents/types'
 import { describe, expect, it } from 'vitest'
 import { getAgentByLookupName, getAgentByNameOrAlias, getAllAgents } from '../src/agents'
 import { auggie } from '../src/agents/definitions/auggie'
+import { autohand } from '../src/agents/definitions/autohand'
 import { claude } from '../src/agents/definitions/claude'
 import { codebuddy } from '../src/agents/definitions/codebuddy'
 import { codex } from '../src/agents/definitions/codex'
@@ -12,6 +13,7 @@ import { gemini } from '../src/agents/definitions/gemini'
 import { junie } from '../src/agents/definitions/junie'
 import { kilo } from '../src/agents/definitions/kilo'
 import { opencode } from '../src/agents/definitions/opencode'
+import { openhands } from '../src/agents/definitions/openhands'
 import { pi } from '../src/agents/definitions/pi'
 import { qoder } from '../src/agents/definitions/qoder'
 import { qwen } from '../src/agents/definitions/qwen'
@@ -93,6 +95,37 @@ describe('auggie', () => {
     expect(auggie.platforms.linux!.find(m => m.type === 'bun')).toBeDefined()
     expect(auggie.platforms.linux!.find(m => m.type === 'npm')).toBeDefined()
     expect(auggie.platforms.windows).toBeUndefined()
+  })
+})
+
+describe('autohand', () => {
+  it('is registered for lookup by canonical name and package-style alias', () => {
+    expect(getAgentByNameOrAlias('autohand')).toBe(autohand)
+    expect(getAgentByLookupName('autohand-cli')).toBe(autohand)
+  })
+
+  it('has valid structure', () => {
+    validateAgent(autohand)
+    expect(autohand.name).toBe('autohand')
+    expect(autohand.lookupAliases).toEqual(['autohand-cli'])
+    expect(autohand.displayName).toBe('Autohand Code CLI')
+    expect(autohand.packages?.npm).toBe('autohand-cli')
+    expect(autohand.binaryName).toBe('autohand')
+    expect(autohand.homepage).toBe('https://autohand.ai/cli/')
+    expect(autohand.selfUpdate).toBeUndefined()
+    expect(autohand.versionProbe?.command).toEqual(['autohand', '--version'])
+  })
+
+  it('supports official script installers on all platforms', () => {
+    expect(
+      autohand.platforms.windows!.find(m => m.type === 'script' && m.command.includes('autohand.ai/install.ps1')),
+    ).toBeDefined()
+    expect(
+      autohand.platforms.macos!.find(m => m.type === 'script' && m.command.includes('autohand.ai/install.sh')),
+    ).toBeDefined()
+    expect(
+      autohand.platforms.linux!.find(m => m.type === 'script' && m.command.includes('autohand.ai/install.sh')),
+    ).toBeDefined()
   })
 })
 
@@ -352,6 +385,38 @@ describe('opencode', () => {
       opencode.platforms.linux!.find(m => m.type === 'brew' && m.packageName === 'anomalyco/tap/opencode'),
     ).toBeDefined()
     expect(opencode.platforms.windows!.find(m => m.type === 'brew')).toBeUndefined()
+  })
+})
+
+describe('openhands', () => {
+  it('is registered for lookup by canonical name', () => {
+    expect(getAgentByNameOrAlias('openhands')).toBe(openhands)
+  })
+
+  it('has valid structure', () => {
+    validateAgent(openhands)
+    expect(openhands.name).toBe('openhands')
+    expect(openhands.lookupAliases).toBeUndefined()
+    expect(openhands.displayName).toBe('OpenHands CLI')
+    expect(openhands.binaryName).toBe('openhands')
+    expect(openhands.homepage).toBe('https://docs.openhands.dev/openhands/usage/cli/installation')
+    expect(openhands.selfUpdate?.command).toEqual(['uv', 'tool', 'upgrade', 'openhands', '--python', '3.12'])
+    expect(openhands.versionProbe?.command).toEqual(['openhands', '--version'])
+  })
+
+  it('supports official uv and install-script methods on macOS and Linux only', () => {
+    for (const methods of [openhands.platforms.macos, openhands.platforms.linux]) {
+      expect(
+        methods!.find(m => m.type === 'binary' && m.command === 'uv tool install openhands --python 3.12'),
+      ).toBeDefined()
+      expect(
+        methods!.find(
+          m => m.type === 'script' && m.command === 'curl -fsSL https://install.openhands.dev/install.sh | sh',
+        ),
+      ).toBeDefined()
+    }
+
+    expect(openhands.platforms.windows).toBeUndefined()
   })
 })
 

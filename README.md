@@ -168,6 +168,7 @@ Note: `qtx upgrade` follows the registry actually used by the current Bun/npm se
 | Agent | Run Command | Description |
 |-------|-------------|-------------|
 | Auggie CLI | `qtx auggie` | Augment's official terminal coding agent |
+| Autohand Code CLI | `qtx autohand` | Autohand's autonomous terminal coding agent CLI |
 | Amp | `qtx amp` | Sourcegraph's frontier AI coding agent CLI |
 | Claude Code | `qtx claude` | Anthropic's official AI coding assistant CLI |
 | CodeBuddy Code | `qtx codebuddy` | Tencent's official AI coding assistant CLI |
@@ -184,6 +185,7 @@ Note: `qtx upgrade` follows the registry actually used by the current Bun/npm se
 | Kimi Code | `qtx kimi` | Moonshot AI's coding assistant CLI |
 | Kiro CLI | `qtx kiro` | Amazon's AI coding agent CLI |
 | Mistral Vibe | `qtx vibe` | Mistral's open-source CLI coding assistant |
+| OpenHands CLI | `qtx openhands` | OpenHands' open-source software development agent CLI |
 | OpenCode | `qtx opencode` | Open-source AI coding CLI |
 | Pi | `qtx pi` | Minimal and extensible terminal coding agent |
 | Qoder CLI | `qtx qoder` | Qoder's official AI coding assistant CLI |
