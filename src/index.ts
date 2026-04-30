@@ -14,6 +14,7 @@ export {
   codex,
   copilot,
   cursor,
+  devin,
   droid,
   gemini,
   getAgentByLookupName,

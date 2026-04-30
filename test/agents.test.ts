@@ -8,6 +8,7 @@ import { codebuddy } from '../src/agents/definitions/codebuddy'
 import { codex } from '../src/agents/definitions/codex'
 import { copilot } from '../src/agents/definitions/copilot'
 import { cursor } from '../src/agents/definitions/cursor'
+import { devin } from '../src/agents/definitions/devin'
 import { droid } from '../src/agents/definitions/droid'
 import { gemini } from '../src/agents/definitions/gemini'
 import { junie } from '../src/agents/definitions/junie'
@@ -266,6 +267,35 @@ describe('cursor', () => {
     expect(cursor.platforms.macos!.find(m => (m.command ?? '').includes('cursor.com/install'))).toBeDefined()
     expect(cursor.platforms.linux!.find(m => (m.command ?? '').includes('cursor.com/install'))).toBeDefined()
     expect(cursor.platforms.windows!.find(m => (m.command ?? '').includes('cursor.com/install'))).toBeDefined()
+  })
+})
+
+describe('devin', () => {
+  it('is registered for lookup by canonical name', () => {
+    expect(getAgentByNameOrAlias('devin')).toBe(devin)
+  })
+
+  it('has valid structure', () => {
+    validateAgent(devin)
+    expect(devin.name).toBe('devin')
+    expect(devin.lookupAliases).toBeUndefined()
+    expect(devin.displayName).toBe('Devin for Terminal')
+    expect(devin.binaryName).toBe('devin')
+    expect(devin.homepage).toBe('https://cli.devin.ai/')
+    expect(devin.selfUpdate?.command).toEqual(['devin', 'update'])
+    expect(devin.versionProbe?.command).toEqual(['devin', 'version'])
+  })
+
+  it('exposes the official script installers per platform', () => {
+    expect(
+      devin.platforms.windows!.find(m => m.type === 'script' && m.command.includes('static.devin.ai/cli/setup.ps1')),
+    ).toBeDefined()
+    expect(
+      devin.platforms.macos!.find(m => m.type === 'script' && m.command.includes('cli.devin.ai/install.sh')),
+    ).toBeDefined()
+    expect(
+      devin.platforms.linux!.find(m => m.type === 'script' && m.command.includes('cli.devin.ai/install.sh')),
+    ).toBeDefined()
   })
 })
 
