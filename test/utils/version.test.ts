@@ -73,6 +73,15 @@ describe('getInstalledVersion', () => {
     expect(version).toBe('0.118.0')
   })
 
+  it('extracts version from commit-suffixed output', async () => {
+    const { getInstalledVersion } = await import('../../src/utils/version')
+    mockSpawn.mockReturnValue(createMockProcess(0, '0.25.0 (commit b7668abc)\n'))
+    const version = await getInstalledVersion('auggie', {
+      command: ['auggie', '--version'],
+    })
+    expect(version).toBe('0.25.0')
+  })
+
   it('extracts version from multi-line output (first line)', async () => {
     const { getInstalledVersion } = await import('../../src/utils/version')
     mockSpawn.mockReturnValue(

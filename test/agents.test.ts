@@ -1,6 +1,7 @@
 import type { AgentDefinition } from '../src/agents/types'
 import { describe, expect, it } from 'vitest'
 import { getAgentByLookupName, getAgentByNameOrAlias, getAllAgents } from '../src/agents'
+import { auggie } from '../src/agents/definitions/auggie'
 import { claude } from '../src/agents/definitions/claude'
 import { codex } from '../src/agents/definitions/codex'
 import { copilot } from '../src/agents/definitions/copilot'
@@ -65,6 +66,32 @@ function validateAgent(agent: AgentDefinition): void {
     }
   }
 }
+
+describe('auggie', () => {
+  it('is registered for lookup by canonical name', () => {
+    expect(getAgentByNameOrAlias('auggie')).toBe(auggie)
+  })
+
+  it('has valid structure', () => {
+    validateAgent(auggie)
+    expect(auggie.name).toBe('auggie')
+    expect(auggie.lookupAliases).toBeUndefined()
+    expect(auggie.displayName).toBe('Auggie CLI')
+    expect(auggie.packages?.npm).toBe('@augmentcode/auggie')
+    expect(auggie.binaryName).toBe('auggie')
+    expect(auggie.homepage).toBe('https://docs.augmentcode.com/cli/overview')
+    expect(auggie.selfUpdate?.command).toEqual(['auggie', 'upgrade'])
+    expect(auggie.versionProbe?.command).toEqual(['auggie', '--version'])
+  })
+
+  it('supports bun and npm installs on macOS and Linux only', () => {
+    expect(auggie.platforms.macos!.find(m => m.type === 'bun')).toBeDefined()
+    expect(auggie.platforms.macos!.find(m => m.type === 'npm')).toBeDefined()
+    expect(auggie.platforms.linux!.find(m => m.type === 'bun')).toBeDefined()
+    expect(auggie.platforms.linux!.find(m => m.type === 'npm')).toBeDefined()
+    expect(auggie.platforms.windows).toBeUndefined()
+  })
+})
 
 describe('claude', () => {
   it('has valid structure', () => {

@@ -167,17 +167,24 @@ Note: `qtx upgrade` follows the registry actually used by the current Bun/npm se
 
 | Agent | Run Command | Description |
 |-------|-------------|-------------|
+| Auggie CLI | `qtx auggie` | Augment's official terminal coding agent |
 | Amp | `qtx amp` | Sourcegraph's frontier AI coding agent CLI |
 | Claude Code | `qtx claude` | Anthropic's official AI coding assistant CLI |
 | Codex CLI | `qtx codex` | OpenAI's official AI coding assistant CLI |
 | GitHub Copilot CLI | `qtx copilot` | GitHub Copilot command-line tool |
+| Crush | `qtx crush` | Charmbracelet's AI coding agent CLI |
 | Cursor CLI | `qtx cursor` | Cursor AI coding assistant CLI |
 | Droid | `qtx droid` | Factory AI software engineering agent CLI |
+| ForgeCode | `qtx forgecode` | Antinomy AI coding agent CLI |
 | Gemini CLI | `qtx gemini` | Google's open-source AI coding assistant CLI |
+| Goose | `qtx goose` | Block's open-source extensible AI agent CLI |
 | Kilo CLI | `qtx kilo` | Kilo's official AI coding assistant CLI |
+| Kimi Code | `qtx kimi` | Moonshot AI terminal coding agent CLI |
+| Kiro CLI | `qtx kiro` | Amazon's AI coding agent CLI |
 | OpenCode | `qtx opencode` | Open-source AI coding CLI |
 | Pi | `qtx pi` | Minimal and extensible terminal coding agent |
 | Qoder CLI | `qtx qoder` | Qoder's official AI coding assistant CLI |
+| Qwen Code | `qtx qwen` | QwenLM's open-source AI coding agent CLI |
 
 If you prefer the explicit long form, replace `qtx` with `quantex` in the examples above.
 

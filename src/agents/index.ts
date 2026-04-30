@@ -1,5 +1,6 @@
 import type { AgentDefinition } from './types'
 import { amp } from './definitions/amp'
+import { auggie } from './definitions/auggie'
 import { claude } from './definitions/claude'
 import { codex } from './definitions/codex'
 import { copilot } from './definitions/copilot'
@@ -18,6 +19,7 @@ import { qoder } from './definitions/qoder'
 import { qwen } from './definitions/qwen'
 
 const agents: AgentDefinition[] = [
+  auggie,
   amp,
   claude,
   codex,
@@ -50,6 +52,7 @@ export function getAgentByNameOrAlias(name: string): AgentDefinition | undefined
 }
 
 export {
+  auggie,
   amp,
   claude,
   codex,
