@@ -38,6 +38,11 @@ describe('agent registry', () => {
     expect(agent?.name).toBe('cursor')
   })
 
+  it('resolves Mistral Vibe by package alias', () => {
+    const agent = getAgentByLookupName('mistral-vibe')
+    expect(agent?.name).toBe('vibe')
+  })
+
   it('resolves Qoder by executable alias', () => {
     const agent = getAgentByLookupName('qodercli')
     expect(agent?.name).toBe('qoder')

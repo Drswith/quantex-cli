@@ -12,6 +12,7 @@ import { opencode } from '../src/agents/definitions/opencode'
 import { pi } from '../src/agents/definitions/pi'
 import { qoder } from '../src/agents/definitions/qoder'
 import { qwen } from '../src/agents/definitions/qwen'
+import { vibe } from '../src/agents/definitions/vibe'
 import { formatInstallMethodCommand } from '../src/utils/install'
 
 describe('agent registry', () => {
@@ -369,6 +370,40 @@ describe('qwen', () => {
     expect(qwen.platforms.macos!.find(m => m.type === 'brew' && m.packageName === 'qwen-code')).toBeDefined()
     expect(qwen.platforms.linux!.find(m => m.type === 'brew' && m.packageName === 'qwen-code')).toBeDefined()
     expect(qwen.platforms.windows!.find(m => m.type === 'brew')).toBeUndefined()
+  })
+})
+
+describe('vibe', () => {
+  it('is registered for lookup by canonical name and package alias', () => {
+    expect(getAgentByNameOrAlias('vibe')).toBe(vibe)
+    expect(getAgentByNameOrAlias('mistral-vibe')).toBe(vibe)
+  })
+
+  it('has valid structure', () => {
+    validateAgent(vibe)
+    expect(vibe.name).toBe('vibe')
+    expect(vibe.lookupAliases).toEqual(['mistral-vibe'])
+    expect(vibe.displayName).toBe('Mistral Vibe')
+    expect(vibe.binaryName).toBe('vibe')
+    expect(vibe.homepage).toBe('https://docs.mistral.ai/mistral-vibe/terminal/install')
+    expect(vibe.versionProbe?.command).toEqual(['vibe', '--version'])
+    expect(vibe.selfUpdate).toBeUndefined()
+  })
+
+  it('exposes official install methods per platform', () => {
+    expect(
+      vibe.platforms.macos!.find(m => m.type === 'script' && m.command.includes('https://mistral.ai/vibe/install.sh')),
+    ).toBeDefined()
+    expect(
+      vibe.platforms.linux!.find(m => m.type === 'script' && m.command.includes('https://mistral.ai/vibe/install.sh')),
+    ).toBeDefined()
+
+    for (const methods of Object.values(vibe.platforms)) {
+      expect(methods!.find(m => m.type === 'binary' && m.command === 'uv tool install mistral-vibe')).toBeDefined()
+      expect(methods!.find(m => m.type === 'binary' && m.command === 'pip install mistral-vibe')).toBeDefined()
+    }
+
+    expect(vibe.platforms.windows!.find(m => m.type === 'script')).toBeUndefined()
   })
 })
 

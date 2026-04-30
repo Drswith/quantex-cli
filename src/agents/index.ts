@@ -16,6 +16,7 @@ import { opencode } from './definitions/opencode'
 import { pi } from './definitions/pi'
 import { qoder } from './definitions/qoder'
 import { qwen } from './definitions/qwen'
+import { vibe } from './definitions/vibe'
 
 const agents: AgentDefinition[] = [
   amp,
@@ -35,6 +36,7 @@ const agents: AgentDefinition[] = [
   pi,
   qoder,
   qwen,
+  vibe,
 ]
 
 export function getAllAgents(): AgentDefinition[] {
@@ -67,6 +69,7 @@ export {
   pi,
   qoder,
   qwen,
+  vibe,
 }
 export type {
   AgentDefinition,
