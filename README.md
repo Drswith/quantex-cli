@@ -16,7 +16,7 @@ Manage AI coding assistant CLIs from one lifecycle-focused command line.
 
 </div>
 
-Quantex is a `human-friendly + agent-friendly` lifecycle CLI for AI coding agents. It gives Claude Code, Codex, Gemini, Kilo Code, Cursor, OpenCode, and other assistant CLIs a shared surface for installation, inspection, updates, removal, execution, and machine-readable automation. This README uses the shorter `qtx` form as the recommended entry point, while `quantex` remains the fully equivalent long command name.
+Quantex is a `human-friendly + agent-friendly` lifecycle CLI for AI coding agents. It gives Amp, Claude Code, Codex, Gemini, Kilo Code, Cursor, OpenCode, and other assistant CLIs a shared surface for installation, inspection, updates, removal, execution, and machine-readable automation. This README uses the shorter `qtx` form as the recommended entry point, while `quantex` remains the fully equivalent long command name.
 
 ## Why Quantex
 
@@ -167,6 +167,7 @@ Note: `qtx upgrade` follows the registry actually used by the current Bun/npm se
 
 | Agent | Run Command | Description |
 |-------|-------------|-------------|
+| Amp | `qtx amp` | Sourcegraph's frontier AI coding agent CLI |
 | Claude Code | `qtx claude` | Anthropic's official AI coding assistant CLI |
 | Codex CLI | `qtx codex` | OpenAI's official AI coding assistant CLI |
 | GitHub Copilot CLI | `qtx copilot` | GitHub Copilot command-line tool |
