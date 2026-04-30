@@ -6,6 +6,7 @@ import { crush } from './definitions/crush'
 import { cursor } from './definitions/cursor'
 import { droid } from './definitions/droid'
 import { gemini } from './definitions/gemini'
+import { goose } from './definitions/goose'
 import { kilo } from './definitions/kilo'
 import { kimi } from './definitions/kimi'
 import { opencode } from './definitions/opencode'
@@ -21,6 +22,7 @@ const agents: AgentDefinition[] = [
   cursor,
   droid,
   gemini,
+  goose,
   kimi,
   kilo,
   opencode,
@@ -41,7 +43,7 @@ export function getAgentByNameOrAlias(name: string): AgentDefinition | undefined
   return getAgentByLookupName(name)
 }
 
-export { claude, codex, copilot, crush, cursor, droid, gemini, kimi, kilo, opencode, pi, qoder, qwen }
+export { claude, codex, copilot, crush, cursor, droid, gemini, goose, kimi, kilo, opencode, pi, qoder, qwen }
 export type {
   AgentDefinition,
   AgentPackageMetadata,
