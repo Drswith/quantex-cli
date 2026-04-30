@@ -8,6 +8,7 @@ export {
 } from './agent-update'
 export type { AgentUpdateContext, AgentUpdateProvider, AgentUpdateStrategy } from './agent-update'
 export {
+  autohand,
   claude,
   codebuddy,
   codex,
@@ -20,6 +21,7 @@ export {
   getAllAgents,
   junie,
   kilo,
+  openhands,
   opencode,
   pi,
   qoder,
