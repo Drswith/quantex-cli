@@ -167,6 +167,7 @@ Note: `qtx upgrade` follows the registry actually used by the current Bun/npm se
 
 | Agent | Run Command | Description |
 |-------|-------------|-------------|
+| Auggie CLI | `qtx auggie` | Augment's official terminal coding agent |
 | Amp | `qtx amp` | Sourcegraph's frontier AI coding agent CLI |
 | Claude Code | `qtx claude` | Anthropic's official AI coding assistant CLI |
 | CodeBuddy Code | `qtx codebuddy` | Tencent's official AI coding assistant CLI |
