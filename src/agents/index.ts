@@ -17,6 +17,7 @@ import { kilo } from './definitions/kilo'
 import { kimi } from './definitions/kimi'
 import { kiro } from './definitions/kiro'
 import { opencode } from './definitions/opencode'
+import { openhands } from './definitions/openhands'
 import { pi } from './definitions/pi'
 import { qoder } from './definitions/qoder'
 import { qwen } from './definitions/qwen'
@@ -40,6 +41,7 @@ const agents: AgentDefinition[] = [
   kilo,
   kimi,
   kiro,
+  openhands,
   opencode,
   pi,
   qoder,
@@ -77,6 +79,7 @@ export {
   kilo,
   kimi,
   kiro,
+  openhands,
   opencode,
   pi,
   qoder,
