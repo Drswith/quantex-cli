@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import {
+  codebuddy,
   codex,
   copilot,
   createUpdatePlan,
@@ -38,6 +39,11 @@ describe('agent registry', () => {
     expect(agent?.name).toBe('cursor')
   })
 
+  it('resolves CodeBuddy by package-style alias', () => {
+    const agent = getAgentByLookupName('codebuddy-code')
+    expect(agent?.name).toBe('codebuddy')
+  })
+
   it('resolves Qoder by executable alias', () => {
     const agent = getAgentByLookupName('qodercli')
     expect(agent?.name).toBe('qoder')
@@ -60,6 +66,14 @@ describe('agent definitions', () => {
     expect(agent!.displayName).toBe('Codex CLI')
     expect(agent!.packages?.npm).toBe('@openai/codex')
     expect(agent!.binaryName).toBe('codex')
+  })
+
+  it('codebuddy has correct structure', () => {
+    const agent = getAgentByNameOrAlias('codebuddy')
+    expect(agent).toBeDefined()
+    expect(agent!.displayName).toBe('CodeBuddy Code')
+    expect(agent!.packages?.npm).toBe('@tencent-ai/codebuddy-code')
+    expect(agent!.binaryName).toBe('codebuddy')
   })
 
   it('opencode has correct structure', () => {
@@ -87,6 +101,7 @@ describe('agent definitions', () => {
   })
 
   it('re-exports all built-in agents from root index', () => {
+    expect(codebuddy.name).toBe('codebuddy')
     expect(codex.name).toBe('codex')
     expect(copilot.name).toBe('copilot')
     expect(cursor.name).toBe('cursor')

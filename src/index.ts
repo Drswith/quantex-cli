@@ -9,6 +9,7 @@ export {
 export type { AgentUpdateContext, AgentUpdateProvider, AgentUpdateStrategy } from './agent-update'
 export {
   claude,
+  codebuddy,
   codex,
   copilot,
   cursor,

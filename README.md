@@ -169,6 +169,7 @@ Note: `qtx upgrade` follows the registry actually used by the current Bun/npm se
 |-------|-------------|-------------|
 | Amp | `qtx amp` | Sourcegraph's frontier AI coding agent CLI |
 | Claude Code | `qtx claude` | Anthropic's official AI coding assistant CLI |
+| CodeBuddy Code | `qtx codebuddy` | Tencent's official AI coding assistant CLI |
 | Codex CLI | `qtx codex` | OpenAI's official AI coding assistant CLI |
 | GitHub Copilot CLI | `qtx copilot` | GitHub Copilot command-line tool |
 | Cursor CLI | `qtx cursor` | Cursor AI coding assistant CLI |
