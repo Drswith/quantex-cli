@@ -16,7 +16,7 @@
 
 </div>
 
-Quantex 是一个 `human-friendly + agent-friendly` 的 agent lifecycle CLI。它帮你把 Claude Code、Codex、Gemini、Kilo Code、Cursor、OpenCode 等 AI 编程助手的生命周期操作统一到一组稳定命令里：人可以直接用，自动化脚本和 coding agent 也可以用结构化输出可靠调用。本文默认使用更短的 `qtx` 作为推荐入口，`quantex` 是完全等价的完整命令名。
+Quantex 是一个 `human-friendly + agent-friendly` 的 agent lifecycle CLI。它帮你把 Amp、Claude Code、Codex、Gemini、Kilo Code、Cursor、OpenCode 等 AI 编程助手的生命周期操作统一到一组稳定命令里：人可以直接用，自动化脚本和 coding agent 也可以用结构化输出可靠调用。本文默认使用更短的 `qtx` 作为推荐入口，`quantex` 是完全等价的完整命令名。
 
 ## 为什么用 Quantex
 
@@ -167,6 +167,7 @@ qtx upgrade --channel beta
 
 | Agent | 启动命令 | 描述 |
 |-------|----------|------|
+| Amp | `qtx amp` | Sourcegraph 前沿 AI 编程 Agent CLI |
 | Claude Code | `qtx claude` | Anthropic 官方 AI 编程助手 CLI |
 | Codex CLI | `qtx codex` | OpenAI 官方 AI 编程助手 CLI |
 | GitHub Copilot CLI | `qtx copilot` | GitHub Copilot 命令行工具 |
