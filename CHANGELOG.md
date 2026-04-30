@@ -2,6 +2,18 @@
 
 This changelog is maintained by release-please Release PRs.
 
+## [0.10.0](https://github.com/Drswith/quantex-cli/compare/v0.9.0...v0.10.0) (2026-04-30)
+
+
+### Features
+
+* **agents:** add Amp agent support ([7a2b853](https://github.com/Drswith/quantex-cli/commit/7a2b8531244e088f4e1e2fc24bf8bccf16b1323b))
+
+
+### Bug Fixes
+
+* **openspec:** use ADDED Requirements header in Amp spec delta ([1f029cd](https://github.com/Drswith/quantex-cli/commit/1f029cd442fc9ff6469aef1233edc51b927dabf7))
+
 ## [0.9.0](https://github.com/Drswith/quantex-cli/compare/v0.8.0...v0.9.0) (2026-04-30)
 
 
