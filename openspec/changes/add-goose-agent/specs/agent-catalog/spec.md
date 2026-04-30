@@ -1,10 +1,5 @@
-# Spec delta: agent-catalog
+## ADDED Requirements
 
-Add Goose requirement to `openspec/specs/agent-catalog/spec.md`.
-
-Delta: insert before the "Kilo CLI display name" requirement:
-
-```markdown
 ### Requirement: Goose MUST be a supported lifecycle agent
 
 Quantex SHALL include Goose (by Block) in the supported agent catalog with lifecycle-focused metadata for installation, inspection, resolution, execution, update planning, and stable identification.
@@ -31,6 +26,3 @@ Quantex SHALL include Goose (by Block) in the supported agent catalog with lifec
 
 - **WHEN** Quantex plans an update for a Goose installation that supports self-update
 - **THEN** the catalog exposes `goose update` as the agent self-update command
-```
-
-Status: already applied to `openspec/specs/agent-catalog/spec.md`.
