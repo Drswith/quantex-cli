@@ -2,6 +2,16 @@
 
 This changelog is maintained by release-please Release PRs.
 
+## [0.11.0](https://github.com/Drswith/quantex-cli/compare/v0.10.0...v0.11.0) (2026-04-30)
+
+
+### Features
+
+* **agent-catalog:** add Mistral Vibe support ([9750cd6](https://github.com/Drswith/quantex-cli/commit/9750cd69b3f8a1fae0da50265e4e2eeca547eaa1))
+* **agents:** add auggie cli support ([21cf7d9](https://github.com/Drswith/quantex-cli/commit/21cf7d90e75c70ea53966a7f436b29b76ef1f5d9))
+* **agents:** add CodeBuddy CLI support ([c70b92b](https://github.com/Drswith/quantex-cli/commit/c70b92be40c34b05dad8aad3e053ae34b0e3325e))
+* **agents:** add Junie CLI support ([4a0cd65](https://github.com/Drswith/quantex-cli/commit/4a0cd6557f8d1065a6965f2d73dd720d6bc3dd06))
+
 ## [0.10.0](https://github.com/Drswith/quantex-cli/compare/v0.9.0...v0.10.0) (2026-04-30)
 
 
