@@ -7,6 +7,7 @@ import { copilot } from '../src/agents/definitions/copilot'
 import { cursor } from '../src/agents/definitions/cursor'
 import { droid } from '../src/agents/definitions/droid'
 import { gemini } from '../src/agents/definitions/gemini'
+import { junie } from '../src/agents/definitions/junie'
 import { kilo } from '../src/agents/definitions/kilo'
 import { opencode } from '../src/agents/definitions/opencode'
 import { pi } from '../src/agents/definitions/pi'
@@ -208,6 +209,41 @@ describe('gemini', () => {
     expect(gemini.platforms.macos!.find(m => m.type === 'brew' && m.packageName === 'gemini-cli')).toBeDefined()
     expect(gemini.platforms.linux!.find(m => m.type === 'brew' && m.packageName === 'gemini-cli')).toBeDefined()
     expect(gemini.platforms.windows!.find(m => m.type === 'brew')).toBeUndefined()
+  })
+})
+
+describe('junie', () => {
+  it('has valid structure', () => {
+    validateAgent(junie)
+    expect(junie.name).toBe('junie')
+    expect(junie.lookupAliases).toBeUndefined()
+    expect(junie.displayName).toBe('Junie CLI')
+    expect(junie.packages?.npm).toBe('@jetbrains/junie')
+    expect(junie.binaryName).toBe('junie')
+    expect(junie.homepage).toBe('https://junie.jetbrains.com/docs/junie-cli.html')
+    expect(junie.selfUpdate).toBeUndefined()
+    expect(junie.versionProbe?.command).toEqual(['junie', '--version'])
+  })
+
+  it('supports managed installs on all platforms plus official script and brew paths', () => {
+    expect(junie.platforms.windows!.find(m => m.type === 'bun')).toBeDefined()
+    expect(junie.platforms.windows!.find(m => m.type === 'npm')).toBeDefined()
+    expect(
+      junie.platforms.windows!.find(m => m.type === 'script' && m.command.includes('junie.jetbrains.com/install.ps1')),
+    ).toBeDefined()
+
+    expect(
+      junie.platforms.macos!.find(m => m.type === 'script' && m.command.includes('junie.jetbrains.com/install.sh')),
+    ).toBeDefined()
+    expect(
+      junie.platforms.linux!.find(m => m.type === 'script' && m.command.includes('junie.jetbrains.com/install.sh')),
+    ).toBeDefined()
+    expect(
+      junie.platforms.macos!.find(m => m.type === 'brew' && m.packageName === 'jetbrains-junie/junie/junie'),
+    ).toBeDefined()
+    expect(
+      junie.platforms.linux!.find(m => m.type === 'brew' && m.packageName === 'jetbrains-junie/junie/junie'),
+    ).toBeDefined()
   })
 })
 

@@ -9,6 +9,7 @@ import {
   getAgentByLookupName,
   getAgentByNameOrAlias,
   getAllAgents,
+  junie,
   inspectAgent,
   kilo,
   opencode,
@@ -78,6 +79,14 @@ describe('agent definitions', () => {
     expect(agent!.binaryName).toBe('kilo')
   })
 
+  it('junie has correct structure', () => {
+    const agent = getAgentByNameOrAlias('junie')
+    expect(agent).toBeDefined()
+    expect(agent!.displayName).toBe('Junie CLI')
+    expect(agent!.packages?.npm).toBe('@jetbrains/junie')
+    expect(agent!.binaryName).toBe('junie')
+  })
+
   it('qoder has correct structure', () => {
     const agent = getAgentByNameOrAlias('qoder')
     expect(agent).toBeDefined()
@@ -92,6 +101,7 @@ describe('agent definitions', () => {
     expect(cursor.name).toBe('cursor')
     expect(droid.name).toBe('droid')
     expect(gemini.name).toBe('gemini')
+    expect(junie.name).toBe('junie')
     expect(kilo.name).toBe('kilo')
     expect(opencode.name).toBe('opencode')
     expect(pi.name).toBe('pi')

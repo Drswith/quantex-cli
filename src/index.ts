@@ -17,6 +17,7 @@ export {
   getAgentByLookupName,
   getAgentByNameOrAlias,
   getAllAgents,
+  junie,
   kilo,
   opencode,
   pi,

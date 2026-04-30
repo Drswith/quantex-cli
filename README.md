@@ -171,13 +171,20 @@ Note: `qtx upgrade` follows the registry actually used by the current Bun/npm se
 | Claude Code | `qtx claude` | Anthropic's official AI coding assistant CLI |
 | Codex CLI | `qtx codex` | OpenAI's official AI coding assistant CLI |
 | GitHub Copilot CLI | `qtx copilot` | GitHub Copilot command-line tool |
+| Crush | `qtx crush` | Charmbracelet's terminal coding agent CLI |
 | Cursor CLI | `qtx cursor` | Cursor AI coding assistant CLI |
 | Droid | `qtx droid` | Factory AI software engineering agent CLI |
+| ForgeCode | `qtx forgecode` | Antinomy's AI coding agent CLI |
 | Gemini CLI | `qtx gemini` | Google's open-source AI coding assistant CLI |
+| Goose | `qtx goose` | Block's AI coding agent CLI |
+| Junie CLI | `qtx junie` | JetBrains' AI coding agent CLI |
 | Kilo CLI | `qtx kilo` | Kilo's official AI coding assistant CLI |
+| Kimi Code | `qtx kimi` | Moonshot AI's coding agent CLI |
+| Kiro CLI | `qtx kiro` | Amazon's AI coding agent CLI |
 | OpenCode | `qtx opencode` | Open-source AI coding CLI |
 | Pi | `qtx pi` | Minimal and extensible terminal coding agent |
 | Qoder CLI | `qtx qoder` | Qoder's official AI coding assistant CLI |
+| Qwen Code | `qtx qwen` | Qwen's AI coding assistant CLI |
 
 If you prefer the explicit long form, replace `qtx` with `quantex` in the examples above.
 
