@@ -169,6 +169,7 @@ qtx upgrade --channel beta
 |-------|----------|------|
 | Amp | `qtx amp` | Sourcegraph 前沿 AI 编程 Agent CLI |
 | Claude Code | `qtx claude` | Anthropic 官方 AI 编程助手 CLI |
+| CodeBuddy Code | `qtx codebuddy` | 腾讯官方 AI 编程助手 CLI |
 | Codex CLI | `qtx codex` | OpenAI 官方 AI 编程助手 CLI |
 | Crush | `qtx crush` | Charmbracelet 终端 AI 编程 Agent CLI |
 | Cursor CLI | `qtx cursor` | Cursor AI 编程助手命令行工具 |
