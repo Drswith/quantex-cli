@@ -12,6 +12,7 @@ import { opencode } from './definitions/opencode'
 import { pi } from './definitions/pi'
 import { qoder } from './definitions/qoder'
 import { qwen } from './definitions/qwen'
+import { tabnine } from './definitions/tabnine'
 
 const agents: AgentDefinition[] = [
   claude,
@@ -27,6 +28,7 @@ const agents: AgentDefinition[] = [
   pi,
   qoder,
   qwen,
+  tabnine,
 ]
 
 export function getAllAgents(): AgentDefinition[] {
@@ -41,7 +43,7 @@ export function getAgentByNameOrAlias(name: string): AgentDefinition | undefined
   return getAgentByLookupName(name)
 }
 
-export { claude, codex, copilot, crush, cursor, droid, gemini, kimi, kilo, opencode, pi, qoder, qwen }
+export { claude, codex, copilot, crush, cursor, droid, gemini, kimi, kilo, opencode, pi, qoder, qwen, tabnine }
 export type {
   AgentDefinition,
   AgentPackageMetadata,

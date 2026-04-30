@@ -177,6 +177,7 @@ Note: `qtx upgrade` follows the registry actually used by the current Bun/npm se
 | OpenCode | `qtx opencode` | Open-source AI coding CLI |
 | Pi | `qtx pi` | Minimal and extensible terminal coding agent |
 | Qoder CLI | `qtx qoder` | Qoder's official AI coding assistant CLI |
+| Tabnine CLI | `qtx tabnine` | Tabnine's terminal-native AI coding agent |
 
 If you prefer the explicit long form, replace `qtx` with `quantex` in the examples above.
 

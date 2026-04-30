@@ -177,6 +177,7 @@ qtx upgrade --channel beta
 | OpenCode | `qtx opencode` | 开源 AI 编程 CLI |
 | Pi | `qtx pi` | 极简可扩展的终端编程 Agent |
 | Qoder CLI | `qtx qoder` | Qoder 官方 AI 编程助手 CLI |
+| Tabnine CLI | `qtx tabnine` | Tabnine 终端原生 AI 编程 Agent |
 
 如果你更偏好显式长命令，上表里的 `qtx` 都可以直接替换成 `quantex`。
 
