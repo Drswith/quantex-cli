@@ -170,14 +170,21 @@ qtx upgrade --channel beta
 | Amp | `qtx amp` | Sourcegraph 前沿 AI 编程 Agent CLI |
 | Claude Code | `qtx claude` | Anthropic 官方 AI 编程助手 CLI |
 | Codex CLI | `qtx codex` | OpenAI 官方 AI 编程助手 CLI |
-| GitHub Copilot CLI | `qtx copilot` | GitHub Copilot 命令行工具 |
+| Crush | `qtx crush` | Charmbracelet 终端 AI 编程 Agent CLI |
 | Cursor CLI | `qtx cursor` | Cursor AI 编程助手命令行工具 |
 | Droid | `qtx droid` | Factory AI 软件工程 Agent CLI |
+| ForgeCode | `qtx forgecode` | Antinomy AI 编程助手 CLI |
 | Gemini CLI | `qtx gemini` | Google 开源 AI 编程助手 CLI |
+| GitHub Copilot CLI | `qtx copilot` | GitHub Copilot 命令行工具 |
+| Goose | `qtx goose` | Block 开源可扩展 AI Agent CLI |
 | Kilo CLI | `qtx kilo` | Kilo 官方 AI 编程助手 CLI |
+| Kimi Code | `qtx kimi` | Moonshot AI 编程助手 CLI |
+| Kiro CLI | `qtx kiro` | Amazon AI 编程 Agent CLI |
+| Mistral Vibe | `qtx vibe` | Mistral 开源终端编程助手 |
 | OpenCode | `qtx opencode` | 开源 AI 编程 CLI |
 | Pi | `qtx pi` | 极简可扩展的终端编程 Agent |
 | Qoder CLI | `qtx qoder` | Qoder 官方 AI 编程助手 CLI |
+| Qwen Code | `qtx qwen` | Qwen AI 编程助手 CLI |
 
 如果你更偏好显式长命令，上表里的 `qtx` 都可以直接替换成 `quantex`。
 
