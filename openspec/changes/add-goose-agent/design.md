@@ -8,12 +8,12 @@ Add a new agent definition file following the established pattern (see `crush.ts
 
 | Platform | Method | Command |
 |---|---|---|
-| macOS | script | `curl -fsSL https://github.com/block/goose/releases/download/stable/download_cli.sh \| bash` |
+| macOS | script | `curl -fsSL https://github.com/aaif-goose/goose/releases/download/stable/download_cli.sh \| bash` |
 | macOS | brew | `brew install block-goose-cli` |
-| Linux | script | `curl -fsSL https://github.com/block/goose/releases/download/stable/download_cli.sh \| bash` |
+| Linux | script | `curl -fsSL https://github.com/aaif-goose/goose/releases/download/stable/download_cli.sh \| bash` |
 | Linux | brew | `brew install block-goose-cli` |
-| Windows | script (bash) | `curl -fsSL https://github.com/block/goose/releases/download/stable/download_cli.sh \| bash` |
-| Windows | script (PowerShell) | Download and run `download_cli.ps1` from GitHub |
+| Windows | script (bash) | `curl -fsSL https://github.com/aaif-goose/goose/releases/download/stable/download_cli.sh \| bash` |
+| Windows | script (PowerShell) | `Invoke-WebRequest -Uri "https://raw.githubusercontent.com/aaif-goose/goose/main/download_cli.ps1" -OutFile "download_cli.ps1"; ./download_cli.ps1` |
 
 ## Version probe
 
