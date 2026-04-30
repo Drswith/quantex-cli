@@ -47,7 +47,24 @@ export function getAgentByNameOrAlias(name: string): AgentDefinition | undefined
   return getAgentByLookupName(name)
 }
 
-export { claude, codex, copilot, crush, cursor, droid, forgecode, gemini, goose, kimi, kilo, kiro, opencode, pi, qoder, qwen }
+export {
+  claude,
+  codex,
+  copilot,
+  crush,
+  cursor,
+  droid,
+  forgecode,
+  gemini,
+  goose,
+  kimi,
+  kilo,
+  kiro,
+  opencode,
+  pi,
+  qoder,
+  qwen,
+}
 export type {
   AgentDefinition,
   AgentPackageMetadata,

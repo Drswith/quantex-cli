@@ -196,7 +196,6 @@ Quantex SHALL include Kiro CLI (by Amazon) in the supported agent catalog with l
 - **WHEN** Quantex renders or executes install options for Kiro CLI
 - **THEN** macOS and Linux include the official curl install script option (`curl -fsSL https://cli.kiro.dev/install | bash`)
 - **AND** Windows includes the official PowerShell install script option (`irm 'https://cli.kiro.dev/install.ps1' | iex`)
-- **AND** Windows includes the winget install option (`Amazon.Kiro`)
 
 #### Scenario: Probing Kiro CLI version
 
