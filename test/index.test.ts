@@ -13,6 +13,7 @@ import {
   junie,
   inspectAgent,
   kilo,
+  openhands,
   opencode,
   pi,
   qoder,
@@ -50,6 +51,13 @@ describe('agent registry', () => {
   it('resolves Mistral Vibe by package alias', () => {
     const agent = getAgentByLookupName('mistral-vibe')
     expect(agent?.name).toBe('vibe')
+  })
+
+  it('finds OpenHands by name', () => {
+    const agent = getAgentByNameOrAlias('openhands')
+    expect(agent).toBeDefined()
+    expect(agent!.name).toBe('openhands')
+    expect(agent!.binaryName).toBe('openhands')
   })
 
   it('resolves CodeBuddy by package-style alias', () => {
@@ -97,6 +105,14 @@ describe('agent definitions', () => {
     expect(agent!.binaryName).toBe('opencode')
   })
 
+  it('openhands has correct structure', () => {
+    const agent = getAgentByNameOrAlias('openhands')
+    expect(agent).toBeDefined()
+    expect(agent!.displayName).toBe('OpenHands CLI')
+    expect(agent!.binaryName).toBe('openhands')
+    expect(agent!.homepage).toBe('https://docs.openhands.dev/openhands/usage/cli/installation')
+  })
+
   it('kilo has correct structure', () => {
     const agent = getAgentByNameOrAlias('kilo')
     expect(agent).toBeDefined()
@@ -130,6 +146,7 @@ describe('agent definitions', () => {
     expect(gemini.name).toBe('gemini')
     expect(junie.name).toBe('junie')
     expect(kilo.name).toBe('kilo')
+    expect(openhands.name).toBe('openhands')
     expect(opencode.name).toBe('opencode')
     expect(pi.name).toBe('pi')
     expect(qoder.name).toBe('qoder')

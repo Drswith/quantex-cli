@@ -184,6 +184,7 @@ qtx upgrade --channel beta
 | Kimi Code | `qtx kimi` | Moonshot AI 编程助手 CLI |
 | Kiro CLI | `qtx kiro` | Amazon AI 编程 Agent CLI |
 | Mistral Vibe | `qtx vibe` | Mistral 开源终端编程助手 |
+| OpenHands CLI | `qtx openhands` | OpenHands 开源软件开发 Agent CLI |
 | OpenCode | `qtx opencode` | 开源 AI 编程 CLI |
 | Pi | `qtx pi` | 极简可扩展的终端编程 Agent |
 | Qoder CLI | `qtx qoder` | Qoder 官方 AI 编程助手 CLI |
