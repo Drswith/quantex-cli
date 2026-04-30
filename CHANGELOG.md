@@ -2,6 +2,13 @@
 
 This changelog is maintained by release-please Release PRs.
 
+## [0.8.0](https://github.com/Drswith/quantex-cli/compare/v0.7.0...v0.8.0) (2026-04-30)
+
+
+### Features
+
+* **agents:** add ForgeCode agent support ([fecbefa](https://github.com/Drswith/quantex-cli/commit/fecbefa5088980755fd99711028065b2574a122d))
+
 ## [0.7.0](https://github.com/Drswith/quantex-cli/compare/v0.6.0...v0.7.0) (2026-04-30)
 
 
