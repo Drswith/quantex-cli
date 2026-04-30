@@ -174,6 +174,7 @@ Note: `qtx upgrade` follows the registry actually used by the current Bun/npm se
 | Codex CLI | `qtx codex` | OpenAI's official AI coding assistant CLI |
 | Crush | `qtx crush` | Charmbracelet's terminal AI coding agent CLI |
 | Cursor CLI | `qtx cursor` | Cursor AI coding assistant CLI |
+| Devin for Terminal | `qtx devin` | Cognition's local coding agent CLI |
 | Droid | `qtx droid` | Factory AI software engineering agent CLI |
 | ForgeCode | `qtx forgecode` | Antinomy's AI coding assistant CLI |
 | Gemini CLI | `qtx gemini` | Google's open-source AI coding assistant CLI |

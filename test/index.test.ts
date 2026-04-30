@@ -5,6 +5,7 @@ import {
   copilot,
   createUpdatePlan,
   cursor,
+  devin,
   droid,
   gemini,
   getAgentByLookupName,
@@ -89,6 +90,13 @@ describe('agent definitions', () => {
     expect(agent!.binaryName).toBe('codebuddy')
   })
 
+  it('devin has correct structure', () => {
+    const agent = getAgentByNameOrAlias('devin')
+    expect(agent).toBeDefined()
+    expect(agent!.displayName).toBe('Devin for Terminal')
+    expect(agent!.binaryName).toBe('devin')
+  })
+
   it('opencode has correct structure', () => {
     const agent = getAgentByNameOrAlias('opencode')
     expect(agent).toBeDefined()
@@ -126,6 +134,7 @@ describe('agent definitions', () => {
     expect(codex.name).toBe('codex')
     expect(copilot.name).toBe('copilot')
     expect(cursor.name).toBe('cursor')
+    expect(devin.name).toBe('devin')
     expect(droid.name).toBe('droid')
     expect(gemini.name).toBe('gemini')
     expect(junie.name).toBe('junie')
