@@ -1,6 +1,7 @@
 import type { AgentVersionProbe } from '../agents'
 import { realpath } from 'node:fs/promises'
 import process from 'node:process'
+import { readProcessOutput, spawnCommand } from './child-process'
 import { fetchJsonWithCache } from './network'
 import { buildRegistryPackageVersionUrl, OFFICIAL_NPM_REGISTRY, normalizeRegistryUrl } from './registry'
 
@@ -22,10 +23,9 @@ export async function getInstalledVersion(
   const command = versionProbe?.command ?? [binaryName, '--version']
 
   try {
-    const proc = Bun.spawn(command, { stdout: 'pipe', stderr: 'pipe' })
-    await proc.exited
-    if (proc.exitCode !== 0) return undefined
-    const text = await new Response(proc.stdout).text()
+    const { exitCode, stdout } = await readProcessOutput(spawnCommand(command))
+    if (exitCode !== 0) return undefined
+    const text = stdout
     return parseInstalledVersionOutput(text, versionProbe?.parser)
   } catch {
     return undefined
@@ -52,10 +52,9 @@ export async function getLatestVersion(
 export async function getBinaryPath(binaryName: string): Promise<string | undefined> {
   try {
     const cmd = process.platform === 'win32' ? 'where' : 'which'
-    const proc = Bun.spawn([cmd, binaryName], { stdout: 'pipe', stderr: 'pipe' })
-    await proc.exited
-    if (proc.exitCode !== 0) return undefined
-    const text = await new Response(proc.stdout).text()
+    const { exitCode, stdout } = await readProcessOutput(spawnCommand([cmd, binaryName]))
+    if (exitCode !== 0) return undefined
+    const text = stdout
     return text.trim().split('\n')[0]
   } catch {
     return undefined

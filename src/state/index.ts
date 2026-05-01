@@ -1,6 +1,6 @@
 import type { InstallType, PackageTargetKind } from '../agents/types'
 import type { SelfInstallSource } from '../self/types'
-import { mkdir } from 'node:fs/promises'
+import { mkdir, readFile, writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
 import { getConfigDir } from '../config'
 import { acquireResourceLock, getResourceLockPath } from '../utils/lock'
@@ -82,7 +82,7 @@ export async function setSelfInstallSource(installSource: SelfInstallSource): Pr
 
 async function readState(): Promise<QuantexState> {
   try {
-    const data = (await Bun.file(getStateFilePath()).json()) as Partial<QuantexState>
+    const data = JSON.parse(await readFile(getStateFilePath(), 'utf8')) as Partial<QuantexState>
     return {
       installedAgents: data.installedAgents ?? {},
       self: data.self ?? {},
@@ -94,7 +94,7 @@ async function readState(): Promise<QuantexState> {
 
 async function writeState(state: QuantexState): Promise<void> {
   await mkdir(getConfigDir(), { recursive: true })
-  await Bun.write(getStateFilePath(), `${JSON.stringify(state, null, 2)}\n`)
+  await writeFile(getStateFilePath(), `${JSON.stringify(state, null, 2)}\n`, 'utf8')
 }
 
 async function mutateState(mutator: (state: QuantexState) => void | Promise<void>): Promise<void> {

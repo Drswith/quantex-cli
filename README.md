@@ -66,11 +66,13 @@ With Bun:
 bun add -g quantex-cli
 ```
 
-With npm:
+With npm (Node.js 20+):
 
 ```bash
 npm i -g quantex-cli
 ```
+
+The published JS CLI runs on Node after installation. Bun remains a supported package-manager path for install and self-upgrade, while the standalone binary release remains the zero-runtime option.
 
 You can also download standalone binaries from [GitHub Releases](https://github.com/Drswith/quantex-cli/releases), or use the install script:
 
@@ -88,7 +90,7 @@ After installation, prefer `qtx` for the shortest copyable path. If you prefer t
 
 ## Try It Without Installing
 
-If your environment already provides the runtime Quantex currently expects, you can try read-only commands before doing a global install:
+If your environment already provides Node.js 20 or newer, you can try read-only commands before doing a global install:
 
 ```bash
 bunx quantex-cli list
@@ -100,7 +102,8 @@ pnpm --package=quantex-cli dlx qtx doctor
 Notes:
 
 - These commands are intended for read-only and discovery-oriented flows such as `list`, `info`, `inspect`, `doctor`, `capabilities`, `commands`, and `schema`.
-- The currently published package executes its CLI entrypoint through `bun`, so `npx` / `npm exec` / `pnpm dlx` still require a working `bun` on `PATH`.
+- `npx`, `npm exec`, and `pnpm dlx` run the published JS CLI through Node and do not require `bun` on `PATH`.
+- `bunx` still requires Bun because `bunx` itself is Bun's launcher.
 - For `install`, `ensure`, `update`, `uninstall`, `upgrade`, or any flow that should record install-source state, prefer a normal install first.
 
 ## Quick Start

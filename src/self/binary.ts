@@ -4,6 +4,7 @@ import { createHash } from 'node:crypto'
 import { chmod, mkdtemp, rename, rm, stat, writeFile } from 'node:fs/promises'
 import { basename, dirname, join } from 'node:path'
 import process from 'node:process'
+import { readProcessOutput, spawnCommand } from '../utils/child-process'
 
 type BinaryUpgradeResult = Omit<SelfUpdateResult, 'installSource'>
 
@@ -94,7 +95,7 @@ function scheduleWindowsBinaryReplacement(
       process.pid,
       expectedVersion,
     )
-    const proc = Bun.spawn(
+    const proc = spawnCommand(
       [
         'powershell.exe',
         '-NoProfile',
@@ -112,7 +113,7 @@ function scheduleWindowsBinaryReplacement(
       },
     )
 
-    proc.unref?.()
+    proc.unref()
     return {
       success: true,
     }
@@ -202,11 +203,10 @@ async function verifyStandaloneBinary(executablePath: string, expectedVersion?: 
   if (!expectedVersion) return { success: true }
 
   try {
-    const proc = Bun.spawn([executablePath, '--version'], {
+    const proc = spawnCommand([executablePath, '--version'], {
       stdio: ['ignore', 'pipe', 'ignore'] as const,
     })
-    const stdout = proc.stdout ? await new Response(proc.stdout).text() : ''
-    const exitCode = await proc.exited
+    const { exitCode, stdout } = await readProcessOutput(proc)
 
     if (exitCode !== 0) {
       return createBinaryFailure(

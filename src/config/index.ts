@@ -1,5 +1,5 @@
 import type { SelfUpdateChannel } from '../self/types'
-import { mkdir, readFile } from 'node:fs/promises'
+import { mkdir, readFile, writeFile } from 'node:fs/promises'
 import { homedir } from 'node:os'
 import { join } from 'node:path'
 import process from 'node:process'
@@ -55,7 +55,7 @@ export function isNpmBunUpdateStrategy(value: string): value is NpmBunUpdateStra
 
 export async function saveConfig(config: Record<string, unknown>): Promise<void> {
   await mkdir(getConfigDir(), { recursive: true })
-  await Bun.write(getConfigFilePath(), `${JSON.stringify(config, null, 2)}\n`)
+  await writeFile(getConfigFilePath(), `${JSON.stringify(config, null, 2)}\n`, 'utf8')
 }
 
 async function readUserConfig(): Promise<Record<string, unknown>> {
