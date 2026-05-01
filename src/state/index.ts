@@ -15,6 +15,8 @@ export interface InstalledAgentState {
 
 export interface SelfState {
   installSource?: SelfInstallSource
+  updateNoticeAt?: string
+  updateNoticeVersion?: string
 }
 
 export interface QuantexState {
@@ -80,12 +82,23 @@ export async function setSelfInstallSource(installSource: SelfInstallSource): Pr
   })
 }
 
+export async function setSelfUpdateNoticeState(updateNoticeVersion: string, updateNoticeAt: string): Promise<void> {
+  await mutateState(state => {
+    state.self.updateNoticeVersion = updateNoticeVersion
+    state.self.updateNoticeAt = updateNoticeAt
+  })
+}
+
 async function readState(): Promise<QuantexState> {
   try {
     const data = JSON.parse(await readFile(getStateFilePath(), 'utf8')) as Partial<QuantexState>
     return {
       installedAgents: data.installedAgents ?? {},
-      self: data.self ?? {},
+      self: {
+        installSource: data.self?.installSource,
+        updateNoticeAt: data.self?.updateNoticeAt,
+        updateNoticeVersion: data.self?.updateNoticeVersion,
+      },
     }
   } catch {
     return { ...defaultState }

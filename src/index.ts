@@ -132,6 +132,7 @@ export {
   saveState,
   setInstalledAgentState,
   setSelfInstallSource,
+  setSelfUpdateNoticeState,
 } from './state'
 export type { InstalledAgentState, QuantexState, SelfState } from './state'
 export { getPlatform, isBinaryInPath, isBunAvailable, isNpmAvailable } from './utils/detect'

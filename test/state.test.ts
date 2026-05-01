@@ -10,6 +10,7 @@ import {
   loadState,
   saveState,
   setSelfInstallSource,
+  setSelfUpdateNoticeState,
 } from '../src/state'
 import { acquireResourceLock } from '../src/utils/lock'
 
@@ -64,6 +65,24 @@ describe('state helpers', () => {
 
     const writtenState = JSON.parse(readFileSync(getStateFilePath(), 'utf8'))
     expect(writtenState.self?.installSource).toBe('binary')
+  })
+
+  it('persists self update notice throttle metadata', async () => {
+    await saveState({
+      installedAgents: {},
+      self: {},
+    })
+
+    await setSelfUpdateNoticeState('1.2.0', '2026-05-01T00:00:00.000Z')
+
+    expect(await getSelfState()).toEqual({
+      updateNoticeAt: '2026-05-01T00:00:00.000Z',
+      updateNoticeVersion: '1.2.0',
+    })
+
+    const writtenState = JSON.parse(readFileSync(getStateFilePath(), 'utf8'))
+    expect(writtenState.self?.updateNoticeVersion).toBe('1.2.0')
+    expect(writtenState.self?.updateNoticeAt).toBe('2026-05-01T00:00:00.000Z')
   })
 
   it('rejects writes while the state lock is already held', async () => {
