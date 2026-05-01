@@ -1,4 +1,4 @@
-#!/usr/bin/env bun
+#!/usr/bin/env node
 
 import type { CommandResult, CommandTarget } from './output/types'
 import { program } from 'commander'

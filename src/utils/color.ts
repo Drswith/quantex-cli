@@ -1,6 +1,8 @@
 import type { Colors } from 'picocolors/types'
-import { createColors, isColorSupported } from 'picocolors'
+import pico from 'picocolors'
 import { getCliContext } from '../cli-context'
+
+const { createColors, isColorSupported } = pico
 
 function getColors(): Colors {
   const mode = getCliContext().colorMode ?? 'auto'

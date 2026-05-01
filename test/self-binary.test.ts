@@ -33,6 +33,8 @@ describe('upgradeStandaloneBinary', () => {
     const tempRoot = await mkdtemp(join(tmpdir(), 'quantex-binary-win-'))
     const executablePath = join(tempRoot, 'qtx.exe')
     const mockSpawn = vi.fn().mockReturnValue({
+      exitCode: 0,
+      exited: Promise.resolve(0),
       unref: vi.fn(),
     })
 
@@ -94,6 +96,7 @@ describe('upgradeStandaloneBinary', () => {
     const executablePath = join(tempRoot, 'qtx')
     const replacement = '#!/bin/sh\necho 1.1.0\n'
     const mockSpawn = vi.fn().mockReturnValue({
+      exitCode: 0,
       exited: Promise.resolve(0),
       stdout: createByteStream('1.1.0\n'),
     })
@@ -159,6 +162,7 @@ describe('upgradeStandaloneBinary', () => {
     const original = '#!/bin/sh\necho old\n'
     const replacement = '#!/bin/sh\nexit 1\n'
     const mockSpawn = vi.fn().mockReturnValue({
+      exitCode: 1,
       exited: Promise.resolve(1),
       stdout: createByteStream(''),
     })

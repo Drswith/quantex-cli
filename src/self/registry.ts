@@ -102,14 +102,7 @@ async function readRegistryFromBunfig(cwd: string, env: NodeJS.ProcessEnv): Prom
 
 async function parseBunfigRegistry(path: string): Promise<string | undefined> {
   try {
-    const parsed = Bun.TOML.parse(await readFile(path, 'utf8')) as {
-      install?: {
-        registry?: string | { url?: string }
-      }
-    }
-    const registryValue = parsed.install?.registry
-    if (typeof registryValue === 'string') return normalizeRegistryUrl(registryValue)
-    return normalizeRegistryUrl(registryValue?.url)
+    return parseBunfigRegistryValue(await readFile(path, 'utf8'))
   } catch {
     return undefined
   }
@@ -165,4 +158,33 @@ function findNearestFile(startDir: string, fileName: string): string | undefined
 
 function resolveHomeDir(env: NodeJS.ProcessEnv): string {
   return env.HOME || env.USERPROFILE || homedir()
+}
+
+function parseBunfigRegistryValue(content: string): string | undefined {
+  const directRegistry = matchFirstQuotedValue(content, [
+    /(?:^|\n)\s*install\.registry\s*=\s*["']([^"'#\n]+)["']/,
+    /(?:^|\n)\s*install\.registry\s*=\s*\{\s*url\s*=\s*["']([^"'#\n]+)["']/,
+    /(?:^|\n)\s*install\s*=\s*\{[\s\S]*?\bregistry\s*=\s*["']([^"'#\n]+)["'][\s\S]*?\}/,
+    /(?:^|\n)\s*install\s*=\s*\{[\s\S]*?\bregistry\s*=\s*\{\s*url\s*=\s*["']([^"'#\n]+)["'][\s\S]*?\}[\s\S]*?\}/,
+  ])
+  if (directRegistry) return normalizeRegistryUrl(directRegistry)
+
+  const installSection = content.match(/(?:^|\n)\s*\[install\]\s*\n([\s\S]*?)(?=\n\s*\[[^\]]+\]|\s*$)/)?.[1]
+  if (!installSection) return undefined
+
+  const sectionRegistry = matchFirstQuotedValue(installSection, [
+    /(?:^|\n)\s*registry\s*=\s*["']([^"'#\n]+)["']/,
+    /(?:^|\n)\s*registry\s*=\s*\{\s*url\s*=\s*["']([^"'#\n]+)["']/,
+  ])
+
+  return normalizeRegistryUrl(sectionRegistry)
+}
+
+function matchFirstQuotedValue(content: string, patterns: RegExp[]): string | undefined {
+  for (const pattern of patterns) {
+    const value = content.match(pattern)?.[1]
+    if (value) return value
+  }
+
+  return undefined
 }

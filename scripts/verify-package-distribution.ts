@@ -61,12 +61,38 @@ if (missingFiles.length > 0) {
   throw new Error(`Managed-install package is missing required runtime files:\n${missingFiles.join('\n')}`)
 }
 
+const nodeSmoke = Bun.spawn(['node', 'dist/cli.mjs', 'commands', '--json'], {
+  cwd: process.cwd(),
+  env: process.env,
+  stdio: ['ignore', 'pipe', 'pipe'] as const,
+})
+
+const [nodeSmokeStdout, nodeSmokeStderr, nodeSmokeExitCode] = await Promise.all([
+  nodeSmoke.stdout ? new Response(nodeSmoke.stdout).text() : Promise.resolve(''),
+  nodeSmoke.stderr ? new Response(nodeSmoke.stderr).text() : Promise.resolve(''),
+  nodeSmoke.exited,
+])
+
+if (nodeSmokeExitCode !== 0) {
+  throw new Error(
+    `Node CLI smoke check failed with exit code ${nodeSmokeExitCode}.\n${nodeSmokeStderr.trim() || nodeSmokeStdout.trim()}`,
+  )
+}
+
+try {
+  JSON.parse(nodeSmokeStdout)
+} catch (error) {
+  throw new Error(`Node CLI smoke check did not emit valid JSON.\n${String(error)}\n${nodeSmokeStdout.trim()}`, {
+    cause: error,
+  })
+}
+
 if (packedPackage.filename) {
   await rm(join(process.cwd(), packedPackage.filename), { force: true })
 }
 
 console.log(
-  `Managed-install package excludes dist/bin and postinstall entrypoints, and keeps runtime files (${requiredFiles.join(', ')}).`,
+  `Managed-install package excludes dist/bin and postinstall entrypoints, keeps runtime files (${requiredFiles.join(', ')}), and runs under Node.`,
 )
 
 function parsePackOutput(packStdout: string): PackedPackage[] {

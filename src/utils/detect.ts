@@ -1,5 +1,6 @@
 import type { Platform } from '../agents/types'
 import process from 'node:process'
+import { readProcessOutput, spawnCommand } from './child-process'
 
 export function getPlatform(): Platform {
   switch (process.platform) {
@@ -14,9 +15,8 @@ export function getPlatform(): Platform {
 
 async function isCommandAvailable(command: string): Promise<boolean> {
   try {
-    const proc = Bun.spawn([command, '--version'], { stdout: 'pipe', stderr: 'pipe' })
-    await proc.exited
-    return proc.exitCode === 0
+    const { exitCode } = await readProcessOutput(spawnCommand([command, '--version']))
+    return exitCode === 0
   } catch {
     return false
   }
@@ -41,9 +41,8 @@ export async function isWingetAvailable(): Promise<boolean> {
 export async function isBinaryInPath(binaryName: string): Promise<boolean> {
   try {
     const cmd = process.platform === 'win32' ? 'where' : 'which'
-    const proc = Bun.spawn([cmd, binaryName], { stdout: 'pipe', stderr: 'pipe' })
-    await proc.exited
-    return proc.exitCode === 0
+    const { exitCode } = await readProcessOutput(spawnCommand([cmd, binaryName]))
+    return exitCode === 0
   } catch {
     return false
   }

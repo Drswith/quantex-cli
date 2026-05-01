@@ -66,11 +66,13 @@ If command behavior changed, also run bun run test.
 bun add -g quantex-cli
 ```
 
-使用 npm：
+使用 npm（Node.js 20+）：
 
 ```bash
 npm i -g quantex-cli
 ```
+
+已发布的 JS CLI 在安装后通过 Node 运行。Bun 仍然是受支持的安装与自升级路径，而独立二进制仍然是完全不依赖额外运行时的选项。
 
 也可以从 [GitHub Releases](https://github.com/Drswith/quantex-cli/releases) 下载独立二进制，或使用安装脚本：
 
@@ -88,7 +90,7 @@ irm https://raw.githubusercontent.com/Drswith/quantex-cli/main/install.ps1 | iex
 
 ## 免安装试用
 
-如果你已经有 Quantex 当前要求的运行时环境，可以先不做全局安装，直接试用只读命令：
+如果你的环境已经有 Node.js 20 或更高版本，可以先不做全局安装，直接试用只读命令：
 
 ```bash
 bunx quantex-cli list
@@ -100,7 +102,8 @@ pnpm --package=quantex-cli dlx qtx doctor
 注意事项：
 
 - 这些命令适合 `list`、`info`、`inspect`、`doctor`、`capabilities`、`commands`、`schema` 这类只读或发现型操作。
-- 当前已发布包的 CLI 入口通过 `bun` 执行，所以即使走 `npx` / `npm exec` / `pnpm dlx`，运行环境里也仍然需要可用的 `bun`。
+- `npx`、`npm exec`、`pnpm dlx` 会通过 Node 运行已发布的 JS CLI，不要求环境里存在 `bun`。
+- `bunx` 仍然需要 Bun，因为它本身就是 Bun 提供的启动器。
 - `install`、`ensure`、`update`、`uninstall`、`upgrade` 这类会写状态或依赖已记录安装来源的操作，仍然建议先按上面的方式正常安装再执行。
 
 ## 快速开始
