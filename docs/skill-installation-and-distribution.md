@@ -1,10 +1,12 @@
 # Quantex Skill Installation And Distribution
 
-This document explains how the repo-local Quantex skill is installed, validated, updated, and shared today.
+This document explains how the repo-local Quantex CLI skill is installed, validated, updated, and shared today.
 
 ## Scope
 
-The Quantex skill is a repo-native skill for Codex and similar agents that should operate Quantex through its lifecycle CLI surface instead of calling downstream agent binaries ad hoc.
+The Quantex CLI skill is a repo-native skill for Codex and similar agents that should operate Quantex through its lifecycle CLI surface instead of calling downstream agent binaries ad hoc.
+
+This document is about the user-facing `skills/quantex-cli/` skill. The separate `skills/quantex-agent-runtime/` directory is contributor-facing repository workflow runtime for agents developing this repo; it is not part of the normal external user installation path.
 
 This document covers:
 
@@ -17,7 +19,7 @@ This document does not define a marketplace or packaged publishing flow because 
 
 ## Skill layout
 
-The canonical skill files live under `skills/quantex-cli/`:
+The canonical user-facing skill files live under `skills/quantex-cli/`:
 
 - `SKILL.md`: the main operating instructions for agents
 - `agents/openai.yaml`: agent-specific metadata
@@ -33,9 +35,11 @@ When the Quantex CLI behavior changes, update the relevant canonical project-mem
 
 Then update the skill files so they reflect the same contract.
 
+The contributor-facing runtime lives separately under `skills/quantex-agent-runtime/`. Use it when working inside this repository with Superpowers, OpenSpec intake, validation, and delivery closure rules. Do not document it as the default skill for users who only want to operate Quantex.
+
 ## Installation model
 
-Today the Quantex skill is installed from the repository itself. There is no separate npm package, marketplace release, or standalone bundle.
+Today the Quantex CLI skill is installed from the repository itself. There is no separate npm package, marketplace release, or standalone bundle.
 
 Use one of these patterns:
 
@@ -108,7 +112,7 @@ Use this update order:
 3. Run `skills/quantex-cli/scripts/smoke-check.sh`.
 4. If the change affects durable docs, update the linked runbook, ADR, or OpenSpec artifact in the same branch.
 
-Treat the skill as a consumer-facing integration layer, not the source of truth for product behavior.
+Treat `skills/quantex-cli/` as a consumer-facing integration layer, not the source of truth for product behavior. Treat `skills/quantex-agent-runtime/` as repository workflow runtime for contributors.
 
 ## Distribution today
 
@@ -125,11 +129,12 @@ Not supported today:
 - a public skill marketplace flow
 - an automated release pipeline that publishes the skill independently from this repository
 
-So in practice, the Quantex skill is currently distributed as part of the repository, alongside the CLI and its project-memory artifacts.
+So in practice, the user-facing Quantex CLI skill is currently distributed as part of the repository, alongside the CLI and its project-memory artifacts.
 
 ## Related files
 
 - `skills/quantex-cli/SKILL.md`
+- `skills/quantex-agent-runtime/SKILL.md`
 - `skills/quantex-cli/scripts/smoke-check.sh`
 - `skills/quantex-cli/references/command-recipes.md`
 - `skills/quantex-cli/references/output-contracts.md`

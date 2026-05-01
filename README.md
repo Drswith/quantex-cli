@@ -27,7 +27,7 @@ Quantex is a `human-friendly + agent-friendly` lifecycle CLI for AI coding agent
 
 ## Agent Quick Start
 
-If you are using a coding agent with Quantex, start by installing the repo-provided Quantex skill:
+If you are using a coding agent with Quantex, start by installing the repo-provided user-facing Quantex CLI skill:
 
 ```bash
 npx skills add Drswith/quantex-cli --skill quantex-cli -a codex -a claude-code -a opencode -y
@@ -56,7 +56,7 @@ Before finishing, run bun run lint, bun run format:check, and bun run typecheck.
 If command behavior changed, also run bun run test.
 ```
 
-The repo-local Quantex skill lives in [`skills/quantex-cli/`](./skills/quantex-cli/). It can be installed from GitHub through [skills.sh](https://skills.sh/) with `npx skills add`, but this repository remains the publishing source; it is not a separate npm package. See the [skill distribution notes](./docs/skill-installation-and-distribution.md) for installation and sync options.
+The repo-local user-facing Quantex CLI skill lives in [`skills/quantex-cli/`](./skills/quantex-cli/). It can be installed from GitHub through [skills.sh](https://skills.sh/) with `npx skills add`, but this repository remains the publishing source; it is not a separate npm package. The separate [`skills/quantex-agent-runtime/`](./skills/quantex-agent-runtime/) directory is contributor-facing runtime for agents working inside this repository, not the normal external user skill. See the [skill distribution notes](./docs/skill-installation-and-distribution.md) for installation and sync options.
 
 ## Install
 
@@ -260,6 +260,7 @@ If you are contributing to this repository or letting a coding agent work here, 
 - [openspec/README.md](./openspec/README.md): OpenSpec / OPSX change workflow.
 - [docs/github-collaboration.md](./docs/github-collaboration.md): Issue, PR, and Discussion collaboration flow.
 - [skills/quantex-cli/SKILL.md](./skills/quantex-cli/SKILL.md): repo-native skill for agents using Quantex.
+- [skills/quantex-agent-runtime/SKILL.md](./skills/quantex-agent-runtime/SKILL.md): contributor-facing runtime for agents working inside this repository.
 
 Common local development commands:
 
