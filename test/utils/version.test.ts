@@ -47,7 +47,11 @@ function createMockProcess(exitCode: number, stdout = '') {
         controller.close()
       },
     }),
-    stderr: new ReadableStream(),
+    stderr: new ReadableStream({
+      start(controller) {
+        controller.close()
+      },
+    }),
   }
 }
 

@@ -1,4 +1,4 @@
-import { spawnWithQuantexStdio, waitForSpawnedCommand } from '../utils/child-process'
+import { readProcessOutput, spawnCommand, spawnWithQuantexStdio, waitForSpawnedCommand } from '../utils/child-process'
 import { normalizeRegistryUrl } from '../utils/registry'
 
 export type RegistryUpdateStrategy = 'latest-major' | 'respect-semver'
@@ -90,15 +90,14 @@ async function trustBlockedGlobalPackages(packageNames: string[]): Promise<boole
 
 async function readGlobalUntrustedPackages(): Promise<string | undefined> {
   try {
-    const proc = Bun.spawn(['bun', 'pm', '-g', 'untrusted'], {
+    const proc = spawnCommand(['bun', 'pm', '-g', 'untrusted'], {
       stdio: createPipedStdio(),
     })
-    const output = await new Response(proc.stdout).text()
-    await proc.exited
+    const { exitCode, stdout } = await readProcessOutput(proc)
 
-    if (proc.exitCode !== 0) return undefined
+    if (exitCode !== 0) return undefined
 
-    return output
+    return stdout
   } catch {
     return undefined
   }
