@@ -3,6 +3,7 @@ import process from 'node:process'
 import { cancelCliContextOperations, getCliContext } from './cli-context'
 import { loadIdempotencyRecord, saveIdempotencyRecord } from './idempotency'
 import { createErrorResult, emitCommandEvent, emitCommandResult } from './output'
+import { maybeRenderSelfUpdateNotice } from './self/update-notice'
 import { pc } from './utils/color'
 
 interface ExecuteCommandOptions<T> {
@@ -19,7 +20,7 @@ export async function executeCommandWithRuntime<T>(options: ExecuteCommandOption
 
   if (timeoutMs === undefined)
     return withSignalCancellation(options, () =>
-      options.run().then(result => storeIdempotentResult(options.action, options.target, result)),
+      options.run().then(result => finalizeSuccessfulRun(options.action, options.target, result)),
     )
 
   let timeoutId: ReturnType<typeof setTimeout> | undefined
@@ -63,13 +64,32 @@ export async function executeCommandWithRuntime<T>(options: ExecuteCommandOption
 
     return await withSignalCancellation(options, () =>
       Promise.race([
-        options.run().then(result => storeIdempotentResult(options.action, options.target, result)),
+        options.run().then(result => finalizeSuccessfulRun(options.action, options.target, result)),
         timeoutPromise,
       ]),
     )
   } finally {
     if (timeoutId) clearTimeout(timeoutId)
   }
+}
+
+async function finalizeSuccessfulRun<T>(
+  action: string,
+  target: CommandTarget | undefined,
+  result: CommandResult<T>,
+): Promise<CommandResult<T>> {
+  const storedResult = await storeIdempotentResult(action, target, result)
+
+  try {
+    await maybeRenderSelfUpdateNotice({
+      action,
+      ok: storedResult.ok,
+    })
+  } catch {
+    // Passive reminders must never fail the primary command path.
+  }
+
+  return storedResult
 }
 
 function renderTimeoutHuman(result: Pick<CommandResult, 'error'>): void {

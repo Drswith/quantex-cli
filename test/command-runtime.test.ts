@@ -6,6 +6,10 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { setCliContext } from '../src/cli-context'
 import { executeCommandWithRuntime } from '../src/command-runtime'
 import { createSuccessResult } from '../src/output'
+import * as selfModule from '../src/self'
+import { saveState } from '../src/state'
+
+const inspectSelfSpy = vi.spyOn(selfModule, 'inspectSelf')
 
 describe('executeCommandWithRuntime', () => {
   let logSpy: ReturnType<typeof vi.spyOn>
@@ -20,6 +24,8 @@ describe('executeCommandWithRuntime', () => {
 
   afterEach(() => {
     logSpy.mockRestore()
+    inspectSelfSpy.mockReset()
+    vi.useRealTimers()
     if (originalHome === undefined) delete process.env.HOME
     else process.env.HOME = originalHome
     rmSync(tempHome, { force: true, recursive: true })
@@ -159,5 +165,180 @@ describe('executeCommandWithRuntime', () => {
     expect(cancelledEvent.data.signal).toBe('SIGTERM')
     expect(result.ok).toBe(false)
     expect(result.error?.code).toBe('CANCELLED')
+  })
+
+  it('shows a passive self-update notice after a successful human-mode command', async () => {
+    const stdoutWriteSpy = vi.spyOn(process.stdout, 'write').mockReturnValue(true)
+    vi.useFakeTimers()
+    vi.setSystemTime(new Date('2026-05-01T08:00:00.000Z'))
+    inspectSelfSpy.mockResolvedValue({
+      canAutoUpdate: true,
+      currentVersion: '1.0.0',
+      executablePath: '/tmp/quantex',
+      installSource: 'npm',
+      latestVersion: '1.1.0',
+      packageRoot: '/tmp/quantex',
+      recommendedUpgradeCommand: 'quantex upgrade',
+      updateChannel: 'stable',
+    })
+
+    setCliContext({
+      interactive: true,
+      outputMode: 'human',
+      runId: 'human-run-id',
+    })
+
+    const result = await executeCommandWithRuntime({
+      action: 'list',
+      run: async () =>
+        createSuccessResult({
+          action: 'list',
+          data: { agents: [] },
+          target: {
+            kind: 'system',
+            name: 'agents',
+          },
+        }),
+      target: {
+        kind: 'system',
+        name: 'agents',
+      },
+    })
+
+    expect(result.ok).toBe(true)
+    expect(stdoutWriteSpy).toHaveBeenCalledWith(expect.stringContaining('Quantex CLI 1.1.0 is available'))
+    expect(stdoutWriteSpy).toHaveBeenCalledWith(expect.stringContaining('Run `quantex upgrade`.'))
+    stdoutWriteSpy.mockRestore()
+  })
+
+  it('suppresses the passive notice in structured output modes', async () => {
+    const stdoutWriteSpy = vi.spyOn(process.stdout, 'write').mockReturnValue(true)
+    inspectSelfSpy.mockResolvedValue({
+      canAutoUpdate: true,
+      currentVersion: '1.0.0',
+      executablePath: '/tmp/quantex',
+      installSource: 'npm',
+      latestVersion: '1.1.0',
+      packageRoot: '/tmp/quantex',
+      recommendedUpgradeCommand: 'quantex upgrade',
+      updateChannel: 'stable',
+    })
+
+    setCliContext({
+      interactive: false,
+      outputMode: 'json',
+      runId: 'json-run-id',
+    })
+
+    await executeCommandWithRuntime({
+      action: 'list',
+      run: async () =>
+        createSuccessResult({
+          action: 'list',
+          data: { agents: [] },
+          target: {
+            kind: 'system',
+            name: 'agents',
+          },
+        }),
+      target: {
+        kind: 'system',
+        name: 'agents',
+      },
+    })
+
+    expect(inspectSelfSpy).not.toHaveBeenCalled()
+    expect(stdoutWriteSpy).not.toHaveBeenCalledWith(expect.stringContaining('Quantex CLI 1.1.0 is available'))
+    stdoutWriteSpy.mockRestore()
+  })
+
+  it('suppresses repeated reminders for the same target version inside the throttle window', async () => {
+    const stdoutWriteSpy = vi.spyOn(process.stdout, 'write').mockReturnValue(true)
+    vi.useFakeTimers()
+    vi.setSystemTime(new Date('2026-05-01T08:00:00.000Z'))
+    await saveState({
+      installedAgents: {},
+      self: {
+        updateNoticeAt: '2026-05-01T00:00:00.000Z',
+        updateNoticeVersion: '1.1.0',
+      },
+    })
+    inspectSelfSpy.mockResolvedValue({
+      canAutoUpdate: true,
+      currentVersion: '1.0.0',
+      executablePath: '/tmp/quantex',
+      installSource: 'npm',
+      latestVersion: '1.1.0',
+      packageRoot: '/tmp/quantex',
+      recommendedUpgradeCommand: 'quantex upgrade',
+      updateChannel: 'stable',
+    })
+
+    setCliContext({
+      interactive: true,
+      outputMode: 'human',
+      runId: 'human-run-id',
+    })
+
+    await executeCommandWithRuntime({
+      action: 'list',
+      run: async () =>
+        createSuccessResult({
+          action: 'list',
+          data: { agents: [] },
+          target: {
+            kind: 'system',
+            name: 'agents',
+          },
+        }),
+      target: {
+        kind: 'system',
+        name: 'agents',
+      },
+    })
+
+    expect(stdoutWriteSpy).not.toHaveBeenCalledWith(expect.stringContaining('Quantex CLI 1.1.0 is available'))
+    stdoutWriteSpy.mockRestore()
+  })
+
+  it('skips passive reminders for doctor because that command owns self-upgrade messaging', async () => {
+    const stdoutWriteSpy = vi.spyOn(process.stdout, 'write').mockReturnValue(true)
+    inspectSelfSpy.mockResolvedValue({
+      canAutoUpdate: true,
+      currentVersion: '1.0.0',
+      executablePath: '/tmp/quantex',
+      installSource: 'npm',
+      latestVersion: '1.1.0',
+      packageRoot: '/tmp/quantex',
+      recommendedUpgradeCommand: 'quantex upgrade',
+      updateChannel: 'stable',
+    })
+
+    setCliContext({
+      interactive: true,
+      outputMode: 'human',
+      runId: 'doctor-run-id',
+    })
+
+    await executeCommandWithRuntime({
+      action: 'doctor',
+      run: async () =>
+        createSuccessResult({
+          action: 'doctor',
+          data: { issues: [] },
+          target: {
+            kind: 'system',
+            name: 'doctor',
+          },
+        }),
+      target: {
+        kind: 'system',
+        name: 'doctor',
+      },
+    })
+
+    expect(inspectSelfSpy).not.toHaveBeenCalled()
+    expect(stdoutWriteSpy).not.toHaveBeenCalledWith(expect.stringContaining('Quantex CLI 1.1.0 is available'))
+    stdoutWriteSpy.mockRestore()
   })
 })
