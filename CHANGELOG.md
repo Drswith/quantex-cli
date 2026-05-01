@@ -2,6 +2,13 @@
 
 This changelog is maintained by release-please Release PRs.
 
+## [0.12.1](https://github.com/Drswith/quantex-cli/compare/v0.12.0...v0.12.1) (2026-05-01)
+
+
+### Bug Fixes
+
+* make managed CLI runtime Node-compatible ([#160](https://github.com/Drswith/quantex-cli/issues/160)) ([792c9eb](https://github.com/Drswith/quantex-cli/commit/792c9eb57f47855e63346d7273b5ba99dce7dee9))
+
 ## [0.12.0](https://github.com/Drswith/quantex-cli/compare/v0.11.0...v0.12.0) (2026-04-30)
 
 
