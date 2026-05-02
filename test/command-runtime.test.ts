@@ -1,10 +1,12 @@
 import type { CommandResult } from '../src/output/types'
 import { mkdtempSync, rmSync } from 'node:fs'
+import { readFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { setCliContext } from '../src/cli-context'
 import { executeCommandWithRuntime } from '../src/command-runtime'
+import { getIdempotencyFilePath } from '../src/idempotency'
 import { createSuccessResult } from '../src/output'
 import * as selfModule from '../src/self'
 import { saveState } from '../src/state'
@@ -29,6 +31,47 @@ describe('executeCommandWithRuntime', () => {
     if (originalHome === undefined) delete process.env.HOME
     else process.env.HOME = originalHome
     rmSync(tempHome, { force: true, recursive: true })
+  })
+
+  it('does not persist idempotency or run post-success hooks when the command times out but completes later', async () => {
+    const run = vi.fn(
+      () =>
+        new Promise<CommandResult<unknown>>(resolve =>
+          setTimeout(
+            () =>
+              resolve(
+                createSuccessResult({
+                  action: 'install',
+                  data: { installed: true },
+                  target: { kind: 'agent', name: 'codex' },
+                }),
+              ),
+            200,
+          ),
+        ),
+    )
+
+    setCliContext({
+      idempotencyKey: 'late-after-timeout',
+      interactive: false,
+      outputMode: 'json',
+      runId: 'timeout-late-id',
+      timeoutMs: 20,
+    })
+
+    const result = await executeCommandWithRuntime({
+      action: 'install',
+      run,
+      target: { kind: 'agent', name: 'codex' },
+    })
+
+    expect(result.ok).toBe(false)
+    expect(result.error?.code).toBe('TIMEOUT')
+
+    await new Promise(resolve => setTimeout(resolve, 250))
+
+    await expect(readFile(getIdempotencyFilePath('late-after-timeout'), 'utf8')).rejects.toThrow()
+    expect(inspectSelfSpy).not.toHaveBeenCalled()
   })
 
   it('returns a timeout error when execution exceeds the configured deadline', async () => {
@@ -138,6 +181,49 @@ describe('executeCommandWithRuntime', () => {
     expect(replayed.ok).toBe(true)
     expect(replayed.meta.runId).toBe('second-run-id')
     expect(logSpy).toHaveBeenCalledWith(expect.stringContaining('"runId": "second-run-id"'))
+  })
+
+  it('does not persist idempotency when SIGTERM wins the race but the command completes later', async () => {
+    const run = vi.fn(
+      () =>
+        new Promise<CommandResult<unknown>>(resolve =>
+          setTimeout(
+            () =>
+              resolve(
+                createSuccessResult({
+                  action: 'update',
+                  data: { updated: true },
+                  target: { kind: 'agent', name: 'codex' },
+                }),
+              ),
+            200,
+          ),
+        ),
+    )
+
+    setCliContext({
+      idempotencyKey: 'late-after-signal',
+      interactive: false,
+      outputMode: 'json',
+      runId: 'signal-late-id',
+    })
+
+    const execution = executeCommandWithRuntime({
+      action: 'update',
+      run,
+      target: { kind: 'agent', name: 'codex' },
+    })
+
+    await new Promise(resolve => setTimeout(resolve, 0))
+    process.emit('SIGTERM')
+
+    const result = await execution
+    expect(result.ok).toBe(false)
+    expect(result.error?.code).toBe('CANCELLED')
+
+    await new Promise(resolve => setTimeout(resolve, 250))
+
+    await expect(readFile(getIdempotencyFilePath('late-after-signal'), 'utf8')).rejects.toThrow()
   })
 
   it('returns a cancelled error when the process receives a termination signal', async () => {

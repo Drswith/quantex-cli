@@ -1,6 +1,6 @@
 import type { CommandResult, CommandTarget } from './output/types'
 import process from 'node:process'
-import { cancelCliContextOperations, getCliContext } from './cli-context'
+import { cancelCliContextOperations, getCliContext, markCliContextCancelled } from './cli-context'
 import { loadIdempotencyRecord, saveIdempotencyRecord } from './idempotency'
 import { createErrorResult, emitCommandEvent, emitCommandResult } from './output'
 import { maybeRenderSelfUpdateNotice } from './self/update-notice'
@@ -64,7 +64,14 @@ export async function executeCommandWithRuntime<T>(options: ExecuteCommandOption
 
     return await withSignalCancellation(options, () =>
       Promise.race([
-        options.run().then(result => finalizeSuccessfulRun(options.action, options.target, result)),
+        options
+          .run()
+          .then(result => finalizeSuccessfulRun(options.action, options.target, result))
+          .finally(() => {
+            // If the timeout branch won the race, the run promise still settles later; avoid treating
+            // that late completion as the command outcome (idempotency writes, passive notices, etc.).
+            if (getCliContext().cancelled) markCliContextCancelled()
+          }),
         timeoutPromise,
       ]),
     )
@@ -78,6 +85,8 @@ async function finalizeSuccessfulRun<T>(
   target: CommandTarget | undefined,
   result: CommandResult<T>,
 ): Promise<CommandResult<T>> {
+  if (getCliContext().cancelled) return result
+
   const storedResult = await storeIdempotentResult(action, target, result)
 
   try {
