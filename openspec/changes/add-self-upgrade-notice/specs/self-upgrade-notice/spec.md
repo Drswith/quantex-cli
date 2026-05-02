@@ -72,3 +72,15 @@ Quantex SHALL remember when it last reminded the user about a specific target ve
 - WHEN Quantex evaluates passive self-upgrade reminders
 - THEN it renders the reminder for `Y`
 - AND it refreshes the recorded reminder state
+
+### Requirement: Passive self-upgrade checks MUST not consume the shared runtime `--timeout` budget
+
+The deadline enforced by `--timeout` SHALL apply only to the primary command work executed by the runtime, not to post-success steps such as idempotency persistence or passive self-upgrade evaluation.
+
+#### Scenario: Slow version resolution after a fast command
+
+- GIVEN the user sets `--timeout` to a value sufficient for the primary command to finish
+- AND the primary command completes within that budget
+- WHEN passive self-upgrade evaluation (for example `inspectSelf`) takes longer than the timeout value
+- THEN the command result still reflects successful completion
+- AND the process does not report `TIMEOUT` solely because of post-command reminder work

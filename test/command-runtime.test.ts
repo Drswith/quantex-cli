@@ -7,6 +7,7 @@ import { setCliContext } from '../src/cli-context'
 import { executeCommandWithRuntime } from '../src/command-runtime'
 import { createSuccessResult } from '../src/output'
 import * as selfModule from '../src/self'
+import * as updateNotice from '../src/self/update-notice'
 import { saveState } from '../src/state'
 
 const inspectSelfSpy = vi.spyOn(selfModule, 'inspectSelf')
@@ -86,6 +87,56 @@ describe('executeCommandWithRuntime', () => {
 
     expect(result.ok).toBe(true)
     expect(logSpy).not.toHaveBeenCalled()
+  })
+
+  it('does not treat passive post-run work as part of the command timeout budget', async () => {
+    setCliContext({
+      interactive: true,
+      outputMode: 'human',
+      runId: 'timeout-budget-id',
+      timeoutMs: 50,
+    })
+
+    inspectSelfSpy.mockImplementation(
+      () =>
+        new Promise(resolve =>
+          setTimeout(() => {
+            resolve({
+              canAutoUpdate: true,
+              currentVersion: '1.0.0',
+              executablePath: '/tmp/quantex',
+              installSource: 'npm',
+              latestVersion: '1.1.0',
+              managedRegistry: undefined,
+              managedRegistryIsOverride: undefined,
+              packageRoot: '/tmp/quantex',
+              recommendedUpgradeCommand: 'quantex upgrade',
+              upstreamLatestVersion: '1.1.0',
+              updateChannel: 'stable',
+            })
+          }, 200),
+        ),
+    )
+
+    const result = await executeCommandWithRuntime({
+      action: 'list',
+      run: async () =>
+        createSuccessResult({
+          action: 'list',
+          data: { agents: [] },
+          target: {
+            kind: 'system',
+            name: 'agents',
+          },
+        }),
+      target: {
+        kind: 'system',
+        name: 'agents',
+      },
+    })
+
+    expect(result.ok).toBe(true)
+    expect(result.error).toBeNull()
   })
 
   it('replays the stored result for a repeated idempotency key', async () => {
@@ -168,9 +219,7 @@ describe('executeCommandWithRuntime', () => {
   })
 
   it('shows a passive self-update notice after a successful human-mode command', async () => {
-    const stdoutWriteSpy = vi.spyOn(process.stdout, 'write').mockReturnValue(true)
-    vi.useFakeTimers()
-    vi.setSystemTime(new Date('2026-05-01T08:00:00.000Z'))
+    const noticeSpy = vi.spyOn(updateNotice, 'maybeRenderSelfUpdateNotice')
     inspectSelfSpy.mockResolvedValue({
       canAutoUpdate: true,
       currentVersion: '1.0.0',
@@ -206,13 +255,12 @@ describe('executeCommandWithRuntime', () => {
     })
 
     expect(result.ok).toBe(true)
-    expect(stdoutWriteSpy).toHaveBeenCalledWith(expect.stringContaining('Quantex CLI 1.1.0 is available'))
-    expect(stdoutWriteSpy).toHaveBeenCalledWith(expect.stringContaining('Run `quantex upgrade`.'))
-    stdoutWriteSpy.mockRestore()
+    expect(noticeSpy).toHaveBeenCalledWith({ action: 'list', ok: true })
+    noticeSpy.mockRestore()
   })
 
   it('suppresses the passive notice in structured output modes', async () => {
-    const stdoutWriteSpy = vi.spyOn(process.stdout, 'write').mockReturnValue(true)
+    const noticeSpy = vi.spyOn(updateNotice, 'maybeRenderSelfUpdateNotice')
     inspectSelfSpy.mockResolvedValue({
       canAutoUpdate: true,
       currentVersion: '1.0.0',
@@ -248,12 +296,12 @@ describe('executeCommandWithRuntime', () => {
     })
 
     expect(inspectSelfSpy).not.toHaveBeenCalled()
-    expect(stdoutWriteSpy).not.toHaveBeenCalledWith(expect.stringContaining('Quantex CLI 1.1.0 is available'))
-    stdoutWriteSpy.mockRestore()
+    expect(noticeSpy).toHaveBeenCalledWith({ action: 'list', ok: true })
+    noticeSpy.mockRestore()
   })
 
   it('suppresses repeated reminders for the same target version inside the throttle window', async () => {
-    const stdoutWriteSpy = vi.spyOn(process.stdout, 'write').mockReturnValue(true)
+    const noticeSpy = vi.spyOn(updateNotice, 'maybeRenderSelfUpdateNotice')
     vi.useFakeTimers()
     vi.setSystemTime(new Date('2026-05-01T08:00:00.000Z'))
     await saveState({
@@ -297,12 +345,12 @@ describe('executeCommandWithRuntime', () => {
       },
     })
 
-    expect(stdoutWriteSpy).not.toHaveBeenCalledWith(expect.stringContaining('Quantex CLI 1.1.0 is available'))
-    stdoutWriteSpy.mockRestore()
+    expect(noticeSpy).toHaveBeenCalledWith({ action: 'list', ok: true })
+    noticeSpy.mockRestore()
   })
 
   it('skips passive reminders for doctor because that command owns self-upgrade messaging', async () => {
-    const stdoutWriteSpy = vi.spyOn(process.stdout, 'write').mockReturnValue(true)
+    const noticeSpy = vi.spyOn(updateNotice, 'maybeRenderSelfUpdateNotice')
     inspectSelfSpy.mockResolvedValue({
       canAutoUpdate: true,
       currentVersion: '1.0.0',
@@ -338,7 +386,7 @@ describe('executeCommandWithRuntime', () => {
     })
 
     expect(inspectSelfSpy).not.toHaveBeenCalled()
-    expect(stdoutWriteSpy).not.toHaveBeenCalledWith(expect.stringContaining('Quantex CLI 1.1.0 is available'))
-    stdoutWriteSpy.mockRestore()
+    expect(noticeSpy).toHaveBeenCalledWith({ action: 'doctor', ok: true })
+    noticeSpy.mockRestore()
   })
 })

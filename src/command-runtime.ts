@@ -62,12 +62,16 @@ export async function executeCommandWithRuntime<T>(options: ExecuteCommandOption
       }, timeoutMs)
     })
 
-    return await withSignalCancellation(options, () =>
-      Promise.race([
-        options.run().then(result => finalizeSuccessfulRun(options.action, options.target, result)),
-        timeoutPromise,
-      ]),
-    )
+    // Race only the primary command work against the deadline. Post-run steps (idempotency
+    // persistence and passive self-update notice) must not consume the timeout budget.
+    return await withSignalCancellation(options, async () => {
+      const result = await Promise.race([options.run(), timeoutPromise])
+      if (timeoutId !== undefined) {
+        clearTimeout(timeoutId)
+        timeoutId = undefined
+      }
+      return finalizeSuccessfulRun(options.action, options.target, result)
+    })
   } finally {
     if (timeoutId) clearTimeout(timeoutId)
   }
