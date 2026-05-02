@@ -309,3 +309,20 @@ Repository scripts that support the agent workflow SHALL remain focused on valid
 - **WHEN** the repository already exposes a local validator for the PR body
 - **THEN** the project MUST keep the action on the native GitHub CLI
 - **AND** it MUST NOT add a project-specific PR creation command solely to sequence that native action
+
+### Requirement: Quantex Runtime Skill Is Contributor-Facing
+
+The central Quantex agent runtime skill SHALL be treated as a repository development workflow artifact for contributors and coding agents working inside this repository, not as the normal user-facing skill for operating Quantex.
+
+#### Scenario: Maintainer documents repo-local skills
+
+- **WHEN** repo-local skills are described in project memory or distribution docs
+- **THEN** `skills/quantex-cli` is identified as the user/agent-facing Quantex operation skill
+- **AND** `skills/quantex-agent-runtime` is identified as contributor-facing repository workflow runtime
+
+#### Scenario: User follows normal Quantex skill installation
+
+- **WHEN** a user wants a skill for operating Quantex from an external agent runtime
+- **THEN** the documented default target is `quantex-cli`
+- **AND** the user is not instructed to install `quantex-agent-runtime` unless they are contributing to this repository
+
