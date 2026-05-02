@@ -146,3 +146,13 @@ bun run release:artifacts
 - self binary upgrade 已包含 checksum、lock、verify、`.bak` rollback 与 Windows 延迟替换
 - 全局 dual-mode surface 当前还包括 `--yes`、`--quiet`、`--color`、`--log-level`、`--dry-run`、`--refresh`、`--no-cache`
 - 结构化 `meta` 当前可附带 `fetchedAt`、`staleAfter`、`source`
+
+## Cursor Cloud specific instructions
+
+- 运行时为 Bun v1.3.11，通过 `~/.bun/bin` 提供。Cloud VM 启动脚本已配置 `bun install`。
+- 这是一个纯 CLI 项目，无需启动后台服务、数据库或 Docker。
+- 开发模式运行：`bun run dev` （等价于 `bun run src/cli.ts`），后接 CLI 参数，如 `bun run dev -- list`。
+- 验证命令参考 AGENTS.md 的 Validation 节；核心四件套：`bun run lint`、`bun run format:check`、`bun run typecheck`、`bun run test`。
+- `bun run build` 产出 `dist/`；`bun run build:bin` 产出平台二进制。
+- lint 由 `oxlint` 提供，format 由 `oxfmt` 提供；不要引入 eslint 或 prettier。
+- Cloud VM 中 npm 和 brew 不可用；`capabilities` 输出会显示 `npm: not-found`、`brew: not-found`，这属于正常环境限制。
