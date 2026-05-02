@@ -4,18 +4,34 @@ Use this file when you need concrete Quantex command choices, example invocation
 
 ## Supported agents
 
-Quantex currently manages these agent names:
+This skill snapshot knows about these Quantex agent names:
 
+- `auggie`
+- `autohand`
+- `amp`
 - `claude`
+- `codebuddy`
 - `codex`
 - `copilot`
+- `crush`
 - `cursor`
+- `devin`
 - `droid`
+- `forgecode`
 - `gemini`
+- `goose`
+- `junie`
+- `kilo`
+- `kimi`
+- `kiro`
+- `openhands`
 - `opencode`
 - `pi`
+- `qoder`
+- `qwen`
+- `vibe`
 
-If you are unsure whether the current binary supports a specific command or output shape, run:
+The running binary remains the source of truth. If you are unsure whether the current binary supports a specific agent, command, flag, or output shape, run:
 
 ```bash
 quantex capabilities --json

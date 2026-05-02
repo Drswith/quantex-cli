@@ -6,6 +6,14 @@
 
 Use this file when Quantex fails, behaves unexpectedly, or when you need to decide whether the problem is configuration, environment, install source, or command choice.
 
+## Inputs
+
+- `quantex capabilities --json`
+- `quantex commands --json`
+- `quantex inspect <agent> --json`
+- `quantex resolve <agent> --json`
+- `quantex doctor --json`
+
 ## Triage order
 
 Prefer this order:
@@ -23,6 +31,15 @@ Why this order:
 - `inspect` tells you how Quantex sees the specific agent
 - `resolve` tells you what executable Quantex would actually launch
 - `doctor` is for diagnosing what is wrong and how to recover
+
+When consuming `doctor --json` in automation, prefer the structured issue fields over parsing prose:
+
+- `issues[].code`
+- `issues[].category`
+- `issues[].blocking`
+- `issues[].suggestedAction`
+- `issues[].suggestedCommands`
+- `issues[].docsRef`
 
 ## Common failure patterns
 
@@ -97,6 +114,22 @@ What to do:
 - inspect the current platform and supported install methods
 - if this is expected, choose a different install source or follow the manual hint
 
+`quantex doctor` now reports this as a direct warning and points you toward restoring a managed installer or falling back to a manual path.
+
+### `doctor` reports install-source drift or unmanaged PATH detections
+
+Symptoms:
+
+- Quantex says it was installed through `bun` or `npm`, but that package manager is no longer available
+- an agent is visible in PATH, but Quantex treats it as unmanaged
+
+What to do:
+
+- if Quantex itself lost its package manager, restore that package manager or reinstall Quantex from a supported source
+- if an agent is only detected in PATH, run `quantex inspect <agent> --json` to confirm the source
+- reinstall the agent through Quantex if you want tracked lifecycle management
+- keep manual or self-updating installs only when that tradeoff is intentional
+
 ### Data looks stale
 
 Symptoms:
@@ -150,7 +183,7 @@ What to do:
 
 Quantex protects lifecycle state with resource locks; lock conflicts are a sign to serialize work, not to bypass the error.
 
-## Practical recovery patterns
+## Recovery
 
 ### Need a safe minimal diagnostic snapshot
 
@@ -172,3 +205,17 @@ quantex resolve codex --json
 ```bash
 quantex ensure codex --json --non-interactive --yes --idempotency-key ensure-codex-001 --timeout 2m
 ```
+
+## Escalation
+
+Stop and ask for human input when:
+
+- recovery requires changing install source or release channel unexpectedly
+- repeated retries suggest a permission, platform, or environment mismatch rather than transient failure
+- troubleshooting reveals a missing product contract that should be written down before implementation continues
+
+## Related artifacts
+
+- `docs/adr/0001-agent-native-project-memory.md`
+- `output-contracts.md`
+- `openspec/changes/archive/qtx-0001-migrate-troubleshooting-into-runbooks/proposal.md`
