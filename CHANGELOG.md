@@ -2,6 +2,18 @@
 
 This changelog is maintained by release-please Release PRs.
 
+## [0.13.0](https://github.com/Drswith/quantex-cli/compare/v0.12.1...v0.13.0) (2026-05-02)
+
+
+### Features
+
+* add passive self-upgrade notice ([a37960a](https://github.com/Drswith/quantex-cli/commit/a37960aec269c880e5dcc4e035bee64fa0f68086))
+
+
+### Bug Fixes
+
+* **runtime:** exclude post-run work from --timeout race ([#168](https://github.com/Drswith/quantex-cli/issues/168)) ([cad1086](https://github.com/Drswith/quantex-cli/commit/cad1086546f2c1f8de3fe24eb6f572f345ad1fd7))
+
 ## [0.12.1](https://github.com/Drswith/quantex-cli/compare/v0.12.0...v0.12.1) (2026-05-01)
 
 
