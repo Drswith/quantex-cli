@@ -1,10 +1,12 @@
 import type { CommandResult } from '../src/output/types'
 import { mkdtempSync, rmSync } from 'node:fs'
+import { existsSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { setCliContext } from '../src/cli-context'
 import { executeCommandWithRuntime } from '../src/command-runtime'
+import { getIdempotencyFilePath } from '../src/idempotency'
 import { createSuccessResult } from '../src/output'
 import * as selfModule from '../src/self'
 import { saveState } from '../src/state'
@@ -55,6 +57,38 @@ describe('executeCommandWithRuntime', () => {
     expect(resultEvent.type).toBe('result')
     expect(result.ok).toBe(false)
     expect(result.error?.code).toBe('TIMEOUT')
+  })
+
+  it('does not persist idempotency or run post-success hooks when the command wins the race by timeout but finishes later', async () => {
+    setCliContext({
+      idempotencyKey: 'late-success-after-timeout',
+      interactive: false,
+      outputMode: 'json',
+      runId: 'late-timeout-run-id',
+      timeoutMs: 5,
+    })
+
+    const idempotencyPath = getIdempotencyFilePath('late-success-after-timeout')
+
+    const result = await executeCommandWithRuntime({
+      action: 'install',
+      run: async () => {
+        await new Promise(resolve => setTimeout(resolve, 50))
+        return createSuccessResult({
+          action: 'install',
+          data: { installed: true },
+          target: { kind: 'agent', name: 'codex' },
+        })
+      },
+      target: { kind: 'agent', name: 'codex' },
+    })
+
+    expect(result.ok).toBe(false)
+    expect(result.error?.code).toBe('TIMEOUT')
+
+    await new Promise(resolve => setTimeout(resolve, 80))
+    expect(existsSync(idempotencyPath)).toBe(false)
+    expect(inspectSelfSpy).not.toHaveBeenCalled()
   })
 
   it('passes through successful results before the timeout fires', async () => {

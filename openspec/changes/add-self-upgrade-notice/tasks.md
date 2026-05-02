@@ -7,11 +7,13 @@
 - [x] 2.1 Extend self state to persist passive self-upgrade reminder throttle metadata.
 - [x] 2.2 Add a self-upgrade notice helper that evaluates output mode, command ownership, upgrade availability, and throttle state.
 - [x] 2.3 Invoke the passive self-upgrade notice from the shared runtime without changing structured command results.
+- [x] 2.4 Skip idempotency persistence and passive reminder evaluation when the CLI context is already cancelled (late success after timeout or signal).
 
 ## 3. Validation
 
 - [x] 3.1 Add or update tests for state persistence and runtime reminder behavior.
 - [x] 3.2 Run `bun run lint`, `bun run format:check`, `bun run typecheck`, `bun run test`, and `bun run openspec:validate`.
+- [x] 3.3 Add regression coverage for late success after timeout (no idempotency write, no `inspectSelf` for passive notice).
 
 ## 4. Delivery
 

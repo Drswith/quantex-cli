@@ -72,3 +72,16 @@ Quantex SHALL remember when it last reminded the user about a specific target ve
 - WHEN Quantex evaluates passive self-upgrade reminders
 - THEN it renders the reminder for `Y`
 - AND it refreshes the recorded reminder state
+
+### Requirement: Passive reminder side effects MUST NOT run after cancellation or timeout
+
+When the shared command runtime has already cancelled the CLI context (for example because `--timeout` fired or the process received a termination signal), Quantex SHALL NOT treat a late-arriving command success as completion for idempotency persistence or for passive self-upgrade reminder evaluation.
+
+#### Scenario: Timeout wins the race but the command body finishes later
+
+- GIVEN a runtime command uses a finite `--timeout`
+- AND the timeout fires before the command body resolves
+- AND the command body later resolves with success
+- WHEN idempotency persistence and passive reminders would normally run for that success
+- THEN Quantex does not write an idempotency record for that late success
+- AND does not persist passive reminder throttle metadata because of that late success

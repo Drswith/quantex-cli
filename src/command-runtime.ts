@@ -20,7 +20,10 @@ export async function executeCommandWithRuntime<T>(options: ExecuteCommandOption
 
   if (timeoutMs === undefined)
     return withSignalCancellation(options, () =>
-      options.run().then(result => finalizeSuccessfulRun(options.action, options.target, result)),
+      options.run().then(result => {
+        if (getCliContext().cancelled) return result
+        return finalizeSuccessfulRun(options.action, options.target, result)
+      }),
     )
 
   let timeoutId: ReturnType<typeof setTimeout> | undefined
@@ -64,7 +67,10 @@ export async function executeCommandWithRuntime<T>(options: ExecuteCommandOption
 
     return await withSignalCancellation(options, () =>
       Promise.race([
-        options.run().then(result => finalizeSuccessfulRun(options.action, options.target, result)),
+        options.run().then(result => {
+          if (getCliContext().cancelled) return result
+          return finalizeSuccessfulRun(options.action, options.target, result)
+        }),
         timeoutPromise,
       ]),
     )
