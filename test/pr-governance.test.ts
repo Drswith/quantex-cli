@@ -7,6 +7,7 @@ const prBodyPolicyScript = readFileSync('scripts/pr-body-policy.ts', 'utf8')
 
 describe('pr governance release intent', () => {
   it('requires a release intent section in PR bodies', () => {
+    expect(prGovernanceWorkflow).toContain('bun run scripts/merge-pr-body-for-governance.ts')
     expect(prGovernanceWorkflow).toContain('bun run pr:body:check')
     expect(prBodyPolicyScript).toContain("'## Release Intent'")
     expect(prTemplate).toContain('## Release Intent')

@@ -41,10 +41,16 @@ jobs:
           CHANGED_FILES_JSON: ${{ steps.changed-files.outputs.changed_files }}
         run: bun run scripts/path-taxonomy.ts
 
+      - name: Merge PR body for governance check
+        env:
+          PR_BODY: ${{ github.event.pull_request.body }}
+        run: bun run scripts/merge-pr-body-for-governance.ts merged-pr-body.md
+
       - name: Validate PR body
         env:
           CHANGED_FILES_JSON: ${{ steps.classify.outputs.changed_files }}
-          PR_BODY: ${{ github.event.pull_request.body }}
           PR_HEAD_BRANCH: ${{ github.event.pull_request.head.ref }}
           PR_TITLE: ${{ github.event.pull_request.title }}
-        run: bun run pr:body:check
+        run: |
+          export PR_BODY="$(cat merged-pr-body.md)"
+          bun run pr:body:check
