@@ -92,13 +92,13 @@ export async function setSelfUpdateNoticeState(updateNoticeVersion: string, upda
 async function readState(): Promise<QuantexState> {
   try {
     const data = JSON.parse(await readFile(getStateFilePath(), 'utf8')) as Partial<QuantexState>
+    const rawSelf = data.self
+    const selfSpread = rawSelf !== null && typeof rawSelf === 'object' && !Array.isArray(rawSelf) ? { ...rawSelf } : {}
+
     return {
       installedAgents: data.installedAgents ?? {},
-      self: {
-        installSource: data.self?.installSource,
-        updateNoticeAt: data.self?.updateNoticeAt,
-        updateNoticeVersion: data.self?.updateNoticeVersion,
-      },
+      // Preserve forward-compatible keys under `self` so mutateState write-backs do not drop data.
+      self: selfSpread as SelfState,
     }
   } catch {
     return { ...defaultState }

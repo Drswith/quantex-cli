@@ -85,6 +85,33 @@ describe('state helpers', () => {
     expect(writtenState.self?.updateNoticeAt).toBe('2026-05-01T00:00:00.000Z')
   })
 
+  it('preserves unknown self keys across mutateState write-backs', async () => {
+    const stateFilePath = getStateFilePath()
+    mkdirSync(tempDir, { recursive: true })
+    writeFileSync(
+      stateFilePath,
+      `${JSON.stringify(
+        {
+          installedAgents: {},
+          self: {
+            experimentalFlag: true,
+            installSource: 'npm',
+          },
+        },
+        null,
+        2,
+      )}\n`,
+    )
+
+    await setSelfUpdateNoticeState('9.9.9', '2026-05-04T12:00:00.000Z')
+
+    const writtenState = JSON.parse(readFileSync(stateFilePath, 'utf8'))
+    expect(writtenState.self?.experimentalFlag).toBe(true)
+    expect(writtenState.self?.installSource).toBe('npm')
+    expect(writtenState.self?.updateNoticeVersion).toBe('9.9.9')
+    expect(writtenState.self?.updateNoticeAt).toBe('2026-05-04T12:00:00.000Z')
+  })
+
   it('rejects writes while the state lock is already held', async () => {
     const release = await acquireResourceLock({
       resource: 'state',
