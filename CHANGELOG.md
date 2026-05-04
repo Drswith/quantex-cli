@@ -2,6 +2,13 @@
 
 This changelog is maintained by release-please Release PRs.
 
+## [0.14.0](https://github.com/Drswith/quantex-cli/compare/v0.13.0...v0.14.0) (2026-05-04)
+
+
+### Features
+
+* **agents:** add deepseek tui support ([#176](https://github.com/Drswith/quantex-cli/issues/176)) ([ca43b81](https://github.com/Drswith/quantex-cli/commit/ca43b811dd86bfb33dde7aece06bff1dc26deed9))
+
 ## [0.13.0](https://github.com/Drswith/quantex-cli/compare/v0.12.1...v0.13.0) (2026-05-02)
 
 
