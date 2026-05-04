@@ -1,6 +1,7 @@
 import { readFileSync } from 'node:fs'
 import { describe, expect, it } from 'vitest'
 
+const ciWorkflow = readFileSync('.github/workflows/ci.yml', 'utf8')
 const prGovernanceWorkflow = readFileSync('.github/workflows/pr-governance.yml', 'utf8')
 const prTemplate = readFileSync('.github/pull_request_template.md', 'utf8')
 const prBodyPolicyScript = readFileSync('scripts/pr-body-policy.ts', 'utf8')
@@ -39,5 +40,11 @@ describe('pr governance release intent', () => {
   it('keeps PR template compatible with agent-driven OpenSpec archive closure', () => {
     expect(prTemplate).toContain('## Closure Check')
     expect(prTemplate).toContain('queued for agent-driven archive closure')
+  })
+
+  it('runs commit trailer governance from CI through a local repository script', () => {
+    expect(ciWorkflow).toContain('Validate commit trailer policy')
+    expect(ciWorkflow).toContain('bun run scripts/commit-trailer-policy.ts')
+    expect(ciWorkflow).toContain('List commits for trailer policy')
   })
 })
