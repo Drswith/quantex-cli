@@ -14,4 +14,4 @@
 
 ## 4. Delivery
 
-- [ ] 4.1 Review git state, commit the change, push the branch, and open a PR with a validated body file.
+- [x] 4.1 Review git state, commit the change, push the branch, and open a PR with a validated body file.
