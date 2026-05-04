@@ -13,6 +13,7 @@ export {
   codebuddy,
   codex,
   copilot,
+  deepseek,
   cursor,
   devin,
   droid,

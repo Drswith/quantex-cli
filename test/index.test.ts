@@ -5,6 +5,7 @@ import {
   codex,
   copilot,
   createUpdatePlan,
+  deepseek,
   cursor,
   devin,
   droid,
@@ -158,6 +159,14 @@ describe('agent definitions', () => {
     expect(agent!.binaryName).toBe('junie')
   })
 
+  it('deepseek has correct structure', () => {
+    const agent = getAgentByNameOrAlias('deepseek')
+    expect(agent).toBeDefined()
+    expect(agent!.displayName).toBe('DeepSeek TUI')
+    expect(agent!.packages?.npm).toBe('deepseek-tui')
+    expect(agent!.binaryName).toBe('deepseek')
+  })
+
   it('qoder has correct structure', () => {
     const agent = getAgentByNameOrAlias('qoder')
     expect(agent).toBeDefined()
@@ -171,6 +180,7 @@ describe('agent definitions', () => {
     expect(codebuddy.name).toBe('codebuddy')
     expect(codex.name).toBe('codex')
     expect(copilot.name).toBe('copilot')
+    expect(deepseek.name).toBe('deepseek')
     expect(cursor.name).toBe('cursor')
     expect(devin.name).toBe('devin')
     expect(droid.name).toBe('droid')

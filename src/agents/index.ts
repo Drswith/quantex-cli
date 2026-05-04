@@ -8,6 +8,7 @@ import { codex } from './definitions/codex'
 import { copilot } from './definitions/copilot'
 import { crush } from './definitions/crush'
 import { cursor } from './definitions/cursor'
+import { deepseek } from './definitions/deepseek'
 import { devin } from './definitions/devin'
 import { droid } from './definitions/droid'
 import { forgecode } from './definitions/forgecode'
@@ -34,6 +35,7 @@ const agents: AgentDefinition[] = [
   copilot,
   crush,
   cursor,
+  deepseek,
   devin,
   droid,
   forgecode,
@@ -73,6 +75,7 @@ export {
   copilot,
   crush,
   cursor,
+  deepseek,
   devin,
   droid,
   forgecode,
