@@ -35,6 +35,12 @@ This guard blocks duplicate release PRs even if release-please regresses for ano
 
 The monotonic-version check belongs with the existing release branch validator because it depends on generated Release PR state, base-branch version files, and automerge policy. It should remain separate from normal contributor PR body governance.
 
+### 4. Import Release PR policy from a trusted ref under `pull_request_target`
+
+`pull_request_target` workflows run with base-repository credentials. If the job checks out `pull_request.head.sha` and then `import`s repository JavaScript before proving the PR head belongs to this repository, a forked PR can substitute malicious `scripts/release-pr-policy.js` and execute it during module load (before the fork guard runs).
+
+The automerge job therefore checks out `pull_request.base.sha` (the merge base commit already on the protected branch) solely to load the pinned policy implementation. Validation still uses the GitHub API against the in-repo pull request (title, body, file list, and base-branch `package.json`).
+
 ## Risks and Mitigations
 
 - Risk: removing `last-release-sha` could expose other release-please state drift.

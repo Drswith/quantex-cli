@@ -9,3 +9,4 @@ Release-please generated Release PRs SHALL remain governed by the dedicated Rele
 - **THEN** PR Governance does not require product-impacting release intent for the version-file changes
 - **AND** Release PR Automerge validates the release branch, title, generated marker, and changed file scope
 - **AND** it rejects a generated Release PR whose proposed semantic version is less than or equal to the current version on the protected base branch
+- **AND** when the workflow imports repository validation code under `pull_request_target`, it MUST load that code from a trusted base-branch ref (not the pull request head) before any fork-origin guard can be bypassed at import time
