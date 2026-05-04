@@ -21,10 +21,17 @@ jobs:
       startsWith(github.event.pull_request.head.ref, 'release-please--branches--')
     runs-on: ubuntu-latest
     steps:
+      - name: Checkout repository validation logic
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+          ref: ${{ github.event.pull_request.head.sha }}
+
       - name: Validate Release PR scope
         uses: actions/github-script@v7
         with:
           script: |
+            const { validateReleasePrPolicy } = await import(`${process.env.GITHUB_WORKSPACE}/scripts/release-pr-policy.js`)
             const pullRequest = context.payload.pull_request
             const baseBranch = pullRequest.base.ref
             const headBranch = pullRequest.head.ref
@@ -36,26 +43,6 @@ jobs:
               return
             }
 
-            const expectedHeadBranch = `release-please--branches--${baseBranch}--components--quantex-cli`
-            if (headBranch !== expectedHeadBranch) {
-              core.setFailed(`Unexpected release-please branch "${headBranch}". Expected "${expectedHeadBranch}".`)
-              return
-            }
-
-            const titlePattern = baseBranch === 'beta'
-              ? /^chore: release \d+\.\d+\.\d+-beta(?:\.\d+)?$/
-              : /^chore: release \d+\.\d+\.\d+$/
-
-            if (!titlePattern.test(title)) {
-              core.setFailed(`Release PR title "${title}" does not match the expected ${baseBranch} release pattern.`)
-              return
-            }
-
-            if (!body.includes('This PR was generated with [Release Please]')) {
-              core.setFailed('Release PR body does not include the release-please generated marker.')
-              return
-            }
-
             const files = await github.paginate(github.rest.pulls.listFiles, {
               owner: context.repo.owner,
               repo: context.repo.repo,
@@ -63,29 +50,25 @@ jobs:
               per_page: 100,
             })
 
-            const changedFiles = files.map(file => file.filename).sort()
-            const allowedFiles = new Set([
-              '.release-please-manifest.json',
-              'CHANGELOG.md',
-              'package.json',
-              'src/generated/build-meta.ts',
-            ])
-            const requiredFiles = new Set([
-              '.release-please-manifest.json',
-              'package.json',
-              'src/generated/build-meta.ts',
-            ])
+            const packageJson = await github.rest.repos.getContent({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              path: 'package.json',
+              ref: baseBranch,
+            })
 
-            const unexpectedFiles = changedFiles.filter(fileName => !allowedFiles.has(fileName))
-            if (unexpectedFiles.length > 0) {
-              core.setFailed(`Release PR changes unexpected files: ${unexpectedFiles.join(', ')}`)
-              return
-            }
+            const basePackageJson = JSON.parse(Buffer.from(packageJson.data.content, 'base64').toString('utf8'))
+            const issues = validateReleasePrPolicy({
+              baseBranch,
+              baseVersion: basePackageJson.version,
+              body,
+              changedFiles: files.map(file => file.filename),
+              headBranch,
+              title,
+            })
 
-            const missingFiles = [...requiredFiles].filter(fileName => !changedFiles.includes(fileName))
-            if (missingFiles.length > 0) {
-              core.setFailed(`Release PR is missing required version files: ${missingFiles.join(', ')}`)
-              return
+            if (issues.length > 0) {
+              core.setFailed(issues.join('\n'))
             }
 
       - name: Create release bot token
