@@ -1,6 +1,6 @@
 import { afterAll, afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import * as agents from '../../src/agents'
-import { setCliContext } from '../../src/cli-context'
+import { resetCliContext, setCliContext } from '../../src/cli-context'
 import { doctorCommand } from '../../src/commands/doctor'
 import * as selfModule from '../../src/self'
 import * as state from '../../src/state'
@@ -60,6 +60,7 @@ describe('doctorCommand', () => {
   let logSpy: ReturnType<typeof vi.spyOn>
 
   beforeEach(() => {
+    resetCliContext()
     logSpy = vi.spyOn(console, 'log').mockImplementation(() => {})
     allAgentsSpy.mockClear()
     isBunSpy.mockClear()
@@ -87,6 +88,7 @@ describe('doctorCommand', () => {
   })
 
   afterEach(() => {
+    resetCliContext()
     logSpy.mockRestore()
   })
 
@@ -125,6 +127,31 @@ describe('doctorCommand', () => {
     const output = logSpy.mock.calls.map((c: any[]) => c[0]).join('\n')
     expect(output).toContain('Recovery:')
     expect(output).toContain('bun add -g quantex-cli@latest')
+  })
+
+  it('does not flag self as outdated when latest version is lower than current', async () => {
+    isBunSpy.mockResolvedValue(true)
+    isNpmSpy.mockResolvedValue(true)
+    allAgentsSpy.mockReturnValue([])
+    inspectSelfSpy.mockResolvedValue({
+      canAutoUpdate: true,
+      currentVersion: '0.15.0',
+      executablePath: '/Users/test/.bun/bin/qtx',
+      installSource: 'bun',
+      latestVersion: '0.14.0',
+      packageRoot: '/Users/test/.bun/install/global/node_modules/quantex-cli',
+      recommendedUpgradeCommand: 'quantex upgrade',
+      updateChannel: 'stable',
+    })
+
+    const result = await doctorCommand()
+
+    expect(result.data?.self.outdated).toBe(false)
+    expect(result.data?.issues.find(issue => issue.code === 'SELF_UPDATE_AVAILABLE')).toBeUndefined()
+
+    const output = logSpy.mock.calls.map((c: any[]) => c[0]).join('\n')
+    expect(output).toContain('Latest:       0.14.0')
+    expect(output).not.toContain('update available')
   })
 
   it('shows manual recovery for outdated binary installs', async () => {

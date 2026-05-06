@@ -5,6 +5,7 @@ import { createErrorResult, createSuccessResult, emitCommandResult } from '../ou
 import { getSelfUpgradeRecoveryHintForInspection, inspectSelf, upgradeSelf } from '../self'
 import { pc } from '../utils/color'
 import { isDryRunEnabled, printError, printInfo, printWarn } from '../utils/user-output'
+import { compareVersions, isVersionNewer } from '../utils/version'
 
 interface UpgradeCommandData {
   canAutoUpdate: boolean
@@ -22,8 +23,12 @@ export async function upgradeCommand(
   const inspection = await inspectSelf({ updateChannel: options.channel })
   const dryRun = isDryRunEnabled()
   const registryWarnings = getManagedRegistryWarnings(inspection)
+  const staleLatestWarning = getStaleLatestWarning(inspection)
+  const updateAvailable = inspection.latestVersion
+    ? isVersionNewer(inspection.latestVersion, inspection.currentVersion)
+    : false
 
-  if (inspection.latestVersion && inspection.latestVersion === inspection.currentVersion) {
+  if (!updateAvailable) {
     return emitCommandResult(
       createSuccessResult<UpgradeCommandData>({
         action: 'upgrade',
@@ -39,7 +44,7 @@ export async function upgradeCommand(
           kind: 'self',
           name: 'quantex',
         },
-        warnings: registryWarnings,
+        warnings: [...registryWarnings, ...(staleLatestWarning ? [staleLatestWarning] : [])],
       }),
       renderUpgradeHuman,
     )
@@ -65,6 +70,7 @@ export async function upgradeCommand(
           },
           warnings: [
             ...registryWarnings,
+            ...(staleLatestWarning ? [staleLatestWarning] : []),
             ...(dryRun
               ? [
                   {
@@ -97,7 +103,7 @@ export async function upgradeCommand(
           kind: 'self',
           name: 'quantex',
         },
-        warnings: registryWarnings,
+        warnings: [...registryWarnings, ...(staleLatestWarning ? [staleLatestWarning] : [])],
       }),
       renderUpgradeHuman,
     )
@@ -125,7 +131,7 @@ export async function upgradeCommand(
           kind: 'self',
           name: 'quantex',
         },
-        warnings: registryWarnings,
+        warnings: [...registryWarnings, ...(staleLatestWarning ? [staleLatestWarning] : [])],
       }),
       renderUpgradeHuman,
     )
@@ -148,7 +154,7 @@ export async function upgradeCommand(
           kind: 'self',
           name: 'quantex',
         },
-        warnings: registryWarnings,
+        warnings: [...registryWarnings, ...(staleLatestWarning ? [staleLatestWarning] : [])],
       }),
       renderUpgradeHuman,
     )
@@ -274,5 +280,21 @@ function renderInformationalWarnings(warnings: CommandWarning[]): void {
   for (const warning of warnings) {
     if (warning.code === 'DRY_RUN' || warning.code === 'MANUAL_RECOVERY') continue
     printWarn(pc.yellow(warning.message))
+  }
+}
+
+function getStaleLatestWarning(inspection: Awaited<ReturnType<typeof inspectSelf>>): CommandWarning | undefined {
+  if (!inspection.latestVersion) return undefined
+
+  const comparison = compareVersions(inspection.latestVersion, inspection.currentVersion)
+  if (comparison === undefined || comparison >= 0) return undefined
+
+  return {
+    code: 'STALE_LATEST_VERSION',
+    details: {
+      currentVersion: inspection.currentVersion,
+      latestVersion: inspection.latestVersion,
+    },
+    message: `The resolved latest version ${inspection.latestVersion} is older than the installed Quantex CLI ${inspection.currentVersion}. Quantex will not downgrade; retry with --refresh or --no-cache if you need a fresh check.`,
   }
 }

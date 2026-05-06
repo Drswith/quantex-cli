@@ -145,6 +145,36 @@ describe('getInstalledVersion', () => {
   })
 })
 
+describe('compareVersions', () => {
+  it('orders newer patch versions higher', async () => {
+    const { compareVersions, isVersionNewer } = await import('../../src/utils/version')
+
+    expect(compareVersions('1.0.1', '1.0.0')).toBe(1)
+    expect(compareVersions('1.0.0', '1.0.1')).toBe(-1)
+    expect(isVersionNewer('1.0.1', '1.0.0')).toBe(true)
+  })
+
+  it('treats equal versions as equal', async () => {
+    const { compareVersions, isVersionNewer } = await import('../../src/utils/version')
+
+    expect(compareVersions('1.0.0', '1.0.0')).toBe(0)
+    expect(isVersionNewer('1.0.0', '1.0.0')).toBe(false)
+  })
+
+  it('orders release versions above prereleases', async () => {
+    const { compareVersions } = await import('../../src/utils/version')
+
+    expect(compareVersions('1.0.0', '1.0.0-beta.1')).toBe(1)
+    expect(compareVersions('1.0.0-beta.2', '1.0.0-beta.1')).toBe(1)
+  })
+
+  it('returns undefined for unparsable versions', async () => {
+    const { compareVersions } = await import('../../src/utils/version')
+
+    expect(compareVersions('main', '1.0.0')).toBeUndefined()
+  })
+})
+
 describe('getLatestVersion', () => {
   it('returns version from npm registry on success', async () => {
     const { getLatestVersion } = await import('../../src/utils/version')
