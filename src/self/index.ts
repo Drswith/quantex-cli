@@ -202,7 +202,7 @@ async function verifyManagedSelfUpgradeResult(
 
   if (inspection.installSource !== 'bun' && inspection.installSource !== 'npm') return result
 
-  const observedVersion = await getInstalledVersion(inspection.executablePath)
+  const observedVersion = await getManagedInstalledSelfVersion(inspection)
   if (!observedVersion) {
     return {
       error: {
@@ -248,6 +248,26 @@ async function verifyManagedSelfUpgradeResult(
     ...result,
     newVersion: observedVersion,
   }
+}
+
+async function getManagedInstalledSelfVersion(inspection: SelfInspection): Promise<string | undefined> {
+  const managedVersionProbe = getManagedSelfVersionProbeCommand(inspection.packageRoot)
+
+  if (managedVersionProbe) {
+    const managedVersion = await getInstalledVersion(inspection.executablePath, {
+      command: managedVersionProbe,
+    })
+
+    if (managedVersion) return managedVersion
+  }
+
+  return getInstalledVersion(inspection.executablePath)
+}
+
+function getManagedSelfVersionProbeCommand(packageRoot: string): string[] | undefined {
+  if (!packageRoot) return undefined
+
+  return [process.execPath, join(packageRoot, 'dist', 'cli.mjs'), '--version']
 }
 
 async function readPackageJson(packageJsonPath: string): Promise<{ name?: string; version?: string } | undefined> {
