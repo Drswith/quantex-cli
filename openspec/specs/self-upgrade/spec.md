@@ -61,31 +61,15 @@ The self-upgrade system SHALL choose an upgrade strategy based on the detected i
 
 ### Requirement: Managed self-upgrade MUST keep registry checks and installs consistent
 
-Managed self-upgrade SHALL use the same resolved registry for package-manager version checks and managed-install execution, and SHALL install the selected package tag directly instead of relying on package-manager update semantics.
+Managed self-upgrade SHALL use the same resolved registry for package-manager version checks and managed-install execution, SHALL install the selected package tag directly instead of relying on package-manager update semantics, and SHALL not treat a lower reported latest version as an update target.
 
-#### Scenario: Managed self-upgrade follows the selected registry
-
-- GIVEN Quantex was installed via `bun` or `npm`
-- AND a registry is resolved for managed self-upgrade
-- WHEN the user runs `quantex upgrade --check` or `quantex upgrade`
-- THEN Quantex checks the installable latest version through that same registry
-- AND any managed self-upgrade command uses that same registry for installation
-
-#### Scenario: Managed self-upgrade re-declares the selected package tag
+#### Scenario: Managed self-upgrade suppresses stale downgrade targets
 
 - GIVEN Quantex was installed via `bun` or `npm`
-- AND a selected dist tag is resolved from the requested update channel
-- WHEN Quantex performs managed self-upgrade
-- THEN the Bun path executes a global add for `quantex-cli@<tag>`
-- AND the npm path executes a global install for `quantex-cli@<tag>`
-- AND Quantex does not rely on the existing global package range or lockfile entry to choose the self-upgrade target
-
-#### Scenario: Self-upgrade uses a Quantex-specific registry override
-
-- GIVEN Quantex was installed via `bun` or `npm`
-- AND the user set `QTX_SELF_UPDATE_REGISTRY` or `selfUpdateRegistry`
-- WHEN Quantex checks for or performs self-upgrade
-- THEN the override registry takes precedence over the package manager's default registry
+- AND the current CLI version is newer than the resolved `latestVersion` from cache or registry
+- WHEN the user runs `quantex upgrade` or `quantex upgrade --check`
+- THEN Quantex does not invoke managed self-upgrade toward that lower version
+- AND it does not present the lower version as an available update
 
 ### Requirement: Managed self-upgrade MUST verify the installed version after update
 
@@ -158,44 +142,20 @@ The release pipeline SHALL verify that at least the current runner's publishable
 
 ### Requirement: Self-upgrade MUST expose recovery guidance
 
-The self-upgrade system SHALL provide recovery hints when automatic upgrade is unavailable or fails.
+The self-upgrade system SHALL provide recovery hints when automatic upgrade is unavailable or fails, and SHALL only advertise self-updates when the resolved latest version is newer than the installed CLI version.
 
-#### Scenario: Doctor shows self recovery guidance
+#### Scenario: Doctor suppresses stale self-update warnings
 
-- GIVEN the user runs `quantex doctor`
-- WHEN Quantex finishes inspecting self-upgrade state
-- THEN the output includes recovery guidance appropriate to the detected install source
-
-#### Scenario: Doctor reports install-source drift and auto-update limits
-
-- GIVEN Quantex detects that its persisted install source no longer matches available package-manager tooling
-- OR the current install source does not support self auto-update
+- GIVEN Quantex resolves a self `latestVersion` that is lower than the installed CLI version
 - WHEN the user runs `quantex doctor`
-- THEN the output includes an actionable warning that explains the mismatch
-- AND points the user toward reinstalling or restoring a supported install source
+- THEN the doctor output does not emit `SELF_UPDATE_AVAILABLE`
+- AND it does not label the installed CLI as outdated
 
-#### Scenario: Doctor JSON exposes machine-actionable self remediation
+#### Scenario: Passive update notices suppress stale self-update warnings
 
-- GIVEN the user runs `quantex doctor --json`
-- AND Quantex emits a self-related issue
-- WHEN the command returns structured data
-- THEN each self-related issue includes a stable issue code
-- AND includes `blocking`, `category`, `suggestedAction`, and `suggestedCommands`
-- AND includes a docs reference that points to the relevant recovery guide
-
-#### Scenario: Upgrade failure surfaces a recovery path
-
-- GIVEN a self-upgrade attempt fails
-- WHEN Quantex reports the failure
-- THEN the output includes a recovery action that matches the detected install source
-
-#### Scenario: Human upgrade output highlights the next action
-
-- GIVEN the user runs `quantex upgrade`
-- AND the command cannot upgrade automatically or the upgrade fails
-- WHEN Quantex renders human-mode output
-- THEN it explains the failure reason
-- AND presents the next recovery action in a way that is easy to scan
+- GIVEN Quantex resolves a self `latestVersion` that is lower than the installed CLI version
+- WHEN a successful human-mode command evaluates the passive self-update notice
+- THEN Quantex does not display an available-update notice for that lower version
 
 ### Requirement: Self-upgrade MAY support explicit channel and check flows
 
