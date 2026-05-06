@@ -1,6 +1,6 @@
 {
   "name": "quantex-cli",
-  "version": "0.15.0",
+  "version": "0.15.1",
   "description": "A unified lifecycle CLI for installing, inspecting, updating, uninstalling, and launching popular AI coding assistants",
   "keywords": [],
   "homepage": "https://github.com/Drswith/quantex-cli#readme",
