@@ -16,5 +16,5 @@
 
 ## 4. Delivery
 
-- [ ] 4.1 Commit the change on a dedicated branch
-- [ ] 4.2 Push the branch and open a pull request with a validated PR body
+- [x] 4.1 Commit the change on a dedicated branch
+- [x] 4.2 Push the branch and open a pull request with a validated PR body
