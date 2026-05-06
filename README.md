@@ -185,6 +185,7 @@ Note: `qtx upgrade` follows the registry actually used by the current Bun/npm se
 | Gemini CLI | `qtx gemini` | Google's open-source AI coding assistant CLI |
 | GitHub Copilot CLI | `qtx copilot` | GitHub Copilot command-line tool |
 | Goose | `qtx goose` | Block's open-source extensible AI agent CLI |
+| jcode CLI | `qtx jcode` | High-performance coding agent harness for multi-session workflows |
 | Junie CLI | `qtx junie` | JetBrains' AI coding agent CLI |
 | Kilo CLI | `qtx kilo` | Kilo's official AI coding assistant CLI |
 | Kimi Code | `qtx kimi` | Moonshot AI's coding assistant CLI |

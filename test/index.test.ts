@@ -10,6 +10,7 @@ import {
   devin,
   droid,
   gemini,
+  jcode,
   getAgentByLookupName,
   getAgentByNameOrAlias,
   getAllAgents,
@@ -68,6 +69,13 @@ describe('agent registry', () => {
     expect(agent).toBeDefined()
     expect(agent!.name).toBe('openhands')
     expect(agent!.binaryName).toBe('openhands')
+  })
+
+  it('finds jcode by name', () => {
+    const agent = getAgentByNameOrAlias('jcode')
+    expect(agent).toBeDefined()
+    expect(agent!.name).toBe('jcode')
+    expect(agent!.binaryName).toBe('jcode')
   })
 
   it('resolves CodeBuddy by package-style alias', () => {
@@ -159,6 +167,15 @@ describe('agent definitions', () => {
     expect(agent!.binaryName).toBe('junie')
   })
 
+  it('jcode has correct structure', () => {
+    const agent = getAgentByNameOrAlias('jcode')
+    expect(agent).toBeDefined()
+    expect(agent!.displayName).toBe('jcode CLI')
+    expect(agent!.binaryName).toBe('jcode')
+    expect(agent!.homepage).toBe('https://github.com/1jehuang/jcode')
+    expect(agent!.selfUpdate).toBeUndefined()
+  })
+
   it('deepseek has correct structure', () => {
     const agent = getAgentByNameOrAlias('deepseek')
     expect(agent).toBeDefined()
@@ -185,6 +202,7 @@ describe('agent definitions', () => {
     expect(devin.name).toBe('devin')
     expect(droid.name).toBe('droid')
     expect(gemini.name).toBe('gemini')
+    expect(jcode.name).toBe('jcode')
     expect(junie.name).toBe('junie')
     expect(kilo.name).toBe('kilo')
     expect(openhands.name).toBe('openhands')
