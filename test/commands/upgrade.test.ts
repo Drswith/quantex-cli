@@ -48,6 +48,27 @@ describe('upgradeCommand', () => {
     expect(stdoutWriteSpy).toHaveBeenCalledWith(expect.stringContaining('already up to date'))
   })
 
+  it('reports check unavailable when latest version cannot be resolved', async () => {
+    inspectSelfSpy.mockResolvedValue({
+      canAutoUpdate: true,
+      currentVersion: '1.0.0',
+      executablePath: '/tmp/quantex',
+      installSource: 'npm',
+      packageRoot: '/tmp/quantex',
+      recommendedUpgradeCommand: 'quantex upgrade',
+      updateChannel: 'stable',
+    })
+
+    await expect(upgradeCommand({ check: true })).resolves.toMatchObject({
+      data: { status: 'check-unavailable' },
+      error: { code: 'NETWORK_ERROR' },
+      ok: false,
+    })
+
+    expect(upgradeSelfSpy).not.toHaveBeenCalled()
+    expect(stdoutWriteSpy).toHaveBeenCalledWith(expect.stringContaining('Unable to determine the latest'))
+  })
+
   it('treats a lower latest version as stale instead of attempting a downgrade', async () => {
     inspectSelfSpy.mockResolvedValue({
       canAutoUpdate: true,

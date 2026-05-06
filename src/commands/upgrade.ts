@@ -28,7 +28,7 @@ export async function upgradeCommand(
     ? isVersionNewer(inspection.latestVersion, inspection.currentVersion)
     : false
 
-  if (!updateAvailable) {
+  if (inspection.latestVersion && !updateAvailable) {
     return emitCommandResult(
       createSuccessResult<UpgradeCommandData>({
         action: 'upgrade',

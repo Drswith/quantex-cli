@@ -157,6 +157,17 @@ The self-upgrade system SHALL provide recovery hints when automatic upgrade is u
 - WHEN a successful human-mode command evaluates the passive self-update notice
 - THEN Quantex does not display an available-update notice for that lower version
 
+### Requirement: Self-upgrade SHALL distinguish unresolved latest versions from semantic up-to-date
+
+When self-upgrade inspection cannot resolve an installable latest version, Quantex SHALL NOT treat `quantex upgrade` as successfully up to date solely because semantic version comparison cannot show a newer target.
+
+#### Scenario: Explicit check when latest version cannot be resolved
+
+- GIVEN self-upgrade inspection yields no installable latest version
+- WHEN the user runs `quantex upgrade --check`
+- THEN Quantex reports that the latest CLI version cannot be determined
+- AND it does not claim the CLI is already up to date
+
 ### Requirement: Self-upgrade MAY support explicit channel and check flows
 
 The self-upgrade surface SHALL support explicit user-controlled update checks and channel selection.
