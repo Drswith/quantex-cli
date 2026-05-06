@@ -2,6 +2,13 @@
 
 This changelog is maintained by release-please Release PRs.
 
+## [0.15.0](https://github.com/Drswith/quantex-cli/compare/v0.14.1...v0.15.0) (2026-05-06)
+
+
+### Features
+
+* add jcode support ([#187](https://github.com/Drswith/quantex-cli/issues/187)) ([c6fb4bc](https://github.com/Drswith/quantex-cli/commit/c6fb4bc0a4cbb00444d91fa0cf032a8d9f7c85d7))
+
 ## [0.14.1](https://github.com/Drswith/quantex-cli/compare/v0.14.0...v0.14.1) (2026-05-06)
 
 
