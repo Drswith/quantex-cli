@@ -1,0 +1,4 @@
+- [x] Fail closed on empty commit metadata in merge commit policy validator.
+- [x] Add regression test for empty commit metadata.
+- [x] Update release-governance spec.
+- [x] Run `bun run lint`, `bun run format:check`, `bun run typecheck`, `bun run test`, `bun run openspec:validate`, and `bun run memory:check`.

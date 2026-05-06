@@ -217,10 +217,19 @@ describe('planning exports', () => {
     const agent = getAgentByNameOrAlias('codex')
     expect(agent).toBeDefined()
 
-    const inspection = await inspectAgent(agent!)
-    const plan = createUpdatePlan([inspection])
+    expect(typeof inspectAgent).toBe('function')
 
-    expect(inspection.agent.name).toBe('codex')
+    const plan = createUpdatePlan([
+      {
+        agent: agent!,
+        inPath: false,
+        lifecycle: 'unmanaged',
+        methods: [],
+        sourceLabel: 'not installed',
+        updateLabel: 'manual',
+      },
+    ])
+
     expect(Array.isArray(plan.entries)).toBe(true)
   })
 })

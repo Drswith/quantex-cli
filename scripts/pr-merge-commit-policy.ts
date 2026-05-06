@@ -18,6 +18,16 @@ export function validatePullRequestMergeCommitPolicy(input: PullRequestMergeComm
   const commits = input.commits
   const issues: string[] = []
 
+  if (commits.length === 0) {
+    issues.push(
+      [
+        'No pull request commits were supplied, so merge commit policy cannot validate squash merge Co-authored-by trailer risk.',
+        'Ensure PR_COMMITS_JSON is populated from the list-commits GitHub Actions step.',
+      ].join('\n'),
+    )
+    return issues
+  }
+
   for (const commit of commits) {
     const offendingLines = commit.message
       .split('\n')
