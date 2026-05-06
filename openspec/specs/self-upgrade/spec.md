@@ -168,6 +168,13 @@ When self-upgrade inspection cannot resolve an installable latest version, Quant
 - THEN Quantex reports that the latest CLI version cannot be determined
 - AND it does not claim the CLI is already up to date
 
+#### Scenario: Managed install verification when latest metadata was unresolved
+
+- GIVEN self-upgrade inspection yields no installable `latestVersion`
+- AND a managed self-upgrade (`npm` / `bun`) completes successfully
+- WHEN Quantex verifies the installed CLI version
+- THEN it does not fail verification solely because the installed semantic version is unchanged
+
 ### Requirement: Self-upgrade MAY support explicit channel and check flows
 
 The self-upgrade surface SHALL support explicit user-controlled update checks and channel selection.

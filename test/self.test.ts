@@ -455,6 +455,30 @@ describe('self helpers', () => {
     })
   })
 
+  it('does not fail managed verification when latestVersion was unresolved and install succeeds without a semver bump', async () => {
+    const { upgradeSelf } = await import('../src/self')
+    npmInstallSpy.mockResolvedValue(true)
+    installedVersionSpy.mockResolvedValue('1.0.0')
+
+    const result = await upgradeSelf({
+      canAutoUpdate: true,
+      currentVersion: '1.0.0',
+      executablePath: '/usr/local/bin/quantex',
+      installSource: 'npm',
+      managedRegistry: 'https://registry.npmjs.org',
+      packageRoot: '/usr/local/lib/node_modules/quantex-cli',
+      recommendedUpgradeCommand: 'quantex upgrade',
+      updateChannel: 'stable',
+    })
+
+    expect(result).toEqual({
+      error: undefined,
+      installSource: 'npm',
+      newVersion: '1.0.0',
+      success: true,
+    })
+  })
+
   it('verifies managed self-upgrade against the installed cli entrypoint under node runtime', async () => {
     const { upgradeSelf } = await import('../src/self')
     npmInstallSpy.mockResolvedValue(true)
