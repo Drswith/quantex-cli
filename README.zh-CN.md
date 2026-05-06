@@ -185,6 +185,7 @@ qtx upgrade --channel beta
 | Gemini CLI | `qtx gemini` | Google 开源 AI 编程助手 CLI |
 | GitHub Copilot CLI | `qtx copilot` | GitHub Copilot 命令行工具 |
 | Goose | `qtx goose` | Block 开源可扩展 AI Agent CLI |
+| jcode CLI | `qtx jcode` | 面向多 session 工作流的高性能编程 Agent harness |
 | Junie CLI | `qtx junie` | JetBrains 官方 AI 编程 Agent CLI |
 | Kilo CLI | `qtx kilo` | Kilo 官方 AI 编程助手 CLI |
 | Kimi Code | `qtx kimi` | Moonshot AI 编程助手 CLI |

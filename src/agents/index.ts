@@ -14,6 +14,7 @@ import { droid } from './definitions/droid'
 import { forgecode } from './definitions/forgecode'
 import { gemini } from './definitions/gemini'
 import { goose } from './definitions/goose'
+import { jcode } from './definitions/jcode'
 import { junie } from './definitions/junie'
 import { kilo } from './definitions/kilo'
 import { kimi } from './definitions/kimi'
@@ -41,6 +42,7 @@ const agents: AgentDefinition[] = [
   forgecode,
   gemini,
   goose,
+  jcode,
   junie,
   kilo,
   kimi,
@@ -81,6 +83,7 @@ export {
   forgecode,
   gemini,
   goose,
+  jcode,
   junie,
   kilo,
   kimi,
