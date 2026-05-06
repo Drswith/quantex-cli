@@ -5,6 +5,7 @@ const ciWorkflow = readFileSync('.github/workflows/ci.yml', 'utf8')
 const prGovernanceWorkflow = readFileSync('.github/workflows/pr-governance.yml', 'utf8')
 const prTemplate = readFileSync('.github/pull_request_template.md', 'utf8')
 const prBodyPolicyScript = readFileSync('scripts/pr-body-policy.ts', 'utf8')
+const prMergeCommitPolicyScript = readFileSync('scripts/pr-merge-commit-policy.ts', 'utf8')
 
 describe('pr governance release intent', () => {
   it('requires a release intent section in PR bodies', () => {
@@ -46,5 +47,12 @@ describe('pr governance release intent', () => {
     expect(ciWorkflow).toContain('Validate commit trailer policy')
     expect(ciWorkflow).toContain('bun run scripts/commit-trailer-policy.ts')
     expect(ciWorkflow).toContain('List commits for trailer policy')
+  })
+
+  it('runs PR merge commit governance before merge', () => {
+    expect(prGovernanceWorkflow).toContain('Validate PR merge commit policy')
+    expect(prGovernanceWorkflow).toContain('bun run scripts/pr-merge-commit-policy.ts')
+    expect(prGovernanceWorkflow).toContain('PR_COMMITS_JSON')
+    expect(prMergeCommitPolicyScript).toContain('GitHub squash merge')
   })
 })
