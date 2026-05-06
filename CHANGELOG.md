@@ -2,6 +2,13 @@
 
 This changelog is maintained by release-please Release PRs.
 
+## [0.14.1](https://github.com/Drswith/quantex-cli/compare/v0.14.0...v0.14.1) (2026-05-06)
+
+
+### Bug Fixes
+
+* **self-upgrade:** verify managed installs via cli entrypoint ([#184](https://github.com/Drswith/quantex-cli/issues/184)) ([5f13d20](https://github.com/Drswith/quantex-cli/commit/5f13d20e0bda03179a532e89a4456d84b8ba7763))
+
 ## [0.14.0](https://github.com/Drswith/quantex-cli/compare/v0.13.0...v0.14.0) (2026-05-04)
 
 
