@@ -70,7 +70,26 @@ Release-please generated Release PRs SHALL remain governed by the dedicated Rele
 
 - **WHEN** a pull request comes from a release-please branch
 - **THEN** PR Governance does not require product-impacting release intent for the version-file changes
-- **AND** Release PR Automerge validates the release branch, title, generated marker, and changed file scope.
+- **AND** Release PR Automerge validates the release branch, title, generated marker, and changed file scope
+- **AND** it rejects a generated Release PR whose proposed semantic version is less than or equal to the current version on the protected base branch
+
+### Requirement: Protected-branch CI MUST reject prohibited co-author trailers in new commits
+
+Repository CI SHALL reject newly introduced commits on pull requests and protected-branch pushes when their commit messages contain `Co-authored-by:` trailers.
+
+#### Scenario: Pull request introduces co-author trailer
+
+- **WHEN** CI evaluates the commits introduced by a pull request targeting a protected branch
+- **AND** any of those commit messages contains a `Co-authored-by:` trailer
+- **THEN** CI fails before merge
+- **AND** it reports the offending commit SHA and trailer line
+
+#### Scenario: Protected-branch push introduces co-author trailer
+
+- **WHEN** CI evaluates the commits introduced by a direct push to a protected branch
+- **AND** any of those commit messages contains a `Co-authored-by:` trailer
+- **THEN** CI fails before downstream release automation treats the push as releasable history
+- **AND** it reports the offending commit SHA and trailer line
 
 ### Requirement: PR body governance MUST be run before PR delivery actions
 
@@ -94,4 +113,3 @@ Agents and contributors SHALL run the local PR body governance command before cr
 - **GIVEN** a pull request body is malformed or missing required governance sections
 - **WHEN** local preflight is skipped
 - **THEN** GitHub Actions PR Governance MUST still evaluate the same PR body policy and fail the pull request before merge
-

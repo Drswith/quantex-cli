@@ -8,11 +8,13 @@ import { codex } from './definitions/codex'
 import { copilot } from './definitions/copilot'
 import { crush } from './definitions/crush'
 import { cursor } from './definitions/cursor'
+import { deepseek } from './definitions/deepseek'
 import { devin } from './definitions/devin'
 import { droid } from './definitions/droid'
 import { forgecode } from './definitions/forgecode'
 import { gemini } from './definitions/gemini'
 import { goose } from './definitions/goose'
+import { jcode } from './definitions/jcode'
 import { junie } from './definitions/junie'
 import { kilo } from './definitions/kilo'
 import { kimi } from './definitions/kimi'
@@ -34,11 +36,13 @@ const agents: AgentDefinition[] = [
   copilot,
   crush,
   cursor,
+  deepseek,
   devin,
   droid,
   forgecode,
   gemini,
   goose,
+  jcode,
   junie,
   kilo,
   kimi,
@@ -73,11 +77,13 @@ export {
   copilot,
   crush,
   cursor,
+  deepseek,
   devin,
   droid,
   forgecode,
   gemini,
   goose,
+  jcode,
   junie,
   kilo,
   kimi,

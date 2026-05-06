@@ -178,12 +178,14 @@ Note: `qtx upgrade` follows the registry actually used by the current Bun/npm se
 | Codex CLI | `qtx codex` | OpenAI's official AI coding assistant CLI |
 | Crush | `qtx crush` | Charmbracelet's terminal AI coding agent CLI |
 | Cursor CLI | `qtx cursor` | Cursor AI coding assistant CLI |
+| DeepSeek TUI | `qtx deepseek` | DeepSeek's terminal-native coding agent |
 | Devin for Terminal | `qtx devin` | Cognition's local coding agent CLI |
 | Droid | `qtx droid` | Factory AI software engineering agent CLI |
 | ForgeCode | `qtx forgecode` | Antinomy's AI coding assistant CLI |
 | Gemini CLI | `qtx gemini` | Google's open-source AI coding assistant CLI |
 | GitHub Copilot CLI | `qtx copilot` | GitHub Copilot command-line tool |
 | Goose | `qtx goose` | Block's open-source extensible AI agent CLI |
+| jcode CLI | `qtx jcode` | High-performance coding agent harness for multi-session workflows |
 | Junie CLI | `qtx junie` | JetBrains' AI coding agent CLI |
 | Kilo CLI | `qtx kilo` | Kilo's official AI coding assistant CLI |
 | Kimi Code | `qtx kimi` | Moonshot AI's coding assistant CLI |

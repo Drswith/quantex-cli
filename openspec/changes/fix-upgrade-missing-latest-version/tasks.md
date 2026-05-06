@@ -1,0 +1,4 @@
+- [x] Fix `upgradeCommand` early exit so missing `latestVersion` does not map to `up-to-date`.
+- [x] Add regression test for missing `latestVersion` with `quantex upgrade --check`.
+- [x] Avoid managed verify false failure when `latestVersion` was unresolved and the install succeeds without a semver bump.
+- [x] Run `bun run lint`, `bun run format:check`, `bun run typecheck`, `bun run test`.

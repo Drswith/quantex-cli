@@ -100,6 +100,51 @@ jobs:
         with:
           bun-version: 1.3.11
 
+      - name: List commits for trailer policy
+        id: commits
+        uses: actions/github-script@v7
+        with:
+          script: |
+            async function listCommits() {
+              if (context.eventName === 'pull_request') {
+                const commits = await github.paginate(github.rest.pulls.listCommits, {
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  pull_number: context.payload.pull_request.number,
+                  per_page: 100,
+                })
+
+                return commits.map(commit => ({
+                  message: commit.commit.message,
+                  sha: commit.sha,
+                }))
+              }
+
+              if (context.eventName === 'push') {
+                const before = context.payload.before
+                const after = context.payload.after || context.sha
+
+                if (!before || /^0+$/.test(before))
+                  return []
+
+                const { data } = await github.rest.repos.compareCommits({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  base: before,
+                  head: after,
+                })
+
+                return (data.commits ?? []).map(commit => ({
+                  message: commit.commit.message,
+                  sha: commit.sha,
+                }))
+              }
+
+              return []
+            }
+
+            core.setOutput('commits_json', JSON.stringify(await listCommits()))
+
       - uses: actions/cache@v4
         with:
           path: |
@@ -110,6 +155,10 @@ jobs:
             ${{ runner.os }}-bun-
 
       - run: bun install --frozen-lockfile --ignore-scripts --no-progress
+      - name: Validate commit trailer policy
+        env:
+          COMMITS_JSON: ${{ steps.commits.outputs.commits_json }}
+        run: bun run scripts/commit-trailer-policy.ts
       - run: bun run memory:check
       - run: bun run openspec:validate
       - run: bun run lint

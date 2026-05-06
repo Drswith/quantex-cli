@@ -104,6 +104,7 @@ describe('self helpers', () => {
     const { getSelfUpgradeLockPath, upgradeSelf } = await import('../src/self')
     bunInstallSpy.mockResolvedValue(true)
     installedVersionSpy.mockResolvedValue('1.1.0')
+    const packageRoot = '/Users/test/.bun/install/global/node_modules/quantex-cli'
 
     const result = await upgradeSelf({
       canAutoUpdate: true,
@@ -112,7 +113,7 @@ describe('self helpers', () => {
       installSource: 'bun',
       latestVersion: '1.1.0',
       managedRegistry: 'https://registry.npmjs.org',
-      packageRoot: '/Users/test/.bun/install/global/node_modules/quantex-cli',
+      packageRoot,
       recommendedUpgradeCommand: 'quantex upgrade',
       updateChannel: 'stable',
     })
@@ -125,6 +126,9 @@ describe('self helpers', () => {
     })
     expect(bunInstallSpy).toHaveBeenCalledWith('quantex-cli', 'latest', 'https://registry.npmjs.org')
     expect(bunUpdateSpy).not.toHaveBeenCalled()
+    expect(installedVersionSpy).toHaveBeenCalledWith('/Users/test/.bun/bin/quantex', {
+      command: [process.execPath, join(packageRoot, 'dist', 'cli.mjs'), '--version'],
+    })
     expect(existsSync(getSelfUpgradeLockPath())).toBe(false)
   })
 
@@ -132,6 +136,7 @@ describe('self helpers', () => {
     const { upgradeSelf } = await import('../src/self')
     npmInstallSpy.mockResolvedValue(true)
     installedVersionSpy.mockResolvedValue('1.1.0')
+    const packageRoot = '/usr/local/lib/node_modules/quantex-cli'
 
     const result = await upgradeSelf({
       canAutoUpdate: true,
@@ -140,7 +145,7 @@ describe('self helpers', () => {
       installSource: 'npm',
       latestVersion: '1.1.0',
       managedRegistry: 'https://registry.npmjs.org',
-      packageRoot: '/usr/local/lib/node_modules/quantex-cli',
+      packageRoot,
       recommendedUpgradeCommand: 'quantex upgrade',
       updateChannel: 'stable',
     })
@@ -153,6 +158,9 @@ describe('self helpers', () => {
     })
     expect(npmInstallSpy).toHaveBeenCalledWith('quantex-cli', 'latest', 'https://registry.npmjs.org')
     expect(npmUpdateSpy).not.toHaveBeenCalled()
+    expect(installedVersionSpy).toHaveBeenCalledWith('/usr/local/bin/quantex', {
+      command: [process.execPath, join(packageRoot, 'dist', 'cli.mjs'), '--version'],
+    })
   })
 
   it('reports source installs as unsupported for auto-update', async () => {
@@ -445,5 +453,93 @@ describe('self helpers', () => {
       installSource: 'npm',
       success: false,
     })
+  })
+
+  it('does not fail managed verification when latestVersion was unresolved and install succeeds without a semver bump', async () => {
+    const { upgradeSelf } = await import('../src/self')
+    npmInstallSpy.mockResolvedValue(true)
+    installedVersionSpy.mockResolvedValue('1.0.0')
+
+    const result = await upgradeSelf({
+      canAutoUpdate: true,
+      currentVersion: '1.0.0',
+      executablePath: '/usr/local/bin/quantex',
+      installSource: 'npm',
+      managedRegistry: 'https://registry.npmjs.org',
+      packageRoot: '/usr/local/lib/node_modules/quantex-cli',
+      recommendedUpgradeCommand: 'quantex upgrade',
+      updateChannel: 'stable',
+    })
+
+    expect(result).toEqual({
+      error: undefined,
+      installSource: 'npm',
+      newVersion: '1.0.0',
+      success: true,
+    })
+  })
+
+  it('verifies managed self-upgrade against the installed cli entrypoint under node runtime', async () => {
+    const { upgradeSelf } = await import('../src/self')
+    npmInstallSpy.mockResolvedValue(true)
+    const packageRoot = '/usr/local/lib/node_modules/quantex-cli'
+    const expectedCommand = [process.execPath, join(packageRoot, 'dist', 'cli.mjs'), '--version']
+
+    installedVersionSpy.mockImplementation(async (_binaryName, versionProbe) => {
+      return JSON.stringify(versionProbe?.command) === JSON.stringify(expectedCommand) ? '1.1.0' : '22.22.2'
+    })
+
+    const result = await upgradeSelf({
+      canAutoUpdate: true,
+      currentVersion: '1.0.0',
+      executablePath: process.execPath,
+      installSource: 'npm',
+      latestVersion: '1.1.0',
+      managedRegistry: 'https://registry.npmjs.org',
+      packageRoot,
+      recommendedUpgradeCommand: 'quantex upgrade',
+      updateChannel: 'stable',
+    })
+
+    expect(result).toEqual({
+      error: undefined,
+      installSource: 'npm',
+      newVersion: '1.1.0',
+      success: true,
+    })
+    expect(installedVersionSpy).toHaveBeenCalledTimes(1)
+    expect(installedVersionSpy).toHaveBeenCalledWith(process.execPath, {
+      command: expectedCommand,
+    })
+  })
+
+  it('falls back to the executable-path probe when the managed entrypoint probe fails', async () => {
+    const { upgradeSelf } = await import('../src/self')
+    npmInstallSpy.mockResolvedValue(true)
+    installedVersionSpy.mockResolvedValueOnce(undefined).mockResolvedValueOnce('1.1.0')
+    const packageRoot = '/usr/local/lib/node_modules/quantex-cli'
+
+    const result = await upgradeSelf({
+      canAutoUpdate: true,
+      currentVersion: '1.0.0',
+      executablePath: '/usr/local/bin/quantex',
+      installSource: 'npm',
+      latestVersion: '1.1.0',
+      managedRegistry: 'https://registry.npmjs.org',
+      packageRoot,
+      recommendedUpgradeCommand: 'quantex upgrade',
+      updateChannel: 'stable',
+    })
+
+    expect(result).toEqual({
+      error: undefined,
+      installSource: 'npm',
+      newVersion: '1.1.0',
+      success: true,
+    })
+    expect(installedVersionSpy).toHaveBeenNthCalledWith(1, '/usr/local/bin/quantex', {
+      command: [process.execPath, join(packageRoot, 'dist', 'cli.mjs'), '--version'],
+    })
+    expect(installedVersionSpy).toHaveBeenNthCalledWith(2, '/usr/local/bin/quantex')
   })
 })

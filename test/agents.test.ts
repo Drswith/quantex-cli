@@ -8,9 +8,11 @@ import { codebuddy } from '../src/agents/definitions/codebuddy'
 import { codex } from '../src/agents/definitions/codex'
 import { copilot } from '../src/agents/definitions/copilot'
 import { cursor } from '../src/agents/definitions/cursor'
+import { deepseek } from '../src/agents/definitions/deepseek'
 import { devin } from '../src/agents/definitions/devin'
 import { droid } from '../src/agents/definitions/droid'
 import { gemini } from '../src/agents/definitions/gemini'
+import { jcode } from '../src/agents/definitions/jcode'
 import { junie } from '../src/agents/definitions/junie'
 import { kilo } from '../src/agents/definitions/kilo'
 import { opencode } from '../src/agents/definitions/opencode'
@@ -384,6 +386,76 @@ describe('junie', () => {
     expect(
       junie.platforms.linux!.find(m => m.type === 'brew' && m.packageName === 'jetbrains-junie/junie/junie'),
     ).toBeDefined()
+  })
+})
+
+describe('deepseek', () => {
+  it('is registered for lookup by canonical name and package alias', () => {
+    expect(getAgentByNameOrAlias('deepseek')).toBe(deepseek)
+    expect(getAgentByNameOrAlias('deepseek-tui')).toBe(deepseek)
+  })
+
+  it('has valid structure', () => {
+    validateAgent(deepseek)
+    expect(deepseek.name).toBe('deepseek')
+    expect(deepseek.lookupAliases).toEqual(['deepseek-tui'])
+    expect(deepseek.displayName).toBe('DeepSeek TUI')
+    expect(deepseek.packages?.npm).toBe('deepseek-tui')
+    expect(deepseek.binaryName).toBe('deepseek')
+    expect(deepseek.homepage).toBe('https://github.com/Hmbown/DeepSeek-TUI')
+    expect(deepseek.selfUpdate?.command).toEqual(['deepseek', 'update'])
+    expect(deepseek.versionProbe?.command).toEqual(['deepseek', '--version'])
+  })
+
+  it('exposes npm install on all supported platforms', () => {
+    expect(deepseek.platforms.windows!.find(m => m.type === 'npm')).toBeDefined()
+    expect(deepseek.platforms.macos!.find(m => m.type === 'npm')).toBeDefined()
+    expect(deepseek.platforms.linux!.find(m => m.type === 'npm')).toBeDefined()
+  })
+})
+
+describe('jcode', () => {
+  it('is registered for lookup by canonical name', () => {
+    expect(getAgentByNameOrAlias('jcode')).toBe(jcode)
+  })
+
+  it('has valid structure', () => {
+    validateAgent(jcode)
+    expect(jcode.name).toBe('jcode')
+    expect(jcode.lookupAliases).toBeUndefined()
+    expect(jcode.displayName).toBe('jcode CLI')
+    expect(jcode.packages).toBeUndefined()
+    expect(jcode.binaryName).toBe('jcode')
+    expect(jcode.homepage).toBe('https://github.com/1jehuang/jcode')
+    expect(jcode.selfUpdate).toBeUndefined()
+    expect(jcode.versionProbe?.command).toEqual(['jcode', '--version'])
+  })
+
+  it('supports official Homebrew and script installers without inventing update metadata', () => {
+    expect(jcode.platforms.windows).toEqual([
+      {
+        command: 'irm https://raw.githubusercontent.com/1jehuang/jcode/master/scripts/install.ps1 | iex',
+        type: 'script',
+      },
+    ])
+    expect(
+      jcode.platforms.macos!.find(m => m.type === 'brew' && m.packageName === '1jehuang/jcode/jcode'),
+    ).toBeDefined()
+    expect(
+      jcode.platforms.macos!.find(
+        m =>
+          m.type === 'script' &&
+          m.command.includes('raw.githubusercontent.com/1jehuang/jcode/master/scripts/install.sh'),
+      ),
+    ).toBeDefined()
+    expect(
+      jcode.platforms.linux!.find(
+        m =>
+          m.type === 'script' &&
+          m.command.includes('raw.githubusercontent.com/1jehuang/jcode/master/scripts/install.sh'),
+      ),
+    ).toBeDefined()
+    expect(jcode.selfUpdate).toBeUndefined()
   })
 })
 
