@@ -230,7 +230,7 @@ async function verifyManagedSelfUpgradeResult(
     }
   }
 
-  if (!expectedVersion && observedVersion === inspection.currentVersion) {
+  if (!expectedVersion && observedVersion === inspection.currentVersion && inspection.latestVersion !== undefined) {
     return {
       error: {
         detail: {
