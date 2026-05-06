@@ -17,6 +17,7 @@ export interface SelfState {
   installSource?: SelfInstallSource
   updateNoticeAt?: string
   updateNoticeVersion?: string
+  [key: string]: unknown
 }
 
 export interface QuantexState {
@@ -92,17 +93,49 @@ export async function setSelfUpdateNoticeState(updateNoticeVersion: string, upda
 async function readState(): Promise<QuantexState> {
   try {
     const data = JSON.parse(await readFile(getStateFilePath(), 'utf8')) as Partial<QuantexState>
+    const self = normalizeSelfState(data.self)
+
     return {
       installedAgents: data.installedAgents ?? {},
-      self: {
-        installSource: data.self?.installSource,
-        updateNoticeAt: data.self?.updateNoticeAt,
-        updateNoticeVersion: data.self?.updateNoticeVersion,
-      },
+      self,
     }
   } catch {
     return { ...defaultState }
   }
+}
+
+function normalizeSelfState(rawSelf: unknown): SelfState {
+  if (!isPlainObject(rawSelf)) return {}
+
+  const self: SelfState = { ...rawSelf }
+
+  if (isSelfInstallSource(rawSelf.installSource)) {
+    self.installSource = rawSelf.installSource
+  } else {
+    delete self.installSource
+  }
+
+  if (typeof rawSelf.updateNoticeAt === 'string') {
+    self.updateNoticeAt = rawSelf.updateNoticeAt
+  } else {
+    delete self.updateNoticeAt
+  }
+
+  if (typeof rawSelf.updateNoticeVersion === 'string') {
+    self.updateNoticeVersion = rawSelf.updateNoticeVersion
+  } else {
+    delete self.updateNoticeVersion
+  }
+
+  return self
+}
+
+function isSelfInstallSource(value: unknown): value is SelfInstallSource {
+  return value === 'binary' || value === 'bun' || value === 'npm' || value === 'source' || value === 'unknown'
+}
+
+function isPlainObject(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value)
 }
 
 async function writeState(state: QuantexState): Promise<void> {
