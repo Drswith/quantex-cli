@@ -2,6 +2,7 @@ import { getCliContext } from '../cli-context'
 import { getSelfState, setSelfUpdateNoticeState } from '../state'
 import { pc } from '../utils/color'
 import { printInfo } from '../utils/user-output'
+import { isVersionNewer } from '../utils/version'
 import { inspectSelf } from './index'
 
 const UPDATE_NOTICE_THROTTLE_MS = 24 * 60 * 60 * 1000
@@ -14,7 +15,7 @@ export async function maybeRenderSelfUpdateNotice(options: { action: string; ok:
   if (context.outputMode !== 'human' || context.quiet) return
 
   const inspection = await inspectSelf()
-  if (!inspection.latestVersion || inspection.latestVersion === inspection.currentVersion) return
+  if (!inspection.latestVersion || !isVersionNewer(inspection.latestVersion, inspection.currentVersion)) return
 
   const selfState = await getSelfState()
   const now = Date.now()

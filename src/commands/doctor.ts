@@ -6,6 +6,7 @@ import { getSelfUpgradeRecoveryHintForInspection, inspectSelf } from '../self'
 import { inspectRegisteredAgents } from '../services/agents'
 import { pc } from '../utils/color'
 import { isBrewAvailable, isBunAvailable, isNpmAvailable, isWingetAvailable } from '../utils/detect'
+import { isVersionNewer } from '../utils/version'
 
 type DoctorIssueCategory = 'agent' | 'installers' | 'self'
 type DoctorIssueSubjectKind = 'agent' | 'self' | 'system'
@@ -66,7 +67,9 @@ export async function doctorCommand(): Promise<CommandResult<DoctorData>> {
   const wingetAvailable = await isWingetAvailable()
 
   const selfInspection = await inspectSelf()
-  const selfOutdated = selfInspection.latestVersion && selfInspection.latestVersion !== selfInspection.currentVersion
+  const selfOutdated = selfInspection.latestVersion
+    ? isVersionNewer(selfInspection.latestVersion, selfInspection.currentVersion)
+    : false
   const inspections = await inspectRegisteredAgents()
   const installedAgents = inspections
     .filter(inspection => inspection.inPath)

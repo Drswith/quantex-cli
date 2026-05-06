@@ -1,5 +1,5 @@
 import { afterAll, afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { setCliContext } from '../../src/cli-context'
+import { resetCliContext, setCliContext } from '../../src/cli-context'
 import { upgradeCommand } from '../../src/commands/upgrade'
 import * as selfModule from '../../src/self'
 
@@ -16,6 +16,7 @@ describe('upgradeCommand', () => {
   let stdoutWriteSpy: ReturnType<typeof vi.spyOn>
 
   beforeEach(() => {
+    resetCliContext()
     logSpy = vi.spyOn(console, 'log').mockImplementation(() => {})
     stdoutWriteSpy = vi.spyOn(process.stdout, 'write').mockReturnValue(true)
     inspectSelfSpy.mockClear()
@@ -23,6 +24,7 @@ describe('upgradeCommand', () => {
   })
 
   afterEach(() => {
+    resetCliContext()
     logSpy.mockRestore()
     stdoutWriteSpy.mockRestore()
   })
@@ -44,6 +46,33 @@ describe('upgradeCommand', () => {
 
     expect(upgradeSelfSpy).not.toHaveBeenCalled()
     expect(stdoutWriteSpy).toHaveBeenCalledWith(expect.stringContaining('already up to date'))
+  })
+
+  it('treats a lower latest version as stale instead of attempting a downgrade', async () => {
+    inspectSelfSpy.mockResolvedValue({
+      canAutoUpdate: true,
+      currentVersion: '0.15.0',
+      executablePath: '/tmp/quantex',
+      installSource: 'npm',
+      latestVersion: '0.14.0',
+      managedRegistry: 'https://registry.npmjs.org',
+      packageRoot: '/tmp/quantex',
+      recommendedUpgradeCommand: 'quantex upgrade',
+      updateChannel: 'stable',
+    })
+
+    const result = await upgradeCommand()
+
+    expect(result.ok).toBe(true)
+    expect(result.data?.status).toBe('up-to-date')
+    expect(result.warnings).toContainEqual(
+      expect.objectContaining({
+        code: 'STALE_LATEST_VERSION',
+      }),
+    )
+    expect(upgradeSelfSpy).not.toHaveBeenCalled()
+    expect(stdoutWriteSpy).toHaveBeenCalledWith(expect.stringContaining('already up to date'))
+    expect(stdoutWriteSpy).toHaveBeenCalledWith(expect.stringContaining('will not downgrade'))
   })
 
   it('warns when upstream npm is newer than the selected registry', async () => {
@@ -270,6 +299,26 @@ describe('upgradeCommand', () => {
     expect(upgradeSelfSpy).not.toHaveBeenCalled()
     expect(stdoutWriteSpy).toHaveBeenCalledWith(expect.stringContaining('Update available'))
     expect(stdoutWriteSpy).toHaveBeenCalledWith(expect.stringContaining('(beta)'))
+  })
+
+  it('treats a lower latest version as up to date in --check mode', async () => {
+    inspectSelfSpy.mockResolvedValue({
+      canAutoUpdate: true,
+      currentVersion: '0.15.0',
+      executablePath: '/tmp/quantex',
+      installSource: 'npm',
+      latestVersion: '0.14.0',
+      packageRoot: '/tmp/quantex',
+      recommendedUpgradeCommand: 'quantex upgrade',
+      updateChannel: 'stable',
+    })
+
+    const result = await upgradeCommand({ check: true })
+
+    expect(result.ok).toBe(true)
+    expect(result.exitCode).toBeUndefined()
+    expect(result.data?.status).toBe('up-to-date')
+    expect(upgradeSelfSpy).not.toHaveBeenCalled()
   })
 
   it('emits a structured envelope in json mode', async () => {
