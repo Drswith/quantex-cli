@@ -1,0 +1,5 @@
+- [x] Add PR merge commit policy validator for squash co-author trailer risk.
+- [x] Wire the validator into PR Governance before merge.
+- [x] Add regression tests for unsafe multi-commit and agent-authored PRs.
+- [x] Update release governance spec.
+- [x] Run `bun run lint`, `bun run format:check`, `bun run typecheck`, `bun run test`, `bun run openspec:validate`, and `bun run memory:check`.
