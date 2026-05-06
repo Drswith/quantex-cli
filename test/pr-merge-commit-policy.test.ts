@@ -2,6 +2,14 @@ import { describe, expect, it } from 'vitest'
 import { validatePullRequestMergeCommitPolicy } from '../scripts/pr-merge-commit-policy'
 
 describe('pr merge commit policy', () => {
+  it('rejects empty commit metadata so the policy cannot fail open', () => {
+    const issues = validatePullRequestMergeCommitPolicy({ commits: [] })
+
+    expect(issues).toHaveLength(1)
+    expect(issues[0]).toContain('No pull request commits were supplied')
+    expect(issues[0]).toContain('PR_COMMITS_JSON')
+  })
+
   it('accepts one clean maintainer-authored commit', () => {
     expect(
       validatePullRequestMergeCommitPolicy({

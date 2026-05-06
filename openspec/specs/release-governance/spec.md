@@ -75,7 +75,7 @@ Release-please generated Release PRs SHALL remain governed by the dedicated Rele
 
 ### Requirement: Protected-branch CI MUST reject prohibited co-author trailers in new commits
 
-Repository CI SHALL reject newly introduced commits on pull requests and protected-branch pushes when their commit messages contain `Co-authored-by:` trailers. PR Governance SHALL also reject pull requests before merge when their commit metadata is likely to make GitHub synthesize prohibited co-author trailers into the final squash merge commit.
+Repository CI SHALL reject newly introduced commits on pull requests and protected-branch pushes when their commit messages contain `Co-authored-by:` trailers. PR Governance SHALL also reject pull requests before merge when their commit metadata is likely to make GitHub synthesize prohibited co-author trailers into the final squash merge commit. The merge commit policy validator SHALL fail when no commit metadata is supplied so the check cannot pass silently.
 
 #### Scenario: Pull request introduces co-author trailer
 
@@ -90,6 +90,13 @@ Repository CI SHALL reject newly introduced commits on pull requests and protect
 - **AND** its commit shape is unsafe for GitHub squash merge under the no-co-author-trailer policy
 - **THEN** PR Governance fails before merge
 - **AND** it explains how to pre-squash or re-author the pull request commits before retrying
+
+#### Scenario: PR merge commit policy receives no commit metadata
+
+- **WHEN** PR Governance runs the merge commit policy validator
+- **AND** no pull request commit metadata is supplied
+- **THEN** PR Governance fails before merge
+- **AND** it reports that the check cannot run without commit metadata
 
 #### Scenario: Protected-branch push introduces co-author trailer
 
