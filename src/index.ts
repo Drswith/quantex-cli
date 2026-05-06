@@ -18,6 +18,7 @@ export {
   devin,
   droid,
   gemini,
+  jcode,
   getAgentByLookupName,
   getAgentByNameOrAlias,
   getAllAgents,
