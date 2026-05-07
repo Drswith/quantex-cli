@@ -111,7 +111,7 @@ pnpm --package=quantex-cli dlx qtx doctor
 安装并启动一个 agent：
 
 ```bash
-qtx install claude
+qtx install claude codex
 qtx exec claude --install if-missing -- --help
 ```
 

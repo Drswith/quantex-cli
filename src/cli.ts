@@ -104,15 +104,16 @@ program
   })
 
 program
-  .command('install <agent>')
+  .command('install <agents...>')
   .alias('i')
   .description('安装指定 agent')
-  .action(async (agent: string) => {
+  .action(async (agents: string[]) => {
     const { installCommand } = await import('./commands/install')
+    const isSingleAgent = agents.length === 1
     process.exitCode = await executeCliCommand({
       action: 'install',
-      run: () => installCommand(agent),
-      target: { kind: 'agent', name: agent },
+      run: () => installCommand(agents),
+      target: isSingleAgent ? { kind: 'agent', name: agents[0] } : { kind: 'agent' },
     })
   })
 

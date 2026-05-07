@@ -111,7 +111,7 @@ Notes:
 Install and run an agent:
 
 ```bash
-qtx install claude
+qtx install claude codex
 qtx exec claude --install if-missing -- --help
 ```
 
@@ -149,7 +149,7 @@ Note: `qtx upgrade` follows the registry actually used by the current Bun/npm se
 
 | Preferred Command | Equivalent Long Form | Description |
 |---------|-------------|-------------|
-| `qtx i <agent>` | `quantex install <agent>` | Install an agent |
+| `qtx i <agent> [more-agents...]` | `quantex install <agent> [more-agents...]` | Install one or more agents |
 | `qtx ensure <agent>` | `quantex ensure <agent>` | Idempotently ensure an agent is installed |
 | `qtx u <agent>` | `quantex update <agent>` | Update an agent |
 | `qtx update --all` | `quantex update --all` | Update all installed agents |

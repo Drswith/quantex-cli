@@ -36,6 +36,14 @@ const testAgent = {
   },
 }
 
+const anotherAgent = {
+  ...testAgent,
+  name: 'another-agent',
+  displayName: 'Another Agent',
+  binaryName: 'another-bin',
+  packages: { npm: 'another-pkg' },
+}
+
 const scriptOnlyAgent = {
   ...testAgent,
   name: 'script-agent',
@@ -248,5 +256,92 @@ describe('installCommand', () => {
     expect(resultEvent.type).toBe('result')
     expect(resultEvent.data.ok).toBe(true)
     expect(resultEvent.meta.mode).toBe('ndjson')
+  })
+
+  it('installs multiple agents sequentially and prints a batch summary', async () => {
+    agentSpy.mockImplementation((name: string) => {
+      if (name === 'test-agent') return testAgent
+      if (name === 'another-agent') return anotherAgent
+      return undefined
+    })
+    binaryInPathSpy.mockResolvedValue(false)
+    installSpy.mockResolvedValue({ success: true })
+
+    const result = await installCommand(['test-agent', 'another-agent'])
+
+    expect(result.ok).toBe(true)
+    expect(installSpy).toHaveBeenNthCalledWith(1, testAgent)
+    expect(installSpy).toHaveBeenNthCalledWith(2, anotherAgent)
+
+    const output = stdoutWriteSpy.mock.calls.map((call: any[]) => call[0]).join('\n')
+    expect(output).toContain('Test Agent installed successfully')
+    expect(output).toContain('Another Agent installed successfully')
+    expect(output).toContain('Summary: installed 2')
+  })
+
+  it('continues after a batch failure and returns aggregated json output', async () => {
+    setCliContext({
+      interactive: false,
+      outputMode: 'json',
+      runId: 'batch-run-id',
+    })
+    agentSpy.mockImplementation((name: string) => {
+      if (name === 'test-agent') return testAgent
+      return undefined
+    })
+    binaryInPathSpy.mockResolvedValue(false)
+    installSpy.mockResolvedValue({ success: true })
+
+    const result = await installCommand(['test-agent', 'unknown'])
+
+    expect(result.ok).toBe(false)
+    expect(result.error?.code).toBe('INSTALL_FAILED')
+
+    const payload = JSON.parse(logSpy.mock.calls[0][0])
+    expect(payload.data.scope).toBe('batch')
+    expect(payload.data.results).toHaveLength(2)
+    expect(payload.data.results[0]).toMatchObject({
+      input: 'test-agent',
+      ok: true,
+      status: 'installed',
+    })
+    expect(payload.data.results[1]).toMatchObject({
+      input: 'unknown',
+      ok: false,
+      status: 'failed',
+    })
+    expect(payload.meta.runId).toBe('batch-run-id')
+  })
+
+  it('emits ndjson batch progress events for multi-agent installs', async () => {
+    setCliContext({
+      interactive: false,
+      outputMode: 'ndjson',
+      runId: 'batch-ndjson-run-id',
+    })
+    agentSpy.mockImplementation((name: string) => {
+      if (name === 'test-agent') return testAgent
+      if (name === 'another-agent') return anotherAgent
+      return undefined
+    })
+    binaryInPathSpy.mockResolvedValue(false)
+    installSpy.mockResolvedValue({ success: true })
+
+    await installCommand(['test-agent', 'another-agent'])
+
+    const startedEvent = JSON.parse(logSpy.mock.calls[0][0])
+    const firstProgressEvent = JSON.parse(logSpy.mock.calls[1][0])
+    const secondProgressEvent = JSON.parse(logSpy.mock.calls[2][0])
+    const resultEvent = JSON.parse(logSpy.mock.calls[3][0])
+
+    expect(startedEvent.type).toBe('started')
+    expect(startedEvent.data.scope).toBe('batch')
+    expect(firstProgressEvent.type).toBe('progress')
+    expect(firstProgressEvent.data.agent.name).toBe('test-agent')
+    expect(secondProgressEvent.type).toBe('progress')
+    expect(secondProgressEvent.data.agent.name).toBe('another-agent')
+    expect(resultEvent.type).toBe('result')
+    expect(resultEvent.data.data.scope).toBe('batch')
+    expect(resultEvent.meta.runId).toBe('batch-ndjson-run-id')
   })
 })
