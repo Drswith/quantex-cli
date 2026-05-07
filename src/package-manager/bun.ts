@@ -103,11 +103,12 @@ async function readGlobalUntrustedPackages(): Promise<string | undefined> {
   }
 }
 
-function parseUntrustedPackages(output: string): Set<string> {
+export function parseUntrustedPackages(output: string): Set<string> {
   const packages = new Set<string>()
 
   for (const line of output.split('\n')) {
-    const match = line.match(/^\.\/node_modules\/(.+?) @/)
+    const normalizedLine = line.replaceAll('\\', '/')
+    const match = normalizedLine.match(/^\.\/node_modules\/(.+?) @/)
     if (match?.[1]) packages.add(match[1])
   }
 
