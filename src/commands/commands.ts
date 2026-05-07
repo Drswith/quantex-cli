@@ -106,7 +106,7 @@ const commandCatalog: CommandDescriptor[] = [
     name: 'install',
     outputSchemaRef: '#/commands/install',
     stability: 'stable',
-    summary: 'Install an agent',
+    summary: 'Install one or more agents',
   },
   {
     flags: ['--json', '--output', '--quiet', '--color', '--log-level', '--refresh', '--no-cache', '--timeout'],
