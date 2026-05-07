@@ -129,6 +129,47 @@ describe('bun updateMany', () => {
     expect(await updateMany(['some-package', 'other-package'])).toBe(true)
     expect(mockSpawn).toHaveBeenNthCalledWith(3, ['bun', 'pm', '-g', 'trust', 'some-package'], expect.any(Object))
   })
+
+  it('trusts requested scoped packages from Windows untrusted output', async () => {
+    const { updateMany } = await import('../../src/package-manager/bun')
+    mockSpawn
+      .mockReturnValueOnce(createProc(0))
+      .mockReturnValueOnce(
+        createProc(
+          0,
+          [
+            '.\\node_modules\\@anthropic-ai\\claude-code @2.1.132',
+            ' » [postinstall]: node install.cjs',
+            '.\\node_modules\\unrelated-package @1.0.0',
+            ' » [postinstall]: node scripts/postinstall.js',
+          ].join('\n'),
+        ),
+      )
+      .mockReturnValueOnce(createProc(0))
+
+    expect(await updateMany(['@anthropic-ai/claude-code', 'other-package'])).toBe(true)
+    expect(mockSpawn).toHaveBeenNthCalledWith(
+      3,
+      ['bun', 'pm', '-g', 'trust', '@anthropic-ai/claude-code'],
+      expect.any(Object),
+    )
+  })
+})
+
+describe('parseUntrustedPackages', () => {
+  it('parses scoped package names from POSIX and Windows node_modules paths', async () => {
+    const { parseUntrustedPackages } = await import('../../src/package-manager/bun')
+
+    expect(
+      parseUntrustedPackages(
+        [
+          './node_modules/some-package @1.0.0',
+          '.\\node_modules\\@anthropic-ai\\claude-code @2.1.132',
+          '.\\node_modules\\@scope\\nested-name @3.0.0',
+        ].join('\n'),
+      ),
+    ).toEqual(new Set(['some-package', '@anthropic-ai/claude-code', '@scope/nested-name']))
+  })
 })
 
 describe('bun uninstall', () => {
