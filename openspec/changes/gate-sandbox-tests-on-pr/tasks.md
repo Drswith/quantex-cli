@@ -1,0 +1,5 @@
+- [x] 1. Update sandbox classification and tests to expose a reusable `sandboxRelevant` path contract.
+- [x] 2. Change `.github/workflows/sandbox-tests.yml` so pull requests always publish the `sandbox-tests` context while only trusted lifecycle-sensitive changes execute Modal.
+- [x] 3. Update docs and OpenSpec to describe the new required-check behavior, the no-op success path for unrelated changes, and the maintainer rerun expectation for fork PRs.
+- [x] 4. Update the active `protect-main` GitHub ruleset so `sandbox-tests` becomes a required status check alongside the existing CI contexts.
+- [x] 5. Run validation (`bun run lint`, `bun run format:check`, `bun run typecheck`, `bun run test`, `bun run openspec:validate`, `bun run memory:check`) and deliver the change through commit, push, and PR.

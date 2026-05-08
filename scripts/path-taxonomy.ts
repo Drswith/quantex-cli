@@ -8,6 +8,8 @@ export interface ChangeScopeClassification {
   processOnly: boolean
   productImpacting: boolean
   productImpactingFiles: string[]
+  sandboxRelevant: boolean
+  sandboxRelevantFiles: string[]
   runTestMatrix: boolean
   scope: ChangeScope
 }
@@ -30,12 +32,41 @@ export const processOnlyFiles = new Set([
 
 export const processOnlyPrefixes = ['.github/', 'docs/', 'openspec/'] as const
 
+export const sandboxRelevantPrefixes = [
+  'src/agents/',
+  'src/agent-update/',
+  'src/commands/',
+  'src/config/',
+  'src/inspection/',
+  'src/package-manager/',
+  'src/self/',
+  'src/state/',
+  'src/testing/',
+  'src/utils/',
+  'test/testing/',
+] as const
+
+export const sandboxRelevantFiles = new Set([
+  '.github/workflows/sandbox-tests.yml',
+  'bun.lock',
+  'package.json',
+  'scripts/lifecycle-smoke.ts',
+  'scripts/test-container.ts',
+  'scripts/test-sandbox.ts',
+  'test/agents.test.ts',
+  'test/utils/install.test.ts',
+])
+
 export function isProductImpactingPath(fileName: string): boolean {
   return productImpactingPrefixes.some(prefix => fileName.startsWith(prefix)) || productImpactingFiles.has(fileName)
 }
 
 export function isProcessOnlyPath(fileName: string): boolean {
   return processOnlyPrefixes.some(prefix => fileName.startsWith(prefix)) || processOnlyFiles.has(fileName)
+}
+
+export function isSandboxRelevantPath(fileName: string): boolean {
+  return sandboxRelevantPrefixes.some(prefix => fileName.startsWith(prefix)) || sandboxRelevantFiles.has(fileName)
 }
 
 export function classifyChangedFiles(changedFiles: string[] | null | undefined): ChangeScopeClassification {
@@ -45,13 +76,17 @@ export function classifyChangedFiles(changedFiles: string[] | null | undefined):
       processOnly: false,
       productImpacting: false,
       productImpactingFiles: [],
+      sandboxRelevant: true,
+      sandboxRelevantFiles: [],
       runTestMatrix: true,
       scope: 'unknown',
     }
   }
 
   const productImpactingMatches = changedFiles.filter(isProductImpactingPath)
+  const sandboxRelevantMatches = changedFiles.filter(isSandboxRelevantPath)
   const productImpacting = productImpactingMatches.length > 0
+  const sandboxRelevant = sandboxRelevantMatches.length > 0
   const processOnly = changedFiles.every(isProcessOnlyPath)
   const runTestMatrix = !processOnly
   const scope = processOnly ? 'process-only' : productImpacting ? 'product-impacting' : 'mixed'
@@ -61,6 +96,8 @@ export function classifyChangedFiles(changedFiles: string[] | null | undefined):
     processOnly,
     productImpacting,
     productImpactingFiles: productImpactingMatches,
+    sandboxRelevant,
+    sandboxRelevantFiles: sandboxRelevantMatches,
     runTestMatrix,
     scope,
   }
@@ -96,6 +133,8 @@ async function writeGithubOutputs(classification: ChangeScopeClassification): Pr
     `process_only=${String(classification.processOnly)}`,
     `product_impacting=${String(classification.productImpacting)}`,
     `product_impacting_files=${JSON.stringify(classification.productImpactingFiles)}`,
+    `sandbox_relevant=${String(classification.sandboxRelevant)}`,
+    `sandbox_relevant_files=${JSON.stringify(classification.sandboxRelevantFiles)}`,
     `run_test_matrix=${String(classification.runTestMatrix)}`,
     `scope=${classification.scope}`,
   ]
