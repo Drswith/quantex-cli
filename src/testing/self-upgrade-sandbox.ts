@@ -2,49 +2,41 @@ import { basename } from 'node:path'
 
 export const SEEDED_SELF_VERSION = '0.0.0-sandbox-old'
 
+export interface SelfManagedRegistryPackageManifest extends Record<string, unknown> {
+  name: string
+  version: string
+}
+
 export function buildSelfManagedRegistryMetadata(options: {
-  latestTarballName: string
-  latestVersion: string
+  latestPackageManifest: SelfManagedRegistryPackageManifest
   origin: string
-  packageName: string
+  seededPackageManifest: SelfManagedRegistryPackageManifest
+  latestTarballName: string
   seededTarballName: string
-  seededVersion?: string
 }): {
   'dist-tags': { latest: string }
   name: string
-  versions: Record<
-    string,
-    {
-      dist: {
-        tarball: string
-      }
-      name: string
-      version: string
-    }
-  >
+  versions: Record<string, SelfManagedRegistryPackageManifest & { dist: { tarball: string } }>
 } {
-  const seededVersion = options.seededVersion ?? SEEDED_SELF_VERSION
+  const latestVersion = options.latestPackageManifest.version
+  const seededVersion = options.seededPackageManifest.version
 
   return {
     'dist-tags': {
-      latest: options.latestVersion,
+      latest: latestVersion,
     },
-    name: options.packageName,
+    name: options.latestPackageManifest.name,
     versions: {
-      [seededVersion]: {
-        dist: {
-          tarball: `${options.origin}/${options.seededTarballName}`,
-        },
-        name: options.packageName,
-        version: seededVersion,
-      },
-      [options.latestVersion]: {
-        dist: {
-          tarball: `${options.origin}/${options.latestTarballName}`,
-        },
-        name: options.packageName,
-        version: options.latestVersion,
-      },
+      [seededVersion]: buildRegistryVersionEntry(
+        options.seededPackageManifest,
+        options.origin,
+        options.seededTarballName,
+      ),
+      [latestVersion]: buildRegistryVersionEntry(
+        options.latestPackageManifest,
+        options.origin,
+        options.latestTarballName,
+      ),
     },
   }
 }
@@ -58,4 +50,17 @@ export function parsePackedTarballName(output: string): string | undefined {
     .at(-1)
 
   return lastLine ? basename(lastLine) : undefined
+}
+
+function buildRegistryVersionEntry(
+  manifest: SelfManagedRegistryPackageManifest,
+  origin: string,
+  tarballName: string,
+): SelfManagedRegistryPackageManifest & { dist: { tarball: string } } {
+  return {
+    ...manifest,
+    dist: {
+      tarball: `${origin}/${tarballName}`,
+    },
+  }
 }

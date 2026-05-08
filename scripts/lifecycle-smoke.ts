@@ -2,6 +2,8 @@ import { cp, mkdir, mkdtemp, readFile, readdir, rm, writeFile } from 'node:fs/pr
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import process from 'node:process'
+import { loadConfig } from '../src/config'
+import { resolveManagedSelfUpdateRegistry } from '../src/self'
 import {
   buildSelfManagedRegistryMetadata,
   parsePackedTarballName,
@@ -200,10 +202,12 @@ async function smokeManagedSelfUpgradeLifecycle(): Promise<void> {
     const registry = await createSelfManagedRegistry(sandboxRoot, currentPackage)
 
     try {
-      const bunInstallDir = join(sandboxRoot, 'bun-global')
+      const sandboxHome = join(sandboxRoot, 'home')
+      const bunInstallDir = join(sandboxHome, '.bun')
       const managedBinDir = join(bunInstallDir, 'bin')
       const managedQtx = join(managedBinDir, 'qtx')
       const managedEnv = {
+        HOME: sandboxHome,
         BUN_INSTALL: bunInstallDir,
         PATH: `${managedBinDir}:${process.env.PATH ?? ''}`,
         QTX_SELF_UPDATE_REGISTRY: registry.registryUrl,
@@ -520,8 +524,8 @@ async function createSelfManagedRegistry(
   const seededStageDir = join(sandboxRoot, 'seeded-package')
 
   await mkdir(registryDir, { recursive: true })
-  await stageSelfManagedPackage(latestStageDir, currentPackage.version)
-  await stageSelfManagedPackage(seededStageDir, SEEDED_SELF_VERSION)
+  const latestManifest = await stageSelfManagedPackage(latestStageDir, currentPackage.version)
+  const seededManifest = await stageSelfManagedPackage(seededStageDir, SEEDED_SELF_VERSION)
 
   const latestTarball = await packSelfManagedPackage('pack latest self-managed package', latestStageDir, registryDir)
   const seededTarball = await packSelfManagedPackage('pack seeded self-managed package', seededStageDir, registryDir)
@@ -530,6 +534,7 @@ async function createSelfManagedRegistry(
   const encodedLatestPath = `${encodedPackagePath}/latest`
   const encodedSeededPath = `${encodedPackagePath}/${encodeURIComponent(SEEDED_SELF_VERSION)}`
   const encodedCurrentPath = `${encodedPackagePath}/${encodeURIComponent(currentPackage.version)}`
+  const dependencyRegistryOrigin = await resolveSelfManagedDependencyRegistry()
 
   let server: ReturnType<typeof Bun.serve>
   server = Bun.serve({
@@ -542,10 +547,10 @@ async function createSelfManagedRegistry(
       if (url.pathname === encodedPackagePath || url.pathname === `/${currentPackage.name}`) {
         return Response.json(
           buildSelfManagedRegistryMetadata({
+            latestPackageManifest: latestManifest,
             latestTarballName: latestTarball,
-            latestVersion: currentPackage.version,
             origin,
-            packageName: currentPackage.name,
+            seededPackageManifest: seededManifest,
             seededTarballName: seededTarball,
           }),
         )
@@ -571,7 +576,7 @@ async function createSelfManagedRegistry(
         })
       }
 
-      return new Response('not found', { status: 404 })
+      return Response.redirect(`${dependencyRegistryOrigin}${url.pathname}${url.search}`, 302)
     },
   })
 
@@ -581,7 +586,10 @@ async function createSelfManagedRegistry(
   }
 }
 
-async function stageSelfManagedPackage(stageDir: string, targetVersion: string): Promise<void> {
+async function stageSelfManagedPackage(
+  stageDir: string,
+  targetVersion: string,
+): Promise<Record<string, unknown> & { name: string; version: string }> {
   await mkdir(stageDir, { recursive: true })
   await cp(DIST_DIR, join(stageDir, DIST_DIR), { recursive: true })
   await cp(ROOT_PACKAGE_JSON_PATH, join(stageDir, ROOT_PACKAGE_JSON_PATH))
@@ -589,13 +597,18 @@ async function stageSelfManagedPackage(stageDir: string, targetVersion: string):
   const packageJsonPath = join(stageDir, ROOT_PACKAGE_JSON_PATH)
   const packageJson = JSON.parse(await readFile(packageJsonPath, 'utf8')) as Record<string, unknown>
   const currentVersion = typeof packageJson.version === 'string' ? packageJson.version : undefined
+  const packageName = typeof packageJson.name === 'string' ? packageJson.name : undefined
 
-  if (!currentVersion) throw new Error('The root package.json must define version for the self-managed smoke scenario.')
+  if (!currentVersion || !packageName) {
+    throw new Error('The root package.json must define name and version for the self-managed smoke scenario.')
+  }
 
   packageJson.version = targetVersion
   await writeFile(packageJsonPath, `${JSON.stringify(packageJson, null, 2)}\n`, 'utf8')
 
-  if (targetVersion === currentVersion) return
+  if (targetVersion === currentVersion) {
+    return packageJson as Record<string, unknown> & { name: string; version: string }
+  }
 
   const distFiles = await readdir(join(stageDir, DIST_DIR))
   for (const fileName of distFiles) {
@@ -605,6 +618,8 @@ async function stageSelfManagedPackage(stageDir: string, targetVersion: string):
     const content = await readFile(filePath, 'utf8')
     await writeFile(filePath, content.replaceAll(currentVersion, targetVersion), 'utf8')
   }
+
+  return packageJson as Record<string, unknown> & { name: string; version: string }
 }
 
 async function packSelfManagedPackage(label: string, packageDir: string, registryDir: string): Promise<string> {
@@ -618,4 +633,22 @@ async function packSelfManagedPackage(label: string, packageDir: string, registr
   if (!tarballName) throw new Error(`${label} did not report a tarball filename.`)
 
   return tarballName
+}
+
+async function resolveSelfManagedDependencyRegistry(): Promise<string> {
+  const envOverride = process.env.QTX_SELF_MANAGED_DEPENDENCY_REGISTRY?.trim()
+  if (envOverride) return envOverride.replace(/\/+$/, '')
+
+  const config = await loadConfig()
+  const resolution = await resolveManagedSelfUpdateRegistry(
+    'bun',
+    config,
+    {
+      ...process.env,
+      QTX_SELF_UPDATE_REGISTRY: '',
+    },
+    process.cwd(),
+  )
+
+  return resolution?.registry ?? 'https://registry.npmjs.org'
 }

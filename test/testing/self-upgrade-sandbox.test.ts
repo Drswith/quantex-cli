@@ -8,27 +8,65 @@ import {
 describe('buildSelfManagedRegistryMetadata', () => {
   it('publishes the current version as latest and keeps the seeded older version installable', () => {
     const metadata = buildSelfManagedRegistryMetadata({
+      latestPackageManifest: {
+        bin: {
+          qtx: './dist/cli.mjs',
+          quantex: './dist/cli.mjs',
+        },
+        dependencies: {
+          commander: '^14.0.3',
+        },
+        name: 'quantex-cli',
+        type: 'module',
+        version: '0.15.1',
+      },
       latestTarballName: 'quantex-cli-0.15.1.tgz',
-      latestVersion: '0.15.1',
       origin: 'http://127.0.0.1:4873',
-      packageName: 'quantex-cli',
+      seededPackageManifest: {
+        bin: {
+          qtx: './dist/cli.mjs',
+          quantex: './dist/cli.mjs',
+        },
+        dependencies: {
+          commander: '^14.0.3',
+        },
+        name: 'quantex-cli',
+        type: 'module',
+        version: SEEDED_SELF_VERSION,
+      },
       seededTarballName: 'quantex-cli-0.0.0-sandbox-old.tgz',
     })
 
     expect(metadata.name).toBe('quantex-cli')
     expect(metadata['dist-tags'].latest).toBe('0.15.1')
     expect(metadata.versions[SEEDED_SELF_VERSION]).toEqual({
+      bin: {
+        qtx: './dist/cli.mjs',
+        quantex: './dist/cli.mjs',
+      },
+      dependencies: {
+        commander: '^14.0.3',
+      },
       dist: {
         tarball: 'http://127.0.0.1:4873/quantex-cli-0.0.0-sandbox-old.tgz',
       },
       name: 'quantex-cli',
+      type: 'module',
       version: SEEDED_SELF_VERSION,
     })
     expect(metadata.versions['0.15.1']).toEqual({
+      bin: {
+        qtx: './dist/cli.mjs',
+        quantex: './dist/cli.mjs',
+      },
+      dependencies: {
+        commander: '^14.0.3',
+      },
       dist: {
         tarball: 'http://127.0.0.1:4873/quantex-cli-0.15.1.tgz',
       },
       name: 'quantex-cli',
+      type: 'module',
       version: '0.15.1',
     })
   })
