@@ -1,4 +1,4 @@
-import { basename, join } from 'node:path'
+import { basename } from 'node:path'
 
 export const SEEDED_SELF_VERSION = '0.0.0-sandbox-old'
 
@@ -64,7 +64,12 @@ export function resolveBunGlobalBinaryPath(options: {
     .filter(Boolean)
     .at(-1)
 
-  return join(resolvedBinDir || options.fallbackBinDir, options.binaryName)
+  return appendPathSegment(resolvedBinDir || options.fallbackBinDir, options.binaryName)
+}
+
+function appendPathSegment(parent: string, child: string): string {
+  const separator = parent.includes('\\') && !parent.includes('/') ? '\\' : '/'
+  return `${parent.replace(/[\\/]+$/, '')}${separator}${child}`
 }
 
 function buildRegistryVersionEntry(
