@@ -1,4 +1,4 @@
-import { basename } from 'node:path'
+import { basename, join } from 'node:path'
 
 export const SEEDED_SELF_VERSION = '0.0.0-sandbox-old'
 
@@ -50,6 +50,21 @@ export function parsePackedTarballName(output: string): string | undefined {
     .at(-1)
 
   return lastLine ? basename(lastLine) : undefined
+}
+
+export function resolveBunGlobalBinaryPath(options: {
+  binaryName: string
+  fallbackBinDir: string
+  pmBinOutput: string
+}): string {
+  const resolvedBinDir = options.pmBinOutput
+    .trim()
+    .split('\n')
+    .map(line => line.trim())
+    .filter(Boolean)
+    .at(-1)
+
+  return join(resolvedBinDir || options.fallbackBinDir, options.binaryName)
 }
 
 function buildRegistryVersionEntry(

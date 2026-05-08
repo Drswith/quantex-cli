@@ -1,4 +1,4 @@
-import { cp, mkdir, mkdtemp, readFile, readdir, rm, writeFile } from 'node:fs/promises'
+import { access, cp, mkdir, mkdtemp, readFile, readdir, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import process from 'node:process'
@@ -7,6 +7,7 @@ import { resolveManagedSelfUpdateRegistry } from '../src/self'
 import {
   buildSelfManagedRegistryMetadata,
   parsePackedTarballName,
+  resolveBunGlobalBinaryPath,
   SEEDED_SELF_VERSION,
 } from '../src/testing/self-upgrade-sandbox'
 
@@ -205,7 +206,7 @@ async function smokeManagedSelfUpgradeLifecycle(): Promise<void> {
       const sandboxHome = join(sandboxRoot, 'home')
       const bunInstallDir = join(sandboxHome, '.bun')
       const managedBinDir = join(bunInstallDir, 'bin')
-      const managedQtx = join(managedBinDir, 'qtx')
+      let managedQtx = join(managedBinDir, 'qtx')
       const managedEnv = {
         HOME: sandboxHome,
         BUN_INSTALL: bunInstallDir,
@@ -218,6 +219,19 @@ async function smokeManagedSelfUpgradeLifecycle(): Promise<void> {
         'install seeded Bun-managed Quantex',
         ['bun', 'add', '-g', `${currentPackage.name}@${SEEDED_SELF_VERSION}`, '--registry', registry.registryUrl],
         { env: managedEnv },
+      )
+      const pmBin = await runText('resolve Bun global bin dir', ['bun', 'pm', 'bin', '-g'], {
+        env: managedEnv,
+      })
+      managedQtx = resolveBunGlobalBinaryPath({
+        binaryName: 'qtx',
+        fallbackBinDir: managedBinDir,
+        pmBinOutput: pmBin.stdout,
+      })
+      await assertFileExists(
+        managedQtx,
+        `Bun-managed qtx shim was not created at ${managedQtx} after installing seeded Quantex.`,
+        sandboxRoot,
       )
 
       const seededVersion = await runText('seeded Bun-managed qtx version', [managedQtx, '--version'], {
@@ -668,6 +682,20 @@ async function packSelfManagedPackage(label: string, packageDir: string, registr
   if (!tarballName) throw new Error(`${label} did not report a tarball filename.`)
 
   return tarballName
+}
+
+async function assertFileExists(path: string, message: string, debugRoot: string): Promise<void> {
+  try {
+    await access(path)
+  } catch (error) {
+    await dumpDirectoryTree(debugRoot)
+    throw new Error(message, { cause: error })
+  }
+}
+
+async function dumpDirectoryTree(root: string): Promise<void> {
+  const output = await runCommand('debug self-managed sandbox tree', ['find', root, '-maxdepth', '5', '-print'])
+  process.stderr.write(`[self-managed sandbox tree]\n${output.stdout}`)
 }
 
 async function resolveSelfManagedDependencyRegistry(): Promise<string> {

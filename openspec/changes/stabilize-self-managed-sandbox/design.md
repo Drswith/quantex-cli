@@ -33,7 +33,7 @@ Alternative considered: add only `bin` and `dependencies` to the current minimal
 
 ### Run the scenario under an isolated `HOME` with `.bun`
 
-The self-managed smoke will create `HOME=<sandbox>/home` and `BUN_INSTALL=$HOME/.bun`, then execute the seeded install and upgrade checks through `$HOME/.bun/bin/qtx`. That matches the layout already assumed by self-install detection and by the broader isolation workflow.
+The self-managed smoke will create `HOME=<sandbox>/home` and `BUN_INSTALL=$HOME/.bun`, then resolve the runnable `qtx` shim from `bun pm bin -g` after the seeded install. Some Bun runtimes, including the Linux sandbox image, install package state under the isolated `.bun` home while linking global binaries into a runtime-level bin directory such as `/usr/local/bin`; the smoke must follow Bun's reported bin directory instead of assuming `$BUN_INSTALL/bin/qtx`.
 
 Alternative considered: broaden Bun install-source detection to arbitrary custom roots. Rejected because the smoke harness should mimic production first; widening detection would change product behavior for a test-only workaround.
 
