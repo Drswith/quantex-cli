@@ -1,11 +1,16 @@
 import type { CommandResult } from '../output/types'
 import type { CommandWarning } from '../output/types'
-import type { SelfUpdateChannel } from '../self'
+import type { SelfInspection, SelfUpdateChannel } from '../self'
 import { createErrorResult, createSuccessResult, emitCommandResult } from '../output'
-import { getSelfUpgradeRecoveryHintForInspection, inspectSelf, upgradeSelf } from '../self'
+import {
+  buildSelfInspectionFromPlan,
+  getSelfUpgradeRecoveryHintForInspection,
+  planSelfUpgrade,
+  upgradeSelf,
+} from '../self'
 import { pc } from '../utils/color'
 import { isDryRunEnabled, printError, printInfo, printWarn } from '../utils/user-output'
-import { compareVersions, isVersionNewer } from '../utils/version'
+import { compareVersions } from '../utils/version'
 
 interface UpgradeCommandData {
   canAutoUpdate: boolean
@@ -20,15 +25,13 @@ interface UpgradeCommandData {
 export async function upgradeCommand(
   options: { channel?: SelfUpdateChannel; check?: boolean } = {},
 ): Promise<CommandResult<UpgradeCommandData>> {
-  const inspection = await inspectSelf({ updateChannel: options.channel })
+  const plan = await planSelfUpgrade({ updateChannel: options.channel })
+  const inspection = buildSelfInspectionFromPlan(plan)
   const dryRun = isDryRunEnabled()
   const registryWarnings = getManagedRegistryWarnings(inspection)
   const staleLatestWarning = getStaleLatestWarning(inspection)
-  const updateAvailable = inspection.latestVersion
-    ? isVersionNewer(inspection.latestVersion, inspection.currentVersion)
-    : false
 
-  if (inspection.latestVersion && !updateAvailable) {
+  if (plan.status === 'up-to-date') {
     return emitCommandResult(
       createSuccessResult<UpgradeCommandData>({
         action: 'upgrade',
@@ -51,7 +54,7 @@ export async function upgradeCommand(
   }
 
   if (options.check || dryRun) {
-    if (inspection.latestVersion) {
+    if (plan.status === 'update-available') {
       return emitCommandResult(
         createSuccessResult<UpgradeCommandData>({
           action: 'upgrade',
@@ -109,7 +112,7 @@ export async function upgradeCommand(
     )
   }
 
-  if (!inspection.canAutoUpdate) {
+  if (plan.status === 'manual-required') {
     const manualCommand = getSelfUpgradeRecoveryHintForInspection(inspection)
     return emitCommandResult(
       createErrorResult<UpgradeCommandData>({
@@ -137,7 +140,7 @@ export async function upgradeCommand(
     )
   }
 
-  const result = await upgradeSelf(inspection)
+  const result = await upgradeSelf(plan)
   if (result.success) {
     return emitCommandResult(
       createSuccessResult<UpgradeCommandData>({
@@ -259,7 +262,7 @@ function renderUpgradeHuman(result: {
   for (const warning of result.warnings) printWarn(pc.cyan(warning.message.replace(/^Manual recovery:/, 'Next step:')))
 }
 
-function getManagedRegistryWarnings(inspection: Awaited<ReturnType<typeof inspectSelf>>): CommandWarning[] {
+function getManagedRegistryWarnings(inspection: SelfInspection): CommandWarning[] {
   if (!inspection.latestVersion || !inspection.upstreamLatestVersion) return []
   if (inspection.latestVersion === inspection.upstreamLatestVersion) return []
   if (inspection.installSource !== 'bun' && inspection.installSource !== 'npm') return []
@@ -283,7 +286,7 @@ function renderInformationalWarnings(warnings: CommandWarning[]): void {
   }
 }
 
-function getStaleLatestWarning(inspection: Awaited<ReturnType<typeof inspectSelf>>): CommandWarning | undefined {
+function getStaleLatestWarning(inspection: SelfInspection): CommandWarning | undefined {
   if (!inspection.latestVersion) return undefined
 
   const comparison = compareVersions(inspection.latestVersion, inspection.currentVersion)

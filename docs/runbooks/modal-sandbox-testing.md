@@ -40,6 +40,7 @@ Default scenarios:
 - `adopt-preinstalled`: the sandbox preinstalls the agent outside Quantex first, then verifies `quantex install <agent>` adopts and tracks that existing install.
 - `ambiguous-multi-method`: the sandbox places a fake multi-install-method agent binary in PATH and verifies Quantex does not guess an install source.
 - `self-binary`: the sandbox builds a Linux standalone Quantex binary, installs it into the isolated HOME, then verifies binary-entrypoint command discovery, agent inspection, and `upgrade --check` self-inspection.
+- `self-managed`: the sandbox builds local Quantex package tarballs, serves them from a sandbox-local registry, seeds an older Bun-managed Quantex install, and verifies `quantex upgrade` upgrades that install to the current checkout version.
 
 For each selected agent, the `managed` scenario executes the real Quantex CLI flow:
 
@@ -79,6 +80,7 @@ To limit scenarios, set `QTX_ISOLATION_SCENARIOS`:
 ```bash
 QTX_ISOLATION_SCENARIOS=managed,adopt-preinstalled bun run test:container
 QTX_ISOLATION_SCENARIOS=self-binary bun run test:container
+QTX_ISOLATION_SCENARIOS=self-managed bun run test:container
 QTX_ISOLATION_SCENARIOS=managed QTX_ISOLATION_AGENTS=qoder bun run test:container
 ```
 
@@ -104,6 +106,7 @@ The dedicated GitHub Actions workflow runs the Modal path with `QTX_ISOLATION_AG
    ```
 
 2. Run `bun run test:container` when the change is sensitive to HOME, PATH, global tools, or filesystem isolation and you want a local fallback that does not require Modal.
+   For self-upgrade regressions, start with `QTX_ISOLATION_SCENARIOS=self-managed bun run test:container`.
 3. Run `bun run test:sandbox` when you also want to validate the Modal transport or reproduce the dedicated GitHub Actions workflow.
 4. If an isolated run fails, compare whether the failure is code-related or environment-related by rerunning the same agent list locally.
 5. If Modal setup is missing, install or repair the local Modal CLI before treating the failure as a product regression.

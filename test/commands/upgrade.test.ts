@@ -1,13 +1,14 @@
+import type { SelfUpgradePlan } from '../../src/self'
 import { afterAll, afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { resetCliContext, setCliContext } from '../../src/cli-context'
 import { upgradeCommand } from '../../src/commands/upgrade'
 import * as selfModule from '../../src/self'
 
-const inspectSelfSpy = vi.spyOn(selfModule, 'inspectSelf')
+const planSelfUpgradeSpy = vi.spyOn(selfModule, 'planSelfUpgrade')
 const upgradeSelfSpy = vi.spyOn(selfModule, 'upgradeSelf')
 
 afterAll(() => {
-  inspectSelfSpy.mockRestore()
+  planSelfUpgradeSpy.mockRestore()
   upgradeSelfSpy.mockRestore()
 })
 
@@ -19,7 +20,7 @@ describe('upgradeCommand', () => {
     resetCliContext()
     logSpy = vi.spyOn(console, 'log').mockImplementation(() => {})
     stdoutWriteSpy = vi.spyOn(process.stdout, 'write').mockReturnValue(true)
-    inspectSelfSpy.mockClear()
+    planSelfUpgradeSpy.mockClear()
     upgradeSelfSpy.mockClear()
   })
 
@@ -30,17 +31,7 @@ describe('upgradeCommand', () => {
   })
 
   it('shows up to date when latest version matches current version', async () => {
-    inspectSelfSpy.mockResolvedValue({
-      canAutoUpdate: true,
-      currentVersion: '1.0.0',
-      executablePath: '/tmp/quantex',
-      installSource: 'npm',
-      latestVersion: '1.0.0',
-      managedRegistry: 'https://registry.npmjs.org',
-      packageRoot: '/tmp/quantex',
-      recommendedUpgradeCommand: 'quantex upgrade',
-      updateChannel: 'stable',
-    })
+    planSelfUpgradeSpy.mockResolvedValue(createPlan({ targetVersion: '1.0.0' }, 'up-to-date'))
 
     await expect(upgradeCommand()).resolves.toMatchObject({ ok: true })
 
@@ -49,15 +40,7 @@ describe('upgradeCommand', () => {
   })
 
   it('reports check unavailable when latest version cannot be resolved', async () => {
-    inspectSelfSpy.mockResolvedValue({
-      canAutoUpdate: true,
-      currentVersion: '1.0.0',
-      executablePath: '/tmp/quantex',
-      installSource: 'npm',
-      packageRoot: '/tmp/quantex',
-      recommendedUpgradeCommand: 'quantex upgrade',
-      updateChannel: 'stable',
-    })
+    planSelfUpgradeSpy.mockResolvedValue(createPlan({}, 'check-unavailable'))
 
     await expect(upgradeCommand({ check: true })).resolves.toMatchObject({
       data: { status: 'check-unavailable' },
@@ -70,17 +53,15 @@ describe('upgradeCommand', () => {
   })
 
   it('treats a lower latest version as stale instead of attempting a downgrade', async () => {
-    inspectSelfSpy.mockResolvedValue({
-      canAutoUpdate: true,
-      currentVersion: '0.15.0',
-      executablePath: '/tmp/quantex',
-      installSource: 'npm',
-      latestVersion: '0.14.0',
-      managedRegistry: 'https://registry.npmjs.org',
-      packageRoot: '/tmp/quantex',
-      recommendedUpgradeCommand: 'quantex upgrade',
-      updateChannel: 'stable',
-    })
+    planSelfUpgradeSpy.mockResolvedValue(
+      createPlan(
+        {
+          currentVersion: '0.15.0',
+          targetVersion: '0.14.0',
+        },
+        'up-to-date',
+      ),
+    )
 
     const result = await upgradeCommand()
 
@@ -97,18 +78,16 @@ describe('upgradeCommand', () => {
   })
 
   it('warns when upstream npm is newer than the selected registry', async () => {
-    inspectSelfSpy.mockResolvedValue({
-      canAutoUpdate: true,
-      currentVersion: '1.0.0',
-      executablePath: '/tmp/quantex',
-      installSource: 'npm',
-      latestVersion: '1.0.0',
-      managedRegistry: 'https://registry.npmmirror.com',
-      packageRoot: '/tmp/quantex',
-      recommendedUpgradeCommand: 'quantex upgrade',
-      updateChannel: 'stable',
-      upstreamLatestVersion: '1.1.0',
-    })
+    planSelfUpgradeSpy.mockResolvedValue(
+      createPlan(
+        {
+          managedRegistry: 'https://registry.npmmirror.com',
+          targetVersion: '1.0.0',
+          upstreamLatestVersion: '1.1.0',
+        },
+        'up-to-date',
+      ),
+    )
 
     const result = await upgradeCommand()
 
@@ -122,15 +101,16 @@ describe('upgradeCommand', () => {
   })
 
   it('refuses to auto-update from unsupported install sources', async () => {
-    inspectSelfSpy.mockResolvedValue({
-      canAutoUpdate: false,
-      currentVersion: '1.0.0',
-      executablePath: '/tmp/quantex',
-      installSource: 'source',
-      latestVersion: '1.1.0',
-      packageRoot: '/tmp/quantex',
-      updateChannel: 'stable',
-    })
+    planSelfUpgradeSpy.mockResolvedValue(
+      createPlan(
+        {
+          canAutoUpdate: false,
+          installSource: 'source',
+          targetVersion: '1.1.0',
+        },
+        'manual-required',
+      ),
+    )
 
     await expect(upgradeCommand()).resolves.toMatchObject({
       error: {
@@ -144,17 +124,16 @@ describe('upgradeCommand', () => {
   })
 
   it('shows manual recovery for bun installs when self-upgrade fails', async () => {
-    const inspection = {
-      canAutoUpdate: true,
-      currentVersion: '1.0.0',
-      executablePath: '/Users/test/.bun/bin/qtx',
-      installSource: 'bun' as const,
-      latestVersion: '1.1.0',
-      packageRoot: '/Users/test/.bun/install/global/node_modules/quantex-cli',
-      recommendedUpgradeCommand: 'quantex upgrade',
-      updateChannel: 'stable' as const,
-    }
-    inspectSelfSpy.mockResolvedValue(inspection)
+    const plan = createPlan(
+      {
+        executablePath: '/Users/test/.bun/bin/qtx',
+        installSource: 'bun',
+        packageRoot: '/Users/test/.bun/install/global/node_modules/quantex-cli',
+        targetVersion: '1.1.0',
+      },
+      'update-available',
+    )
+    planSelfUpgradeSpy.mockResolvedValue(plan)
     upgradeSelfSpy.mockResolvedValue({
       error: {
         kind: 'unknown',
@@ -179,17 +158,17 @@ describe('upgradeCommand', () => {
   })
 
   it('shows manual recovery for npm installs when self-upgrade fails', async () => {
-    const inspection = {
-      canAutoUpdate: true,
-      currentVersion: '1.0.0',
-      executablePath: '/usr/local/bin/qtx',
-      installSource: 'npm' as const,
-      latestVersion: '1.1.0',
-      packageRoot: '/usr/local/lib/node_modules/quantex-cli',
-      recommendedUpgradeCommand: 'quantex upgrade',
-      updateChannel: 'stable' as const,
-    }
-    inspectSelfSpy.mockResolvedValue(inspection)
+    planSelfUpgradeSpy.mockResolvedValue(
+      createPlan(
+        {
+          executablePath: '/usr/local/bin/qtx',
+          installSource: 'npm',
+          packageRoot: '/usr/local/lib/node_modules/quantex-cli',
+          targetVersion: '1.1.0',
+        },
+        'update-available',
+      ),
+    )
     upgradeSelfSpy.mockResolvedValue({
       error: {
         kind: 'unknown',
@@ -211,17 +190,17 @@ describe('upgradeCommand', () => {
 
   it('shows manual recovery for binary installs when self-upgrade fails', async () => {
     const executablePath = process.platform === 'win32' ? 'C:\\Program Files\\Quantex\\qtx.exe' : '/usr/local/bin/qtx'
-    const inspection = {
-      canAutoUpdate: true,
-      currentVersion: '1.0.0',
-      executablePath,
-      installSource: 'binary' as const,
-      latestVersion: '1.1.0',
-      packageRoot: process.platform === 'win32' ? 'C:\\Program Files\\Quantex' : '/usr/local/bin',
-      recommendedUpgradeCommand: 'quantex upgrade',
-      updateChannel: 'stable' as const,
-    }
-    inspectSelfSpy.mockResolvedValue(inspection)
+    planSelfUpgradeSpy.mockResolvedValue(
+      createPlan(
+        {
+          executablePath,
+          installSource: 'binary',
+          packageRoot: process.platform === 'win32' ? 'C:\\Program Files\\Quantex' : '/usr/local/bin',
+          targetVersion: '1.1.0',
+        },
+        'update-available',
+      ),
+    )
     upgradeSelfSpy.mockResolvedValue({
       error: {
         kind: 'permission',
@@ -243,17 +222,17 @@ describe('upgradeCommand', () => {
   })
 
   it('shows a retry hint when another self upgrade already holds the lock', async () => {
-    const inspection = {
-      canAutoUpdate: true,
-      currentVersion: '1.0.0',
-      executablePath: '/usr/local/bin/qtx',
-      installSource: 'npm' as const,
-      latestVersion: '1.1.0',
-      packageRoot: '/usr/local/lib/node_modules/quantex-cli',
-      recommendedUpgradeCommand: 'quantex upgrade',
-      updateChannel: 'stable' as const,
-    }
-    inspectSelfSpy.mockResolvedValue(inspection)
+    planSelfUpgradeSpy.mockResolvedValue(
+      createPlan(
+        {
+          executablePath: '/usr/local/bin/qtx',
+          installSource: 'npm',
+          packageRoot: '/usr/local/lib/node_modules/quantex-cli',
+          targetVersion: '1.1.0',
+        },
+        'update-available',
+      ),
+    )
     upgradeSelfSpy.mockResolvedValue({
       error: {
         kind: 'locked',
@@ -277,17 +256,8 @@ describe('upgradeCommand', () => {
   })
 
   it('runs self upgrade when a managed source is detected', async () => {
-    const inspection = {
-      canAutoUpdate: true,
-      currentVersion: '1.0.0',
-      executablePath: '/tmp/quantex',
-      installSource: 'npm' as const,
-      latestVersion: '1.1.0',
-      packageRoot: '/tmp/quantex',
-      recommendedUpgradeCommand: 'quantex upgrade',
-      updateChannel: 'stable' as const,
-    }
-    inspectSelfSpy.mockResolvedValue(inspection)
+    const plan = createPlan({ targetVersion: '1.1.0' }, 'update-available')
+    planSelfUpgradeSpy.mockResolvedValue(plan)
     upgradeSelfSpy.mockResolvedValue({
       installSource: 'npm',
       success: true,
@@ -295,22 +265,15 @@ describe('upgradeCommand', () => {
 
     await expect(upgradeCommand()).resolves.toMatchObject({ ok: true })
 
-    expect(upgradeSelfSpy).toHaveBeenCalledWith(inspection)
+    expect(upgradeSelfSpy).toHaveBeenCalledWith(plan)
     expect(stdoutWriteSpy).toHaveBeenCalledWith(expect.stringContaining('Upgrading Quantex CLI'))
     expect(stdoutWriteSpy).toHaveBeenCalledWith(expect.stringContaining('upgraded successfully'))
   })
 
   it('supports --check mode when an update is available', async () => {
-    inspectSelfSpy.mockResolvedValue({
-      canAutoUpdate: true,
-      currentVersion: '1.0.0',
-      executablePath: '/tmp/quantex',
-      installSource: 'npm',
-      latestVersion: '1.1.0',
-      packageRoot: '/tmp/quantex',
-      recommendedUpgradeCommand: 'quantex upgrade',
-      updateChannel: 'beta',
-    })
+    planSelfUpgradeSpy.mockResolvedValue(
+      createPlan({ targetVersion: '1.1.0', updateChannel: 'beta' }, 'update-available'),
+    )
 
     await expect(upgradeCommand({ check: true, channel: 'beta' })).resolves.toMatchObject({
       exitCode: 1,
@@ -323,16 +286,15 @@ describe('upgradeCommand', () => {
   })
 
   it('treats a lower latest version as up to date in --check mode', async () => {
-    inspectSelfSpy.mockResolvedValue({
-      canAutoUpdate: true,
-      currentVersion: '0.15.0',
-      executablePath: '/tmp/quantex',
-      installSource: 'npm',
-      latestVersion: '0.14.0',
-      packageRoot: '/tmp/quantex',
-      recommendedUpgradeCommand: 'quantex upgrade',
-      updateChannel: 'stable',
-    })
+    planSelfUpgradeSpy.mockResolvedValue(
+      createPlan(
+        {
+          currentVersion: '0.15.0',
+          targetVersion: '0.14.0',
+        },
+        'up-to-date',
+      ),
+    )
 
     const result = await upgradeCommand({ check: true })
 
@@ -348,16 +310,7 @@ describe('upgradeCommand', () => {
       outputMode: 'json',
       runId: 'test-run-id',
     })
-    inspectSelfSpy.mockResolvedValue({
-      canAutoUpdate: true,
-      currentVersion: '1.0.0',
-      executablePath: '/tmp/quantex',
-      installSource: 'npm',
-      latestVersion: '1.1.0',
-      packageRoot: '/tmp/quantex',
-      recommendedUpgradeCommand: 'quantex upgrade',
-      updateChannel: 'stable',
-    })
+    planSelfUpgradeSpy.mockResolvedValue(createPlan({ targetVersion: '1.1.0' }, 'update-available'))
 
     await upgradeCommand({ check: true })
 
@@ -376,16 +329,7 @@ describe('upgradeCommand', () => {
       outputMode: 'json',
       runId: 'dry-run-id',
     })
-    inspectSelfSpy.mockResolvedValue({
-      canAutoUpdate: true,
-      currentVersion: '1.0.0',
-      executablePath: '/tmp/quantex',
-      installSource: 'npm',
-      latestVersion: '1.1.0',
-      packageRoot: '/tmp/quantex',
-      recommendedUpgradeCommand: 'quantex upgrade',
-      updateChannel: 'stable',
-    })
+    planSelfUpgradeSpy.mockResolvedValue(createPlan({ targetVersion: '1.1.0' }, 'update-available'))
 
     const result = await upgradeCommand()
 
@@ -395,3 +339,40 @@ describe('upgradeCommand', () => {
     expect(upgradeSelfSpy).not.toHaveBeenCalled()
   })
 })
+
+function createPlan(
+  overrides: {
+    canAutoUpdate?: boolean
+    currentVersion?: string
+    executablePath?: string
+    installSource?: 'binary' | 'bun' | 'npm' | 'source' | 'unknown'
+    managedRegistry?: string
+    packageRoot?: string
+    targetVersion?: string
+    updateChannel?: 'beta' | 'stable'
+    upstreamLatestVersion?: string
+  } = {},
+  status: 'check-unavailable' | 'manual-required' | 'up-to-date' | 'update-available' = 'update-available',
+): SelfUpgradePlan {
+  const facts = {
+    canAutoUpdate: overrides.canAutoUpdate ?? true,
+    currentVersion: overrides.currentVersion ?? '1.0.0',
+    executablePath: overrides.executablePath ?? '/tmp/quantex',
+    installSource: overrides.installSource ?? 'npm',
+    packageRoot: overrides.packageRoot ?? '/tmp/quantex',
+    updateChannel: overrides.updateChannel ?? 'stable',
+  } as const
+
+  return {
+    facts,
+    status,
+    target: {
+      managedRegistry: overrides.managedRegistry,
+      packageTag: facts.updateChannel === 'beta' ? ('beta' as const) : ('latest' as const),
+      targetVersion: overrides.targetVersion,
+      upstreamLatestVersion: overrides.upstreamLatestVersion,
+      verificationCommand: [process.execPath, `${facts.packageRoot}/dist/cli.mjs`, '--version'],
+    },
+    updateAvailable: status === 'update-available',
+  }
+}

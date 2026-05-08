@@ -1,8 +1,8 @@
-import type { SelfInspection, SelfInstallSource, SelfUpdateResult } from '../types'
+import type { SelfInspection, SelfInstallSource, SelfUpdateResult, SelfUpgradePlan } from '../types'
 
 export interface SelfUpgradeProvider {
-  canHandle: (inspection: SelfInspection) => boolean
+  canHandle: (context: SelfInspection | SelfUpgradePlan) => boolean
   getRecoveryHint: (inspection: SelfInspection, result?: SelfUpdateResult) => string | undefined
-  upgrade: (inspection: SelfInspection) => Promise<SelfUpdateResult>
+  upgrade: (plan: SelfUpgradePlan) => Promise<SelfUpdateResult>
   source: SelfInstallSource
 }

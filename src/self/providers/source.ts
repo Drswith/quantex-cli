@@ -1,17 +1,20 @@
-import type { SelfInspection, SelfUpdateResult } from '../types'
+import type { SelfUpdateResult, SelfUpgradePlan } from '../types'
 import type { SelfUpgradeProvider } from './types'
 
 export const sourceSelfUpgradeProvider: SelfUpgradeProvider = {
   source: 'source',
-  canHandle: inspection => inspection.installSource === 'source' || inspection.installSource === 'unknown',
+  canHandle: context => {
+    const installSource = 'facts' in context ? context.facts.installSource : context.installSource
+    return installSource === 'source' || installSource === 'unknown'
+  },
   getRecoveryHint: () => undefined,
-  async upgrade(inspection: SelfInspection): Promise<SelfUpdateResult> {
+  async upgrade(plan: SelfUpgradePlan): Promise<SelfUpdateResult> {
     return {
       error: {
         kind: 'unsupported',
-        message: `Install source "${inspection.installSource}" does not support auto-update.`,
+        message: `Install source "${plan.facts.installSource}" does not support auto-update.`,
       },
-      installSource: inspection.installSource,
+      installSource: plan.facts.installSource,
       success: false,
     }
   },
