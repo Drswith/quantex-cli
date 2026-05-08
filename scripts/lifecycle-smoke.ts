@@ -1,4 +1,12 @@
+import { cp, mkdir, mkdtemp, readFile, readdir, rm, writeFile } from 'node:fs/promises'
+import { tmpdir } from 'node:os'
+import { join } from 'node:path'
 import process from 'node:process'
+import {
+  buildSelfManagedRegistryMetadata,
+  parsePackedTarballName,
+  SEEDED_SELF_VERSION,
+} from '../src/testing/self-upgrade-sandbox'
 
 interface CommandOutput {
   exitCode: number
@@ -15,8 +23,16 @@ interface JsonResult {
 }
 
 const DEFAULT_SMOKE_AGENTS = ['pi', 'qoder']
-const DEFAULT_SMOKE_SCENARIOS = ['managed', 'adopt-preinstalled', 'ambiguous-multi-method', 'self-binary']
+const DEFAULT_SMOKE_SCENARIOS = [
+  'managed',
+  'adopt-preinstalled',
+  'ambiguous-multi-method',
+  'self-binary',
+  'self-managed',
+]
 const DEFAULT_COMMAND_TIMEOUT_MS = Number(process.env.QTX_ISOLATION_COMMAND_TIMEOUT_MS ?? 300_000)
+const ROOT_PACKAGE_JSON_PATH = 'package.json'
+const DIST_DIR = 'dist'
 const agents = resolveSmokeAgents()
 const scenarios = resolveSmokeScenarios()
 const cli = ['bun', 'run', 'src/cli.ts', '--json', '--non-interactive', '--yes', '--color', 'never']
@@ -44,6 +60,8 @@ try {
   if (scenarios.includes('ambiguous-multi-method')) await smokeAmbiguousMultiMethodAgent()
 
   if (scenarios.includes('self-binary')) await smokeSelfBinaryLifecycle()
+
+  if (scenarios.includes('self-managed')) await smokeManagedSelfUpgradeLifecycle()
 } finally {
   for (const agent of installedAgents.toReversed())
     await runJson(`cleanup uninstall ${agent}`, [...cli, 'uninstall', agent], {
@@ -171,6 +189,125 @@ async function smokeSelfBinaryLifecycle(): Promise<void> {
   assertResult(upgrade, result => result.data?.canAutoUpdate === true, 'binary qtx should support self auto-update')
 }
 
+async function smokeManagedSelfUpgradeLifecycle(): Promise<void> {
+  console.log('\n[self] build managed self-upgrade package')
+  await runText('build managed self package', ['bun', 'run', 'build'])
+
+  const currentPackage = await readRootPackageManifest()
+  const sandboxRoot = await mkdtemp(join(tmpdir(), 'quantex-self-managed-'))
+
+  try {
+    const registry = await createSelfManagedRegistry(sandboxRoot, currentPackage)
+
+    try {
+      const bunInstallDir = join(sandboxRoot, 'bun-global')
+      const managedBinDir = join(bunInstallDir, 'bin')
+      const managedQtx = join(managedBinDir, 'qtx')
+      const managedEnv = {
+        BUN_INSTALL: bunInstallDir,
+        PATH: `${managedBinDir}:${process.env.PATH ?? ''}`,
+        QTX_SELF_UPDATE_REGISTRY: registry.registryUrl,
+      }
+
+      console.log('[self] install seeded Bun-managed Quantex from local registry')
+      await runText(
+        'install seeded Bun-managed Quantex',
+        ['bun', 'add', '-g', `${currentPackage.name}@${SEEDED_SELF_VERSION}`, '--registry', registry.registryUrl],
+        { env: managedEnv },
+      )
+
+      const seededVersion = await runText('seeded Bun-managed qtx version', [managedQtx, '--version'], {
+        env: managedEnv,
+      })
+      if (seededVersion.stdout.trim() !== SEEDED_SELF_VERSION) {
+        throw new Error(
+          `Seeded Bun-managed qtx should report ${SEEDED_SELF_VERSION}, received ${seededVersion.stdout.trim() || '(empty)'}.`,
+        )
+      }
+
+      console.log('[self] managed upgrade check')
+      const upgradeCheck = await runJson(
+        'managed self upgrade check',
+        [...buildSelfJsonCommand(managedQtx), 'upgrade', '--check'],
+        {
+          allowExitCodes: [1],
+          env: managedEnv,
+        },
+      )
+      assertResult(
+        upgradeCheck,
+        result => result.action === 'upgrade',
+        'managed self upgrade check should emit upgrade action',
+      )
+      assertResult(
+        upgradeCheck,
+        result => result.data?.status === 'update-available',
+        'managed self upgrade check should report update-available',
+      )
+      assertResult(
+        upgradeCheck,
+        result => result.data?.currentVersion === SEEDED_SELF_VERSION,
+        'managed self upgrade check should report the seeded current version',
+      )
+      assertResult(
+        upgradeCheck,
+        result => result.data?.latestVersion === currentPackage.version,
+        'managed self upgrade check should resolve the current checkout version as latest',
+      )
+      assertResult(
+        upgradeCheck,
+        result => result.data?.installSource === 'bun',
+        'managed self upgrade check should inspect the install source as bun',
+      )
+
+      console.log('[self] managed self-upgrade execution')
+      const upgrade = await runJson('managed self upgrade', [...buildSelfJsonCommand(managedQtx), 'upgrade'], {
+        env: managedEnv,
+      })
+      assertResult(upgrade, result => result.action === 'upgrade', 'managed self upgrade should emit upgrade action')
+      assertResult(upgrade, result => result.data?.status === 'updated', 'managed self upgrade should report updated')
+      assertResult(
+        upgrade,
+        result => result.data?.installSource === 'bun',
+        'managed self upgrade should keep the bun install source',
+      )
+
+      const upgradedVersion = await runText('upgraded Bun-managed qtx version', [managedQtx, '--version'], {
+        env: managedEnv,
+      })
+      if (upgradedVersion.stdout.trim() !== currentPackage.version) {
+        throw new Error(
+          `Upgraded Bun-managed qtx should report ${currentPackage.version}, received ${upgradedVersion.stdout.trim() || '(empty)'}.`,
+        )
+      }
+
+      console.log('[self] managed upgrade check after upgrade')
+      const postUpgradeCheck = await runJson(
+        'managed self upgrade check after upgrade',
+        [...buildSelfJsonCommand(managedQtx), 'upgrade', '--check'],
+        {
+          allowExitCodes: [0],
+          env: managedEnv,
+        },
+      )
+      assertResult(
+        postUpgradeCheck,
+        result => result.data?.status === 'up-to-date',
+        'managed self upgrade check should report up-to-date after upgrade',
+      )
+      assertResult(
+        postUpgradeCheck,
+        result => result.data?.currentVersion === currentPackage.version,
+        'managed self upgrade check should report the upgraded current version',
+      )
+    } finally {
+      registry.close()
+    }
+  } finally {
+    await rm(sandboxRoot, { force: true, recursive: true })
+  }
+}
+
 async function smokeAmbiguousMultiMethodAgent(): Promise<void> {
   const agent = 'qoder'
   const binaryName = 'qodercli'
@@ -209,9 +346,14 @@ async function smokeAmbiguousMultiMethodAgent(): Promise<void> {
 async function runJson(
   label: string,
   command: string[],
-  options: { allowExitCodes?: number[]; allowFailure?: boolean } = {},
+  options: {
+    allowExitCodes?: number[]
+    allowFailure?: boolean
+    cwd?: string
+    env?: Record<string, string | undefined>
+  } = {},
 ): Promise<JsonResult> {
-  const output = await runCommand(label, command)
+  const output = await runCommand(label, command, options)
   const allowedExitCodes = options.allowExitCodes ?? [0]
   if (!allowedExitCodes.includes(output.exitCode) && !options.allowFailure) throw commandError(label, command, output)
 
@@ -223,16 +365,26 @@ async function runJson(
   return parsed
 }
 
-async function runText(label: string, command: string[]): Promise<CommandOutput> {
-  const output = await runCommand(label, command)
+async function runText(
+  label: string,
+  command: string[],
+  options: { cwd?: string; env?: Record<string, string | undefined> } = {},
+): Promise<CommandOutput> {
+  const output = await runCommand(label, command, options)
   if (output.exitCode !== 0) throw commandError(label, command, output)
   return output
 }
 
-async function runCommand(label: string, command: string[]): Promise<CommandOutput> {
+async function runCommand(
+  label: string,
+  command: string[],
+  options: { cwd?: string; env?: Record<string, string | undefined> } = {},
+): Promise<CommandOutput> {
   const proc = Bun.spawn(command, {
+    cwd: options.cwd,
     env: {
       ...process.env,
+      ...options.env,
       NO_COLOR: '1',
     },
     stdio: ['ignore', 'pipe', 'pipe'] as const,
@@ -328,6 +480,10 @@ function shellCommand(command: string): string[] {
   return ['sh', '-c', command]
 }
 
+function buildSelfJsonCommand(binaryPath: string): string[] {
+  return [binaryPath, '--json', '--non-interactive', '--yes', '--color', 'never', '--no-cache']
+}
+
 function withPathPrefix(prefix: string, command: string[]): string[] {
   return ['env', `PATH=${prefix}:${process.env.PATH ?? ''}`, ...command]
 }
@@ -337,4 +493,127 @@ function getCurrentLinuxBinaryTarget(): 'linux-arm64' | 'linux-x64' {
   if (process.arch === 'x64') return 'linux-x64'
 
   throw new Error(`Unsupported Linux binary smoke architecture: ${process.arch}`)
+}
+
+async function readRootPackageManifest(): Promise<{ name: string; version: string }> {
+  const packageJson = JSON.parse(await readFile(ROOT_PACKAGE_JSON_PATH, 'utf8')) as {
+    name?: string
+    version?: string
+  }
+
+  if (!packageJson.name || !packageJson.version) {
+    throw new Error('The root package.json must define name and version for the self-managed smoke scenario.')
+  }
+
+  return {
+    name: packageJson.name,
+    version: packageJson.version,
+  }
+}
+
+async function createSelfManagedRegistry(
+  sandboxRoot: string,
+  currentPackage: { name: string; version: string },
+): Promise<{ close: () => void; registryUrl: string }> {
+  const registryDir = join(sandboxRoot, 'registry')
+  const latestStageDir = join(sandboxRoot, 'latest-package')
+  const seededStageDir = join(sandboxRoot, 'seeded-package')
+
+  await mkdir(registryDir, { recursive: true })
+  await stageSelfManagedPackage(latestStageDir, currentPackage.version)
+  await stageSelfManagedPackage(seededStageDir, SEEDED_SELF_VERSION)
+
+  const latestTarball = await packSelfManagedPackage('pack latest self-managed package', latestStageDir, registryDir)
+  const seededTarball = await packSelfManagedPackage('pack seeded self-managed package', seededStageDir, registryDir)
+
+  const encodedPackagePath = `/${encodeURIComponent(currentPackage.name)}`
+  const encodedLatestPath = `${encodedPackagePath}/latest`
+  const encodedSeededPath = `${encodedPackagePath}/${encodeURIComponent(SEEDED_SELF_VERSION)}`
+  const encodedCurrentPath = `${encodedPackagePath}/${encodeURIComponent(currentPackage.version)}`
+
+  let server: ReturnType<typeof Bun.serve>
+  server = Bun.serve({
+    hostname: '127.0.0.1',
+    port: 0,
+    fetch(request) {
+      const url = new URL(request.url)
+      const origin = url.origin
+
+      if (url.pathname === encodedPackagePath || url.pathname === `/${currentPackage.name}`) {
+        return Response.json(
+          buildSelfManagedRegistryMetadata({
+            latestTarballName: latestTarball,
+            latestVersion: currentPackage.version,
+            origin,
+            packageName: currentPackage.name,
+            seededTarballName: seededTarball,
+          }),
+        )
+      }
+
+      if (url.pathname === encodedLatestPath) return Response.json({ version: currentPackage.version })
+      if (url.pathname === encodedSeededPath) return Response.json({ version: SEEDED_SELF_VERSION })
+      if (url.pathname === encodedCurrentPath) return Response.json({ version: currentPackage.version })
+
+      if (url.pathname === `/${seededTarball}`) {
+        return new Response(Bun.file(join(registryDir, seededTarball)), {
+          headers: {
+            'content-type': 'application/octet-stream',
+          },
+        })
+      }
+
+      if (url.pathname === `/${latestTarball}`) {
+        return new Response(Bun.file(join(registryDir, latestTarball)), {
+          headers: {
+            'content-type': 'application/octet-stream',
+          },
+        })
+      }
+
+      return new Response('not found', { status: 404 })
+    },
+  })
+
+  return {
+    close: () => server.stop(true),
+    registryUrl: `http://127.0.0.1:${server.port}`,
+  }
+}
+
+async function stageSelfManagedPackage(stageDir: string, targetVersion: string): Promise<void> {
+  await mkdir(stageDir, { recursive: true })
+  await cp(DIST_DIR, join(stageDir, DIST_DIR), { recursive: true })
+  await cp(ROOT_PACKAGE_JSON_PATH, join(stageDir, ROOT_PACKAGE_JSON_PATH))
+
+  const packageJsonPath = join(stageDir, ROOT_PACKAGE_JSON_PATH)
+  const packageJson = JSON.parse(await readFile(packageJsonPath, 'utf8')) as Record<string, unknown>
+  const currentVersion = typeof packageJson.version === 'string' ? packageJson.version : undefined
+
+  if (!currentVersion) throw new Error('The root package.json must define version for the self-managed smoke scenario.')
+
+  packageJson.version = targetVersion
+  await writeFile(packageJsonPath, `${JSON.stringify(packageJson, null, 2)}\n`, 'utf8')
+
+  if (targetVersion === currentVersion) return
+
+  const distFiles = await readdir(join(stageDir, DIST_DIR))
+  for (const fileName of distFiles) {
+    if (!fileName.endsWith('.mjs') && !fileName.endsWith('.mts')) continue
+
+    const filePath = join(stageDir, DIST_DIR, fileName)
+    const content = await readFile(filePath, 'utf8')
+    await writeFile(filePath, content.replaceAll(currentVersion, targetVersion), 'utf8')
+  }
+}
+
+async function packSelfManagedPackage(label: string, packageDir: string, registryDir: string): Promise<string> {
+  const output = await runText(label, ['npm', 'pack', '--ignore-scripts', '--pack-destination', registryDir], {
+    cwd: packageDir,
+  })
+  const tarballName = parsePackedTarballName(output.stdout)
+
+  if (!tarballName) throw new Error(`${label} did not report a tarball filename.`)
+
+  return tarballName
 }

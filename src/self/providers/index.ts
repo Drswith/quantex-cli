@@ -1,4 +1,4 @@
-import type { SelfInspection, SelfInstallSource, SelfUpdateChannel } from '../types'
+import type { SelfInspection, SelfInstallSource, SelfUpdateChannel, SelfUpgradePlan } from '../types'
 import type { SelfUpgradeProvider } from './types'
 import { binarySelfUpgradeProvider } from './binary'
 import { bunSelfUpgradeProvider } from './bun'
@@ -12,8 +12,8 @@ const selfUpgradeProviders: SelfUpgradeProvider[] = [
   sourceSelfUpgradeProvider,
 ]
 
-export function getSelfUpgradeProvider(inspection: SelfInspection): SelfUpgradeProvider {
-  return selfUpgradeProviders.find(provider => provider.canHandle(inspection)) ?? sourceSelfUpgradeProvider
+export function getSelfUpgradeProvider(context: SelfInspection | SelfUpgradePlan): SelfUpgradeProvider {
+  return selfUpgradeProviders.find(provider => provider.canHandle(context)) ?? sourceSelfUpgradeProvider
 }
 
 export function getSelfUpgradeProviderForInstallSource(

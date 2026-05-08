@@ -1,5 +1,8 @@
+import type { BinaryReleaseAsset } from './release'
+
 export type SelfInstallSource = 'binary' | 'bun' | 'npm' | 'source' | 'unknown'
 export type SelfUpdateChannel = 'beta' | 'stable'
+export type SelfUpgradePlanStatus = 'check-unavailable' | 'manual-required' | 'up-to-date' | 'update-available'
 
 export interface SelfInspection {
   canAutoUpdate: boolean
@@ -42,4 +45,31 @@ export interface SelfPackageMetadata {
   packageJsonPath: string
   packageRoot: string
   version: string
+}
+
+export interface SelfInstallFacts {
+  canAutoUpdate: boolean
+  currentVersion: string
+  executablePath: string
+  installSource: SelfInstallSource
+  packageRoot: string
+  updateChannel: SelfUpdateChannel
+}
+
+export interface SelfUpdateTarget {
+  binaryAsset?: BinaryReleaseAsset
+  managedRegistry?: string
+  managedRegistryIsOverride?: boolean
+  packageTag?: 'beta' | 'latest'
+  resolutionError?: SelfUpgradeError
+  targetVersion?: string
+  upstreamLatestVersion?: string
+  verificationCommand?: string[]
+}
+
+export interface SelfUpgradePlan {
+  facts: SelfInstallFacts
+  status: SelfUpgradePlanStatus
+  target: SelfUpdateTarget
+  updateAvailable: boolean
 }
