@@ -1,3 +1,4 @@
 - [x] Return staged package manifest metadata from the self-managed sandbox registry helper instead of hand-written minimal version entries.
 - [x] Run the self-managed smoke scenario inside an isolated `.bun` home layout so Bun-managed self-install detection matches production.
 - [x] Add unit coverage for the richer sandbox registry metadata and verify the targeted self-managed smoke path locally.
+- [x] Resolve the self-managed smoke `qtx` entrypoint from Bun's reported global bin directory.

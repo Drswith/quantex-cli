@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import {
   buildSelfManagedRegistryMetadata,
   parsePackedTarballName,
+  resolveBunGlobalBinaryPath,
   SEEDED_SELF_VERSION,
 } from '../../src/testing/self-upgrade-sandbox'
 
@@ -84,5 +85,27 @@ describe('parsePackedTarballName', () => {
 
   it('returns undefined when pack output is empty', () => {
     expect(parsePackedTarballName('\n\n')).toBeUndefined()
+  })
+})
+
+describe('resolveBunGlobalBinaryPath', () => {
+  it('uses the actual Bun global bin directory reported by bun pm bin -g', () => {
+    expect(
+      resolveBunGlobalBinaryPath({
+        binaryName: 'qtx',
+        fallbackBinDir: '/tmp/quantex/home/.bun/bin',
+        pmBinOutput: '/usr/local/bin\n',
+      }),
+    ).toBe('/usr/local/bin/qtx')
+  })
+
+  it('falls back to the isolated BUN_INSTALL bin directory when Bun reports no bin path', () => {
+    expect(
+      resolveBunGlobalBinaryPath({
+        binaryName: 'qtx',
+        fallbackBinDir: '/tmp/quantex/home/.bun/bin',
+        pmBinOutput: '\n',
+      }),
+    ).toBe('/tmp/quantex/home/.bun/bin/qtx')
   })
 })
