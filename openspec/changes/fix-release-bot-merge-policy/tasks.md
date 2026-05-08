@@ -1,0 +1,3 @@
+- [x] Validate release-please PR shape inside `PR Governance` and expose a validated release PR flag to downstream checks.
+- [x] Gate PR body release exceptions on the validated release PR flag instead of branch-name matching alone.
+- [x] Allow the trusted repository release bot identity only for validated release PRs in merge commit policy tests and implementation.

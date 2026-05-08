@@ -90,13 +90,34 @@ describe('PR body policy', () => {
   })
 
   it('keeps release-please branches on dedicated release validation', () => {
+    const body = validBody.replace(
+      'Release: not applicable - docs/process/test-only change',
+      'Release: not applicable - n/a',
+    )
+
     expect(
       validatePrBodyPolicy({
-        body: validBody,
+        body,
         changedFiles: ['package.json'],
-        headBranch: 'release-please--branches--main--components--quantex-cli',
         title: 'chore: release 1.2.3',
+        validatedReleasePr: true,
       }),
     ).toEqual([])
+  })
+
+  it('does not trust release-please branch naming without validated release policy', () => {
+    const body = validBody.replace(
+      'Release: not applicable - docs/process/test-only change',
+      'Release: not applicable - n/a',
+    )
+
+    const issues = validatePrBodyPolicy({
+      body,
+      changedFiles: ['package.json'],
+      headBranch: 'release-please--branches--main--components--quantex-cli',
+      title: 'chore: release 1.2.3',
+    })
+
+    expect(issues.join('\n')).toContain('Product-impacting PRs must not silently skip release automation.')
   })
 })

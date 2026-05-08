@@ -63,6 +63,38 @@ describe('pr merge commit policy', () => {
     expect(issues).toContainEqual(expect.stringContaining('Re-author the commit'))
   })
 
+  it('rejects the release bot author on unvalidated pull requests', () => {
+    const issues = validatePullRequestMergeCommitPolicy({
+      commits: [
+        {
+          authorEmail: '279595574+quantex-cli-release-bot[bot]@users.noreply.github.com',
+          authorName: 'quantex-cli-release-bot[bot]',
+          message: 'chore: release 0.16.0',
+          sha: '88261fb1b9c4fbe11e2a5b883fc84a8bcb62f1f1',
+        },
+      ],
+    })
+
+    expect(issues).toContainEqual(expect.stringContaining('88261fb1b9c4'))
+    expect(issues).toContainEqual(expect.stringContaining('Re-author the commit'))
+  })
+
+  it('accepts the trusted release bot author for validated release PRs', () => {
+    expect(
+      validatePullRequestMergeCommitPolicy({
+        commits: [
+          {
+            authorEmail: '279595574+quantex-cli-release-bot[bot]@users.noreply.github.com',
+            authorName: 'quantex-cli-release-bot[bot]',
+            message: 'chore: release 0.16.0',
+            sha: '88261fb1b9c4fbe11e2a5b883fc84a8bcb62f1f1',
+          },
+        ],
+        validatedReleasePr: true,
+      }),
+    ).toEqual([])
+  })
+
   it('rejects direct co-author trailers in PR commit messages', () => {
     const issues = validatePullRequestMergeCommitPolicy({
       commits: [

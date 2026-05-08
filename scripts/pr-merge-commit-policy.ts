@@ -9,13 +9,17 @@ export interface PullRequestCommitMetadata {
 
 export interface PullRequestMergeCommitPolicyInput {
   commits: PullRequestCommitMetadata[]
+  validatedReleasePr?: boolean
 }
 
 const prohibitedTrailerPattern = /^co-authored-by:\s*/i
 const riskyAuthorPatterns = [/cursoragent@cursor\.com/i, /^cursor agent$/i, /\[bot\]@users\.noreply\.github\.com$/i]
+const trustedReleaseBotEmailPattern = /^279595574\+quantex-cli-release-bot\[bot\]@users\.noreply\.github\.com$/i
+const trustedReleaseBotNamePattern = /^quantex-cli-release-bot\[bot\]$/i
 
 export function validatePullRequestMergeCommitPolicy(input: PullRequestMergeCommitPolicyInput): string[] {
   const commits = input.commits
+  const validatedReleasePr = input.validatedReleasePr === true
   const issues: string[] = []
 
   if (commits.length === 0) {
@@ -49,6 +53,8 @@ export function validatePullRequestMergeCommitPolicy(input: PullRequestMergeComm
   }
 
   for (const commit of commits) {
+    if (validatedReleasePr && isTrustedReleaseBotAuthor(commit)) continue
+
     const authorValues = [commit.authorEmail, commit.authorName].filter(Boolean) as string[]
     if (!authorValues.some(value => riskyAuthorPatterns.some(pattern => pattern.test(value)))) continue
 
@@ -66,7 +72,8 @@ export function validatePullRequestMergeCommitPolicy(input: PullRequestMergeComm
 
 if (import.meta.main) {
   const commits = parseCommits(process.argv.slice(2), process.env.PR_COMMITS_JSON)
-  const issues = validatePullRequestMergeCommitPolicy({ commits })
+  const validatedReleasePr = parseBooleanFlag(process.env.PR_IS_VALIDATED_RELEASE_PR)
+  const issues = validatePullRequestMergeCommitPolicy({ commits, validatedReleasePr })
 
   if (issues.length > 0) {
     console.error('PR merge commit policy check failed:\n')
@@ -126,4 +133,16 @@ function formatSha(sha: string): string {
 function formatAuthor(commit: PullRequestCommitMetadata): string {
   if (commit.authorName && commit.authorEmail) return `${commit.authorName} <${commit.authorEmail}>`
   return commit.authorEmail ?? commit.authorName ?? '<unknown>'
+}
+
+function isTrustedReleaseBotAuthor(commit: PullRequestCommitMetadata): boolean {
+  return (
+    trustedReleaseBotEmailPattern.test(commit.authorEmail ?? '') &&
+    trustedReleaseBotNamePattern.test(commit.authorName ?? '')
+  )
+}
+
+function parseBooleanFlag(rawValue: string | undefined): boolean {
+  if (!rawValue) return false
+  return ['1', 'true', 'yes'].includes(rawValue.trim().toLowerCase())
 }

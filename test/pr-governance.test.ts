@@ -53,6 +53,13 @@ describe('pr governance release intent', () => {
     expect(prGovernanceWorkflow).toContain('Validate PR merge commit policy')
     expect(prGovernanceWorkflow).toContain('bun run scripts/pr-merge-commit-policy.ts')
     expect(prGovernanceWorkflow).toContain('PR_COMMITS_JSON')
+    expect(prGovernanceWorkflow).toContain('PR_IS_VALIDATED_RELEASE_PR')
     expect(prMergeCommitPolicyScript).toContain('GitHub squash merge')
+  })
+
+  it('validates release-please PRs before granting release-specific exemptions', () => {
+    expect(prGovernanceWorkflow).toContain('Validate release PR policy')
+    expect(prGovernanceWorkflow).toContain('bun run scripts/release-pr-policy.js')
+    expect(prGovernanceWorkflow).toContain('PR_BASE_VERSION')
   })
 })

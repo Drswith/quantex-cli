@@ -7,6 +7,7 @@ export interface PrBodyPolicyInput {
   changedFiles?: string[]
   headBranch?: string
   title?: string
+  validatedReleasePr?: boolean
 }
 
 export const requiredPrBodyHeadings = [
@@ -23,8 +24,8 @@ const placeholderValues = new Set(['', 'n/a', 'none', 'not applicable', 'tbd', '
 
 export function validatePrBodyPolicy(input: PrBodyPolicyInput): string[] {
   const body = input.body || ''
-  const headBranch = input.headBranch || ''
   const title = input.title || ''
+  const validatedReleasePr = input.validatedReleasePr === true
   const issues: string[] = []
 
   const missingHeadings = requiredPrBodyHeadings.filter(heading => !body.includes(heading))
@@ -57,11 +58,9 @@ export function validatePrBodyPolicy(input: PrBodyPolicyInput): string[] {
     )
   }
 
-  const releasePleaseBranch = headBranch.startsWith('release-please--branches--')
-
   if (
     classification.productImpacting &&
-    !releasePleaseBranch &&
+    !validatedReleasePr &&
     !releaseWorthyMetadata &&
     !hasMeaningfulNoReleaseReason(body)
   ) {
@@ -121,13 +120,14 @@ if (import.meta.main) {
   const body = options.bodyFile ? readFileSync(options.bodyFile, 'utf8') : process.env.PR_BODY || ''
   const title = options.title ?? process.env.PR_TITLE ?? ''
   const headBranch = options.headBranch ?? process.env.PR_HEAD_BRANCH ?? ''
+  const validatedReleasePr = parseBooleanFlag(options.validatedReleasePr ?? process.env.PR_IS_VALIDATED_RELEASE_PR)
   const changedFiles = options.changedFilesJson
     ? parseChangedFiles(options.changedFilesJson)
     : process.env.CHANGED_FILES_JSON
       ? parseChangedFiles(process.env.CHANGED_FILES_JSON)
       : undefined
 
-  const issues = validatePrBodyPolicy({ body, changedFiles, headBranch, title })
+  const issues = validatePrBodyPolicy({ body, changedFiles, headBranch, title, validatedReleasePr })
 
   if (issues.length > 0) {
     console.error('PR body policy check failed:\n')
@@ -143,12 +143,14 @@ function parseArgs(args: string[]): {
   changedFilesJson?: string
   headBranch?: string
   title?: string
+  validatedReleasePr?: string
 } {
   const options: {
     bodyFile?: string
     changedFilesJson?: string
     headBranch?: string
     title?: string
+    validatedReleasePr?: string
   } = {}
 
   for (let index = 0; index < args.length; index += 1) {
@@ -167,6 +169,9 @@ function parseArgs(args: string[]): {
     } else if (arg === '--title' && nextValue) {
       options.title = nextValue
       index += 1
+    } else if (arg === '--validated-release-pr' && nextValue) {
+      options.validatedReleasePr = nextValue
+      index += 1
     } else {
       throw new Error(`Unknown or incomplete argument: ${arg}`)
     }
@@ -182,4 +187,9 @@ function parseChangedFiles(rawValue: string): string[] {
   }
 
   return parsedValue
+}
+
+function parseBooleanFlag(rawValue: string | undefined): boolean {
+  if (!rawValue) return false
+  return ['1', 'true', 'yes'].includes(rawValue.trim().toLowerCase())
 }
