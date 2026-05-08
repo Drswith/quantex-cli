@@ -608,9 +608,11 @@ async function stageSelfManagedPackage(stageDir: string, targetVersion: string):
 }
 
 async function packSelfManagedPackage(label: string, packageDir: string, registryDir: string): Promise<string> {
-  const output = await runText(label, ['npm', 'pack', '--ignore-scripts', '--pack-destination', registryDir], {
-    cwd: packageDir,
-  })
+  const output = await runText(
+    label,
+    ['bun', 'pm', 'pack', '--quiet', '--ignore-scripts', '--destination', registryDir],
+    { cwd: packageDir },
+  )
   const tarballName = parsePackedTarballName(output.stdout)
 
   if (!tarballName) throw new Error(`${label} did not report a tarball filename.`)

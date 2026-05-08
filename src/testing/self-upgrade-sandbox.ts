@@ -1,3 +1,5 @@
+import { basename } from 'node:path'
+
 export const SEEDED_SELF_VERSION = '0.0.0-sandbox-old'
 
 export function buildSelfManagedRegistryMetadata(options: {
@@ -48,10 +50,12 @@ export function buildSelfManagedRegistryMetadata(options: {
 }
 
 export function parsePackedTarballName(output: string): string | undefined {
-  return output
+  const lastLine = output
     .trim()
     .split('\n')
     .map(line => line.trim())
     .filter(Boolean)
     .at(-1)
+
+  return lastLine ? basename(lastLine) : undefined
 }

@@ -35,12 +35,16 @@ describe('buildSelfManagedRegistryMetadata', () => {
 })
 
 describe('parsePackedTarballName', () => {
-  it('returns the last non-empty line from npm pack output', () => {
+  it('returns the last non-empty line from package pack output', () => {
     expect(parsePackedTarballName('\nquantex-cli-0.15.1.tgz\n')).toBe('quantex-cli-0.15.1.tgz')
     expect(parsePackedTarballName('npm notice something\nquantex-cli-0.15.1.tgz\n')).toBe('quantex-cli-0.15.1.tgz')
+    expect(parsePackedTarballName('quantex-cli-0.15.1.tgz')).toBe('quantex-cli-0.15.1.tgz')
+    expect(parsePackedTarballName('/tmp/quantex-self-managed/registry/quantex-cli-0.15.1.tgz')).toBe(
+      'quantex-cli-0.15.1.tgz',
+    )
   })
 
-  it('returns undefined when npm pack output is empty', () => {
+  it('returns undefined when pack output is empty', () => {
     expect(parsePackedTarballName('\n\n')).toBeUndefined()
   })
 })

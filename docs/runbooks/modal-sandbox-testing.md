@@ -92,7 +92,11 @@ For local broad-agent coverage without the slower upstream install path, `qoder`
 QTX_ISOLATION_SCENARIOS=managed QTX_ISOLATION_AGENTS=qoder bun run test:container
 ```
 
-The dedicated GitHub Actions workflow runs the Modal path with `QTX_ISOLATION_AGENTS=pi,opencode` and a longer command timeout so remote validation covers the lightweight baseline plus opencode under better network conditions. Protected-branch pushes only trigger the workflow when lifecycle-sensitive files change; docs-only and OpenSpec archive-only merges do not start Modal automatically.
+The dedicated GitHub Actions workflow runs the Modal path with `QTX_ISOLATION_AGENTS=pi,opencode` and a longer command timeout so remote validation covers the lightweight baseline plus opencode under better network conditions. Pull requests and protected-branch pushes always publish the `sandbox-tests` check context, but the workflow only starts Modal when lifecycle-sensitive files changed. Docs-only and OpenSpec archive-only changes return a fast success result without starting Modal.
+
+For merge-gating pull requests, the workflow narrows `QTX_ISOLATION_SCENARIOS` to `managed,adopt-preinstalled,ambiguous-multi-method,self-binary` so the required check stays focused on stable lifecycle coverage. Full Modal coverage, including `self-managed`, still runs on protected-branch pushes, schedule, and manual dispatch.
+
+For pull requests from forks, the required `sandbox-tests` context downgrades to a documented success placeholder because GitHub does not expose Modal secrets to forked `pull_request` workflows. Maintainers must rerun equivalent sandbox validation from a trusted repository branch before merging lifecycle-sensitive fork contributions.
 
 ## Triage order
 
@@ -108,6 +112,7 @@ The dedicated GitHub Actions workflow runs the Modal path with `QTX_ISOLATION_AG
 2. Run `bun run test:container` when the change is sensitive to HOME, PATH, global tools, or filesystem isolation and you want a local fallback that does not require Modal.
    For self-upgrade regressions, start with `QTX_ISOLATION_SCENARIOS=self-managed bun run test:container`.
 3. Run `bun run test:sandbox` when you also want to validate the Modal transport or reproduce the dedicated GitHub Actions workflow.
+   If the contribution originated from a fork and changed sandbox-relevant files, do this rerun from a trusted branch before merge.
 4. If an isolated run fails, compare whether the failure is code-related or environment-related by rerunning the same agent list locally.
 5. If Modal setup is missing, install or repair the local Modal CLI before treating the failure as a product regression.
 
@@ -132,7 +137,7 @@ Stop and ask for human input when:
 
 - the change appears to require platform-specific validation outside Linux
 - Modal account policy or credentials are unavailable to the current contributor
-- the isolation layer needs to become merge-gating CI instead of an opt-in maintainer tool
+- the isolation layer needs credentials or external state that cannot be safely represented in merge-gating CI
 - a new scenario needs to mutate real external account state instead of a disposable package install inside the sandbox
 
 ## Related artifacts

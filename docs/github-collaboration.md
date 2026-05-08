@@ -146,6 +146,7 @@ The filenames in `.github/DISCUSSION_TEMPLATE/` already assume those slugs.
 Configure branch protection or rulesets so that `main` requires:
 
 - the main CI workflow
+- the `sandbox-tests` check context for lifecycle-sensitive pull requests
 - the `PR Governance` workflow
 
 ### Labels
