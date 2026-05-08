@@ -6,7 +6,7 @@ The current self-managed smoke setup returns a minimal local-registry packument 
 
 ## What Changes
 
-- Make the sandbox-local registry expose version entries derived from the staged package manifests instead of only `name`, `version`, and tarball URLs.
+- Make the sandbox-local registry expose both packument and version endpoints derived from the staged package manifests instead of only minimal `version` responses.
 - Run the self-managed smoke scenario inside an isolated `HOME` with a real `.bun` layout so Bun-managed self-install detection matches production behavior.
 - Add unit coverage for the richer registry metadata used by the self-managed sandbox harness.
 
