@@ -2,6 +2,21 @@
 
 This changelog is maintained by release-please Release PRs.
 
+## [0.16.0](https://github.com/Drswith/quantex-cli/compare/v0.15.1...v0.16.0) (2026-05-08)
+
+
+### Features
+
+* support multi-agent install ([71b869d](https://github.com/Drswith/quantex-cli/commit/71b869df901611949e883ed153dc70e9b3c0163d))
+
+
+### Bug Fixes
+
+* **ci:** load release PR policy from trusted base ref ([#179](https://github.com/Drswith/quantex-cli/issues/179)) ([c9e41d7](https://github.com/Drswith/quantex-cli/commit/c9e41d733ad41b701e2cf098edfeb78d2751a10e))
+* **self-upgrade:** avoid false managed verify when latestVersion unresolved ([#193](https://github.com/Drswith/quantex-cli/issues/193)) ([7db3a14](https://github.com/Drswith/quantex-cli/commit/7db3a14c4657b629e28855dcaf95aa0d6ae19b35))
+* **self-upgrade:** do not treat missing latest as up-to-date ([#192](https://github.com/Drswith/quantex-cli/issues/192)) ([a22215b](https://github.com/Drswith/quantex-cli/commit/a22215bf26e68c36198b03a75b05ceef09219d2a))
+* **state:** preserve unknown self keys on state.json write-back ([#183](https://github.com/Drswith/quantex-cli/issues/183)) ([d448e97](https://github.com/Drswith/quantex-cli/commit/d448e9793d03017e36aecbb203fd3202fe19379b))
+
 ## [0.15.1](https://github.com/Drswith/quantex-cli/compare/v0.15.0...v0.15.1) (2026-05-06)
 
 
