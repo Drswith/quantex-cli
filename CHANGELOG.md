@@ -2,6 +2,13 @@
 
 This changelog is maintained by release-please Release PRs.
 
+## [0.16.1](https://github.com/Drswith/quantex-cli/compare/v0.16.0...v0.16.1) (2026-05-08)
+
+
+### Bug Fixes
+
+* **sandbox:** stabilize self-managed upgrade smoke ([#210](https://github.com/Drswith/quantex-cli/issues/210)) ([d62869f](https://github.com/Drswith/quantex-cli/commit/d62869fe534bb9d6562576f77e5a296e70d04f88))
+
 ## [0.16.0](https://github.com/Drswith/quantex-cli/compare/v0.15.1...v0.16.0) (2026-05-08)
 
 
