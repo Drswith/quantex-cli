@@ -232,6 +232,14 @@ If Bun reports success but the installed `qtx --version` does not move:
 - prefer the self-upgrade path that re-declares the direct package target with `bun add -g quantex-cli@<tag>` instead of relying on global `bun update`
 - npm has a similar range-sensitive `update` behavior; use `npm install -g quantex-cli@<tag>` when the intent is to replace the direct global package target
 
+If you need an isolated reproduction of the Bun-managed self-upgrade path without depending on public registry timing:
+
+```bash
+QTX_ISOLATION_SCENARIOS=self-managed bun run test:container
+```
+
+This scenario builds local Quantex tarballs, seeds an older Bun-managed install from a sandbox-local registry, then verifies that `quantex upgrade --no-cache` reaches the current checkout version.
+
 ### 7. Reproduce the CI release verification path locally
 
 The closest local sequence to the release verification workflow is:
