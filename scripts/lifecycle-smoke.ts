@@ -529,6 +529,20 @@ async function createSelfManagedRegistry(
 
   const latestTarball = await packSelfManagedPackage('pack latest self-managed package', latestStageDir, registryDir)
   const seededTarball = await packSelfManagedPackage('pack seeded self-managed package', seededStageDir, registryDir)
+  const latestRegistryEntry = buildSelfManagedRegistryMetadata({
+    latestPackageManifest: latestManifest,
+    latestTarballName: latestTarball,
+    origin: 'http://placeholder.invalid',
+    seededPackageManifest: seededManifest,
+    seededTarballName: seededTarball,
+  }).versions[currentPackage.version]
+  const seededRegistryEntry = buildSelfManagedRegistryMetadata({
+    latestPackageManifest: latestManifest,
+    latestTarballName: latestTarball,
+    origin: 'http://placeholder.invalid',
+    seededPackageManifest: seededManifest,
+    seededTarballName: seededTarball,
+  }).versions[SEEDED_SELF_VERSION]
 
   const encodedPackagePath = `/${encodeURIComponent(currentPackage.name)}`
   const encodedLatestPath = `${encodedPackagePath}/latest`
@@ -556,9 +570,30 @@ async function createSelfManagedRegistry(
         )
       }
 
-      if (url.pathname === encodedLatestPath) return Response.json({ version: currentPackage.version })
-      if (url.pathname === encodedSeededPath) return Response.json({ version: SEEDED_SELF_VERSION })
-      if (url.pathname === encodedCurrentPath) return Response.json({ version: currentPackage.version })
+      if (url.pathname === encodedLatestPath) {
+        return Response.json({
+          ...latestRegistryEntry,
+          dist: {
+            tarball: `${origin}/${latestTarball}`,
+          },
+        })
+      }
+      if (url.pathname === encodedSeededPath) {
+        return Response.json({
+          ...seededRegistryEntry,
+          dist: {
+            tarball: `${origin}/${seededTarball}`,
+          },
+        })
+      }
+      if (url.pathname === encodedCurrentPath) {
+        return Response.json({
+          ...latestRegistryEntry,
+          dist: {
+            tarball: `${origin}/${latestTarball}`,
+          },
+        })
+      }
 
       if (url.pathname === `/${seededTarball}`) {
         return new Response(Bun.file(join(registryDir, seededTarball)), {

@@ -25,9 +25,9 @@ In practice, Bun uses the version metadata from the registry packument to decide
 
 ## Decisions
 
-### Derive registry version entries from staged package manifests
+### Derive packument and version responses from staged package manifests
 
-The local registry will reuse the staged `package.json` manifests for each tarball and only override the tarball URL under `dist`. This preserves fields such as `bin`, `dependencies`, `type`, and exports without having to maintain a hand-written allowlist.
+The local registry will reuse the staged `package.json` manifests for each tarball and only override the tarball URL under `dist`. This applies both to the root packument response and to `/<pkg>/latest` or `/<pkg>/<version>` lookups. That preserves fields such as `bin`, `dependencies`, `type`, and exports without having to maintain a hand-written allowlist.
 
 Alternative considered: add only `bin` and `dependencies` to the current minimal metadata. Rejected because it still leaves future package-manager-sensitive fields implicit and fragile.
 
