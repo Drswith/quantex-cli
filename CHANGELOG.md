@@ -2,6 +2,13 @@
 
 This changelog is maintained by release-please Release PRs.
 
+## [0.16.2](https://github.com/Drswith/quantex-cli/compare/v0.16.1...v0.16.2) (2026-05-08)
+
+
+### Bug Fixes
+
+* **sandbox:** return full self-managed version metadata ([#212](https://github.com/Drswith/quantex-cli/issues/212)) ([f1e47a1](https://github.com/Drswith/quantex-cli/commit/f1e47a158d9105b9895e6947c58518792e966576))
+
 ## [0.16.1](https://github.com/Drswith/quantex-cli/compare/v0.16.0...v0.16.1) (2026-05-08)
 
 
