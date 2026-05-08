@@ -108,4 +108,14 @@ describe('resolveBunGlobalBinaryPath', () => {
       }),
     ).toBe('/tmp/quantex/home/.bun/bin/qtx')
   })
+
+  it('preserves Windows-style Bun bin directories', () => {
+    expect(
+      resolveBunGlobalBinaryPath({
+        binaryName: 'qtx',
+        fallbackBinDir: 'C:\\Users\\runner\\.bun\\bin',
+        pmBinOutput: 'C:\\Program Files\\Bun\\bin\n',
+      }),
+    ).toBe('C:\\Program Files\\Bun\\bin\\qtx')
+  })
 })
