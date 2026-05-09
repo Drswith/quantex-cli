@@ -208,6 +208,18 @@ export async function updateAgentsByType(type: ManagedInstallType, packages: Man
   })
 }
 
+export async function getManagedInstalledPackageVersion(
+  type: ManagedInstallType,
+  packageName: string,
+  packageTargetKind?: InstalledAgentState['packageTargetKind'],
+): Promise<string | undefined> {
+  const installer = getManagedInstaller(type)
+  if (!installer.getInstalledVersion) return undefined
+  if (!(await installer.isAvailable())) return undefined
+
+  return installer.getInstalledVersion(packageName, packageTargetKind)
+}
+
 export async function uninstallAgent(agent: AgentDefinition): Promise<boolean> {
   return withResourceLock(lifecycleLock, async () => {
     const installedState = await getInstalledAgentState(agent.name)

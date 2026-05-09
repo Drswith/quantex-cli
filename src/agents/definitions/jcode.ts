@@ -3,7 +3,7 @@ import { brewInstall, scriptInstall } from '../methods'
 
 export const jcode: AgentDefinition = {
   name: 'jcode',
-  displayName: 'jcode CLI',
+  displayName: 'JCode',
   homepage: 'https://github.com/1jehuang/jcode',
   binaryName: 'jcode',
   versionProbe: {

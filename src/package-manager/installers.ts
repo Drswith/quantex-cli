@@ -17,6 +17,7 @@ export interface ManagedInstallerUpdateOptions {
 
 export interface ManagedInstaller {
   type: ManagedInstallType
+  getInstalledVersion?: (packageName: string, packageTargetKind?: PackageTargetKind) => Promise<string | undefined>
   isAvailable: () => Promise<boolean>
   install: (packageName: string, packageTargetKind?: PackageTargetKind) => Promise<boolean>
   uninstall: (packageName: string, packageTargetKind?: PackageTargetKind) => Promise<boolean>
@@ -39,6 +40,7 @@ const managedInstallers: Record<ManagedInstallType, ManagedInstaller> = {
   },
   bun: {
     type: 'bun',
+    getInstalledVersion: async packageName => bunPm.getInstalledVersion(packageName),
     isAvailable: async () => isBunAvailable(),
     install: async packageName => bunPm.install(packageName),
     uninstall: async packageName => bunPm.uninstall(packageName),
@@ -52,6 +54,7 @@ const managedInstallers: Record<ManagedInstallType, ManagedInstaller> = {
   },
   npm: {
     type: 'npm',
+    getInstalledVersion: async packageName => npmPm.getInstalledVersion(packageName),
     isAvailable: async () => isNpmAvailable(),
     install: async packageName => npmPm.install(packageName),
     uninstall: async packageName => npmPm.uninstall(packageName),

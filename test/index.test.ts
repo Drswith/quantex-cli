@@ -170,7 +170,7 @@ describe('agent definitions', () => {
   it('jcode has correct structure', () => {
     const agent = getAgentByNameOrAlias('jcode')
     expect(agent).toBeDefined()
-    expect(agent!.displayName).toBe('jcode CLI')
+    expect(agent!.displayName).toBe('JCode')
     expect(agent!.binaryName).toBe('jcode')
     expect(agent!.homepage).toBe('https://github.com/1jehuang/jcode')
     expect(agent!.selfUpdate).toBeUndefined()

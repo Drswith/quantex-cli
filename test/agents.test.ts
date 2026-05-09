@@ -423,7 +423,7 @@ describe('jcode', () => {
     validateAgent(jcode)
     expect(jcode.name).toBe('jcode')
     expect(jcode.lookupAliases).toBeUndefined()
-    expect(jcode.displayName).toBe('jcode CLI')
+    expect(jcode.displayName).toBe('JCode')
     expect(jcode.packages).toBeUndefined()
     expect(jcode.binaryName).toBe('jcode')
     expect(jcode.homepage).toBe('https://github.com/1jehuang/jcode')

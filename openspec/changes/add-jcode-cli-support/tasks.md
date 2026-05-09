@@ -8,6 +8,7 @@
 - [x] 2.1 Add `src/agents/definitions/jcode.ts` with verified lifecycle metadata
 - [x] 2.2 Register and re-export `jcode` in the agent catalog
 - [x] 2.3 Add tests covering `jcode` lookup, version probing, install methods, and missing self-update metadata
+- [x] 2.4 Align the user-facing `JCode` display name across catalog, tests, docs, and spec delta
 
 ## 3. Validation
 

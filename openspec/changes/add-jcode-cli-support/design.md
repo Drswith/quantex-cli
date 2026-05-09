@@ -20,7 +20,7 @@ Quantex should add `jcode` as a distinct supported lifecycle agent without inven
 
 ## Decisions
 
-- Use `jcode` as both the canonical Quantex slug and executable name because the upstream binary and project branding are both `jcode`.
+- Use `jcode` as both the canonical Quantex slug and executable name, and use `JCode` as the user-facing display name so supported-agent output follows the brand-style naming used by other agents.
 - Use the GitHub repository URL as the homepage because the upstream repository README is the primary published installation reference.
 - Model the macOS Homebrew option as `brew install 1jehuang/jcode/jcode`, which preserves the documented tap source while fitting Quantex's managed Homebrew metadata shape.
 - Model the shell and PowerShell one-liners from the upstream installation docs as script install methods for macOS, Linux, and Windows.
