@@ -2,6 +2,13 @@
 
 This changelog is maintained by release-please Release PRs.
 
+## [0.16.3](https://github.com/Drswith/quantex-cli/compare/v0.16.2...v0.16.3) (2026-05-09)
+
+
+### Bug Fixes
+
+* **agent-update:** stabilize managed update state ([#216](https://github.com/Drswith/quantex-cli/issues/216)) ([44fa7bb](https://github.com/Drswith/quantex-cli/commit/44fa7bb0155089135a365b467640136c9711f60e))
+
 ## [0.16.2](https://github.com/Drswith/quantex-cli/compare/v0.16.1...v0.16.2) (2026-05-08)
 
 
