@@ -22,9 +22,23 @@ The automated release flow uses merged commit metadata on `main` to decide wheth
 
 Normal feature, fix, or maintenance work lands through standard PRs.
 
-### 2. Let release-please create or update the Release PR
+### 2. Let release-please reconcile protected-branch release state
 
-The `Release` workflow runs from pushes to `main`. release-please reads merged commit metadata and maintains a Release PR when a version bump is warranted.
+The `Release` workflow runs after successful push-side `CI` on `main` or `beta`, and it can also be invoked manually for the same protected branches.
+
+Before it chooses an action, the workflow reconciles branch state from:
+
+- successful push-side `CI` runs on the protected branch
+- current branch history and tags
+- whether a successful `chore: release ...` commit is still untagged
+
+That resolver picks exactly one next action:
+
+- publish a successful but still-untagged release commit
+- otherwise create or refresh a Release PR from the newest successful release-worthy commit
+- otherwise exit cleanly with no release action
+
+release-please then maintains a Release PR when a version bump is warranted.
 
 The Release PR materializes the pending version in:
 
@@ -49,7 +63,9 @@ Branch protection and required checks still decide when the Release PR actually 
 
 ### 4. Let the release job validate the merged Release PR
 
-After the Release PR is merged, the release workflow reruns:
+After the Release PR is merged, the release workflow waits for the successful push-side `CI` run that covers that merged release commit before it enters publish mode. A later docs or archive push must not steal priority from an already-green untagged release commit.
+
+When the reconciler selects publish mode, the release workflow reruns:
 
 - `bun run memory:check`
 - `bun run lint`
@@ -70,7 +86,7 @@ When release-please reports that a GitHub Release was created, the workflow:
 - publishes to npm
 - uploads binaries to the GitHub Release
 
-For regular non-release merges to `main`, the workflow only creates or updates a Release PR and exits cleanly without publishing.
+For regular non-release merges to `main`, the workflow exits cleanly unless it also finds a successful untagged release commit that still needs publication.
 
 ## Version rules
 
@@ -89,6 +105,8 @@ The stable release-please config currently includes a temporary `last-release-sh
 The Release workflow pins `googleapis/release-please-action` to a repository-verified tag instead of floating on the major `v4` tag. Before changing that pin, run a dry run against the repository and confirm it can prepare the expected Release PR without GitHub GraphQL errors.
 
 Release PR creation and GitHub Release creation run as separate release-please phases. Product merges use Release PR mode, while `chore: release ...` merges use GitHub Release mode and then continue into build, npm trusted publishing, and artifact upload.
+
+If a maintainer needs to recover release automation manually, use `workflow_dispatch` against the protected branch that needs reconciliation. Manual runs reuse the same branch-state resolver; they do not bypass the requirement that publish mode must come from a successful protected-branch `CI` run for the target release commit.
 
 ## npm trusted publishing
 
@@ -190,6 +208,7 @@ If a mirror registry is introduced temporarily for local development or incident
 - `.github/workflows/release.yml`
 - `.github/workflows/release-pr-automerge.yml`
 - `.github/workflows/ci.yml`
+- `scripts/release-target-resolution.ts`
 - `release-please-config.json`
 - `.release-please-manifest.json`
 - `docs/releases.md`
