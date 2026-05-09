@@ -253,10 +253,11 @@ async function listSuccessfulCiRuns({
 }
 
 async function filterRunsReachableFromHead(runs: SuccessfulCiRun[]): Promise<SuccessfulCiRun[]> {
+  const branchTipSha = await getRemoteBranchTipSha()
   const reachableRuns: SuccessfulCiRun[] = []
 
   for (const run of runs) {
-    if (await isAncestorOfHead(run.headSha)) {
+    if (await isAncestorOf(run.headSha, branchTipSha)) {
       reachableRuns.push(run)
     }
   }
@@ -264,9 +265,25 @@ async function filterRunsReachableFromHead(runs: SuccessfulCiRun[]): Promise<Suc
   return reachableRuns
 }
 
-async function isAncestorOfHead(sha: string): Promise<boolean> {
+async function getRemoteBranchTipSha(): Promise<string> {
+  const branch = readTargetBranchFromEnv()
+  const remoteRef = `origin/${branch}`
+
   try {
-    await execFileAsync('git', ['merge-base', '--is-ancestor', sha, 'HEAD'])
+    const { stdout } = await execFileAsync('git', ['rev-parse', remoteRef])
+    const sha = stdout.trim()
+    if (sha) return sha
+  } catch {
+    // Missing remote ref (local runs without fetch); fall back to HEAD below.
+  }
+
+  const { stdout } = await execFileAsync('git', ['rev-parse', 'HEAD'])
+  return stdout.trim()
+}
+
+async function isAncestorOf(sha: string, tipSha: string): Promise<boolean> {
+  try {
+    await execFileAsync('git', ['merge-base', '--is-ancestor', sha, tipSha])
     return true
   } catch {
     return false

@@ -1,0 +1,4 @@
+- [x] Bootstrap Bun before the release-target resolver runs and reuse it for the rest of the job
+- [x] Align resolver ancestry checks with `origin/<protected_branch>` after fetch
+- [x] Reset local protected branch to `origin/<branch>` post-fetch in Release workflow
+- [x] Sync `openspec/specs/release-workflow/spec.md` and validate

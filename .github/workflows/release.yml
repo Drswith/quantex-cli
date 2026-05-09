@@ -66,9 +66,15 @@ jobs:
           fetch-depth: 0
           ref: ${{ steps.branch.outputs.target_branch }}
 
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
       - name: Refresh branch and tag state
         run: |
           git fetch --force origin "refs/heads/${{ steps.branch.outputs.target_branch }}:refs/remotes/origin/${{ steps.branch.outputs.target_branch }}" --tags
+          git reset --hard "origin/${{ steps.branch.outputs.target_branch }}"
 
       - name: Resolve release target
         id: release-target
@@ -128,12 +134,6 @@ jobs:
         with:
           fetch-depth: 0
           ref: ${{ steps.release.outputs.sha }}
-
-      - name: Setup Bun
-        if: ${{ steps.release.outputs.release_created }}
-        uses: oven-sh/setup-bun@v2
-        with:
-          bun-version: latest
 
       - name: Setup Node.js
         if: ${{ steps.release.outputs.release_created }}
