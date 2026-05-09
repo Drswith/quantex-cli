@@ -25,6 +25,10 @@ export function isResourceLockError(error: unknown): error is ResourceLockError 
   return error instanceof ResourceLockError
 }
 
+/** Used only while deciding stale removal; covers cross-process preemption between mkdir(2) and owner write. */
+const LOCK_OWNER_ACQUISITION_GRACE_MS = 100
+const LOCK_OWNER_POLL_INTERVAL_MS = 2
+
 export function getResourceLockPath(scope: readonly string[]): string {
   const normalizedScope = scope
     .map(segment =>
@@ -74,7 +78,7 @@ async function createLockDirectory(resource: string, lockPath: string): Promise<
   }
 }
 
-/** Synchronous write immediately after `mkdirSync` so no other task can observe an owner-less lock dir (stale recovery would delete it and break mutual exclusion). */
+/** Synchronous write immediately after `mkdirSync` to shrink the owner-less window; `readLockOwnerDuringAcquisitionGrace` covers cross-process preemption between the two syscalls. */
 function writeLockOwnerSync(lockPath: string): void {
   writeFileSync(
     join(lockPath, 'owner.json'),
@@ -87,12 +91,28 @@ function writeLockOwnerSync(lockPath: string): void {
 }
 
 async function removeStaleLock(lockPath: string): Promise<boolean> {
-  const owner = await readLockOwner(lockPath)
+  const owner = await readLockOwnerDuringAcquisitionGrace(lockPath)
 
   if (owner && isProcessAlive(owner.pid)) return false
 
   await rm(lockPath, { force: true, recursive: true })
   return true
+}
+
+/**
+ * Another OS process may run stale recovery after our mkdir succeeded but before owner.json exists (two syscalls).
+ * Briefly poll so we never rm() a live acquisition's directory or mis-classify the conflict.
+ */
+async function readLockOwnerDuringAcquisitionGrace(lockPath: string): Promise<{ pid: number } | undefined> {
+  const deadline = Date.now() + LOCK_OWNER_ACQUISITION_GRACE_MS
+
+  while (Date.now() < deadline) {
+    const owner = await readLockOwner(lockPath)
+    if (owner) return owner
+    await new Promise<void>(resolve => setTimeout(resolve, LOCK_OWNER_POLL_INTERVAL_MS))
+  }
+
+  return await readLockOwner(lockPath)
 }
 
 async function readLockOwner(lockPath: string): Promise<{ pid: number } | undefined> {

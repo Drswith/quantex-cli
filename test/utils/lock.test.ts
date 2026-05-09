@@ -69,4 +69,29 @@ describe('resource locks', () => {
 
     await release()
   })
+
+  it('does not delete the lock directory when owner.json appears during the acquisition grace window', async () => {
+    const lockPath = getResourceLockPath(['grace-window'])
+    mkdirSync(lockPath, { recursive: true })
+
+    const writeAfterDelay = (async () => {
+      await new Promise<void>(resolve => {
+        setTimeout(resolve, 15)
+      })
+      writeFileSync(join(lockPath, 'owner.json'), `${JSON.stringify({ pid: process.pid })}\n`, 'utf8')
+    })()
+
+    await expect(
+      acquireResourceLock({
+        resource: 'agent lifecycle',
+        scope: ['grace-window'],
+      }),
+    ).rejects.toMatchObject({
+      name: 'ResourceLockError',
+    })
+
+    await writeAfterDelay
+    expect(existsSync(lockPath)).toBe(true)
+    expect(existsSync(join(lockPath, 'owner.json'))).toBe(true)
+  })
 })
