@@ -1,3 +1,4 @@
+import type { ManagedInstallType } from '../../src/package-manager'
 import { afterAll, afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import * as agents from '../../src/agents'
 import { resetCliContext, setCliContext } from '../../src/cli-context'
@@ -12,6 +13,7 @@ const agentSpy = vi.spyOn(agents, 'getAgentByNameOrAlias')
 const allAgentsSpy = vi.spyOn(agents, 'getAllAgents')
 const updateSpy = vi.spyOn(pm, 'updateAgent')
 const updateAgentsByTypeSpy = vi.spyOn(pm, 'updateAgentsByType')
+const managedInstalledVersionSpy = vi.spyOn(pm, 'getManagedInstalledPackageVersion')
 const binaryInPathSpy = vi.spyOn(detect, 'isBinaryInPath')
 const installedVerSpy = vi.spyOn(version, 'getInstalledVersion')
 const latestVerSpy = vi.spyOn(version, 'getLatestVersion')
@@ -22,6 +24,7 @@ afterAll(() => {
   allAgentsSpy.mockRestore()
   updateSpy.mockRestore()
   updateAgentsByTypeSpy.mockRestore()
+  managedInstalledVersionSpy.mockRestore()
   binaryInPathSpy.mockRestore()
   installedVerSpy.mockRestore()
   latestVerSpy.mockRestore()
@@ -54,6 +57,8 @@ describe('updateCommand', () => {
     allAgentsSpy.mockClear()
     updateSpy.mockClear()
     updateAgentsByTypeSpy.mockClear()
+    managedInstalledVersionSpy.mockClear()
+    managedInstalledVersionSpy.mockResolvedValue(undefined)
     binaryInPathSpy.mockClear()
     installedVerSpy.mockClear()
     latestVerSpy.mockClear()
@@ -137,6 +142,58 @@ describe('updateCommand', () => {
     expect(output).toContain('Agent 2: manual action required.')
     expect(output).toContain('detected in PATH but not tracked as a Quantex-managed install')
     expect(output).toContain('Summary: updated 1, manual 1')
+  })
+
+  it('reports tracked Bun agents as up to date when installed package versions match latest', async () => {
+    const piAgent = {
+      ...testAgent,
+      name: 'pi',
+      binaryName: 'pi',
+      packages: { npm: '@mariozechner/pi-coding-agent' },
+      displayName: 'Pi',
+    }
+
+    allAgentsSpy.mockReturnValue([testAgent, piAgent])
+    binaryInPathSpy.mockResolvedValue(true)
+    installedVerSpy.mockResolvedValue(undefined)
+    latestVerSpy.mockImplementation(async (packageName: string) => {
+      if (packageName === 'test-pkg') return '1.0.43'
+      if (packageName === '@mariozechner/pi-coding-agent') return '0.73.1'
+      return undefined
+    })
+    installedStateSpy.mockImplementation(async (name: string) => {
+      if (name === 'test-agent') {
+        return {
+          agentName: 'test-agent',
+          installType: 'bun',
+          packageName: 'test-pkg',
+        }
+      }
+
+      if (name === 'pi') {
+        return {
+          agentName: 'pi',
+          installType: 'bun',
+          packageName: '@mariozechner/pi-coding-agent',
+        }
+      }
+
+      return undefined
+    })
+    managedInstalledVersionSpy.mockImplementation(async (_type: ManagedInstallType, packageName: string) =>
+      packageName === 'test-pkg' ? '1.0.43' : packageName === '@mariozechner/pi-coding-agent' ? '0.73.1' : undefined,
+    )
+
+    await updateCommand(undefined, true)
+
+    expect(updateAgentsByTypeSpy).not.toHaveBeenCalled()
+    expect(updateSpy).not.toHaveBeenCalled()
+    expect(installedVerSpy).not.toHaveBeenCalled()
+
+    const output = stdoutWriteSpy.mock.calls.map((c: any[]) => c[0]).join('\n')
+    expect(output).toContain('Test Agent is up to date (1.0.43)')
+    expect(output).toContain('Pi is up to date (0.73.1)')
+    expect(output).toContain('Summary: up to date 2')
   })
 
   it('skips detected PATH installs without auto-update support for --all', async () => {

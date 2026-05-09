@@ -1,6 +1,6 @@
 import type { AgentDefinition, InstallMethod } from '../agents/types'
 import type { InstalledAgentState } from '../state'
-import { getOrderedInstallMethods } from '../package-manager'
+import { getManagedInstalledPackageVersion, getOrderedInstallMethods } from '../package-manager'
 import { getInstalledAgentState } from '../state'
 import { isBinaryInPath } from '../utils/detect'
 import {
@@ -8,6 +8,7 @@ import {
   formatUpdateManagement,
   getInstallLifecycle,
   getLatestVersionPackage,
+  isManagedInstallType,
 } from '../utils/install'
 import { getBinaryPath, getInstalledVersion, getLatestVersion, getResolvedBinaryPath } from '../utils/version'
 
@@ -33,7 +34,7 @@ export async function inspectAgent(agent: AgentDefinition): Promise<AgentInspect
   ])
 
   const [installedVersion, binaryPath, latestVersion] = await Promise.all([
-    inPath ? getInstalledVersion(agent.binaryName, agent.versionProbe) : Promise.resolve(undefined),
+    inPath ? getAgentInstalledVersion(agent, installedState) : Promise.resolve(undefined),
     inPath ? getBinaryPath(agent.binaryName) : Promise.resolve(undefined),
     getLatestVersionForAgent(agent, installedState, methods),
   ])
@@ -56,6 +57,23 @@ export async function inspectAgent(agent: AgentDefinition): Promise<AgentInspect
 
 export async function inspectAllAgents(agents: AgentDefinition[]): Promise<AgentInspection[]> {
   return Promise.all(agents.map(inspectAgent))
+}
+
+async function getAgentInstalledVersion(
+  agent: AgentDefinition,
+  installedState: InstalledAgentState | undefined,
+): Promise<string | undefined> {
+  if (installedState && isManagedInstallType(installedState.installType) && installedState.packageName) {
+    const managedPackageVersion = await getManagedInstalledPackageVersion(
+      installedState.installType,
+      installedState.packageName,
+      installedState.packageTargetKind,
+    )
+
+    if (managedPackageVersion) return managedPackageVersion
+  }
+
+  return getInstalledVersion(agent.binaryName, agent.versionProbe)
 }
 
 async function getLatestVersionForAgent(

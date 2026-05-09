@@ -10,6 +10,7 @@ Quantex SHALL include `jcode` in the supported agent catalog with lifecycle-focu
 
 - **WHEN** a user or machine consumer looks up the canonical agent name `jcode`
 - **THEN** Quantex returns a supported agent entry for `jcode`
+- **AND** the entry displays the user-facing agent name as `JCode`
 - **AND** the entry identifies `jcode` as the executable binary
 - **AND** the entry identifies `https://github.com/1jehuang/jcode` as the homepage
 

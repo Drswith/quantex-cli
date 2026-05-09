@@ -288,6 +288,7 @@ describe('self helpers', () => {
     const lockPath = getSelfUpgradeLockPath()
 
     await mkdir(lockPath, { recursive: true })
+    await writeFile(join(lockPath, 'owner.json'), `${JSON.stringify({ pid: process.pid })}\n`, 'utf8')
 
     try {
       const result = await upgradeSelf({

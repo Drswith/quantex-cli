@@ -172,6 +172,23 @@ describe('parseUntrustedPackages', () => {
   })
 })
 
+describe('parseGlobalPackageVersion', () => {
+  it('parses scoped and unscoped packages from Bun global list output', async () => {
+    const { parseGlobalPackageVersion } = await import('../../src/package-manager/bun')
+    const output = [
+      '/Users/test/.bun/install/global node_modules (534)',
+      '├── @github/copilot@1.0.43',
+      '├── @mariozechner/pi-coding-agent@0.73.1',
+      '└── quantex-cli@0.16.2',
+    ].join('\n')
+
+    expect(parseGlobalPackageVersion(output, '@github/copilot')).toBe('1.0.43')
+    expect(parseGlobalPackageVersion(output, '@mariozechner/pi-coding-agent')).toBe('0.73.1')
+    expect(parseGlobalPackageVersion(output, 'quantex-cli')).toBe('0.16.2')
+    expect(parseGlobalPackageVersion(output, 'missing-package')).toBeUndefined()
+  })
+})
+
 describe('bun uninstall', () => {
   it('returns true on success', async () => {
     const { uninstall } = await import('../../src/package-manager/bun')

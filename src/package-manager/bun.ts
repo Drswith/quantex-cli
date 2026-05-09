@@ -65,6 +65,35 @@ export async function uninstall(packageName: string): Promise<boolean> {
   }
 }
 
+export async function getInstalledVersion(packageName: string): Promise<string | undefined> {
+  try {
+    const proc = spawnCommand(['bun', 'pm', '-g', 'ls'], {
+      stdio: createPipedStdio(),
+    })
+    const { exitCode, stdout } = await readProcessOutput(proc)
+
+    if (exitCode !== 0) return undefined
+
+    return parseGlobalPackageVersion(stdout, packageName)
+  } catch {
+    return undefined
+  }
+}
+
+export function parseGlobalPackageVersion(output: string, packageName: string): string | undefined {
+  const marker = `${packageName}@`
+
+  for (const line of output.split('\n')) {
+    const packageToken = line.trim().split(/\s+/).at(-1)
+    if (!packageToken?.startsWith(marker)) continue
+
+    const version = packageToken.slice(marker.length)
+    if (version) return version
+  }
+
+  return undefined
+}
+
 async function runGlobalBunCommandWithTrust(command: string[], packageNames: string[]): Promise<boolean> {
   const exitCode = await waitForSpawnedCommand(spawnWithQuantexStdio(command))
 
