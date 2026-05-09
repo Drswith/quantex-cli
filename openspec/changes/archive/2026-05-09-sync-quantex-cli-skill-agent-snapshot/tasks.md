@@ -12,5 +12,5 @@
 
 ## 3. Delivery
 
-- [ ] Commit and push the documentation sync.
-- [ ] Create a PR with a validated body file.
+- [x] Commit and push the documentation sync.
+- [x] Create a PR with a validated body file.
