@@ -2,6 +2,13 @@
 
 This changelog is maintained by release-please Release PRs.
 
+## [0.16.4](https://github.com/Drswith/quantex-cli/compare/v0.16.3...v0.16.4) (2026-05-09)
+
+
+### Bug Fixes
+
+* **self-upgrade:** restore binary after failed swap on Unix self-upgrade ([778fd7f](https://github.com/Drswith/quantex-cli/commit/778fd7f366274270480ddf582de88c20b7047dc1))
+
 ## [0.16.3](https://github.com/Drswith/quantex-cli/compare/v0.16.2...v0.16.3) (2026-05-09)
 
 
