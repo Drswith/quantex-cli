@@ -63,8 +63,10 @@ export async function upgradeStandaloneBinary(
       return verifyResult
     }
 
-    await rm(backupPath, { force: true })
+    // Verified binary is live; do not treat backup cleanup failures as swap failures.
     rollbackAvailable = false
+
+    await rm(backupPath, { force: true })
 
     return {
       success: true,
