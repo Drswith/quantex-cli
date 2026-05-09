@@ -10,15 +10,25 @@ on:
       - main
       - beta
   workflow_dispatch:
+    inputs:
+      target_branch:
+        description: Protected branch whose release state should be reconciled
+        required: true
+        default: main
+        type: choice
+        options:
+          - main
+          - beta
 
 permissions:
+  actions: read
   contents: write
   id-token: write
   issues: write
   pull-requests: write
 
 concurrency:
-  group: release-${{ github.event.workflow_run.head_branch || github.ref_name }}
+  group: release-${{ github.event.workflow_run.head_branch || github.event.inputs.target_branch || github.ref_name }}
   cancel-in-progress: false
 
 jobs:
@@ -31,19 +41,16 @@ jobs:
       )
     runs-on: ubuntu-latest
     steps:
-      - name: Select release context
-        id: context
+      - name: Select release branch
+        id: branch
         run: |
           if [ "${GITHUB_EVENT_NAME}" = "workflow_run" ]; then
             target_branch="${{ github.event.workflow_run.head_branch }}"
-            target_sha="${{ github.event.workflow_run.head_sha }}"
           else
-            target_branch="${GITHUB_REF_NAME}"
-            target_sha="${GITHUB_SHA}"
+            target_branch="${{ github.event.inputs.target_branch || github.ref_name }}"
           fi
 
           echo "target_branch=${target_branch}" >> "$GITHUB_OUTPUT"
-          echo "target_sha=${target_sha}" >> "$GITHUB_OUTPUT"
 
           if [ "${target_branch}" = "beta" ]; then
             echo "config_file=release-please-config.beta.json" >> "$GITHUB_OUTPUT"
@@ -53,42 +60,34 @@ jobs:
             echo "npm_tag=latest" >> "$GITHUB_OUTPUT"
           fi
 
-      - name: Checkout source
+      - name: Checkout branch source
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
-          ref: ${{ steps.context.outputs.target_sha }}
+          ref: ${{ steps.branch.outputs.target_branch }}
 
-      - name: Detect release relevance
-        id: release-scope
+      - name: Refresh branch and tag state
         run: |
-          run_release=false
-          is_release_commit=false
-          message="$(git log -1 --pretty=%B "${{ steps.context.outputs.target_sha }}")"
-          first_line="${message%%$'\n'*}"
+          git fetch --force origin "refs/heads/${{ steps.branch.outputs.target_branch }}:refs/remotes/origin/${{ steps.branch.outputs.target_branch }}" --tags
 
-          if [[ "$first_line" =~ ^chore:\ release ]]; then
-            is_release_commit=true
-          fi
+      - name: Resolve release target
+        id: release-target
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          RELEASE_TARGET_BRANCH: ${{ steps.branch.outputs.target_branch }}
+        run: bun run scripts/release-target-resolution.ts
 
-          if [ "${GITHUB_EVENT_NAME}" = "workflow_dispatch" ]; then
-            run_release=true
-          else
-            if [[ "$first_line" =~ ^(feat|fix|perf)(\(.+\))?!?: ]]; then
-              run_release=true
-            elif [[ "$first_line" =~ ^chore:\ release ]]; then
-              run_release=true
-            elif grep -q '^BREAKING CHANGE:' <<< "$message"; then
-              run_release=true
-            fi
-          fi
-
-          echo "run_release=$run_release" >> "$GITHUB_OUTPUT"
-          echo "is_release_commit=$is_release_commit" >> "$GITHUB_OUTPUT"
+      - name: Print release resolution
+        run: |
+          echo "mode=${{ steps.release-target.outputs.mode }}"
+          echo "target_branch=${{ steps.release-target.outputs.target_branch }}"
+          echo "target_sha=${{ steps.release-target.outputs.target_sha }}"
+          echo "source_ci_run_id=${{ steps.release-target.outputs.source_ci_run_id }}"
+          echo "reason=${{ steps.release-target.outputs.reason }}"
 
       - name: Create release bot token
         id: release-bot-token
-        if: ${{ steps.release-scope.outputs.run_release == 'true' }}
+        if: ${{ steps.release-target.outputs.mode != 'skip' }}
         uses: actions/create-github-app-token@v3
         with:
           client-id: ${{ secrets.RELEASE_APP_CLIENT_ID }}
@@ -96,23 +95,30 @@ jobs:
 
       - name: Release Please PR
         id: release-pr
-        if: ${{ steps.release-scope.outputs.run_release == 'true' && steps.release-scope.outputs.is_release_commit != 'true' }}
+        if: ${{ steps.release-target.outputs.mode == 'pr' }}
         uses: googleapis/release-please-action@v4.1.5
         with:
           token: ${{ steps.release-bot-token.outputs.token }}
-          target-branch: ${{ steps.context.outputs.target_branch }}
-          config-file: ${{ steps.context.outputs.config_file }}
+          target-branch: ${{ steps.release-target.outputs.target_branch }}
+          config-file: ${{ steps.release-target.outputs.config_file }}
           manifest-file: .release-please-manifest.json
           skip-github-release: true
 
+      - name: Checkout release commit
+        if: ${{ steps.release-target.outputs.mode == 'publish' }}
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ref: ${{ steps.release-target.outputs.target_sha }}
+
       - name: Release Please GitHub Release
         id: release
-        if: ${{ steps.release-scope.outputs.is_release_commit == 'true' }}
+        if: ${{ steps.release-target.outputs.mode == 'publish' }}
         uses: googleapis/release-please-action@v4.1.5
         with:
           token: ${{ steps.release-bot-token.outputs.token }}
-          target-branch: ${{ steps.context.outputs.target_branch }}
-          config-file: ${{ steps.context.outputs.config_file }}
+          target-branch: ${{ steps.release-target.outputs.target_branch }}
+          config-file: ${{ steps.release-target.outputs.config_file }}
           manifest-file: .release-please-manifest.json
           skip-github-pull-request: true
 
@@ -182,7 +188,7 @@ jobs:
 
       - name: Publish npm package
         if: ${{ steps.release.outputs.release_created }}
-        run: npm publish --access public --ignore-scripts --tag ${{ steps.context.outputs.npm_tag }}
+        run: npm publish --access public --ignore-scripts --tag ${{ steps.release-target.outputs.npm_tag }}
 
       - name: Upload release artifacts
         if: ${{ steps.release.outputs.release_created }}

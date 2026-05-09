@@ -87,8 +87,8 @@ Quantex uses release-please to keep publishing compatible with protected `main` 
 
 1. Merge one or more normal change PRs to `main`.
 2. The merge-gating `CI` workflow runs on the resulting `main` push. Product-impacting changes keep the normal cross-platform test matrix; process-only changes may skip the expensive platform jobs while still publishing the same required check contexts.
-3. After that `main` CI run completes successfully, the `Release` workflow runs release-please for the exact merged SHA.
-4. If the merged commits warrant a version bump, release-please creates or updates a Release PR.
+3. After successful push-side `main` CI, the `Release` workflow reconciles branch release state from successful CI history, current branch history, and existing tags.
+4. If a successful merged `chore: release ...` commit is still untagged, the workflow publishes that commit first. Otherwise, if the merged commits warrant a version bump, release-please creates or updates a Release PR.
 5. The Release PR updates `CHANGELOG.md`, `package.json`, `.release-please-manifest.json`, and `src/generated/build-meta.ts`.
 6. `Release PR Automerge` validates the generated Release PR and enables auto-merge.
 7. After the Release PR merge produces another successful `main` CI run, the `Release` workflow creates the tag and GitHub Release, then builds artifacts, publishes npm through trusted publishing, and uploads binaries.
