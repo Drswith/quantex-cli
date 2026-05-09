@@ -24,6 +24,7 @@ import { openhands } from './definitions/openhands'
 import { pi } from './definitions/pi'
 import { qoder } from './definitions/qoder'
 import { qwen } from './definitions/qwen'
+import { reasonix } from './definitions/reasonix'
 import { vibe } from './definitions/vibe'
 
 const agents: AgentDefinition[] = [
@@ -52,6 +53,7 @@ const agents: AgentDefinition[] = [
   pi,
   qoder,
   qwen,
+  reasonix,
   vibe,
 ]
 
@@ -93,6 +95,7 @@ export {
   pi,
   qoder,
   qwen,
+  reasonix,
   vibe,
 }
 export type {

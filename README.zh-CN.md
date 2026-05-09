@@ -196,6 +196,7 @@ qtx upgrade --channel beta
 | Pi | `qtx pi` | 极简可扩展的终端编程 Agent |
 | Qoder CLI | `qtx qoder` | Qoder 官方 AI 编程助手 CLI |
 | Qwen Code | `qtx qwen` | Qwen AI 编程助手 CLI |
+| Reasonix | `qtx reasonix` | DeepSeek 原生终端编程 Agent |
 
 如果你更偏好显式长命令，上表里的 `qtx` 都可以直接替换成 `quantex`。
 

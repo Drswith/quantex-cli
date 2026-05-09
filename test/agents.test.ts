@@ -20,6 +20,7 @@ import { openhands } from '../src/agents/definitions/openhands'
 import { pi } from '../src/agents/definitions/pi'
 import { qoder } from '../src/agents/definitions/qoder'
 import { qwen } from '../src/agents/definitions/qwen'
+import { reasonix } from '../src/agents/definitions/reasonix'
 import { vibe } from '../src/agents/definitions/vibe'
 import { formatInstallMethodCommand } from '../src/utils/install'
 
@@ -252,6 +253,31 @@ describe('copilot', () => {
     expect(copilot.platforms.macos!.find(m => m.type === 'brew' && m.packageName === 'copilot-cli')).toBeDefined()
     expect(copilot.platforms.linux!.find(m => m.type === 'brew' && m.packageName === 'copilot-cli')).toBeDefined()
     expect(copilot.platforms.windows!.find(m => m.type === 'brew')).toBeUndefined()
+  })
+})
+
+describe('reasonix', () => {
+  it('is registered for lookup by canonical name and repository-style alias', () => {
+    expect(getAgentByNameOrAlias('reasonix')).toBe(reasonix)
+    expect(getAgentByLookupName('deepseek-reasonix')).toBe(reasonix)
+  })
+
+  it('has valid structure', () => {
+    validateAgent(reasonix)
+    expect(reasonix.name).toBe('reasonix')
+    expect(reasonix.lookupAliases).toEqual(['deepseek-reasonix'])
+    expect(reasonix.displayName).toBe('Reasonix')
+    expect(reasonix.packages?.npm).toBe('reasonix')
+    expect(reasonix.binaryName).toBe('reasonix')
+    expect(reasonix.homepage).toBe('https://github.com/esengine/DeepSeek-Reasonix')
+    expect(reasonix.selfUpdate?.command).toEqual(['reasonix', 'update'])
+    expect(reasonix.versionProbe?.command).toEqual(['reasonix', '--version'])
+  })
+
+  it('supports npm installs on all platforms', () => {
+    expect(reasonix.platforms.windows!.find(m => m.type === 'npm')).toBeDefined()
+    expect(reasonix.platforms.macos!.find(m => m.type === 'npm')).toBeDefined()
+    expect(reasonix.platforms.linux!.find(m => m.type === 'npm')).toBeDefined()
   })
 })
 

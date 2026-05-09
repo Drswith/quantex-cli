@@ -21,6 +21,7 @@ import {
   opencode,
   pi,
   qoder,
+  reasonix,
 } from '../src/index'
 
 describe('agent registry', () => {
@@ -91,6 +92,11 @@ describe('agent registry', () => {
   it('resolves Qoder by executable alias', () => {
     const agent = getAgentByLookupName('qodercli')
     expect(agent?.name).toBe('qoder')
+  })
+
+  it('resolves Reasonix by repository-style alias', () => {
+    const agent = getAgentByLookupName('deepseek-reasonix')
+    expect(agent?.name).toBe('reasonix')
   })
 })
 
@@ -192,6 +198,15 @@ describe('agent definitions', () => {
     expect(agent!.binaryName).toBe('qodercli')
   })
 
+  it('reasonix has correct structure', () => {
+    const agent = getAgentByNameOrAlias('reasonix')
+    expect(agent).toBeDefined()
+    expect(agent!.displayName).toBe('Reasonix')
+    expect(agent!.packages?.npm).toBe('reasonix')
+    expect(agent!.binaryName).toBe('reasonix')
+    expect(agent!.homepage).toBe('https://github.com/esengine/DeepSeek-Reasonix')
+  })
+
   it('re-exports all built-in agents from root index', () => {
     expect(autohand.name).toBe('autohand')
     expect(codebuddy.name).toBe('codebuddy')
@@ -209,6 +224,7 @@ describe('agent definitions', () => {
     expect(opencode.name).toBe('opencode')
     expect(pi.name).toBe('pi')
     expect(qoder.name).toBe('qoder')
+    expect(reasonix.name).toBe('reasonix')
   })
 })
 

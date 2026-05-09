@@ -28,6 +28,7 @@ export {
   opencode,
   pi,
   qoder,
+  reasonix,
   vibe,
 } from './agents'
 export type {
