@@ -15,11 +15,13 @@ This skill snapshot knows about these Quantex agent names:
 - `copilot`
 - `crush`
 - `cursor`
+- `deepseek`
 - `devin`
 - `droid`
 - `forgecode`
 - `gemini`
 - `goose`
+- `jcode`
 - `junie`
 - `kilo`
 - `kimi`
