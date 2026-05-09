@@ -29,6 +29,7 @@ export async function upgradeStandaloneBinary(
   const tempDir = await mkdtemp(join(dirname(executablePath), '.quantex-upgrade-'))
   const tempPath = join(tempDir, basename(executablePath))
   const backupPath = `${executablePath}.bak`
+  let rollbackAvailable = false
 
   try {
     const binary = Buffer.from(await response.arrayBuffer())
@@ -50,21 +51,34 @@ export async function upgradeStandaloneBinary(
     await chmod(tempPath, executableMode)
     await rm(backupPath, { force: true })
     await rename(executablePath, backupPath)
+    rollbackAvailable = true
+
     await rename(tempPath, executablePath)
 
     const verifyResult = await verifyStandaloneBinary(executablePath, expectedVersion)
 
     if (!verifyResult.success) {
       await restoreStandaloneBinary(backupPath, executablePath)
+      rollbackAvailable = false
       return verifyResult
     }
 
     await rm(backupPath, { force: true })
+    rollbackAvailable = false
 
     return {
       success: true,
     }
   } catch (error) {
+    if (rollbackAvailable) {
+      try {
+        await restoreStandaloneBinary(backupPath, executablePath)
+      } catch {
+        // Best-effort rollback; primary failure is reported below.
+      }
+      rollbackAvailable = false
+    }
+
     return createBinaryFailure(resolveBinaryErrorKind(error), 'Failed to replace the current Quantex binary.', error)
   } finally {
     if (process.platform !== 'win32') await rm(tempDir, { recursive: true, force: true })
