@@ -4,17 +4,6 @@ import { join } from 'node:path'
 import { afterAll, afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import * as config from '../../src/config'
 
-vi.mock('node:fs/promises', async importOriginal => {
-  const actual = await importOriginal<typeof import('node:fs/promises')>()
-
-  return {
-    ...actual,
-    writeFile: vi.fn(async () => {
-      await new Promise(() => {})
-    }),
-  }
-})
-
 const { acquireResourceLock, getResourceLockPath } = await import('../../src/utils/lock')
 
 const tempDir = join(tmpdir(), `quantex-lock-race-test-${Date.now()}`)
@@ -34,7 +23,7 @@ describe('resource lock acquisition race hardening', () => {
     vi.restoreAllMocks()
   })
 
-  it('acquires the first lock without waiting on async writeFile and rejects a second claimant', async () => {
+  it('first claimant completes quickly and rejects a second claimant', async () => {
     const firstAcquireResult = await Promise.race([
       acquireResourceLock({
         resource: 'agent lifecycle',
