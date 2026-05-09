@@ -1,4 +1,5 @@
-import { mkdir, readFile, rm, writeFile } from 'node:fs/promises'
+import { mkdirSync, writeFileSync } from 'node:fs'
+import { mkdir, readFile, rm } from 'node:fs/promises'
 import { dirname, join } from 'node:path'
 import process from 'node:process'
 import { getConfigDir } from '../config'
@@ -46,7 +47,6 @@ export async function acquireResourceLock(options: ResourceLockOptions): Promise
   await mkdir(dirname(lockPath), { recursive: true })
 
   await createLockDirectory(options.resource, lockPath)
-  await writeLockOwner(lockPath)
 
   return async () => {
     await rm(lockPath, { force: true, recursive: true })
@@ -55,7 +55,8 @@ export async function acquireResourceLock(options: ResourceLockOptions): Promise
 
 async function createLockDirectory(resource: string, lockPath: string): Promise<void> {
   try {
-    await mkdir(lockPath, { recursive: false })
+    mkdirSync(lockPath, { recursive: false })
+    writeLockOwnerSync(lockPath)
     return
   } catch (error) {
     if (!isFileExistsError(error)) throw error
@@ -64,7 +65,8 @@ async function createLockDirectory(resource: string, lockPath: string): Promise<
   if (!(await removeStaleLock(lockPath))) throw new ResourceLockError(resource, lockPath)
 
   try {
-    await mkdir(lockPath, { recursive: false })
+    mkdirSync(lockPath, { recursive: false })
+    writeLockOwnerSync(lockPath)
   } catch (error) {
     if (isFileExistsError(error)) throw new ResourceLockError(resource, lockPath)
 
@@ -72,8 +74,9 @@ async function createLockDirectory(resource: string, lockPath: string): Promise<
   }
 }
 
-async function writeLockOwner(lockPath: string): Promise<void> {
-  await writeFile(
+/** Synchronous write immediately after `mkdirSync` so no other task can observe an owner-less lock dir (stale recovery would delete it and break mutual exclusion). */
+function writeLockOwnerSync(lockPath: string): void {
+  writeFileSync(
     join(lockPath, 'owner.json'),
     `${JSON.stringify({
       pid: process.pid,
