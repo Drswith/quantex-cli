@@ -197,6 +197,7 @@ Note: `qtx upgrade` follows the registry actually used by the current Bun/npm se
 | Qoder CLI | `qtx qoder` | Qoder's official AI coding assistant CLI |
 | Qwen Code | `qtx qwen` | Qwen's AI coding assistant CLI |
 | Reasonix | `qtx reasonix` | DeepSeek-native terminal coding agent |
+| VTCode | `qtx vtcode` | Open-source terminal coding agent with robust shell safety |
 
 If you prefer the explicit long form, replace `qtx` with `quantex` in the examples above.
 
