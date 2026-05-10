@@ -8,6 +8,7 @@ import { acquireResourceLock, getResourceLockPath } from '../utils/lock'
 export interface InstalledAgentState {
   agentName: string
   installType: InstallType
+  packageInstallArgs?: string[]
   packageName?: string
   packageTargetKind?: PackageTargetKind
   command?: string

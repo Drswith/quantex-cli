@@ -195,7 +195,7 @@ function createExecInstallGuidance(
     binaryName: string
     displayName: string
     name: string
-    packages?: { npm?: string }
+    packages?: { cargo?: string; npm?: string }
   },
   methods: InstallMethod[],
   args: string[],

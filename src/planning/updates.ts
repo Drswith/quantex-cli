@@ -28,6 +28,7 @@ export function createUpdatePlan(
     bun: [],
     npm: [],
     brew: [],
+    cargo: [],
     winget: [],
   }
   const manual: UpdatePlanEntry[] = []
@@ -84,7 +85,7 @@ export function createUpdatePlan(
   }
 
   return {
-    entries: [...grouped.bun, ...grouped.npm, ...grouped.brew, ...grouped.winget, ...manual],
+    entries: [...grouped.bun, ...grouped.npm, ...grouped.brew, ...grouped.cargo, ...grouped.winget, ...manual],
     grouped,
     manual,
     skippedManualCheck,

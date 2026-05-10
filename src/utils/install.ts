@@ -22,9 +22,12 @@ export { canUpdateInstallType, getInstallLifecycle, isManagedInstallType } from 
 
 export function getManagedPackageName(
   agent: Pick<AgentDefinition, 'packages'>,
-  method: Pick<InstallMethod, 'packageName'>,
+  method: Pick<InstallMethod, 'packageName' | 'type'>,
 ): string | undefined {
-  return method.packageName || agent.packages?.npm || undefined
+  if (method.packageName) return method.packageName
+  if (method.type === 'cargo') return agent.packages?.cargo
+  if (method.type === 'bun' || method.type === 'npm') return agent.packages?.npm
+  return undefined
 }
 
 export function canUpdateInstalledState(state?: Pick<InstalledAgentState, 'installType'>): boolean {
@@ -105,6 +108,11 @@ export function formatInstallMethodCommand(agent: Pick<AgentDefinition, 'package
     return method.packageTargetKind === 'cask'
       ? `brew install --cask ${method.packageName}`
       : `brew install ${method.packageName}`
+  }
+
+  if (method.type === 'cargo') {
+    const packageName = getManagedPackageName(agent, method)
+    return packageName ? ['cargo', 'install', packageName, ...(method.packageInstallArgs ?? [])].join(' ') : ''
   }
 
   if (method.type === 'winget') {

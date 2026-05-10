@@ -1,11 +1,12 @@
 export type Platform = 'windows' | 'macos' | 'linux'
 
-export type ManagedInstallType = 'bun' | 'npm' | 'brew' | 'winget'
+export type ManagedInstallType = 'bun' | 'npm' | 'brew' | 'cargo' | 'winget'
 export type InstallType = ManagedInstallType | 'script' | 'binary'
 export type PackageTargetKind = 'package' | 'cask' | 'id'
 
 interface BaseInstallMethod {
   command?: string
+  packageInstallArgs?: string[]
   packageName?: string
   packageTargetKind?: PackageTargetKind
 }
@@ -28,6 +29,7 @@ export interface BinaryInstallMethod extends BaseInstallMethod {
 export type InstallMethod = ManagedInstallMethod | ScriptInstallMethod | BinaryInstallMethod
 
 export interface AgentPackageMetadata {
+  cargo?: string
   npm?: string
 }
 

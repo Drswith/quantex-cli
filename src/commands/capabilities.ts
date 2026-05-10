@@ -4,7 +4,14 @@ import { getAllAgents } from '../agents'
 import { createSuccessResult, emitCommandResult } from '../output'
 import { inspectSelf } from '../self'
 import { pc } from '../utils/color'
-import { getPlatform, isBrewAvailable, isBunAvailable, isNpmAvailable, isWingetAvailable } from '../utils/detect'
+import {
+  getPlatform,
+  isBrewAvailable,
+  isBunAvailable,
+  isCargoAvailable,
+  isNpmAvailable,
+  isWingetAvailable,
+} from '../utils/detect'
 
 interface CapabilitiesData {
   agents: string[]
@@ -32,6 +39,10 @@ interface CapabilitiesData {
       available: boolean
       reason?: string
     }
+    cargo: {
+      available: boolean
+      reason?: string
+    }
     npm: {
       available: boolean
       reason?: string
@@ -49,13 +60,15 @@ interface CapabilitiesData {
 }
 
 export async function capabilitiesCommand(): Promise<CommandResult<CapabilitiesData>> {
-  const [bunAvailable, npmAvailable, brewAvailable, wingetAvailable, selfInspection] = await Promise.all([
-    isBunAvailable(),
-    isNpmAvailable(),
-    isBrewAvailable(),
-    isWingetAvailable(),
-    inspectSelf(),
-  ])
+  const [bunAvailable, npmAvailable, brewAvailable, cargoAvailable, wingetAvailable, selfInspection] =
+    await Promise.all([
+      isBunAvailable(),
+      isNpmAvailable(),
+      isBrewAvailable(),
+      isCargoAvailable(),
+      isWingetAvailable(),
+      inspectSelf(),
+    ])
 
   return emitCommandResult(
     createSuccessResult<CapabilitiesData>({
@@ -90,6 +103,10 @@ export async function capabilitiesCommand(): Promise<CommandResult<CapabilitiesD
             available: npmAvailable,
             reason: npmAvailable ? undefined : getUnavailableReason('npm'),
           },
+          cargo: {
+            available: cargoAvailable,
+            reason: cargoAvailable ? undefined : getUnavailableReason('cargo'),
+          },
           winget: {
             available: wingetAvailable,
             reason: wingetAvailable ? undefined : getUnavailableReason('winget'),
@@ -110,7 +127,7 @@ export async function capabilitiesCommand(): Promise<CommandResult<CapabilitiesD
   )
 }
 
-function getUnavailableReason(installer: 'brew' | 'bun' | 'npm' | 'winget'): string {
+function getUnavailableReason(installer: 'brew' | 'bun' | 'cargo' | 'npm' | 'winget'): string {
   if (installer === 'winget' && process.platform !== 'win32') return 'not-on-platform'
 
   if (installer === 'brew' && process.platform === 'win32') return 'not-on-platform'
@@ -130,6 +147,7 @@ function renderCapabilitiesHuman(result: { data?: CapabilitiesData }): void {
   console.log(`    bun:    ${formatCapabilityAvailability(result.data.installers.bun)}`)
   console.log(`    npm:    ${formatCapabilityAvailability(result.data.installers.npm)}`)
   console.log(`    brew:   ${formatCapabilityAvailability(result.data.installers.brew)}`)
+  console.log(`    cargo:  ${formatCapabilityAvailability(result.data.installers.cargo)}`)
   console.log(`    winget: ${formatCapabilityAvailability(result.data.installers.winget)}`)
 
   console.log(pc.bold('\n  Features:'))

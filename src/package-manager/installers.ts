@@ -1,25 +1,32 @@
 import type { ManagedInstallType, PackageTargetKind } from '../agents/types'
 import type { NpmBunUpdateStrategy } from '../config'
-import { isBrewAvailable, isBunAvailable, isNpmAvailable, isWingetAvailable } from '../utils/detect'
+import { isBrewAvailable, isBunAvailable, isCargoAvailable, isNpmAvailable, isWingetAvailable } from '../utils/detect'
 import * as brewPm from './brew'
 import * as bunPm from './bun'
+import * as cargoPm from './cargo'
 import * as npmPm from './npm'
 import * as wingetPm from './winget'
 
 export interface ManagedPackageSpec {
+  packageInstallArgs?: string[]
   packageName: string
   packageTargetKind?: PackageTargetKind
 }
 
 export interface ManagedInstallerUpdateOptions {
   npmBunUpdateStrategy?: NpmBunUpdateStrategy
+  packageInstallArgs?: string[]
 }
 
 export interface ManagedInstaller {
   type: ManagedInstallType
   getInstalledVersion?: (packageName: string, packageTargetKind?: PackageTargetKind) => Promise<string | undefined>
   isAvailable: () => Promise<boolean>
-  install: (packageName: string, packageTargetKind?: PackageTargetKind) => Promise<boolean>
+  install: (
+    packageName: string,
+    packageTargetKind?: PackageTargetKind,
+    packageInstallArgs?: string[],
+  ) => Promise<boolean>
   uninstall: (packageName: string, packageTargetKind?: PackageTargetKind) => Promise<boolean>
   update: (
     packageName: string,
@@ -50,6 +57,22 @@ const managedInstallers: Record<ManagedInstallType, ManagedInstaller> = {
       bunPm.updateMany(
         packages.map(pkg => pkg.packageName),
         options?.npmBunUpdateStrategy,
+      ),
+  },
+  cargo: {
+    type: 'cargo',
+    isAvailable: async () => isCargoAvailable(),
+    install: async (packageName, _packageTargetKind, packageInstallArgs) =>
+      cargoPm.install(packageName, packageInstallArgs),
+    uninstall: async packageName => cargoPm.uninstall(packageName),
+    update: async (packageName, _packageTargetKind, options) =>
+      cargoPm.update(packageName, options?.packageInstallArgs),
+    updateMany: async packages =>
+      cargoPm.updateMany(
+        packages.map(pkg => ({
+          packageInstallArgs: pkg.packageInstallArgs,
+          packageName: pkg.packageName,
+        })),
       ),
   },
   npm: {

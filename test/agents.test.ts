@@ -67,7 +67,7 @@ function validateAgent(agent: AgentDefinition): void {
     expect(['windows', 'macos', 'linux']).toContain(platform)
     expect(methods!.length).toBeGreaterThan(0)
     for (const method of methods!) {
-      expect(['bun', 'npm', 'brew', 'winget', 'script', 'binary']).toContain(method.type)
+      expect(['bun', 'npm', 'brew', 'cargo', 'winget', 'script', 'binary']).toContain(method.type)
       if (method.type === 'script' || method.type === 'binary') {
         expect(typeof method.command).toBe('string')
         expect(method.command.length).toBeGreaterThan(0)
@@ -426,6 +426,7 @@ describe('deepseek', () => {
     expect(deepseek.name).toBe('deepseek')
     expect(deepseek.lookupAliases).toEqual(['deepseek-tui'])
     expect(deepseek.displayName).toBe('DeepSeek TUI')
+    expect(deepseek.packages?.cargo).toBe('deepseek-tui-cli')
     expect(deepseek.packages?.npm).toBe('deepseek-tui')
     expect(deepseek.binaryName).toBe('deepseek')
     expect(deepseek.homepage).toBe('https://github.com/Hmbown/DeepSeek-TUI')
@@ -437,6 +438,19 @@ describe('deepseek', () => {
     expect(deepseek.platforms.windows!.find(m => m.type === 'npm')).toBeDefined()
     expect(deepseek.platforms.macos!.find(m => m.type === 'npm')).toBeDefined()
     expect(deepseek.platforms.linux!.find(m => m.type === 'npm')).toBeDefined()
+  })
+
+  it('exposes locked cargo install on all supported platforms', () => {
+    for (const methods of [deepseek.platforms.windows!, deepseek.platforms.macos!, deepseek.platforms.linux!]) {
+      expect(
+        methods.find(
+          method =>
+            method.type === 'cargo' &&
+            method.packageName === undefined &&
+            method.packageInstallArgs?.join(' ') === '--locked',
+        ),
+      ).toBeDefined()
+    }
   })
 })
 
