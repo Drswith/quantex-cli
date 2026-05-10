@@ -34,10 +34,12 @@ export interface ReleaseTargetResolution {
 
 export interface SelectReleaseCandidateOptions {
   commitsBySha: Record<string, CommitReleaseIntent>
+  publishedReleaseShas: Set<string>
   publishedTags: Set<string>
   runs: SuccessfulCiRun[]
 }
 
+const releaseTagPattern = /^v\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?$/
 const releaseCommitPattern = /^chore: release (?<version>\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?)$/
 const releaseWorthyPattern = /^(feat|fix|perf)(\(.+\))?!?:/
 
@@ -55,6 +57,7 @@ export function classifyCommitReleaseIntent(message: string): CommitReleaseInten
 
 export function selectReleaseCandidate({
   commitsBySha,
+  publishedReleaseShas,
   publishedTags,
   runs,
 }: SelectReleaseCandidateOptions): ReleaseTargetResolution {
@@ -62,7 +65,12 @@ export function selectReleaseCandidate({
 
   const pendingReleaseRuns = newestRuns.filter(run => {
     const commit = commitsBySha[run.headSha]
-    return commit?.isReleaseCommit && commit.releaseVersion && !publishedTags.has(`v${commit.releaseVersion}`)
+    return (
+      commit?.isReleaseCommit &&
+      commit.releaseVersion &&
+      !publishedTags.has(`v${commit.releaseVersion}`) &&
+      !publishedReleaseShas.has(run.headSha)
+    )
   })
 
   if (pendingReleaseRuns.length > 1) {
@@ -168,9 +176,13 @@ async function resolveReleaseTargetFromEnvironment(): Promise<ReleaseTargetResol
       .filter((version): version is string => Boolean(version))
       .filter(version => tagExists(`v${version}`)),
   )
+  const publishedReleaseShas = new Set(
+    reachableRuns.filter(run => releaseTagPointsAtCommit(run.headSha)).map(run => run.headSha),
+  )
 
   const resolution = selectReleaseCandidate({
     commitsBySha,
+    publishedReleaseShas,
     publishedTags: new Set([...publishedTags].map(version => `v${version}`)),
     runs: reachableRuns,
   })
@@ -299,6 +311,16 @@ function tagExists(tagName: string): boolean {
   try {
     execFileSyncCompatible('git', ['rev-parse', '--verify', '--quiet', `refs/tags/${tagName}`])
     return true
+  } catch {
+    return false
+  }
+}
+
+function releaseTagPointsAtCommit(sha: string): boolean {
+  try {
+    return execFileSyncCompatible('git', ['tag', '--points-at', sha, '--list', 'v*'])
+      .split('\n')
+      .some(tag => releaseTagPattern.test(tag.trim()))
   } catch {
     return false
   }
