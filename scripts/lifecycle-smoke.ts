@@ -1,4 +1,4 @@
-import { access, cp, mkdir, mkdtemp, readFile, readdir, rm, writeFile } from 'node:fs/promises'
+import { access, chmod, cp, mkdir, mkdtemp, readFile, readdir, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import process from 'node:process'
@@ -28,6 +28,7 @@ interface JsonResult {
 const DEFAULT_SMOKE_AGENTS = ['pi', 'qoder']
 const DEFAULT_SMOKE_SCENARIOS = [
   'managed',
+  'cargo-managed',
   'adopt-preinstalled',
   'ambiguous-multi-method',
   'self-binary',
@@ -55,6 +56,9 @@ try {
       installedAgents.pop()
     }
   }
+
+  if (scenarios.includes('cargo-managed')) await smokeCargoManagedLifecycle()
+  if (scenarios.includes('cargo-real-agent')) await smokeCargoRealAgentLifecycle()
 
   if (scenarios.includes('adopt-preinstalled')) {
     for (const agent of agents) await smokeAdoptPreinstalledAgent(agent)
@@ -125,6 +129,54 @@ async function smokeManagedAgentLifecycle(agent: string): Promise<void> {
     result => result.data?.inspection?.installed === false,
     `${agent} should be uninstalled after lifecycle smoke`,
   )
+}
+
+async function smokeCargoManagedLifecycle(): Promise<void> {
+  const sandboxRoot = await mkdtemp(join(tmpdir(), 'quantex-cargo-smoke-'))
+  const fakeBinDir = join(sandboxRoot, 'bin')
+  const fakeCargoLog = join(sandboxRoot, 'cargo.log')
+
+  try {
+    await installFakeCargo(fakeBinDir, fakeCargoLog)
+    console.log('\n[cargo] managed lifecycle')
+    await runText('cargo managed lifecycle', ['bun', 'run', 'scripts/cargo-lifecycle-smoke.ts'], {
+      env: {
+        PATH: `${fakeBinDir}:${process.env.PATH ?? ''}`,
+        QTX_FAKE_CARGO_LOG: fakeCargoLog,
+      },
+    })
+
+    const log = await readFile(fakeCargoLog, 'utf8')
+    for (const expected of [
+      'cargo install cargo-smoke-agent',
+      'cargo install cargo-smoke-agent --force',
+      'cargo uninstall cargo-smoke-agent',
+    ]) {
+      if (!log.includes(expected)) throw new Error(`cargo smoke log did not include: ${expected}\n${log}`)
+    }
+    if (log.match(/cargo install cargo-smoke-agent/g)?.length !== 2) {
+      throw new Error(`cargo smoke should run cargo install once for install and once for update.\n${log}`)
+    }
+  } finally {
+    await rm(sandboxRoot, { force: true, recursive: true })
+  }
+}
+
+async function smokeCargoRealAgentLifecycle(): Promise<void> {
+  const agent = process.env.QTX_CARGO_SMOKE_AGENT || 'deepseek'
+  const cargoBinDir = join(process.env.HOME ?? '', '.cargo', 'bin')
+  const cargoPath = `${cargoBinDir}:${process.env.PATH ?? ''}`
+
+  console.log(`\n[cargo:${agent}] prepare real Cargo toolchain`)
+  await ensureCargoRealSmokeDependencies(cargoPath)
+
+  console.log(`[cargo:${agent}] managed lifecycle through catalog cargo method`)
+  await runText(`cargo real agent lifecycle ${agent}`, ['bun', 'run', 'scripts/cargo-lifecycle-smoke.ts'], {
+    env: {
+      PATH: cargoPath,
+      QTX_CARGO_SMOKE_AGENT: agent,
+    },
+  })
 }
 
 async function smokeAdoptPreinstalledAgent(agent: string): Promise<void> {
@@ -358,6 +410,56 @@ async function smokeAmbiguousMultiMethodAgent(): Promise<void> {
     inspection,
     result => result.data?.inspection?.lifecycle === 'unmanaged',
     `${agent} ambiguous install should inspect as unmanaged`,
+  )
+}
+
+async function installFakeCargo(fakeBinDir: string, logPath: string): Promise<void> {
+  await mkdir(fakeBinDir, { recursive: true })
+  const fakeCargoPath = join(fakeBinDir, 'cargo')
+  await writeFile(
+    fakeCargoPath,
+    [
+      '#!/usr/bin/env sh',
+      'set -eu',
+      'if [ "${1:-}" = "--version" ]; then',
+      '  echo "cargo 1.0.0"',
+      '  exit 0',
+      'fi',
+      `printf 'cargo %s\\n' "$*" >> '${logPath}'`,
+      'case "${1:-}" in',
+      '  install|uninstall) exit 0 ;;',
+      '  *) exit 1 ;;',
+      'esac',
+      '',
+    ].join('\n'),
+    'utf8',
+  )
+  await chmod(fakeCargoPath, 0o755)
+}
+
+async function ensureCargoRealSmokeDependencies(pathValue: string): Promise<void> {
+  await runText(
+    'prepare cargo real smoke dependencies',
+    [
+      'sh',
+      '-c',
+      [
+        'set -euo pipefail',
+        'if command -v apt-get >/dev/null 2>&1; then',
+        '  apt-get update',
+        '  DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends ca-certificates curl build-essential pkg-config libdbus-1-dev',
+        'fi',
+        'if ! cargo --version >/dev/null 2>&1; then',
+        '  curl https://sh.rustup.rs -sSf | sh -s -- -y --profile minimal --default-toolchain stable',
+        'fi',
+        'cargo --version',
+      ].join('\n'),
+    ],
+    {
+      env: {
+        PATH: pathValue,
+      },
+    },
   )
 }
 

@@ -9,6 +9,7 @@ const allAgentsSpy = vi.spyOn(agents, 'getAllAgents')
 const isBunSpy = vi.spyOn(detect, 'isBunAvailable')
 const isNpmSpy = vi.spyOn(detect, 'isNpmAvailable')
 const isBrewSpy = vi.spyOn(detect, 'isBrewAvailable')
+const isCargoSpy = vi.spyOn(detect, 'isCargoAvailable')
 const isWingetSpy = vi.spyOn(detect, 'isWingetAvailable')
 const inspectSelfSpy = vi.spyOn(selfModule, 'inspectSelf')
 
@@ -17,6 +18,7 @@ afterAll(() => {
   isBunSpy.mockRestore()
   isNpmSpy.mockRestore()
   isBrewSpy.mockRestore()
+  isCargoSpy.mockRestore()
   isWingetSpy.mockRestore()
   inspectSelfSpy.mockRestore()
 })
@@ -30,6 +32,7 @@ describe('capabilitiesCommand', () => {
     isBunSpy.mockClear()
     isNpmSpy.mockClear()
     isBrewSpy.mockClear()
+    isCargoSpy.mockClear()
     isWingetSpy.mockClear()
     inspectSelfSpy.mockClear()
     allAgentsSpy.mockReturnValue([
@@ -68,6 +71,7 @@ describe('capabilitiesCommand', () => {
     isBunSpy.mockResolvedValue(true)
     isNpmSpy.mockResolvedValue(true)
     isBrewSpy.mockResolvedValue(false)
+    isCargoSpy.mockResolvedValue(false)
     isWingetSpy.mockResolvedValue(false)
 
     await capabilitiesCommand()
@@ -91,6 +95,7 @@ describe('capabilitiesCommand', () => {
     isBunSpy.mockResolvedValue(true)
     isNpmSpy.mockResolvedValue(true)
     isBrewSpy.mockResolvedValue(false)
+    isCargoSpy.mockResolvedValue(true)
     isWingetSpy.mockResolvedValue(false)
 
     await capabilitiesCommand()
@@ -100,6 +105,7 @@ describe('capabilitiesCommand', () => {
     expect(payload.action).toBe('capabilities')
     expect(payload.data.agents).toEqual(['claude', 'codex'])
     expect(payload.data.features.execInstallPolicies).toEqual(['never', 'if-missing', 'always'])
+    expect(payload.data.installers.cargo.available).toBe(true)
     expect(payload.data.features.cacheRefresh).toBe(true)
     expect(payload.data.features.cacheBypass).toBe(true)
     expect(payload.data.features.assumeYes).toBe(true)

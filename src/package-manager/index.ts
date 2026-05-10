@@ -52,6 +52,7 @@ export async function getOrderedInstallMethods(agent: AgentDefinition): Promise<
 async function executeManagedMethod(
   type: ManagedInstallType,
   packageName: string,
+  packageInstallArgs: string[] | undefined,
   packageTargetKind: InstalledAgentState['packageTargetKind'],
   action: 'install' | 'update' | 'uninstall',
   updateStrategy?: NpmBunUpdateStrategy,
@@ -59,10 +60,13 @@ async function executeManagedMethod(
   const installer = getManagedInstaller(type)
   if (!(await installer.isAvailable())) return false
 
-  if (action === 'install') return installer.install(packageName, packageTargetKind)
+  if (action === 'install') return installer.install(packageName, packageTargetKind, packageInstallArgs)
 
   if (action === 'update')
-    return installer.update(packageName, packageTargetKind, { npmBunUpdateStrategy: updateStrategy })
+    return installer.update(packageName, packageTargetKind, {
+      npmBunUpdateStrategy: updateStrategy,
+      packageInstallArgs,
+    })
 
   return installer.uninstall(packageName, packageTargetKind)
 }
@@ -77,7 +81,14 @@ async function executeMethod(
     const packageName = getManagedPackageName(agent, method)
     if (!packageName) return false
 
-    return executeManagedMethod(method.type, packageName, method.packageTargetKind, action, updateStrategy)
+    return executeManagedMethod(
+      method.type,
+      packageName,
+      method.packageInstallArgs,
+      method.packageTargetKind,
+      action,
+      updateStrategy,
+    )
   }
 
   if (action === 'update' && !canUpdateInstallType(method.type)) return false
@@ -95,7 +106,14 @@ async function executeInstalledState(
   if (isManagedInstallType(state.installType)) {
     if (!state.packageName) return false
 
-    return executeManagedMethod(state.installType, state.packageName, state.packageTargetKind, action, updateStrategy)
+    return executeManagedMethod(
+      state.installType,
+      state.packageName,
+      state.packageInstallArgs,
+      state.packageTargetKind,
+      action,
+      updateStrategy,
+    )
   }
 
   if (action !== 'install' || !state.command) return false
@@ -123,6 +141,8 @@ async function persistInstalledState(agent: AgentDefinition, method: InstallMeth
     packageTargetKind: method.packageTargetKind,
     command: 'command' in method ? method.command : undefined,
   }
+
+  if (method.packageInstallArgs?.length) installedState.packageInstallArgs = method.packageInstallArgs
 
   await setInstalledAgentState(installedState)
   return installedState
@@ -199,7 +219,10 @@ export async function updateAgentsByType(type: ManagedInstallType, packages: Man
       ...new Map(
         packages
           .filter(pkg => pkg.packageName)
-          .map(pkg => [`${pkg.packageTargetKind ?? 'package'}:${pkg.packageName}`, pkg]),
+          .map(pkg => [
+            `${pkg.packageTargetKind ?? 'package'}:${pkg.packageName}:${pkg.packageInstallArgs?.join(' ') ?? ''}`,
+            pkg,
+          ]),
       ).values(),
     ]
     const installer = getManagedInstaller(type)

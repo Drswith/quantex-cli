@@ -22,6 +22,14 @@ export function brewInstall(packageName: string, packageTargetKind?: PackageTarg
   }
 }
 
+export function cargoInstall(packageName?: string, packageInstallArgs?: string[]): ManagedInstallMethod {
+  return {
+    packageInstallArgs,
+    packageName,
+    type: 'cargo',
+  }
+}
+
 export function wingetInstall(packageName: string): ManagedInstallMethod {
   return {
     packageName,

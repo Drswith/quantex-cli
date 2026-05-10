@@ -5,6 +5,7 @@ import { afterAll, beforeEach, describe, expect, it, vi } from 'vitest'
 import * as config from '../../src/config'
 import * as binaryPm from '../../src/package-manager/binary'
 import * as bunPm from '../../src/package-manager/bun'
+import * as cargoPm from '../../src/package-manager/cargo'
 import {
   installAgent,
   trackInstalledAgent,
@@ -20,6 +21,10 @@ const bunInstallSpy = vi.spyOn(bunPm, 'install')
 const bunUpdateSpy = vi.spyOn(bunPm, 'update')
 const bunUpdateManySpy = vi.spyOn(bunPm, 'updateMany')
 const bunUninstallSpy = vi.spyOn(bunPm, 'uninstall')
+const cargoInstallSpy = vi.spyOn(cargoPm, 'install')
+const cargoUpdateSpy = vi.spyOn(cargoPm, 'update')
+const cargoUpdateManySpy = vi.spyOn(cargoPm, 'updateMany')
+const cargoUninstallSpy = vi.spyOn(cargoPm, 'uninstall')
 const npmInstallSpy = vi.spyOn(npmPm, 'install')
 const npmUpdateSpy = vi.spyOn(npmPm, 'update')
 const npmUpdateManySpy = vi.spyOn(npmPm, 'updateMany')
@@ -28,6 +33,7 @@ const binarySpy = vi.spyOn(binaryPm, 'runBinaryInstall')
 const loadConfigSpy = vi.spyOn(config, 'loadConfig')
 const getPlatformSpy = vi.spyOn(detectUtils, 'getPlatform')
 const isBunSpy = vi.spyOn(detectUtils, 'isBunAvailable')
+const isCargoSpy = vi.spyOn(detectUtils, 'isCargoAvailable')
 const isNpmSpy = vi.spyOn(detectUtils, 'isNpmAvailable')
 const getInstalledAgentStateSpy = vi.spyOn(state, 'getInstalledAgentState')
 const setInstalledAgentStateSpy = vi.spyOn(state, 'setInstalledAgentState')
@@ -52,6 +58,10 @@ beforeEach(() => {
   bunUpdateSpy.mockClear()
   bunUpdateManySpy.mockClear()
   bunUninstallSpy.mockClear()
+  cargoInstallSpy.mockClear()
+  cargoUpdateSpy.mockClear()
+  cargoUpdateManySpy.mockClear()
+  cargoUninstallSpy.mockClear()
   npmInstallSpy.mockClear()
   npmUpdateSpy.mockClear()
   npmUpdateManySpy.mockClear()
@@ -60,6 +70,7 @@ beforeEach(() => {
   loadConfigSpy.mockClear()
   getPlatformSpy.mockClear()
   isBunSpy.mockClear()
+  isCargoSpy.mockClear()
   isNpmSpy.mockClear()
   getInstalledAgentStateSpy.mockClear()
   setInstalledAgentStateSpy.mockClear()
@@ -87,6 +98,10 @@ afterAll(() => {
   bunUpdateSpy.mockRestore()
   bunUpdateManySpy.mockRestore()
   bunUninstallSpy.mockRestore()
+  cargoInstallSpy.mockRestore()
+  cargoUpdateSpy.mockRestore()
+  cargoUpdateManySpy.mockRestore()
+  cargoUninstallSpy.mockRestore()
   npmInstallSpy.mockRestore()
   npmUpdateSpy.mockRestore()
   npmUpdateManySpy.mockRestore()
@@ -95,6 +110,7 @@ afterAll(() => {
   loadConfigSpy.mockRestore()
   getPlatformSpy.mockRestore()
   isBunSpy.mockRestore()
+  isCargoSpy.mockRestore()
   isNpmSpy.mockRestore()
   getInstalledAgentStateSpy.mockRestore()
   setInstalledAgentStateSpy.mockRestore()
@@ -153,6 +169,31 @@ describe('installAgent', () => {
     bunInstallSpy.mockResolvedValue(false)
     npmInstallSpy.mockResolvedValue(false)
     expect(await installAgent(testAgent)).toEqual({ success: false })
+  })
+
+  it('installs cargo-managed agents from cargo package metadata', async () => {
+    const cargoAgent = {
+      ...testAgent,
+      packages: { cargo: 'test-crate' },
+      platforms: {
+        linux: [{ type: 'cargo' as const }],
+      },
+    }
+
+    isCargoSpy.mockResolvedValue(true)
+    cargoInstallSpy.mockResolvedValue(true)
+    setInstalledAgentStateSpy.mockResolvedValue()
+
+    expect(await installAgent(cargoAgent)).toEqual({
+      success: true,
+      installedState: {
+        agentName: 'test-agent',
+        installType: 'cargo',
+        packageName: 'test-crate',
+      },
+    })
+    expect(cargoInstallSpy).toHaveBeenCalledWith('test-crate', undefined)
+    expect(npmInstallSpy).not.toHaveBeenCalled()
   })
 })
 
@@ -305,6 +346,33 @@ describe('updateAgent', () => {
     expect(bunUpdateSpy).toHaveBeenCalledWith('test-pkg', 'latest-major')
     expect(binarySpy).toHaveBeenCalledWith('test-bin update')
   })
+
+  it('updates cargo-managed agents from recorded state', async () => {
+    isCargoSpy.mockResolvedValue(true)
+    cargoUpdateSpy.mockResolvedValue(true)
+    setInstalledAgentStateSpy.mockResolvedValue()
+
+    expect(
+      await updateAgent(
+        {
+          ...testAgent,
+          packages: { cargo: 'test-crate' },
+          platforms: {
+            linux: [{ packageInstallArgs: ['--locked'], type: 'cargo' as const }],
+          },
+        },
+        {
+          agentName: 'test-agent',
+          installType: 'cargo',
+          packageInstallArgs: ['--locked'],
+          packageName: 'test-crate',
+        },
+      ),
+    ).toMatchObject({ success: true })
+
+    expect(cargoUpdateSpy).toHaveBeenCalledWith('test-crate', ['--locked'])
+    expect(bunUpdateSpy).not.toHaveBeenCalled()
+  })
 })
 
 describe('updateAgentsByType', () => {
@@ -321,6 +389,23 @@ describe('updateAgentsByType', () => {
     ).toBe(true)
     expect(bunUpdateManySpy).toHaveBeenCalledWith(['test-pkg', 'other-pkg'], 'latest-major')
   })
+
+  it('batches cargo updates', async () => {
+    isCargoSpy.mockResolvedValue(true)
+    cargoUpdateManySpy.mockResolvedValue(true)
+
+    expect(
+      await updateAgentsByType('cargo', [
+        { packageInstallArgs: ['--locked'], packageName: 'test-crate' },
+        { packageInstallArgs: ['--locked'], packageName: 'test-crate' },
+        { packageName: 'other-crate' },
+      ]),
+    ).toBe(true)
+    expect(cargoUpdateManySpy).toHaveBeenCalledWith([
+      { packageInstallArgs: ['--locked'], packageName: 'test-crate' },
+      { packageName: 'other-crate' },
+    ])
+  })
 })
 
 describe('uninstallAgent', () => {
@@ -335,6 +420,21 @@ describe('uninstallAgent', () => {
     expect(await uninstallAgent(testAgent)).toBe(true)
     expect(bunUninstallSpy).toHaveBeenCalledWith('test-pkg')
     expect(npmUninstallSpy).not.toHaveBeenCalled()
+    expect(removeInstalledAgentStateSpy).toHaveBeenCalledWith('test-agent')
+  })
+
+  it('uninstalls cargo-managed agents through cargo', async () => {
+    getInstalledAgentStateSpy.mockResolvedValue({
+      agentName: 'test-agent',
+      installType: 'cargo',
+      packageName: 'test-crate',
+    })
+    isCargoSpy.mockResolvedValue(true)
+    cargoUninstallSpy.mockResolvedValue(true)
+
+    expect(await uninstallAgent(testAgent)).toBe(true)
+    expect(cargoUninstallSpy).toHaveBeenCalledWith('test-crate')
+    expect(bunUninstallSpy).not.toHaveBeenCalled()
     expect(removeInstalledAgentStateSpy).toHaveBeenCalledWith('test-agent')
   })
 })

@@ -40,7 +40,7 @@ export interface SingleAgentUpdateStatus {
   updateAvailable: boolean
 }
 
-const groupedInstallerOrder: ManagedInstallType[] = ['bun', 'npm', 'brew', 'winget']
+const groupedInstallerOrder: ManagedInstallType[] = ['bun', 'npm', 'brew', 'cargo', 'winget']
 
 export async function getSingleAgentUpdateStatus(agent: AgentDefinition): Promise<SingleAgentUpdateStatus> {
   const inspection = await inspectionService.inspectAgent(agent)
@@ -139,6 +139,7 @@ function getManagedPackageSpec(
   if (installedState?.packageName && installedState.installType === installerType) {
     return {
       packageName: installedState.packageName,
+      packageInstallArgs: installedState.packageInstallArgs,
       packageTargetKind: installedState.packageTargetKind,
     }
   }
@@ -151,6 +152,7 @@ function getManagedPackageSpec(
 
   return {
     packageName,
+    packageInstallArgs: method.packageInstallArgs,
     packageTargetKind: method.packageTargetKind,
   }
 }
