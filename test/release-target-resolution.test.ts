@@ -26,6 +26,7 @@ describe('release target resolution', () => {
         rel123: commit('chore: release 0.16.4'),
         fix111: commit('fix(lock): close owner-less acquisition race'),
       },
+      publishedReleaseShas: new Set<string>(),
       publishedTags: new Set<string>(),
       runs: [
         run(30, 'docs999', '2026-05-09T07:10:00Z'),
@@ -45,6 +46,7 @@ describe('release target resolution', () => {
         docs999: commit('docs: sync runbook wording'),
         fix111: commit('fix(lock): close owner-less acquisition race'),
       },
+      publishedReleaseShas: new Set<string>(),
       publishedTags: new Set<string>(),
       runs: [run(30, 'docs999', '2026-05-09T07:10:00Z'), run(10, 'fix111', '2026-05-09T07:00:00Z')],
     })
@@ -59,6 +61,7 @@ describe('release target resolution', () => {
         docs999: commit('docs: sync runbook wording'),
         chore111: commit('chore: archive openspec deltas'),
       },
+      publishedReleaseShas: new Set<string>(),
       publishedTags: new Set<string>(),
       runs: [run(30, 'docs999', '2026-05-09T07:10:00Z'), run(10, 'chore111', '2026-05-09T07:00:00Z')],
     })
@@ -74,9 +77,26 @@ describe('release target resolution', () => {
           rel200: commit('chore: release 0.16.5'),
           rel100: commit('chore: release 0.16.4'),
         },
+        publishedReleaseShas: new Set<string>(),
         publishedTags: new Set<string>(),
         runs: [run(20, 'rel200', '2026-05-09T07:10:00Z'), run(10, 'rel100', '2026-05-09T07:00:00Z')],
       }),
     ).toThrow(/Multiple successful untagged release commits/)
+  })
+
+  it('does not treat a tagged release commit as pending when its title version is stale', () => {
+    const resolution = selectReleaseCandidate({
+      commitsBySha: {
+        rel164: commit('chore: release 0.16.4'),
+        rel060: commit('chore: release 0.5.1'),
+      },
+      publishedReleaseShas: new Set<string>(['rel060']),
+      publishedTags: new Set<string>(),
+      runs: [run(20, 'rel164', '2026-05-09T07:10:00Z'), run(10, 'rel060', '2026-04-29T19:00:00Z')],
+    })
+
+    expect(resolution.mode).toBe('publish')
+    expect(resolution.targetSha).toBe('rel164')
+    expect(resolution.reason).toContain('pending untagged release commit 0.16.4')
   })
 })

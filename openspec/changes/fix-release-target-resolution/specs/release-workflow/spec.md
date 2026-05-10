@@ -15,7 +15,15 @@ The Release workflow SHALL evaluate release relevance only after merge-gating CI
 
 - **WHEN** branch history contains a successful protected-branch `chore: release <version>` commit
 - **AND** the corresponding `v<version>` tag does not exist yet
+- **AND** no semver release tag points at that exact commit
 - **THEN** the Release workflow MUST prefer GitHub Release publication for that commit over creating or updating another Release PR
+
+#### Scenario: already tagged release commit has stale title version
+
+- **WHEN** branch history contains a successful protected-branch `chore: release <version>` commit
+- **AND** a semver release tag already points at that exact commit
+- **THEN** the Release workflow MUST treat that commit as already published
+- **AND** it MUST NOT count the stale title version as a pending untagged release commit
 
 #### Scenario: stale successful CI run is older than merged release commit
 

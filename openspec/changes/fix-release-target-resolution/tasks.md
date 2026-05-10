@@ -8,6 +8,7 @@
 - [x] 2.1 Add a typed release-target resolver script that selects publish, Release PR, or skip from successful push-side CI history plus branch state.
 - [x] 2.2 Update `.github/workflows/release.yml` to use the resolver outputs for both `workflow_run` and `workflow_dispatch`.
 - [x] 2.3 Add automated tests that lock the resolver behavior for stale CI runs, pending untagged release commits, and manual recovery.
+- [x] 2.4 Treat release commits that already have a semver release tag on the same SHA as published, even when the commit title contains a stale version.
 
 ## 3. Docs And Validation
 
