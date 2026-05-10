@@ -2,6 +2,22 @@
 
 This changelog is maintained by release-please Release PRs.
 
+## [0.17.0](https://github.com/Drswith/quantex-cli/compare/v0.16.4...v0.17.0) (2026-05-10)
+
+
+### Features
+
+* add Reasonix support ([d301b14](https://github.com/Drswith/quantex-cli/commit/d301b148234a9bebff93ea257089fa86bab56bb6))
+* **agents:** add VTCode support ([#232](https://github.com/Drswith/quantex-cli/issues/232)) ([4cf2308](https://github.com/Drswith/quantex-cli/commit/4cf2308d3d7c0705e006d307396e1ea297428e83))
+* 添加 Cargo 包管理器支持 ([#229](https://github.com/Drswith/quantex-cli/issues/229)) ([a939411](https://github.com/Drswith/quantex-cli/commit/a9394118b1a76f237ad6f1f47242cb49279aa282))
+
+
+### Bug Fixes
+
+* **lock:** wait for owner.json before stale removal across processes ([530e272](https://github.com/Drswith/quantex-cli/commit/530e272a2ec132b9cbe498c25a4cb8127f8c668b))
+* **release:** ignore already tagged release commits ([#231](https://github.com/Drswith/quantex-cli/issues/231)) ([b3e302e](https://github.com/Drswith/quantex-cli/commit/b3e302e6fcbbe73a1ef690f5a9f9a6585e65e663))
+* **self-upgrade:** avoid rollback after verified binary swap ([af6942e](https://github.com/Drswith/quantex-cli/commit/af6942e644f9fd0e550c47bf38f3c033db32284d))
+
 ## [0.16.4](https://github.com/Drswith/quantex-cli/compare/v0.16.3...v0.16.4) (2026-05-09)
 
 
