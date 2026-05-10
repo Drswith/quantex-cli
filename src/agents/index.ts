@@ -26,6 +26,7 @@ import { qoder } from './definitions/qoder'
 import { qwen } from './definitions/qwen'
 import { reasonix } from './definitions/reasonix'
 import { vibe } from './definitions/vibe'
+import { vtcode } from './definitions/vtcode'
 
 const agents: AgentDefinition[] = [
   auggie,
@@ -55,6 +56,7 @@ const agents: AgentDefinition[] = [
   qwen,
   reasonix,
   vibe,
+  vtcode,
 ]
 
 export function getAllAgents(): AgentDefinition[] {
@@ -97,6 +99,7 @@ export {
   qwen,
   reasonix,
   vibe,
+  vtcode,
 }
 export type {
   AgentDefinition,

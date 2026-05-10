@@ -22,6 +22,7 @@ import { qoder } from '../src/agents/definitions/qoder'
 import { qwen } from '../src/agents/definitions/qwen'
 import { reasonix } from '../src/agents/definitions/reasonix'
 import { vibe } from '../src/agents/definitions/vibe'
+import { vtcode } from '../src/agents/definitions/vtcode'
 import { formatInstallMethodCommand } from '../src/utils/install'
 
 describe('agent registry', () => {
@@ -723,6 +724,50 @@ describe('vibe', () => {
     }
 
     expect(vibe.platforms.windows!.find(m => m.type === 'script')).toBeUndefined()
+  })
+})
+
+describe('vtcode', () => {
+  it('is registered for lookup by canonical name', () => {
+    expect(getAgentByNameOrAlias('vtcode')).toBe(vtcode)
+  })
+
+  it('has valid structure', () => {
+    validateAgent(vtcode)
+    expect(vtcode.name).toBe('vtcode')
+    expect(vtcode.lookupAliases).toBeUndefined()
+    expect(vtcode.displayName).toBe('VTCode')
+    expect(vtcode.packages?.cargo).toBe('vtcode')
+    expect(vtcode.binaryName).toBe('vtcode')
+    expect(vtcode.homepage).toBe('https://github.com/vinhnx/vtcode')
+    expect(vtcode.selfUpdate?.command).toEqual(['vtcode', 'update'])
+    expect(vtcode.versionProbe?.command).toEqual(['vtcode', '--version'])
+  })
+
+  it('exposes official install methods per platform', () => {
+    expect(
+      vtcode.platforms.windows!.find(
+        m =>
+          m.type === 'script' && m.command.includes('raw.githubusercontent.com/vinhnx/vtcode/main/scripts/install.ps1'),
+      ),
+    ).toBeDefined()
+
+    for (const methods of [vtcode.platforms.windows!, vtcode.platforms.macos!, vtcode.platforms.linux!]) {
+      expect(methods.find(m => m.type === 'cargo')).toBeDefined()
+    }
+
+    for (const methods of [vtcode.platforms.macos!, vtcode.platforms.linux!]) {
+      expect(
+        methods.find(
+          m =>
+            m.type === 'script' &&
+            m.command.includes('raw.githubusercontent.com/vinhnx/vtcode/main/scripts/install.sh'),
+        ),
+      ).toBeDefined()
+      expect(methods.find(m => m.type === 'brew' && m.packageName === 'vtcode')).toBeDefined()
+    }
+
+    expect(vtcode.platforms.windows!.find(m => m.type === 'brew')).toBeUndefined()
   })
 })
 
