@@ -1,0 +1,4 @@
+- [x] 1. Add a repository-owned `commit-msg` sanitizer script that removes Cursor's known local attribution trailers from local commit messages.
+- [x] 2. Wire the sanitizer into the repository `simple-git-hooks` configuration and keep the existing pre-commit and pre-push hooks intact.
+- [x] 3. Add automated tests for the sanitizer behavior, including preserving non-Cursor co-author trailers.
+- [x] 4. Update the code-quality tooling spec to document the local Cursor-specific hook and its boundary against broader CI governance.
