@@ -42,6 +42,27 @@ export async function isWingetAvailable(): Promise<boolean> {
   return isCommandAvailable('winget')
 }
 
+export async function isPipAvailable(): Promise<boolean> {
+  if (await isCommandAvailable('pip')) return true
+  if (await isCommandAvailable('pip3')) return true
+  return isPythonModulePipAvailable()
+}
+
+async function isPythonModulePipAvailable(): Promise<boolean> {
+  try {
+    const { exitCode } = await readProcessOutput(spawnCommand(['python', '-m', 'pip', '--version']))
+    if (exitCode === 0) return true
+  } catch {
+    /* ignore */
+  }
+  try {
+    const { exitCode } = await readProcessOutput(spawnCommand(['python3', '-m', 'pip', '--version']))
+    return exitCode === 0
+  } catch {
+    return false
+  }
+}
+
 export async function isBinaryInPath(binaryName: string): Promise<boolean> {
   try {
     const cmd = process.platform === 'win32' ? 'where' : 'which'

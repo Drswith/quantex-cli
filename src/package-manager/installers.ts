@@ -1,10 +1,18 @@
 import type { ManagedInstallType, PackageTargetKind } from '../agents/types'
 import type { NpmBunUpdateStrategy } from '../config'
-import { isBrewAvailable, isBunAvailable, isCargoAvailable, isNpmAvailable, isWingetAvailable } from '../utils/detect'
+import {
+  isBrewAvailable,
+  isBunAvailable,
+  isCargoAvailable,
+  isNpmAvailable,
+  isPipAvailable,
+  isWingetAvailable,
+} from '../utils/detect'
 import * as brewPm from './brew'
 import * as bunPm from './bun'
 import * as cargoPm from './cargo'
 import * as npmPm from './npm'
+import * as pipPm from './pip'
 import * as wingetPm from './winget'
 
 export interface ManagedPackageSpec {
@@ -88,6 +96,14 @@ const managedInstallers: Record<ManagedInstallType, ManagedInstaller> = {
         packages.map(pkg => pkg.packageName),
         options?.npmBunUpdateStrategy,
       ),
+  },
+  pip: {
+    type: 'pip',
+    isAvailable: async () => isPipAvailable(),
+    install: async packageName => pipPm.install(packageName),
+    uninstall: async packageName => pipPm.uninstall(packageName),
+    update: async packageName => pipPm.update(packageName),
+    updateMany: async packages => pipPm.updateMany(packages.map(pkg => ({ packageName: pkg.packageName }))),
   },
   winget: {
     type: 'winget',

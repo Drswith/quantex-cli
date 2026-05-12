@@ -26,6 +26,7 @@ export function getManagedPackageName(
 ): string | undefined {
   if (method.packageName) return method.packageName
   if (method.type === 'cargo') return agent.packages?.cargo
+  if (method.type === 'pip') return agent.packages?.pip
   if (method.type === 'bun' || method.type === 'npm') return agent.packages?.npm
   return undefined
 }
@@ -113,6 +114,11 @@ export function formatInstallMethodCommand(agent: Pick<AgentDefinition, 'package
   if (method.type === 'cargo') {
     const packageName = getManagedPackageName(agent, method)
     return packageName ? ['cargo', 'install', packageName, ...(method.packageInstallArgs ?? [])].join(' ') : ''
+  }
+
+  if (method.type === 'pip') {
+    const packageName = getManagedPackageName(agent, method)
+    return packageName ? `pip install ${packageName}` : ''
   }
 
   if (method.type === 'winget') {

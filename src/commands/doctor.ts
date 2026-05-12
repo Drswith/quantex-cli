@@ -5,7 +5,14 @@ import { createSuccessResult, emitCommandResult } from '../output'
 import { getSelfUpgradeRecoveryHintForInspection, inspectSelf } from '../self'
 import { inspectRegisteredAgents } from '../services/agents'
 import { pc } from '../utils/color'
-import { isBrewAvailable, isBunAvailable, isCargoAvailable, isNpmAvailable, isWingetAvailable } from '../utils/detect'
+import {
+  isBrewAvailable,
+  isBunAvailable,
+  isCargoAvailable,
+  isNpmAvailable,
+  isPipAvailable,
+  isWingetAvailable,
+} from '../utils/detect'
 import { isVersionNewer } from '../utils/version'
 
 type DoctorIssueCategory = 'agent' | 'installers' | 'self'
@@ -49,6 +56,7 @@ interface DoctorData {
     bun: boolean
     cargo: boolean
     npm: boolean
+    pip: boolean
     winget: boolean
   }
   self: {
@@ -66,6 +74,7 @@ export async function doctorCommand(): Promise<CommandResult<DoctorData>> {
   const npmAvailable = await isNpmAvailable()
   const brewAvailable = await isBrewAvailable()
   const cargoAvailable = await isCargoAvailable()
+  const pipAvailable = await isPipAvailable()
   const wingetAvailable = await isWingetAvailable()
 
   const selfInspection = await inspectSelf()
@@ -91,14 +100,14 @@ export async function doctorCommand(): Promise<CommandResult<DoctorData>> {
   const troubleshootingDocsRef = 'docs/runbooks/quantex-troubleshooting.md'
   const selfUpgradeDocsRef = 'docs/runbooks/release-and-self-upgrade-debugging.md'
 
-  if (!bunAvailable && !npmAvailable && !brewAvailable && !cargoAvailable && !wingetAvailable) {
+  if (!bunAvailable && !npmAvailable && !brewAvailable && !cargoAvailable && !pipAvailable && !wingetAvailable) {
     issues.push({
       blocking: true,
       category: 'installers',
       code: 'NO_MANAGED_INSTALLER',
       docsRef: troubleshootingDocsRef,
       message:
-        'No managed installer found. Install bun, npm, brew, cargo, or winget before relying on managed lifecycle operations.',
+        'No managed installer found. Install bun, npm, brew, cargo, pip, or winget before relying on managed lifecycle operations.',
       severity: 'warning',
       subject: { kind: 'system' },
       suggestedAction: 'restore-managed-installer',
@@ -209,6 +218,7 @@ export async function doctorCommand(): Promise<CommandResult<DoctorData>> {
           bun: bunAvailable,
           cargo: cargoAvailable,
           npm: npmAvailable,
+          pip: pipAvailable,
           winget: wingetAvailable,
         },
         self: {
@@ -239,6 +249,7 @@ function renderDoctorHuman(result: { data?: DoctorData }): void {
   console.log(`  npm:   ${result.data.installers.npm ? pc.green('available') : pc.red('not found')}`)
   console.log(`  brew:  ${result.data.installers.brew ? pc.green('available') : pc.red('not found')}`)
   console.log(`  cargo: ${result.data.installers.cargo ? pc.green('available') : pc.red('not found')}`)
+  console.log(`  pip:   ${result.data.installers.pip ? pc.green('available') : pc.red('not found')}`)
   console.log(`  winget:${result.data.installers.winget ? pc.green('available') : pc.red('not found')}`)
 
   console.log(`\n${pc.bold('Quantex CLI:')}`)
