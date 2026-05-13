@@ -275,8 +275,12 @@ bun run lint
 bun run format:check
 bun run typecheck
 bun run test
+bun run test:container
+bun run test:sandbox
 bun run build
 ```
+
+`bun run test:container` 是本地隔离验证的首选路径，适合在不安装 Modal 的情况下，用干净 Linux 环境验证对宿主机敏感的生命周期检查。它运行的是 Quantex 针对所选 agent 的真实 CLI lifecycle smoke flow，包括采用已预装 agent 和 Quantex 独立二进制自检，不是单元测试套件。`bun run test:sandbox` 会通过 Modal 运行同一套 smoke flow，适合验证远程传输或专用 GitHub Actions workflow。
 
 ## License
 
