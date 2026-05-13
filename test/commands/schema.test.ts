@@ -66,6 +66,8 @@ describe('schemaCommand', () => {
     expect(payload.data.commands[0].name).toBe('doctor')
     expect(payload.data.commands[0].dataSchema.properties.issues.items.properties.suggestedAction).toBeDefined()
     expect(payload.data.commands[0].dataSchema.properties.issues.items.properties.suggestedCommands).toBeDefined()
+    expect(payload.data.commands[0].dataSchema.properties.installers.properties.cargo).toEqual({ type: 'boolean' })
+    expect(payload.data.commands[0].dataSchema.properties.installers.required).toContain('cargo')
   })
 
   it('returns the exec schema in json mode', async () => {

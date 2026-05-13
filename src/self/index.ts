@@ -1,20 +1,5 @@
-import type {
-  SelfInspection,
-  SelfInstallSource,
-  SelfPackageMetadata,
-  SelfUpdateChannel,
-  SelfUpdateResult,
-  SelfUpgradePlan,
-} from './types'
+import type { SelfInspection, SelfInstallSource, SelfUpdateChannel, SelfUpdateResult, SelfUpgradePlan } from './types'
 import process from 'node:process'
-import {
-  canAutoUpdateSelf,
-  detectSelfInstallSource,
-  getSelfVersion,
-  reconcileSelfInstallSource,
-  resolveSelfInstallFacts,
-  resolveSelfPackageMetadata,
-} from './facts'
 import { acquireSelfUpgradeLock } from './lock'
 import {
   buildPlanFromInspection,

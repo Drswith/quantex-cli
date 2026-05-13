@@ -1,0 +1,3 @@
+- [x] 1.1 Add `cargo` to doctor JSON schema `installers` properties and `required` list in `src/commands/schema.ts`.
+- [x] 1.2 Assert schema parity in `test/commands/schema.test.ts`.
+- [x] 1.3 Document the contract in `openspec/specs/agent-update/spec.md`.
