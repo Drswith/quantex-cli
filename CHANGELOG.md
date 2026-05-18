@@ -2,6 +2,13 @@
 
 This changelog is maintained by release-please Release PRs.
 
+## [0.17.1](https://github.com/Drswith/quantex-cli/compare/v0.17.0...v0.17.1) (2026-05-18)
+
+
+### Bug Fixes
+
+* **lock:** fail closed when owner metadata is unreadable or invalid ([d00fdd1](https://github.com/Drswith/quantex-cli/commit/d00fdd1b56c991aeb05f39db5f5d20525f93db97))
+
 ## [0.17.0](https://github.com/Drswith/quantex-cli/compare/v0.16.4...v0.17.0) (2026-05-10)
 
 
