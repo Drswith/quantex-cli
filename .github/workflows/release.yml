@@ -203,6 +203,11 @@ jobs:
             exit 1
           fi
 
+          if [ -z "${QUANTEX_SYNC_TOKEN}" ]; then
+            echo "::notice title=Alias sync skipped::QUANTEX_SYNC_TOKEN is not configured; skipping Drswith/quantex repository_dispatch."
+            exit 0
+          fi
+
           npm_tag="latest"
           if [[ "${version}" == *-* ]]; then
             npm_tag="next"

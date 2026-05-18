@@ -9,6 +9,7 @@ Quantex publishes `quantex-cli` as the primary npm package while `quantex` is an
 - Send `npm_tag=latest` for stable releases and `npm_tag=next` for prereleases.
 - Keep alias package publishing owned by the `quantex` repository; `quantex-cli` only sends the notification.
 - Use the `QUANTEX_SYNC_TOKEN` secret for the GitHub API call.
+- Skip the alias synchronization dispatch without failing the release when `QUANTEX_SYNC_TOKEN` is not configured.
 
 ## Capabilities
 
@@ -24,4 +25,4 @@ None.
 
 - Affected workflow: `.github/workflows/release.yml`.
 - Affected docs/specs: `openspec/specs/release-workflow/spec.md` via this change delta.
-- External dependency: repository secret `QUANTEX_SYNC_TOKEN` with sufficient permission to dispatch events to `Drswith/quantex`.
+- External dependency: optional repository secret `QUANTEX_SYNC_TOKEN` with sufficient permission to dispatch events to `Drswith/quantex`.
