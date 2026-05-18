@@ -190,6 +190,30 @@ jobs:
         if: ${{ steps.release.outputs.release_created }}
         run: npm publish --access public --ignore-scripts --tag ${{ steps.release-target.outputs.npm_tag }}
 
+      - name: Sync quantex alias package
+        if: ${{ steps.release.outputs.release_created }}
+        env:
+          QUANTEX_SYNC_TOKEN: ${{ secrets.QUANTEX_SYNC_TOKEN }}
+          RELEASE_TAG: ${{ steps.release.outputs.tag_name }}
+        run: |
+          version="${RELEASE_TAG#v}"
+
+          if [[ ! "${version}" =~ ^[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?(\+[0-9A-Za-z.-]+)?$ ]]; then
+            echo "Release tag '${RELEASE_TAG}' did not resolve to a semver version without a leading v." >&2
+            exit 1
+          fi
+
+          npm_tag="latest"
+          if [[ "${version}" == *-* ]]; then
+            npm_tag="next"
+          fi
+
+          curl --fail-with-body -X POST \
+            -H "Authorization: Bearer ${QUANTEX_SYNC_TOKEN}" \
+            -H "Accept: application/vnd.github+json" \
+            https://api.github.com/repos/Drswith/quantex/dispatches \
+            -d "{\"event_type\":\"sync-quantex-cli-release\",\"client_payload\":{\"version\":\"${version}\",\"npm_tag\":\"${npm_tag}\"}}"
+
       - name: Upload release artifacts
         if: ${{ steps.release.outputs.release_created }}
         env:
