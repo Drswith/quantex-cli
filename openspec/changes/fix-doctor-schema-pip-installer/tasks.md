@@ -1,0 +1,4 @@
+- [x] Add `pip` to doctor `dataSchema.installers` in `src/commands/schema.ts`.
+- [x] Sync `openspec/specs/agent-update/spec.md` installer-schema scenario.
+- [x] Extend `test/commands/schema.test.ts` doctor schema assertions.
+- [x] Run `bun run lint`, `bun run format:check`, `bun run typecheck`, `bun run test`, and `bun run openspec:validate`.

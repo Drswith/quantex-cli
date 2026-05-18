@@ -232,9 +232,10 @@ const schemaCatalog: SchemaDocument[] = [
             bun: { type: 'boolean' },
             cargo: { type: 'boolean' },
             npm: { type: 'boolean' },
+            pip: { type: 'boolean' },
             winget: { type: 'boolean' },
           },
-          required: ['brew', 'bun', 'cargo', 'npm', 'winget'],
+          required: ['brew', 'bun', 'cargo', 'npm', 'pip', 'winget'],
           type: 'object',
         },
         issues: {
