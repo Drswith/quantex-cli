@@ -2,6 +2,13 @@
 
 This changelog is maintained by release-please Release PRs.
 
+## [0.18.1](https://github.com/Drswith/quantex-cli/compare/v0.18.0...v0.18.1) (2026-05-18)
+
+
+### Bug Fixes
+
+* **update:** include pip in grouped batch update planning ([e41827b](https://github.com/Drswith/quantex-cli/commit/e41827b4284f4f6d081954f6a2c122e889c19aa9))
+
 ## [0.18.0](https://github.com/Drswith/quantex-cli/compare/v0.17.1...v0.18.0) (2026-05-18)
 
 
