@@ -406,6 +406,18 @@ describe('updateAgentsByType', () => {
       { packageName: 'other-crate' },
     ])
   })
+
+  it('returns false for an empty package list without calling updateMany', async () => {
+    isBunSpy.mockResolvedValue(true)
+    expect(await updateAgentsByType('bun', [])).toBe(false)
+    expect(bunUpdateManySpy).not.toHaveBeenCalled()
+  })
+
+  it('returns false when every package spec lacks a non-empty package name', async () => {
+    isBunSpy.mockResolvedValue(true)
+    expect(await updateAgentsByType('bun', [{ packageName: '' }])).toBe(false)
+    expect(bunUpdateManySpy).not.toHaveBeenCalled()
+  })
 })
 
 describe('uninstallAgent', () => {

@@ -78,6 +78,18 @@ Batch agent updates SHALL prioritize recorded actual install sources over candid
 - AND it groups work by the recorded actual install source where available
 - AND it does not rely only on the agent definition's possible install methods
 
+### Requirement: Managed batch updates MUST NOT claim success without installer package work
+
+When Quantex performs a grouped managed batch update for an installer type, it SHALL NOT treat the batch path as successful when there are zero package names to pass to that installer after filtering invalid or empty names.
+
+#### Scenario: No-op batch path does not report blanket success
+
+- GIVEN grouped managed update execution reaches `updateAgentsByType` for an installer type
+- AND the deduplicated package list is empty because every supplied spec lacked a non-empty package name
+- WHEN Quantex evaluates the batch managed update outcome
+- THEN it returns batch failure for that path instead of success from an empty installer work list
+- AND higher-level update execution can fall back to per-agent update handling so per-agent outcomes reflect actual work or failure
+
 ### Requirement: Bun-managed updates MUST trust requested blocked lifecycle scripts across platform path styles
 
 The agent update system SHALL recognize Bun global untrusted package output for requested managed packages regardless of whether Bun prints `node_modules` paths with POSIX or Windows separators.
