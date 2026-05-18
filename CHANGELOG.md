@@ -2,6 +2,13 @@
 
 This changelog is maintained by release-please Release PRs.
 
+## [0.18.2](https://github.com/Drswith/quantex-cli/compare/v0.18.1...v0.18.2) (2026-05-18)
+
+
+### Bug Fixes
+
+* **update:** reject no-op grouped managed batch updates ([9d7ae56](https://github.com/Drswith/quantex-cli/commit/9d7ae566576444bf6fc2210cb6e7b81bfe270ec4))
+
 ## [0.18.1](https://github.com/Drswith/quantex-cli/compare/v0.18.0...v0.18.1) (2026-05-18)
 
 
