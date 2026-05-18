@@ -5,41 +5,43 @@ Define how Quantex reconciles protected-branch release state from successful CI 
 ## Requirements
 ### Requirement: Release Workflow Skips Non-release Pushes
 
-The Release workflow SHALL evaluate release relevance only after merge-gating CI has completed successfully for a protected-branch push, and it SHALL skip release-please for pushes that cannot create a release.
+The Release workflow SHALL evaluate release relevance only after merge-gating CI has completed successfully for a protected-branch push, and it SHALL reconcile the next release action from protected-branch state instead of trusting a single raw workflow event SHA.
 
 #### Scenario: release-worthy merge reaches main
 
-- **WHEN** merge-gating CI completes successfully for a push to `main`
-- **AND** the pushed commit has a release-worthy conventional commit title such as `feat:`, `fix:`, or `perf:`
+- **WHEN** merge-gating CI has succeeded for a release-worthy protected-branch commit on `main`
+- **AND** there is no newer successful untagged `chore: release ...` commit waiting on that branch
 - **THEN** the Release workflow MUST invoke release-please in Release PR mode
 - **AND** the release-please action version MUST be pinned to a repository-verified tag
 - **AND** it MUST skip GitHub Release creation in that invocation
-- **AND** it MUST derive the next release from the current manifest and published release state instead of a stale repository-pinned baseline override
-- **AND** it MUST resolve that action from successful protected-branch CI history instead of blindly trusting a single raw workflow event SHA
 
-#### Scenario: successful release commit is pending publication
+#### Scenario: successful release commit still lacks a tag
 
 - **WHEN** branch history contains a successful protected-branch `chore: release <version>` commit
 - **AND** the corresponding `v<version>` tag does not exist yet
-- **THEN** the Release workflow MUST publish that release commit before it creates or updates another Release PR
+- **AND** no semver release tag points at that exact commit
+- **THEN** the Release workflow MUST prefer GitHub Release publication for that commit over creating or updating another Release PR
 
-#### Scenario: manual release recovery uses branch-state reconciliation
+#### Scenario: already tagged release commit has stale title version
 
-- **WHEN** a maintainer runs the Release workflow manually for `main` or `beta`
-- **THEN** the workflow MUST resolve the target action from the same successful CI history and branch release state used by automatic runs
-- **AND** it MUST NOT bypass the requirement that publish actions come only from a successful protected-branch CI run for the chosen release commit
+- **WHEN** branch history contains a successful protected-branch `chore: release <version>` commit
+- **AND** a semver release tag already points at that exact commit
+- **THEN** the Release workflow MUST treat that commit as already published
+- **AND** it MUST NOT count the stale title version as a pending untagged release commit
 
-#### Scenario: release target resolver has its runtime before resolution
+#### Scenario: stale successful CI run is older than merged release commit
 
-- **WHEN** the Release workflow checks out a protected branch source on a fresh runner
-- **THEN** it MUST bootstrap the runtime needed by the release-target resolver before invoking repository scripts that decide publish vs Release PR vs skip
-- **AND** it MUST NOT defer that runtime installation until after a release is already created
+- **WHEN** a successful protected-branch `CI` run triggers the Release workflow
+- **AND** current protected-branch state already contains a newer successful untagged `chore: release ...` commit
+- **THEN** the workflow MUST NOT reopen or refresh Release PR mode from the older CI run
+- **AND** it MUST reconcile to the pending publish action instead
 
-#### Scenario: CI run reachability uses reconciled remote branch tip
+#### Scenario: manual recovery uses the same resolver
 
-- **WHEN** the Release workflow has fetched `refs/remotes/origin/<protected_branch>` and tags
-- **THEN** release-target reconciliation MUST treat successful `CI` runs as reachable only if the run `head_sha` is an ancestor of the reconciled remote tip for that protected branch
-- **AND** it MUST NOT rely on a local branch tip that may still point at an older commit after fetch-only updates to `refs/remotes/origin/<protected_branch>`
+- **WHEN** a maintainer runs the Release workflow through `workflow_dispatch`
+- **THEN** the workflow MUST derive the target protected branch from the dispatch input or current ref
+- **AND** it MUST use the same release-target reconciliation rules as automatic runs
+- **AND** it MUST NOT bypass the requirement that publish actions come only from a successful protected-branch `CI` run for the selected release commit
 
 ### Requirement: Generated Release PRs satisfy governance sections
 
@@ -54,3 +56,4 @@ Release PRs generated by release-please SHALL include the same governance sectio
 
 - **WHEN** release-please creates or updates a beta Release PR
 - **THEN** the PR body MUST include a `## Closure Check` section
+
