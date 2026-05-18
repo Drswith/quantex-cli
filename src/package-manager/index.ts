@@ -225,6 +225,10 @@ export async function updateAgentsByType(type: ManagedInstallType, packages: Man
           ]),
       ).values(),
     ]
+    if (uniquePackages.length === 0) {
+      return false
+    }
+
     const installer = getManagedInstaller(type)
     if (!(await installer.isAvailable())) return false
     return installer.updateMany(uniquePackages, await getManagedUpdateOptions())
