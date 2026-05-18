@@ -10,18 +10,18 @@
 [![bundle][bundle-src]][bundle-href]
 [![License][license-src]][license-href]
 
-Manage AI coding assistant CLIs from one lifecycle-focused command line.
+Install, inspect, update, uninstall, and run AI coding assistant CLIs from one agent-friendly command line.
 
 **English** | [简体中文](./README.zh-CN.md)
 
 </div>
 
-Quantex is a `human-friendly + agent-friendly` lifecycle CLI for AI coding agents. It gives Amp, Claude Code, Codex, Gemini, Kilo Code, Cursor, OpenCode, and other assistant CLIs a shared surface for installation, inspection, updates, removal, execution, and machine-readable automation. This README uses the shorter `qtx` form as the recommended entry point, while `quantex` remains the fully equivalent long command name.
+Quantex is a `human-friendly + agent-friendly` lifecycle CLI for AI coding assistants and terminal coding agents. Use one `qtx` surface to install, inspect, update, uninstall, run, and automate Codex CLI, Claude Code, Gemini CLI, Cursor CLI, OpenCode, Amp, Kilo Code, and other assistant CLIs with stable machine-readable output. This README uses the shorter `qtx` form as the recommended entry point, while `quantex` remains the fully equivalent long command name.
 
 ## Why Quantex
 
-- Manage multiple AI agents from one CLI: install, ensure, inspect, update, uninstall, and run.
-- Designed for scripts and coding agents: stable `--json`, `--output ndjson`, `--non-interactive`, and `--dry-run` contracts.
+- Manage multiple AI coding assistant CLIs from one lifecycle command: install, ensure, inspect, update, uninstall, and run.
+- Designed for scripts and coding agents: stable `--json`, `--output ndjson`, `--non-interactive`, and `--dry-run` contracts for machine-readable automation.
 - Tracks real install sources: `update --all` groups updates by recorded source instead of guessing from PATH alone.
 - Supports Quantex self-upgrade across Bun, npm, and standalone binary installs.
 
