@@ -30,6 +30,13 @@ export function cargoInstall(packageName?: string, packageInstallArgs?: string[]
   }
 }
 
+export function pipInstall(packageName?: string): ManagedInstallMethod {
+  return {
+    packageName,
+    type: 'pip',
+  }
+}
+
 export function wingetInstall(packageName: string): ManagedInstallMethod {
   return {
     packageName,

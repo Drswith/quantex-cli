@@ -68,7 +68,7 @@ function validateAgent(agent: AgentDefinition): void {
     expect(['windows', 'macos', 'linux']).toContain(platform)
     expect(methods!.length).toBeGreaterThan(0)
     for (const method of methods!) {
-      expect(['bun', 'npm', 'brew', 'cargo', 'winget', 'script', 'binary']).toContain(method.type)
+      expect(['bun', 'npm', 'brew', 'cargo', 'pip', 'winget', 'script', 'binary']).toContain(method.type)
       if (method.type === 'script' || method.type === 'binary') {
         expect(typeof method.command).toBe('string')
         expect(method.command.length).toBeGreaterThan(0)
@@ -705,6 +705,7 @@ describe('vibe', () => {
     expect(vibe.lookupAliases).toEqual(['mistral-vibe'])
     expect(vibe.displayName).toBe('Mistral Vibe')
     expect(vibe.binaryName).toBe('vibe')
+    expect(vibe.packages?.pip).toBe('mistral-vibe')
     expect(vibe.homepage).toBe('https://docs.mistral.ai/mistral-vibe/terminal/install')
     expect(vibe.versionProbe?.command).toEqual(['vibe', '--version'])
     expect(vibe.selfUpdate).toBeUndefined()
@@ -720,7 +721,7 @@ describe('vibe', () => {
 
     for (const methods of Object.values(vibe.platforms)) {
       expect(methods!.find(m => m.type === 'binary' && m.command === 'uv tool install mistral-vibe')).toBeDefined()
-      expect(methods!.find(m => m.type === 'binary' && m.command === 'pip install mistral-vibe')).toBeDefined()
+      expect(methods!.find(m => m.type === 'pip' && m.packageName === 'mistral-vibe')).toBeDefined()
     }
 
     expect(vibe.platforms.windows!.find(m => m.type === 'script')).toBeUndefined()

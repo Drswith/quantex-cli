@@ -10,6 +10,7 @@ import {
   isBunAvailable,
   isCargoAvailable,
   isNpmAvailable,
+  isPipAvailable,
   isWingetAvailable,
 } from '../utils/detect'
 
@@ -47,6 +48,10 @@ interface CapabilitiesData {
       available: boolean
       reason?: string
     }
+    pip: {
+      available: boolean
+      reason?: string
+    }
     winget: {
       available: boolean
       reason?: string
@@ -60,12 +65,13 @@ interface CapabilitiesData {
 }
 
 export async function capabilitiesCommand(): Promise<CommandResult<CapabilitiesData>> {
-  const [bunAvailable, npmAvailable, brewAvailable, cargoAvailable, wingetAvailable, selfInspection] =
+  const [bunAvailable, npmAvailable, brewAvailable, cargoAvailable, pipAvailable, wingetAvailable, selfInspection] =
     await Promise.all([
       isBunAvailable(),
       isNpmAvailable(),
       isBrewAvailable(),
       isCargoAvailable(),
+      isPipAvailable(),
       isWingetAvailable(),
       inspectSelf(),
     ])
@@ -99,13 +105,17 @@ export async function capabilitiesCommand(): Promise<CommandResult<CapabilitiesD
             available: bunAvailable,
             reason: bunAvailable ? undefined : getUnavailableReason('bun'),
           },
+          cargo: {
+            available: cargoAvailable,
+            reason: cargoAvailable ? undefined : getUnavailableReason('cargo'),
+          },
           npm: {
             available: npmAvailable,
             reason: npmAvailable ? undefined : getUnavailableReason('npm'),
           },
-          cargo: {
-            available: cargoAvailable,
-            reason: cargoAvailable ? undefined : getUnavailableReason('cargo'),
+          pip: {
+            available: pipAvailable,
+            reason: pipAvailable ? undefined : getUnavailableReason('pip'),
           },
           winget: {
             available: wingetAvailable,
@@ -127,7 +137,7 @@ export async function capabilitiesCommand(): Promise<CommandResult<CapabilitiesD
   )
 }
 
-function getUnavailableReason(installer: 'brew' | 'bun' | 'cargo' | 'npm' | 'winget'): string {
+function getUnavailableReason(installer: 'brew' | 'bun' | 'cargo' | 'npm' | 'pip' | 'winget'): string {
   if (installer === 'winget' && process.platform !== 'win32') return 'not-on-platform'
 
   if (installer === 'brew' && process.platform === 'win32') return 'not-on-platform'
@@ -148,6 +158,7 @@ function renderCapabilitiesHuman(result: { data?: CapabilitiesData }): void {
   console.log(`    npm:    ${formatCapabilityAvailability(result.data.installers.npm)}`)
   console.log(`    brew:   ${formatCapabilityAvailability(result.data.installers.brew)}`)
   console.log(`    cargo:  ${formatCapabilityAvailability(result.data.installers.cargo)}`)
+  console.log(`    pip:    ${formatCapabilityAvailability(result.data.installers.pip)}`)
   console.log(`    winget: ${formatCapabilityAvailability(result.data.installers.winget)}`)
 
   console.log(pc.bold('\n  Features:'))

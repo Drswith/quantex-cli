@@ -1,6 +1,6 @@
 export type Platform = 'windows' | 'macos' | 'linux'
 
-export type ManagedInstallType = 'bun' | 'npm' | 'brew' | 'cargo' | 'winget'
+export type ManagedInstallType = 'bun' | 'npm' | 'brew' | 'cargo' | 'pip' | 'winget'
 export type InstallType = ManagedInstallType | 'script' | 'binary'
 export type PackageTargetKind = 'package' | 'cask' | 'id'
 
@@ -31,6 +31,7 @@ export type InstallMethod = ManagedInstallMethod | ScriptInstallMethod | BinaryI
 export interface AgentPackageMetadata {
   cargo?: string
   npm?: string
+  pip?: string
 }
 
 export interface AgentSelfUpdate {
