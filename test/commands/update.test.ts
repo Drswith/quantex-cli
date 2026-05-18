@@ -106,6 +106,42 @@ describe('updateCommand', () => {
     expect(stdoutWriteSpy).toHaveBeenCalledWith(expect.stringContaining('updated successfully'))
   })
 
+  it('updates pip-managed agents via updateAgentsByType when versions differ', async () => {
+    const pipAgent = {
+      ...testAgent,
+      name: 'pip-agent',
+      binaryName: 'pip-bin',
+      displayName: 'Pip Agent',
+      packages: { pip: 'pip-pkg' },
+      platforms: {
+        linux: [{ type: 'pip' as const, packageName: 'pip-pkg' }],
+        macos: [{ type: 'pip' as const, packageName: 'pip-pkg' }],
+        windows: [{ type: 'pip' as const, packageName: 'pip-pkg' }],
+      },
+    }
+
+    agentSpy.mockReturnValue(pipAgent)
+    binaryInPathSpy.mockResolvedValue(true)
+    installedVerSpy.mockResolvedValue('1.0.0')
+    latestVerSpy.mockResolvedValue('2.0.0')
+    installedStateSpy.mockResolvedValue({
+      agentName: 'pip-agent',
+      installType: 'pip',
+      packageName: 'pip-pkg',
+    })
+    updateAgentsByTypeSpy.mockResolvedValue(true)
+    updateSpy.mockResolvedValue({ success: true })
+    await updateCommand('pip-agent', false)
+    expect(updateAgentsByTypeSpy).toHaveBeenCalledWith('pip', [
+      { packageName: 'pip-pkg', packageTargetKind: undefined },
+    ])
+    expect(updateSpy).not.toHaveBeenCalled()
+    expect(stdoutWriteSpy).toHaveBeenCalledWith(
+      expect.stringContaining('Updating Pip Agent via managed/pip... (1.0.0 -> latest)'),
+    )
+    expect(stdoutWriteSpy).toHaveBeenCalledWith(expect.stringContaining('updated successfully'))
+  })
+
   it('batches known package-manager updates for --all', async () => {
     const agent2 = {
       ...testAgent,

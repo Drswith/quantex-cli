@@ -40,7 +40,7 @@ export interface SingleAgentUpdateStatus {
   updateAvailable: boolean
 }
 
-const groupedInstallerOrder: ManagedInstallType[] = ['bun', 'npm', 'brew', 'cargo', 'winget']
+const groupedInstallerOrder: ManagedInstallType[] = ['bun', 'npm', 'brew', 'cargo', 'pip', 'winget']
 
 export async function getSingleAgentUpdateStatus(agent: AgentDefinition): Promise<SingleAgentUpdateStatus> {
   const inspection = await inspectionService.inspectAgent(agent)
