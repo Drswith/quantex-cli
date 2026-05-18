@@ -150,6 +150,13 @@ Agent update behavior SHALL be inspectable through user-facing diagnostic comman
 - AND includes `subject`, `suggestedAction`, and `suggestedCommands`
 - AND allows an automation layer to distinguish between inspection, self-update, and manual-follow-up paths
 
+#### Scenario: Doctor schema documents every managed installer availability flag
+
+- GIVEN the user runs `quantex schema doctor` in JSON mode
+- WHEN Quantex returns the doctor command `dataSchema`
+- THEN the `installers` object lists every managed installer key that `quantex doctor --json` may emit, including `cargo`
+- AND strict schema validation of real doctor JSON output does not fail solely because an installer flag is missing from the published schema
+
 #### Scenario: Resolve exposes machine-actionable install guidance
 
 - GIVEN the user runs `quantex resolve <agent> --json`
