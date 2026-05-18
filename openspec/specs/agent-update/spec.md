@@ -166,7 +166,7 @@ Agent update behavior SHALL be inspectable through user-facing diagnostic comman
 
 - GIVEN the user runs `quantex schema doctor` in JSON mode
 - WHEN Quantex returns the doctor command `dataSchema`
-- THEN the `installers` object lists every managed installer key that `quantex doctor --json` may emit, including `cargo`
+- THEN the `installers` object lists every managed installer key that `quantex doctor --json` may emit, including `cargo` and `pip`
 - AND strict schema validation of real doctor JSON output does not fail solely because an installer flag is missing from the published schema
 
 #### Scenario: Resolve exposes machine-actionable install guidance
