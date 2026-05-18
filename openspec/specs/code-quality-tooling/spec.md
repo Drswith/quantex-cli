@@ -110,6 +110,13 @@ The repository SHALL enforce a versioned `commit-msg` hook through `simple-git-h
 - **THEN** the hook leaves that trailer untouched
 - **AND** the existing CI and PR governance checks remain responsible for rejecting prohibited non-Cursor co-author metadata before merge
 
+#### Scenario: Commit message body contains a Cursor-shaped line that is not part of the trailing trailer block
+
+- **GIVEN** a local commit message whose body includes a standalone line that matches Cursor's known attribution trailer text, and that line is followed by additional non-trailer body text before the message ends
+- **WHEN** the repository `commit-msg` hook runs
+- **THEN** the hook leaves that body line untouched
+- **AND** only Cursor attribution lines in the contiguous trailing trailer suffix are removed
+
 ### Requirement: CI lint and format gate
 
 CI workflows that gate merges to `main` or `beta` (such as `ci.yml`, `release.yml`, and `release-verify.yml`) SHALL run both `bun run lint` and `bun run format:check`. CI MUST fail when either command exits non-zero.
