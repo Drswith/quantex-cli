@@ -2,6 +2,13 @@
 
 This changelog is maintained by release-please Release PRs.
 
+## [0.18.3](https://github.com/Drswith/quantex-cli/compare/v0.18.2...v0.18.3) (2026-05-18)
+
+
+### Bug Fixes
+
+* **schema:** include pip in doctor installers JSON schema ([0690aaf](https://github.com/Drswith/quantex-cli/commit/0690aaf321a42d65604253bceb144f36c7f5ca6b))
+
 ## [0.18.2](https://github.com/Drswith/quantex-cli/compare/v0.18.1...v0.18.2) (2026-05-18)
 
 
