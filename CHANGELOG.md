@@ -2,6 +2,18 @@
 
 This changelog is maintained by release-please Release PRs.
 
+## [0.18.0](https://github.com/Drswith/quantex-cli/compare/v0.17.1...v0.18.0) (2026-05-18)
+
+
+### Features
+
+* add first-class pip install support ([db5d172](https://github.com/Drswith/quantex-cli/commit/db5d17277457c913f84bb5b5920e22cbd16ab404))
+
+
+### Bug Fixes
+
+* **git:** strip cursor attribution trailers locally ([65211f1](https://github.com/Drswith/quantex-cli/commit/65211f155f9fe64f1789485a764c9094c9473e22))
+
 ## [0.17.1](https://github.com/Drswith/quantex-cli/compare/v0.17.0...v0.17.1) (2026-05-18)
 
 
