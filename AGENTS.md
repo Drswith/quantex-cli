@@ -149,7 +149,7 @@ bun run release:artifacts
 
 ## Cursor Cloud specific instructions
 
-- 运行时为 Bun v1.3.11，通过 `~/.bun/bin` 提供。Cloud VM 启动脚本已配置 `bun install`。
+- 运行时为 Bun（通过 `~/.bun/bin` 提供）。update script 会在 PATH 中找不到 bun 时自动安装，然后运行 `bun install`。非交互式 shell 中 `~/.bashrc` 不会自动 source，因此脚本和命令需显式 `export PATH="$HOME/.bun/bin:$PATH"`。
 - 这是一个纯 CLI 项目，无需启动后台服务、数据库或 Docker。
 - 开发模式运行：`bun run dev` （等价于 `bun run src/cli.ts`），后接 CLI 参数，如 `bun run dev -- list`。
 - 验证命令参考 AGENTS.md 的 Validation 节；核心四件套：`bun run lint`、`bun run format:check`、`bun run typecheck`、`bun run test`。
