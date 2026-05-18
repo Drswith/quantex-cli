@@ -34,4 +34,38 @@ describe('stripCursorAttributionTrailers', () => {
       ['feat: example', '', ''].join('\n'),
     )
   })
+
+  it('does not remove a Cursor-shaped line in the message body before non-trailer content', () => {
+    const message = [
+      'docs: document commit trailers',
+      '',
+      'Example trailer line:',
+      'Co-authored-by: Cursor Agent <cursoragent@cursor.com>',
+      '',
+      'Do not strip the line above; it is documentation, not an injected trailer.',
+    ].join('\n')
+
+    expect(stripCursorAttributionTrailers(message)).toBe(message)
+  })
+
+  it('still removes Cursor trailers when other git trailers follow the body', () => {
+    expect(
+      stripCursorAttributionTrailers(
+        [
+          'fix: example',
+          '',
+          'Explain the change.',
+          '',
+          'Co-authored-by: Cursor Agent <cursoragent@cursor.com>',
+          '',
+          'Signed-off-by: Contributor <contrib@example.com>',
+          '',
+        ].join('\n'),
+      ),
+    ).toBe(
+      ['fix: example', '', 'Explain the change.', '', '', 'Signed-off-by: Contributor <contrib@example.com>', ''].join(
+        '\n',
+      ),
+    )
+  })
 })
