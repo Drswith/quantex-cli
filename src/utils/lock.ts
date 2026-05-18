@@ -91,7 +91,13 @@ function writeLockOwnerSync(lockPath: string): void {
 }
 
 async function removeStaleLock(lockPath: string): Promise<boolean> {
-  const owner = await readLockOwnerDuringAcquisitionGrace(lockPath)
+  let owner: { pid: number } | undefined
+  try {
+    owner = await readLockOwnerDuringAcquisitionGrace(lockPath)
+  } catch {
+    // Unreadable or ambiguous owner metadata — never delete (fail closed vs mutual exclusion loss).
+    return false
+  }
 
   if (owner && isProcessAlive(owner.pid)) return false
 
@@ -117,12 +123,14 @@ async function readLockOwnerDuringAcquisitionGrace(lockPath: string): Promise<{ 
 
 async function readLockOwner(lockPath: string): Promise<{ pid: number } | undefined> {
   try {
-    const owner = JSON.parse(await readFile(join(lockPath, 'owner.json'), 'utf8')) as { pid?: unknown }
+    const raw = await readFile(join(lockPath, 'owner.json'), 'utf8')
+    const owner = JSON.parse(raw) as { pid?: unknown }
     return typeof owner.pid === 'number' && Number.isInteger(owner.pid) && owner.pid > 0
       ? { pid: owner.pid }
       : undefined
-  } catch {
-    return undefined
+  } catch (error) {
+    if (isMissingPathError(error)) return undefined
+    throw error
   }
 }
 
@@ -140,6 +148,12 @@ function isFileExistsError(error: unknown): boolean {
   return (
     typeof error === 'object' && error !== null && 'code' in error && (error as { code?: unknown }).code === 'EEXIST'
   )
+}
+
+function isMissingPathError(error: unknown): boolean {
+  const code =
+    typeof error === 'object' && error !== null && 'code' in error ? (error as { code?: unknown }).code : undefined
+  return code === 'ENOENT' || code === 'ENOTDIR'
 }
 
 export async function withResourceLock<T>(options: ResourceLockOptions, run: () => Promise<T>): Promise<T> {

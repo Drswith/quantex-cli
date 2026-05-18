@@ -1,4 +1,4 @@
-import { existsSync, mkdirSync, rmSync, writeFileSync } from 'node:fs'
+import { chmodSync, existsSync, mkdirSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterAll, afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
@@ -68,6 +68,51 @@ describe('resource locks', () => {
     expect(existsSync(join(lockPath, 'owner.json'))).toBe(true)
 
     await release()
+  })
+
+  it('does not remove the lock directory when owner.json is unreadable', async () => {
+    if (process.platform === 'win32') return
+
+    const lockPath = getResourceLockPath(['unreadable-owner'])
+    mkdirSync(lockPath, { recursive: true })
+    const ownerPath = join(lockPath, 'owner.json')
+    writeFileSync(ownerPath, `${JSON.stringify({ pid: process.pid })}\n`, 'utf8')
+    chmodSync(ownerPath, 0o000)
+
+    try {
+      await expect(
+        acquireResourceLock({
+          resource: 'agent lifecycle',
+          scope: ['unreadable-owner'],
+        }),
+      ).rejects.toMatchObject({
+        name: 'ResourceLockError',
+      })
+      expect(existsSync(lockPath)).toBe(true)
+    } finally {
+      try {
+        chmodSync(ownerPath, 0o644)
+      } catch {
+        // ignore cleanup chmod failures
+      }
+    }
+  })
+
+  it('does not remove the lock directory when owner.json is not valid JSON', async () => {
+    const lockPath = getResourceLockPath(['invalid-json-owner'])
+    mkdirSync(lockPath, { recursive: true })
+    writeFileSync(join(lockPath, 'owner.json'), '{broken\n', 'utf8')
+
+    await expect(
+      acquireResourceLock({
+        resource: 'agent lifecycle',
+        scope: ['invalid-json-owner'],
+      }),
+    ).rejects.toMatchObject({
+      name: 'ResourceLockError',
+    })
+
+    expect(existsSync(lockPath)).toBe(true)
   })
 
   it('does not delete the lock directory when owner.json appears during the acquisition grace window', async () => {
