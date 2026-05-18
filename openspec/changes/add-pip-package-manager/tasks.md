@@ -2,7 +2,7 @@
 
 - [x] 1.1 Add pip to managed install types, package metadata, install-method helpers, and installer capability classification.
 - [x] 1.2 Add pip availability detection and pip installer implementation.
-- [x] 1.3 Wire pip into managed installer lookup, install/update/uninstall execution, and batch update grouping.
+- [x] 1.3 Wire pip into managed installer lookup, install/update/uninstall execution, and batch update grouping (including `planAgentUpdates` grouped installer order so `--all` executes pip buckets).
 - [x] 1.4 Render pip install commands and expose pip availability in `capabilities` and `doctor`.
 
 ## 2. Agent Migration
