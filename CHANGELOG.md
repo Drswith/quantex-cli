@@ -2,6 +2,13 @@
 
 This changelog is maintained by release-please Release PRs.
 
+## [0.18.4](https://github.com/Drswith/quantex-cli/compare/v0.18.3...v0.18.4) (2026-05-19)
+
+
+### Bug Fixes
+
+* **update:** avoid false batch success for package-less agents ([25bdbd6](https://github.com/Drswith/quantex-cli/commit/25bdbd6ba845d84abee81b2e25e0bb15b1398e28))
+
 ## [0.18.3](https://github.com/Drswith/quantex-cli/compare/v0.18.2...v0.18.3) (2026-05-18)
 
 
