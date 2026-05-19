@@ -74,14 +74,15 @@ function buildPlannedAgentUpdates(
   } = {},
 ): PlannedAgentUpdates {
   const plan = updatePlanning.createUpdatePlan(inspections, options)
+  const groupedFallbacks: PendingAgentUpdate[] = []
   const grouped = groupedInstallerOrder
-    .map(type => createManagedUpdateBucket(type, plan.grouped[type]))
+    .map(type => createManagedUpdateBucket(type, plan.grouped[type], groupedFallbacks))
     .filter((bucket): bucket is ManagedUpdateBucket => bucket !== undefined)
 
   return {
     entries: plan.entries.map(entry => toPendingAgentUpdate(entry.inspection)),
     grouped,
-    manual: plan.manual.map(entry => toPendingAgentUpdate(entry.inspection)),
+    manual: [...groupedFallbacks, ...plan.manual.map(entry => toPendingAgentUpdate(entry.inspection))],
     skippedManualCheck: plan.skippedManualCheck,
     untrackedInPath: plan.untrackedInPath,
     upToDate: plan.upToDate,
@@ -91,19 +92,26 @@ function buildPlannedAgentUpdates(
 function createManagedUpdateBucket(
   type: ManagedInstallType,
   entries: Array<{ inspection: AgentInspection }>,
+  fallbackUpdates: PendingAgentUpdate[],
 ): ManagedUpdateBucket | undefined {
   if (entries.length === 0) return undefined
 
   const updates = entries.map(entry => toPendingAgentUpdate(entry.inspection))
+  const packageUpdates = updates.filter(hasManagedPackageSpec)
+  fallbackUpdates.push(...updates.filter(update => !hasManagedPackageSpec(update)))
+  if (packageUpdates.length === 0) return undefined
+
   return {
     type,
-    packages: updates.flatMap(update => {
-      if (!update.package?.packageName) return []
-
-      return [update.package]
-    }),
-    updates,
+    packages: packageUpdates.map(update => update.package),
+    updates: packageUpdates,
   }
+}
+
+function hasManagedPackageSpec(
+  update: PendingAgentUpdate,
+): update is PendingAgentUpdate & { package: ManagedPackageSpec } {
+  return Boolean(update.package?.packageName)
 }
 
 function toPendingAgentUpdate(inspection: AgentInspection): PendingAgentUpdate {
