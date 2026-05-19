@@ -180,6 +180,59 @@ describe('updateCommand', () => {
     expect(output).toContain('Summary: updated 1, manual 1')
   })
 
+  it('does not report package-less entries as updated in mixed managed batches', async () => {
+    const brokenAgent = {
+      ...testAgent,
+      name: 'broken-agent',
+      binaryName: 'broken-bin',
+      displayName: 'Broken Agent',
+      packages: undefined,
+    }
+    allAgentsSpy.mockReturnValue([testAgent, brokenAgent])
+    binaryInPathSpy.mockResolvedValue(true)
+    installedVerSpy.mockResolvedValue('1.0.0')
+    latestVerSpy.mockResolvedValue('2.0.0')
+    installedStateSpy.mockImplementation(async (name: string) => {
+      if (name === 'test-agent') {
+        return {
+          agentName: 'test-agent',
+          installType: 'bun',
+          packageName: 'test-pkg',
+        }
+      }
+
+      if (name === 'broken-agent') {
+        return {
+          agentName: 'broken-agent',
+          installType: 'bun',
+        }
+      }
+
+      return undefined
+    })
+    updateAgentsByTypeSpy.mockResolvedValue(true)
+    updateSpy.mockResolvedValue({ success: false })
+
+    const result = await updateCommand(undefined, true)
+
+    expect(result.ok).toBe(false)
+    expect(updateAgentsByTypeSpy).toHaveBeenCalledWith('bun', [
+      { packageName: 'test-pkg', packageTargetKind: undefined },
+    ])
+    expect(updateSpy).toHaveBeenCalledWith(
+      brokenAgent,
+      expect.objectContaining({
+        agentName: 'broken-agent',
+        installType: 'bun',
+      }),
+    )
+
+    const output = stdoutWriteSpy.mock.calls.map((c: any[]) => c[0]).join('\n')
+    expect(output).toContain('Test Agent updated successfully')
+    expect(output).toContain('Failed to update Broken Agent.')
+    expect(output).toContain('Summary: updated 1, failed 1')
+  })
+
   it('reports tracked Bun agents as up to date when installed package versions match latest', async () => {
     const piAgent = {
       ...testAgent,
