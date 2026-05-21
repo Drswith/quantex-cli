@@ -190,6 +190,12 @@ jobs:
         if: ${{ steps.release.outputs.release_created }}
         run: npm publish --access public --ignore-scripts --tag ${{ steps.release-target.outputs.npm_tag }}
 
+      - name: Upload release artifacts
+        if: ${{ steps.release.outputs.release_created }}
+        env:
+          GH_TOKEN: ${{ steps.release-bot-token.outputs.token }}
+        run: gh release upload ${{ steps.release.outputs.tag_name }} dist/bin/* --clobber
+
       - name: Sync quantex alias package
         if: ${{ steps.release.outputs.release_created }}
         env:
@@ -218,9 +224,3 @@ jobs:
             -H "Accept: application/vnd.github+json" \
             https://api.github.com/repos/Drswith/quantex/dispatches \
             -d "{\"event_type\":\"sync-quantex-cli-release\",\"client_payload\":{\"version\":\"${version}\",\"npm_tag\":\"${npm_tag}\"}}"
-
-      - name: Upload release artifacts
-        if: ${{ steps.release.outputs.release_created }}
-        env:
-          GH_TOKEN: ${{ steps.release-bot-token.outputs.token }}
-        run: gh release upload ${{ steps.release.outputs.tag_name }} dist/bin/* --clobber
