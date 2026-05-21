@@ -2,6 +2,13 @@
 
 This changelog is maintained by release-please Release PRs.
 
+## [0.18.5](https://github.com/Drswith/quantex-cli/compare/v0.18.4...v0.18.5) (2026-05-21)
+
+
+### Bug Fixes
+
+* **update:** preserve recorded install source ([5b2cfbf](https://github.com/Drswith/quantex-cli/commit/5b2cfbfe1bd3a8e965bd5e1c388a8dbed5e5290e))
+
 ## [0.18.4](https://github.com/Drswith/quantex-cli/compare/v0.18.3...v0.18.4) (2026-05-19)
 
 
