@@ -4,8 +4,9 @@ import { canUpdateInstallType, isManagedInstallType } from '../package-manager/c
 import { canAutoUpdateAgent, canUpdateInstalledState } from '../utils/install'
 
 function getManagedInstallerTypeFromContext(context: AgentUpdateContext): ManagedInstallType | undefined {
-  if (context.installedState && isManagedInstallType(context.installedState.installType))
-    return context.installedState.installType
+  if (context.installedState) {
+    return isManagedInstallType(context.installedState.installType) ? context.installedState.installType : undefined
+  }
 
   for (const method of context.methods) {
     if (isManagedInstallType(method.type) && canUpdateInstallType(method.type)) return method.type

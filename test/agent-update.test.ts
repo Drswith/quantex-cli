@@ -29,6 +29,25 @@ describe('agent update providers', () => {
     expect(strategy).toBe('managed')
   })
 
+  it('does not reclassify recorded unmanaged state through candidate managed methods', () => {
+    const provider = resolveAgentUpdateProvider({
+      agent: {
+        packages: {
+          pip: 'test-pkg',
+        },
+      },
+      installedState: {
+        installType: 'script',
+      },
+      methods: [{ command: 'curl https://example.com/install | bash', type: 'script' }, { type: 'pip' }],
+    })
+
+    expect(provider.strategy).toBe('manual-hint')
+    expect(
+      provider.getManagedInstallerType?.({ agent: {}, installedState: undefined, methods: [{ type: 'pip' }] }),
+    ).toBe(undefined)
+  })
+
   it('resolves managed updates from cargo install methods', () => {
     const provider = resolveAgentUpdateProvider({
       agent: {

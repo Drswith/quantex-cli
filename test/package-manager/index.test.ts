@@ -249,6 +249,24 @@ describe('updateAgent', () => {
     expect(npmUpdateSpy).not.toHaveBeenCalled()
   })
 
+  it('does not replace recorded unmanaged state with candidate managed methods', async () => {
+    isBunSpy.mockResolvedValue(true)
+    bunUpdateSpy.mockResolvedValue(true)
+    setInstalledAgentStateSpy.mockResolvedValue()
+
+    expect(
+      await updateAgent(testAgent, {
+        agentName: 'test-agent',
+        command: 'curl https://example.com/install | bash',
+        installType: 'script',
+      }),
+    ).toEqual({ success: false })
+
+    expect(bunUpdateSpy).not.toHaveBeenCalled()
+    expect(npmUpdateSpy).not.toHaveBeenCalled()
+    expect(setInstalledAgentStateSpy).not.toHaveBeenCalled()
+  })
+
   it('passes respect-semver from config to registry installers', async () => {
     loadConfigSpy.mockResolvedValue({
       defaultPackageManager: 'bun',

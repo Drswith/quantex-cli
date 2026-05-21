@@ -142,6 +142,47 @@ describe('updateCommand', () => {
     expect(stdoutWriteSpy).toHaveBeenCalledWith(expect.stringContaining('updated successfully'))
   })
 
+  it('does not update tracked script installs through a candidate pip method', async () => {
+    const scriptAndPipAgent = {
+      ...testAgent,
+      name: 'script-pip-agent',
+      binaryName: 'script-pip-bin',
+      displayName: 'Script Pip Agent',
+      packages: { pip: 'script-pip-pkg' },
+      platforms: {
+        linux: [
+          { command: 'curl https://example.com/install | bash', type: 'script' as const },
+          { packageName: 'script-pip-pkg', type: 'pip' as const },
+        ],
+        macos: [
+          { command: 'curl https://example.com/install | bash', type: 'script' as const },
+          { packageName: 'script-pip-pkg', type: 'pip' as const },
+        ],
+        windows: [{ packageName: 'script-pip-pkg', type: 'pip' as const }],
+      },
+    }
+
+    agentSpy.mockReturnValue(scriptAndPipAgent)
+    binaryInPathSpy.mockResolvedValue(true)
+    installedVerSpy.mockResolvedValue('1.0.0')
+    latestVerSpy.mockResolvedValue(undefined)
+    installedStateSpy.mockResolvedValue({
+      agentName: 'script-pip-agent',
+      command: 'curl https://example.com/install | bash',
+      installType: 'script',
+    })
+    updateAgentsByTypeSpy.mockResolvedValue(true)
+    updateSpy.mockResolvedValue({ success: true })
+
+    await updateCommand('script-pip-agent', false)
+
+    expect(updateAgentsByTypeSpy).not.toHaveBeenCalled()
+    expect(updateSpy).not.toHaveBeenCalled()
+    const output = stdoutWriteSpy.mock.calls.map((c: any[]) => c[0]).join('\n')
+    expect(output).toContain('Script Pip Agent: manual action required.')
+    expect(output).toContain('manually managed install source')
+  })
+
   it('batches known package-manager updates for --all', async () => {
     const agent2 = {
       ...testAgent,
