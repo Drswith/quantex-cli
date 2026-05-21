@@ -13,7 +13,7 @@ import { updateAgent, updateAgentsByType } from '../package-manager'
 import { resolveAgent } from '../services/agents'
 import { planAgentUpdates, planSingleAgentUpdate } from '../services/update'
 import { pc } from '../utils/color'
-import { canAutoUpdateAgent, canUpdateInstallType } from '../utils/install'
+import { canAutoUpdateAgent } from '../utils/install'
 import { isResourceLockError } from '../utils/lock'
 import { isDryRunEnabled, printError, printInfo, printWarn } from '../utils/user-output'
 import { getInstalledVersion } from '../utils/version'
@@ -365,11 +365,7 @@ async function performUpdate(
   const installedVersion = inspection?.installedVersion
   const latestVersion = inspection?.latestVersion
 
-  if (
-    strategy === 'manual-hint' &&
-    !canAutoUpdateAgent(agent, installedState) &&
-    !resolvedMethods.some(method => canUpdateInstallType(method.type))
-  ) {
+  if (strategy === 'manual-hint' && !canAutoUpdateAgent(agent, installedState)) {
     return {
       displayName: agent.displayName,
       installedVersion,

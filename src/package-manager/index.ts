@@ -198,17 +198,6 @@ export async function updateAgent(
 
     if (await executeAgentUpdateCommand(agent)) return { success: true }
 
-    if (preferredState) {
-      for (const method of methods) {
-        if (await executeMethod(agent, method, 'update', npmBunUpdateStrategy)) {
-          return {
-            success: true,
-            installedState: await persistInstalledState(agent, method),
-          }
-        }
-      }
-    }
-
     return { success: false }
   })
 }
