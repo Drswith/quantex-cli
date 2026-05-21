@@ -17,7 +17,7 @@ The agent update system SHALL inspect the current install state of an agent befo
 
 ### Requirement: Single-agent update MUST choose an appropriate strategy
 
-The agent update system SHALL choose the best available update strategy for a single agent based on install source and agent capabilities.
+The agent update system SHALL choose the best available update strategy for a single agent based on the recorded install source and agent capabilities. When recorded install state exists, Quantex MUST NOT override that source by inferring a different managed installer from candidate install methods.
 
 #### Scenario: Updating a managed agent
 
@@ -30,6 +30,15 @@ The agent update system SHALL choose the best available update strategy for a si
 - GIVEN an installed agent is not updateable through a managed path
 - WHEN the user runs `quantex update <agent>`
 - THEN Quantex provides a manual or explanatory hint instead of pretending the agent was upgraded
+
+#### Scenario: Recorded unmanaged install is not reclassified as managed
+
+- GIVEN an agent has recorded install state with install type `script` or `binary`
+- AND the agent definition also declares a managed install method such as `pip`
+- WHEN the user runs `quantex update <agent>`
+- THEN Quantex does not select the managed install method from the definition as the update source
+- AND it uses a self-update command when available or reports a manual/explanatory outcome
+- AND it does not rewrite the recorded install state to the unrelated managed source
 
 #### Scenario: Self-update only reports an upgrade when the installed version changes
 
@@ -68,7 +77,7 @@ The agent catalog MUST store verified self-update commands, version probes, pack
 
 ### Requirement: Batch update MUST plan from recorded install sources
 
-Batch agent updates SHALL prioritize recorded actual install sources over candidate install methods declared for the agent.
+Batch agent updates SHALL prioritize recorded actual install sources over candidate install methods declared for the agent. When recorded install state exists, Quantex MUST NOT group the agent under a different managed installer inferred only from candidate install methods.
 
 #### Scenario: Updating all installed agents
 
@@ -77,6 +86,14 @@ Batch agent updates SHALL prioritize recorded actual install sources over candid
 - THEN Quantex groups update work by install type
 - AND it groups work by the recorded actual install source where available
 - AND it does not rely only on the agent definition's possible install methods
+
+#### Scenario: Tracked unmanaged install is not batched through a candidate managed method
+
+- GIVEN an agent has recorded install state with install type `script` or `binary`
+- AND the agent definition also declares a managed install method such as `pip`
+- WHEN the user runs `quantex update --all`
+- THEN Quantex does not include that agent in a grouped managed update bucket for the candidate method
+- AND the agent receives a self-update or manual/explanatory per-agent outcome instead
 
 ### Requirement: Managed batch updates MUST NOT claim success without installer package work
 
