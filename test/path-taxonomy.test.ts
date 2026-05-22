@@ -78,6 +78,7 @@ describe('path taxonomy', () => {
     expect(isProcessOnlyPath('.github/workflows/ci.yml')).toBe(true)
     expect(isProcessOnlyPath('src/index.ts')).toBe(false)
     expect(isSandboxRelevantPath('.github/workflows/sandbox-tests.yml')).toBe(true)
+    expect(isSandboxRelevantPath('scripts/uv-lifecycle-smoke.ts')).toBe(true)
     expect(isSandboxRelevantPath('.github/workflows/ci.yml')).toBe(false)
   })
 })

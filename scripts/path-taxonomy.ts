@@ -53,6 +53,7 @@ export const sandboxRelevantFiles = new Set([
   'scripts/lifecycle-smoke.ts',
   'scripts/test-container.ts',
   'scripts/test-sandbox.ts',
+  'scripts/uv-lifecycle-smoke.ts',
   'test/agents.test.ts',
   'test/utils/install.test.ts',
 ])

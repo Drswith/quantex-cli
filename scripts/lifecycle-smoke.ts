@@ -29,6 +29,7 @@ const DEFAULT_SMOKE_AGENTS = ['pi', 'qoder']
 const DEFAULT_SMOKE_SCENARIOS = [
   'managed',
   'cargo-managed',
+  'uv-managed',
   'adopt-preinstalled',
   'ambiguous-multi-method',
   'self-binary',
@@ -59,6 +60,7 @@ try {
 
   if (scenarios.includes('cargo-managed')) await smokeCargoManagedLifecycle()
   if (scenarios.includes('cargo-real-agent')) await smokeCargoRealAgentLifecycle()
+  if (scenarios.includes('uv-managed')) await smokeUvManagedLifecycle()
 
   if (scenarios.includes('adopt-preinstalled')) {
     for (const agent of agents) await smokeAdoptPreinstalledAgent(agent)
@@ -131,6 +133,44 @@ async function smokeManagedAgentLifecycle(agent: string): Promise<void> {
   )
 }
 
+async function smokeUvManagedLifecycle(): Promise<void> {
+  const sandboxRoot = await mkdtemp(join(tmpdir(), 'quantex-uv-smoke-'))
+  const fakeBinDir = join(sandboxRoot, 'bin')
+  const fakeUvLog = join(sandboxRoot, 'uv.log')
+
+  try {
+    await installFakeUv(fakeBinDir, fakeUvLog)
+    console.log('\n[uv] managed lifecycle')
+    await runText('uv managed lifecycle', ['bun', 'run', 'scripts/uv-lifecycle-smoke.ts'], {
+      env: {
+        PATH: `${fakeBinDir}:${process.env.PATH ?? ''}`,
+        QTX_FAKE_UV_LOG: fakeUvLog,
+      },
+    })
+
+    const log = await readFile(fakeUvLog, 'utf8')
+    for (const expected of [
+      'uv tool install uv-smoke-agent --python 3.12',
+      'uv tool list',
+      'uv tool upgrade uv-smoke-agent --python 3.12',
+      'uv tool uninstall uv-smoke-agent',
+    ]) {
+      if (!log.includes(expected)) throw new Error(`uv smoke log did not include: ${expected}\n${log}`)
+    }
+    if (log.match(/uv tool install uv-smoke-agent/g)?.length !== 1) {
+      throw new Error(`uv smoke should run uv tool install exactly once.\n${log}`)
+    }
+    if (log.match(/uv tool upgrade uv-smoke-agent/g)?.length !== 1) {
+      throw new Error(`uv smoke should run uv tool upgrade exactly once.\n${log}`)
+    }
+    if (log.match(/uv tool uninstall uv-smoke-agent/g)?.length !== 1) {
+      throw new Error(`uv smoke should run uv tool uninstall exactly once.\n${log}`)
+    }
+  } finally {
+    await rm(sandboxRoot, { force: true, recursive: true })
+  }
+}
+
 async function smokeCargoManagedLifecycle(): Promise<void> {
   const sandboxRoot = await mkdtemp(join(tmpdir(), 'quantex-cargo-smoke-'))
   const fakeBinDir = join(sandboxRoot, 'bin')
@@ -177,6 +217,37 @@ async function smokeCargoRealAgentLifecycle(): Promise<void> {
       QTX_CARGO_SMOKE_AGENT: agent,
     },
   })
+}
+
+async function installFakeUv(fakeBinDir: string, logPath: string): Promise<void> {
+  await mkdir(fakeBinDir, { recursive: true })
+  const fakeUvPath = join(fakeBinDir, 'uv')
+  await writeFile(
+    fakeUvPath,
+    [
+      '#!/usr/bin/env sh',
+      'set -eu',
+      'if [ "${1:-}" = "--version" ]; then',
+      '  echo "uv 0.9.0"',
+      '  exit 0',
+      'fi',
+      'if [ "${1:-}" = "tool" ]; then',
+      `  printf 'uv %s\\n' "$*" >> '${logPath}'`,
+      '  case "${2:-}" in',
+      '    install|upgrade|uninstall) exit 0 ;;',
+      '    list)',
+      '      printf "uv-smoke-agent v1.2.3\\n- uv-smoke-agent\\n"',
+      '      exit 0',
+      '      ;;',
+      '  esac',
+      'fi',
+      'echo "unexpected fake uv command: $*" >&2',
+      'exit 1',
+      '',
+    ].join('\n'),
+    'utf8',
+  )
+  await chmod(fakeUvPath, 0o755)
 }
 
 async function smokeAdoptPreinstalledAgent(agent: string): Promise<void> {
