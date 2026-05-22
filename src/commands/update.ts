@@ -331,9 +331,11 @@ async function updateGroupedAgents(
       }))
     }
 
-    return await Promise.all(
-      updates.map(({ agent, inspection, state }) => performUpdate(agent, state, inspection.methods, inspection)),
-    )
+    const fallbackResults: UpdateResultItem[] = []
+    for (const { agent, inspection, state } of updates) {
+      fallbackResults.push(await performUpdate(agent, state, inspection.methods, inspection))
+    }
+    return fallbackResults
   } catch (error) {
     if (!isResourceLockError(error)) throw error
 

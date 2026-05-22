@@ -221,6 +221,65 @@ describe('updateCommand', () => {
     expect(output).toContain('Summary: updated 1, manual 1')
   })
 
+  it('falls back from failed grouped updates without concurrent lifecycle lock contention', async () => {
+    const agent2 = {
+      ...testAgent,
+      name: 'agent2',
+      binaryName: 'bin2',
+      packages: { npm: 'pkg2' },
+      displayName: 'Agent 2',
+    }
+    allAgentsSpy.mockReturnValue([testAgent, agent2])
+    binaryInPathSpy.mockResolvedValue(true)
+    installedVerSpy.mockResolvedValue('1.0.0')
+    latestVerSpy.mockResolvedValue('2.0.0')
+    installedStateSpy.mockImplementation(async (name: string) => {
+      if (name === 'test-agent') {
+        return {
+          agentName: 'test-agent',
+          installType: 'bun',
+          packageName: 'test-pkg',
+        }
+      }
+
+      if (name === 'agent2') {
+        return {
+          agentName: 'agent2',
+          installType: 'bun',
+          packageName: 'pkg2',
+        }
+      }
+
+      return undefined
+    })
+    updateAgentsByTypeSpy.mockResolvedValue(false)
+    let activeUpdates = 0
+    let maxActiveUpdates = 0
+    updateSpy.mockImplementation(async () => {
+      activeUpdates += 1
+      maxActiveUpdates = Math.max(maxActiveUpdates, activeUpdates)
+      await Promise.resolve()
+      activeUpdates -= 1
+      return { success: true }
+    })
+
+    const result = await updateCommand(undefined, true)
+
+    expect(result.ok).toBe(true)
+    expect(updateAgentsByTypeSpy).toHaveBeenCalledWith('bun', [
+      { packageName: 'test-pkg', packageTargetKind: undefined },
+      { packageName: 'pkg2', packageTargetKind: undefined },
+    ])
+    expect(updateSpy).toHaveBeenCalledTimes(2)
+    expect(maxActiveUpdates).toBe(1)
+
+    const output = stdoutWriteSpy.mock.calls.map((c: any[]) => c[0]).join('\n')
+    expect(output).toContain('Test Agent updated successfully')
+    expect(output).toContain('Agent 2 updated successfully')
+    expect(output).toContain('Summary: updated 2')
+    expect(output).not.toContain('locked')
+  })
+
   it('does not report package-less entries as updated in mixed managed batches', async () => {
     const brokenAgent = {
       ...testAgent,
