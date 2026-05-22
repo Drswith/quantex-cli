@@ -114,6 +114,28 @@ const baseNdjsonEventSchema: JsonSchema = {
   type: 'object',
 }
 
+const installerAvailabilitySchema: JsonSchema = {
+  additionalProperties: false,
+  properties: {
+    available: { type: 'boolean' },
+    reason: { type: 'string' },
+  },
+  required: ['available'],
+  type: 'object',
+}
+
+const managedInstallerAvailabilityProperties: Record<string, JsonSchema> = {
+  brew: installerAvailabilitySchema,
+  bun: installerAvailabilitySchema,
+  cargo: installerAvailabilitySchema,
+  npm: installerAvailabilitySchema,
+  pip: installerAvailabilitySchema,
+  uv: installerAvailabilitySchema,
+  winget: installerAvailabilitySchema,
+}
+
+const managedInstallerKeys = ['brew', 'bun', 'cargo', 'npm', 'pip', 'uv', 'winget']
+
 const schemaCatalog: SchemaDocument[] = [
   {
     dataSchema: {
@@ -157,7 +179,12 @@ const schemaCatalog: SchemaDocument[] = [
           ],
           type: 'object',
         },
-        installers: { type: 'object' },
+        installers: {
+          additionalProperties: false,
+          properties: managedInstallerAvailabilityProperties,
+          required: managedInstallerKeys,
+          type: 'object',
+        },
         outputModes: { items: { type: 'string' }, type: 'array' },
         platform: {
           additionalProperties: false,
@@ -233,9 +260,10 @@ const schemaCatalog: SchemaDocument[] = [
             cargo: { type: 'boolean' },
             npm: { type: 'boolean' },
             pip: { type: 'boolean' },
+            uv: { type: 'boolean' },
             winget: { type: 'boolean' },
           },
-          required: ['brew', 'bun', 'cargo', 'npm', 'pip', 'winget'],
+          required: managedInstallerKeys,
           type: 'object',
         },
         issues: {

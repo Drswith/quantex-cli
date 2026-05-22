@@ -68,8 +68,26 @@ describe('schemaCommand', () => {
     expect(payload.data.commands[0].dataSchema.properties.issues.items.properties.suggestedCommands).toBeDefined()
     expect(payload.data.commands[0].dataSchema.properties.installers.properties.cargo).toEqual({ type: 'boolean' })
     expect(payload.data.commands[0].dataSchema.properties.installers.properties.pip).toEqual({ type: 'boolean' })
+    expect(payload.data.commands[0].dataSchema.properties.installers.properties.uv).toEqual({ type: 'boolean' })
     expect(payload.data.commands[0].dataSchema.properties.installers.required).toContain('cargo')
     expect(payload.data.commands[0].dataSchema.properties.installers.required).toContain('pip')
+    expect(payload.data.commands[0].dataSchema.properties.installers.required).toContain('uv')
+  })
+
+  it('returns the capabilities schema with managed installer availability in json mode', async () => {
+    setCliContext({
+      interactive: false,
+      outputMode: 'json',
+      runId: 'schema-capabilities-run-id',
+    })
+
+    await schemaCommand('capabilities')
+
+    const payload = JSON.parse(logSpy.mock.calls[0][0])
+    const installers = payload.data.commands[0].dataSchema.properties.installers
+    expect(installers.properties.uv.properties.available).toEqual({ type: 'boolean' })
+    expect(installers.properties.uv.properties.reason).toEqual({ type: 'string' })
+    expect(installers.required).toContain('uv')
   })
 
   it('returns the exec schema in json mode', async () => {

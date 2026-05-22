@@ -6,6 +6,7 @@ import {
   isCargoAvailable,
   isNpmAvailable,
   isPipAvailable,
+  isUvAvailable,
   isWingetAvailable,
 } from '../utils/detect'
 import * as brewPm from './brew'
@@ -13,6 +14,7 @@ import * as bunPm from './bun'
 import * as cargoPm from './cargo'
 import * as npmPm from './npm'
 import * as pipPm from './pip'
+import * as uvPm from './uv'
 import * as wingetPm from './winget'
 
 export interface ManagedPackageSpec {
@@ -104,6 +106,22 @@ const managedInstallers: Record<ManagedInstallType, ManagedInstaller> = {
     uninstall: async packageName => pipPm.uninstall(packageName),
     update: async packageName => pipPm.update(packageName),
     updateMany: async packages => pipPm.updateMany(packages.map(pkg => ({ packageName: pkg.packageName }))),
+  },
+  uv: {
+    type: 'uv',
+    getInstalledVersion: async packageName => uvPm.getInstalledVersion(packageName),
+    isAvailable: async () => isUvAvailable(),
+    install: async (packageName, _packageTargetKind, packageInstallArgs) =>
+      uvPm.install(packageName, packageInstallArgs),
+    uninstall: async packageName => uvPm.uninstall(packageName),
+    update: async (packageName, _packageTargetKind, options) => uvPm.update(packageName, options?.packageInstallArgs),
+    updateMany: async packages =>
+      uvPm.updateMany(
+        packages.map(pkg => ({
+          packageInstallArgs: pkg.packageInstallArgs,
+          packageName: pkg.packageName,
+        })),
+      ),
   },
   winget: {
     type: 'winget',

@@ -48,6 +48,10 @@ export async function isPipAvailable(): Promise<boolean> {
   return isPythonModulePipAvailable()
 }
 
+export async function isUvAvailable(): Promise<boolean> {
+  return isCommandAvailable('uv')
+}
+
 async function isPythonModulePipAvailable(): Promise<boolean> {
   try {
     const { exitCode } = await readProcessOutput(spawnCommand(['python', '-m', 'pip', '--version']))

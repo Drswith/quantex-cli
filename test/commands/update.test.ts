@@ -142,6 +142,43 @@ describe('updateCommand', () => {
     expect(stdoutWriteSpy).toHaveBeenCalledWith(expect.stringContaining('updated successfully'))
   })
 
+  it('updates uv-managed agents via updateAgentsByType with package args when versions differ', async () => {
+    const uvAgent = {
+      ...testAgent,
+      name: 'uv-agent',
+      binaryName: 'uv-bin',
+      displayName: 'Uv Agent',
+      packages: { uv: 'uv-pkg' },
+      platforms: {
+        linux: [{ packageInstallArgs: ['--python', '3.12'], type: 'uv' as const }],
+        macos: [{ packageInstallArgs: ['--python', '3.12'], type: 'uv' as const }],
+        windows: [{ packageInstallArgs: ['--python', '3.12'], type: 'uv' as const }],
+      },
+    }
+
+    agentSpy.mockReturnValue(uvAgent)
+    binaryInPathSpy.mockResolvedValue(true)
+    installedVerSpy.mockResolvedValue('1.0.0')
+    latestVerSpy.mockResolvedValue('2.0.0')
+    installedStateSpy.mockResolvedValue({
+      agentName: 'uv-agent',
+      installType: 'uv',
+      packageInstallArgs: ['--python', '3.12'],
+      packageName: 'uv-pkg',
+    })
+    updateAgentsByTypeSpy.mockResolvedValue(true)
+    updateSpy.mockResolvedValue({ success: true })
+    await updateCommand('uv-agent', false)
+    expect(updateAgentsByTypeSpy).toHaveBeenCalledWith('uv', [
+      { packageInstallArgs: ['--python', '3.12'], packageName: 'uv-pkg', packageTargetKind: undefined },
+    ])
+    expect(updateSpy).not.toHaveBeenCalled()
+    expect(stdoutWriteSpy).toHaveBeenCalledWith(
+      expect.stringContaining('Updating Uv Agent via managed/uv... (1.0.0 -> latest)'),
+    )
+    expect(stdoutWriteSpy).toHaveBeenCalledWith(expect.stringContaining('updated successfully'))
+  })
+
   it('does not update tracked script installs through a candidate pip method', async () => {
     const scriptAndPipAgent = {
       ...testAgent,

@@ -73,6 +73,23 @@ describe('isNpmAvailable', () => {
   })
 })
 
+describe('isUvAvailable', () => {
+  it('returns true when spawn succeeds', async () => {
+    const { isUvAvailable } = await import('../../src/utils/detect')
+    mockSpawn.mockReturnValue(createMockProcess(0))
+    expect(await isUvAvailable()).toBe(true)
+    expect(mockSpawn).toHaveBeenCalledWith(['uv', '--version'], expect.any(Object))
+  })
+
+  it('returns false when spawn throws', async () => {
+    const { isUvAvailable } = await import('../../src/utils/detect')
+    mockSpawn.mockImplementation(() => {
+      throw new Error('not found')
+    })
+    expect(await isUvAvailable()).toBe(false)
+  })
+})
+
 describe('isBinaryInPath', () => {
   it('uses which on unix platforms', async () => {
     const { isBinaryInPath } = await import('../../src/utils/detect')

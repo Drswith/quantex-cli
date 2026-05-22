@@ -17,6 +17,7 @@ import { gemini } from '../src/agents/definitions/gemini'
 import { jcode } from '../src/agents/definitions/jcode'
 import { junie } from '../src/agents/definitions/junie'
 import { kilo } from '../src/agents/definitions/kilo'
+import { kimi } from '../src/agents/definitions/kimi'
 import { opencode } from '../src/agents/definitions/opencode'
 import { openhands } from '../src/agents/definitions/openhands'
 import { pi } from '../src/agents/definitions/pi'
@@ -71,7 +72,7 @@ function validateAgent(agent: AgentDefinition): void {
     expect(['windows', 'macos', 'linux']).toContain(platform)
     expect(methods!.length).toBeGreaterThan(0)
     for (const method of methods!) {
-      expect(['bun', 'npm', 'brew', 'cargo', 'pip', 'winget', 'script', 'binary']).toContain(method.type)
+      expect(['bun', 'npm', 'brew', 'cargo', 'pip', 'uv', 'winget', 'script', 'binary']).toContain(method.type)
       if (method.type === 'script' || method.type === 'binary') {
         expect(typeof method.command).toBe('string')
         expect(method.command.length).toBeGreaterThan(0)
@@ -570,6 +571,7 @@ describe('openhands', () => {
     expect(openhands.lookupAliases).toBeUndefined()
     expect(openhands.displayName).toBe('OpenHands CLI')
     expect(openhands.binaryName).toBe('openhands')
+    expect(openhands.packages?.uv).toBe('openhands')
     expect(openhands.homepage).toBe('https://docs.openhands.dev/openhands/usage/cli/installation')
     expect(openhands.selfUpdate?.command).toEqual(['uv', 'tool', 'upgrade', 'openhands', '--python', '3.12'])
     expect(openhands.versionProbe?.command).toEqual(['openhands', '--version'])
@@ -578,7 +580,9 @@ describe('openhands', () => {
   it('supports official uv and install-script methods on macOS and Linux only', () => {
     for (const methods of [openhands.platforms.macos, openhands.platforms.linux]) {
       expect(
-        methods!.find(m => m.type === 'binary' && m.command === 'uv tool install openhands --python 3.12'),
+        methods!.find(
+          m => m.type === 'uv' && m.packageName === undefined && m.packageInstallArgs?.join(' ') === '--python 3.12',
+        ),
       ).toBeDefined()
       expect(
         methods!.find(
@@ -588,6 +592,42 @@ describe('openhands', () => {
     }
 
     expect(openhands.platforms.windows).toBeUndefined()
+  })
+})
+
+describe('kimi', () => {
+  it('is registered for lookup by canonical name and aliases', () => {
+    expect(getAgentByNameOrAlias('kimi')).toBe(kimi)
+    expect(getAgentByLookupName('kimi-code')).toBe(kimi)
+    expect(getAgentByLookupName('kimi-cli')).toBe(kimi)
+  })
+
+  it('has valid structure', () => {
+    validateAgent(kimi)
+    expect(kimi.name).toBe('kimi')
+    expect(kimi.lookupAliases).toEqual(['kimi-code', 'kimi-cli'])
+    expect(kimi.displayName).toBe('Kimi Code')
+    expect(kimi.binaryName).toBe('kimi')
+    expect(kimi.packages?.uv).toBe('kimi-cli')
+    expect(kimi.homepage).toBe('https://moonshotai.github.io/kimi-cli/')
+    expect(kimi.selfUpdate?.command).toEqual(['uv', 'tool', 'upgrade', 'kimi-cli', '--no-cache'])
+    expect(kimi.versionProbe?.command).toEqual(['kimi', '--version'])
+  })
+
+  it('exposes managed uv installs on macOS and Linux while preserving script installers', () => {
+    for (const methods of [kimi.platforms.macos!, kimi.platforms.linux!]) {
+      expect(
+        methods.find(
+          m => m.type === 'uv' && m.packageName === undefined && m.packageInstallArgs?.join(' ') === '--python 3.13',
+        ),
+      ).toBeDefined()
+      expect(methods.find(m => m.type === 'script' && m.command.includes('code.kimi.com/install.sh'))).toBeDefined()
+    }
+
+    expect(kimi.platforms.windows!.find(m => m.type === 'uv')).toBeUndefined()
+    expect(
+      kimi.platforms.windows!.find(m => m.type === 'script' && m.command.includes('code.kimi.com/install.ps1')),
+    ).toBeDefined()
   })
 })
 
@@ -734,6 +774,7 @@ describe('vibe', () => {
     expect(vibe.displayName).toBe('Mistral Vibe')
     expect(vibe.binaryName).toBe('vibe')
     expect(vibe.packages?.pip).toBe('mistral-vibe')
+    expect(vibe.packages?.uv).toBe('mistral-vibe')
     expect(vibe.homepage).toBe('https://docs.mistral.ai/mistral-vibe/terminal/install')
     expect(vibe.versionProbe?.command).toEqual(['vibe', '--version'])
     expect(vibe.selfUpdate).toBeUndefined()
@@ -748,7 +789,7 @@ describe('vibe', () => {
     ).toBeDefined()
 
     for (const methods of Object.values(vibe.platforms)) {
-      expect(methods!.find(m => m.type === 'binary' && m.command === 'uv tool install mistral-vibe')).toBeDefined()
+      expect(methods!.find(m => m.type === 'uv' && m.packageName === 'mistral-vibe')).toBeDefined()
       expect(methods!.find(m => m.type === 'pip' && m.packageName === 'mistral-vibe')).toBeDefined()
     }
 

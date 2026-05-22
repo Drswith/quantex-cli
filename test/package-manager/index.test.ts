@@ -14,6 +14,7 @@ import {
   updateAgentsByType,
 } from '../../src/package-manager/index'
 import * as npmPm from '../../src/package-manager/npm'
+import * as uvPm from '../../src/package-manager/uv'
 import * as state from '../../src/state'
 import * as detectUtils from '../../src/utils/detect'
 
@@ -29,12 +30,17 @@ const npmInstallSpy = vi.spyOn(npmPm, 'install')
 const npmUpdateSpy = vi.spyOn(npmPm, 'update')
 const npmUpdateManySpy = vi.spyOn(npmPm, 'updateMany')
 const npmUninstallSpy = vi.spyOn(npmPm, 'uninstall')
+const uvInstallSpy = vi.spyOn(uvPm, 'install')
+const uvUpdateSpy = vi.spyOn(uvPm, 'update')
+const uvUpdateManySpy = vi.spyOn(uvPm, 'updateMany')
+const uvUninstallSpy = vi.spyOn(uvPm, 'uninstall')
 const binarySpy = vi.spyOn(binaryPm, 'runBinaryInstall')
 const loadConfigSpy = vi.spyOn(config, 'loadConfig')
 const getPlatformSpy = vi.spyOn(detectUtils, 'getPlatform')
 const isBunSpy = vi.spyOn(detectUtils, 'isBunAvailable')
 const isCargoSpy = vi.spyOn(detectUtils, 'isCargoAvailable')
 const isNpmSpy = vi.spyOn(detectUtils, 'isNpmAvailable')
+const isUvSpy = vi.spyOn(detectUtils, 'isUvAvailable')
 const getInstalledAgentStateSpy = vi.spyOn(state, 'getInstalledAgentState')
 const setInstalledAgentStateSpy = vi.spyOn(state, 'setInstalledAgentState')
 const removeInstalledAgentStateSpy = vi.spyOn(state, 'removeInstalledAgentState')
@@ -66,12 +72,17 @@ beforeEach(() => {
   npmUpdateSpy.mockClear()
   npmUpdateManySpy.mockClear()
   npmUninstallSpy.mockClear()
+  uvInstallSpy.mockClear()
+  uvUpdateSpy.mockClear()
+  uvUpdateManySpy.mockClear()
+  uvUninstallSpy.mockClear()
   binarySpy.mockClear()
   loadConfigSpy.mockClear()
   getPlatformSpy.mockClear()
   isBunSpy.mockClear()
   isCargoSpy.mockClear()
   isNpmSpy.mockClear()
+  isUvSpy.mockClear()
   getInstalledAgentStateSpy.mockClear()
   setInstalledAgentStateSpy.mockClear()
   removeInstalledAgentStateSpy.mockClear()
@@ -106,12 +117,17 @@ afterAll(() => {
   npmUpdateSpy.mockRestore()
   npmUpdateManySpy.mockRestore()
   npmUninstallSpy.mockRestore()
+  uvInstallSpy.mockRestore()
+  uvUpdateSpy.mockRestore()
+  uvUpdateManySpy.mockRestore()
+  uvUninstallSpy.mockRestore()
   binarySpy.mockRestore()
   loadConfigSpy.mockRestore()
   getPlatformSpy.mockRestore()
   isBunSpy.mockRestore()
   isCargoSpy.mockRestore()
   isNpmSpy.mockRestore()
+  isUvSpy.mockRestore()
   getInstalledAgentStateSpy.mockRestore()
   setInstalledAgentStateSpy.mockRestore()
   removeInstalledAgentStateSpy.mockRestore()
@@ -193,6 +209,32 @@ describe('installAgent', () => {
       },
     })
     expect(cargoInstallSpy).toHaveBeenCalledWith('test-crate', undefined)
+    expect(npmInstallSpy).not.toHaveBeenCalled()
+  })
+
+  it('installs uv-managed agents from uv package metadata and install args', async () => {
+    const uvAgent = {
+      ...testAgent,
+      packages: { uv: 'test-tool' },
+      platforms: {
+        linux: [{ packageInstallArgs: ['--python', '3.12'], type: 'uv' as const }],
+      },
+    }
+
+    isUvSpy.mockResolvedValue(true)
+    uvInstallSpy.mockResolvedValue(true)
+    setInstalledAgentStateSpy.mockResolvedValue()
+
+    expect(await installAgent(uvAgent)).toEqual({
+      success: true,
+      installedState: {
+        agentName: 'test-agent',
+        installType: 'uv',
+        packageInstallArgs: ['--python', '3.12'],
+        packageName: 'test-tool',
+      },
+    })
+    expect(uvInstallSpy).toHaveBeenCalledWith('test-tool', ['--python', '3.12'])
     expect(npmInstallSpy).not.toHaveBeenCalled()
   })
 })
@@ -391,6 +433,33 @@ describe('updateAgent', () => {
     expect(cargoUpdateSpy).toHaveBeenCalledWith('test-crate', ['--locked'])
     expect(bunUpdateSpy).not.toHaveBeenCalled()
   })
+
+  it('updates uv-managed agents from recorded state', async () => {
+    isUvSpy.mockResolvedValue(true)
+    uvUpdateSpy.mockResolvedValue(true)
+    setInstalledAgentStateSpy.mockResolvedValue()
+
+    expect(
+      await updateAgent(
+        {
+          ...testAgent,
+          packages: { uv: 'test-tool' },
+          platforms: {
+            linux: [{ packageInstallArgs: ['--python', '3.12'], type: 'uv' as const }],
+          },
+        },
+        {
+          agentName: 'test-agent',
+          installType: 'uv',
+          packageInstallArgs: ['--python', '3.12'],
+          packageName: 'test-tool',
+        },
+      ),
+    ).toMatchObject({ success: true })
+
+    expect(uvUpdateSpy).toHaveBeenCalledWith('test-tool', ['--python', '3.12'])
+    expect(bunUpdateSpy).not.toHaveBeenCalled()
+  })
 })
 
 describe('updateAgentsByType', () => {
@@ -422,6 +491,23 @@ describe('updateAgentsByType', () => {
     expect(cargoUpdateManySpy).toHaveBeenCalledWith([
       { packageInstallArgs: ['--locked'], packageName: 'test-crate' },
       { packageName: 'other-crate' },
+    ])
+  })
+
+  it('batches uv updates', async () => {
+    isUvSpy.mockResolvedValue(true)
+    uvUpdateManySpy.mockResolvedValue(true)
+
+    expect(
+      await updateAgentsByType('uv', [
+        { packageInstallArgs: ['--python', '3.12'], packageName: 'test-tool' },
+        { packageInstallArgs: ['--python', '3.12'], packageName: 'test-tool' },
+        { packageName: 'other-tool' },
+      ]),
+    ).toBe(true)
+    expect(uvUpdateManySpy).toHaveBeenCalledWith([
+      { packageInstallArgs: ['--python', '3.12'], packageName: 'test-tool' },
+      { packageName: 'other-tool' },
     ])
   })
 
@@ -464,6 +550,21 @@ describe('uninstallAgent', () => {
 
     expect(await uninstallAgent(testAgent)).toBe(true)
     expect(cargoUninstallSpy).toHaveBeenCalledWith('test-crate')
+    expect(bunUninstallSpy).not.toHaveBeenCalled()
+    expect(removeInstalledAgentStateSpy).toHaveBeenCalledWith('test-agent')
+  })
+
+  it('uninstalls uv-managed agents through uv', async () => {
+    getInstalledAgentStateSpy.mockResolvedValue({
+      agentName: 'test-agent',
+      installType: 'uv',
+      packageName: 'test-tool',
+    })
+    isUvSpy.mockResolvedValue(true)
+    uvUninstallSpy.mockResolvedValue(true)
+
+    expect(await uninstallAgent(testAgent)).toBe(true)
+    expect(uvUninstallSpy).toHaveBeenCalledWith('test-tool')
     expect(bunUninstallSpy).not.toHaveBeenCalled()
     expect(removeInstalledAgentStateSpy).toHaveBeenCalledWith('test-agent')
   })

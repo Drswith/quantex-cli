@@ -37,6 +37,14 @@ export function pipInstall(packageName?: string): ManagedInstallMethod {
   }
 }
 
+export function uvToolInstall(packageName?: string, packageInstallArgs?: string[]): ManagedInstallMethod {
+  return {
+    packageInstallArgs,
+    packageName,
+    type: 'uv',
+  }
+}
+
 export function wingetInstall(packageName: string): ManagedInstallMethod {
   return {
     packageName,

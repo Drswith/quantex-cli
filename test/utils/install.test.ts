@@ -45,4 +45,31 @@ describe('formatInstallMethodCommand', () => {
       ),
     ).toBe('')
   })
+
+  it('renders uv tool install guidance from uv package metadata and args', () => {
+    expect(
+      formatInstallMethodCommand(
+        {
+          packages: {
+            pip: 'test-pip-package',
+            uv: 'test-tool',
+          },
+        },
+        { packageInstallArgs: ['--python', '3.12'], type: 'uv' },
+      ),
+    ).toBe('uv tool install test-tool --python 3.12')
+  })
+
+  it('does not use pip metadata as a uv package fallback', () => {
+    expect(
+      formatInstallMethodCommand(
+        {
+          packages: {
+            pip: 'test-pip-package',
+          },
+        },
+        { type: 'uv' },
+      ),
+    ).toBe('')
+  })
 })
