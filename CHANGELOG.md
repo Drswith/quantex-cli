@@ -2,6 +2,14 @@
 
 This changelog is maintained by release-please Release PRs.
 
+## [0.19.0](https://github.com/Drswith/quantex-cli/compare/v0.18.6...v0.19.0) (2026-05-22)
+
+
+### Features
+
+* add uv managed installer support ([f8e4a15](https://github.com/Drswith/quantex-cli/commit/f8e4a157e2ebf91fae78feb3a0174811b5fec981)), closes [#239](https://github.com/Drswith/quantex-cli/issues/239)
+* **agent-catalog:** add schema-backed catalog data ([#268](https://github.com/Drswith/quantex-cli/issues/268)) ([c528759](https://github.com/Drswith/quantex-cli/commit/c528759bc324abeb2f124daddf3df001549fe4ce))
+
 ## [0.18.6](https://github.com/Drswith/quantex-cli/compare/v0.18.5...v0.18.6) (2026-05-22)
 
 
