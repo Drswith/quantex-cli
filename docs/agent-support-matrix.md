@@ -4,7 +4,7 @@ This page defines the review format for Quantex agent-support coverage. It is a 
 
 ## Source Of Truth
 
-- `supported` entries must match implemented definitions in `src/agents/definitions/*.ts`.
+- `supported` entries must match validated catalog data in `src/agents/catalog-data.json`; `src/agents/definitions/*.ts` are compatibility exports.
 - `in-progress` entries should point to an active OpenSpec change when one exists.
 - `candidate` and `excluded` entries are evaluation states only; they do not create product guarantees.
 
@@ -35,7 +35,7 @@ Exception rule:
 
 | Status | Meaning |
 |---|---|
-| `supported` | Implemented in `src/agents/definitions/*.ts` and exposed by the Quantex catalog. |
+| `supported` | Implemented in `src/agents/catalog-data.json`, validated by the catalog schema, and exposed by the Quantex catalog. |
 | `in-progress` | Active implementation or spec work is underway in the repository. |
 | `candidate` | Worth evaluating for support, but not yet accepted into implementation. |
 | `excluded` | Intentionally outside the Quantex mainline support scope. |
@@ -54,4 +54,4 @@ Exception rule:
 
 - Prefer updating this page together with any catalog naming or support-status decisions.
 - Do not copy long installer details here; keep the matrix focused on identity and support state.
-- If support-matrix maintenance becomes noisy, follow up with automation that derives supported rows from `src/agents/definitions/*.ts`.
+- If support-matrix maintenance becomes noisy, follow up with automation that derives supported rows from `src/agents/catalog-data.json`.

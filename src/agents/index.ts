@@ -1,63 +1,7 @@
 import type { AgentDefinition } from './types'
-import { amp } from './definitions/amp'
-import { auggie } from './definitions/auggie'
-import { autohand } from './definitions/autohand'
-import { claude } from './definitions/claude'
-import { codebuddy } from './definitions/codebuddy'
-import { codex } from './definitions/codex'
-import { copilot } from './definitions/copilot'
-import { crush } from './definitions/crush'
-import { cursor } from './definitions/cursor'
-import { deepseek } from './definitions/deepseek'
-import { devin } from './definitions/devin'
-import { droid } from './definitions/droid'
-import { forgecode } from './definitions/forgecode'
-import { gemini } from './definitions/gemini'
-import { goose } from './definitions/goose'
-import { jcode } from './definitions/jcode'
-import { junie } from './definitions/junie'
-import { kilo } from './definitions/kilo'
-import { kimi } from './definitions/kimi'
-import { kiro } from './definitions/kiro'
-import { opencode } from './definitions/opencode'
-import { openhands } from './definitions/openhands'
-import { pi } from './definitions/pi'
-import { qoder } from './definitions/qoder'
-import { qwen } from './definitions/qwen'
-import { reasonix } from './definitions/reasonix'
-import { vibe } from './definitions/vibe'
-import { vtcode } from './definitions/vtcode'
+import { getCatalogAgents } from './catalog'
 
-const agents: AgentDefinition[] = [
-  auggie,
-  autohand,
-  amp,
-  claude,
-  codebuddy,
-  codex,
-  copilot,
-  crush,
-  cursor,
-  deepseek,
-  devin,
-  droid,
-  forgecode,
-  gemini,
-  goose,
-  jcode,
-  junie,
-  kilo,
-  kimi,
-  kiro,
-  openhands,
-  opencode,
-  pi,
-  qoder,
-  qwen,
-  reasonix,
-  vibe,
-  vtcode,
-]
+const agents = getCatalogAgents()
 
 export function getAllAgents(): AgentDefinition[] {
   return agents
@@ -100,7 +44,10 @@ export {
   reasonix,
   vibe,
   vtcode,
-}
+} from './definitions'
+export { agentCatalogJsonSchema, getCatalogAgent, getCatalogAgents } from './catalog'
+export { agentCatalogEntrySchema, agentCatalogSchema } from './schema'
+export type { AgentCatalogData, AgentCatalogEntry } from './schema'
 export type {
   AgentDefinition,
   AgentPackageMetadata,

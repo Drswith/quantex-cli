@@ -1,6 +1,8 @@
 import type { AgentDefinition } from '../src/agents/types'
 import { describe, expect, it } from 'vitest'
 import { getAgentByLookupName, getAgentByNameOrAlias, getAllAgents } from '../src/agents'
+import catalogData from '../src/agents/catalog-data.json'
+import catalogSchemaFile from '../src/agents/catalog.schema.json'
 import { auggie } from '../src/agents/definitions/auggie'
 import { autohand } from '../src/agents/definitions/autohand'
 import { claude } from '../src/agents/definitions/claude'
@@ -23,6 +25,7 @@ import { qwen } from '../src/agents/definitions/qwen'
 import { reasonix } from '../src/agents/definitions/reasonix'
 import { vibe } from '../src/agents/definitions/vibe'
 import { vtcode } from '../src/agents/definitions/vtcode'
+import { agentCatalogJsonSchema, agentCatalogSchema } from '../src/agents/schema'
 import { formatInstallMethodCommand } from '../src/utils/install'
 
 describe('agent registry', () => {
@@ -76,6 +79,31 @@ function validateAgent(agent: AgentDefinition): void {
     }
   }
 }
+
+describe('agent catalog data schema', () => {
+  it('validates the checked-in catalog data', () => {
+    const parsed = agentCatalogSchema.parse(catalogData)
+
+    expect(parsed.map(agent => agent.name)).toEqual(getAllAgents().map(agent => agent.name))
+  })
+
+  it('rejects invalid catalog data before runtime use', () => {
+    const invalidCatalog = [
+      {
+        ...catalogData[0],
+        platforms: {
+          plan9: [{ type: 'npm' }],
+        },
+      },
+    ]
+
+    expect(() => agentCatalogSchema.parse(invalidCatalog)).toThrow()
+  })
+
+  it('keeps the checked-in JSON Schema in sync with the Zod contract', () => {
+    expect(catalogSchemaFile).toEqual(agentCatalogJsonSchema)
+  })
+})
 
 describe('auggie', () => {
   it('is registered for lookup by canonical name', () => {
