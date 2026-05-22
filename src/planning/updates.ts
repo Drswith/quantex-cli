@@ -30,6 +30,7 @@ export function createUpdatePlan(
     brew: [],
     cargo: [],
     pip: [],
+    uv: [],
     winget: [],
   }
   const manual: UpdatePlanEntry[] = []
@@ -92,6 +93,7 @@ export function createUpdatePlan(
       ...grouped.brew,
       ...grouped.cargo,
       ...grouped.pip,
+      ...grouped.uv,
       ...grouped.winget,
       ...manual,
     ],

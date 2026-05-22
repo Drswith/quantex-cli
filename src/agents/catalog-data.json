@@ -831,6 +831,9 @@
     "displayName": "Kimi Code",
     "homepage": "https://moonshotai.github.io/kimi-cli/",
     "binaryName": "kimi",
+    "packages": {
+      "uv": "kimi-cli"
+    },
     "selfUpdate": {
       "command": ["uv", "tool", "upgrade", "kimi-cli", "--no-cache"]
     },
@@ -846,11 +849,19 @@
       ],
       "macos": [
         {
+          "packageInstallArgs": ["--python", "3.13"],
+          "type": "uv"
+        },
+        {
           "command": "curl -LsSf https://code.kimi.com/install.sh | bash",
           "type": "script"
         }
       ],
       "linux": [
+        {
+          "packageInstallArgs": ["--python", "3.13"],
+          "type": "uv"
+        },
         {
           "command": "curl -LsSf https://code.kimi.com/install.sh | bash",
           "type": "script"
@@ -893,6 +904,9 @@
     "displayName": "OpenHands CLI",
     "homepage": "https://docs.openhands.dev/openhands/usage/cli/installation",
     "binaryName": "openhands",
+    "packages": {
+      "uv": "openhands"
+    },
     "selfUpdate": {
       "command": ["uv", "tool", "upgrade", "openhands", "--python", "3.12"]
     },
@@ -902,8 +916,8 @@
     "platforms": {
       "macos": [
         {
-          "command": "uv tool install openhands --python 3.12",
-          "type": "binary"
+          "packageInstallArgs": ["--python", "3.12"],
+          "type": "uv"
         },
         {
           "command": "curl -fsSL https://install.openhands.dev/install.sh | sh",
@@ -912,8 +926,8 @@
       ],
       "linux": [
         {
-          "command": "uv tool install openhands --python 3.12",
-          "type": "binary"
+          "packageInstallArgs": ["--python", "3.12"],
+          "type": "uv"
         },
         {
           "command": "curl -fsSL https://install.openhands.dev/install.sh | sh",
@@ -1166,7 +1180,8 @@
     "homepage": "https://docs.mistral.ai/mistral-vibe/terminal/install",
     "binaryName": "vibe",
     "packages": {
-      "pip": "mistral-vibe"
+      "pip": "mistral-vibe",
+      "uv": "mistral-vibe"
     },
     "versionProbe": {
       "command": ["vibe", "--version"]
@@ -1174,8 +1189,8 @@
     "platforms": {
       "windows": [
         {
-          "command": "uv tool install mistral-vibe",
-          "type": "binary"
+          "packageName": "mistral-vibe",
+          "type": "uv"
         },
         {
           "packageName": "mistral-vibe",
@@ -1188,8 +1203,8 @@
           "type": "script"
         },
         {
-          "command": "uv tool install mistral-vibe",
-          "type": "binary"
+          "packageName": "mistral-vibe",
+          "type": "uv"
         },
         {
           "packageName": "mistral-vibe",
@@ -1202,8 +1217,8 @@
           "type": "script"
         },
         {
-          "command": "uv tool install mistral-vibe",
-          "type": "binary"
+          "packageName": "mistral-vibe",
+          "type": "uv"
         },
         {
           "packageName": "mistral-vibe",

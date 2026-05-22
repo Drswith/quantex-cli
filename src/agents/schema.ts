@@ -4,7 +4,7 @@ const nonEmptyStringSchema = z.string().min(1)
 const commandSchema = z.array(nonEmptyStringSchema).min(1)
 
 export const platformSchema = z.enum(['windows', 'macos', 'linux'])
-export const managedInstallTypeSchema = z.enum(['bun', 'npm', 'brew', 'cargo', 'pip', 'winget'])
+export const managedInstallTypeSchema = z.enum(['bun', 'npm', 'brew', 'cargo', 'pip', 'uv', 'winget'])
 export const packageTargetKindSchema = z.enum(['package', 'cask', 'id'])
 
 const baseInstallMethodSchema = {
@@ -47,6 +47,7 @@ export const agentPackageMetadataSchema = z
     cargo: nonEmptyStringSchema.optional(),
     npm: nonEmptyStringSchema.optional(),
     pip: nonEmptyStringSchema.optional(),
+    uv: nonEmptyStringSchema.optional(),
   })
   .strict()
   .refine(packages => Object.values(packages).some(Boolean), {

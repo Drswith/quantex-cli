@@ -65,6 +65,23 @@ describe('agent update providers', () => {
     ).toBe('cargo')
   })
 
+  it('resolves managed updates from uv install methods', () => {
+    const provider = resolveAgentUpdateProvider({
+      agent: {
+        packages: {
+          uv: 'test-tool',
+        },
+      },
+      installedState: undefined,
+      methods: [{ packageInstallArgs: ['--python', '3.12'], type: 'uv' }],
+    })
+
+    expect(provider.strategy).toBe('managed')
+    expect(
+      provider.getManagedInstallerType?.({ agent: {}, installedState: undefined, methods: [{ type: 'uv' }] }),
+    ).toBe('uv')
+  })
+
   it('resolves self-update when only update commands are available', () => {
     const provider = resolveAgentUpdateProvider({
       agent: {

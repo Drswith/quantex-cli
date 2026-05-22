@@ -51,6 +51,13 @@ const INSTALLER_CAPABILITIES: Record<InstallType, InstallerCapabilities> = {
     canUpdate: true,
     lifecycle: 'managed',
   },
+  uv: {
+    canInstall: true,
+    canLookupLatestVersion: false,
+    canUninstall: true,
+    canUpdate: true,
+    lifecycle: 'managed',
+  },
   script: {
     canInstall: true,
     canLookupLatestVersion: false,
