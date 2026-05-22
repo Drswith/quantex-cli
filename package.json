@@ -51,6 +51,7 @@
     "./package.json": "./package.json"
   },
   "scripts": {
+    "agent-catalog:schema": "bun run scripts/write-agent-catalog-schema.ts",
     "build": "tsdown",
     "build:bin": "bun run scripts/write-build-metadata.ts && bun run scripts/build-bin.ts",
     "dev": "bun run src/cli.ts",
@@ -83,7 +84,8 @@
   "dependencies": {
     "commander": "^14.0.3",
     "picocolors": "^1.1.1",
-    "prompts": "^2.4.2"
+    "prompts": "^2.4.2",
+    "zod": "^4.3.6"
   },
   "devDependencies": {
     "@fission-ai/openspec": "1.3.1",

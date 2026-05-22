@@ -1,20 +1,3 @@
-import type { AgentDefinition } from '../types'
-import { bunInstall, npmInstall } from '../methods'
+import { getCatalogAgent } from '../catalog'
 
-export const kilo: AgentDefinition = {
-  name: 'kilo',
-  displayName: 'Kilo CLI',
-  homepage: 'https://kilo.ai/docs/cli',
-  packages: {
-    npm: '@kilocode/cli',
-  },
-  binaryName: 'kilo',
-  selfUpdate: {
-    command: ['kilo', 'upgrade'],
-  },
-  platforms: {
-    windows: [bunInstall(), npmInstall()],
-    macos: [bunInstall(), npmInstall()],
-    linux: [bunInstall(), npmInstall()],
-  },
-}
+export const kilo = getCatalogAgent('kilo')

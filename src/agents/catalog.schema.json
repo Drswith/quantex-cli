@@ -1,0 +1,400 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "minItems": 1,
+  "type": "array",
+  "items": {
+    "type": "object",
+    "properties": {
+      "binaryName": {
+        "type": "string",
+        "minLength": 1
+      },
+      "displayName": {
+        "type": "string",
+        "minLength": 1
+      },
+      "homepage": {
+        "type": "string",
+        "format": "uri",
+        "pattern": "^https:\\/\\/.*"
+      },
+      "lookupAliases": {
+        "minItems": 1,
+        "type": "array",
+        "items": {
+          "type": "string",
+          "minLength": 1
+        }
+      },
+      "name": {
+        "type": "string",
+        "minLength": 1,
+        "pattern": "^[a-z0-9][a-z0-9-]*$"
+      },
+      "packages": {
+        "type": "object",
+        "properties": {
+          "cargo": {
+            "type": "string",
+            "minLength": 1
+          },
+          "npm": {
+            "type": "string",
+            "minLength": 1
+          },
+          "pip": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "additionalProperties": false
+      },
+      "platforms": {
+        "type": "object",
+        "properties": {
+          "linux": {
+            "minItems": 1,
+            "type": "array",
+            "items": {
+              "oneOf": [
+                {
+                  "type": "object",
+                  "properties": {
+                    "packageInstallArgs": {
+                      "minItems": 1,
+                      "type": "array",
+                      "items": {
+                        "type": "string",
+                        "minLength": 1
+                      }
+                    },
+                    "packageName": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "packageTargetKind": {
+                      "type": "string",
+                      "enum": ["package", "cask", "id"]
+                    },
+                    "type": {
+                      "type": "string",
+                      "enum": ["bun", "npm", "brew", "cargo", "pip", "winget"]
+                    }
+                  },
+                  "required": ["type"],
+                  "additionalProperties": false
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "packageInstallArgs": {
+                      "minItems": 1,
+                      "type": "array",
+                      "items": {
+                        "type": "string",
+                        "minLength": 1
+                      }
+                    },
+                    "packageName": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "packageTargetKind": {
+                      "type": "string",
+                      "enum": ["package", "cask", "id"]
+                    },
+                    "command": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "type": {
+                      "type": "string",
+                      "const": "script"
+                    }
+                  },
+                  "required": ["command", "type"],
+                  "additionalProperties": false
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "packageInstallArgs": {
+                      "minItems": 1,
+                      "type": "array",
+                      "items": {
+                        "type": "string",
+                        "minLength": 1
+                      }
+                    },
+                    "packageName": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "packageTargetKind": {
+                      "type": "string",
+                      "enum": ["package", "cask", "id"]
+                    },
+                    "command": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "type": {
+                      "type": "string",
+                      "const": "binary"
+                    }
+                  },
+                  "required": ["command", "type"],
+                  "additionalProperties": false
+                }
+              ]
+            }
+          },
+          "macos": {
+            "minItems": 1,
+            "type": "array",
+            "items": {
+              "oneOf": [
+                {
+                  "type": "object",
+                  "properties": {
+                    "packageInstallArgs": {
+                      "minItems": 1,
+                      "type": "array",
+                      "items": {
+                        "type": "string",
+                        "minLength": 1
+                      }
+                    },
+                    "packageName": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "packageTargetKind": {
+                      "type": "string",
+                      "enum": ["package", "cask", "id"]
+                    },
+                    "type": {
+                      "type": "string",
+                      "enum": ["bun", "npm", "brew", "cargo", "pip", "winget"]
+                    }
+                  },
+                  "required": ["type"],
+                  "additionalProperties": false
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "packageInstallArgs": {
+                      "minItems": 1,
+                      "type": "array",
+                      "items": {
+                        "type": "string",
+                        "minLength": 1
+                      }
+                    },
+                    "packageName": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "packageTargetKind": {
+                      "type": "string",
+                      "enum": ["package", "cask", "id"]
+                    },
+                    "command": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "type": {
+                      "type": "string",
+                      "const": "script"
+                    }
+                  },
+                  "required": ["command", "type"],
+                  "additionalProperties": false
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "packageInstallArgs": {
+                      "minItems": 1,
+                      "type": "array",
+                      "items": {
+                        "type": "string",
+                        "minLength": 1
+                      }
+                    },
+                    "packageName": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "packageTargetKind": {
+                      "type": "string",
+                      "enum": ["package", "cask", "id"]
+                    },
+                    "command": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "type": {
+                      "type": "string",
+                      "const": "binary"
+                    }
+                  },
+                  "required": ["command", "type"],
+                  "additionalProperties": false
+                }
+              ]
+            }
+          },
+          "windows": {
+            "minItems": 1,
+            "type": "array",
+            "items": {
+              "oneOf": [
+                {
+                  "type": "object",
+                  "properties": {
+                    "packageInstallArgs": {
+                      "minItems": 1,
+                      "type": "array",
+                      "items": {
+                        "type": "string",
+                        "minLength": 1
+                      }
+                    },
+                    "packageName": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "packageTargetKind": {
+                      "type": "string",
+                      "enum": ["package", "cask", "id"]
+                    },
+                    "type": {
+                      "type": "string",
+                      "enum": ["bun", "npm", "brew", "cargo", "pip", "winget"]
+                    }
+                  },
+                  "required": ["type"],
+                  "additionalProperties": false
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "packageInstallArgs": {
+                      "minItems": 1,
+                      "type": "array",
+                      "items": {
+                        "type": "string",
+                        "minLength": 1
+                      }
+                    },
+                    "packageName": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "packageTargetKind": {
+                      "type": "string",
+                      "enum": ["package", "cask", "id"]
+                    },
+                    "command": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "type": {
+                      "type": "string",
+                      "const": "script"
+                    }
+                  },
+                  "required": ["command", "type"],
+                  "additionalProperties": false
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "packageInstallArgs": {
+                      "minItems": 1,
+                      "type": "array",
+                      "items": {
+                        "type": "string",
+                        "minLength": 1
+                      }
+                    },
+                    "packageName": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "packageTargetKind": {
+                      "type": "string",
+                      "enum": ["package", "cask", "id"]
+                    },
+                    "command": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "type": {
+                      "type": "string",
+                      "const": "binary"
+                    }
+                  },
+                  "required": ["command", "type"],
+                  "additionalProperties": false
+                }
+              ]
+            }
+          }
+        },
+        "additionalProperties": false
+      },
+      "selfUpdate": {
+        "type": "object",
+        "properties": {
+          "command": {
+            "minItems": 1,
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "fallbackCommands": {
+            "minItems": 1,
+            "type": "array",
+            "items": {
+              "minItems": 1,
+              "type": "array",
+              "items": {
+                "type": "string",
+                "minLength": 1
+              }
+            }
+          },
+          "versionAfter": {
+            "type": "string",
+            "enum": ["same-process", "respawn"]
+          }
+        },
+        "required": ["command"],
+        "additionalProperties": false
+      },
+      "versionProbe": {
+        "type": "object",
+        "properties": {
+          "command": {
+            "minItems": 1,
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        },
+        "additionalProperties": false
+      }
+    },
+    "required": ["binaryName", "displayName", "homepage", "name", "platforms"],
+    "additionalProperties": false
+  },
+  "$id": "https://github.com/Drswith/quantex-cli/schemas/agent-catalog.schema.json",
+  "title": "Quantex Supported Agent Catalog"
+}

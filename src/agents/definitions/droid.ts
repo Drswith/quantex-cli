@@ -1,30 +1,3 @@
-import type { AgentDefinition } from '../types'
-import { brewInstall, bunInstall, npmInstall, scriptInstall } from '../methods'
+import { getCatalogAgent } from '../catalog'
 
-export const droid: AgentDefinition = {
-  name: 'droid',
-  displayName: 'Droid',
-  homepage: 'https://docs.factory.ai/cli/getting-started/overview',
-  packages: {
-    npm: 'droid',
-  },
-  binaryName: 'droid',
-  selfUpdate: {
-    command: ['droid', 'update'],
-  },
-  platforms: {
-    windows: [bunInstall(), npmInstall(), scriptInstall('irm https://app.factory.ai/cli/windows | iex')],
-    macos: [
-      bunInstall(),
-      npmInstall(),
-      scriptInstall('curl -fsSL https://app.factory.ai/cli | sh'),
-      brewInstall('droid', 'cask'),
-    ],
-    linux: [
-      bunInstall(),
-      npmInstall(),
-      scriptInstall('curl -fsSL https://app.factory.ai/cli | sh'),
-      brewInstall('droid', 'cask'),
-    ],
-  },
-}
+export const droid = getCatalogAgent('droid')

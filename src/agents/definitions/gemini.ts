@@ -1,17 +1,3 @@
-import type { AgentDefinition } from '../types'
-import { brewInstall, bunInstall, npmInstall } from '../methods'
+import { getCatalogAgent } from '../catalog'
 
-export const gemini: AgentDefinition = {
-  name: 'gemini',
-  displayName: 'Gemini CLI',
-  homepage: 'https://google-gemini.github.io/gemini-cli/docs/',
-  packages: {
-    npm: '@google/gemini-cli',
-  },
-  binaryName: 'gemini',
-  platforms: {
-    windows: [bunInstall(), npmInstall()],
-    macos: [bunInstall(), npmInstall(), brewInstall('gemini-cli')],
-    linux: [bunInstall(), npmInstall(), brewInstall('gemini-cli')],
-  },
-}
+export const gemini = getCatalogAgent('gemini')

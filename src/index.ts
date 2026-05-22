@@ -8,6 +8,9 @@ export {
 } from './agent-update'
 export type { AgentUpdateContext, AgentUpdateProvider, AgentUpdateStrategy } from './agent-update'
 export {
+  agentCatalogEntrySchema,
+  agentCatalogJsonSchema,
+  agentCatalogSchema,
   autohand,
   claude,
   codebuddy,
@@ -19,6 +22,8 @@ export {
   droid,
   gemini,
   jcode,
+  getCatalogAgent,
+  getCatalogAgents,
   getAgentByLookupName,
   getAgentByNameOrAlias,
   getAllAgents,
@@ -34,6 +39,8 @@ export {
 } from './agents'
 export type {
   AgentDefinition,
+  AgentCatalogData,
+  AgentCatalogEntry,
   AgentPackageMetadata,
   AgentSelfUpdate,
   AgentVersionProbe,
