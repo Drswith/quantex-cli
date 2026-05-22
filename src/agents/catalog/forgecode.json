@@ -1,0 +1,54 @@
+{
+  "name": "forgecode",
+  "lookupAliases": ["forge"],
+  "displayName": "ForgeCode",
+  "homepage": "https://forgecode.dev",
+  "packages": {
+    "npm": "forgecode"
+  },
+  "binaryName": "forge",
+  "selfUpdate": {
+    "command": ["forge", "update"]
+  },
+  "versionProbe": {
+    "command": ["forge", "--version"]
+  },
+  "platforms": {
+    "windows": [
+      {
+        "type": "bun"
+      },
+      {
+        "type": "npm"
+      },
+      {
+        "command": "irm https://forgecode.dev/cli | iex",
+        "type": "script"
+      }
+    ],
+    "macos": [
+      {
+        "type": "bun"
+      },
+      {
+        "type": "npm"
+      },
+      {
+        "command": "curl -fsSL https://forgecode.dev/cli | sh",
+        "type": "script"
+      }
+    ],
+    "linux": [
+      {
+        "type": "bun"
+      },
+      {
+        "type": "npm"
+      },
+      {
+        "command": "curl -fsSL https://forgecode.dev/cli | sh",
+        "type": "script"
+      }
+    ]
+  }
+}

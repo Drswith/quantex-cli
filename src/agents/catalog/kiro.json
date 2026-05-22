@@ -1,0 +1,30 @@
+{
+  "name": "kiro",
+  "lookupAliases": ["kiro-cli"],
+  "displayName": "Kiro CLI",
+  "homepage": "https://kiro.dev/cli/",
+  "binaryName": "kiro-cli",
+  "versionProbe": {
+    "command": ["kiro-cli", "--version"]
+  },
+  "platforms": {
+    "windows": [
+      {
+        "command": "irm 'https://cli.kiro.dev/install.ps1' | iex",
+        "type": "script"
+      }
+    ],
+    "macos": [
+      {
+        "command": "curl -fsSL https://cli.kiro.dev/install | bash",
+        "type": "script"
+      }
+    ],
+    "linux": [
+      {
+        "command": "curl -fsSL https://cli.kiro.dev/install | bash",
+        "type": "script"
+      }
+    ]
+  }
+}

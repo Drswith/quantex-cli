@@ -1,0 +1,33 @@
+{
+  "name": "jcode",
+  "displayName": "JCode",
+  "homepage": "https://github.com/1jehuang/jcode",
+  "binaryName": "jcode",
+  "versionProbe": {
+    "command": ["jcode", "--version"]
+  },
+  "platforms": {
+    "windows": [
+      {
+        "command": "irm https://raw.githubusercontent.com/1jehuang/jcode/master/scripts/install.ps1 | iex",
+        "type": "script"
+      }
+    ],
+    "macos": [
+      {
+        "packageName": "1jehuang/jcode/jcode",
+        "type": "brew"
+      },
+      {
+        "command": "curl -fsSL https://raw.githubusercontent.com/1jehuang/jcode/master/scripts/install.sh | bash",
+        "type": "script"
+      }
+    ],
+    "linux": [
+      {
+        "command": "curl -fsSL https://raw.githubusercontent.com/1jehuang/jcode/master/scripts/install.sh | bash",
+        "type": "script"
+      }
+    ]
+  }
+}

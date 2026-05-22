@@ -51,6 +51,8 @@
     "./package.json": "./package.json"
   },
   "scripts": {
+    "agent-catalog:generate": "bun run agent-catalog:manifest && bun run agent-catalog:schema",
+    "agent-catalog:manifest": "bun run scripts/write-agent-catalog-manifest.ts",
     "agent-catalog:schema": "bun run scripts/write-agent-catalog-schema.ts",
     "build": "tsdown",
     "build:bin": "bun run scripts/write-build-metadata.ts && bun run scripts/build-bin.ts",

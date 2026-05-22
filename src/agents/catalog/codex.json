@@ -1,0 +1,46 @@
+{
+  "name": "codex",
+  "displayName": "Codex CLI",
+  "homepage": "https://developers.openai.com/codex/cli",
+  "packages": {
+    "npm": "@openai/codex"
+  },
+  "binaryName": "codex",
+  "selfUpdate": {
+    "command": ["codex", "--upgrade"]
+  },
+  "platforms": {
+    "windows": [
+      {
+        "type": "bun"
+      },
+      {
+        "type": "npm"
+      }
+    ],
+    "macos": [
+      {
+        "type": "bun"
+      },
+      {
+        "type": "npm"
+      },
+      {
+        "packageName": "codex",
+        "type": "brew"
+      }
+    ],
+    "linux": [
+      {
+        "type": "bun"
+      },
+      {
+        "type": "npm"
+      },
+      {
+        "packageName": "codex",
+        "type": "brew"
+      }
+    ]
+  }
+}

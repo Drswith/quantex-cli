@@ -1,0 +1,62 @@
+{
+  "name": "codebuddy",
+  "lookupAliases": ["codebuddy-code"],
+  "displayName": "CodeBuddy Code",
+  "homepage": "https://www.codebuddy.cn/docs/cli/installation",
+  "packages": {
+    "npm": "@tencent-ai/codebuddy-code"
+  },
+  "binaryName": "codebuddy",
+  "selfUpdate": {
+    "command": ["codebuddy", "update"]
+  },
+  "versionProbe": {
+    "command": ["codebuddy", "--version"]
+  },
+  "platforms": {
+    "windows": [
+      {
+        "type": "bun"
+      },
+      {
+        "type": "npm"
+      },
+      {
+        "command": "irm https://www.codebuddy.cn/cli/install.ps1 | iex",
+        "type": "script"
+      }
+    ],
+    "macos": [
+      {
+        "type": "bun"
+      },
+      {
+        "type": "npm"
+      },
+      {
+        "command": "curl -fsSL https://www.codebuddy.cn/cli/install.sh | bash",
+        "type": "script"
+      },
+      {
+        "packageName": "Tencent-CodeBuddy/tap/codebuddy-code",
+        "type": "brew"
+      }
+    ],
+    "linux": [
+      {
+        "type": "bun"
+      },
+      {
+        "type": "npm"
+      },
+      {
+        "command": "curl -fsSL https://www.codebuddy.cn/cli/install.sh | bash",
+        "type": "script"
+      },
+      {
+        "packageName": "Tencent-CodeBuddy/tap/codebuddy-code",
+        "type": "brew"
+      }
+    ]
+  }
+}

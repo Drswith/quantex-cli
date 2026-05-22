@@ -1,0 +1,32 @@
+{
+  "name": "devin",
+  "displayName": "Devin for Terminal",
+  "homepage": "https://cli.devin.ai/",
+  "binaryName": "devin",
+  "selfUpdate": {
+    "command": ["devin", "update"]
+  },
+  "versionProbe": {
+    "command": ["devin", "version"]
+  },
+  "platforms": {
+    "windows": [
+      {
+        "command": "irm https://static.devin.ai/cli/setup.ps1 | iex",
+        "type": "script"
+      }
+    ],
+    "macos": [
+      {
+        "command": "curl -fsSL https://cli.devin.ai/install.sh | bash",
+        "type": "script"
+      }
+    ],
+    "linux": [
+      {
+        "command": "curl -fsSL https://cli.devin.ai/install.sh | bash",
+        "type": "script"
+      }
+    ]
+  }
+}

@@ -1,0 +1,50 @@
+{
+  "name": "copilot",
+  "displayName": "GitHub Copilot CLI",
+  "homepage": "https://github.com/features/copilot/cli",
+  "packages": {
+    "npm": "@github/copilot"
+  },
+  "binaryName": "copilot",
+  "platforms": {
+    "windows": [
+      {
+        "packageName": "GitHub.Copilot",
+        "packageTargetKind": "id",
+        "type": "winget"
+      }
+    ],
+    "macos": [
+      {
+        "type": "bun"
+      },
+      {
+        "type": "npm"
+      },
+      {
+        "command": "curl -fsSL https://gh.io/copilot-install | bash",
+        "type": "script"
+      },
+      {
+        "packageName": "copilot-cli",
+        "type": "brew"
+      }
+    ],
+    "linux": [
+      {
+        "type": "bun"
+      },
+      {
+        "type": "npm"
+      },
+      {
+        "command": "curl -fsSL https://gh.io/copilot-install | bash",
+        "type": "script"
+      },
+      {
+        "packageName": "copilot-cli",
+        "type": "brew"
+      }
+    ]
+  }
+}

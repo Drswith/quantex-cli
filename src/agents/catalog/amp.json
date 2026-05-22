@@ -1,0 +1,41 @@
+{
+  "name": "amp",
+  "displayName": "Amp",
+  "homepage": "https://ampcode.com/",
+  "packages": {
+    "npm": "@sourcegraph/amp"
+  },
+  "binaryName": "amp",
+  "selfUpdate": {
+    "command": ["amp", "update"]
+  },
+  "versionProbe": {
+    "command": ["amp", "version"]
+  },
+  "platforms": {
+    "windows": [
+      {
+        "type": "bun"
+      },
+      {
+        "type": "npm"
+      }
+    ],
+    "macos": [
+      {
+        "type": "bun"
+      },
+      {
+        "type": "npm"
+      }
+    ],
+    "linux": [
+      {
+        "type": "bun"
+      },
+      {
+        "type": "npm"
+      }
+    ]
+  }
+}

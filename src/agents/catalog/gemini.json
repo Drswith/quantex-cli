@@ -1,0 +1,43 @@
+{
+  "name": "gemini",
+  "displayName": "Gemini CLI",
+  "homepage": "https://google-gemini.github.io/gemini-cli/docs/",
+  "packages": {
+    "npm": "@google/gemini-cli"
+  },
+  "binaryName": "gemini",
+  "platforms": {
+    "windows": [
+      {
+        "type": "bun"
+      },
+      {
+        "type": "npm"
+      }
+    ],
+    "macos": [
+      {
+        "type": "bun"
+      },
+      {
+        "type": "npm"
+      },
+      {
+        "packageName": "gemini-cli",
+        "type": "brew"
+      }
+    ],
+    "linux": [
+      {
+        "type": "bun"
+      },
+      {
+        "type": "npm"
+      },
+      {
+        "packageName": "gemini-cli",
+        "type": "brew"
+      }
+    ]
+  }
+}

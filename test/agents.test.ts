@@ -1,31 +1,40 @@
 import type { AgentDefinition } from '../src/agents/types'
+import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises'
+import { tmpdir } from 'node:os'
+import { join } from 'node:path'
 import { describe, expect, it } from 'vitest'
-import { getAgentByLookupName, getAgentByNameOrAlias, getAllAgents } from '../src/agents'
-import catalogData from '../src/agents/catalog-data.json'
+import { buildAgentCatalogManifest, readCatalogEntries } from '../scripts/write-agent-catalog-manifest'
+import * as agentExports from '../src/agents'
+import {
+  auggie,
+  autohand,
+  claude,
+  codebuddy,
+  codex,
+  copilot,
+  cursor,
+  deepseek,
+  devin,
+  droid,
+  gemini,
+  getAgentByLookupName,
+  getAgentByNameOrAlias,
+  getAllAgents,
+  jcode,
+  junie,
+  kilo,
+  kimi,
+  opencode,
+  openhands,
+  pi,
+  qoder,
+  qwen,
+  reasonix,
+  vibe,
+  vtcode,
+} from '../src/agents'
 import catalogSchemaFile from '../src/agents/catalog.schema.json'
-import { auggie } from '../src/agents/definitions/auggie'
-import { autohand } from '../src/agents/definitions/autohand'
-import { claude } from '../src/agents/definitions/claude'
-import { codebuddy } from '../src/agents/definitions/codebuddy'
-import { codex } from '../src/agents/definitions/codex'
-import { copilot } from '../src/agents/definitions/copilot'
-import { cursor } from '../src/agents/definitions/cursor'
-import { deepseek } from '../src/agents/definitions/deepseek'
-import { devin } from '../src/agents/definitions/devin'
-import { droid } from '../src/agents/definitions/droid'
-import { gemini } from '../src/agents/definitions/gemini'
-import { jcode } from '../src/agents/definitions/jcode'
-import { junie } from '../src/agents/definitions/junie'
-import { kilo } from '../src/agents/definitions/kilo'
-import { kimi } from '../src/agents/definitions/kimi'
-import { opencode } from '../src/agents/definitions/opencode'
-import { openhands } from '../src/agents/definitions/openhands'
-import { pi } from '../src/agents/definitions/pi'
-import { qoder } from '../src/agents/definitions/qoder'
-import { qwen } from '../src/agents/definitions/qwen'
-import { reasonix } from '../src/agents/definitions/reasonix'
-import { vibe } from '../src/agents/definitions/vibe'
-import { vtcode } from '../src/agents/definitions/vtcode'
+import { catalogData } from '../src/agents/generated/catalog-data'
 import { agentCatalogJsonSchema, agentCatalogSchema } from '../src/agents/schema'
 import { formatInstallMethodCommand } from '../src/utils/install'
 
@@ -103,6 +112,41 @@ describe('agent catalog data schema', () => {
 
   it('keeps the checked-in JSON Schema in sync with the Zod contract', () => {
     expect(catalogSchemaFile).toEqual(agentCatalogJsonSchema)
+  })
+
+  it('keeps the checked-in catalog manifest in sync with the catalog directory', async () => {
+    const manifest = await buildAgentCatalogManifest()
+    const catalogDataSource = await readFile(
+      new URL('../src/agents/generated/catalog-data.ts', import.meta.url),
+      'utf8',
+    )
+    const catalogAgentsSource = await readFile(
+      new URL('../src/agents/generated/catalog-agents.ts', import.meta.url),
+      'utf8',
+    )
+
+    expect(catalogDataSource).toBe(manifest.catalogDataSource)
+    expect(catalogAgentsSource).toBe(manifest.catalogAgentsSource)
+  })
+
+  it('rejects catalog files whose filename does not match the entry name', async () => {
+    const tempDir = await mkdtemp(join(tmpdir(), 'quantex-agent-catalog-'))
+
+    try {
+      await writeFile(join(tempDir, 'claude.json'), JSON.stringify({ name: 'codex' }))
+
+      await expect(readCatalogEntries(tempDir)).rejects.toThrow(
+        'Catalog filename claude.json must match entry name codex.',
+      )
+    } finally {
+      await rm(tempDir, { force: true, recursive: true })
+    }
+  })
+
+  it('exports every catalog agent by canonical name from the agents module', () => {
+    for (const agent of getAllAgents()) {
+      expect(agentExports[agent.name as keyof typeof agentExports]).toBe(agent)
+    }
   })
 })
 

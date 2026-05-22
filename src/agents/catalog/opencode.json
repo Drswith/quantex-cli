@@ -1,0 +1,54 @@
+{
+  "name": "opencode",
+  "displayName": "OpenCode",
+  "homepage": "https://opencode.ai",
+  "packages": {
+    "npm": "opencode-ai"
+  },
+  "binaryName": "opencode",
+  "selfUpdate": {
+    "command": ["opencode", "upgrade"]
+  },
+  "platforms": {
+    "windows": [
+      {
+        "type": "bun"
+      },
+      {
+        "type": "npm"
+      }
+    ],
+    "macos": [
+      {
+        "type": "bun"
+      },
+      {
+        "type": "npm"
+      },
+      {
+        "command": "curl -fsSL https://opencode.ai/install | bash",
+        "type": "script"
+      },
+      {
+        "packageName": "anomalyco/tap/opencode",
+        "type": "brew"
+      }
+    ],
+    "linux": [
+      {
+        "type": "bun"
+      },
+      {
+        "type": "npm"
+      },
+      {
+        "command": "curl -fsSL https://opencode.ai/install | bash",
+        "type": "script"
+      },
+      {
+        "packageName": "anomalyco/tap/opencode",
+        "type": "brew"
+      }
+    ]
+  }
+}

@@ -1,0 +1,66 @@
+{
+  "name": "claude",
+  "displayName": "Claude Code",
+  "homepage": "https://code.claude.com/docs",
+  "packages": {
+    "npm": "@anthropic-ai/claude-code"
+  },
+  "binaryName": "claude",
+  "selfUpdate": {
+    "command": ["claude", "update"],
+    "fallbackCommands": [["claude", "upgrade"]]
+  },
+  "platforms": {
+    "windows": [
+      {
+        "type": "bun"
+      },
+      {
+        "type": "npm"
+      },
+      {
+        "command": "irm https://claude.ai/install.ps1 | iex",
+        "type": "script"
+      },
+      {
+        "packageName": "Anthropic.ClaudeCode",
+        "packageTargetKind": "id",
+        "type": "winget"
+      }
+    ],
+    "macos": [
+      {
+        "type": "bun"
+      },
+      {
+        "type": "npm"
+      },
+      {
+        "command": "curl -fsSL https://claude.ai/install.sh | bash",
+        "type": "script"
+      },
+      {
+        "packageName": "claude-code",
+        "packageTargetKind": "cask",
+        "type": "brew"
+      }
+    ],
+    "linux": [
+      {
+        "type": "bun"
+      },
+      {
+        "type": "npm"
+      },
+      {
+        "command": "curl -fsSL https://claude.ai/install.sh | bash",
+        "type": "script"
+      },
+      {
+        "packageName": "claude-code",
+        "packageTargetKind": "cask",
+        "type": "brew"
+      }
+    ]
+  }
+}

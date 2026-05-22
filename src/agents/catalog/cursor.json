@@ -1,0 +1,33 @@
+{
+  "name": "cursor",
+  "lookupAliases": ["agent"],
+  "displayName": "Cursor CLI",
+  "homepage": "https://cursor.com/docs/cli",
+  "binaryName": "agent",
+  "selfUpdate": {
+    "command": ["agent", "update"]
+  },
+  "versionProbe": {
+    "command": ["agent", "--version"]
+  },
+  "platforms": {
+    "windows": [
+      {
+        "command": "irm 'https://cursor.com/install?win32=true' | iex",
+        "type": "script"
+      }
+    ],
+    "macos": [
+      {
+        "command": "curl https://cursor.com/install -fsS | bash",
+        "type": "script"
+      }
+    ],
+    "linux": [
+      {
+        "command": "curl https://cursor.com/install -fsS | bash",
+        "type": "script"
+      }
+    ]
+  }
+}

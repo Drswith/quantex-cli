@@ -44,7 +44,7 @@ export {
   reasonix,
   vibe,
   vtcode,
-} from './definitions'
+} from './generated/catalog-agents'
 export { agentCatalogJsonSchema, getCatalogAgent, getCatalogAgents } from './catalog'
 export { agentCatalogEntrySchema, agentCatalogSchema } from './schema'
 export type { AgentCatalogData, AgentCatalogEntry } from './schema'

@@ -1,0 +1,44 @@
+{
+  "name": "kimi",
+  "lookupAliases": ["kimi-code", "kimi-cli"],
+  "displayName": "Kimi Code",
+  "homepage": "https://moonshotai.github.io/kimi-cli/",
+  "binaryName": "kimi",
+  "packages": {
+    "uv": "kimi-cli"
+  },
+  "selfUpdate": {
+    "command": ["uv", "tool", "upgrade", "kimi-cli", "--no-cache"]
+  },
+  "versionProbe": {
+    "command": ["kimi", "--version"]
+  },
+  "platforms": {
+    "windows": [
+      {
+        "command": "irm https://code.kimi.com/install.ps1 | iex",
+        "type": "script"
+      }
+    ],
+    "macos": [
+      {
+        "packageInstallArgs": ["--python", "3.13"],
+        "type": "uv"
+      },
+      {
+        "command": "curl -LsSf https://code.kimi.com/install.sh | bash",
+        "type": "script"
+      }
+    ],
+    "linux": [
+      {
+        "packageInstallArgs": ["--python", "3.13"],
+        "type": "uv"
+      },
+      {
+        "command": "curl -LsSf https://code.kimi.com/install.sh | bash",
+        "type": "script"
+      }
+    ]
+  }
+}

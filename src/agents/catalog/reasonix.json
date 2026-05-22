@@ -1,0 +1,33 @@
+{
+  "name": "reasonix",
+  "lookupAliases": ["deepseek-reasonix"],
+  "displayName": "Reasonix",
+  "homepage": "https://github.com/esengine/DeepSeek-Reasonix",
+  "packages": {
+    "npm": "reasonix"
+  },
+  "binaryName": "reasonix",
+  "selfUpdate": {
+    "command": ["reasonix", "update"]
+  },
+  "versionProbe": {
+    "command": ["reasonix", "--version"]
+  },
+  "platforms": {
+    "windows": [
+      {
+        "type": "npm"
+      }
+    ],
+    "macos": [
+      {
+        "type": "npm"
+      }
+    ],
+    "linux": [
+      {
+        "type": "npm"
+      }
+    ]
+  }
+}

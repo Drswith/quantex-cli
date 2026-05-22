@@ -1,0 +1,46 @@
+{
+  "name": "deepseek",
+  "lookupAliases": ["deepseek-tui"],
+  "displayName": "DeepSeek TUI",
+  "homepage": "https://github.com/Hmbown/DeepSeek-TUI",
+  "packages": {
+    "cargo": "deepseek-tui-cli",
+    "npm": "deepseek-tui"
+  },
+  "binaryName": "deepseek",
+  "selfUpdate": {
+    "command": ["deepseek", "update"]
+  },
+  "versionProbe": {
+    "command": ["deepseek", "--version"]
+  },
+  "platforms": {
+    "windows": [
+      {
+        "type": "npm"
+      },
+      {
+        "packageInstallArgs": ["--locked"],
+        "type": "cargo"
+      }
+    ],
+    "macos": [
+      {
+        "type": "npm"
+      },
+      {
+        "packageInstallArgs": ["--locked"],
+        "type": "cargo"
+      }
+    ],
+    "linux": [
+      {
+        "type": "npm"
+      },
+      {
+        "packageInstallArgs": ["--locked"],
+        "type": "cargo"
+      }
+    ]
+  }
+}

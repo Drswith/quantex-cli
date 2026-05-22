@@ -1,0 +1,54 @@
+{
+  "name": "crush",
+  "displayName": "Crush",
+  "homepage": "https://github.com/charmbracelet/crush",
+  "packages": {
+    "npm": "@charmland/crush"
+  },
+  "binaryName": "crush",
+  "selfUpdate": {
+    "command": ["crush", "update"]
+  },
+  "versionProbe": {
+    "command": ["crush", "--version"]
+  },
+  "platforms": {
+    "windows": [
+      {
+        "type": "bun"
+      },
+      {
+        "type": "npm"
+      },
+      {
+        "packageName": "charmbracelet.crush",
+        "packageTargetKind": "id",
+        "type": "winget"
+      }
+    ],
+    "macos": [
+      {
+        "type": "bun"
+      },
+      {
+        "type": "npm"
+      },
+      {
+        "packageName": "charmbracelet/tap/crush",
+        "type": "brew"
+      }
+    ],
+    "linux": [
+      {
+        "type": "bun"
+      },
+      {
+        "type": "npm"
+      },
+      {
+        "packageName": "charmbracelet/tap/crush",
+        "type": "brew"
+      }
+    ]
+  }
+}

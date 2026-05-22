@@ -1,0 +1,57 @@
+{
+  "name": "qoder",
+  "lookupAliases": ["qodercli"],
+  "displayName": "Qoder CLI",
+  "homepage": "https://docs.qoder.com/cli/quick-start",
+  "packages": {
+    "npm": "@qoder-ai/qodercli"
+  },
+  "binaryName": "qodercli",
+  "selfUpdate": {
+    "command": ["qodercli", "update"]
+  },
+  "platforms": {
+    "windows": [
+      {
+        "type": "bun"
+      },
+      {
+        "type": "npm"
+      }
+    ],
+    "macos": [
+      {
+        "type": "bun"
+      },
+      {
+        "type": "npm"
+      },
+      {
+        "command": "curl -fsSL https://qoder.com/install | bash",
+        "type": "script"
+      },
+      {
+        "packageName": "qoderai/qoder/qodercli",
+        "packageTargetKind": "cask",
+        "type": "brew"
+      }
+    ],
+    "linux": [
+      {
+        "type": "bun"
+      },
+      {
+        "type": "npm"
+      },
+      {
+        "command": "curl -fsSL https://qoder.com/install | bash",
+        "type": "script"
+      },
+      {
+        "packageName": "qoderai/qoder/qodercli",
+        "packageTargetKind": "cask",
+        "type": "brew"
+      }
+    ]
+  }
+}

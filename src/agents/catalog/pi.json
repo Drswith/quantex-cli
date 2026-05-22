@@ -1,0 +1,38 @@
+{
+  "name": "pi",
+  "displayName": "Pi",
+  "homepage": "https://pi.dev",
+  "packages": {
+    "npm": "@mariozechner/pi-coding-agent"
+  },
+  "binaryName": "pi",
+  "selfUpdate": {
+    "command": ["pi", "update"]
+  },
+  "platforms": {
+    "windows": [
+      {
+        "type": "bun"
+      },
+      {
+        "type": "npm"
+      }
+    ],
+    "macos": [
+      {
+        "type": "bun"
+      },
+      {
+        "type": "npm"
+      }
+    ],
+    "linux": [
+      {
+        "type": "bun"
+      },
+      {
+        "type": "npm"
+      }
+    ]
+  }
+}
