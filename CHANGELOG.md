@@ -2,6 +2,13 @@
 
 This changelog is maintained by release-please Release PRs.
 
+## [0.18.6](https://github.com/Drswith/quantex-cli/compare/v0.18.5...v0.18.6) (2026-05-22)
+
+
+### Bug Fixes
+
+* **update:** serialize grouped fallback updates ([ce9a40e](https://github.com/Drswith/quantex-cli/commit/ce9a40e76c664c520f6e1ce7332fb69a1da749e2))
+
 ## [0.18.5](https://github.com/Drswith/quantex-cli/compare/v0.18.4...v0.18.5) (2026-05-21)
 
 
