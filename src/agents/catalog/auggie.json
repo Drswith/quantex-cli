@@ -1,0 +1,33 @@
+{
+  "name": "auggie",
+  "displayName": "Auggie CLI",
+  "homepage": "https://docs.augmentcode.com/cli/overview",
+  "packages": {
+    "npm": "@augmentcode/auggie"
+  },
+  "binaryName": "auggie",
+  "selfUpdate": {
+    "command": ["auggie", "upgrade"]
+  },
+  "versionProbe": {
+    "command": ["auggie", "--version"]
+  },
+  "platforms": {
+    "macos": [
+      {
+        "type": "bun"
+      },
+      {
+        "type": "npm"
+      }
+    ],
+    "linux": [
+      {
+        "type": "bun"
+      },
+      {
+        "type": "npm"
+      }
+    ]
+  }
+}

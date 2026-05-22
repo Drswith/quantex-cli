@@ -1,0 +1,38 @@
+{
+  "name": "kilo",
+  "displayName": "Kilo CLI",
+  "homepage": "https://kilo.ai/docs/cli",
+  "packages": {
+    "npm": "@kilocode/cli"
+  },
+  "binaryName": "kilo",
+  "selfUpdate": {
+    "command": ["kilo", "upgrade"]
+  },
+  "platforms": {
+    "windows": [
+      {
+        "type": "bun"
+      },
+      {
+        "type": "npm"
+      }
+    ],
+    "macos": [
+      {
+        "type": "bun"
+      },
+      {
+        "type": "npm"
+      }
+    ],
+    "linux": [
+      {
+        "type": "bun"
+      },
+      {
+        "type": "npm"
+      }
+    ]
+  }
+}

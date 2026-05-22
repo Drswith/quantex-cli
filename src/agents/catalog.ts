@@ -1,5 +1,5 @@
 import type { AgentDefinition, AgentVersionProbe } from './types'
-import catalogData from './catalog-data.json'
+import { catalogData } from './generated/catalog-data'
 import { agentCatalogSchema } from './schema'
 
 export { agentCatalogJsonSchema } from './schema'

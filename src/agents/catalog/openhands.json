@@ -1,0 +1,37 @@
+{
+  "name": "openhands",
+  "displayName": "OpenHands CLI",
+  "homepage": "https://docs.openhands.dev/openhands/usage/cli/installation",
+  "binaryName": "openhands",
+  "packages": {
+    "uv": "openhands"
+  },
+  "selfUpdate": {
+    "command": ["uv", "tool", "upgrade", "openhands", "--python", "3.12"]
+  },
+  "versionProbe": {
+    "command": ["openhands", "--version"]
+  },
+  "platforms": {
+    "macos": [
+      {
+        "packageInstallArgs": ["--python", "3.12"],
+        "type": "uv"
+      },
+      {
+        "command": "curl -fsSL https://install.openhands.dev/install.sh | sh",
+        "type": "script"
+      }
+    ],
+    "linux": [
+      {
+        "packageInstallArgs": ["--python", "3.12"],
+        "type": "uv"
+      },
+      {
+        "command": "curl -fsSL https://install.openhands.dev/install.sh | sh",
+        "type": "script"
+      }
+    ]
+  }
+}

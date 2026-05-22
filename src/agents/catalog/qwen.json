@@ -1,0 +1,55 @@
+{
+  "name": "qwen",
+  "displayName": "Qwen Code",
+  "homepage": "https://qwenlm.github.io/qwen-code-docs/",
+  "packages": {
+    "npm": "@qwen-code/qwen-code"
+  },
+  "binaryName": "qwen",
+  "platforms": {
+    "windows": [
+      {
+        "command": "curl -fsSL -o %TEMP%\\install-qwen.bat https://qwen-code-assets.oss-cn-hangzhou.aliyuncs.com/installation/install-qwen.bat && %TEMP%\\install-qwen.bat",
+        "type": "script"
+      },
+      {
+        "type": "bun"
+      },
+      {
+        "type": "npm"
+      }
+    ],
+    "macos": [
+      {
+        "command": "curl -fsSL https://qwen-code-assets.oss-cn-hangzhou.aliyuncs.com/installation/install-qwen.sh | bash",
+        "type": "script"
+      },
+      {
+        "type": "bun"
+      },
+      {
+        "type": "npm"
+      },
+      {
+        "packageName": "qwen-code",
+        "type": "brew"
+      }
+    ],
+    "linux": [
+      {
+        "command": "curl -fsSL https://qwen-code-assets.oss-cn-hangzhou.aliyuncs.com/installation/install-qwen.sh | bash",
+        "type": "script"
+      },
+      {
+        "type": "bun"
+      },
+      {
+        "type": "npm"
+      },
+      {
+        "packageName": "qwen-code",
+        "type": "brew"
+      }
+    ]
+  }
+}

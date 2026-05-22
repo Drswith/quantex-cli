@@ -1,0 +1,52 @@
+{
+  "name": "vtcode",
+  "displayName": "VTCode",
+  "homepage": "https://github.com/vinhnx/vtcode",
+  "packages": {
+    "cargo": "vtcode"
+  },
+  "binaryName": "vtcode",
+  "selfUpdate": {
+    "command": ["vtcode", "update"]
+  },
+  "versionProbe": {
+    "command": ["vtcode", "--version"]
+  },
+  "platforms": {
+    "windows": [
+      {
+        "command": "irm https://raw.githubusercontent.com/vinhnx/vtcode/main/scripts/install.ps1 | iex",
+        "type": "script"
+      },
+      {
+        "type": "cargo"
+      }
+    ],
+    "macos": [
+      {
+        "command": "curl -fsSL https://raw.githubusercontent.com/vinhnx/vtcode/main/scripts/install.sh | bash",
+        "type": "script"
+      },
+      {
+        "type": "cargo"
+      },
+      {
+        "packageName": "vtcode",
+        "type": "brew"
+      }
+    ],
+    "linux": [
+      {
+        "command": "curl -fsSL https://raw.githubusercontent.com/vinhnx/vtcode/main/scripts/install.sh | bash",
+        "type": "script"
+      },
+      {
+        "type": "cargo"
+      },
+      {
+        "packageName": "vtcode",
+        "type": "brew"
+      }
+    ]
+  }
+}

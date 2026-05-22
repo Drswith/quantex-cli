@@ -1,0 +1,58 @@
+{
+  "name": "junie",
+  "displayName": "Junie CLI",
+  "homepage": "https://junie.jetbrains.com/docs/junie-cli.html",
+  "packages": {
+    "npm": "@jetbrains/junie"
+  },
+  "binaryName": "junie",
+  "versionProbe": {
+    "command": ["junie", "--version"]
+  },
+  "platforms": {
+    "windows": [
+      {
+        "type": "bun"
+      },
+      {
+        "type": "npm"
+      },
+      {
+        "command": "iex (irm 'https://junie.jetbrains.com/install.ps1')",
+        "type": "script"
+      }
+    ],
+    "macos": [
+      {
+        "type": "bun"
+      },
+      {
+        "type": "npm"
+      },
+      {
+        "command": "curl -fsSL https://junie.jetbrains.com/install.sh | bash",
+        "type": "script"
+      },
+      {
+        "packageName": "jetbrains-junie/junie/junie",
+        "type": "brew"
+      }
+    ],
+    "linux": [
+      {
+        "type": "bun"
+      },
+      {
+        "type": "npm"
+      },
+      {
+        "command": "curl -fsSL https://junie.jetbrains.com/install.sh | bash",
+        "type": "script"
+      },
+      {
+        "packageName": "jetbrains-junie/junie/junie",
+        "type": "brew"
+      }
+    ]
+  }
+}

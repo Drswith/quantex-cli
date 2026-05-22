@@ -1,0 +1,54 @@
+{
+  "name": "vibe",
+  "lookupAliases": ["mistral-vibe"],
+  "displayName": "Mistral Vibe",
+  "homepage": "https://docs.mistral.ai/mistral-vibe/terminal/install",
+  "binaryName": "vibe",
+  "packages": {
+    "pip": "mistral-vibe",
+    "uv": "mistral-vibe"
+  },
+  "versionProbe": {
+    "command": ["vibe", "--version"]
+  },
+  "platforms": {
+    "windows": [
+      {
+        "packageName": "mistral-vibe",
+        "type": "uv"
+      },
+      {
+        "packageName": "mistral-vibe",
+        "type": "pip"
+      }
+    ],
+    "macos": [
+      {
+        "command": "curl -LsSf https://mistral.ai/vibe/install.sh | bash",
+        "type": "script"
+      },
+      {
+        "packageName": "mistral-vibe",
+        "type": "uv"
+      },
+      {
+        "packageName": "mistral-vibe",
+        "type": "pip"
+      }
+    ],
+    "linux": [
+      {
+        "command": "curl -LsSf https://mistral.ai/vibe/install.sh | bash",
+        "type": "script"
+      },
+      {
+        "packageName": "mistral-vibe",
+        "type": "uv"
+      },
+      {
+        "packageName": "mistral-vibe",
+        "type": "pip"
+      }
+    ]
+  }
+}

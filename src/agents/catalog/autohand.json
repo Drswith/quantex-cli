@@ -1,0 +1,33 @@
+{
+  "name": "autohand",
+  "lookupAliases": ["autohand-cli"],
+  "displayName": "Autohand Code CLI",
+  "homepage": "https://autohand.ai/cli/",
+  "packages": {
+    "npm": "autohand-cli"
+  },
+  "binaryName": "autohand",
+  "versionProbe": {
+    "command": ["autohand", "--version"]
+  },
+  "platforms": {
+    "windows": [
+      {
+        "command": "iwr -useb https://autohand.ai/install.ps1 | iex",
+        "type": "script"
+      }
+    ],
+    "macos": [
+      {
+        "command": "curl -fsSL https://autohand.ai/install.sh | bash",
+        "type": "script"
+      }
+    ],
+    "linux": [
+      {
+        "command": "curl -fsSL https://autohand.ai/install.sh | bash",
+        "type": "script"
+      }
+    ]
+  }
+}

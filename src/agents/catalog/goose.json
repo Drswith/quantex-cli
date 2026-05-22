@@ -1,0 +1,44 @@
+{
+  "name": "goose",
+  "displayName": "Goose",
+  "homepage": "https://github.com/aaif-goose/goose",
+  "binaryName": "goose",
+  "selfUpdate": {
+    "command": ["goose", "update"]
+  },
+  "versionProbe": {
+    "command": ["goose", "--version"]
+  },
+  "platforms": {
+    "windows": [
+      {
+        "command": "curl -fsSL https://github.com/aaif-goose/goose/releases/download/stable/download_cli.sh | bash",
+        "type": "script"
+      },
+      {
+        "command": "Invoke-WebRequest -Uri \"https://raw.githubusercontent.com/aaif-goose/goose/main/download_cli.ps1\" -OutFile \"download_cli.ps1\"; ./download_cli.ps1",
+        "type": "script"
+      }
+    ],
+    "macos": [
+      {
+        "command": "curl -fsSL https://github.com/aaif-goose/goose/releases/download/stable/download_cli.sh | bash",
+        "type": "script"
+      },
+      {
+        "packageName": "block-goose-cli",
+        "type": "brew"
+      }
+    ],
+    "linux": [
+      {
+        "command": "curl -fsSL https://github.com/aaif-goose/goose/releases/download/stable/download_cli.sh | bash",
+        "type": "script"
+      },
+      {
+        "packageName": "block-goose-cli",
+        "type": "brew"
+      }
+    ]
+  }
+}
