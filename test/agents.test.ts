@@ -924,6 +924,7 @@ describe('vtcode', () => {
   })
 
   it('exposes official install methods per platform', () => {
+    expect(vtcode.platforms.windows!.map(m => m.type)).toEqual(['cargo', 'script'])
     expect(
       vtcode.platforms.windows!.find(
         m =>

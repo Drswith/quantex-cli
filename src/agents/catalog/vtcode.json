@@ -15,11 +15,11 @@
   "platforms": {
     "windows": [
       {
-        "command": "irm https://raw.githubusercontent.com/vinhnx/vtcode/main/scripts/install.ps1 | iex",
-        "type": "script"
+        "type": "cargo"
       },
       {
-        "type": "cargo"
+        "command": "irm https://raw.githubusercontent.com/vinhnx/vtcode/main/scripts/install.ps1 | iex",
+        "type": "script"
       }
     ],
     "macos": [
