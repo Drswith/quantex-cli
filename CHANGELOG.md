@@ -2,6 +2,13 @@
 
 This changelog is maintained by release-please Release PRs.
 
+## [0.20.0](https://github.com/Drswith/quantex-cli/compare/v0.19.0...v0.20.0) (2026-05-23)
+
+
+### Features
+
+* **agent:** add mise lifecycle support ([#283](https://github.com/Drswith/quantex-cli/issues/283)) ([6201d02](https://github.com/Drswith/quantex-cli/commit/6201d02ebdcf5e85bf24031a67d4b1106d860efa))
+
 ## [0.19.0](https://github.com/Drswith/quantex-cli/compare/v0.18.6...v0.19.0) (2026-05-22)
 
 
