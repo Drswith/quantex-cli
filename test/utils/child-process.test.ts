@@ -72,7 +72,7 @@ describe('spawnWithQuantexStdio', () => {
     expect(stderrWriteSpy).toHaveBeenCalledWith('installer stderr')
   })
 
-  it('kills registered child processes when the cli context is cancelled', () => {
+  it('kills registered child processes when the cli context is cancelled', async () => {
     setCliContext({
       interactive: false,
       outputMode: 'json',
@@ -80,7 +80,7 @@ describe('spawnWithQuantexStdio', () => {
     })
     const kill = vi.fn()
     mockSpawn.mockReturnValue({
-      exited: new Promise(() => {}),
+      exited: Promise.resolve(),
       exitCode: null,
       kill,
       stderr: '',
@@ -88,8 +88,39 @@ describe('spawnWithQuantexStdio', () => {
     })
 
     spawnWithQuantexStdio(['npm', '--version'])
-    cancelCliContextOperations()
+    await cancelCliContextOperations()
 
+    expect(kill).toHaveBeenCalledWith('SIGTERM')
+  })
+
+  it('does not report success when a managed child exits zero after cancellation', async () => {
+    setCliContext({
+      interactive: false,
+      outputMode: 'json',
+      runId: 'json-run-id',
+    })
+    const kill = vi.fn()
+    let resolveExit!: () => void
+    mockSpawn.mockReturnValue({
+      exited: new Promise<void>(resolve => {
+        resolveExit = resolve
+      }),
+      exitCode: null,
+      kill,
+      stderr: '',
+      stdout: '',
+    })
+
+    const handle = spawnWithQuantexStdio(['cargo', 'install', 'vtcode'])
+    const cancellation = cancelCliContextOperations()
+    await new Promise(resolve => setTimeout(resolve, 0))
+    mockSpawn.mock.results[0]!.value.exitCode = 0
+    resolveExit()
+    await cancellation
+
+    const exitCode = await waitForSpawnedCommand(handle)
+
+    expect(exitCode).toBe(1)
     expect(kill).toHaveBeenCalledWith('SIGTERM')
   })
 })

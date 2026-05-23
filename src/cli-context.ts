@@ -46,8 +46,10 @@ export interface CliContextOptions {
   yes?: boolean
 }
 
+type CancellationHandler = () => Promise<void> | void
+
 let currentContext: CliContext | undefined
-let cancellationHandlers = new Set<() => void>()
+let cancellationHandlers = new Set<CancellationHandler>()
 
 export function getCliContext(): CliContext {
   currentContext ??= createDefaultCliContext()
@@ -110,13 +112,15 @@ export function markCliContextCancelled(): void {
   if (currentContext) currentContext.cancelled = true
 }
 
-export function cancelCliContextOperations(): void {
+export async function cancelCliContextOperations(): Promise<void> {
   markCliContextCancelled()
-  for (const handler of cancellationHandlers) handler()
+  const handlers = [...cancellationHandlers]
   cancellationHandlers.clear()
+
+  await Promise.allSettled(handlers.map(handler => Promise.resolve().then(handler)))
 }
 
-export function registerCliCancellationHandler(handler: () => void): () => void {
+export function registerCliCancellationHandler(handler: CancellationHandler): () => void {
   cancellationHandlers.add(handler)
   return () => {
     cancellationHandlers.delete(handler)

@@ -13,6 +13,7 @@ interface BunSpawnLike {
   exitCode: number | null
   exited: Promise<unknown>
   kill?: (signal?: NodeJS.Signals | number) => boolean
+  pid?: number
   stderr?: unknown
   stdout?: unknown
   unref?: () => void
@@ -20,6 +21,7 @@ interface BunSpawnLike {
 
 export interface SpawnedProcessHandle {
   readonly exitCode: number | null
+  readonly pid?: number
   readonly stderr: ChildProcess['stderr']
   readonly stdout: ChildProcess['stdout']
   exited: Promise<number>
@@ -40,7 +42,7 @@ export function spawnWithQuantexStdio(command: SpawnCommand, options: SpawnOptio
       stdio: ['inherit', 'inherit', 'inherit'] as const,
     })
     return {
-      cleanup: registerCliCancellationHandler(() => proc.kill?.('SIGTERM')),
+      cleanup: registerCliCancellationHandler(() => terminateManagedProcess(proc)),
       outputDrained: Promise.resolve(),
       proc,
     }
@@ -52,16 +54,18 @@ export function spawnWithQuantexStdio(command: SpawnCommand, options: SpawnOptio
   })
 
   return {
-    cleanup: registerCliCancellationHandler(() => proc.kill?.('SIGTERM')),
+    cleanup: registerCliCancellationHandler(() => terminateManagedProcess(proc)),
     outputDrained: Promise.all([forwardToStderr(proc.stdout), forwardToStderr(proc.stderr)]).then(() => undefined),
     proc,
   }
 }
 
 export async function waitForSpawnedCommand(handle: SpawnHandle): Promise<number> {
+  const context = getCliContext()
   try {
     const exitCode = await handle.proc.exited
     await handle.outputDrained
+    if (context.cancelled) return 1
     return exitCode
   } finally {
     handle.cleanup()
@@ -85,6 +89,7 @@ export function spawnCommand(command: SpawnCommand, options: SpawnOptions = {}):
     get exitCode() {
       return child.exitCode
     },
+    pid: child.pid,
     stderr: child.stderr,
     stdout: child.stdout,
     exited: waitForChildProcess(child),
@@ -160,10 +165,53 @@ function spawnWithBun(
     get exitCode() {
       return proc.exitCode
     },
+    pid: proc.pid,
     stderr: proc.stderr as ChildProcess['stderr'],
     stdout: proc.stdout as ChildProcess['stdout'],
     exited: proc.exited.then(() => (typeof proc.exitCode === 'number' ? proc.exitCode : 1)),
     kill: signal => proc.kill?.(signal) ?? false,
     unref: () => proc.unref?.(),
+  }
+}
+
+async function terminateManagedProcess(proc: SpawnedProcessHandle): Promise<void> {
+  try {
+    proc.kill?.('SIGTERM')
+  } catch {
+    // Continue to the Windows process-tree fallback and bounded join.
+  }
+
+  if (process.platform === 'win32' && proc.pid !== undefined)
+    await runWithDeadline(killWindowsProcessTree(proc.pid), 2_000)
+
+  await runWithDeadline(
+    proc.exited.then(() => undefined).catch(() => undefined),
+    2_000,
+  )
+}
+
+async function killWindowsProcessTree(pid: number): Promise<void> {
+  await new Promise<void>(resolve => {
+    const killer = spawn('taskkill.exe', ['/PID', String(pid), '/T', '/F'], {
+      stdio: ['ignore', 'ignore', 'ignore'],
+      windowsHide: true,
+    })
+    killer.once('error', () => resolve())
+    killer.once('close', () => resolve())
+  })
+}
+
+async function runWithDeadline(work: Promise<void>, timeoutMs: number): Promise<void> {
+  let timeoutId: ReturnType<typeof setTimeout> | undefined
+
+  try {
+    await Promise.race([
+      work,
+      new Promise<void>(resolve => {
+        timeoutId = setTimeout(resolve, timeoutMs)
+      }),
+    ])
+  } finally {
+    if (timeoutId) clearTimeout(timeoutId)
   }
 }

@@ -3,7 +3,7 @@ import { mkdtempSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { setCliContext } from '../src/cli-context'
+import { registerCliCancellationHandler, setCliContext } from '../src/cli-context'
 import { executeCommandWithRuntime } from '../src/command-runtime'
 import { createSuccessResult } from '../src/output'
 import * as selfModule from '../src/self'
@@ -214,6 +214,56 @@ describe('executeCommandWithRuntime', () => {
     const cancelledEvent = JSON.parse(logSpy.mock.calls[0][0])
     expect(cancelledEvent.type).toBe('cancelled')
     expect(cancelledEvent.data.signal).toBe('SIGTERM')
+    expect(result.ok).toBe(false)
+    expect(result.error?.code).toBe('CANCELLED')
+  })
+
+  it('waits for cancellation cleanup before returning a signal cancellation result', async () => {
+    setCliContext({
+      interactive: false,
+      outputMode: 'ndjson',
+      runId: 'signal-cleanup-run-id',
+    })
+
+    let cleanupFinished = false
+    let releaseCleanup!: () => void
+    registerCliCancellationHandler(
+      () =>
+        new Promise<void>(resolve => {
+          releaseCleanup = () => {
+            cleanupFinished = true
+            resolve()
+          }
+        }),
+    )
+
+    const execution = executeCommandWithRuntime({
+      action: 'install',
+      run: () => new Promise<CommandResult<unknown>>(() => {}),
+      target: {
+        kind: 'agent',
+        name: 'vtcode',
+      },
+    })
+
+    await new Promise(resolve => setTimeout(resolve, 0))
+    process.emit('SIGTERM')
+    await new Promise(resolve => setTimeout(resolve, 0))
+
+    let settled = false
+    void execution.then(() => {
+      settled = true
+      return undefined
+    })
+    await new Promise(resolve => setTimeout(resolve, 0))
+
+    expect(settled).toBe(false)
+    expect(cleanupFinished).toBe(false)
+
+    releaseCleanup()
+
+    const result = await execution
+    expect(cleanupFinished).toBe(true)
     expect(result.ok).toBe(false)
     expect(result.error?.code).toBe('CANCELLED')
   })
