@@ -5,6 +5,7 @@ import {
   codex,
   copilot,
   createUpdatePlan,
+  deepcode,
   deepseek,
   cursor,
   devin,
@@ -232,6 +233,15 @@ describe('agent definitions', () => {
     expect(agent!.binaryName).toBe('deepseek')
   })
 
+  it('deepcode has correct structure', () => {
+    const agent = getAgentByNameOrAlias('deepcode')
+    expect(agent).toBeDefined()
+    expect(agent!.displayName).toBe('Deep Code CLI')
+    expect(agent!.packages?.npm).toBe('@vegamo/deepcode-cli')
+    expect(agent!.binaryName).toBe('deepcode')
+    expect(agent!.versionProbe?.command).toEqual(['deepcode', '--version'])
+  })
+
   it('qoder has correct structure', () => {
     const agent = getAgentByNameOrAlias('qoder')
     expect(agent).toBeDefined()
@@ -263,6 +273,7 @@ describe('agent definitions', () => {
     expect(codebuddy.name).toBe('codebuddy')
     expect(codex.name).toBe('codex')
     expect(copilot.name).toBe('copilot')
+    expect(deepcode.name).toBe('deepcode')
     expect(deepseek.name).toBe('deepseek')
     expect(cursor.name).toBe('cursor')
     expect(devin.name).toBe('devin')

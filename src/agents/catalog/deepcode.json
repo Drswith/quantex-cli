@@ -1,0 +1,29 @@
+{
+  "name": "deepcode",
+  "displayName": "Deep Code CLI",
+  "homepage": "https://github.com/lessweb/deepcode-cli",
+  "packages": {
+    "npm": "@vegamo/deepcode-cli"
+  },
+  "binaryName": "deepcode",
+  "versionProbe": {
+    "command": ["deepcode", "--version"]
+  },
+  "platforms": {
+    "windows": [
+      {
+        "type": "npm"
+      }
+    ],
+    "macos": [
+      {
+        "type": "npm"
+      }
+    ],
+    "linux": [
+      {
+        "type": "npm"
+      }
+    ]
+  }
+}

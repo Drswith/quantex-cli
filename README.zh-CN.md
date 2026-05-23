@@ -179,6 +179,7 @@ qtx upgrade --channel beta
 | Codex CLI | `qtx codex` | OpenAI 官方 AI 编程助手 CLI |
 | Crush | `qtx crush` | Charmbracelet 终端 AI 编程 Agent CLI |
 | Cursor CLI | `qtx cursor` | Cursor AI 编程助手命令行工具 |
+| Deep Code CLI | `qtx deepcode` | Deep Code 终端编程 Agent CLI |
 | DeepSeek TUI | `qtx deepseek` | DeepSeek 终端原生编程 Agent |
 | Devin for Terminal | `qtx devin` | Cognition 本地编程 Agent CLI |
 | Droid | `qtx droid` | Factory AI 软件工程 Agent CLI |

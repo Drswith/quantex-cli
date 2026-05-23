@@ -16,6 +16,7 @@ export {
   codebuddy,
   codex,
   copilot,
+  deepcode,
   deepseek,
   cursor,
   devin,

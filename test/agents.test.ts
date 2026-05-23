@@ -13,6 +13,7 @@ import {
   codex,
   copilot,
   cursor,
+  deepcode,
   deepseek,
   devin,
   droid,
@@ -532,6 +533,29 @@ describe('deepseek', () => {
         ),
       ).toBeDefined()
     }
+  })
+})
+
+describe('deepcode', () => {
+  it('is registered for lookup by canonical name', () => {
+    expect(getAgentByNameOrAlias('deepcode')).toBe(deepcode)
+  })
+
+  it('has valid structure', () => {
+    validateAgent(deepcode)
+    expect(deepcode.name).toBe('deepcode')
+    expect(deepcode.displayName).toBe('Deep Code CLI')
+    expect(deepcode.packages?.npm).toBe('@vegamo/deepcode-cli')
+    expect(deepcode.binaryName).toBe('deepcode')
+    expect(deepcode.homepage).toBe('https://github.com/lessweb/deepcode-cli')
+    expect(deepcode.selfUpdate).toBeUndefined()
+    expect(deepcode.versionProbe?.command).toEqual(['deepcode', '--version'])
+  })
+
+  it('exposes npm install on all supported platforms', () => {
+    expect(deepcode.platforms.windows!.find(m => m.type === 'npm')).toBeDefined()
+    expect(deepcode.platforms.macos!.find(m => m.type === 'npm')).toBeDefined()
+    expect(deepcode.platforms.linux!.find(m => m.type === 'npm')).toBeDefined()
   })
 })
 

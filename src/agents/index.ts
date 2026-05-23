@@ -25,6 +25,7 @@ export {
   copilot,
   crush,
   cursor,
+  deepcode,
   deepseek,
   devin,
   droid,
