@@ -175,14 +175,14 @@ function spawnWithBun(
 }
 
 async function terminateManagedProcess(proc: SpawnedProcessHandle): Promise<void> {
+  if (process.platform === 'win32' && proc.pid !== undefined)
+    await runWithDeadline(killWindowsProcessTree(proc.pid), 2_000)
+
   try {
     proc.kill?.('SIGTERM')
   } catch {
-    // Continue to the Windows process-tree fallback and bounded join.
+    // Continue to the bounded join.
   }
-
-  if (process.platform === 'win32' && proc.pid !== undefined)
-    await runWithDeadline(killWindowsProcessTree(proc.pid), 2_000)
 
   await runWithDeadline(
     proc.exited.then(() => undefined).catch(() => undefined),
