@@ -2,6 +2,20 @@
 
 This changelog is maintained by release-please Release PRs.
 
+## [0.21.0](https://github.com/Drswith/quantex-cli/compare/v0.20.0...v0.21.0) (2026-05-23)
+
+
+### Features
+
+* add Deno managed installer ([52cc051](https://github.com/Drswith/quantex-cli/commit/52cc05151252a129f882097fc0ca86a5b6939ab9))
+* **agents:** add Deep Code CLI support ([830fd5b](https://github.com/Drswith/quantex-cli/commit/830fd5b8ace38a6b82d9680b9389188143f04159))
+* **agents:** add oh-my-pi (omp) support ([e91b4f1](https://github.com/Drswith/quantex-cli/commit/e91b4f136a08dc36399408b73b9b406114ede8e1))
+
+
+### Bug Fixes
+
+* make managed installer cancellation sticky ([fa0903d](https://github.com/Drswith/quantex-cli/commit/fa0903d6eced0dacdb8aecbfde79992f1d9dde99))
+
 ## [0.20.0](https://github.com/Drswith/quantex-cli/compare/v0.19.0...v0.20.0) (2026-05-23)
 
 
