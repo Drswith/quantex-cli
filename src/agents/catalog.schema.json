@@ -38,6 +38,10 @@
             "type": "string",
             "minLength": 1
           },
+          "deno": {
+            "type": "string",
+            "minLength": 1
+          },
           "mise": {
             "type": "string",
             "minLength": 1
@@ -68,6 +72,10 @@
                 {
                   "type": "object",
                   "properties": {
+                    "binaryName": {
+                      "type": "string",
+                      "minLength": 1
+                    },
                     "packageInstallArgs": {
                       "minItems": 1,
                       "type": "array",
@@ -86,7 +94,7 @@
                     },
                     "type": {
                       "type": "string",
-                      "enum": ["bun", "npm", "brew", "cargo", "mise", "pip", "uv", "winget"]
+                      "enum": ["bun", "npm", "brew", "cargo", "deno", "mise", "pip", "uv", "winget"]
                     }
                   },
                   "required": ["type"],
@@ -95,6 +103,10 @@
                 {
                   "type": "object",
                   "properties": {
+                    "binaryName": {
+                      "type": "string",
+                      "minLength": 1
+                    },
                     "packageInstallArgs": {
                       "minItems": 1,
                       "type": "array",
@@ -126,6 +138,10 @@
                 {
                   "type": "object",
                   "properties": {
+                    "binaryName": {
+                      "type": "string",
+                      "minLength": 1
+                    },
                     "packageInstallArgs": {
                       "minItems": 1,
                       "type": "array",
@@ -165,6 +181,10 @@
                 {
                   "type": "object",
                   "properties": {
+                    "binaryName": {
+                      "type": "string",
+                      "minLength": 1
+                    },
                     "packageInstallArgs": {
                       "minItems": 1,
                       "type": "array",
@@ -183,7 +203,7 @@
                     },
                     "type": {
                       "type": "string",
-                      "enum": ["bun", "npm", "brew", "cargo", "mise", "pip", "uv", "winget"]
+                      "enum": ["bun", "npm", "brew", "cargo", "deno", "mise", "pip", "uv", "winget"]
                     }
                   },
                   "required": ["type"],
@@ -192,6 +212,10 @@
                 {
                   "type": "object",
                   "properties": {
+                    "binaryName": {
+                      "type": "string",
+                      "minLength": 1
+                    },
                     "packageInstallArgs": {
                       "minItems": 1,
                       "type": "array",
@@ -223,6 +247,10 @@
                 {
                   "type": "object",
                   "properties": {
+                    "binaryName": {
+                      "type": "string",
+                      "minLength": 1
+                    },
                     "packageInstallArgs": {
                       "minItems": 1,
                       "type": "array",
@@ -262,6 +290,10 @@
                 {
                   "type": "object",
                   "properties": {
+                    "binaryName": {
+                      "type": "string",
+                      "minLength": 1
+                    },
                     "packageInstallArgs": {
                       "minItems": 1,
                       "type": "array",
@@ -280,7 +312,7 @@
                     },
                     "type": {
                       "type": "string",
-                      "enum": ["bun", "npm", "brew", "cargo", "mise", "pip", "uv", "winget"]
+                      "enum": ["bun", "npm", "brew", "cargo", "deno", "mise", "pip", "uv", "winget"]
                     }
                   },
                   "required": ["type"],
@@ -289,6 +321,10 @@
                 {
                   "type": "object",
                   "properties": {
+                    "binaryName": {
+                      "type": "string",
+                      "minLength": 1
+                    },
                     "packageInstallArgs": {
                       "minItems": 1,
                       "type": "array",
@@ -320,6 +356,10 @@
                 {
                   "type": "object",
                   "properties": {
+                    "binaryName": {
+                      "type": "string",
+                      "minLength": 1
+                    },
                     "packageInstallArgs": {
                       "minItems": 1,
                       "type": "array",

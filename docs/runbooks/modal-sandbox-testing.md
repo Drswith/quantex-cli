@@ -37,6 +37,7 @@ The default local lifecycle smoke agents are `pi,qoder`.
 Default scenarios:
 
 - `managed`: Quantex installs, inspects, resolves, ensures, updates, uninstalls, and re-inspects the agent.
+- `deno-managed`: the sandbox places a fake `deno` executable in PATH, then verifies Quantex routes a Deno-managed test agent through `deno install --global`, `deno install --global --force`, and `deno uninstall --global` while preserving executable name and package install arguments.
 - `uv-managed`: the sandbox places a fake `uv` executable in PATH, then verifies Quantex routes a uv-managed test agent through `uv tool install`, `uv tool list`, `uv tool upgrade`, and `uv tool uninstall` while preserving package install arguments.
 - `adopt-preinstalled`: the sandbox preinstalls the agent outside Quantex first, then verifies `quantex install <agent>` adopts and tracks that existing install.
 - `ambiguous-multi-method`: the sandbox places a fake multi-install-method agent binary in PATH and verifies Quantex does not guess an install source.
@@ -80,6 +81,7 @@ To limit scenarios, set `QTX_ISOLATION_SCENARIOS`:
 
 ```bash
 QTX_ISOLATION_SCENARIOS=managed,adopt-preinstalled bun run test:container
+QTX_ISOLATION_SCENARIOS=deno-managed bun run test:container
 QTX_ISOLATION_SCENARIOS=uv-managed bun run test:container
 QTX_ISOLATION_SCENARIOS=self-binary bun run test:container
 QTX_ISOLATION_SCENARIOS=self-managed bun run test:container
@@ -96,7 +98,7 @@ QTX_ISOLATION_SCENARIOS=managed QTX_ISOLATION_AGENTS=qoder bun run test:containe
 
 The dedicated GitHub Actions workflow runs the Modal path with `QTX_ISOLATION_AGENTS=pi,opencode` and a longer command timeout so remote validation covers the lightweight baseline plus opencode under better network conditions. Pull requests and protected-branch pushes always publish the `sandbox-tests` check context, but the workflow only starts Modal when lifecycle-sensitive files changed. Docs-only and OpenSpec archive-only changes return a fast success result without starting Modal.
 
-For merge-gating pull requests, the workflow narrows `QTX_ISOLATION_SCENARIOS` to `managed,uv-managed,adopt-preinstalled,ambiguous-multi-method,self-binary` so the required check stays focused on stable lifecycle coverage. Full Modal coverage, including `self-managed`, still runs on protected-branch pushes, schedule, and manual dispatch.
+For merge-gating pull requests, the workflow narrows `QTX_ISOLATION_SCENARIOS` to `managed,deno-managed,uv-managed,adopt-preinstalled,ambiguous-multi-method,self-binary` so the required check stays focused on stable lifecycle coverage. Full Modal coverage, including `self-managed`, still runs on protected-branch pushes, schedule, and manual dispatch.
 
 For pull requests from forks, the required `sandbox-tests` context downgrades to a documented success placeholder because GitHub does not expose Modal secrets to forked `pull_request` workflows. Maintainers must rerun equivalent sandbox validation from a trusted repository branch before merging lifecycle-sensitive fork contributions.
 

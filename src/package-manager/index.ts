@@ -52,6 +52,7 @@ export async function getOrderedInstallMethods(agent: AgentDefinition): Promise<
 async function executeManagedMethod(
   type: ManagedInstallType,
   packageName: string,
+  binaryName: string | undefined,
   packageInstallArgs: string[] | undefined,
   packageTargetKind: InstalledAgentState['packageTargetKind'],
   action: 'install' | 'update' | 'uninstall',
@@ -64,11 +65,12 @@ async function executeManagedMethod(
 
   if (action === 'update')
     return installer.update(packageName, packageTargetKind, {
+      binaryName,
       npmBunUpdateStrategy: updateStrategy,
       packageInstallArgs,
     })
 
-  return installer.uninstall(packageName, packageTargetKind)
+  return installer.uninstall(packageName, packageTargetKind, { binaryName })
 }
 
 async function executeMethod(
@@ -84,6 +86,7 @@ async function executeMethod(
     return executeManagedMethod(
       method.type,
       packageName,
+      method.binaryName ?? agent.binaryName,
       method.packageInstallArgs,
       method.packageTargetKind,
       action,
@@ -109,6 +112,7 @@ async function executeInstalledState(
     return executeManagedMethod(
       state.installType,
       state.packageName,
+      state.binaryName,
       state.packageInstallArgs,
       state.packageTargetKind,
       action,
@@ -141,7 +145,9 @@ async function persistInstalledState(agent: AgentDefinition, method: InstallMeth
     packageTargetKind: method.packageTargetKind,
     command: 'command' in method ? method.command : undefined,
   }
+  const binaryName = method.binaryName ?? (method.type === 'deno' ? agent.binaryName : undefined)
 
+  if (binaryName) installedState.binaryName = binaryName
   if (method.packageInstallArgs?.length) installedState.packageInstallArgs = method.packageInstallArgs
 
   await setInstalledAgentState(installedState)

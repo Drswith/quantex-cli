@@ -40,7 +40,17 @@ export interface SingleAgentUpdateStatus {
   updateAvailable: boolean
 }
 
-const groupedInstallerOrder: ManagedInstallType[] = ['bun', 'npm', 'brew', 'cargo', 'mise', 'pip', 'uv', 'winget']
+const groupedInstallerOrder: ManagedInstallType[] = [
+  'bun',
+  'npm',
+  'brew',
+  'cargo',
+  'deno',
+  'mise',
+  'pip',
+  'uv',
+  'winget',
+]
 
 export async function getSingleAgentUpdateStatus(agent: AgentDefinition): Promise<SingleAgentUpdateStatus> {
   const inspection = await inspectionService.inspectAgent(agent)
@@ -147,6 +157,7 @@ function getManagedPackageSpec(
   if (installedState?.packageName && installedState.installType === installerType) {
     return {
       packageName: installedState.packageName,
+      binaryName: installerType === 'deno' ? installedState.binaryName : undefined,
       packageInstallArgs: installedState.packageInstallArgs,
       packageTargetKind: installedState.packageTargetKind,
     }
@@ -160,6 +171,7 @@ function getManagedPackageSpec(
 
   return {
     packageName,
+    binaryName: method.binaryName ?? (installerType === 'deno' ? agent.binaryName : undefined),
     packageInstallArgs: method.packageInstallArgs,
     packageTargetKind: method.packageTargetKind,
   }

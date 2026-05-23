@@ -30,6 +30,7 @@ export {
   droid,
   forgecode,
   gemini,
+  genie,
   goose,
   jcode,
   junie,

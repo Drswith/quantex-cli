@@ -179,6 +179,49 @@ describe('updateCommand', () => {
     expect(stdoutWriteSpy).toHaveBeenCalledWith(expect.stringContaining('updated successfully'))
   })
 
+  it('updates deno-managed agents via updateAgentsByType with executable name and package args', async () => {
+    const denoAgent = {
+      ...testAgent,
+      name: 'deno-agent',
+      binaryName: 'deno-bin',
+      displayName: 'Deno Agent',
+      packages: { deno: 'jsr:@scope/deno-agent' },
+      platforms: {
+        linux: [{ packageInstallArgs: ['--allow-net'], type: 'deno' as const }],
+        macos: [{ packageInstallArgs: ['--allow-net'], type: 'deno' as const }],
+        windows: [{ packageInstallArgs: ['--allow-net'], type: 'deno' as const }],
+      },
+    }
+
+    agentSpy.mockReturnValue(denoAgent)
+    binaryInPathSpy.mockResolvedValue(true)
+    installedVerSpy.mockResolvedValue('1.0.0')
+    latestVerSpy.mockResolvedValue('2.0.0')
+    installedStateSpy.mockResolvedValue({
+      agentName: 'deno-agent',
+      binaryName: 'deno-bin',
+      installType: 'deno',
+      packageInstallArgs: ['--allow-net'],
+      packageName: 'jsr:@scope/deno-agent',
+    })
+    updateAgentsByTypeSpy.mockResolvedValue(true)
+    updateSpy.mockResolvedValue({ success: true })
+    await updateCommand('deno-agent', false)
+    expect(updateAgentsByTypeSpy).toHaveBeenCalledWith('deno', [
+      {
+        binaryName: 'deno-bin',
+        packageInstallArgs: ['--allow-net'],
+        packageName: 'jsr:@scope/deno-agent',
+        packageTargetKind: undefined,
+      },
+    ])
+    expect(updateSpy).not.toHaveBeenCalled()
+    expect(stdoutWriteSpy).toHaveBeenCalledWith(
+      expect.stringContaining('Updating Deno Agent via managed/deno... (1.0.0 -> latest)'),
+    )
+    expect(stdoutWriteSpy).toHaveBeenCalledWith(expect.stringContaining('updated successfully'))
+  })
+
   it('does not update tracked script installs through a candidate pip method', async () => {
     const scriptAndPipAgent = {
       ...testAgent,

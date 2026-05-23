@@ -23,6 +23,7 @@ Quantex is a `human-friendly + agent-friendly` lifecycle CLI for AI coding assis
 - Manage multiple AI coding assistant CLIs from one lifecycle command: install, ensure, inspect, update, uninstall, and run.
 - Designed for scripts and coding agents: stable `--json`, `--output ndjson`, `--non-interactive`, and `--dry-run` contracts for machine-readable automation.
 - Tracks real install sources: `update --all` groups updates by recorded source instead of guessing from PATH alone.
+- Supports managed agent installs through available Bun, npm, Homebrew, Cargo, Deno, pip, uv, and winget providers.
 - Supports Quantex self-upgrade across Bun, npm, and standalone binary installs.
 
 ## Agent Quick Start
@@ -183,6 +184,7 @@ Note: `qtx upgrade` follows the registry actually used by the current Bun/npm se
 | Droid | `qtx droid` | Factory AI software engineering agent CLI |
 | ForgeCode | `qtx forgecode` | Antinomy's AI coding assistant CLI |
 | Gemini CLI | `qtx gemini` | Google's open-source AI coding assistant CLI |
+| Genie | `qtx genie` | Deno-distributed terminal LLM agent |
 | GitHub Copilot CLI | `qtx copilot` | GitHub Copilot command-line tool |
 | Goose | `qtx goose` | Block's open-source extensible AI agent CLI |
 | JCode | `qtx jcode` | High-performance coding agent harness for multi-session workflows |

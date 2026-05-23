@@ -21,6 +21,7 @@ export {
   devin,
   droid,
   gemini,
+  genie,
   jcode,
   getCatalogAgent,
   getCatalogAgents,
@@ -146,6 +147,6 @@ export {
   setSelfUpdateNoticeState,
 } from './state'
 export type { InstalledAgentState, QuantexState, SelfState } from './state'
-export { getPlatform, isBinaryInPath, isBunAvailable, isNpmAvailable } from './utils/detect'
+export { getPlatform, isBinaryInPath, isBunAvailable, isDenoAvailable, isNpmAvailable } from './utils/detect'
 export { execCommand } from './utils/exec'
 export { getBinaryPath, getInstalledVersion, getLatestVersion } from './utils/version'

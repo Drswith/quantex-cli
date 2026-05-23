@@ -110,7 +110,7 @@ Symptoms:
 What to do:
 
 - run `quantex capabilities --json`
-- check `installers`
+- check `installers` for managed providers such as `bun`, `npm`, `brew`, `cargo`, `deno`, `pip`, `uv`, and `winget`
 - inspect the current platform and supported install methods
 - if this is expected, choose a different install source or follow the manual hint
 

@@ -29,6 +29,7 @@ const DEFAULT_SMOKE_AGENTS = ['pi', 'qoder']
 const DEFAULT_SMOKE_SCENARIOS = [
   'managed',
   'cargo-managed',
+  'deno-managed',
   'uv-managed',
   'adopt-preinstalled',
   'ambiguous-multi-method',
@@ -60,6 +61,7 @@ try {
 
   if (scenarios.includes('cargo-managed')) await smokeCargoManagedLifecycle()
   if (scenarios.includes('cargo-real-agent')) await smokeCargoRealAgentLifecycle()
+  if (scenarios.includes('deno-managed')) await smokeDenoManagedLifecycle()
   if (scenarios.includes('uv-managed')) await smokeUvManagedLifecycle()
 
   if (scenarios.includes('adopt-preinstalled')) {
@@ -171,6 +173,43 @@ async function smokeUvManagedLifecycle(): Promise<void> {
   }
 }
 
+async function smokeDenoManagedLifecycle(): Promise<void> {
+  const sandboxRoot = await mkdtemp(join(tmpdir(), 'quantex-deno-smoke-'))
+  const fakeBinDir = join(sandboxRoot, 'bin')
+  const fakeDenoLog = join(sandboxRoot, 'deno.log')
+
+  try {
+    await installFakeDeno(fakeBinDir, fakeDenoLog)
+    console.log('\n[deno] managed lifecycle')
+    await runText('deno managed lifecycle', ['bun', 'run', 'scripts/deno-lifecycle-smoke.ts'], {
+      env: {
+        PATH: `${fakeBinDir}:${process.env.PATH ?? ''}`,
+        QTX_FAKE_DENO_LOG: fakeDenoLog,
+      },
+    })
+
+    const log = await readFile(fakeDenoLog, 'utf8')
+    for (const expected of [
+      'deno install --global --allow-net --name deno-smoke-agent jsr:@scope/deno-smoke-agent',
+      'deno install --global --force --allow-net --name deno-smoke-agent jsr:@scope/deno-smoke-agent',
+      'deno uninstall --global deno-smoke-agent',
+    ]) {
+      if (!log.includes(expected)) throw new Error(`deno smoke log did not include: ${expected}\n${log}`)
+    }
+    if (log.match(/deno install --global --allow-net --name deno-smoke-agent/g)?.length !== 1) {
+      throw new Error(`deno smoke should run deno install exactly once.\n${log}`)
+    }
+    if (log.match(/deno install --global --force --allow-net --name deno-smoke-agent/g)?.length !== 1) {
+      throw new Error(`deno smoke should run deno update install exactly once.\n${log}`)
+    }
+    if (log.match(/deno uninstall --global deno-smoke-agent/g)?.length !== 1) {
+      throw new Error(`deno smoke should run deno uninstall exactly once.\n${log}`)
+    }
+  } finally {
+    await rm(sandboxRoot, { force: true, recursive: true })
+  }
+}
+
 async function smokeCargoManagedLifecycle(): Promise<void> {
   const sandboxRoot = await mkdtemp(join(tmpdir(), 'quantex-cargo-smoke-'))
   const fakeBinDir = join(sandboxRoot, 'bin')
@@ -217,6 +256,30 @@ async function smokeCargoRealAgentLifecycle(): Promise<void> {
       QTX_CARGO_SMOKE_AGENT: agent,
     },
   })
+}
+
+async function installFakeDeno(fakeBinDir: string, logPath: string): Promise<void> {
+  await mkdir(fakeBinDir, { recursive: true })
+  const fakeDenoPath = join(fakeBinDir, 'deno')
+  await writeFile(
+    fakeDenoPath,
+    [
+      '#!/usr/bin/env sh',
+      'set -eu',
+      'if [ "${1:-}" = "--version" ]; then',
+      '  echo "deno 2.0.0"',
+      '  exit 0',
+      'fi',
+      `printf 'deno %s\\n' "$*" >> '${logPath}'`,
+      'case "${1:-}" in',
+      '  install|uninstall) exit 0 ;;',
+      '  *) exit 1 ;;',
+      'esac',
+      '',
+    ].join('\n'),
+    'utf8',
+  )
+  await chmod(fakeDenoPath, 0o755)
 }
 
 async function installFakeUv(fakeBinDir: string, logPath: string): Promise<void> {

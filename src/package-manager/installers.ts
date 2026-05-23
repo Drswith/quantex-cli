@@ -4,6 +4,7 @@ import {
   isBrewAvailable,
   isBunAvailable,
   isCargoAvailable,
+  isDenoAvailable,
   isMiseAvailable,
   isNpmAvailable,
   isPipAvailable,
@@ -13,6 +14,7 @@ import {
 import * as brewPm from './brew'
 import * as bunPm from './bun'
 import * as cargoPm from './cargo'
+import * as denoPm from './deno'
 import * as misePm from './mise'
 import * as npmPm from './npm'
 import * as pipPm from './pip'
@@ -20,12 +22,14 @@ import * as uvPm from './uv'
 import * as wingetPm from './winget'
 
 export interface ManagedPackageSpec {
+  binaryName?: string
   packageInstallArgs?: string[]
   packageName: string
   packageTargetKind?: PackageTargetKind
 }
 
 export interface ManagedInstallerUpdateOptions {
+  binaryName?: string
   npmBunUpdateStrategy?: NpmBunUpdateStrategy
   packageInstallArgs?: string[]
 }
@@ -39,7 +43,11 @@ export interface ManagedInstaller {
     packageTargetKind?: PackageTargetKind,
     packageInstallArgs?: string[],
   ) => Promise<boolean>
-  uninstall: (packageName: string, packageTargetKind?: PackageTargetKind) => Promise<boolean>
+  uninstall: (
+    packageName: string,
+    packageTargetKind?: PackageTargetKind,
+    options?: ManagedInstallerUpdateOptions,
+  ) => Promise<boolean>
   update: (
     packageName: string,
     packageTargetKind?: PackageTargetKind,
@@ -82,6 +90,22 @@ const managedInstallers: Record<ManagedInstallType, ManagedInstaller> = {
     updateMany: async packages =>
       cargoPm.updateMany(
         packages.map(pkg => ({
+          packageInstallArgs: pkg.packageInstallArgs,
+          packageName: pkg.packageName,
+        })),
+      ),
+  },
+  deno: {
+    type: 'deno',
+    isAvailable: async () => isDenoAvailable(),
+    install: async (packageName, _packageTargetKind, packageInstallArgs) =>
+      denoPm.install(packageName, packageInstallArgs),
+    uninstall: async (packageName, _packageTargetKind, options) => denoPm.uninstall(options?.binaryName ?? packageName),
+    update: async (packageName, _packageTargetKind, options) => denoPm.update(packageName, options?.packageInstallArgs),
+    updateMany: async packages =>
+      denoPm.updateMany(
+        packages.map(pkg => ({
+          binaryName: pkg.binaryName,
           packageInstallArgs: pkg.packageInstallArgs,
           packageName: pkg.packageName,
         })),

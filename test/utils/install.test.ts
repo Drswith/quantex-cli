@@ -69,6 +69,33 @@ describe('formatInstallMethodCommand', () => {
     ).toBe('uv tool install test-tool --python 3.12')
   })
 
+  it('renders Deno global install guidance from Deno package metadata and args', () => {
+    expect(
+      formatInstallMethodCommand(
+        {
+          packages: {
+            deno: 'jsr:@scope/test-tool',
+            npm: 'test-pkg',
+          },
+        },
+        { packageInstallArgs: ['--allow-net', '--name', 'test-tool'], type: 'deno' },
+      ),
+    ).toBe('deno install --global --allow-net --name test-tool jsr:@scope/test-tool')
+  })
+
+  it('does not use npm metadata as a Deno package fallback', () => {
+    expect(
+      formatInstallMethodCommand(
+        {
+          packages: {
+            npm: 'test-pkg',
+          },
+        },
+        { type: 'deno' },
+      ),
+    ).toBe('')
+  })
+
   it('does not use pip metadata as a uv package fallback', () => {
     expect(
       formatInstallMethodCommand(
