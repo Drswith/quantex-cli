@@ -334,6 +334,7 @@ Quantex SHALL include VTCode in the supported agent catalog with lifecycle-focus
 
 - **WHEN** Quantex renders or executes install options for VTCode
 - **THEN** the catalog includes the Cargo managed install method on Windows, macOS, and Linux
+- **AND** Windows orders the Cargo managed install method before the official native PowerShell installer while upstream Windows release assets are absent
 - **AND** macOS and Linux include the official native shell installer (`curl -fsSL https://raw.githubusercontent.com/vinhnx/vtcode/main/scripts/install.sh | bash`)
 - **AND** Windows includes the official native PowerShell installer (`irm https://raw.githubusercontent.com/vinhnx/vtcode/main/scripts/install.ps1 | iex`)
 - **AND** macOS and Linux include the Homebrew formula install method (`vtcode`)
