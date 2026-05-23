@@ -6,10 +6,11 @@ import process from 'node:process'
 import { normalizeRegistryUrl } from '../utils/registry'
 import { defaultConfig } from './default'
 
+export type DefaultPackageManager = 'bun' | 'mise' | 'npm'
 export type NpmBunUpdateStrategy = 'latest-major' | 'respect-semver'
 
 export interface QuantexConfig {
-  defaultPackageManager: 'bun' | 'npm'
+  defaultPackageManager: DefaultPackageManager
   networkRetries: number
   networkTimeoutMs: number
   npmBunUpdateStrategy: NpmBunUpdateStrategy
@@ -35,7 +36,9 @@ export async function loadConfig(): Promise<QuantexConfig> {
 
   return {
     ...normalizedConfig,
-    defaultPackageManager: normalizedConfig.defaultPackageManager === 'npm' ? 'npm' : 'bun',
+    defaultPackageManager: isDefaultPackageManager(normalizedConfig.defaultPackageManager)
+      ? normalizedConfig.defaultPackageManager
+      : 'bun',
     networkRetries: normalizePositiveInteger(normalizedConfig.networkRetries, 2),
     networkTimeoutMs: normalizePositiveInteger(normalizedConfig.networkTimeoutMs, 10000),
     npmBunUpdateStrategy:
@@ -47,6 +50,10 @@ export async function loadConfig(): Promise<QuantexConfig> {
         : undefined,
     versionCacheTtlHours: normalizePositiveInteger(normalizedConfig.versionCacheTtlHours, 6),
   } as QuantexConfig
+}
+
+export function isDefaultPackageManager(value: unknown): value is DefaultPackageManager {
+  return value === 'bun' || value === 'mise' || value === 'npm'
 }
 
 export function isNpmBunUpdateStrategy(value: string): value is NpmBunUpdateStrategy {

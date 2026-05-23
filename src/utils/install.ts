@@ -26,6 +26,7 @@ export function getManagedPackageName(
 ): string | undefined {
   if (method.packageName) return method.packageName
   if (method.type === 'cargo') return agent.packages?.cargo
+  if (method.type === 'mise') return agent.packages?.mise
   if (method.type === 'pip') return agent.packages?.pip
   if (method.type === 'uv') return agent.packages?.uv
   if (method.type === 'bun' || method.type === 'npm') return agent.packages?.npm
@@ -117,6 +118,11 @@ export function formatInstallMethodCommand(agent: Pick<AgentDefinition, 'package
     return packageName ? ['cargo', 'install', packageName, ...(method.packageInstallArgs ?? [])].join(' ') : ''
   }
 
+  if (method.type === 'mise') {
+    const packageName = getManagedPackageName(agent, method)
+    return packageName ? `mise use --global ${packageName}` : ''
+  }
+
   if (method.type === 'pip') {
     const packageName = getManagedPackageName(agent, method)
     return packageName ? `pip install ${packageName}` : ''
@@ -168,11 +174,12 @@ export function getAdoptableExistingInstallMethod(
   return method
 }
 
-function inferManagedInstallTypeFromBinaryPath(binaryPath?: string): 'bun' | 'npm' | undefined {
+function inferManagedInstallTypeFromBinaryPath(binaryPath?: string): 'bun' | 'mise' | 'npm' | undefined {
   if (!binaryPath) return undefined
 
   const normalized = binaryPath.replaceAll('\\', '/')
   if (normalized.includes('/.bun/bin/') || normalized.includes('/.bun/install/global/')) return 'bun'
+  if (normalized.includes('/.local/share/mise/shims/') || normalized.includes('/.mise/shims/')) return 'mise'
   if (normalized.includes('/node_modules/.bin/') || normalized.includes('/node_modules/')) return 'npm'
 
   return undefined

@@ -3,6 +3,7 @@
   "displayName": "Codex CLI",
   "homepage": "https://developers.openai.com/codex/cli",
   "packages": {
+    "mise": "npm:@openai/codex",
     "npm": "@openai/codex"
   },
   "binaryName": "codex",
@@ -16,6 +17,9 @@
       },
       {
         "type": "npm"
+      },
+      {
+        "type": "mise"
       }
     ],
     "macos": [
@@ -24,6 +28,9 @@
       },
       {
         "type": "npm"
+      },
+      {
+        "type": "mise"
       },
       {
         "packageName": "codex",
@@ -36,6 +43,9 @@
       },
       {
         "type": "npm"
+      },
+      {
+        "type": "mise"
       },
       {
         "packageName": "codex",

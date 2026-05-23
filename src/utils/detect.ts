@@ -38,6 +38,10 @@ export async function isCargoAvailable(): Promise<boolean> {
   return isCommandAvailable('cargo')
 }
 
+export async function isMiseAvailable(): Promise<boolean> {
+  return isCommandAvailable('mise')
+}
+
 export async function isWingetAvailable(): Promise<boolean> {
   return isCommandAvailable('winget')
 }

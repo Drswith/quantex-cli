@@ -9,6 +9,7 @@ import {
   isBrewAvailable,
   isBunAvailable,
   isCargoAvailable,
+  isMiseAvailable,
   isNpmAvailable,
   isPipAvailable,
   isUvAvailable,
@@ -56,6 +57,7 @@ interface DoctorData {
     brew: boolean
     bun: boolean
     cargo: boolean
+    mise: boolean
     npm: boolean
     pip: boolean
     uv: boolean
@@ -76,6 +78,7 @@ export async function doctorCommand(): Promise<CommandResult<DoctorData>> {
   const npmAvailable = await isNpmAvailable()
   const brewAvailable = await isBrewAvailable()
   const cargoAvailable = await isCargoAvailable()
+  const miseAvailable = await isMiseAvailable()
   const pipAvailable = await isPipAvailable()
   const uvAvailable = await isUvAvailable()
   const wingetAvailable = await isWingetAvailable()
@@ -108,6 +111,7 @@ export async function doctorCommand(): Promise<CommandResult<DoctorData>> {
     !npmAvailable &&
     !brewAvailable &&
     !cargoAvailable &&
+    !miseAvailable &&
     !pipAvailable &&
     !uvAvailable &&
     !wingetAvailable
@@ -118,7 +122,7 @@ export async function doctorCommand(): Promise<CommandResult<DoctorData>> {
       code: 'NO_MANAGED_INSTALLER',
       docsRef: troubleshootingDocsRef,
       message:
-        'No managed installer found. Install bun, npm, brew, cargo, pip, uv, or winget before relying on managed lifecycle operations.',
+        'No managed installer found. Install bun, npm, brew, cargo, mise, pip, uv, or winget before relying on managed lifecycle operations.',
       severity: 'warning',
       subject: { kind: 'system' },
       suggestedAction: 'restore-managed-installer',
@@ -228,6 +232,7 @@ export async function doctorCommand(): Promise<CommandResult<DoctorData>> {
           brew: brewAvailable,
           bun: bunAvailable,
           cargo: cargoAvailable,
+          mise: miseAvailable,
           npm: npmAvailable,
           pip: pipAvailable,
           uv: uvAvailable,
@@ -261,6 +266,7 @@ function renderDoctorHuman(result: { data?: DoctorData }): void {
   console.log(`  npm:   ${result.data.installers.npm ? pc.green('available') : pc.red('not found')}`)
   console.log(`  brew:  ${result.data.installers.brew ? pc.green('available') : pc.red('not found')}`)
   console.log(`  cargo: ${result.data.installers.cargo ? pc.green('available') : pc.red('not found')}`)
+  console.log(`  mise:  ${result.data.installers.mise ? pc.green('available') : pc.red('not found')}`)
   console.log(`  pip:   ${result.data.installers.pip ? pc.green('available') : pc.red('not found')}`)
   console.log(`  uv:    ${result.data.installers.uv ? pc.green('available') : pc.red('not found')}`)
   console.log(`  winget:${result.data.installers.winget ? pc.green('available') : pc.red('not found')}`)

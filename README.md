@@ -243,6 +243,8 @@ User configuration lives at `~/.quantex/config.json`:
 }
 ```
 
+`defaultPackageManager` can be `bun`, `npm`, or `mise`. It only changes agent install-method ordering when the selected agent exposes that managed installer; it does not make Quantex install missing package managers for you.
+
 `selfUpdateRegistry` only affects the registry used when Quantex upgrades itself through Bun/npm. It does not change the default install source for your other projects. For a one-off override, use the `QTX_SELF_UPDATE_REGISTRY` environment variable.
 
 Runtime state lives at `~/.quantex/state.json`. Quantex records the actual install source for agents and itself, which powers grouped `update --all` execution, `doctor` recovery guidance, and self-upgrade source detection.
