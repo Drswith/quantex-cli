@@ -21,5 +21,5 @@
 
 ## 5. Delivery
 
-- [ ] 5.1 Commit and push the fix branch.
-- [ ] 5.2 Prepare a PR body from `.github/pull_request_template.md`, validate it, and open the PR.
+- [x] 5.1 Commit and push the fix branch.
+- [x] 5.2 Prepare a PR body from `.github/pull_request_template.md`, validate it, and open the PR.
