@@ -4,10 +4,11 @@ const nonEmptyStringSchema = z.string().min(1)
 const commandSchema = z.array(nonEmptyStringSchema).min(1)
 
 export const platformSchema = z.enum(['windows', 'macos', 'linux'])
-export const managedInstallTypeSchema = z.enum(['bun', 'npm', 'brew', 'cargo', 'mise', 'pip', 'uv', 'winget'])
+export const managedInstallTypeSchema = z.enum(['bun', 'npm', 'brew', 'cargo', 'deno', 'mise', 'pip', 'uv', 'winget'])
 export const packageTargetKindSchema = z.enum(['package', 'cask', 'id'])
 
 const baseInstallMethodSchema = {
+  binaryName: nonEmptyStringSchema.optional(),
   packageInstallArgs: z.array(nonEmptyStringSchema).min(1).optional(),
   packageName: nonEmptyStringSchema.optional(),
   packageTargetKind: packageTargetKindSchema.optional(),
@@ -45,6 +46,7 @@ export const installMethodSchema = z.discriminatedUnion('type', [
 export const agentPackageMetadataSchema = z
   .object({
     cargo: nonEmptyStringSchema.optional(),
+    deno: nonEmptyStringSchema.optional(),
     mise: nonEmptyStringSchema.optional(),
     npm: nonEmptyStringSchema.optional(),
     pip: nonEmptyStringSchema.optional(),

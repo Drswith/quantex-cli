@@ -82,6 +82,23 @@ describe('agent update providers', () => {
     ).toBe('uv')
   })
 
+  it('resolves managed updates from Deno install methods', () => {
+    const provider = resolveAgentUpdateProvider({
+      agent: {
+        packages: {
+          deno: 'jsr:@scope/test-tool',
+        },
+      },
+      installedState: undefined,
+      methods: [{ packageInstallArgs: ['--allow-net'], type: 'deno' }],
+    })
+
+    expect(provider.strategy).toBe('managed')
+    expect(
+      provider.getManagedInstallerType?.({ agent: {}, installedState: undefined, methods: [{ type: 'deno' }] }),
+    ).toBe('deno')
+  })
+
   it('resolves self-update when only update commands are available', () => {
     const provider = resolveAgentUpdateProvider({
       agent: {

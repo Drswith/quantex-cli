@@ -90,6 +90,23 @@ describe('isUvAvailable', () => {
   })
 })
 
+describe('isDenoAvailable', () => {
+  it('returns true when spawn succeeds', async () => {
+    const { isDenoAvailable } = await import('../../src/utils/detect')
+    mockSpawn.mockReturnValue(createMockProcess(0))
+    expect(await isDenoAvailable()).toBe(true)
+    expect(mockSpawn).toHaveBeenCalledWith(['deno', '--version'], expect.any(Object))
+  })
+
+  it('returns false when spawn throws', async () => {
+    const { isDenoAvailable } = await import('../../src/utils/detect')
+    mockSpawn.mockImplementation(() => {
+      throw new Error('not found')
+    })
+    expect(await isDenoAvailable()).toBe(false)
+  })
+})
+
 describe('isMiseAvailable', () => {
   it('returns true when spawn succeeds', async () => {
     const { isMiseAvailable } = await import('../../src/utils/detect')

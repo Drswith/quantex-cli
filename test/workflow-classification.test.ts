@@ -22,7 +22,7 @@ describe('workflow classification integration', () => {
     expect(sandboxWorkflow).toContain('bun run scripts/path-taxonomy.ts')
     expect(sandboxWorkflow).toContain('sandbox_relevant')
     expect(sandboxWorkflow).toContain(
-      'QTX_ISOLATION_SCENARIOS=managed,uv-managed,adopt-preinstalled,ambiguous-multi-method,self-binary',
+      'QTX_ISOLATION_SCENARIOS=managed,deno-managed,uv-managed,adopt-preinstalled,ambiguous-multi-method,self-binary',
     )
     expect(sandboxWorkflow).not.toContain("'src/self/**'")
   })

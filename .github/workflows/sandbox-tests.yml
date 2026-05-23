@@ -206,7 +206,7 @@ jobs:
           MODAL_TOKEN_SECRET: ${{ secrets.MODAL_TOKEN_SECRET }}
         run: |
           if [ "${GITHUB_EVENT_NAME}" = "pull_request" ]; then
-            export QTX_ISOLATION_SCENARIOS=managed,uv-managed,adopt-preinstalled,ambiguous-multi-method,self-binary
+            export QTX_ISOLATION_SCENARIOS=managed,deno-managed,uv-managed,adopt-preinstalled,ambiguous-multi-method,self-binary
           fi
 
           bun run test:sandbox

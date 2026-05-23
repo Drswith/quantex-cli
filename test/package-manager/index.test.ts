@@ -6,6 +6,7 @@ import * as config from '../../src/config'
 import * as binaryPm from '../../src/package-manager/binary'
 import * as bunPm from '../../src/package-manager/bun'
 import * as cargoPm from '../../src/package-manager/cargo'
+import * as denoPm from '../../src/package-manager/deno'
 import {
   installAgent,
   trackInstalledAgent,
@@ -27,6 +28,10 @@ const cargoInstallSpy = vi.spyOn(cargoPm, 'install')
 const cargoUpdateSpy = vi.spyOn(cargoPm, 'update')
 const cargoUpdateManySpy = vi.spyOn(cargoPm, 'updateMany')
 const cargoUninstallSpy = vi.spyOn(cargoPm, 'uninstall')
+const denoInstallSpy = vi.spyOn(denoPm, 'install')
+const denoUpdateSpy = vi.spyOn(denoPm, 'update')
+const denoUpdateManySpy = vi.spyOn(denoPm, 'updateMany')
+const denoUninstallSpy = vi.spyOn(denoPm, 'uninstall')
 const miseInstallSpy = vi.spyOn(misePm, 'install')
 const miseUpdateSpy = vi.spyOn(misePm, 'update')
 const miseUpdateManySpy = vi.spyOn(misePm, 'updateMany')
@@ -44,6 +49,7 @@ const loadConfigSpy = vi.spyOn(config, 'loadConfig')
 const getPlatformSpy = vi.spyOn(detectUtils, 'getPlatform')
 const isBunSpy = vi.spyOn(detectUtils, 'isBunAvailable')
 const isCargoSpy = vi.spyOn(detectUtils, 'isCargoAvailable')
+const isDenoSpy = vi.spyOn(detectUtils, 'isDenoAvailable')
 const isMiseSpy = vi.spyOn(detectUtils, 'isMiseAvailable')
 const isNpmSpy = vi.spyOn(detectUtils, 'isNpmAvailable')
 const isUvSpy = vi.spyOn(detectUtils, 'isUvAvailable')
@@ -74,6 +80,10 @@ beforeEach(() => {
   cargoUpdateSpy.mockClear()
   cargoUpdateManySpy.mockClear()
   cargoUninstallSpy.mockClear()
+  denoInstallSpy.mockClear()
+  denoUpdateSpy.mockClear()
+  denoUpdateManySpy.mockClear()
+  denoUninstallSpy.mockClear()
   miseInstallSpy.mockClear()
   miseUpdateSpy.mockClear()
   miseUpdateManySpy.mockClear()
@@ -91,6 +101,7 @@ beforeEach(() => {
   getPlatformSpy.mockClear()
   isBunSpy.mockClear()
   isCargoSpy.mockClear()
+  isDenoSpy.mockClear()
   isMiseSpy.mockClear()
   isNpmSpy.mockClear()
   isUvSpy.mockClear()
@@ -124,6 +135,10 @@ afterAll(() => {
   cargoUpdateSpy.mockRestore()
   cargoUpdateManySpy.mockRestore()
   cargoUninstallSpy.mockRestore()
+  denoInstallSpy.mockRestore()
+  denoUpdateSpy.mockRestore()
+  denoUpdateManySpy.mockRestore()
+  denoUninstallSpy.mockRestore()
   miseInstallSpy.mockRestore()
   miseUpdateSpy.mockRestore()
   miseUpdateManySpy.mockRestore()
@@ -141,6 +156,7 @@ afterAll(() => {
   getPlatformSpy.mockRestore()
   isBunSpy.mockRestore()
   isCargoSpy.mockRestore()
+  isDenoSpy.mockRestore()
   isMiseSpy.mockRestore()
   isNpmSpy.mockRestore()
   isUvSpy.mockRestore()
@@ -251,6 +267,34 @@ describe('installAgent', () => {
       },
     })
     expect(uvInstallSpy).toHaveBeenCalledWith('test-tool', ['--python', '3.12'])
+    expect(npmInstallSpy).not.toHaveBeenCalled()
+  })
+
+  it('installs Deno-managed agents from Deno package metadata and install args', async () => {
+    const denoAgent = {
+      ...testAgent,
+      binaryName: 'test-deno-bin',
+      packages: { deno: 'jsr:@scope/test-tool' },
+      platforms: {
+        linux: [{ packageInstallArgs: ['--allow-net'], type: 'deno' as const }],
+      },
+    }
+
+    isDenoSpy.mockResolvedValue(true)
+    denoInstallSpy.mockResolvedValue(true)
+    setInstalledAgentStateSpy.mockResolvedValue()
+
+    expect(await installAgent(denoAgent)).toEqual({
+      success: true,
+      installedState: {
+        agentName: 'test-agent',
+        binaryName: 'test-deno-bin',
+        installType: 'deno',
+        packageInstallArgs: ['--allow-net'],
+        packageName: 'jsr:@scope/test-tool',
+      },
+    })
+    expect(denoInstallSpy).toHaveBeenCalledWith('jsr:@scope/test-tool', ['--allow-net'])
     expect(npmInstallSpy).not.toHaveBeenCalled()
   })
 
@@ -537,6 +581,34 @@ describe('updateAgent', () => {
     expect(bunUpdateSpy).not.toHaveBeenCalled()
   })
 
+  it('updates Deno-managed agents from recorded state', async () => {
+    isDenoSpy.mockResolvedValue(true)
+    denoUpdateSpy.mockResolvedValue(true)
+    setInstalledAgentStateSpy.mockResolvedValue()
+
+    expect(
+      await updateAgent(
+        {
+          ...testAgent,
+          packages: { deno: 'jsr:@scope/test-tool' },
+          platforms: {
+            linux: [{ packageInstallArgs: ['--allow-net'], type: 'deno' as const }],
+          },
+        },
+        {
+          agentName: 'test-agent',
+          binaryName: 'test-deno-bin',
+          installType: 'deno',
+          packageInstallArgs: ['--allow-net'],
+          packageName: 'jsr:@scope/test-tool',
+        },
+      ),
+    ).toMatchObject({ success: true })
+
+    expect(denoUpdateSpy).toHaveBeenCalledWith('jsr:@scope/test-tool', ['--allow-net'])
+    expect(bunUpdateSpy).not.toHaveBeenCalled()
+  })
+
   it('updates mise-managed agents from recorded state', async () => {
     isMiseSpy.mockResolvedValue(true)
     miseUpdateSpy.mockResolvedValue(true)
@@ -613,6 +685,23 @@ describe('updateAgentsByType', () => {
     ])
   })
 
+  it('batches Deno updates', async () => {
+    isDenoSpy.mockResolvedValue(true)
+    denoUpdateManySpy.mockResolvedValue(true)
+
+    expect(
+      await updateAgentsByType('deno', [
+        { binaryName: 'test-tool', packageInstallArgs: ['--allow-net'], packageName: 'jsr:@scope/test-tool' },
+        { binaryName: 'test-tool', packageInstallArgs: ['--allow-net'], packageName: 'jsr:@scope/test-tool' },
+        { binaryName: 'other-tool', packageName: 'npm:@scope/other-tool' },
+      ]),
+    ).toBe(true)
+    expect(denoUpdateManySpy).toHaveBeenCalledWith([
+      { binaryName: 'test-tool', packageInstallArgs: ['--allow-net'], packageName: 'jsr:@scope/test-tool' },
+      { binaryName: 'other-tool', packageName: 'npm:@scope/other-tool' },
+    ])
+  })
+
   it('batches mise updates', async () => {
     isMiseSpy.mockResolvedValue(true)
     miseUpdateManySpy.mockResolvedValue(true)
@@ -684,6 +773,22 @@ describe('uninstallAgent', () => {
 
     expect(await uninstallAgent(testAgent)).toBe(true)
     expect(uvUninstallSpy).toHaveBeenCalledWith('test-tool')
+    expect(bunUninstallSpy).not.toHaveBeenCalled()
+    expect(removeInstalledAgentStateSpy).toHaveBeenCalledWith('test-agent')
+  })
+
+  it('uninstalls Deno-managed agents by recorded binary name', async () => {
+    getInstalledAgentStateSpy.mockResolvedValue({
+      agentName: 'test-agent',
+      binaryName: 'test-deno-bin',
+      installType: 'deno',
+      packageName: 'jsr:@scope/test-tool',
+    })
+    isDenoSpy.mockResolvedValue(true)
+    denoUninstallSpy.mockResolvedValue(true)
+
+    expect(await uninstallAgent(testAgent)).toBe(true)
+    expect(denoUninstallSpy).toHaveBeenCalledWith('test-deno-bin')
     expect(bunUninstallSpy).not.toHaveBeenCalled()
     expect(removeInstalledAgentStateSpy).toHaveBeenCalledWith('test-agent')
   })

@@ -26,6 +26,7 @@ export function getManagedPackageName(
 ): string | undefined {
   if (method.packageName) return method.packageName
   if (method.type === 'cargo') return agent.packages?.cargo
+  if (method.type === 'deno') return agent.packages?.deno
   if (method.type === 'mise') return agent.packages?.mise
   if (method.type === 'pip') return agent.packages?.pip
   if (method.type === 'uv') return agent.packages?.uv
@@ -116,6 +117,13 @@ export function formatInstallMethodCommand(agent: Pick<AgentDefinition, 'package
   if (method.type === 'cargo') {
     const packageName = getManagedPackageName(agent, method)
     return packageName ? ['cargo', 'install', packageName, ...(method.packageInstallArgs ?? [])].join(' ') : ''
+  }
+
+  if (method.type === 'deno') {
+    const packageName = getManagedPackageName(agent, method)
+    return packageName
+      ? ['deno', 'install', '--global', ...(method.packageInstallArgs ?? []), packageName].join(' ')
+      : ''
   }
 
   if (method.type === 'mise') {

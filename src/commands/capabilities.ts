@@ -9,6 +9,7 @@ import {
   isBrewAvailable,
   isBunAvailable,
   isCargoAvailable,
+  isDenoAvailable,
   isMiseAvailable,
   isNpmAvailable,
   isPipAvailable,
@@ -46,6 +47,10 @@ interface CapabilitiesData {
       available: boolean
       reason?: string
     }
+    deno: {
+      available: boolean
+      reason?: string
+    }
     mise: {
       available: boolean
       reason?: string
@@ -80,6 +85,7 @@ export async function capabilitiesCommand(): Promise<CommandResult<CapabilitiesD
     npmAvailable,
     brewAvailable,
     cargoAvailable,
+    denoAvailable,
     miseAvailable,
     pipAvailable,
     uvAvailable,
@@ -90,6 +96,7 @@ export async function capabilitiesCommand(): Promise<CommandResult<CapabilitiesD
     isNpmAvailable(),
     isBrewAvailable(),
     isCargoAvailable(),
+    isDenoAvailable(),
     isMiseAvailable(),
     isPipAvailable(),
     isUvAvailable(),
@@ -130,6 +137,10 @@ export async function capabilitiesCommand(): Promise<CommandResult<CapabilitiesD
             available: cargoAvailable,
             reason: cargoAvailable ? undefined : getUnavailableReason('cargo'),
           },
+          deno: {
+            available: denoAvailable,
+            reason: denoAvailable ? undefined : getUnavailableReason('deno'),
+          },
           mise: {
             available: miseAvailable,
             reason: miseAvailable ? undefined : getUnavailableReason('mise'),
@@ -166,7 +177,9 @@ export async function capabilitiesCommand(): Promise<CommandResult<CapabilitiesD
   )
 }
 
-function getUnavailableReason(installer: 'brew' | 'bun' | 'cargo' | 'mise' | 'npm' | 'pip' | 'uv' | 'winget'): string {
+function getUnavailableReason(
+  installer: 'brew' | 'bun' | 'cargo' | 'deno' | 'mise' | 'npm' | 'pip' | 'uv' | 'winget',
+): string {
   if (installer === 'winget' && process.platform !== 'win32') return 'not-on-platform'
 
   if (installer === 'brew' && process.platform === 'win32') return 'not-on-platform'
@@ -187,6 +200,7 @@ function renderCapabilitiesHuman(result: { data?: CapabilitiesData }): void {
   console.log(`    npm:    ${formatCapabilityAvailability(result.data.installers.npm)}`)
   console.log(`    brew:   ${formatCapabilityAvailability(result.data.installers.brew)}`)
   console.log(`    cargo:  ${formatCapabilityAvailability(result.data.installers.cargo)}`)
+  console.log(`    deno:   ${formatCapabilityAvailability(result.data.installers.deno)}`)
   console.log(`    mise:   ${formatCapabilityAvailability(result.data.installers.mise)}`)
   console.log(`    pip:    ${formatCapabilityAvailability(result.data.installers.pip)}`)
   console.log(`    uv:     ${formatCapabilityAvailability(result.data.installers.uv)}`)

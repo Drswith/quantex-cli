@@ -10,6 +10,7 @@ import {
   devin,
   droid,
   gemini,
+  genie,
   jcode,
   getAgentByLookupName,
   getAgentByNameOrAlias,
@@ -106,6 +107,13 @@ describe('agent registry', () => {
     expect(agent!.name).toBe('vtcode')
     expect(agent!.binaryName).toBe('vtcode')
   })
+
+  it('finds Genie by name', () => {
+    const agent = getAgentByNameOrAlias('genie')
+    expect(agent).toBeDefined()
+    expect(agent!.name).toBe('genie')
+    expect(agent!.binaryName).toBe('genie')
+  })
 })
 
 describe('agent definitions', () => {
@@ -163,6 +171,14 @@ describe('agent definitions', () => {
     expect(agent!.displayName).toBe('OpenHands CLI')
     expect(agent!.binaryName).toBe('openhands')
     expect(agent!.homepage).toBe('https://docs.openhands.dev/openhands/usage/cli/installation')
+  })
+
+  it('genie has correct Deno-managed structure', () => {
+    const agent = getAgentByNameOrAlias('genie')
+    expect(agent).toBe(genie)
+    expect(agent!.displayName).toBe('Genie')
+    expect(agent!.packages?.deno).toBe('jsr:@nicorio/genie')
+    expect(agent!.platforms.linux!.find(method => method.type === 'deno')).toBeDefined()
   })
 
   it('kilo has correct structure', () => {

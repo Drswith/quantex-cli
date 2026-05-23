@@ -1,4 +1,4 @@
-import type { InstallMethod } from '../agents/types'
+import type { AgentDefinition, InstallMethod } from '../agents/types'
 import type { SpawnHandle } from '../utils/child-process'
 import type { ExecInstallPolicy } from './exec'
 import process from 'node:process'
@@ -195,7 +195,7 @@ function createExecInstallGuidance(
     binaryName: string
     displayName: string
     name: string
-    packages?: { cargo?: string; mise?: string; npm?: string; pip?: string; uv?: string }
+    packages?: AgentDefinition['packages']
   },
   methods: InstallMethod[],
   args: string[],

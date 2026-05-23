@@ -81,7 +81,9 @@ function validateAgent(agent: AgentDefinition): void {
     expect(['windows', 'macos', 'linux']).toContain(platform)
     expect(methods!.length).toBeGreaterThan(0)
     for (const method of methods!) {
-      expect(['bun', 'npm', 'brew', 'cargo', 'mise', 'pip', 'uv', 'winget', 'script', 'binary']).toContain(method.type)
+      expect(['bun', 'npm', 'brew', 'cargo', 'deno', 'mise', 'pip', 'uv', 'winget', 'script', 'binary']).toContain(
+        method.type,
+      )
       if (method.type === 'script' || method.type === 'binary') {
         expect(typeof method.command).toBe('string')
         expect(method.command.length).toBeGreaterThan(0)

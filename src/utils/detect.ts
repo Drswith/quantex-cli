@@ -34,6 +34,10 @@ export async function isBrewAvailable(): Promise<boolean> {
   return isCommandAvailable('brew')
 }
 
+export async function isDenoAvailable(): Promise<boolean> {
+  return isCommandAvailable('deno')
+}
+
 export async function isCargoAvailable(): Promise<boolean> {
   return isCommandAvailable('cargo')
 }

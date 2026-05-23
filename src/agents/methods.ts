@@ -30,6 +30,19 @@ export function cargoInstall(packageName?: string, packageInstallArgs?: string[]
   }
 }
 
+export function denoInstall(
+  packageName?: string,
+  binaryName?: string,
+  packageInstallArgs?: string[],
+): ManagedInstallMethod {
+  return {
+    binaryName,
+    packageInstallArgs,
+    packageName,
+    type: 'deno',
+  }
+}
+
 export function pipInstall(packageName?: string): ManagedInstallMethod {
   return {
     packageName,
