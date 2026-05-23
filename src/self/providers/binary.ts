@@ -1,6 +1,6 @@
 import type { SelfInspection, SelfUpdateResult, SelfUpgradePlan } from '../types'
 import type { SelfUpgradeProvider } from './types'
-import { upgradeStandaloneBinary } from '../binary'
+import { getWindowsStandaloneBinaryPeerPath, upgradeStandaloneBinary } from '../binary'
 import { getBinaryReleaseDownloadUrl } from '../release'
 
 export const binarySelfUpgradeProvider: SelfUpgradeProvider = {
@@ -46,6 +46,7 @@ export const binarySelfUpgradeProvider: SelfUpgradeProvider = {
       plan.facts.executablePath,
       asset.checksum,
       plan.target.targetVersion ?? 'latest',
+      getWindowsStandaloneBinaryPeerPath(plan.facts.executablePath),
     )
 
     const enrichedResult =

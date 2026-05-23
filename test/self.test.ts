@@ -231,7 +231,7 @@ describe('self helpers', () => {
       installSource: 'binary',
       newVersion: '1.1.0',
     })
-    expect(binaryUpgradeSpy).toHaveBeenCalledWith(downloadUrl, '/usr/local/bin/qtx', 'abc123', '1.1.0')
+    expect(binaryUpgradeSpy).toHaveBeenCalledWith(downloadUrl, '/usr/local/bin/qtx', 'abc123', '1.1.0', undefined)
     expect(
       getSelfUpgradeRecoveryHint('binary', '/usr/local/bin/qtx', 'stable', {
         error: {
@@ -265,6 +265,52 @@ describe('self helpers', () => {
         '/usr/local/bin/qtx',
       )?.name,
     ).toBe(getBinaryReleaseAssetName('/usr/local/bin/qtx'))
+  })
+
+  it('passes the Windows standalone peer alias path into binary self-upgrade', async () => {
+    const { upgradeSelf } = await import('../src/self')
+    Object.defineProperty(process, 'platform', { value: 'win32' })
+    Object.defineProperty(process, 'arch', { value: 'x64' })
+    const downloadUrl = 'https://example.com/releases/download/v1.1.0/quantex-windows-x64.exe'
+
+    releaseManifestSpy.mockResolvedValue({
+      assets: [
+        {
+          arch: 'x64',
+          checksum: 'abc123',
+          downloadUrl,
+          name: 'quantex-windows-x64.exe',
+          platform: 'win32',
+        },
+      ],
+      channel: 'stable',
+      version: '1.1.0',
+    })
+    binaryUpgradeSpy.mockResolvedValue({ success: true })
+
+    const result = await upgradeSelf({
+      canAutoUpdate: true,
+      currentVersion: '1.0.0',
+      executablePath: 'C:\\Users\\test\\.local\\bin\\qtx.exe',
+      installSource: 'binary',
+      latestVersion: '1.1.0',
+      packageRoot: 'C:\\Users\\test\\.local\\bin',
+      recommendedUpgradeCommand: 'quantex upgrade',
+      updateChannel: 'stable',
+    })
+
+    expect(result).toEqual({
+      success: true,
+      installSource: 'binary',
+      newVersion: '1.1.0',
+    })
+    expect(binaryUpgradeSpy).toHaveBeenCalledWith(
+      downloadUrl,
+      'C:\\Users\\test\\.local\\bin\\qtx.exe',
+      'abc123',
+      '1.1.0',
+      'C:\\Users\\test\\.local\\bin\\quantex.exe',
+    )
   })
 
   it('derives manual recovery hints through the provider registry', async () => {

@@ -2,7 +2,7 @@ import type { SelfUpdateResult, SelfUpgradeErrorKind } from './types'
 import { Buffer } from 'node:buffer'
 import { createHash } from 'node:crypto'
 import { chmod, mkdtemp, rename, rm, stat, writeFile } from 'node:fs/promises'
-import { basename, dirname, join } from 'node:path'
+import { basename, dirname, join, win32 } from 'node:path'
 import process from 'node:process'
 import { readProcessOutput, spawnCommand } from '../utils/child-process'
 
@@ -13,6 +13,7 @@ export async function upgradeStandaloneBinary(
   executablePath: string,
   expectedChecksum: string,
   expectedVersion?: string,
+  windowsPeerExecutablePath: string | undefined = getWindowsStandaloneBinaryPeerPath(executablePath),
 ): Promise<BinaryUpgradeResult> {
   let response: Response
 
@@ -46,7 +47,14 @@ export async function upgradeStandaloneBinary(
     await writeFile(tempPath, binary)
 
     if (process.platform === 'win32')
-      return scheduleWindowsBinaryReplacement(tempPath, executablePath, backupPath, tempDir, expectedVersion)
+      return scheduleWindowsBinaryReplacement(
+        tempPath,
+        executablePath,
+        backupPath,
+        tempDir,
+        expectedVersion,
+        windowsPeerExecutablePath,
+      )
 
     await chmod(tempPath, executableMode)
     await rm(backupPath, { force: true })
@@ -87,6 +95,16 @@ export async function upgradeStandaloneBinary(
   }
 }
 
+export function getWindowsStandaloneBinaryPeerPath(executablePath: string): string | undefined {
+  if (process.platform !== 'win32') return undefined
+
+  const executableName = win32.basename(executablePath).toLowerCase()
+  if (executableName === 'qtx.exe') return win32.join(win32.dirname(executablePath), 'quantex.exe')
+  if (executableName === 'quantex.exe') return win32.join(win32.dirname(executablePath), 'qtx.exe')
+
+  return undefined
+}
+
 async function resolveExecutableMode(executablePath: string): Promise<number> {
   try {
     return (await stat(executablePath)).mode & 0o777
@@ -101,6 +119,7 @@ function scheduleWindowsBinaryReplacement(
   backupPath: string,
   tempDir: string,
   expectedVersion?: string,
+  peerExecutablePath?: string,
 ): BinaryUpgradeResult {
   try {
     const command = createWindowsReplacementCommand(
@@ -110,6 +129,7 @@ function scheduleWindowsBinaryReplacement(
       tempDir,
       process.pid,
       expectedVersion,
+      peerExecutablePath,
     )
     const proc = spawnCommand(
       [
@@ -145,20 +165,24 @@ function createWindowsReplacementCommand(
   tempDir: string,
   pid: number,
   expectedVersion?: string,
+  peerExecutablePath?: string,
 ): string {
   const escapedTempPath = escapePowerShellString(tempPath)
   const escapedExecutablePath = escapePowerShellString(executablePath)
   const escapedBackupPath = escapePowerShellString(backupPath)
   const escapedTempDir = escapePowerShellString(tempDir)
   const escapedExpectedVersion = escapePowerShellString(expectedVersion ?? '')
+  const escapedPeerExecutablePath = escapePowerShellString(peerExecutablePath ?? '')
 
   return [
+    `$ErrorActionPreference = 'Stop'`,
     `$pidToWait = ${pid}`,
     `$tempPath = '${escapedTempPath}'`,
     `$targetPath = '${escapedExecutablePath}'`,
     `$backupPath = '${escapedBackupPath}'`,
     `$tempDir = '${escapedTempDir}'`,
     `$expectedVersion = '${escapedExpectedVersion}'`,
+    `$peerPath = '${escapedPeerExecutablePath}'`,
     `while (Get-Process -Id $pidToWait -ErrorAction SilentlyContinue) { Start-Sleep -Milliseconds 200 }`,
     `for ($attempt = 0; $attempt -lt 50; $attempt++) {`,
     `  try {`,
@@ -179,6 +203,9 @@ function createWindowsReplacementCommand(
     `    Remove-Item -LiteralPath $tempDir -Force -Recurse -ErrorAction SilentlyContinue`,
     `    exit 1`,
     `  }`,
+    `}`,
+    `if ($peerPath -ne '') {`,
+    `  Copy-Item -LiteralPath $targetPath -Destination $peerPath -Force`,
     `}`,
     `Remove-Item -LiteralPath $backupPath -Force -ErrorAction SilentlyContinue`,
     `Remove-Item -LiteralPath $tempDir -Force -Recurse -ErrorAction SilentlyContinue`,

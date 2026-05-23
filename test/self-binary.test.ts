@@ -6,7 +6,7 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import process from 'node:process'
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { upgradeStandaloneBinary } from '../src/self/binary'
+import { getWindowsStandaloneBinaryPeerPath, upgradeStandaloneBinary } from '../src/self/binary'
 
 const originalFetch = globalThis.fetch
 const originalPlatform = process.platform
@@ -57,6 +57,10 @@ describe('upgradeStandaloneBinary', () => {
       expect(command).toContain('-Command')
       expect(command[command.length - 1]).toContain('Move-Item -LiteralPath')
       expect(command[command.length - 1]).toContain('qtx.exe')
+      const peerPath = getWindowsStandaloneBinaryPeerPath(executablePath)
+      expect(peerPath).toBeTruthy()
+      expect(command[command.length - 1]).toContain(`$peerPath = '${peerPath!.replaceAll("'", "''")}'`)
+      expect(command[command.length - 1]).toContain('Copy-Item -LiteralPath $targetPath -Destination $peerPath -Force')
       expect(options).toMatchObject({
         stdio: ['ignore', 'ignore', 'ignore'],
         windowsHide: true,
@@ -64,6 +68,82 @@ describe('upgradeStandaloneBinary', () => {
     } finally {
       await rm(tempRoot, { recursive: true, force: true })
     }
+  })
+
+  it('schedules peer alias replacement when launched from quantex.exe on Windows', async () => {
+    const tempRoot = await mkdtemp(join(tmpdir(), 'quantex-binary-win-long-'))
+    const executablePath = join(tempRoot, 'quantex.exe')
+    const mockSpawn = vi.fn().mockReturnValue({
+      exitCode: 0,
+      exited: Promise.resolve(0),
+      unref: vi.fn(),
+    })
+
+    Bun.spawn = mockSpawn as typeof Bun.spawn
+    Object.defineProperty(process, 'platform', { value: 'win32' })
+
+    await writeFile(executablePath, 'old-binary', 'utf8')
+    globalThis.fetch = vi
+      .fn()
+      .mockResolvedValue(new Response(Buffer.from('new-binary'), { status: 200 })) as unknown as typeof fetch
+    const checksum = createHash('sha256').update('new-binary').digest('hex')
+
+    try {
+      expect(await upgradeStandaloneBinary('https://example.com/quantex.exe', executablePath, checksum)).toEqual({
+        success: true,
+      })
+
+      const [command] = mockSpawn.mock.calls[0] as [string[], Record<string, unknown>]
+      const peerPath = getWindowsStandaloneBinaryPeerPath(executablePath)
+      expect(peerPath).toBeTruthy()
+      expect(command[command.length - 1]).toContain(`$peerPath = '${peerPath!.replaceAll("'", "''")}'`)
+      expect(command[command.length - 1]).toContain('Copy-Item -LiteralPath $targetPath -Destination $peerPath -Force')
+    } finally {
+      await rm(tempRoot, { recursive: true, force: true })
+    }
+  })
+
+  it('does not infer a peer alias for custom Windows executable names', async () => {
+    const tempRoot = await mkdtemp(join(tmpdir(), 'quantex-binary-win-custom-'))
+    const executablePath = join(tempRoot, 'custom.exe')
+    const mockSpawn = vi.fn().mockReturnValue({
+      exitCode: 0,
+      exited: Promise.resolve(0),
+      unref: vi.fn(),
+    })
+
+    Bun.spawn = mockSpawn as typeof Bun.spawn
+    Object.defineProperty(process, 'platform', { value: 'win32' })
+
+    await writeFile(executablePath, 'old-binary', 'utf8')
+    globalThis.fetch = vi
+      .fn()
+      .mockResolvedValue(new Response(Buffer.from('new-binary'), { status: 200 })) as unknown as typeof fetch
+    const checksum = createHash('sha256').update('new-binary').digest('hex')
+
+    try {
+      expect(await upgradeStandaloneBinary('https://example.com/custom.exe', executablePath, checksum)).toEqual({
+        success: true,
+      })
+
+      const [command] = mockSpawn.mock.calls[0] as [string[], Record<string, unknown>]
+      expect(command[command.length - 1]).toContain(`$peerPath = ''`)
+      expect(command[command.length - 1]).toContain("if ($peerPath -ne '')")
+    } finally {
+      await rm(tempRoot, { recursive: true, force: true })
+    }
+  })
+
+  it('derives Windows standalone peer aliases only for known entry point names', () => {
+    Object.defineProperty(process, 'platform', { value: 'win32' })
+
+    expect(getWindowsStandaloneBinaryPeerPath('C:\\Users\\test\\.local\\bin\\qtx.exe')).toBe(
+      'C:\\Users\\test\\.local\\bin\\quantex.exe',
+    )
+    expect(getWindowsStandaloneBinaryPeerPath('C:\\Users\\test\\.local\\bin\\quantex.exe')).toBe(
+      'C:\\Users\\test\\.local\\bin\\qtx.exe',
+    )
+    expect(getWindowsStandaloneBinaryPeerPath('C:\\Users\\test\\.local\\bin\\custom.exe')).toBeUndefined()
   })
 
   it('downloads and replaces the current executable', async () => {
