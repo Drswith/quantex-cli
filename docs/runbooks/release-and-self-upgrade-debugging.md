@@ -197,6 +197,13 @@ Focus areas:
 - post-replacement `--version` verification
 - rollback from `.bak` when verification fails
 
+Windows standalone installs use two executable files in the same install directory:
+
+- `quantex.exe` is the canonical downloaded binary
+- `qtx.exe` is a copied alias because Windows symlink permissions are not reliable for the default installer
+
+When debugging Windows binary self-upgrade, treat those files as one install. A successful delayed replacement from either entry point should leave both files on the upgraded binary. Manual recovery or uninstall cleanup should remove or replace both `quantex.exe` and `qtx.exe` together.
+
 ### 7. Debug install-source detection and state drift
 
 If the wrong provider is chosen, inspect install-source detection before touching release code.
