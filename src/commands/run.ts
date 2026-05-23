@@ -305,15 +305,19 @@ async function tryInstallForRun(
 
 async function runSpawnedAgentProcess(handle: SpawnHandle, displayName: string): Promise<number> {
   const { timeoutMs } = getCliContext()
+  let cancellationCodePromise: Promise<number> | undefined
   let cleanup: (() => void) | undefined
   let timeoutId: ReturnType<typeof setTimeout> | undefined
 
   try {
     const signalPromise = new Promise<number>(resolve => {
       const handleSignal = (signal: NodeJS.Signals): void => {
-        cancelCliContextOperations()
-        printError(pc.red(`${displayName} was cancelled by ${signal}.`))
-        resolve(getExitCodeForError('CANCELLED'))
+        cancellationCodePromise ??= (async () => {
+          await cancelCliContextOperations()
+          printError(pc.red(`${displayName} was cancelled by ${signal}.`))
+          return getExitCodeForError('CANCELLED')
+        })()
+        void cancellationCodePromise.then(resolve)
       }
 
       const sigintHandler = (): void => handleSignal('SIGINT')
@@ -331,19 +335,38 @@ async function runSpawnedAgentProcess(handle: SpawnHandle, displayName: string):
         ? undefined
         : new Promise<number>(resolve => {
             timeoutId = setTimeout(() => {
-              cancelCliContextOperations()
-              printError(pc.red(`${displayName} timed out after ${timeoutMs}ms.`))
-              resolve(getExitCodeForError('TIMEOUT'))
+              cancellationCodePromise ??= (async () => {
+                await cancelCliContextOperations()
+                printError(pc.red(`${displayName} timed out after ${timeoutMs}ms.`))
+                return getExitCodeForError('TIMEOUT')
+              })()
+              void cancellationCodePromise.then(resolve)
             }, timeoutMs)
           })
 
     return await Promise.race([
-      waitForSpawnedCommand(handle),
+      waitForSpawnedAgentCommand(handle, () => cancellationCodePromise),
       signalPromise,
       ...(timeoutPromise ? [timeoutPromise] : []),
     ])
   } finally {
     if (timeoutId) clearTimeout(timeoutId)
     cleanup?.()
+  }
+}
+
+async function waitForSpawnedAgentCommand(
+  handle: SpawnHandle,
+  getCancellationCode: () => Promise<number> | undefined,
+): Promise<number> {
+  try {
+    const code = await waitForSpawnedCommand(handle)
+    const cancellationCode = getCancellationCode()
+    if (getCliContext().cancelled && cancellationCode) return cancellationCode
+    return code
+  } catch (error) {
+    const cancellationCode = getCancellationCode()
+    if (getCliContext().cancelled && cancellationCode) return cancellationCode
+    throw error
   }
 }

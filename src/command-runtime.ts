@@ -28,44 +28,17 @@ export async function executeCommandWithRuntime<T>(options: ExecuteCommandOption
   try {
     const timeoutPromise = new Promise<CommandResult<T>>(resolve => {
       timeoutId = setTimeout(() => {
-        cancelCliContextOperations()
-        emitCommandEvent(
-          {
-            action: options.action,
-            data: {
-              reason: 'timeout',
-              timeoutMs,
-            },
-            target: options.target,
-            type: 'cancelled',
-          },
-          { force: true },
-        )
-
-        resolve(
-          emitCommandResult(
-            createErrorResult<T>({
-              action: options.action,
-              error: {
-                code: 'TIMEOUT',
-                details: {
-                  timeoutMs,
-                },
-                message: `Command timed out after ${timeoutMs}ms.`,
-              },
-              target: options.target,
-            }),
-            renderTimeoutHuman,
-            { force: true },
-          ),
-        )
+        void resolveTimeoutCancellation(options, timeoutMs).then(resolve)
       }, timeoutMs)
     })
 
     // Race only the primary command work against the deadline. Post-run steps (idempotency
     // persistence and passive self-update notice) must not consume the timeout budget.
     return await withSignalCancellation(options, async () => {
-      const result = await Promise.race([options.run(), timeoutPromise])
+      const result = await Promise.race([
+        runUntilTimeoutCancellation(options.run, () => timeoutPromise),
+        timeoutPromise,
+      ])
       if (timeoutId !== undefined) {
         clearTimeout(timeoutId)
         timeoutId = undefined
@@ -158,42 +131,14 @@ async function withSignalCancellation<T>(
   options: ExecuteCommandOptions<T>,
   run: () => Promise<CommandResult<T>>,
 ): Promise<CommandResult<T>> {
+  let signalResultPromise: Promise<CommandResult<T>> | undefined
   let cleanup: (() => void) | undefined
 
   try {
     const signalPromise = new Promise<CommandResult<T>>(resolve => {
       const handleSignal = (signal: NodeJS.Signals): void => {
-        cancelCliContextOperations()
-        emitCommandEvent(
-          {
-            action: options.action,
-            data: {
-              reason: 'signal',
-              signal,
-            },
-            target: options.target,
-            type: 'cancelled',
-          },
-          { force: true },
-        )
-
-        resolve(
-          emitCommandResult(
-            createErrorResult<T>({
-              action: options.action,
-              error: {
-                code: 'CANCELLED',
-                details: {
-                  signal,
-                },
-                message: `Command cancelled by ${signal}.`,
-              },
-              target: options.target,
-            }),
-            renderTimeoutHuman,
-            { force: true },
-          ),
-        )
+        signalResultPromise ??= resolveSignalCancellation(options, signal)
+        void signalResultPromise.then(resolve)
       }
 
       const sigintHandler = (): void => handleSignal('SIGINT')
@@ -206,8 +151,108 @@ async function withSignalCancellation<T>(
       }
     })
 
-    return await Promise.race([run(), signalPromise])
+    return await Promise.race([runUntilSignalCancellation(run, () => signalResultPromise), signalPromise])
   } finally {
     cleanup?.()
   }
+}
+
+async function runUntilTimeoutCancellation<T>(
+  run: () => Promise<CommandResult<T>>,
+  getTimeoutResult: () => Promise<CommandResult<T>>,
+): Promise<CommandResult<T>> {
+  try {
+    const result = await run()
+    if (getCliContext().cancelled) return getTimeoutResult()
+    return result
+  } catch (error) {
+    if (getCliContext().cancelled) return getTimeoutResult()
+    throw error
+  }
+}
+
+async function runUntilSignalCancellation<T>(
+  run: () => Promise<CommandResult<T>>,
+  getSignalResult: () => Promise<CommandResult<T>> | undefined,
+): Promise<CommandResult<T>> {
+  try {
+    const result = await run()
+    const signalResult = getSignalResult()
+    if (getCliContext().cancelled && signalResult) return signalResult
+    return result
+  } catch (error) {
+    const signalResult = getSignalResult()
+    if (getCliContext().cancelled && signalResult) return signalResult
+    throw error
+  }
+}
+
+async function resolveTimeoutCancellation<T>(
+  options: ExecuteCommandOptions<T>,
+  timeoutMs: number,
+): Promise<CommandResult<T>> {
+  await cancelCliContextOperations()
+  emitCommandEvent(
+    {
+      action: options.action,
+      data: {
+        reason: 'timeout',
+        timeoutMs,
+      },
+      target: options.target,
+      type: 'cancelled',
+    },
+    { force: true },
+  )
+
+  return emitCommandResult(
+    createErrorResult<T>({
+      action: options.action,
+      error: {
+        code: 'TIMEOUT',
+        details: {
+          timeoutMs,
+        },
+        message: `Command timed out after ${timeoutMs}ms.`,
+      },
+      target: options.target,
+    }),
+    renderTimeoutHuman,
+    { force: true },
+  )
+}
+
+async function resolveSignalCancellation<T>(
+  options: ExecuteCommandOptions<T>,
+  signal: NodeJS.Signals,
+): Promise<CommandResult<T>> {
+  await cancelCliContextOperations()
+  emitCommandEvent(
+    {
+      action: options.action,
+      data: {
+        reason: 'signal',
+        signal,
+      },
+      target: options.target,
+      type: 'cancelled',
+    },
+    { force: true },
+  )
+
+  return emitCommandResult(
+    createErrorResult<T>({
+      action: options.action,
+      error: {
+        code: 'CANCELLED',
+        details: {
+          signal,
+        },
+        message: `Command cancelled by ${signal}.`,
+      },
+      target: options.target,
+    }),
+    renderTimeoutHuman,
+    { force: true },
+  )
 }
