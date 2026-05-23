@@ -81,7 +81,7 @@ function validateAgent(agent: AgentDefinition): void {
     expect(['windows', 'macos', 'linux']).toContain(platform)
     expect(methods!.length).toBeGreaterThan(0)
     for (const method of methods!) {
-      expect(['bun', 'npm', 'brew', 'cargo', 'pip', 'uv', 'winget', 'script', 'binary']).toContain(method.type)
+      expect(['bun', 'npm', 'brew', 'cargo', 'mise', 'pip', 'uv', 'winget', 'script', 'binary']).toContain(method.type)
       if (method.type === 'script' || method.type === 'binary') {
         expect(typeof method.command).toBe('string')
         expect(method.command.length).toBeGreaterThan(0)
@@ -244,6 +244,7 @@ describe('codex', () => {
     validateAgent(codex)
     expect(codex.name).toBe('codex')
     expect(codex.displayName).toBe('Codex CLI')
+    expect(codex.packages?.mise).toBe('npm:@openai/codex')
     expect(codex.packages?.npm).toBe('@openai/codex')
     expect(codex.binaryName).toBe('codex')
     expect(codex.homepage).toBe('https://developers.openai.com/codex/cli')
@@ -253,6 +254,9 @@ describe('codex', () => {
   it('binary command returns correct strings per platform', () => {
     expect(codex.platforms.macos!.find(m => m.type === 'brew' && m.packageName === 'codex')).toBeDefined()
     expect(codex.platforms.linux!.find(m => m.type === 'brew' && m.packageName === 'codex')).toBeDefined()
+    expect(codex.platforms.windows!.find(m => m.type === 'mise')).toBeDefined()
+    expect(codex.platforms.macos!.find(m => m.type === 'mise')).toBeDefined()
+    expect(codex.platforms.linux!.find(m => m.type === 'mise')).toBeDefined()
     expect(codex.platforms.windows!.find(m => m.type === 'brew')).toBeUndefined()
   })
 })
@@ -888,7 +892,12 @@ describe('vtcode', () => {
 describe('install command formatting', () => {
   it('renders managed install commands from structured methods', () => {
     expect(formatInstallMethodCommand(codex, codex.platforms.macos![0]!)).toBe('bun add -g @openai/codex')
-    expect(formatInstallMethodCommand(codex, codex.platforms.macos![2]!)).toBe('brew install codex')
+    expect(formatInstallMethodCommand(codex, codex.platforms.macos!.find(m => m.type === 'mise')!)).toBe(
+      'mise use --global npm:@openai/codex',
+    )
+    expect(formatInstallMethodCommand(codex, codex.platforms.macos!.find(m => m.type === 'brew')!)).toBe(
+      'brew install codex',
+    )
     expect(formatInstallMethodCommand(claude, claude.platforms.macos![3]!)).toBe('brew install --cask claude-code')
   })
 })

@@ -16,6 +16,15 @@ describe('getAdoptableExistingInstallMethod', () => {
 
     expect(method).toBeUndefined()
   })
+
+  it('adopts a mise-managed existing install when the binary path identifies a mise shim', () => {
+    const method = getAdoptableExistingInstallMethod(
+      [{ type: 'mise' }, { type: 'npm' }],
+      '/tmp/quantex-home/.local/share/mise/shims/codex',
+    )
+
+    expect(method).toEqual({ type: 'mise' })
+  })
 })
 
 describe('formatInstallMethodCommand', () => {
@@ -71,5 +80,19 @@ describe('formatInstallMethodCommand', () => {
         { type: 'uv' },
       ),
     ).toBe('')
+  })
+
+  it('renders mise install guidance from mise package metadata', () => {
+    expect(
+      formatInstallMethodCommand(
+        {
+          packages: {
+            mise: 'npm:@openai/codex',
+            npm: '@openai/codex',
+          },
+        },
+        { type: 'mise' },
+      ),
+    ).toBe('mise use --global npm:@openai/codex')
   })
 })

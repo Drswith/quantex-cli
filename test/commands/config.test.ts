@@ -83,6 +83,14 @@ describe('configCommand', () => {
     expect(logSpy).toHaveBeenCalledWith(expect.stringContaining('Set defaultPackageManager = npm'))
   })
 
+  it('sets defaultPackageManager to mise', async () => {
+    await configCommand('set', 'defaultPackageManager', 'mise')
+    const configPath = join(tempDir, 'config.json')
+    const content = JSON.parse(readFileSync(configPath, 'utf8'))
+    expect(content.defaultPackageManager).toBe('mise')
+    expect(logSpy).toHaveBeenCalledWith(expect.stringContaining('Set defaultPackageManager = mise'))
+  })
+
   it('resets config to defaults', async () => {
     await configCommand('reset')
     const configPath = join(tempDir, 'config.json')

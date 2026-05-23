@@ -89,6 +89,26 @@ describe('loadConfig', () => {
     expect(config.versionCacheTtlHours).toBe(12)
   })
 
+  it('normalizes mise as a supported defaultPackageManager', async () => {
+    mkdirSync(configDir, { recursive: true })
+    writeFileSync(configPath, `${JSON.stringify({ defaultPackageManager: 'mise' })}\n`)
+
+    const { loadConfig } = await import('../src/config/index')
+    const config = await loadConfig()
+
+    expect(config.defaultPackageManager).toBe('mise')
+  })
+
+  it('falls back to bun for unsupported defaultPackageManager values', async () => {
+    mkdirSync(configDir, { recursive: true })
+    writeFileSync(configPath, `${JSON.stringify({ defaultPackageManager: 'cargo' })}\n`)
+
+    const { loadConfig } = await import('../src/config/index')
+    const config = await loadConfig()
+
+    expect(config.defaultPackageManager).toBe('bun')
+  })
+
   it('falls back to defaults when config.json is invalid', async () => {
     mkdirSync(configDir, { recursive: true })
     writeFileSync(configPath, '{invalid json\n')

@@ -13,6 +13,7 @@ import {
   updateAgent,
   updateAgentsByType,
 } from '../../src/package-manager/index'
+import * as misePm from '../../src/package-manager/mise'
 import * as npmPm from '../../src/package-manager/npm'
 import * as uvPm from '../../src/package-manager/uv'
 import * as state from '../../src/state'
@@ -26,6 +27,10 @@ const cargoInstallSpy = vi.spyOn(cargoPm, 'install')
 const cargoUpdateSpy = vi.spyOn(cargoPm, 'update')
 const cargoUpdateManySpy = vi.spyOn(cargoPm, 'updateMany')
 const cargoUninstallSpy = vi.spyOn(cargoPm, 'uninstall')
+const miseInstallSpy = vi.spyOn(misePm, 'install')
+const miseUpdateSpy = vi.spyOn(misePm, 'update')
+const miseUpdateManySpy = vi.spyOn(misePm, 'updateMany')
+const miseUninstallSpy = vi.spyOn(misePm, 'uninstall')
 const npmInstallSpy = vi.spyOn(npmPm, 'install')
 const npmUpdateSpy = vi.spyOn(npmPm, 'update')
 const npmUpdateManySpy = vi.spyOn(npmPm, 'updateMany')
@@ -39,6 +44,7 @@ const loadConfigSpy = vi.spyOn(config, 'loadConfig')
 const getPlatformSpy = vi.spyOn(detectUtils, 'getPlatform')
 const isBunSpy = vi.spyOn(detectUtils, 'isBunAvailable')
 const isCargoSpy = vi.spyOn(detectUtils, 'isCargoAvailable')
+const isMiseSpy = vi.spyOn(detectUtils, 'isMiseAvailable')
 const isNpmSpy = vi.spyOn(detectUtils, 'isNpmAvailable')
 const isUvSpy = vi.spyOn(detectUtils, 'isUvAvailable')
 const getInstalledAgentStateSpy = vi.spyOn(state, 'getInstalledAgentState')
@@ -68,6 +74,10 @@ beforeEach(() => {
   cargoUpdateSpy.mockClear()
   cargoUpdateManySpy.mockClear()
   cargoUninstallSpy.mockClear()
+  miseInstallSpy.mockClear()
+  miseUpdateSpy.mockClear()
+  miseUpdateManySpy.mockClear()
+  miseUninstallSpy.mockClear()
   npmInstallSpy.mockClear()
   npmUpdateSpy.mockClear()
   npmUpdateManySpy.mockClear()
@@ -81,6 +91,7 @@ beforeEach(() => {
   getPlatformSpy.mockClear()
   isBunSpy.mockClear()
   isCargoSpy.mockClear()
+  isMiseSpy.mockClear()
   isNpmSpy.mockClear()
   isUvSpy.mockClear()
   getInstalledAgentStateSpy.mockClear()
@@ -113,6 +124,10 @@ afterAll(() => {
   cargoUpdateSpy.mockRestore()
   cargoUpdateManySpy.mockRestore()
   cargoUninstallSpy.mockRestore()
+  miseInstallSpy.mockRestore()
+  miseUpdateSpy.mockRestore()
+  miseUpdateManySpy.mockRestore()
+  miseUninstallSpy.mockRestore()
   npmInstallSpy.mockRestore()
   npmUpdateSpy.mockRestore()
   npmUpdateManySpy.mockRestore()
@@ -126,6 +141,7 @@ afterAll(() => {
   getPlatformSpy.mockRestore()
   isBunSpy.mockRestore()
   isCargoSpy.mockRestore()
+  isMiseSpy.mockRestore()
   isNpmSpy.mockRestore()
   isUvSpy.mockRestore()
   getInstalledAgentStateSpy.mockRestore()
@@ -236,6 +252,66 @@ describe('installAgent', () => {
     })
     expect(uvInstallSpy).toHaveBeenCalledWith('test-tool', ['--python', '3.12'])
     expect(npmInstallSpy).not.toHaveBeenCalled()
+  })
+
+  it('installs mise-managed agents from mise package metadata', async () => {
+    const miseAgent = {
+      ...testAgent,
+      packages: { mise: 'npm:@openai/codex', npm: '@openai/codex' },
+      platforms: {
+        linux: [{ type: 'mise' as const }],
+      },
+    }
+
+    isMiseSpy.mockResolvedValue(true)
+    miseInstallSpy.mockResolvedValue(true)
+    setInstalledAgentStateSpy.mockResolvedValue()
+
+    expect(await installAgent(miseAgent)).toEqual({
+      success: true,
+      installedState: {
+        agentName: 'test-agent',
+        installType: 'mise',
+        packageName: 'npm:@openai/codex',
+      },
+    })
+    expect(miseInstallSpy).toHaveBeenCalledWith('npm:@openai/codex')
+    expect(npmInstallSpy).not.toHaveBeenCalled()
+  })
+
+  it('prefers mise when defaultPackageManager is mise and the agent exposes mise', async () => {
+    const multiMethodAgent = {
+      ...testAgent,
+      packages: { mise: 'npm:@openai/codex', npm: '@openai/codex' },
+      platforms: {
+        linux: [{ type: 'bun' as const }, { type: 'npm' as const }, { type: 'mise' as const }],
+      },
+    }
+
+    loadConfigSpy.mockResolvedValue({
+      defaultPackageManager: 'mise',
+      networkRetries: 2,
+      networkTimeoutMs: 10000,
+      npmBunUpdateStrategy: 'latest-major',
+      selfUpdateChannel: 'stable',
+      versionCacheTtlHours: 6,
+    })
+    isBunSpy.mockResolvedValue(true)
+    isMiseSpy.mockResolvedValue(true)
+    bunInstallSpy.mockResolvedValue(true)
+    miseInstallSpy.mockResolvedValue(true)
+    setInstalledAgentStateSpy.mockResolvedValue()
+
+    expect(await installAgent(multiMethodAgent)).toEqual({
+      success: true,
+      installedState: {
+        agentName: 'test-agent',
+        installType: 'mise',
+        packageName: 'npm:@openai/codex',
+      },
+    })
+    expect(miseInstallSpy).toHaveBeenCalledWith('npm:@openai/codex')
+    expect(bunInstallSpy).not.toHaveBeenCalled()
   })
 })
 
@@ -460,6 +536,32 @@ describe('updateAgent', () => {
     expect(uvUpdateSpy).toHaveBeenCalledWith('test-tool', ['--python', '3.12'])
     expect(bunUpdateSpy).not.toHaveBeenCalled()
   })
+
+  it('updates mise-managed agents from recorded state', async () => {
+    isMiseSpy.mockResolvedValue(true)
+    miseUpdateSpy.mockResolvedValue(true)
+    setInstalledAgentStateSpy.mockResolvedValue()
+
+    expect(
+      await updateAgent(
+        {
+          ...testAgent,
+          packages: { mise: 'npm:@openai/codex', npm: '@openai/codex' },
+          platforms: {
+            linux: [{ type: 'mise' as const }],
+          },
+        },
+        {
+          agentName: 'test-agent',
+          installType: 'mise',
+          packageName: 'npm:@openai/codex',
+        },
+      ),
+    ).toMatchObject({ success: true })
+
+    expect(miseUpdateSpy).toHaveBeenCalledWith('npm:@openai/codex')
+    expect(bunUpdateSpy).not.toHaveBeenCalled()
+  })
 })
 
 describe('updateAgentsByType', () => {
@@ -508,6 +610,23 @@ describe('updateAgentsByType', () => {
     expect(uvUpdateManySpy).toHaveBeenCalledWith([
       { packageInstallArgs: ['--python', '3.12'], packageName: 'test-tool' },
       { packageName: 'other-tool' },
+    ])
+  })
+
+  it('batches mise updates', async () => {
+    isMiseSpy.mockResolvedValue(true)
+    miseUpdateManySpy.mockResolvedValue(true)
+
+    expect(
+      await updateAgentsByType('mise', [
+        { packageName: 'npm:@openai/codex' },
+        { packageName: 'npm:@openai/codex' },
+        { packageName: 'npm:@anthropic-ai/claude-code' },
+      ]),
+    ).toBe(true)
+    expect(miseUpdateManySpy).toHaveBeenCalledWith([
+      { packageName: 'npm:@openai/codex' },
+      { packageName: 'npm:@anthropic-ai/claude-code' },
     ])
   })
 
@@ -565,6 +684,21 @@ describe('uninstallAgent', () => {
 
     expect(await uninstallAgent(testAgent)).toBe(true)
     expect(uvUninstallSpy).toHaveBeenCalledWith('test-tool')
+    expect(bunUninstallSpy).not.toHaveBeenCalled()
+    expect(removeInstalledAgentStateSpy).toHaveBeenCalledWith('test-agent')
+  })
+
+  it('uninstalls mise-managed agents through mise', async () => {
+    getInstalledAgentStateSpy.mockResolvedValue({
+      agentName: 'test-agent',
+      installType: 'mise',
+      packageName: 'npm:@openai/codex',
+    })
+    isMiseSpy.mockResolvedValue(true)
+    miseUninstallSpy.mockResolvedValue(true)
+
+    expect(await uninstallAgent(testAgent)).toBe(true)
+    expect(miseUninstallSpy).toHaveBeenCalledWith('npm:@openai/codex')
     expect(bunUninstallSpy).not.toHaveBeenCalled()
     expect(removeInstalledAgentStateSpy).toHaveBeenCalledWith('test-agent')
   })

@@ -1,5 +1,5 @@
 import type { CommandResult } from '../output/types'
-import { isNpmBunUpdateStrategy, loadConfig, saveConfig } from '../config'
+import { isDefaultPackageManager, isNpmBunUpdateStrategy, loadConfig, saveConfig } from '../config'
 import { defaultConfig } from '../config/default'
 import { createErrorResult, createSuccessResult, emitCommandResult } from '../output'
 import { pc } from '../utils/color'
@@ -85,13 +85,13 @@ export async function configCommand(
           renderConfigHuman,
         )
       }
-      if (key === 'defaultPackageManager' && value !== 'bun' && value !== 'npm') {
+      if (key === 'defaultPackageManager' && !isDefaultPackageManager(value)) {
         return emitCommandResult(
           createErrorResult<ConfigCommandData>({
             action: 'config',
             error: {
               code: 'INVALID_ARGUMENT',
-              message: 'defaultPackageManager must be bun or npm',
+              message: 'defaultPackageManager must be bun, npm, or mise',
             },
             target: {
               kind: 'config',

@@ -37,6 +37,13 @@ const INSTALLER_CAPABILITIES: Record<InstallType, InstallerCapabilities> = {
     canUpdate: true,
     lifecycle: 'managed',
   },
+  mise: {
+    canInstall: true,
+    canLookupLatestVersion: false,
+    canUninstall: true,
+    canUpdate: true,
+    lifecycle: 'managed',
+  },
   npm: {
     canInstall: true,
     canLookupLatestVersion: true,

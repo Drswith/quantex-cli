@@ -128,13 +128,14 @@ const managedInstallerAvailabilityProperties: Record<string, JsonSchema> = {
   brew: installerAvailabilitySchema,
   bun: installerAvailabilitySchema,
   cargo: installerAvailabilitySchema,
+  mise: installerAvailabilitySchema,
   npm: installerAvailabilitySchema,
   pip: installerAvailabilitySchema,
   uv: installerAvailabilitySchema,
   winget: installerAvailabilitySchema,
 }
 
-const managedInstallerKeys = ['brew', 'bun', 'cargo', 'npm', 'pip', 'uv', 'winget']
+const managedInstallerKeys = ['brew', 'bun', 'cargo', 'mise', 'npm', 'pip', 'uv', 'winget']
 
 const schemaCatalog: SchemaDocument[] = [
   {
@@ -258,6 +259,7 @@ const schemaCatalog: SchemaDocument[] = [
             brew: { type: 'boolean' },
             bun: { type: 'boolean' },
             cargo: { type: 'boolean' },
+            mise: { type: 'boolean' },
             npm: { type: 'boolean' },
             pip: { type: 'boolean' },
             uv: { type: 'boolean' },

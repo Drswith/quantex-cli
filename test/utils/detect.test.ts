@@ -90,6 +90,23 @@ describe('isUvAvailable', () => {
   })
 })
 
+describe('isMiseAvailable', () => {
+  it('returns true when spawn succeeds', async () => {
+    const { isMiseAvailable } = await import('../../src/utils/detect')
+    mockSpawn.mockReturnValue(createMockProcess(0))
+    expect(await isMiseAvailable()).toBe(true)
+    expect(mockSpawn).toHaveBeenCalledWith(['mise', '--version'], expect.any(Object))
+  })
+
+  it('returns false when spawn throws', async () => {
+    const { isMiseAvailable } = await import('../../src/utils/detect')
+    mockSpawn.mockImplementation(() => {
+      throw new Error('not found')
+    })
+    expect(await isMiseAvailable()).toBe(false)
+  })
+})
+
 describe('isBinaryInPath', () => {
   it('uses which on unix platforms', async () => {
     const { isBinaryInPath } = await import('../../src/utils/detect')

@@ -38,6 +38,10 @@
             "type": "string",
             "minLength": 1
           },
+          "mise": {
+            "type": "string",
+            "minLength": 1
+          },
           "npm": {
             "type": "string",
             "minLength": 1
@@ -82,7 +86,7 @@
                     },
                     "type": {
                       "type": "string",
-                      "enum": ["bun", "npm", "brew", "cargo", "pip", "uv", "winget"]
+                      "enum": ["bun", "npm", "brew", "cargo", "mise", "pip", "uv", "winget"]
                     }
                   },
                   "required": ["type"],
@@ -179,7 +183,7 @@
                     },
                     "type": {
                       "type": "string",
-                      "enum": ["bun", "npm", "brew", "cargo", "pip", "uv", "winget"]
+                      "enum": ["bun", "npm", "brew", "cargo", "mise", "pip", "uv", "winget"]
                     }
                   },
                   "required": ["type"],
@@ -276,7 +280,7 @@
                     },
                     "type": {
                       "type": "string",
-                      "enum": ["bun", "npm", "brew", "cargo", "pip", "uv", "winget"]
+                      "enum": ["bun", "npm", "brew", "cargo", "mise", "pip", "uv", "winget"]
                     }
                   },
                   "required": ["type"],

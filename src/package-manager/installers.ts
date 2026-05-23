@@ -4,6 +4,7 @@ import {
   isBrewAvailable,
   isBunAvailable,
   isCargoAvailable,
+  isMiseAvailable,
   isNpmAvailable,
   isPipAvailable,
   isUvAvailable,
@@ -12,6 +13,7 @@ import {
 import * as brewPm from './brew'
 import * as bunPm from './bun'
 import * as cargoPm from './cargo'
+import * as misePm from './mise'
 import * as npmPm from './npm'
 import * as pipPm from './pip'
 import * as uvPm from './uv'
@@ -84,6 +86,15 @@ const managedInstallers: Record<ManagedInstallType, ManagedInstaller> = {
           packageName: pkg.packageName,
         })),
       ),
+  },
+  mise: {
+    type: 'mise',
+    getInstalledVersion: async packageName => misePm.getInstalledVersion(packageName),
+    isAvailable: async () => isMiseAvailable(),
+    install: async packageName => misePm.install(packageName),
+    uninstall: async packageName => misePm.uninstall(packageName),
+    update: async packageName => misePm.update(packageName),
+    updateMany: async packages => misePm.updateMany(packages.map(pkg => ({ packageName: pkg.packageName }))),
   },
   npm: {
     type: 'npm',
