@@ -24,6 +24,7 @@ import {
   junie,
   kilo,
   kimi,
+  omp,
   opencode,
   openhands,
   pi,
@@ -699,6 +700,40 @@ describe('kilo', () => {
         expect(['bun', 'npm']).toContain(method.type)
       }
     }
+  })
+})
+
+describe('omp', () => {
+  it('is registered for lookup by canonical name', () => {
+    expect(getAgentByNameOrAlias('omp')).toBe(omp)
+  })
+
+  it('has valid structure', () => {
+    validateAgent(omp)
+    expect(omp.name).toBe('omp')
+    expect(omp.lookupAliases).toBeUndefined()
+    expect(omp.displayName).toBe('oh-my-pi (OMP)')
+    expect(omp.packages?.npm).toBe('@oh-my-pi/pi-coding-agent')
+    expect(omp.binaryName).toBe('omp')
+    expect(omp.homepage).toBe('https://github.com/can1357/oh-my-pi')
+    expect(omp.versionProbe?.command).toEqual(['omp', '--version'])
+    expect(omp.selfUpdate).toBeUndefined()
+  })
+
+  it('supports managed bun and official script installs on all platforms', () => {
+    for (const methods of Object.values(omp.platforms)) {
+      expect(methods!.find(m => m.type === 'bun')).toBeDefined()
+    }
+
+    expect(
+      omp.platforms.windows!.find(m => m.type === 'script' && m.command.includes('https://omp.sh/install.ps1')),
+    ).toBeDefined()
+    expect(
+      omp.platforms.macos!.find(m => m.type === 'script' && m.command.includes('https://omp.sh/install')),
+    ).toBeDefined()
+    expect(
+      omp.platforms.linux!.find(m => m.type === 'script' && m.command.includes('https://omp.sh/install')),
+    ).toBeDefined()
   })
 })
 

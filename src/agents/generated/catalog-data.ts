@@ -21,14 +21,15 @@ import agent17 from '../catalog/junie.json'
 import agent18 from '../catalog/kilo.json'
 import agent19 from '../catalog/kimi.json'
 import agent20 from '../catalog/kiro.json'
-import agent21 from '../catalog/opencode.json'
-import agent22 from '../catalog/openhands.json'
-import agent23 from '../catalog/pi.json'
-import agent24 from '../catalog/qoder.json'
-import agent25 from '../catalog/qwen.json'
-import agent26 from '../catalog/reasonix.json'
-import agent27 from '../catalog/vibe.json'
-import agent28 from '../catalog/vtcode.json'
+import agent21 from '../catalog/omp.json'
+import agent22 from '../catalog/opencode.json'
+import agent23 from '../catalog/openhands.json'
+import agent24 from '../catalog/pi.json'
+import agent25 from '../catalog/qoder.json'
+import agent26 from '../catalog/qwen.json'
+import agent27 from '../catalog/reasonix.json'
+import agent28 from '../catalog/vibe.json'
+import agent29 from '../catalog/vtcode.json'
 
 export const catalogData = [
   agent0,
@@ -60,4 +61,5 @@ export const catalogData = [
   agent26,
   agent27,
   agent28,
+  agent29,
 ]

@@ -28,6 +28,7 @@ This skill snapshot knows about these Quantex agent names:
 - `kiro`
 - `openhands`
 - `opencode`
+- `omp`
 - `pi`
 - `qoder`
 - `qwen`

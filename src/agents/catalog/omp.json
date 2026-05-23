@@ -1,0 +1,41 @@
+{
+  "name": "omp",
+  "displayName": "oh-my-pi (OMP)",
+  "homepage": "https://github.com/can1357/oh-my-pi",
+  "packages": {
+    "npm": "@oh-my-pi/pi-coding-agent"
+  },
+  "binaryName": "omp",
+  "versionProbe": {
+    "command": ["omp", "--version"]
+  },
+  "platforms": {
+    "windows": [
+      {
+        "type": "bun"
+      },
+      {
+        "command": "irm https://omp.sh/install.ps1 | iex",
+        "type": "script"
+      }
+    ],
+    "macos": [
+      {
+        "type": "bun"
+      },
+      {
+        "command": "curl -fsSL https://omp.sh/install | sh",
+        "type": "script"
+      }
+    ],
+    "linux": [
+      {
+        "type": "bun"
+      },
+      {
+        "command": "curl -fsSL https://omp.sh/install | sh",
+        "type": "script"
+      }
+    ]
+  }
+}
