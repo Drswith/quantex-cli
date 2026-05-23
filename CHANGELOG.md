@@ -2,6 +2,14 @@
 
 This changelog is maintained by release-please Release PRs.
 
+## [0.21.1](https://github.com/Drswith/quantex-cli/compare/v0.21.0...v0.21.1) (2026-05-23)
+
+
+### Bug Fixes
+
+* keep windows binary aliases in sync ([cc203bf](https://github.com/Drswith/quantex-cli/commit/cc203bfecbf8673051ee9630458fe4ccf4109f74))
+* prefer cargo for vtcode windows install ([bc69b80](https://github.com/Drswith/quantex-cli/commit/bc69b808faff918dca095d1ba56d2b7c09708962))
+
 ## [0.21.0](https://github.com/Drswith/quantex-cli/compare/v0.20.0...v0.21.0) (2026-05-23)
 
 
