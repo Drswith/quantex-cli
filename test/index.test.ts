@@ -18,6 +18,7 @@ import {
   junie,
   inspectAgent,
   kilo,
+  omp,
   openhands,
   opencode,
   pi,
@@ -72,6 +73,13 @@ describe('agent registry', () => {
     expect(agent).toBeDefined()
     expect(agent!.name).toBe('openhands')
     expect(agent!.binaryName).toBe('openhands')
+  })
+
+  it('finds omp by name', () => {
+    const agent = getAgentByNameOrAlias('omp')
+    expect(agent).toBeDefined()
+    expect(agent!.name).toBe('omp')
+    expect(agent!.binaryName).toBe('omp')
   })
 
   it('finds jcode by name', () => {
@@ -189,6 +197,16 @@ describe('agent definitions', () => {
     expect(agent!.binaryName).toBe('kilo')
   })
 
+  it('omp has correct structure', () => {
+    const agent = getAgentByNameOrAlias('omp')
+    expect(agent).toBeDefined()
+    expect(agent!.displayName).toBe('oh-my-pi (OMP)')
+    expect(agent!.packages?.npm).toBe('@oh-my-pi/pi-coding-agent')
+    expect(agent!.binaryName).toBe('omp')
+    expect(agent!.homepage).toBe('https://github.com/can1357/oh-my-pi')
+    expect(agent!.versionProbe?.command).toEqual(['omp', '--version'])
+  })
+
   it('junie has correct structure', () => {
     const agent = getAgentByNameOrAlias('junie')
     expect(agent).toBeDefined()
@@ -253,6 +271,7 @@ describe('agent definitions', () => {
     expect(jcode.name).toBe('jcode')
     expect(junie.name).toBe('junie')
     expect(kilo.name).toBe('kilo')
+    expect(omp.name).toBe('omp')
     expect(openhands.name).toBe('openhands')
     expect(opencode.name).toBe('opencode')
     expect(pi.name).toBe('pi')

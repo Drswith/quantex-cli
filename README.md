@@ -195,6 +195,7 @@ Note: `qtx upgrade` follows the registry actually used by the current Bun/npm se
 | Mistral Vibe | `qtx vibe` | Mistral's open-source CLI coding assistant |
 | OpenHands CLI | `qtx openhands` | OpenHands' open-source software development agent CLI |
 | OpenCode | `qtx opencode` | Open-source AI coding CLI |
+| oh-my-pi (OMP) | `qtx omp` | oh-my-pi coding agent CLI |
 | Pi | `qtx pi` | Minimal and extensible terminal coding agent |
 | Qoder CLI | `qtx qoder` | Qoder's official AI coding assistant CLI |
 | Qwen Code | `qtx qwen` | Qwen's AI coding assistant CLI |

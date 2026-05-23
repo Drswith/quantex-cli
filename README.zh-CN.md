@@ -195,6 +195,7 @@ qtx upgrade --channel beta
 | Mistral Vibe | `qtx vibe` | Mistral 开源终端编程助手 |
 | OpenHands CLI | `qtx openhands` | OpenHands 开源软件开发 Agent CLI |
 | OpenCode | `qtx opencode` | 开源 AI 编程 CLI |
+| oh-my-pi (OMP) | `qtx omp` | oh-my-pi coding agent CLI |
 | Pi | `qtx pi` | 极简可扩展的终端编程 Agent |
 | Qoder CLI | `qtx qoder` | Qoder 官方 AI 编程助手 CLI |
 | Qwen Code | `qtx qwen` | Qwen AI 编程助手 CLI |

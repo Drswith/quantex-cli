@@ -37,6 +37,7 @@ export {
   kilo,
   kimi,
   kiro,
+  omp,
   openhands,
   opencode,
   pi,
