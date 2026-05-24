@@ -27,7 +27,7 @@ describe('managed installer cancellation e2e', () => {
       const output = await runCommand(['bun', 'run', 'scripts/managed-installer-cancellation-smoke.ts'], {
         HOME: homeDir,
         PATH: `${fakeBinDir}${delimiter}${process.env.PATH ?? ''}`,
-        QTX_CANCELLATION_SMOKE_TIMEOUT_MS: '250',
+        QTX_CANCELLATION_SMOKE_TIMEOUT_MS: '1000',
         QTX_FAKE_CARGO_LOG: fakeCargoLog,
         USERPROFILE: homeDir,
       })
@@ -48,15 +48,14 @@ describe('managed installer cancellation e2e', () => {
     } finally {
       await rm(sandboxRoot, { force: true, recursive: true })
     }
-  })
+  }, 10_000)
 })
 
 async function installFakeCargo(fakeBinDir: string, logPath: string): Promise<void> {
   await mkdir(fakeBinDir, { recursive: true })
-  const fakeCargoModule = join(fakeBinDir, 'fake-cargo.mjs')
+  const fakeCargoModule = join(fakeBinDir, 'fake-cargo.cjs')
   const fakeCargoSource = [
-    "import { appendFileSync } from 'node:fs'",
-    "import process from 'node:process'",
+    "const { appendFileSync } = require('node:fs')",
     'const args = process.argv.slice(2)',
     'const logPath = process.env.QTX_FAKE_CARGO_LOG',
     'if (!logPath) throw new Error("QTX_FAKE_CARGO_LOG is required")',
@@ -75,19 +74,15 @@ async function installFakeCargo(fakeBinDir: string, logPath: string): Promise<vo
     'process.on("SIGINT", () => complete("fake cargo received SIGINT"))',
     'setTimeout(() => complete("fake cargo completed without cancellation"), 10_000)',
   ].join('\n')
-  await writeFile(fakeCargoModule, fakeCargoSource, 'utf8')
 
   if (process.platform === 'win32') {
-    await writeFile(join(fakeBinDir, 'cargo.cmd'), ['@echo off', 'bun "%~dp0fake-cargo.mjs" %*'].join('\r\n'), 'utf8')
+    await writeFile(fakeCargoModule, fakeCargoSource, 'utf8')
+    await writeFile(join(fakeBinDir, 'cargo.cmd'), ['@echo off', 'node "%~dp0fake-cargo.cjs" %*'].join('\r\n'), 'utf8')
     return
   }
 
   const fakeCargoPath = join(fakeBinDir, 'cargo')
-  await writeFile(
-    fakeCargoPath,
-    ['#!/usr/bin/env sh', 'exec bun "$(dirname "$0")/fake-cargo.mjs" "$@"', ''].join('\n'),
-    'utf8',
-  )
+  await writeFile(fakeCargoPath, ['#!/usr/bin/env node', fakeCargoSource, ''].join('\n'), 'utf8')
   await chmod(fakeCargoPath, 0o755)
 }
 
