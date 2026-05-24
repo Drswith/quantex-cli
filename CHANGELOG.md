@@ -2,6 +2,13 @@
 
 This changelog is maintained by release-please Release PRs.
 
+## [0.22.0](https://github.com/Drswith/quantex-cli/compare/v0.21.1...v0.22.0) (2026-05-24)
+
+
+### Features
+
+* **agents:** rename deepseek catalog to codewhale ([#307](https://github.com/Drswith/quantex-cli/issues/307)) ([b40fb25](https://github.com/Drswith/quantex-cli/commit/b40fb25a10f037303ff9f3541dee5ca015e7f6cd)), closes [#306](https://github.com/Drswith/quantex-cli/issues/306)
+
 ## [0.21.1](https://github.com/Drswith/quantex-cli/compare/v0.21.0...v0.21.1) (2026-05-23)
 
 
