@@ -10,11 +10,11 @@ import {
   autohand,
   claude,
   codebuddy,
+  codewhale,
   codex,
   copilot,
   cursor,
   deepcode,
-  deepseek,
   devin,
   droid,
   gemini,
@@ -497,33 +497,34 @@ describe('junie', () => {
   })
 })
 
-describe('deepseek', () => {
-  it('is registered for lookup by canonical name and package alias', () => {
-    expect(getAgentByNameOrAlias('deepseek')).toBe(deepseek)
-    expect(getAgentByNameOrAlias('deepseek-tui')).toBe(deepseek)
+describe('codewhale', () => {
+  it('is registered for lookup by canonical name only', () => {
+    expect(getAgentByNameOrAlias('codewhale')).toBe(codewhale)
+    expect(getAgentByNameOrAlias('deepseek')).toBeUndefined()
+    expect(getAgentByNameOrAlias('deepseek-tui')).toBeUndefined()
   })
 
   it('has valid structure', () => {
-    validateAgent(deepseek)
-    expect(deepseek.name).toBe('deepseek')
-    expect(deepseek.lookupAliases).toEqual(['deepseek-tui'])
-    expect(deepseek.displayName).toBe('DeepSeek TUI')
-    expect(deepseek.packages?.cargo).toBe('deepseek-tui-cli')
-    expect(deepseek.packages?.npm).toBe('deepseek-tui')
-    expect(deepseek.binaryName).toBe('deepseek')
-    expect(deepseek.homepage).toBe('https://github.com/Hmbown/DeepSeek-TUI')
-    expect(deepseek.selfUpdate?.command).toEqual(['deepseek', 'update'])
-    expect(deepseek.versionProbe?.command).toEqual(['deepseek', '--version'])
+    validateAgent(codewhale)
+    expect(codewhale.name).toBe('codewhale')
+    expect(codewhale.lookupAliases).toBeUndefined()
+    expect(codewhale.displayName).toBe('CodeWhale')
+    expect(codewhale.packages?.cargo).toBe('codewhale-cli')
+    expect(codewhale.packages?.npm).toBe('codewhale')
+    expect(codewhale.binaryName).toBe('codewhale')
+    expect(codewhale.homepage).toBe('https://github.com/Hmbown/CodeWhale')
+    expect(codewhale.selfUpdate?.command).toEqual(['codewhale', 'update'])
+    expect(codewhale.versionProbe?.command).toEqual(['codewhale', '--version'])
   })
 
   it('exposes npm install on all supported platforms', () => {
-    expect(deepseek.platforms.windows!.find(m => m.type === 'npm')).toBeDefined()
-    expect(deepseek.platforms.macos!.find(m => m.type === 'npm')).toBeDefined()
-    expect(deepseek.platforms.linux!.find(m => m.type === 'npm')).toBeDefined()
+    expect(codewhale.platforms.windows!.find(m => m.type === 'npm')).toBeDefined()
+    expect(codewhale.platforms.macos!.find(m => m.type === 'npm')).toBeDefined()
+    expect(codewhale.platforms.linux!.find(m => m.type === 'npm')).toBeDefined()
   })
 
   it('exposes locked cargo install on all supported platforms', () => {
-    for (const methods of [deepseek.platforms.windows!, deepseek.platforms.macos!, deepseek.platforms.linux!]) {
+    for (const methods of [codewhale.platforms.windows!, codewhale.platforms.macos!, codewhale.platforms.linux!]) {
       expect(
         methods.find(
           method =>
