@@ -91,13 +91,15 @@ Quantex uses release-please to keep publishing compatible with protected `main` 
 4. If a successful merged `chore: release ...` commit is still untagged, the workflow publishes that commit first. Otherwise, if the merged commits warrant a version bump, release-please creates or updates a Release PR.
 5. The Release PR updates `CHANGELOG.md`, `package.json`, `.release-please-manifest.json`, and `src/generated/build-meta.ts`.
 6. `Release PR Automerge` validates the generated Release PR and enables auto-merge.
-7. After the Release PR merge produces another successful `main` CI run, the `Release` workflow creates the tag and GitHub Release, then builds artifacts, publishes npm through trusted publishing, and uploads binaries.
+7. After the Release PR merge produces another successful `main` CI run, the `Release` workflow creates the tag and GitHub Release, then builds artifacts, publishes `quantex-cli` to npm through trusted publishing, and uploads binaries.
 
 This keeps normal product changes behind PR review while making the release version visible in the source tree at the tagged commit.
 
 Release notes are tracked in [CHANGELOG.md](../CHANGELOG.md), summarized in [docs/releases.md](./releases.md), and published on GitHub Releases.
 
 The npm publish step uses GitHub Actions trusted publishing with OIDC rather than a long-lived `NPM_TOKEN`, so npm trusted publisher settings should point at `.github/workflows/release.yml`.
+
+This repository does not publish or synchronize the separate npm `quantex` alias package. Any cleanup of that package, including removing its dependency on `quantex-cli`, belongs to the separate alias package repository.
 
 For full unattended publishing, configure the release GitHub App secrets `RELEASE_APP_CLIENT_ID` and `RELEASE_APP_PRIVATE_KEY`. The workflows use `actions/create-github-app-token` to mint short-lived installation tokens for Release PR creation, Release PR auto-merge, GitHub Release creation, and artifact upload.
 
