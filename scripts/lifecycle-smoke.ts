@@ -242,7 +242,7 @@ async function smokeCargoManagedLifecycle(): Promise<void> {
 }
 
 async function smokeCargoRealAgentLifecycle(): Promise<void> {
-  const agent = process.env.QTX_CARGO_SMOKE_AGENT || 'deepseek'
+  const agent = process.env.QTX_CARGO_SMOKE_AGENT || 'codewhale'
   const cargoBinDir = join(process.env.HOME ?? '', '.cargo', 'bin')
   const cargoPath = `${cargoBinDir}:${process.env.PATH ?? ''}`
 

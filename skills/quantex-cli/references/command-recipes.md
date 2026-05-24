@@ -10,12 +10,12 @@ This skill snapshot knows about these Quantex agent names:
 - `autohand`
 - `amp`
 - `claude`
+- `codewhale`
 - `codebuddy`
 - `codex`
 - `copilot`
 - `crush`
 - `cursor`
-- `deepseek`
 - `devin`
 - `droid`
 - `forgecode`
