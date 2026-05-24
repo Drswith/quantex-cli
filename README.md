@@ -180,7 +180,7 @@ Note: `qtx upgrade` follows the registry actually used by the current Bun/npm se
 | Crush | `qtx crush` | Charmbracelet's terminal AI coding agent CLI |
 | Cursor CLI | `qtx cursor` | Cursor AI coding assistant CLI |
 | Deep Code CLI | `qtx deepcode` | Deep Code's terminal coding agent CLI |
-| DeepSeek TUI | `qtx deepseek` | DeepSeek's terminal-native coding agent |
+| CodeWhale | `qtx codewhale` | DeepSeek-first agentic terminal for coding models |
 | Devin for Terminal | `qtx devin` | Cognition's local coding agent CLI |
 | Droid | `qtx droid` | Factory AI software engineering agent CLI |
 | ForgeCode | `qtx forgecode` | Antinomy's AI coding assistant CLI |

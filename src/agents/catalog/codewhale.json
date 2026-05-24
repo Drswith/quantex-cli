@@ -1,18 +1,17 @@
 {
-  "name": "deepseek",
-  "lookupAliases": ["deepseek-tui"],
-  "displayName": "DeepSeek TUI",
-  "homepage": "https://github.com/Hmbown/DeepSeek-TUI",
+  "name": "codewhale",
+  "displayName": "CodeWhale",
+  "homepage": "https://github.com/Hmbown/CodeWhale",
   "packages": {
-    "cargo": "deepseek-tui-cli",
-    "npm": "deepseek-tui"
+    "cargo": "codewhale-cli",
+    "npm": "codewhale"
   },
-  "binaryName": "deepseek",
+  "binaryName": "codewhale",
   "selfUpdate": {
-    "command": ["deepseek", "update"]
+    "command": ["codewhale", "update"]
   },
   "versionProbe": {
-    "command": ["deepseek", "--version"]
+    "command": ["codewhale", "--version"]
   },
   "platforms": {
     "windows": [

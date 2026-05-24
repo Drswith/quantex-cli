@@ -2,11 +2,11 @@ import { describe, expect, it } from 'vitest'
 import {
   autohand,
   codebuddy,
+  codewhale,
   codex,
   copilot,
   createUpdatePlan,
   deepcode,
-  deepseek,
   cursor,
   devin,
   droid,
@@ -225,12 +225,14 @@ describe('agent definitions', () => {
     expect(agent!.selfUpdate).toBeUndefined()
   })
 
-  it('deepseek has correct structure', () => {
-    const agent = getAgentByNameOrAlias('deepseek')
+  it('codewhale has correct structure', () => {
+    const agent = getAgentByNameOrAlias('codewhale')
     expect(agent).toBeDefined()
-    expect(agent!.displayName).toBe('DeepSeek TUI')
-    expect(agent!.packages?.npm).toBe('deepseek-tui')
-    expect(agent!.binaryName).toBe('deepseek')
+    expect(agent!.displayName).toBe('CodeWhale')
+    expect(agent!.packages?.npm).toBe('codewhale')
+    expect(agent!.binaryName).toBe('codewhale')
+    expect(getAgentByNameOrAlias('deepseek')).toBeUndefined()
+    expect(getAgentByNameOrAlias('deepseek-tui')).toBeUndefined()
   })
 
   it('deepcode has correct structure', () => {
@@ -273,8 +275,8 @@ describe('agent definitions', () => {
     expect(codebuddy.name).toBe('codebuddy')
     expect(codex.name).toBe('codex')
     expect(copilot.name).toBe('copilot')
+    expect(codewhale.name).toBe('codewhale')
     expect(deepcode.name).toBe('deepcode')
-    expect(deepseek.name).toBe('deepseek')
     expect(cursor.name).toBe('cursor')
     expect(devin.name).toBe('devin')
     expect(droid.name).toBe('droid')
