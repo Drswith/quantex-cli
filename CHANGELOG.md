@@ -2,6 +2,17 @@
 
 This changelog is maintained by release-please Release PRs.
 
+## [1.0.0](https://github.com/Drswith/quantex-cli/compare/v0.21.1...v1.0.0) (2026-05-24)
+
+
+### ⚠ BREAKING CHANGES
+
+* **agents:** The DeepSeek TUI catalog entry is now codewhale. The deepseek and deepseek-tui lookup names and deepseek export are removed.
+
+### Features
+
+* **agents:** rename deepseek catalog to codewhale ([#298](https://github.com/Drswith/quantex-cli/issues/298)) ([cc8699a](https://github.com/Drswith/quantex-cli/commit/cc8699a1fd2234896333858ac54696949990d43d))
+
 ## [0.21.1](https://github.com/Drswith/quantex-cli/compare/v0.21.0...v0.21.1) (2026-05-23)
 
 
