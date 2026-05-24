@@ -43,6 +43,45 @@ describe('release PR policy', () => {
     expect(issues.join('\n')).toContain('must be greater than the current main version "0.13.0"')
   })
 
+  it('accepts a pre-1.0 breaking-change minor release', () => {
+    expect(
+      validateReleasePrPolicy({
+        baseBranch: 'main',
+        baseVersion: '0.21.1',
+        body: validBody,
+        changedFiles: validChangedFiles,
+        headBranch: 'release-please--branches--main--components--quantex-cli',
+        title: 'chore: release 0.22.0',
+      }),
+    ).toEqual([])
+  })
+
+  it('rejects accidental pre-1.0 promotion to 1.0.0', () => {
+    const issues = validateReleasePrPolicy({
+      baseBranch: 'main',
+      baseVersion: '0.21.1',
+      body: validBody,
+      changedFiles: validChangedFiles,
+      headBranch: 'release-please--branches--main--components--quantex-cli',
+      title: 'chore: release 1.0.0',
+    })
+
+    expect(issues.join('\n')).toContain('would promote the main release line from "0.21.1" to 1.0.0')
+  })
+
+  it('allows post-1.0 stable releases to advance normally', () => {
+    expect(
+      validateReleasePrPolicy({
+        baseBranch: 'main',
+        baseVersion: '1.0.0',
+        body: validBody,
+        changedFiles: validChangedFiles,
+        headBranch: 'release-please--branches--main--components--quantex-cli',
+        title: 'chore: release 1.1.0',
+      }),
+    ).toEqual([])
+  })
+
   it('rejects unexpected file scope', () => {
     const issues = validateReleasePrPolicy({
       baseBranch: 'main',

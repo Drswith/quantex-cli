@@ -55,9 +55,32 @@ export function validateReleasePrPolicy(input) {
         `Release PR version "${proposedVersion}" must be greater than the current ${baseBranch} version "${baseVersion}".`,
       )
     }
+
+    if (baseBranch === 'main' && isAccidentalPreMajorGraduation(proposedVersion, baseVersion)) {
+      issues.push(
+        [
+          `Release PR version "${proposedVersion}" would promote the ${baseBranch} release line from "${baseVersion}" to 1.0.0.`,
+          'Pre-1.0 breaking changes must stay on the zero-major minor line unless a dedicated 1.0 graduation contract allows it.',
+        ].join(' '),
+      )
+    }
   }
 
   return issues
+}
+
+export function isAccidentalPreMajorGraduation(proposedRaw, baseRaw) {
+  const proposed = parseReleaseVersion(proposedRaw)
+  const base = parseReleaseVersion(baseRaw)
+
+  return (
+    base.prerelease === null &&
+    proposed.prerelease === null &&
+    base.major === 0 &&
+    proposed.major === 1 &&
+    proposed.minor === 0 &&
+    proposed.patch === 0
+  )
 }
 
 export function compareReleaseVersions(leftRaw, rightRaw) {

@@ -38,6 +38,18 @@ describe('pr governance release intent', () => {
     }
   })
 
+  it('keeps stable release-please on the zero-major line for pre-1.0 breaking changes', () => {
+    const config = JSON.parse(readFileSync('release-please-config.json', 'utf8')) as {
+      packages: {
+        '.': {
+          'bump-minor-pre-major'?: boolean
+        }
+      }
+    }
+
+    expect(config.packages['.']['bump-minor-pre-major']).toBe(true)
+  })
+
   it('keeps PR template compatible with agent-driven OpenSpec archive closure', () => {
     expect(prTemplate).toContain('## Closure Check')
     expect(prTemplate).toContain('queued for agent-driven archive closure')
