@@ -13,6 +13,7 @@ Use this skill at the start of every Quantex repository session, and again befor
 - Superpowers is the cross-agent workflow runtime.
 - OpenSpec is the source of truth for non-trivial behavior and durable process contracts.
 - GitHub Actions are the remote enforcement layer.
+- Cursor Cloud Automations provide external role specialists for recurring bug finding, PR governance review, CI triage, and OpenSpec archive follow-up.
 - Repository scripts are executable validation, build, release, and package checks.
 - `AGENTS.md` is the thin fallback when Superpowers is unavailable.
 
@@ -140,6 +141,21 @@ Do not rely on repository automation to create archive PRs.
 Repository scripts are executable guardrails: validation, path classification, build metadata, package checks, release artifact generation, and release smoke verification. Prefer Superpowers runtime instructions, OpenSpec artifacts, GitHub Actions, and native CLIs for workflow actions.
 
 Do not add project-specific workflow orchestration commands, such as `pr:create`, when a native CLI action plus a shared validator is sufficient.
+
+## Cloud Agent Roles
+
+Use `docs/runbooks/cloud-agent-automations.md` as the repo-native baseline when configuring or auditing external cloud-agent automations.
+
+Current role split:
+
+- Critical bug finder: scheduled semantic bug hunting; opens a narrow PR only for concrete high-severity bugs, otherwise reports to Slack.
+- PR governance: PR-opened and PR-pushed review; comments and requests reviewers but never approves.
+- CI triage: scheduled failure classification; reports root cause, evidence, owner, and minimal next step without implementing code.
+- OpenSpec archive: scheduled archive-readiness follow-up; opens narrow archive PRs only after implementation merge and spec-delta readiness.
+
+Cloud agents reduce manual repair loops by classifying and routing work earlier. They do not replace merge-gating CI, PR Governance, OpenSpec validation, release automation, local validation, or delivery closure reporting.
+
+If a Cursor Cloud run fails because of concurrency, quota, missing Slack/GitHub connection, or provider capacity, classify it as operational capacity rather than a repository regression.
 
 ## Artifact Routing
 

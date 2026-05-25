@@ -177,6 +177,7 @@ Examples:
 For non-trivial behavior or durable-process changes, use Superpowers plus the central Quantex runtime skill rather than ad hoc planning files or copied per-agent workflow prompts:
 
 - `skills/quantex-agent-runtime/SKILL.md`: Quantex-specific session startup, intake, validation, artifact routing, and closure
+- [Cloud Agent Automations](./runbooks/cloud-agent-automations.md): Cursor Cloud role split, prompt baselines, model routing, and audit checklist
 - Superpowers skills: brainstorming, worktrees, planning, review, verification, and finishing branch behavior
 - OpenSpec CLI: proposal, design, spec, task, status, instructions, validation, and archive state transitions
 - [Quantex Task Start](./runbooks/quantex-task-start.md): copy-paste start prompt for fresh agent conversations when a native slash or skill launcher is unavailable
@@ -186,6 +187,8 @@ On protected branches, archive closure is an explicit agent-driven follow-up. A 
 Agents should use `openspec status --change <id> --json` and `openspec instructions <artifact> --change <id> --json` when they need to determine the next artifact or implementation step.
 
 Before final handoff, agents should also check `git status`, whether the branch has been pushed, whether a PR exists, whether the OpenSpec change is still active by design, and whether archive or release closure is pending.
+
+Cursor Cloud Automations are external role specialists. Keep their durable responsibilities and prompt baselines aligned with the runbook, but keep hard enforcement in GitHub Actions and repository validators. CI triage should classify failures before implementation changes; PR Governance should comment and request reviewers without approving; bug finding and OpenSpec archive roles should open PRs only inside their narrow role boundaries.
 
 ## Discussion promotion rules
 

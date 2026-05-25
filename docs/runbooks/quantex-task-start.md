@@ -76,6 +76,7 @@ bun run openspec:instructions -- tasks --change <change-id>
 
 - [AGENTS.md](../../AGENTS.md)
 - [GitHub Collaboration Flow](../github-collaboration.md)
+- [Cloud Agent Automations](./cloud-agent-automations.md)
 - [Worktree-Backed Implementation](./worktree-task-execution.md)
 - [OpenSpec README](../../openspec/README.md)
 - [Quantex Agent Runtime](../../skills/quantex-agent-runtime/SKILL.md)

@@ -51,6 +51,7 @@ GitHub workflow guidance:
 
 Operational runbooks:
 
+- [cloud-agent-automations.md](./runbooks/cloud-agent-automations.md)
 - [quantex-troubleshooting.md](./runbooks/quantex-troubleshooting.md)
 - [releasing-quantex.md](./runbooks/releasing-quantex.md)
 - [release-and-self-upgrade-debugging.md](./runbooks/release-and-self-upgrade-debugging.md)
