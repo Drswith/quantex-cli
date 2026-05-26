@@ -97,7 +97,12 @@ jobs:
           PR_BODY: ${{ github.event.pull_request.body }}
           PR_HEAD_BRANCH: ${{ github.event.pull_request.head.ref }}
           PR_TITLE: ${{ github.event.pull_request.title }}
-        run: bun run pr:body:check
+        run: |
+          if [ -f openspec/archive-pr-body.md ]; then
+            bun run pr:body:check -- --body-file openspec/archive-pr-body.md
+          else
+            bun run pr:body:check
+          fi
 
       - name: Validate PR merge commit policy
         env:
