@@ -2,6 +2,13 @@
 
 This changelog is maintained by release-please Release PRs.
 
+## [0.22.1](https://github.com/Drswith/quantex-cli/compare/v0.22.0...v0.22.1) (2026-05-27)
+
+
+### Bug Fixes
+
+* **state:** fail closed on corrupt state reads ([f5bedc6](https://github.com/Drswith/quantex-cli/commit/f5bedc69e1f6a7371f50d6b482d6cbdd7526ca18))
+
 ## [0.22.0](https://github.com/Drswith/quantex-cli/compare/v0.21.1...v0.22.0) (2026-05-24)
 
 
