@@ -1,9 +1,17 @@
 import type { InstallType, PackageTargetKind } from '../agents/types'
 import type { SelfInstallSource } from '../self/types'
-import { mkdir, readFile, writeFile } from 'node:fs/promises'
+import { mkdir, readFile, rename, rm, writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
+import process from 'node:process'
 import { getConfigDir } from '../config'
 import { acquireResourceLock, getResourceLockPath } from '../utils/lock'
+
+export class StateFileError extends Error {
+  constructor(message: string, options?: { cause?: unknown }) {
+    super(message, options)
+    this.name = 'StateFileError'
+  }
+}
 
 export interface InstalledAgentState {
   agentName: string
@@ -101,8 +109,10 @@ async function readState(): Promise<QuantexState> {
       installedAgents: data.installedAgents ?? {},
       self,
     }
-  } catch {
-    return { ...defaultState }
+  } catch (error) {
+    if (isMissingStateFileError(error)) return { ...defaultState }
+
+    throw new StateFileError('Failed to read Quantex state file.', { cause: error })
   }
 }
 
@@ -142,7 +152,25 @@ function isPlainObject(value: unknown): value is Record<string, unknown> {
 
 async function writeState(state: QuantexState): Promise<void> {
   await mkdir(getConfigDir(), { recursive: true })
-  await writeFile(getStateFilePath(), `${JSON.stringify(state, null, 2)}\n`, 'utf8')
+
+  const stateFilePath = getStateFilePath()
+  const tempFilePath = `${stateFilePath}.tmp-${process.pid}`
+  const payload = `${JSON.stringify(state, null, 2)}\n`
+
+  try {
+    await writeFile(tempFilePath, payload, 'utf8')
+    await rename(tempFilePath, stateFilePath)
+  } catch (error) {
+    await rm(tempFilePath, { force: true })
+    throw error
+  }
+}
+
+function isMissingStateFileError(error: unknown): boolean {
+  const code =
+    typeof error === 'object' && error !== null && 'code' in error ? (error as { code?: unknown }).code : undefined
+
+  return code === 'ENOENT' || code === 'ENOTDIR'
 }
 
 async function mutateState(mutator: (state: QuantexState) => void | Promise<void>): Promise<void> {
