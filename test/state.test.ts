@@ -1,4 +1,4 @@
-import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
+import { existsSync, mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterAll, afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
@@ -11,6 +11,7 @@ import {
   saveState,
   setSelfInstallSource,
   setSelfUpdateNoticeState,
+  StateFileError,
 } from '../src/state'
 import { acquireResourceLock } from '../src/utils/lock'
 
@@ -139,6 +140,27 @@ describe('state helpers', () => {
     expect(writtenState.self?.installSource).toBeUndefined()
     expect(writtenState.self?.updateNoticeVersion).toBe('9.9.9')
     expect(writtenState.self?.updateNoticeAt).toBe('2026-05-04T12:00:00.000Z')
+  })
+
+  it('rejects mutations when state.json contains invalid JSON', async () => {
+    const stateFilePath = getStateFilePath()
+    mkdirSync(tempDir, { recursive: true })
+    writeFileSync(stateFilePath, '{not-json', 'utf8')
+
+    await expect(setSelfUpdateNoticeState('1.0.0', '2026-05-27T00:00:00.000Z')).rejects.toBeInstanceOf(StateFileError)
+    expect(readFileSync(stateFilePath, 'utf8')).toBe('{not-json')
+  })
+
+  it('writes state.json atomically without leaving temporary files behind', async () => {
+    await saveState({
+      installedAgents: {},
+      self: {
+        installSource: 'npm',
+      },
+    })
+
+    expect(readdirSync(tempDir).some(name => name.includes('.tmp-'))).toBe(false)
+    expect(JSON.parse(readFileSync(getStateFilePath(), 'utf8')).self?.installSource).toBe('npm')
   })
 
   it('rejects writes while the state lock is already held', async () => {
