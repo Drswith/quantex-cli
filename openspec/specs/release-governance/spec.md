@@ -72,6 +72,8 @@ Release-please generated Release PRs SHALL remain governed by the dedicated Rele
 - **THEN** PR Governance does not require product-impacting release intent for the version-file changes
 - **AND** Release PR Automerge validates the release branch, title, generated marker, and changed file scope
 - **AND** it rejects a generated Release PR whose proposed semantic version is less than or equal to the current version on the protected base branch
+- **AND** it rejects a generated stable Release PR that promotes a `0.x` base version directly to `1.0.0`
+- **AND** it rejects a generated stable Release PR whose proposed version is a repository-recorded burned release version
 
 ### Requirement: Protected-branch CI MUST reject prohibited co-author trailers in new commits
 
@@ -127,3 +129,4 @@ Agents and contributors SHALL run the local PR body governance command before cr
 - **GIVEN** a pull request body is malformed or missing required governance sections
 - **WHEN** local preflight is skipped
 - **THEN** GitHub Actions PR Governance MUST still evaluate the same PR body policy and fail the pull request before merge
+
