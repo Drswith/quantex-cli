@@ -1,6 +1,6 @@
 {
   "name": "quantex-cli",
-  "version": "0.22.0",
+  "version": "0.22.1",
   "description": "Agent-friendly lifecycle CLI for AI coding assistant CLIs: install, inspect, update, uninstall, run, and automate Codex, Claude Code, Gemini, Cursor, OpenCode, and more",
   "keywords": [
     "agent-cli",
