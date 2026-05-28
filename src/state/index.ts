@@ -106,14 +106,92 @@ async function readState(): Promise<QuantexState> {
     const self = normalizeSelfState(data.self)
 
     return {
-      installedAgents: data.installedAgents ?? {},
+      installedAgents: normalizeInstalledAgents(data.installedAgents),
       self,
     }
   } catch (error) {
     if (isMissingStateFileError(error)) return { ...defaultState }
+    if (error instanceof StateFileError) throw error
 
     throw new StateFileError('Failed to read Quantex state file.', { cause: error })
   }
+}
+
+const VALID_INSTALL_TYPES = new Set<InstallType>([
+  'binary',
+  'brew',
+  'bun',
+  'cargo',
+  'deno',
+  'mise',
+  'npm',
+  'pip',
+  'script',
+  'uv',
+  'winget',
+])
+
+function normalizeInstalledAgents(rawInstalledAgents: unknown): Record<string, InstalledAgentState> {
+  if (rawInstalledAgents === undefined) return {}
+
+  if (!isPlainObject(rawInstalledAgents)) {
+    throw new StateFileError('Failed to read Quantex state file: installedAgents must be an object.')
+  }
+
+  const installedAgents: Record<string, InstalledAgentState> = {}
+
+  for (const [agentName, rawAgentState] of Object.entries(rawInstalledAgents)) {
+    installedAgents[agentName] = normalizeInstalledAgentState(agentName, rawAgentState)
+  }
+
+  return installedAgents
+}
+
+function normalizeInstalledAgentState(agentName: string, rawAgentState: unknown): InstalledAgentState {
+  if (!isPlainObject(rawAgentState)) {
+    throw new StateFileError(`Failed to read Quantex state file: installed agent "${agentName}" must be an object.`)
+  }
+
+  if (typeof rawAgentState.agentName !== 'string' || rawAgentState.agentName !== agentName) {
+    throw new StateFileError(
+      `Failed to read Quantex state file: installed agent "${agentName}" has an invalid agentName.`,
+    )
+  }
+
+  if (!isInstallType(rawAgentState.installType)) {
+    throw new StateFileError(
+      `Failed to read Quantex state file: installed agent "${agentName}" has an invalid installType.`,
+    )
+  }
+
+  const agentState: InstalledAgentState = {
+    agentName,
+    installType: rawAgentState.installType,
+  }
+
+  if (typeof rawAgentState.binaryName === 'string') agentState.binaryName = rawAgentState.binaryName
+  if (Array.isArray(rawAgentState.packageInstallArgs) && rawAgentState.packageInstallArgs.every(isString)) {
+    agentState.packageInstallArgs = rawAgentState.packageInstallArgs
+  }
+  if (typeof rawAgentState.packageName === 'string') agentState.packageName = rawAgentState.packageName
+  if (isPackageTargetKind(rawAgentState.packageTargetKind)) {
+    agentState.packageTargetKind = rawAgentState.packageTargetKind
+  }
+  if (typeof rawAgentState.command === 'string') agentState.command = rawAgentState.command
+
+  return agentState
+}
+
+function isInstallType(value: unknown): value is InstallType {
+  return typeof value === 'string' && VALID_INSTALL_TYPES.has(value as InstallType)
+}
+
+function isPackageTargetKind(value: unknown): value is PackageTargetKind {
+  return value === 'package' || value === 'cask' || value === 'id'
+}
+
+function isString(value: unknown): value is string {
+  return typeof value === 'string'
 }
 
 function normalizeSelfState(rawSelf: unknown): SelfState {
