@@ -2,6 +2,13 @@
 
 This changelog is maintained by release-please Release PRs.
 
+## [0.22.2](https://github.com/Drswith/quantex-cli/compare/v0.22.1...v0.22.2) (2026-05-28)
+
+
+### Bug Fixes
+
+* **state:** reject invalid installedAgents on read ([969af40](https://github.com/Drswith/quantex-cli/commit/969af40dc0b44a5729262a1ceebb77c4bbb0fd72))
+
 ## [0.22.1](https://github.com/Drswith/quantex-cli/compare/v0.22.0...v0.22.1) (2026-05-27)
 
 
