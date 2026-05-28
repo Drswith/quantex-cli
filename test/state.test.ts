@@ -142,6 +142,49 @@ describe('state helpers', () => {
     expect(writtenState.self?.updateNoticeAt).toBe('2026-05-04T12:00:00.000Z')
   })
 
+  it('rejects reads when state.json contains an unknown installType', async () => {
+    const stateFilePath = getStateFilePath()
+    mkdirSync(tempDir, { recursive: true })
+    writeFileSync(
+      stateFilePath,
+      `${JSON.stringify(
+        {
+          installedAgents: {
+            codex: {
+              agentName: 'codex',
+              installType: 'not-a-real-type',
+            },
+          },
+          self: {},
+        },
+        null,
+        2,
+      )}\n`,
+    )
+
+    await expect(loadState()).rejects.toBeInstanceOf(StateFileError)
+    await expect(setSelfUpdateNoticeState('1.0.0', '2026-05-27T00:00:00.000Z')).rejects.toBeInstanceOf(StateFileError)
+    expect(readFileSync(stateFilePath, 'utf8')).toContain('not-a-real-type')
+  })
+
+  it('rejects reads when installedAgents is not an object', async () => {
+    const stateFilePath = getStateFilePath()
+    mkdirSync(tempDir, { recursive: true })
+    writeFileSync(
+      stateFilePath,
+      `${JSON.stringify(
+        {
+          installedAgents: [],
+          self: {},
+        },
+        null,
+        2,
+      )}\n`,
+    )
+
+    await expect(loadState()).rejects.toBeInstanceOf(StateFileError)
+  })
+
   it('rejects mutations when state.json contains invalid JSON', async () => {
     const stateFilePath = getStateFilePath()
     mkdirSync(tempDir, { recursive: true })
