@@ -2,6 +2,13 @@
 
 This changelog is maintained by release-please Release PRs.
 
+## [0.22.3](https://github.com/Drswith/quantex-cli/compare/v0.22.2...v0.22.3) (2026-05-29)
+
+
+### Bug Fixes
+
+* **state:** reject non-object state.json roots on read ([c807221](https://github.com/Drswith/quantex-cli/commit/c807221376b05cbe7d2affe186393ae7a2812cb2))
+
 ## [0.22.2](https://github.com/Drswith/quantex-cli/compare/v0.22.1...v0.22.2) (2026-05-28)
 
 
