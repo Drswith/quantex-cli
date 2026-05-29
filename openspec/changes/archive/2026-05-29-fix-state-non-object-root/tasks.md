@@ -2,7 +2,7 @@
 
 - [x] 1.1 Reject non-object `state.json` roots in `readState()`
 - [x] 1.2 Add regression tests for array and primitive JSON roots
-- [ ] 1.3 Sync `openspec/specs/quantex-state/spec.md` after merge
+- [x] 1.3 Sync `openspec/specs/quantex-state/spec.md` after merge
 
 ## 2. Validation
 
