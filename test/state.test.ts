@@ -167,6 +167,19 @@ describe('state helpers', () => {
     expect(readFileSync(stateFilePath, 'utf8')).toContain('not-a-real-type')
   })
 
+  it('rejects reads when state.json root is not an object', async () => {
+    const stateFilePath = getStateFilePath()
+    mkdirSync(tempDir, { recursive: true })
+
+    for (const contents of ['null', '[]', '123', '"orphan"', 'true']) {
+      writeFileSync(stateFilePath, contents, 'utf8')
+
+      await expect(loadState()).rejects.toBeInstanceOf(StateFileError)
+      await expect(setSelfUpdateNoticeState('1.0.0', '2026-05-27T00:00:00.000Z')).rejects.toBeInstanceOf(StateFileError)
+      expect(readFileSync(stateFilePath, 'utf8')).toBe(contents)
+    }
+  })
+
   it('rejects reads when installedAgents is not an object', async () => {
     const stateFilePath = getStateFilePath()
     mkdirSync(tempDir, { recursive: true })
