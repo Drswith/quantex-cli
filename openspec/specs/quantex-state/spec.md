@@ -34,6 +34,13 @@ When `state.json` exists but cannot be read, parsed, or normalized into a safe p
 - **THEN** the operation fails with a state read error
 - **AND** Quantex does not crash while resolving installer capabilities
 
+#### Scenario: Non-object JSON root must not be treated as empty state
+
+- **GIVEN** `state.json` exists with valid JSON whose root value is not an object (for example `[]`, `null`, or a primitive)
+- **WHEN** Quantex loads persisted state for inspection or mutation
+- **THEN** the operation fails with a state read error
+- **AND** Quantex does not overwrite the file with empty default state on a later mutation
+
 ### Requirement: State writes MUST be atomic
 
 Quantex SHALL write `state.json` through a temporary file and atomic rename so interrupted writes do not leave torn JSON as the primary state file.
@@ -44,4 +51,3 @@ Quantex SHALL write `state.json` through a temporary file and atomic rename so i
 - **WHEN** Quantex writes updated state
 - **THEN** it writes complete JSON to a temporary path first
 - **AND** it replaces `state.json` only via rename of the completed temporary file
-
