@@ -102,11 +102,16 @@ export async function setSelfUpdateNoticeState(updateNoticeVersion: string, upda
 
 async function readState(): Promise<QuantexState> {
   try {
-    const data = JSON.parse(await readFile(getStateFilePath(), 'utf8')) as Partial<QuantexState>
+    const data: unknown = JSON.parse(await readFile(getStateFilePath(), 'utf8'))
+
+    if (!isPlainObject(data)) {
+      throw new StateFileError('Failed to read Quantex state file: root value must be an object.')
+    }
+
     const self = normalizeSelfState(data.self)
 
     return {
-      installedAgents: normalizeInstalledAgents(data.installedAgents),
+      installedAgents: normalizeInstalledAgents(data.installedAgents as unknown),
       self,
     }
   } catch (error) {
