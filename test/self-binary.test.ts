@@ -70,6 +70,44 @@ describe('upgradeStandaloneBinary', () => {
     }
   })
 
+  it('aborts Windows delayed replacement when backup creation never succeeds', async () => {
+    const tempRoot = await mkdtemp(join(tmpdir(), 'quantex-binary-win-backup-'))
+    const executablePath = join(tempRoot, 'qtx.exe')
+    const mockSpawn = vi.fn().mockReturnValue({
+      exitCode: 0,
+      exited: Promise.resolve(0),
+      unref: vi.fn(),
+    })
+
+    Bun.spawn = mockSpawn as typeof Bun.spawn
+    Object.defineProperty(process, 'platform', { value: 'win32' })
+
+    await writeFile(executablePath, 'old-binary', 'utf8')
+    globalThis.fetch = vi
+      .fn()
+      .mockResolvedValue(new Response(Buffer.from('new-binary'), { status: 200 })) as unknown as typeof fetch
+    const checksum = createHash('sha256').update('new-binary').digest('hex')
+
+    try {
+      expect(await upgradeStandaloneBinary('https://example.com/qtx.exe', executablePath, checksum)).toEqual({
+        success: true,
+      })
+
+      const [command] = mockSpawn.mock.calls[0] as [string[], Record<string, unknown>]
+      const script = command[command.length - 1] as string
+      expect(script).toContain('$backupReady = $false')
+      expect(script).toContain('$backupReady = $true')
+      expect(script).toContain('if (-not $backupReady)')
+      expect(script).toContain('exit 1')
+      const backupGuardIndex = script.indexOf('if (-not $backupReady)')
+      const swapIndex = script.indexOf('Move-Item -LiteralPath $tempPath -Destination $targetPath -Force')
+      expect(backupGuardIndex).toBeGreaterThan(-1)
+      expect(swapIndex).toBeGreaterThan(backupGuardIndex)
+    } finally {
+      await rm(tempRoot, { recursive: true, force: true })
+    }
+  })
+
   it('schedules peer alias replacement when launched from quantex.exe on Windows', async () => {
     const tempRoot = await mkdtemp(join(tmpdir(), 'quantex-binary-win-long-'))
     const executablePath = join(tempRoot, 'quantex.exe')
