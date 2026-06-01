@@ -2,6 +2,13 @@
 
 This changelog is maintained by release-please Release PRs.
 
+## [0.22.4](https://github.com/Drswith/quantex-cli/compare/v0.22.3...v0.22.4) (2026-06-01)
+
+
+### Bug Fixes
+
+* **lifecycle:** fail closed on unsafe install and upgrade paths ([87f0c86](https://github.com/Drswith/quantex-cli/commit/87f0c867b28fe574f07f6cbf15829f64c67061d2))
+
 ## [0.22.3](https://github.com/Drswith/quantex-cli/compare/v0.22.2...v0.22.3) (2026-05-29)
 
 
