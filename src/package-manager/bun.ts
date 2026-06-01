@@ -107,7 +107,7 @@ async function trustBlockedGlobalPackages(packageNames: string[]): Promise<boole
   if (requestedPackages.length === 0) return true
 
   const output = await readGlobalUntrustedPackages()
-  if (!output) return true
+  if (output === undefined) return false
 
   const untrustedPackages = parseUntrustedPackages(output)
   const blockedPackages = requestedPackages.filter(packageName => untrustedPackages.has(packageName))

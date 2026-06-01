@@ -1,0 +1,3 @@
+- [x] Guard Windows delayed replacement on successful `.bak` creation
+- [x] Add regression test for backup-ready guard in generated PowerShell
+- [x] Sync self-upgrade spec delta and run validation
