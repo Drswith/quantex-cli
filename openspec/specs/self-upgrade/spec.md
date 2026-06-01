@@ -240,4 +240,3 @@ Windows standalone binary installs SHALL treat same-directory `quantex.exe` and 
 - **GIVEN** Quantex is installed on Windows by `install.ps1`
 - **WHEN** a user follows manual standalone-binary uninstall or recovery guidance
 - **THEN** the guidance identifies both `quantex.exe` and `qtx.exe` as files to remove or replace together
-

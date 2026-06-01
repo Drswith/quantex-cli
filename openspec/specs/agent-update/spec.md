@@ -117,7 +117,7 @@ When Quantex performs a grouped managed batch update for an installer type, it S
 
 ### Requirement: Bun-managed updates MUST trust requested blocked lifecycle scripts across platform path styles
 
-The agent update system SHALL recognize Bun global untrusted package output for requested managed packages regardless of whether Bun prints `node_modules` paths with POSIX or Windows separators.
+The agent update system SHALL recognize Bun global untrusted package output for requested managed packages regardless of whether Bun prints `node_modules` paths with POSIX or Windows separators. When the untrusted probe cannot be read after a successful Bun global install or update command, Quantex SHALL NOT report that managed operation as successful.
 
 #### Scenario: Trusting a requested scoped package from Windows Bun output
 
@@ -126,6 +126,7 @@ The agent update system SHALL recognize Bun global untrusted package output for 
 - WHEN the Bun install or update command exits successfully
 - THEN Quantex trusts the requested package lifecycle script
 - AND the agent update does not leave the requested package's required postinstall blocked because of path separator parsing
+- AND the managed operation is reported as successful only after trust completes successfully
 
 #### Scenario: Ignoring unrelated blocked packages
 
@@ -133,6 +134,15 @@ The agent update system SHALL recognize Bun global untrusted package output for 
 - AND `bun pm -g untrusted` reports additional packages that were not requested
 - WHEN Quantex evaluates blocked lifecycle packages
 - THEN Quantex only trusts blocked packages whose names match the requested package list
+
+#### Scenario: Failing closed when the untrusted probe is unavailable
+
+- GIVEN a Bun-managed install or update requested one or more package names
+- AND the Bun global install or update command exits successfully
+- AND `bun pm -g untrusted` exits non-zero or cannot be executed
+- WHEN Quantex evaluates blocked lifecycle scripts
+- THEN Quantex reports the managed operation as failed
+- AND it does not claim the install or update succeeded without completing trust verification
 
 #### Scenario: Skipping untracked PATH detections during batch update
 
@@ -353,4 +363,3 @@ When Quantex cancels a managed lifecycle installer on Windows and a child proces
 - **THEN** Quantex attempts process-tree termination for the wrapper process identifier before direct wrapper termination
 - **AND** the installer descendant does not continue producing installer progress after Quantex returns the cancelled result
 - **AND** Quantex does not persist normal installed-agent state for the cancelled operation
-
