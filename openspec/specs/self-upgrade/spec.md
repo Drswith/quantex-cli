@@ -145,6 +145,7 @@ The binary self-upgrade path SHALL use a replacement strategy that matches platf
 - GIVEN the current platform is Windows
 - WHEN a binary upgrade is executed
 - THEN Quantex uses delayed replacement semantics compatible with Windows file locking behavior
+- AND the scheduled replacement does not overwrite the live executable unless a `.bak` backup of the current binary was created successfully
 
 ### Requirement: Release artifacts MUST be smoke-validated before publish
 
