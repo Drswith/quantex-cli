@@ -46,6 +46,15 @@ describe('bun install', () => {
     expect(await install('some-package')).toBe(false)
   })
 
+  it('returns false when the untrusted probe fails after install', async () => {
+    const { install } = await import('../../src/package-manager/bun')
+    mockSpawn.mockReturnValueOnce(createProc(0)).mockReturnValueOnce(createProc(1))
+
+    expect(await install('some-package')).toBe(false)
+    expect(mockSpawn).toHaveBeenNthCalledWith(2, ['bun', 'pm', '-g', 'untrusted'], expect.any(Object))
+    expect(mockSpawn).toHaveBeenCalledTimes(2)
+  })
+
   it('trusts blocked postinstall packages after install', async () => {
     const { install } = await import('../../src/package-manager/bun')
     mockSpawn
@@ -77,6 +86,15 @@ describe('bun update', () => {
     const { update } = await import('../../src/package-manager/bun')
     mockSpawn.mockReturnValue(createProc(1))
     expect(await update('some-package')).toBe(false)
+  })
+
+  it('returns false when the untrusted probe fails after update', async () => {
+    const { update } = await import('../../src/package-manager/bun')
+    mockSpawn.mockReturnValueOnce(createProc(0)).mockReturnValueOnce(createProc(1))
+
+    expect(await update('some-package')).toBe(false)
+    expect(mockSpawn).toHaveBeenNthCalledWith(2, ['bun', 'pm', '-g', 'untrusted'], expect.any(Object))
+    expect(mockSpawn).toHaveBeenCalledTimes(2)
   })
 
   it('returns false when trust fails for a blocked package', async () => {
