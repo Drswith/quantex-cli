@@ -142,6 +142,30 @@ describe('state helpers', () => {
     expect(writtenState.self?.updateNoticeAt).toBe('2026-05-04T12:00:00.000Z')
   })
 
+  it('rejects reads when a managed installed agent has an empty packageName', async () => {
+    const stateFilePath = getStateFilePath()
+    mkdirSync(tempDir, { recursive: true })
+    writeFileSync(
+      stateFilePath,
+      `${JSON.stringify(
+        {
+          installedAgents: {
+            codex: {
+              agentName: 'codex',
+              installType: 'bun',
+              packageName: '',
+            },
+          },
+          self: {},
+        },
+        null,
+        2,
+      )}\n`,
+    )
+
+    await expect(loadState()).rejects.toBeInstanceOf(StateFileError)
+  })
+
   it('rejects reads when state.json contains an unknown installType', async () => {
     const stateFilePath = getStateFilePath()
     mkdirSync(tempDir, { recursive: true })

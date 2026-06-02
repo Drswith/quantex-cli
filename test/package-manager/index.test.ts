@@ -17,6 +17,7 @@ import {
 import * as misePm from '../../src/package-manager/mise'
 import * as npmPm from '../../src/package-manager/npm'
 import * as uvPm from '../../src/package-manager/uv'
+import { StateFileError } from '../../src/state'
 import * as state from '../../src/state'
 import * as detectUtils from '../../src/utils/detect'
 
@@ -198,6 +199,17 @@ describe('installAgent', () => {
     })
     expect(bunInstallSpy).not.toHaveBeenCalled()
     expect(npmInstallSpy).toHaveBeenCalledWith('test-pkg')
+  })
+
+  it('rolls back a managed install when state persistence fails', async () => {
+    isBunSpy.mockResolvedValue(true)
+    bunInstallSpy.mockResolvedValue(true)
+    bunUninstallSpy.mockResolvedValue(true)
+    setInstalledAgentStateSpy.mockRejectedValue(new StateFileError('Failed to persist installed agent state.'))
+
+    await expect(installAgent(testAgent)).rejects.toBeInstanceOf(StateFileError)
+    expect(bunInstallSpy).toHaveBeenCalledWith('test-pkg')
+    expect(bunUninstallSpy).toHaveBeenCalledWith('test-pkg')
   })
 
   it('tries next method if first fails', async () => {
@@ -504,6 +516,44 @@ describe('updateAgent', () => {
     expect(binarySpy).not.toHaveBeenCalled()
   })
 
+  it('updates legacy managed state without packageName using catalog metadata', async () => {
+    isBunSpy.mockResolvedValue(true)
+    bunUpdateSpy.mockResolvedValue(true)
+    setInstalledAgentStateSpy.mockResolvedValue()
+
+    expect(
+      await updateAgent(testAgent, {
+        agentName: 'test-agent',
+        installType: 'bun',
+      }),
+    ).toMatchObject({ success: true })
+
+    expect(bunUpdateSpy).toHaveBeenCalledWith('test-pkg', 'latest-major')
+  })
+
+  it('does not fall back to self-update when recorded managed state lacks a package name', async () => {
+    const dualModeAgent = {
+      ...testAgent,
+      packages: undefined,
+      selfUpdate: {
+        command: ['test-bin', 'update'],
+      },
+    }
+
+    isBunSpy.mockResolvedValue(true)
+    binarySpy.mockResolvedValue(true)
+
+    expect(
+      await updateAgent(dualModeAgent, {
+        agentName: 'test-agent',
+        installType: 'bun',
+      }),
+    ).toEqual({ success: false })
+
+    expect(bunUpdateSpy).not.toHaveBeenCalled()
+    expect(binarySpy).not.toHaveBeenCalled()
+  })
+
   it('falls back to self-update after preferred managed state fails', async () => {
     const dualModeAgent = {
       ...testAgent,
@@ -733,6 +783,19 @@ describe('updateAgentsByType', () => {
 })
 
 describe('uninstallAgent', () => {
+  it('uninstalls legacy managed state without packageName using catalog metadata', async () => {
+    getInstalledAgentStateSpy.mockResolvedValue({
+      agentName: 'test-agent',
+      installType: 'bun',
+    })
+    isBunSpy.mockResolvedValue(true)
+    bunUninstallSpy.mockResolvedValue(true)
+
+    expect(await uninstallAgent(testAgent)).toBe(true)
+    expect(bunUninstallSpy).toHaveBeenCalledWith('test-pkg')
+    expect(removeInstalledAgentStateSpy).toHaveBeenCalledWith('test-agent')
+  })
+
   it('uninstalls only the tracked installer source', async () => {
     getInstalledAgentStateSpy.mockResolvedValue({
       agentName: 'test-agent',
