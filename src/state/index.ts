@@ -4,6 +4,7 @@ import { mkdir, readFile, rename, rm, writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
 import process from 'node:process'
 import { getConfigDir } from '../config'
+import { isManagedInstallType } from '../utils/install'
 import { acquireResourceLock, getResourceLockPath } from '../utils/lock'
 
 export class StateFileError extends Error {
@@ -178,7 +179,15 @@ function normalizeInstalledAgentState(agentName: string, rawAgentState: unknown)
   if (Array.isArray(rawAgentState.packageInstallArgs) && rawAgentState.packageInstallArgs.every(isString)) {
     agentState.packageInstallArgs = rawAgentState.packageInstallArgs
   }
-  if (typeof rawAgentState.packageName === 'string') agentState.packageName = rawAgentState.packageName
+  if (typeof rawAgentState.packageName === 'string') {
+    if (rawAgentState.packageName.length === 0 && isManagedInstallType(rawAgentState.installType)) {
+      throw new StateFileError(
+        `Failed to read Quantex state file: installed agent "${agentName}" has an empty packageName.`,
+      )
+    }
+
+    agentState.packageName = rawAgentState.packageName
+  }
   if (isPackageTargetKind(rawAgentState.packageTargetKind)) {
     agentState.packageTargetKind = rawAgentState.packageTargetKind
   }
