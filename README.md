@@ -4,11 +4,18 @@
 
 [![npm version][npm-version-src]][npm-version-href]
 [![npm downloads][npm-downloads-src]][npm-downloads-href]
-[![GitHub stars][stars-src]][stars-href]
-[![CI][ci-src]][ci-href]
 [![Release][release-src]][release-href]
+[![Release downloads][release-downloads-src]][release-downloads-href]
+[![CI][ci-src]][ci-href]
+
+<br />
+
+[![Node.js >=20][node-src]][node-href]
+[![Bun][bun-src]][bun-href]
+[![Platforms][platforms-src]][release-href]
 [![bundle][bundle-src]][bundle-href]
 [![License][license-src]][license-href]
+[![GitHub stars][stars-src]][stars-href]
 
 Install, inspect, update, uninstall, and run AI coding assistant CLIs from one agent-friendly command line.
 
@@ -302,6 +309,13 @@ Apache-2.0
 [ci-href]: https://github.com/Drswith/quantex-cli/actions/workflows/ci.yml
 [release-src]: https://img.shields.io/github/v/release/Drswith/quantex-cli?display_name=tag&sort=semver&style=flat-square
 [release-href]: https://github.com/Drswith/quantex-cli/releases
+[release-downloads-src]: https://img.shields.io/github/downloads/Drswith/quantex-cli/total?style=flat-square&label=release%20downloads
+[release-downloads-href]: https://github.com/Drswith/quantex-cli/releases
+[node-src]: https://img.shields.io/badge/node-%3E%3D20-339933?style=flat-square&logo=node.js&logoColor=white
+[node-href]: https://nodejs.org/
+[bun-src]: https://img.shields.io/badge/bun-1.3.11-fbf0df?style=flat-square&logo=bun&logoColor=000
+[bun-href]: https://bun.sh/
+[platforms-src]: https://img.shields.io/badge/platform-macOS%20%7C%20Linux%20%7C%20Windows-555?style=flat-square
 [bundle-src]: https://img.shields.io/bundlephobia/minzip/quantex-cli?style=flat-square
 [bundle-href]: https://bundlephobia.com/package/quantex-cli
 [license-src]: https://img.shields.io/npm/l/quantex-cli?style=flat-square
