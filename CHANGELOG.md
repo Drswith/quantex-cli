@@ -2,6 +2,13 @@
 
 This changelog is maintained by release-please Release PRs.
 
+## [0.22.5](https://github.com/Drswith/quantex-cli/compare/v0.22.4...v0.22.5) (2026-06-02)
+
+
+### Bug Fixes
+
+* **lifecycle:** harden managed state gaps in install and update ([af28e31](https://github.com/Drswith/quantex-cli/commit/af28e311152d377e7ab6ebaff421fb4ab3aa95ae))
+
 ## [0.22.4](https://github.com/Drswith/quantex-cli/compare/v0.22.3...v0.22.4) (2026-06-01)
 
 
