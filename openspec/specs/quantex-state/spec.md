@@ -41,6 +41,13 @@ When `state.json` exists but cannot be read, parsed, or normalized into a safe p
 - **THEN** the operation fails with a state read error
 - **AND** Quantex does not overwrite the file with empty default state on a later mutation
 
+#### Scenario: Managed installed agent with empty packageName is rejected
+
+- **GIVEN** `state.json` exists with a managed `installType` for an installed agent
+- **AND** the entry sets `packageName` to an empty string
+- **WHEN** Quantex loads persisted state for inspection or mutation
+- **THEN** the operation fails with a state read error
+
 ### Requirement: State writes MUST be atomic
 
 Quantex SHALL write `state.json` through a temporary file and atomic rename so interrupted writes do not leave torn JSON as the primary state file.
