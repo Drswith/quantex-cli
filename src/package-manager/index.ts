@@ -5,7 +5,12 @@ import type { ManagedInstallerUpdateOptions, ManagedPackageSpec } from './instal
 import { loadConfig } from '../config'
 import { getInstalledAgentState, removeInstalledAgentState, setInstalledAgentState } from '../state'
 import { getPlatform } from '../utils/detect'
-import { canUpdateInstallType, getManagedPackageName, isManagedInstallType } from '../utils/install'
+import {
+  canUninstallInstallType,
+  canUpdateInstallType,
+  getManagedPackageName,
+  isManagedInstallType,
+} from '../utils/install'
 import { withResourceLock } from '../utils/lock'
 import { runBinaryInstall } from './binary'
 import { getManagedInstaller } from './installers'
@@ -297,6 +302,11 @@ export async function uninstallAgent(agent: AgentDefinition): Promise<boolean> {
   return withResourceLock(lifecycleLock, async () => {
     const installedState = await getInstalledAgentState(agent.name)
     if (!installedState) return false
+
+    if (!canUninstallInstallType(installedState.installType)) {
+      await removeInstalledAgentState(agent.name)
+      return true
+    }
 
     const success = await executeInstalledState(installedState, 'uninstall', { agent })
     if (success) await removeInstalledAgentState(agent.name)
