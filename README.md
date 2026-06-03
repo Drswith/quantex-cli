@@ -13,7 +13,6 @@
 [![Node.js >=20][node-src]][node-href]
 [![Bun][bun-src]][bun-href]
 [![Platforms][platforms-src]][release-href]
-[![bundle][bundle-src]][bundle-href]
 [![License][license-src]][license-href]
 [![GitHub stars][stars-src]][stars-href]
 
@@ -316,7 +315,5 @@ Apache-2.0
 [bun-src]: https://img.shields.io/badge/bun-1.3.11-fbf0df?style=flat-square&logo=bun&logoColor=000
 [bun-href]: https://bun.sh/
 [platforms-src]: https://img.shields.io/badge/platform-macOS%20%7C%20Linux%20%7C%20Windows-555?style=flat-square
-[bundle-src]: https://img.shields.io/bundlephobia/minzip/quantex-cli?style=flat-square
-[bundle-href]: https://bundlephobia.com/package/quantex-cli
 [license-src]: https://img.shields.io/npm/l/quantex-cli?style=flat-square
 [license-href]: ./LICENSE
