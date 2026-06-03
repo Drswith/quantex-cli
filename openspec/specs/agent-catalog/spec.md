@@ -102,17 +102,25 @@ Quantex SHALL include Kimi Code CLI in the supported agent catalog with lifecycl
 - **WHEN** a user or machine consumer looks up the canonical agent name `kimi` or the aliases `kimi-code` or `kimi-cli`
 - **THEN** Quantex returns a supported agent entry for Kimi Code CLI
 - **AND** the entry identifies `kimi` as the executable binary
+- **AND** the entry identifies `@moonshot-ai/kimi-code` as its npm package metadata
 
 #### Scenario: Installing Kimi Code CLI through supported methods
 
 - **WHEN** Quantex renders or executes install options for Kimi Code CLI
-- **THEN** macOS and Linux include the official curl install script option
-- **AND** Windows includes the official PowerShell install script option
+- **THEN** macOS and Linux include the official current curl install script option (`curl -fsSL https://code.kimi.com/kimi-code/install.sh | bash`)
+- **AND** Windows includes the official current PowerShell install script option (`irm https://code.kimi.com/kimi-code/install.ps1 | iex`)
+- **AND** Windows, macOS, and Linux include the npm-compatible managed install method
+- **AND** the entry does not include uv managed install methods for fresh Kimi Code CLI installs
+
+#### Scenario: Probing Kimi Code CLI version
+
+- **WHEN** Quantex probes the installed version of Kimi Code CLI
+- **THEN** it runs `kimi --version` and parses the output
 
 #### Scenario: Planning Kimi Code CLI updates
 
 - **WHEN** Quantex plans an update for a Kimi Code CLI installation that supports self-update
-- **THEN** the catalog exposes `uv tool upgrade kimi-cli --no-cache` as the agent self-update command
+- **THEN** the catalog exposes `kimi upgrade` as the agent self-update command
 
 ### Requirement: Crush MUST be a supported lifecycle agent
 
@@ -380,13 +388,6 @@ Quantex SHALL allow supported agent catalog entries to declare uv tool managed i
 - **AND** the entry continues to identify `mistral-vibe` as pip package metadata
 - **AND** macOS and Linux continue to include the official shell installer option
 
-#### Scenario: Registering Kimi CLI uv metadata
-
-- **WHEN** Quantex defines the supported Kimi Code CLI agent entry
-- **THEN** the entry identifies `kimi-cli` as uv package metadata
-- **AND** macOS and Linux include the uv managed install method with the upstream-documented `--python 3.13` argument
-- **AND** Windows does not include a uv managed install method while upstream docs do not list native Windows support
-
 ### Requirement: mise install methods MUST be supported lifecycle metadata
 
 Quantex SHALL allow supported agent catalog entries to declare mise-managed install methods and mise package metadata when an upstream agent can be installed through mise.
@@ -453,4 +454,3 @@ Quantex SHALL record CodeWhale's Cargo package metadata when defining the suppor
 - **THEN** the entry identifies `codewhale-cli` as Cargo package metadata
 - **AND** the Cargo install method includes the upstream-documented `--locked` argument
 - **AND** the entry identifies `codewhale` as npm package metadata
-
