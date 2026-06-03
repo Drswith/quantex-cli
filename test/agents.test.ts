@@ -684,25 +684,33 @@ describe('kimi', () => {
     expect(kimi.lookupAliases).toEqual(['kimi-code', 'kimi-cli'])
     expect(kimi.displayName).toBe('Kimi Code')
     expect(kimi.binaryName).toBe('kimi')
-    expect(kimi.packages?.uv).toBe('kimi-cli')
-    expect(kimi.homepage).toBe('https://moonshotai.github.io/kimi-cli/')
-    expect(kimi.selfUpdate?.command).toEqual(['uv', 'tool', 'upgrade', 'kimi-cli', '--no-cache'])
+    expect(kimi.packages?.npm).toBe('@moonshot-ai/kimi-code')
+    expect(kimi.packages?.uv).toBeUndefined()
+    expect(kimi.homepage).toBe('https://moonshotai.github.io/kimi-code/')
+    expect(kimi.selfUpdate?.command).toEqual(['kimi', 'upgrade'])
     expect(kimi.versionProbe?.command).toEqual(['kimi', '--version'])
   })
 
-  it('exposes managed uv installs on macOS and Linux while preserving script installers', () => {
-    for (const methods of [kimi.platforms.macos!, kimi.platforms.linux!]) {
-      expect(
-        methods.find(
-          m => m.type === 'uv' && m.packageName === undefined && m.packageInstallArgs?.join(' ') === '--python 3.13',
-        ),
-      ).toBeDefined()
-      expect(methods.find(m => m.type === 'script' && m.command.includes('code.kimi.com/install.sh'))).toBeDefined()
+  it('exposes official script installers and npm-managed installs on all platforms', () => {
+    for (const methods of [kimi.platforms.windows!, kimi.platforms.macos!, kimi.platforms.linux!]) {
+      expect(methods.find(m => m.type === 'uv')).toBeUndefined()
+      expect(methods.find(m => m.type === 'npm')).toBeDefined()
     }
 
-    expect(kimi.platforms.windows!.find(m => m.type === 'uv')).toBeUndefined()
     expect(
-      kimi.platforms.windows!.find(m => m.type === 'script' && m.command.includes('code.kimi.com/install.ps1')),
+      kimi.platforms.windows!.find(
+        m => m.type === 'script' && m.command === 'irm https://code.kimi.com/kimi-code/install.ps1 | iex',
+      ),
+    ).toBeDefined()
+    expect(
+      kimi.platforms.macos!.find(
+        m => m.type === 'script' && m.command === 'curl -fsSL https://code.kimi.com/kimi-code/install.sh | bash',
+      ),
+    ).toBeDefined()
+    expect(
+      kimi.platforms.linux!.find(
+        m => m.type === 'script' && m.command === 'curl -fsSL https://code.kimi.com/kimi-code/install.sh | bash',
+      ),
     ).toBeDefined()
   })
 })
