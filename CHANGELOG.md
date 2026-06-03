@@ -2,6 +2,13 @@
 
 This changelog is maintained by release-please Release PRs.
 
+## [0.23.0](https://github.com/Drswith/quantex-cli/compare/v0.22.5...v0.23.0) (2026-06-03)
+
+
+### Features
+
+* **agent-catalog:** update kimi code cli distribution ([#332](https://github.com/Drswith/quantex-cli/issues/332)) ([5fa6f19](https://github.com/Drswith/quantex-cli/commit/5fa6f191ef136725015d5b5281575a85be275a73))
+
 ## [0.22.5](https://github.com/Drswith/quantex-cli/compare/v0.22.4...v0.22.5) (2026-06-02)
 
 
