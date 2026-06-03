@@ -2,6 +2,13 @@
 
 This changelog is maintained by release-please Release PRs.
 
+## [0.23.1](https://github.com/Drswith/quantex-cli/compare/v0.23.0...v0.23.1) (2026-06-03)
+
+
+### Bug Fixes
+
+* **lifecycle:** untrack script and binary agents on uninstall ([47a7aab](https://github.com/Drswith/quantex-cli/commit/47a7aab325061c8021b8d10f282a5bc625883f25))
+
 ## [0.23.0](https://github.com/Drswith/quantex-cli/compare/v0.22.5...v0.23.0) (2026-06-03)
 
 
