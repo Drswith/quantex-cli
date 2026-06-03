@@ -870,4 +870,29 @@ describe('uninstallAgent', () => {
     expect(bunUninstallSpy).not.toHaveBeenCalled()
     expect(removeInstalledAgentStateSpy).toHaveBeenCalledWith('test-agent')
   })
+
+  it('untracks script installs when managed uninstall is unavailable', async () => {
+    getInstalledAgentStateSpy.mockResolvedValue({
+      agentName: 'test-agent',
+      command: 'curl https://example.com/install | bash',
+      installType: 'script',
+    })
+
+    expect(await uninstallAgent(testAgent)).toBe(true)
+    expect(binarySpy).not.toHaveBeenCalled()
+    expect(bunUninstallSpy).not.toHaveBeenCalled()
+    expect(removeInstalledAgentStateSpy).toHaveBeenCalledWith('test-agent')
+  })
+
+  it('untracks binary installs when managed uninstall is unavailable', async () => {
+    getInstalledAgentStateSpy.mockResolvedValue({
+      agentName: 'test-agent',
+      installType: 'binary',
+    })
+
+    expect(await uninstallAgent(testAgent)).toBe(true)
+    expect(binarySpy).not.toHaveBeenCalled()
+    expect(bunUninstallSpy).not.toHaveBeenCalled()
+    expect(removeInstalledAgentStateSpy).toHaveBeenCalledWith('test-agent')
+  })
 })

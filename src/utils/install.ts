@@ -18,7 +18,12 @@ function formatPackageTarget(packageName?: string, packageTargetKind?: PackageTa
   return ` (${packageName})`
 }
 
-export { canUpdateInstallType, getInstallLifecycle, isManagedInstallType } from '../package-manager/capabilities'
+export {
+  canUninstallInstallType,
+  canUpdateInstallType,
+  getInstallLifecycle,
+  isManagedInstallType,
+} from '../package-manager/capabilities'
 
 export function getManagedPackageName(
   agent: Pick<AgentDefinition, 'packages'>,
