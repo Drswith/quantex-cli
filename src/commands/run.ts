@@ -8,9 +8,11 @@ import { getExitCodeForError } from '../errors'
 import { createErrorResult, createSuccessResult, emitCommandResult } from '../output'
 import { installAgent } from '../package-manager'
 import { resolveAgentInspection } from '../services/agents'
+import { getStateFilePath, StateFileError } from '../state'
 import { spawnWithQuantexStdio, waitForSpawnedCommand } from '../utils/child-process'
 import { pc } from '../utils/color'
 import { formatInstallMethodCommand, formatInstallMethodLabel } from '../utils/install'
+import { createStateReadError } from '../utils/lifecycle-errors'
 import { isResourceLockError } from '../utils/lock'
 import {
   isAssumeYesEnabled,
@@ -57,7 +59,18 @@ export async function runCommand(
     nonInteractive?: boolean
   } = {},
 ): Promise<number> {
-  const resolved = await resolveAgentInspection(agentName)
+  let resolved
+  try {
+    resolved = await resolveAgentInspection(agentName)
+  } catch (error) {
+    if (error instanceof StateFileError) {
+      emitStateReadError(agentName, error)
+      return getExitCodeForError('STATE_READ_ERROR')
+    }
+
+    throw error
+  }
+
   if (!resolved) {
     emitExecPreflightError({
       agent: {
@@ -215,6 +228,27 @@ function createExecInstallGuidance(
     suggestedEnsureCommand: `quantex ensure ${agent.name}`,
     suggestedExecCommand: ['quantex', 'exec', agent.name, '--install', 'if-missing', '--', ...args].join(' '),
   }
+}
+
+function emitStateReadError(agentName: string, error: StateFileError): void {
+  const stateError = createStateReadError(error, getStateFilePath(), {
+    kind: 'agent',
+    name: agentName,
+  })
+  const context = getCliContext()
+
+  if (context.outputMode === 'human') {
+    printError(pc.red(stateError.error.message))
+    return
+  }
+
+  emitCommandResult(
+    createErrorResult<ExecPreflightData>({
+      action: 'exec',
+      ...stateError,
+    }),
+    () => {},
+  )
 }
 
 function emitExecPreflightError(input: {
