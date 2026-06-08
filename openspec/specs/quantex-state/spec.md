@@ -30,9 +30,10 @@ When `state.json` exists but cannot be read, parsed, or normalized into a safe p
 #### Scenario: Invalid installed agent records must not crash lifecycle commands
 
 - **GIVEN** `state.json` exists with an `installedAgents` entry that uses an unknown `installType`
-- **WHEN** Quantex loads persisted state for inspection or mutation
+- **WHEN** Quantex loads persisted state for inspection or mutation through a CLI command
 - **THEN** the operation fails with a state read error
 - **AND** Quantex does not crash while resolving installer capabilities
+- **AND** structured output mode returns `{ ok: false, error: { code: "STATE_READ_ERROR", ... } }`
 
 #### Scenario: Non-object JSON root must not be treated as empty state
 
@@ -47,6 +48,14 @@ When `state.json` exists but cannot be read, parsed, or normalized into a safe p
 - **AND** the entry sets `packageName` to an empty string
 - **WHEN** Quantex loads persisted state for inspection or mutation
 - **THEN** the operation fails with a state read error
+
+#### Scenario: Invalid JSON must not crash lifecycle commands
+
+- **GIVEN** `state.json` exists with previously recorded `installedAgents` or `self` data
+- **AND** the file contents are not valid JSON
+- **WHEN** Quantex runs a lifecycle command that loads persisted state
+- **THEN** the operation fails with a state read error
+- **AND** Quantex does not emit an unhandled exception stack trace to the user
 
 ### Requirement: State writes MUST be atomic
 
