@@ -2,6 +2,13 @@
 
 This changelog is maintained by release-please Release PRs.
 
+## [0.23.2](https://github.com/Drswith/quantex-cli/compare/v0.23.1...v0.23.2) (2026-06-08)
+
+
+### Bug Fixes
+
+* **cli:** handle state read errors and install timeouts ([bc486ce](https://github.com/Drswith/quantex-cli/commit/bc486cefed938bcfcf40f0ed637f82ddf57c8b44))
+
 ## [0.23.1](https://github.com/Drswith/quantex-cli/compare/v0.23.0...v0.23.1) (2026-06-03)
 
 
