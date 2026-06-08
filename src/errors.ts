@@ -10,6 +10,7 @@ export const cliErrorCodes = [
   'MANUAL_ACTION_REQUIRED',
   'NETWORK_ERROR',
   'RESOURCE_LOCKED',
+  'STATE_READ_ERROR',
   'TIMEOUT',
   'UNINSTALL_FAILED',
   'UPDATE_FAILED',
@@ -34,6 +35,8 @@ export function getExitCodeForError(code: CliErrorCode): number {
       return 8
     case 'RESOURCE_LOCKED':
       return 9
+    case 'STATE_READ_ERROR':
+      return 12
     case 'TIMEOUT':
       return 10
     case 'CANCELLED':
