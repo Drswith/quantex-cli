@@ -4,7 +4,9 @@ import { cancelCliContextOperations, getCliContext } from './cli-context'
 import { loadIdempotencyRecord, saveIdempotencyRecord } from './idempotency'
 import { createErrorResult, emitCommandEvent, emitCommandResult } from './output'
 import { maybeRenderSelfUpdateNotice } from './self/update-notice'
+import { getStateFilePath, StateFileError } from './state'
 import { pc } from './utils/color'
+import { createStateReadError } from './utils/lifecycle-errors'
 
 interface ExecuteCommandOptions<T> {
   action: string
@@ -13,6 +15,16 @@ interface ExecuteCommandOptions<T> {
 }
 
 export async function executeCommandWithRuntime<T>(options: ExecuteCommandOptions<T>): Promise<CommandResult<T>> {
+  try {
+    return await executeCommandWithRuntimeInternal(options)
+  } catch (error) {
+    if (error instanceof StateFileError) return resolveStateReadError(options, error)
+
+    throw error
+  }
+}
+
+async function executeCommandWithRuntimeInternal<T>(options: ExecuteCommandOptions<T>): Promise<CommandResult<T>> {
   const replayedResult = await replayIdempotentResult<T>(options.action, options.target)
   if (replayedResult) return replayedResult
 
@@ -48,6 +60,23 @@ export async function executeCommandWithRuntime<T>(options: ExecuteCommandOption
   } finally {
     if (timeoutId) clearTimeout(timeoutId)
   }
+}
+
+async function resolveStateReadError<T>(
+  options: ExecuteCommandOptions<T>,
+  error: StateFileError,
+): Promise<CommandResult<T>> {
+  return emitCommandResult(
+    createErrorResult<T>({
+      action: options.action,
+      ...createStateReadError(error, getStateFilePath(), options.target),
+    }),
+    renderStateReadHuman,
+  )
+}
+
+function renderStateReadHuman(result: Pick<CommandResult, 'error'>): void {
+  if (result.error) console.error(pc.red(result.error.message))
 }
 
 async function finalizeSuccessfulRun<T>(
