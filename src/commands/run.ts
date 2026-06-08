@@ -110,8 +110,9 @@ export async function runCommand(
       } else {
         printInfo(pc.cyan(`Installing ${agent.displayName}...`))
       }
-      const result = await tryInstallForRun(agent, dryRun)
-      if (!result.success) {
+      const installResult = await runInstallForRunWithTimeout(agent, dryRun)
+      if (installResult === 'timeout') return getExitCodeForError('TIMEOUT')
+      if (!installResult.success) {
         printError(pc.red(`Failed to install ${agent.displayName}.`))
         return 1
       }
@@ -155,8 +156,9 @@ export async function runCommand(
       } else {
         printInfo(pc.cyan(`Installing ${agent.displayName}...`))
       }
-      const result = await tryInstallForRun(agent, dryRun)
-      if (!result.success) {
+      const installResult = await runInstallForRunWithTimeout(agent, dryRun)
+      if (installResult === 'timeout') return getExitCodeForError('TIMEOUT')
+      if (!installResult.success) {
         printError(pc.red(`Failed to install ${agent.displayName}.`))
         return 1
       }
@@ -280,6 +282,32 @@ function emitExecDryRun(input: {
     }),
     () => {},
   )
+}
+
+async function runInstallForRunWithTimeout(
+  agent: { displayName: string } & Parameters<typeof installAgent>[0],
+  dryRun: boolean = isDryRunEnabled(),
+): Promise<Awaited<ReturnType<typeof installAgent>> | 'timeout'> {
+  const { timeoutMs } = getCliContext()
+  if (timeoutMs === undefined) return tryInstallForRun(agent, dryRun)
+
+  let timeoutId: ReturnType<typeof setTimeout> | undefined
+
+  try {
+    const timeoutPromise = new Promise<'timeout'>(resolve => {
+      timeoutId = setTimeout(() => {
+        void (async () => {
+          await cancelCliContextOperations()
+          printError(pc.red(`Installing ${agent.displayName} timed out after ${timeoutMs}ms.`))
+          resolve('timeout')
+        })()
+      }, timeoutMs)
+    })
+
+    return await Promise.race([tryInstallForRun(agent, dryRun), timeoutPromise])
+  } finally {
+    if (timeoutId) clearTimeout(timeoutId)
+  }
 }
 
 async function tryInstallForRun(

@@ -244,6 +244,27 @@ describe('runCommand', () => {
     expect(mockSpawn).not.toHaveBeenCalled()
   })
 
+  it('returns timeout when install exceeds the configured limit', async () => {
+    setCliContext({
+      interactive: false,
+      outputMode: 'human',
+      runId: 'run-install-timeout-id',
+      timeoutMs: 1,
+    })
+    agentSpy.mockReturnValue(testAgent)
+    binaryInPathSpy.mockResolvedValue(false)
+    installSpy.mockImplementation(() => new Promise(() => {}))
+
+    const code = await runCommand('test-agent', ['--help'], {
+      install: 'if-missing',
+      nonInteractive: true,
+    })
+
+    expect(code).toBe(10)
+    expect(stdoutWriteSpy).toHaveBeenCalledWith(expect.stringContaining('timed out'))
+    expect(mockSpawn).not.toHaveBeenCalled()
+  })
+
   it('returns timeout when the spawned agent exceeds the configured limit', async () => {
     let resolveExited: (() => void) | undefined
     const proc: any = {
