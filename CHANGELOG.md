@@ -2,6 +2,13 @@
 
 This changelog is maintained by release-please Release PRs.
 
+## [0.23.3](https://github.com/Drswith/quantex-cli/compare/v0.23.2...v0.23.3) (2026-06-09)
+
+
+### Bug Fixes
+
+* **cli:** only persist successful idempotency records ([9160ac3](https://github.com/Drswith/quantex-cli/commit/9160ac36a8c1e36ff73e926ad38cc797a6c242d0))
+
 ## [0.23.2](https://github.com/Drswith/quantex-cli/compare/v0.23.1...v0.23.2) (2026-06-08)
 
 
