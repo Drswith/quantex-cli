@@ -151,7 +151,8 @@ async function storeIdempotentResult<T>(
   result: CommandResult<T>,
 ): Promise<CommandResult<T>> {
   const context = getCliContext()
-  if (context.idempotencyKey) await saveIdempotencyRecord(context.idempotencyKey, { action, result, target })
+  if (context.idempotencyKey && result.ok)
+    await saveIdempotencyRecord(context.idempotencyKey, { action, result, target })
 
   return result
 }
