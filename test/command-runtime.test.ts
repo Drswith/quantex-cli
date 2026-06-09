@@ -5,6 +5,7 @@ import { join } from 'node:path'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { registerCliCancellationHandler, setCliContext } from '../src/cli-context'
 import { executeCommandWithRuntime } from '../src/command-runtime'
+import { loadIdempotencyRecord } from '../src/idempotency'
 import { createSuccessResult } from '../src/output'
 import * as selfModule from '../src/self'
 import * as updateNotice from '../src/self/update-notice'
@@ -189,6 +190,65 @@ describe('executeCommandWithRuntime', () => {
     expect(replayed.ok).toBe(true)
     expect(replayed.meta.runId).toBe('second-run-id')
     expect(logSpy).toHaveBeenCalledWith(expect.stringContaining('"runId": "second-run-id"'))
+  })
+
+  it('does not persist or replay transient timeout failures for an idempotency key', async () => {
+    const run = vi
+      .fn()
+      .mockImplementationOnce(() => new Promise<CommandResult<unknown>>(() => {}))
+      .mockResolvedValueOnce(
+        createSuccessResult({
+          action: 'install',
+          data: {
+            installed: true,
+          },
+          target: {
+            kind: 'agent',
+            name: 'codex',
+          },
+        }),
+      )
+
+    setCliContext({
+      idempotencyKey: 'install-codex-retry',
+      interactive: false,
+      outputMode: 'json',
+      runId: 'timeout-first-run-id',
+      timeoutMs: 1,
+    })
+
+    const timedOut = await executeCommandWithRuntime({
+      action: 'install',
+      run,
+      target: {
+        kind: 'agent',
+        name: 'codex',
+      },
+    })
+
+    expect(timedOut.ok).toBe(false)
+    expect(timedOut.error?.code).toBe('TIMEOUT')
+    expect(await loadIdempotencyRecord('install-codex-retry')).toBeUndefined()
+
+    setCliContext({
+      idempotencyKey: 'install-codex-retry',
+      interactive: false,
+      outputMode: 'json',
+      runId: 'timeout-retry-run-id',
+      timeoutMs: 1000,
+    })
+
+    const retried = await executeCommandWithRuntime({
+      action: 'install',
+      run,
+      target: {
+        kind: 'agent',
+        name: 'codex',
+      },
+    })
+
+    expect(run).toHaveBeenCalledTimes(2)
+    expect(retried.ok).toBe(true)
   })
 
   it('returns a cancelled error when the process receives a termination signal', async () => {
