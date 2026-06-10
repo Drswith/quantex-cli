@@ -2,6 +2,13 @@
 
 This changelog is maintained by release-please Release PRs.
 
+## [0.23.4](https://github.com/Drswith/quantex-cli/compare/v0.23.3...v0.23.4) (2026-06-10)
+
+
+### Bug Fixes
+
+* **cli:** use collision-safe idempotency key filenames ([e26e294](https://github.com/Drswith/quantex-cli/commit/e26e2948abc76771a50887ec77d5dbdba0ebfcd9))
+
 ## [0.23.3](https://github.com/Drswith/quantex-cli/compare/v0.23.2...v0.23.3) (2026-06-09)
 
 
