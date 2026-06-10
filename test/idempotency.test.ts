@@ -45,6 +45,44 @@ describe('idempotency storage', () => {
     expect(readFileSync(getIdempotencyFilePath('install-codex'), 'utf8')).toContain('"action": "install"')
   })
 
+  it('maps distinct client keys to distinct on-disk filenames', () => {
+    process.env.HOME = tempHome
+    mkdirSync(tempHome, { recursive: true })
+
+    const firstPath = getIdempotencyFilePath('job-1/install/codex')
+    const secondPath = getIdempotencyFilePath('job-1_install_codex')
+
+    expect(firstPath).not.toBe(secondPath)
+    expect(firstPath).toMatch(/[a-f0-9]{64}\.json$/)
+    expect(secondPath).toMatch(/[a-f0-9]{64}\.json$/)
+  })
+
+  it('stores and loads records independently for keys that previously collided after sanitization', async () => {
+    process.env.HOME = tempHome
+    mkdirSync(tempHome, { recursive: true })
+
+    await saveIdempotencyRecord('job-1/install/codex', {
+      action: 'install',
+      result: createSuccessResult({
+        action: 'install',
+        data: {
+          installed: true,
+        },
+        target: {
+          kind: 'agent',
+          name: 'codex',
+        },
+      }),
+      target: {
+        kind: 'agent',
+        name: 'codex',
+      },
+    })
+
+    expect(await loadIdempotencyRecord('job-1_install_codex')).toBeUndefined()
+    expect((await loadIdempotencyRecord('job-1/install/codex'))?.target?.name).toBe('codex')
+  })
+
   it('loads a stored idempotency record', async () => {
     process.env.HOME = tempHome
     mkdirSync(tempHome, { recursive: true })

@@ -1,4 +1,5 @@
 import type { CommandResult, CommandTarget } from './output/types'
+import { createHash } from 'node:crypto'
 import { mkdir, readFile, rm, writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
 import { getConfigDir } from './config'
@@ -18,7 +19,7 @@ export function getIdempotencyDir(): string {
 }
 
 export function getIdempotencyFilePath(key: string): string {
-  return join(getIdempotencyDir(), `${sanitizeIdempotencyKey(key)}.json`)
+  return join(getIdempotencyDir(), `${digestIdempotencyKey(key)}.json`)
 }
 
 export async function loadIdempotencyRecord(key: string): Promise<IdempotencyRecord | undefined> {
@@ -52,6 +53,6 @@ export async function saveIdempotencyRecord(
   await writeFile(getIdempotencyFilePath(key), `${JSON.stringify(storedRecord, null, 2)}\n`, 'utf8')
 }
 
-function sanitizeIdempotencyKey(key: string): string {
-  return key.replace(/[^\w.-]/g, '_')
+function digestIdempotencyKey(key: string): string {
+  return createHash('sha256').update(key, 'utf8').digest('hex')
 }
