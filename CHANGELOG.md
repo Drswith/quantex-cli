@@ -2,6 +2,13 @@
 
 This changelog is maintained by release-please Release PRs.
 
+## [0.24.0](https://github.com/Drswith/quantex-cli/compare/v0.23.6...v0.24.0) (2026-06-11)
+
+
+### Features
+
+* **agent-catalog:** add MiMoCode support ([ddb5924](https://github.com/Drswith/quantex-cli/commit/ddb5924e1d6eaf16d15f00bb5e38c2dce7838c80))
+
 ## [0.23.6](https://github.com/Drswith/quantex-cli/compare/v0.23.5...v0.23.6) (2026-06-11)
 
 
