@@ -88,6 +88,7 @@ jobs:
           echo "mode=${{ steps.release-target.outputs.mode }}"
           echo "target_branch=${{ steps.release-target.outputs.target_branch }}"
           echo "target_sha=${{ steps.release-target.outputs.target_sha }}"
+          echo "target_tag=${{ steps.release-target.outputs.target_tag }}"
           echo "source_ci_run_id=${{ steps.release-target.outputs.source_ci_run_id }}"
           echo "reason=${{ steps.release-target.outputs.reason }}"
 
@@ -129,69 +130,69 @@ jobs:
           skip-github-pull-request: true
 
       - name: Checkout released source
-        if: ${{ steps.release.outputs.release_created }}
+        if: ${{ steps.release-target.outputs.mode == 'publish' }}
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
-          ref: ${{ steps.release.outputs.sha }}
+          ref: ${{ steps.release-target.outputs.target_sha }}
 
       - name: Setup Node.js
-        if: ${{ steps.release.outputs.release_created }}
+        if: ${{ steps.release-target.outputs.mode == 'publish' }}
         uses: actions/setup-node@v4
         with:
           node-version: 24
           registry-url: https://registry.npmjs.org
 
       - name: Install dependencies
-        if: ${{ steps.release.outputs.release_created }}
+        if: ${{ steps.release-target.outputs.mode == 'publish' }}
         run: bun install --frozen-lockfile
 
       - name: Validate project memory
-        if: ${{ steps.release.outputs.release_created }}
+        if: ${{ steps.release-target.outputs.mode == 'publish' }}
         run: bun run memory:check
 
       - name: Lint
-        if: ${{ steps.release.outputs.release_created }}
+        if: ${{ steps.release-target.outputs.mode == 'publish' }}
         run: bun run lint
 
       - name: Format check
-        if: ${{ steps.release.outputs.release_created }}
+        if: ${{ steps.release-target.outputs.mode == 'publish' }}
         run: bun run format:check
 
       - name: Typecheck
-        if: ${{ steps.release.outputs.release_created }}
+        if: ${{ steps.release-target.outputs.mode == 'publish' }}
         run: bun run typecheck
 
       - name: Test
-        if: ${{ steps.release.outputs.release_created }}
+        if: ${{ steps.release-target.outputs.mode == 'publish' }}
         run: bun run test
 
       - name: Build package
-        if: ${{ steps.release.outputs.release_created }}
+        if: ${{ steps.release-target.outputs.mode == 'publish' }}
         run: bun run build
 
       - name: Build binaries
-        if: ${{ steps.release.outputs.release_created }}
+        if: ${{ steps.release-target.outputs.mode == 'publish' }}
         run: bun run build:bin
 
       - name: Generate release artifacts
-        if: ${{ steps.release.outputs.release_created }}
+        if: ${{ steps.release-target.outputs.mode == 'publish' }}
         run: bun run release:artifacts
 
       - name: Smoke check current runner release binary
-        if: ${{ steps.release.outputs.release_created }}
+        if: ${{ steps.release-target.outputs.mode == 'publish' }}
         run: bun run release:smoke
 
       - name: Verify managed-install package contents
-        if: ${{ steps.release.outputs.release_created }}
+        if: ${{ steps.release-target.outputs.mode == 'publish' }}
         run: bun run package:check
 
       - name: Publish npm package
-        if: ${{ steps.release.outputs.release_created }}
+        if: ${{ steps.release-target.outputs.mode == 'publish' }}
         run: npm publish --access public --ignore-scripts --tag ${{ steps.release-target.outputs.npm_tag }}
 
       - name: Upload release artifacts
-        if: ${{ steps.release.outputs.release_created }}
+        if: ${{ steps.release-target.outputs.mode == 'publish' }}
         env:
           GH_TOKEN: ${{ steps.release-bot-token.outputs.token }}
-        run: gh release upload ${{ steps.release.outputs.tag_name }} dist/bin/* --clobber
+        run: gh release upload ${{ steps.release-target.outputs.target_tag }} dist/bin/* --clobber

@@ -26,6 +26,7 @@ describe('release target resolution', () => {
         rel123: commit('chore: release 0.16.4'),
         fix111: commit('fix(lock): close owner-less acquisition race'),
       },
+      publishedNpmVersions: new Set<string>(),
       publishedReleaseShas: new Set<string>(),
       publishedTags: new Set<string>(),
       runs: [
@@ -37,7 +38,42 @@ describe('release target resolution', () => {
 
     expect(resolution.mode).toBe('publish')
     expect(resolution.targetSha).toBe('rel123')
+    expect(resolution.targetTag).toBe('v0.16.4')
     expect(resolution.reason).toContain('pending untagged release commit 0.16.4')
+  })
+
+  it('publishes a release commit when its GitHub release exists but npm package is missing', () => {
+    const resolution = selectReleaseCandidate({
+      commitsBySha: {
+        rel235: commit('chore: release 0.23.5'),
+        fix111: commit('fix(cli): harden idempotency target matching'),
+      },
+      publishedNpmVersions: new Set<string>(['0.23.4']),
+      publishedReleaseShas: new Set<string>(['rel235']),
+      publishedTags: new Set<string>(['v0.23.5']),
+      runs: [run(20, 'rel235', '2026-06-11T03:45:00Z'), run(10, 'fix111', '2026-06-11T03:40:00Z')],
+    })
+
+    expect(resolution.mode).toBe('publish')
+    expect(resolution.targetSha).toBe('rel235')
+    expect(resolution.targetTag).toBe('v0.23.5')
+    expect(resolution.reason).toContain('npm package is missing')
+  })
+
+  it('does not backfill older npm-missing release commits when the latest release is already on npm', () => {
+    const resolution = selectReleaseCandidate({
+      commitsBySha: {
+        rel235: commit('chore: release 0.23.5'),
+        rel172: commit('chore: release 0.17.2'),
+      },
+      publishedNpmVersions: new Set<string>(['0.23.5']),
+      publishedReleaseShas: new Set<string>(['rel235', 'rel172']),
+      publishedTags: new Set<string>(['v0.23.5', 'v0.17.2']),
+      runs: [run(20, 'rel235', '2026-06-11T03:45:00Z'), run(10, 'rel172', '2026-05-16T03:00:00Z')],
+    })
+
+    expect(resolution.mode).toBe('skip')
+    expect(resolution.targetSha).toBeNull()
   })
 
   it('falls back to release PR mode when no untagged release commit is pending', () => {
@@ -46,6 +82,7 @@ describe('release target resolution', () => {
         docs999: commit('docs: sync runbook wording'),
         fix111: commit('fix(lock): close owner-less acquisition race'),
       },
+      publishedNpmVersions: new Set<string>(),
       publishedReleaseShas: new Set<string>(),
       publishedTags: new Set<string>(),
       runs: [run(30, 'docs999', '2026-05-09T07:10:00Z'), run(10, 'fix111', '2026-05-09T07:00:00Z')],
@@ -61,6 +98,7 @@ describe('release target resolution', () => {
         docs999: commit('docs: sync runbook wording'),
         chore111: commit('chore: archive openspec deltas'),
       },
+      publishedNpmVersions: new Set<string>(),
       publishedReleaseShas: new Set<string>(),
       publishedTags: new Set<string>(),
       runs: [run(30, 'docs999', '2026-05-09T07:10:00Z'), run(10, 'chore111', '2026-05-09T07:00:00Z')],
@@ -77,6 +115,7 @@ describe('release target resolution', () => {
           rel200: commit('chore: release 0.16.5'),
           rel100: commit('chore: release 0.16.4'),
         },
+        publishedNpmVersions: new Set<string>(),
         publishedReleaseShas: new Set<string>(),
         publishedTags: new Set<string>(),
         runs: [run(20, 'rel200', '2026-05-09T07:10:00Z'), run(10, 'rel100', '2026-05-09T07:00:00Z')],
@@ -90,6 +129,7 @@ describe('release target resolution', () => {
         rel164: commit('chore: release 0.16.4'),
         rel060: commit('chore: release 0.5.1'),
       },
+      publishedNpmVersions: new Set<string>(['0.5.1']),
       publishedReleaseShas: new Set<string>(['rel060']),
       publishedTags: new Set<string>(),
       runs: [run(20, 'rel164', '2026-05-09T07:10:00Z'), run(10, 'rel060', '2026-04-29T19:00:00Z')],
