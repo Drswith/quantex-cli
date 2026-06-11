@@ -2,6 +2,13 @@
 
 This changelog is maintained by release-please Release PRs.
 
+## [0.23.6](https://github.com/Drswith/quantex-cli/compare/v0.23.5...v0.23.6) (2026-06-11)
+
+
+### Bug Fixes
+
+* **release:** recover missing npm publication ([3596555](https://github.com/Drswith/quantex-cli/commit/35965551b180741af2dc01b96841b55bb1e808a8))
+
 ## [0.23.5](https://github.com/Drswith/quantex-cli/compare/v0.23.4...v0.23.5) (2026-06-11)
 
 
