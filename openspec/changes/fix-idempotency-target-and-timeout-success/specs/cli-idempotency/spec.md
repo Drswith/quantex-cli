@@ -1,10 +1,4 @@
-# cli-idempotency Specification
-
-## Purpose
-
-Define when Quantex mutating commands persist and replay idempotency records for client-supplied retry keys.
-
-## Requirements
+## MODIFIED Requirements
 
 ### Requirement: Idempotency MUST replay only successful completions
 
@@ -46,14 +40,3 @@ Mutating commands that accept `--idempotency-key` SHALL persist idempotency reco
 - WHEN the runtime finalizes the command result
 - THEN Quantex returns the successful result
 - AND it persists the idempotency record for the successful completion
-
-### Requirement: Idempotency filenames MUST be collision-safe for distinct client keys
-
-Quantex SHALL map each distinct `--idempotency-key` value to a distinct on-disk record filename so sanitization cannot merge unrelated client keys.
-
-#### Scenario: Distinct keys that previously sanitized to the same filename remain independent
-
-- GIVEN a successful mutating command stored with idempotency key `job-1/install/codex`
-- WHEN a different mutating command is invoked with idempotency key `job-1_install_codex`
-- THEN Quantex does not replay the first command's stored result
-- AND it executes the new command work independently

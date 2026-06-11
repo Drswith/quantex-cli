@@ -1,4 +1,10 @@
 import type { CommandResult, CommandTarget } from './output/types'
+
+function idempotencyTargetsMatch(stored?: CommandTarget, requested?: CommandTarget): boolean {
+  if (stored === undefined && requested === undefined) return true
+  if (stored === undefined || requested === undefined) return false
+  return stored.kind === requested.kind && stored.name === requested.name
+}
 import process from 'node:process'
 import { cancelCliContextOperations, getCliContext } from './cli-context'
 import { loadIdempotencyRecord, saveIdempotencyRecord } from './idempotency'
@@ -47,10 +53,14 @@ async function executeCommandWithRuntimeInternal<T>(options: ExecuteCommandOptio
     // Race only the primary command work against the deadline. Post-run steps (idempotency
     // persistence and passive self-update notice) must not consume the timeout budget.
     return await withSignalCancellation(options, async () => {
-      const result = await Promise.race([
-        runUntilTimeoutCancellation(options.run, () => timeoutPromise),
-        timeoutPromise,
-      ])
+      const runPromise = runUntilTimeoutCancellation(options.run, () => timeoutPromise)
+      let result = await Promise.race([runPromise, timeoutPromise])
+
+      if (!result.ok) {
+        const lateSuccess = await waitForLateSuccessfulCompletion(runPromise, timeoutMs)
+        if (lateSuccess) result = lateSuccess
+      }
+
       if (timeoutId !== undefined) {
         clearTimeout(timeoutId)
         timeoutId = undefined
@@ -131,6 +141,8 @@ async function replayIdempotentResult<T>(
     )
   }
 
+  if (!idempotencyTargetsMatch(record.target, target)) return undefined
+
   const replayedResult = {
     ...record.result,
     meta: {
@@ -187,12 +199,28 @@ async function withSignalCancellation<T>(
   }
 }
 
+async function waitForLateSuccessfulCompletion<T>(
+  runPromise: Promise<CommandResult<T>>,
+  timeoutMs: number,
+): Promise<CommandResult<T> | undefined> {
+  const graceMs = Math.min(timeoutMs, 250)
+  const runResult = await Promise.race([
+    runPromise,
+    new Promise<undefined>(resolve => {
+      setTimeout(() => resolve(undefined), graceMs)
+    }),
+  ])
+
+  return runResult?.ok ? runResult : undefined
+}
+
 async function runUntilTimeoutCancellation<T>(
   run: () => Promise<CommandResult<T>>,
   getTimeoutResult: () => Promise<CommandResult<T>>,
 ): Promise<CommandResult<T>> {
   try {
     const result = await run()
+    if (result.ok) return result
     if (getCliContext().cancelled) return getTimeoutResult()
     return result
   } catch (error) {
