@@ -16,7 +16,7 @@
 
 ## 3. Delivery
 
-- [ ] 3.1 Create a PR with validated body
-- [ ] 3.2 Merge only after PR Governance, CI, Sandbox Tests, and Cursor PR Governance are green
-- [ ] 3.3 Trigger or wait for Release workflow recovery
-- [ ] 3.4 Verify `npm view quantex-cli version dist-tags --json` reports `0.23.5` as `latest`
+- [x] 3.1 Create a PR with validated body
+- [x] 3.2 Merge only after PR Governance, CI, Sandbox Tests, and Cursor PR Governance are green
+- [x] 3.3 Trigger or wait for Release workflow recovery
+- [x] 3.4 Verify `npm view quantex-cli version dist-tags --json` reports `0.23.5` as `latest`
