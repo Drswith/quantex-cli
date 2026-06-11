@@ -2,6 +2,13 @@
 
 This changelog is maintained by release-please Release PRs.
 
+## [0.23.5](https://github.com/Drswith/quantex-cli/compare/v0.23.4...v0.23.5) (2026-06-11)
+
+
+### Bug Fixes
+
+* **cli:** harden idempotency target matching and timeout success handling ([a8b6061](https://github.com/Drswith/quantex-cli/commit/a8b6061fb6532549e7bc874d4e77db38374a305e))
+
 ## [0.23.4](https://github.com/Drswith/quantex-cli/compare/v0.23.3...v0.23.4) (2026-06-10)
 
 
