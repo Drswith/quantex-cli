@@ -1,0 +1,38 @@
+{
+  "name": "mimo",
+  "lookupAliases": ["mimocode", "mimo-code"],
+  "displayName": "MiMoCode",
+  "homepage": "https://github.com/XiaomiMiMo/MiMo-Code",
+  "packages": {
+    "npm": "@mimo-ai/cli"
+  },
+  "binaryName": "mimo",
+  "versionProbe": {
+    "command": ["mimo", "--version"]
+  },
+  "platforms": {
+    "windows": [
+      {
+        "type": "npm"
+      }
+    ],
+    "macos": [
+      {
+        "command": "curl -fsSL https://mimo.xiaomi.com/install | bash",
+        "type": "script"
+      },
+      {
+        "type": "npm"
+      }
+    ],
+    "linux": [
+      {
+        "command": "curl -fsSL https://mimo.xiaomi.com/install | bash",
+        "type": "script"
+      },
+      {
+        "type": "npm"
+      }
+    ]
+  }
+}

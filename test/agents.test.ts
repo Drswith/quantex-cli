@@ -25,6 +25,7 @@ import {
   junie,
   kilo,
   kimi,
+  mimo,
   omp,
   opencode,
   openhands,
@@ -710,6 +711,44 @@ describe('kimi', () => {
     expect(
       kimi.platforms.linux!.find(
         m => m.type === 'script' && m.command === 'curl -fsSL https://code.kimi.com/kimi-code/install.sh | bash',
+      ),
+    ).toBeDefined()
+  })
+})
+
+describe('mimo', () => {
+  it('is registered for lookup by canonical name and aliases', () => {
+    expect(getAgentByNameOrAlias('mimo')).toBe(mimo)
+    expect(getAgentByLookupName('mimocode')).toBe(mimo)
+    expect(getAgentByLookupName('mimo-code')).toBe(mimo)
+  })
+
+  it('has valid structure', () => {
+    validateAgent(mimo)
+    expect(mimo.name).toBe('mimo')
+    expect(mimo.lookupAliases).toEqual(['mimocode', 'mimo-code'])
+    expect(mimo.displayName).toBe('MiMoCode')
+    expect(mimo.binaryName).toBe('mimo')
+    expect(mimo.packages?.npm).toBe('@mimo-ai/cli')
+    expect(mimo.homepage).toBe('https://github.com/XiaomiMiMo/MiMo-Code')
+    expect(mimo.selfUpdate).toBeUndefined()
+    expect(mimo.versionProbe?.command).toEqual(['mimo', '--version'])
+  })
+
+  it('exposes official script installers and npm-managed installs on supported platforms', () => {
+    for (const methods of [mimo.platforms.windows!, mimo.platforms.macos!, mimo.platforms.linux!]) {
+      expect(methods.find(m => m.type === 'npm')).toBeDefined()
+    }
+
+    expect(mimo.platforms.windows!.find(m => m.type === 'script')).toBeUndefined()
+    expect(
+      mimo.platforms.macos!.find(
+        m => m.type === 'script' && m.command === 'curl -fsSL https://mimo.xiaomi.com/install | bash',
+      ),
+    ).toBeDefined()
+    expect(
+      mimo.platforms.linux!.find(
+        m => m.type === 'script' && m.command === 'curl -fsSL https://mimo.xiaomi.com/install | bash',
       ),
     ).toBeDefined()
   })

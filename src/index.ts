@@ -31,6 +31,7 @@ export {
   getAllAgents,
   junie,
   kilo,
+  mimo,
   omp,
   openhands,
   opencode,
