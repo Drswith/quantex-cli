@@ -140,6 +140,90 @@ describe('executeCommandWithRuntime', () => {
     expect(result.error).toBeNull()
   })
 
+  it('does not replay a stored result when the same idempotency key is reused for a different target agent', async () => {
+    const run = vi.fn(async () =>
+      createSuccessResult({
+        action: 'install',
+        data: {
+          installed: true,
+        },
+        target: {
+          kind: 'agent',
+          name: 'cursor',
+        },
+      }),
+    )
+
+    setCliContext({
+      idempotencyKey: 'job-1',
+      interactive: false,
+      outputMode: 'json',
+      runId: 'first-run-id',
+    })
+
+    await executeCommandWithRuntime({
+      action: 'install',
+      run,
+      target: {
+        kind: 'agent',
+        name: 'codex',
+      },
+    })
+
+    setCliContext({
+      idempotencyKey: 'job-1',
+      interactive: false,
+      outputMode: 'json',
+      runId: 'second-run-id',
+    })
+
+    const replayed = await executeCommandWithRuntime({
+      action: 'install',
+      run,
+      target: {
+        kind: 'agent',
+        name: 'cursor',
+      },
+    })
+
+    expect(run).toHaveBeenCalledTimes(2)
+    expect(replayed.ok).toBe(true)
+    expect(replayed.target?.name).toBe('cursor')
+  })
+
+  it('returns success when the command completes successfully after the timeout deadline fires', async () => {
+    setCliContext({
+      interactive: false,
+      outputMode: 'json',
+      runId: 'late-success-run-id',
+      timeoutMs: 20,
+    })
+
+    const result = await executeCommandWithRuntime({
+      action: 'install',
+      run: async () => {
+        await new Promise(resolve => setTimeout(resolve, 40))
+        return createSuccessResult({
+          action: 'install',
+          data: {
+            installed: true,
+          },
+          target: {
+            kind: 'agent',
+            name: 'codex',
+          },
+        })
+      },
+      target: {
+        kind: 'agent',
+        name: 'codex',
+      },
+    })
+
+    expect(result.ok).toBe(true)
+    expect(result.error).toBeNull()
+  })
+
   it('does not replay a stored result for a different idempotency key that previously collided after sanitization', async () => {
     const run = vi.fn(async () =>
       createSuccessResult({
