@@ -19,6 +19,7 @@ import {
   junie,
   inspectAgent,
   kilo,
+  mimo,
   omp,
   openhands,
   opencode,
@@ -123,6 +124,11 @@ describe('agent registry', () => {
     expect(agent!.name).toBe('genie')
     expect(agent!.binaryName).toBe('genie')
   })
+
+  it('resolves MiMoCode by product-style aliases', () => {
+    expect(getAgentByLookupName('mimocode')?.name).toBe('mimo')
+    expect(getAgentByLookupName('mimo-code')?.name).toBe('mimo')
+  })
 })
 
 describe('agent definitions', () => {
@@ -216,6 +222,15 @@ describe('agent definitions', () => {
     expect(agent!.binaryName).toBe('junie')
   })
 
+  it('mimo has correct structure', () => {
+    const agent = getAgentByNameOrAlias('mimo')
+    expect(agent).toBeDefined()
+    expect(agent!.displayName).toBe('MiMoCode')
+    expect(agent!.packages?.npm).toBe('@mimo-ai/cli')
+    expect(agent!.binaryName).toBe('mimo')
+    expect(agent!.selfUpdate).toBeUndefined()
+  })
+
   it('jcode has correct structure', () => {
     const agent = getAgentByNameOrAlias('jcode')
     expect(agent).toBeDefined()
@@ -284,6 +299,7 @@ describe('agent definitions', () => {
     expect(jcode.name).toBe('jcode')
     expect(junie.name).toBe('junie')
     expect(kilo.name).toBe('kilo')
+    expect(mimo.name).toBe('mimo')
     expect(omp.name).toBe('omp')
     expect(openhands.name).toBe('openhands')
     expect(opencode.name).toBe('opencode')
