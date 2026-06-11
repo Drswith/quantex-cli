@@ -192,6 +192,7 @@ describe('executeCommandWithRuntime', () => {
   })
 
   it('returns success when the command completes successfully after the timeout deadline fires', async () => {
+    vi.useFakeTimers()
     setCliContext({
       interactive: false,
       outputMode: 'json',
@@ -199,10 +200,10 @@ describe('executeCommandWithRuntime', () => {
       timeoutMs: 20,
     })
 
-    const result = await executeCommandWithRuntime({
+    const execution = executeCommandWithRuntime({
       action: 'install',
       run: async () => {
-        await new Promise(resolve => setTimeout(resolve, 40))
+        await new Promise(resolve => setTimeout(resolve, 30))
         return createSuccessResult({
           action: 'install',
           data: {
@@ -219,6 +220,11 @@ describe('executeCommandWithRuntime', () => {
         name: 'codex',
       },
     })
+
+    await vi.advanceTimersByTimeAsync(20)
+    await vi.advanceTimersByTimeAsync(10)
+
+    const result = await execution
 
     expect(result.ok).toBe(true)
     expect(result.error).toBeNull()
