@@ -46,7 +46,7 @@ async function executeCommandWithRuntimeInternal<T>(options: ExecuteCommandOptio
   try {
     const timeoutPromise = new Promise<CommandResult<T>>(resolve => {
       timeoutId = setTimeout(() => {
-        void resolveTimeoutCancellation(options, timeoutMs).then(resolve)
+        resolve(createTimeoutCancellationResult(options, timeoutMs))
       }, timeoutMs)
     })
 
@@ -56,9 +56,9 @@ async function executeCommandWithRuntimeInternal<T>(options: ExecuteCommandOptio
       const runPromise = runUntilTimeoutCancellation(options.run, () => timeoutPromise)
       let result = await Promise.race([runPromise, timeoutPromise])
 
-      if (!result.ok) {
+      if (!result.ok && result.error?.code === 'TIMEOUT') {
         const lateSuccess = await waitForLateSuccessfulCompletion(runPromise, timeoutMs)
-        if (lateSuccess) result = lateSuccess
+        result = lateSuccess ?? (await emitTimeoutCancellation(options, timeoutMs))
       }
 
       if (timeoutId !== undefined) {
@@ -245,7 +245,21 @@ async function runUntilSignalCancellation<T>(
   }
 }
 
-async function resolveTimeoutCancellation<T>(
+function createTimeoutCancellationResult<T>(options: ExecuteCommandOptions<T>, timeoutMs: number): CommandResult<T> {
+  return createErrorResult<T>({
+    action: options.action,
+    error: {
+      code: 'TIMEOUT',
+      details: {
+        timeoutMs,
+      },
+      message: `Command timed out after ${timeoutMs}ms.`,
+    },
+    target: options.target,
+  })
+}
+
+async function emitTimeoutCancellation<T>(
   options: ExecuteCommandOptions<T>,
   timeoutMs: number,
 ): Promise<CommandResult<T>> {
@@ -263,21 +277,7 @@ async function resolveTimeoutCancellation<T>(
     { force: true },
   )
 
-  return emitCommandResult(
-    createErrorResult<T>({
-      action: options.action,
-      error: {
-        code: 'TIMEOUT',
-        details: {
-          timeoutMs,
-        },
-        message: `Command timed out after ${timeoutMs}ms.`,
-      },
-      target: options.target,
-    }),
-    renderTimeoutHuman,
-    { force: true },
-  )
+  return emitCommandResult(createTimeoutCancellationResult(options, timeoutMs), renderTimeoutHuman, { force: true })
 }
 
 async function resolveSignalCancellation<T>(

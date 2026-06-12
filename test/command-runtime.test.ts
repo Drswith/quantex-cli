@@ -6,7 +6,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { registerCliCancellationHandler, setCliContext } from '../src/cli-context'
 import { executeCommandWithRuntime } from '../src/command-runtime'
 import { loadIdempotencyRecord } from '../src/idempotency'
-import { createSuccessResult } from '../src/output'
+import { createSuccessResult, emitCommandResult } from '../src/output'
 import * as selfModule from '../src/self'
 import * as updateNotice from '../src/self/update-notice'
 import { saveState } from '../src/state'
@@ -204,16 +204,19 @@ describe('executeCommandWithRuntime', () => {
       action: 'install',
       run: async () => {
         await new Promise(resolve => setTimeout(resolve, 30))
-        return createSuccessResult({
-          action: 'install',
-          data: {
-            installed: true,
-          },
-          target: {
-            kind: 'agent',
-            name: 'codex',
-          },
-        })
+        return emitCommandResult(
+          createSuccessResult({
+            action: 'install',
+            data: {
+              installed: true,
+            },
+            target: {
+              kind: 'agent',
+              name: 'codex',
+            },
+          }),
+          () => {},
+        )
       },
       target: {
         kind: 'agent',
@@ -228,6 +231,51 @@ describe('executeCommandWithRuntime', () => {
 
     expect(result.ok).toBe(true)
     expect(result.error).toBeNull()
+    expect(logSpy.mock.calls.some((call: unknown[]) => String(call[0]).includes('"code": "TIMEOUT"'))).toBe(false)
+    expect(logSpy.mock.calls.some((call: unknown[]) => String(call[0]).includes('"ok": true'))).toBe(true)
+  })
+
+  it('does not emit timeout output for ndjson when late success upgrades the result', async () => {
+    vi.useFakeTimers()
+    setCliContext({
+      interactive: false,
+      outputMode: 'ndjson',
+      runId: 'late-success-ndjson-run-id',
+      timeoutMs: 20,
+    })
+
+    const execution = executeCommandWithRuntime({
+      action: 'install',
+      run: async () => {
+        await new Promise(resolve => setTimeout(resolve, 30))
+        return emitCommandResult(
+          createSuccessResult({
+            action: 'install',
+            data: {
+              installed: true,
+            },
+            target: {
+              kind: 'agent',
+              name: 'codex',
+            },
+          }),
+          () => {},
+        )
+      },
+      target: {
+        kind: 'agent',
+        name: 'codex',
+      },
+    })
+
+    await vi.advanceTimersByTimeAsync(20)
+    await vi.advanceTimersByTimeAsync(10)
+
+    const result = await execution
+
+    expect(result.ok).toBe(true)
+    expect(logSpy.mock.calls.some((call: unknown[]) => String(call[0]).includes('"type": "cancelled"'))).toBe(false)
+    expect(logSpy.mock.calls.some((call: unknown[]) => String(call[0]).includes('"code": "TIMEOUT"'))).toBe(false)
   })
 
   it('does not replay a stored result for a different idempotency key that previously collided after sanitization', async () => {
