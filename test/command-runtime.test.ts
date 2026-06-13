@@ -333,6 +333,166 @@ describe('executeCommandWithRuntime', () => {
     expect(logSpy).toHaveBeenCalledWith(expect.stringContaining('"runId": "second-run-id"'))
   })
 
+  it('does not persist dry-run results for an idempotency key', async () => {
+    const run = vi.fn(async () =>
+      createSuccessResult({
+        action: 'install',
+        data: {
+          installed: false,
+        },
+        target: {
+          kind: 'agent',
+          name: 'codex',
+        },
+        warnings: [
+          {
+            code: 'DRY_RUN',
+            message: 'Dry run: would install Codex.',
+          },
+        ],
+      }),
+    )
+
+    setCliContext({
+      dryRun: true,
+      idempotencyKey: 'dry-install',
+      interactive: false,
+      outputMode: 'json',
+      runId: 'dry-run-id',
+    })
+
+    await executeCommandWithRuntime({
+      action: 'install',
+      run,
+      target: {
+        kind: 'agent',
+        name: 'codex',
+      },
+    })
+
+    expect(await loadIdempotencyRecord('dry-install')).toBeUndefined()
+  })
+
+  it('does not replay a dry-run result for a real retry with the same idempotency key', async () => {
+    const dryRun = vi.fn(async () =>
+      createSuccessResult({
+        action: 'install',
+        data: {
+          installed: false,
+        },
+        target: {
+          kind: 'agent',
+          name: 'codex',
+        },
+        warnings: [
+          {
+            code: 'DRY_RUN',
+            message: 'Dry run: would install Codex.',
+          },
+        ],
+      }),
+    )
+
+    setCliContext({
+      dryRun: true,
+      idempotencyKey: 'dry-then-real',
+      interactive: false,
+      outputMode: 'json',
+      runId: 'dry-run-id',
+    })
+
+    await executeCommandWithRuntime({
+      action: 'install',
+      run: dryRun,
+      target: {
+        kind: 'agent',
+        name: 'codex',
+      },
+    })
+
+    const realRun = vi.fn(async () =>
+      createSuccessResult({
+        action: 'install',
+        data: {
+          installed: true,
+        },
+        target: {
+          kind: 'agent',
+          name: 'codex',
+        },
+      }),
+    )
+
+    setCliContext({
+      idempotencyKey: 'dry-then-real',
+      interactive: false,
+      outputMode: 'json',
+      runId: 'real-run-id',
+    })
+
+    const result = await executeCommandWithRuntime({
+      action: 'install',
+      run: realRun,
+      target: {
+        kind: 'agent',
+        name: 'codex',
+      },
+    })
+
+    expect(realRun).toHaveBeenCalledTimes(1)
+    expect(result.data).toEqual({ installed: true })
+  })
+
+  it('does not replay a stored batch install result for a different agent set', async () => {
+    const run = vi.fn(async (agents: string) =>
+      createSuccessResult({
+        action: 'install',
+        data: {
+          scope: 'batch',
+        },
+        target: {
+          kind: 'agent',
+          name: agents,
+        },
+      }),
+    )
+
+    setCliContext({
+      idempotencyKey: 'batch-install',
+      interactive: false,
+      outputMode: 'json',
+      runId: 'first-batch-run-id',
+    })
+
+    await executeCommandWithRuntime({
+      action: 'install',
+      run: () => run('codex,cursor'),
+      target: {
+        kind: 'agent',
+        name: 'codex,cursor',
+      },
+    })
+
+    setCliContext({
+      idempotencyKey: 'batch-install',
+      interactive: false,
+      outputMode: 'json',
+      runId: 'second-batch-run-id',
+    })
+
+    const replayed = await executeCommandWithRuntime({
+      action: 'install',
+      run: () => run('vtcode'),
+      target: {
+        kind: 'agent',
+        name: 'vtcode',
+      },
+    })
+
+    expect(run).toHaveBeenCalledTimes(2)
+    expect(replayed.target?.name).toBe('vtcode')
+  })
+
   it('does not persist or replay transient timeout failures for an idempotency key', async () => {
     const run = vi
       .fn()
