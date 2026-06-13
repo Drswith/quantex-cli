@@ -3,7 +3,13 @@ import type { CommandResult, CommandTarget } from './output/types'
 function idempotencyTargetsMatch(stored?: CommandTarget, requested?: CommandTarget): boolean {
   if (stored === undefined && requested === undefined) return true
   if (stored === undefined || requested === undefined) return false
-  return stored.kind === requested.kind && stored.name === requested.name
+  if (stored.kind !== requested.kind) return false
+  if (stored.kind === 'agent' && (!stored.name || !requested.name)) return false
+  return stored.name === requested.name
+}
+
+function isDryRunIdempotencyResult(result: CommandResult): boolean {
+  return result.warnings.some(warning => warning.code === 'DRY_RUN')
 }
 import process from 'node:process'
 import { cancelCliContextOperations, getCliContext } from './cli-context'
@@ -142,6 +148,7 @@ async function replayIdempotentResult<T>(
   }
 
   if (!idempotencyTargetsMatch(record.target, target)) return undefined
+  if (isDryRunIdempotencyResult(record.result)) return undefined
 
   const replayedResult = {
     ...record.result,
@@ -163,7 +170,7 @@ async function storeIdempotentResult<T>(
   result: CommandResult<T>,
 ): Promise<CommandResult<T>> {
   const context = getCliContext()
-  if (context.idempotencyKey && result.ok)
+  if (context.idempotencyKey && result.ok && !context.dryRun && !isDryRunIdempotencyResult(result))
     await saveIdempotencyRecord(context.idempotencyKey, { action, result, target })
 
   return result
