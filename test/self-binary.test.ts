@@ -70,6 +70,49 @@ describe('upgradeStandaloneBinary', () => {
     }
   })
 
+  it('restores the backup when the Windows delayed swap move fails', async () => {
+    const tempRoot = await mkdtemp(join(tmpdir(), 'quantex-binary-win-swap-rollback-'))
+    const executablePath = join(tempRoot, 'qtx.exe')
+    const mockSpawn = vi.fn().mockReturnValue({
+      exitCode: 0,
+      exited: Promise.resolve(0),
+      unref: vi.fn(),
+    })
+
+    Bun.spawn = mockSpawn as typeof Bun.spawn
+    Object.defineProperty(process, 'platform', { value: 'win32' })
+
+    await writeFile(executablePath, 'old-binary', 'utf8')
+    globalThis.fetch = vi
+      .fn()
+      .mockResolvedValue(new Response(Buffer.from('new-binary'), { status: 200 })) as unknown as typeof fetch
+    const checksum = createHash('sha256').update('new-binary').digest('hex')
+
+    try {
+      expect(await upgradeStandaloneBinary('https://example.com/qtx.exe', executablePath, checksum)).toEqual({
+        success: true,
+      })
+
+      const [command] = mockSpawn.mock.calls[0] as [string[], Record<string, unknown>]
+      const script = command[command.length - 1] as string
+      expect(script).toContain('try {')
+      expect(script).toContain('Move-Item -LiteralPath $tempPath -Destination $targetPath -Force')
+      expect(script).toContain(
+        'Move-Item -LiteralPath $backupPath -Destination $targetPath -Force -ErrorAction SilentlyContinue',
+      )
+      const swapTryIndex = script.indexOf('try {')
+      const swapRollbackIndex = script.indexOf(
+        'Move-Item -LiteralPath $backupPath -Destination $targetPath -Force -ErrorAction SilentlyContinue',
+      )
+      const verifyIndex = script.indexOf('& $targetPath --version')
+      expect(swapTryIndex).toBeGreaterThan(-1)
+      expect(swapRollbackIndex).toBeGreaterThan(swapTryIndex)
+      expect(verifyIndex).toBeGreaterThan(swapRollbackIndex)
+    } finally {
+      await rm(tempRoot, { recursive: true, force: true })
+    }
+  })
+
   it('aborts Windows delayed replacement when backup creation never succeeds', async () => {
     const tempRoot = await mkdtemp(join(tmpdir(), 'quantex-binary-win-backup-'))
     const executablePath = join(tempRoot, 'qtx.exe')
