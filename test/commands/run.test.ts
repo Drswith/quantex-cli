@@ -70,6 +70,7 @@ describe('runCommand', () => {
   afterEach(() => {
     logSpy.mockRestore()
     stdoutWriteSpy.mockRestore()
+    vi.useRealTimers()
   })
 
   it('shows error for unknown agent', async () => {
@@ -263,6 +264,32 @@ describe('runCommand', () => {
     expect(code).toBe(10)
     expect(stdoutWriteSpy).toHaveBeenCalledWith(expect.stringContaining('timed out'))
     expect(mockSpawn).not.toHaveBeenCalled()
+  })
+
+  it('returns success when install completes successfully after the timeout deadline fires', async () => {
+    setCliContext({
+      interactive: false,
+      outputMode: 'human',
+      runId: 'run-install-late-success-id',
+      timeoutMs: 20,
+    })
+    agentSpy.mockReturnValue(testAgent)
+    binaryInPathSpy.mockResolvedValue(false)
+    installSpy.mockImplementation(
+      () =>
+        new Promise(resolve => {
+          setTimeout(() => resolve({ success: true }), 30)
+        }),
+    )
+    mockSpawn.mockReturnValue({ exited: Promise.resolve(), exitCode: 0 })
+
+    const code = await runCommand('test-agent', ['--help'], {
+      install: 'if-missing',
+      nonInteractive: true,
+    })
+
+    expect(code).toBe(0)
+    expect(mockSpawn).toHaveBeenCalledWith(['test-bin', '--help'], expect.any(Object))
   })
 
   it('returns timeout when the spawned agent exceeds the configured limit', async () => {

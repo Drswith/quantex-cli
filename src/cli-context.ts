@@ -112,6 +112,10 @@ export function markCliContextCancelled(): void {
   if (currentContext) currentContext.cancelled = true
 }
 
+export function clearCliContextCancelled(): void {
+  if (currentContext) currentContext.cancelled = false
+}
+
 export async function cancelCliContextOperations(): Promise<void> {
   markCliContextCancelled()
   const handlers = [...cancellationHandlers]
