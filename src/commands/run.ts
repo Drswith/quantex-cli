@@ -3,7 +3,7 @@ import type { SpawnHandle } from '../utils/child-process'
 import type { ExecInstallPolicy } from './exec'
 import process from 'node:process'
 import prompts from 'prompts'
-import { cancelCliContextOperations, getCliContext } from '../cli-context'
+import { cancelCliContextOperations, clearCliContextCancelled, getCliContext } from '../cli-context'
 import { getExitCodeForError } from '../errors'
 import { createErrorResult, createSuccessResult, emitCommandResult } from '../output'
 import { installAgent } from '../package-manager'
@@ -318,14 +318,17 @@ function emitExecDryRun(input: {
   )
 }
 
+type InstallForRunResult = Awaited<ReturnType<typeof tryInstallForRun>>
+
 async function runInstallForRunWithTimeout(
   agent: { displayName: string } & Parameters<typeof installAgent>[0],
   dryRun: boolean = isDryRunEnabled(),
-): Promise<Awaited<ReturnType<typeof installAgent>> | 'timeout'> {
+): Promise<InstallForRunResult | 'timeout'> {
   const { timeoutMs } = getCliContext()
   if (timeoutMs === undefined) return tryInstallForRun(agent, dryRun)
 
   let timeoutId: ReturnType<typeof setTimeout> | undefined
+  const installPromise = tryInstallForRun(agent, dryRun)
 
   try {
     const timeoutPromise = new Promise<'timeout'>(resolve => {
@@ -338,10 +341,36 @@ async function runInstallForRunWithTimeout(
       }, timeoutMs)
     })
 
-    return await Promise.race([tryInstallForRun(agent, dryRun), timeoutPromise])
+    const result = await Promise.race([installPromise, timeoutPromise])
+    if (result === 'timeout') {
+      const lateSuccess = await waitForLateInstallSuccess(installPromise, timeoutMs)
+      if (lateSuccess?.success) {
+        clearCliContextCancelled()
+        return lateSuccess
+      }
+      return 'timeout'
+    }
+
+    if (getCliContext().cancelled && result.success) clearCliContextCancelled()
+    return result
   } finally {
     if (timeoutId) clearTimeout(timeoutId)
   }
+}
+
+async function waitForLateInstallSuccess(
+  installPromise: Promise<InstallForRunResult>,
+  timeoutMs: number,
+): Promise<InstallForRunResult | undefined> {
+  const graceMs = Math.min(timeoutMs, 250)
+  const installResult = await Promise.race([
+    installPromise,
+    new Promise<undefined>(resolve => {
+      setTimeout(() => resolve(undefined), graceMs)
+    }),
+  ])
+
+  return installResult?.success ? installResult : undefined
 }
 
 async function tryInstallForRun(
