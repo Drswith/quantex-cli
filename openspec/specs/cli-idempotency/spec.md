@@ -3,19 +3,26 @@
 ## Purpose
 
 Define when Quantex mutating commands persist and replay idempotency records for client-supplied retry keys.
-
 ## Requirements
-
 ### Requirement: Idempotency MUST replay only successful completions
 
-Mutating commands that accept `--idempotency-key` SHALL persist idempotency records only when the primary command result is successful (`ok: true`).
+Mutating commands that accept `--idempotency-key` SHALL persist idempotency records only when the primary command result is successful (`ok: true`) and the invocation is not a dry run.
 
 #### Scenario: Successful mutating command is replayed
 
 - GIVEN a mutating command completes with `ok: true`
 - AND the caller supplied `--idempotency-key <key>`
+- AND the invocation was not a dry run
 - WHEN the same command is invoked again with the same key, action, and target before the record expires
 - THEN Quantex replays the stored successful result without re-executing the primary command work
+
+#### Scenario: Dry run does not persist or replay as a real mutation
+
+- GIVEN a mutating command completes with `ok: true` during `--dry-run`
+- AND the caller supplied `--idempotency-key <key>`
+- WHEN the same command is invoked again without `--dry-run` using the same key, action, and target
+- THEN Quantex does not replay the dry-run result
+- AND it executes the real mutating command work
 
 #### Scenario: Transient failure does not block retry
 
@@ -39,6 +46,13 @@ Mutating commands that accept `--idempotency-key` SHALL persist idempotency reco
 - THEN Quantex does not replay the stored `codex` result
 - AND it executes the `cursor` install work
 
+#### Scenario: Batch install target mismatch does not replay the wrong agents
+
+- GIVEN an idempotency record exists for key `<key>`, action `install`, and target agents `codex,cursor`
+- WHEN `install` is invoked again with the same key but target agents `vtcode`
+- THEN Quantex does not replay the stored batch result
+- AND it executes the `vtcode` install work
+
 #### Scenario: Successful completion after timeout deadline is reported as success
 
 - GIVEN a mutating command is invoked with `--timeout` and `--idempotency-key`
@@ -57,3 +71,4 @@ Quantex SHALL map each distinct `--idempotency-key` value to a distinct on-disk 
 - WHEN a different mutating command is invoked with idempotency key `job-1_install_codex`
 - THEN Quantex does not replay the first command's stored result
 - AND it executes the new command work independently
+
