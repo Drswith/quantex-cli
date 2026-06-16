@@ -2,6 +2,13 @@
 
 This changelog is maintained by release-please Release PRs.
 
+## [0.24.1](https://github.com/Drswith/quantex-cli/compare/v0.24.0...v0.24.1) (2026-06-16)
+
+
+### Bug Fixes
+
+* **cli:** resolve critical lifecycle edge cases ([687172f](https://github.com/Drswith/quantex-cli/commit/687172f28b0c3ce72620241b868e27cc1a349246))
+
 ## [0.24.0](https://github.com/Drswith/quantex-cli/compare/v0.23.6...v0.24.0) (2026-06-11)
 
 
