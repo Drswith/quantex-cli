@@ -113,7 +113,9 @@ program
     process.exitCode = await executeCliCommand({
       action: 'install',
       run: () => installCommand(agents),
-      target: isSingleAgent ? { kind: 'agent', name: agents[0] } : { kind: 'agent' },
+      target: isSingleAgent
+        ? { kind: 'agent', name: agents[0] }
+        : { kind: 'agent', name: [...agents].sort().join(',') },
     })
   })
 

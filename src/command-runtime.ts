@@ -3,7 +3,13 @@ import type { CommandResult, CommandTarget } from './output/types'
 function idempotencyTargetsMatch(stored?: CommandTarget, requested?: CommandTarget): boolean {
   if (stored === undefined && requested === undefined) return true
   if (stored === undefined || requested === undefined) return false
-  return stored.kind === requested.kind && stored.name === requested.name
+  if (stored.kind !== requested.kind) return false
+  if (stored.kind === 'agent' && (!stored.name || !requested.name)) return false
+  return stored.name === requested.name
+}
+
+function isDryRunIdempotencyResult(result: CommandResult): boolean {
+  return result.warnings.some(warning => warning.code === 'DRY_RUN')
 }
 import process from 'node:process'
 import { cancelCliContextOperations, getCliContext } from './cli-context'
@@ -46,7 +52,7 @@ async function executeCommandWithRuntimeInternal<T>(options: ExecuteCommandOptio
   try {
     const timeoutPromise = new Promise<CommandResult<T>>(resolve => {
       timeoutId = setTimeout(() => {
-        void resolveTimeoutCancellation(options, timeoutMs).then(resolve)
+        resolve(createTimeoutCancellationResult(options, timeoutMs))
       }, timeoutMs)
     })
 
@@ -56,9 +62,9 @@ async function executeCommandWithRuntimeInternal<T>(options: ExecuteCommandOptio
       const runPromise = runUntilTimeoutCancellation(options.run, () => timeoutPromise)
       let result = await Promise.race([runPromise, timeoutPromise])
 
-      if (!result.ok) {
+      if (!result.ok && result.error?.code === 'TIMEOUT') {
         const lateSuccess = await waitForLateSuccessfulCompletion(runPromise, timeoutMs)
-        if (lateSuccess) result = lateSuccess
+        result = lateSuccess ?? (await emitTimeoutCancellation(options, timeoutMs))
       }
 
       if (timeoutId !== undefined) {
@@ -142,6 +148,7 @@ async function replayIdempotentResult<T>(
   }
 
   if (!idempotencyTargetsMatch(record.target, target)) return undefined
+  if (isDryRunIdempotencyResult(record.result)) return undefined
 
   const replayedResult = {
     ...record.result,
@@ -163,7 +170,7 @@ async function storeIdempotentResult<T>(
   result: CommandResult<T>,
 ): Promise<CommandResult<T>> {
   const context = getCliContext()
-  if (context.idempotencyKey && result.ok)
+  if (context.idempotencyKey && result.ok && !context.dryRun && !isDryRunIdempotencyResult(result))
     await saveIdempotencyRecord(context.idempotencyKey, { action, result, target })
 
   return result
@@ -245,7 +252,21 @@ async function runUntilSignalCancellation<T>(
   }
 }
 
-async function resolveTimeoutCancellation<T>(
+function createTimeoutCancellationResult<T>(options: ExecuteCommandOptions<T>, timeoutMs: number): CommandResult<T> {
+  return createErrorResult<T>({
+    action: options.action,
+    error: {
+      code: 'TIMEOUT',
+      details: {
+        timeoutMs,
+      },
+      message: `Command timed out after ${timeoutMs}ms.`,
+    },
+    target: options.target,
+  })
+}
+
+async function emitTimeoutCancellation<T>(
   options: ExecuteCommandOptions<T>,
   timeoutMs: number,
 ): Promise<CommandResult<T>> {
@@ -263,21 +284,7 @@ async function resolveTimeoutCancellation<T>(
     { force: true },
   )
 
-  return emitCommandResult(
-    createErrorResult<T>({
-      action: options.action,
-      error: {
-        code: 'TIMEOUT',
-        details: {
-          timeoutMs,
-        },
-        message: `Command timed out after ${timeoutMs}ms.`,
-      },
-      target: options.target,
-    }),
-    renderTimeoutHuman,
-    { force: true },
-  )
+  return emitCommandResult(createTimeoutCancellationResult(options, timeoutMs), renderTimeoutHuman, { force: true })
 }
 
 async function resolveSignalCancellation<T>(
