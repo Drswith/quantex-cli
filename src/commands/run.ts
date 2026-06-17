@@ -333,21 +333,21 @@ async function runInstallForRunWithTimeout(
   try {
     const timeoutPromise = new Promise<'timeout'>(resolve => {
       timeoutId = setTimeout(() => {
-        void (async () => {
-          await cancelCliContextOperations()
-          printError(pc.red(`Installing ${agent.displayName} timed out after ${timeoutMs}ms.`))
-          resolve('timeout')
-        })()
+        resolve('timeout')
       }, timeoutMs)
     })
 
     const result = await Promise.race([installPromise, timeoutPromise])
     if (result === 'timeout') {
-      const lateSuccess = await waitForLateInstallSuccess(installPromise, timeoutMs)
-      if (lateSuccess?.success) {
+      const lateResult = await waitForLateInstallResult(installPromise, timeoutMs)
+      if (lateResult?.success) {
         clearCliContextCancelled()
-        return lateSuccess
+        return lateResult
       }
+      if (lateResult) return lateResult
+
+      await cancelCliContextOperations()
+      printError(pc.red(`Installing ${agent.displayName} timed out after ${timeoutMs}ms.`))
       return 'timeout'
     }
 
@@ -358,19 +358,17 @@ async function runInstallForRunWithTimeout(
   }
 }
 
-async function waitForLateInstallSuccess(
+async function waitForLateInstallResult(
   installPromise: Promise<InstallForRunResult>,
   timeoutMs: number,
 ): Promise<InstallForRunResult | undefined> {
   const graceMs = Math.min(timeoutMs, 250)
-  const installResult = await Promise.race([
+  return await Promise.race([
     installPromise,
     new Promise<undefined>(resolve => {
       setTimeout(() => resolve(undefined), graceMs)
     }),
   ])
-
-  return installResult?.success ? installResult : undefined
 }
 
 async function tryInstallForRun(

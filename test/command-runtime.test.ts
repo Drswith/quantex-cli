@@ -6,7 +6,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { registerCliCancellationHandler, setCliContext } from '../src/cli-context'
 import { executeCommandWithRuntime } from '../src/command-runtime'
 import { loadIdempotencyRecord } from '../src/idempotency'
-import { createSuccessResult, emitCommandResult } from '../src/output'
+import { createErrorResult, createSuccessResult, emitCommandResult } from '../src/output'
 import * as selfModule from '../src/self'
 import * as updateNotice from '../src/self/update-notice'
 import { saveState } from '../src/state'
@@ -275,6 +275,50 @@ describe('executeCommandWithRuntime', () => {
 
     expect(result.ok).toBe(true)
     expect(logSpy.mock.calls.some((call: unknown[]) => String(call[0]).includes('"type": "cancelled"'))).toBe(false)
+    expect(logSpy.mock.calls.some((call: unknown[]) => String(call[0]).includes('"code": "TIMEOUT"'))).toBe(false)
+  })
+
+  it('returns a concrete failure when the command fails after the timeout deadline fires', async () => {
+    vi.useFakeTimers()
+    setCliContext({
+      interactive: false,
+      outputMode: 'json',
+      runId: 'late-failure-run-id',
+      timeoutMs: 20,
+    })
+
+    const execution = executeCommandWithRuntime({
+      action: 'install',
+      run: async () => {
+        await new Promise(resolve => setTimeout(resolve, 30))
+        return emitCommandResult(
+          createErrorResult({
+            action: 'install',
+            error: {
+              code: 'INSTALL_FAILED',
+              message: 'Install failed.',
+            },
+            target: {
+              kind: 'agent',
+              name: 'codex',
+            },
+          }),
+          () => {},
+        )
+      },
+      target: {
+        kind: 'agent',
+        name: 'codex',
+      },
+    })
+
+    await vi.advanceTimersByTimeAsync(20)
+    await vi.advanceTimersByTimeAsync(10)
+
+    const result = await execution
+
+    expect(result.ok).toBe(false)
+    expect(result.error?.code).toBe('INSTALL_FAILED')
     expect(logSpy.mock.calls.some((call: unknown[]) => String(call[0]).includes('"code": "TIMEOUT"'))).toBe(false)
   })
 
