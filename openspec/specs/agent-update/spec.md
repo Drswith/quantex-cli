@@ -401,13 +401,13 @@ When an agent is recorded with install type `script` or `binary`, Quantex SHALL 
 
 ### Requirement: Exec and shortcut install flows MUST honor global timeout during managed install
 
-When `quantex exec` or shortcut `quantex <agent>` runs with `--timeout` and must install a missing agent before launch, Quantex SHALL apply the configured timeout to the install phase and SHALL cancel managed installer subprocesses when the deadline expires.
+When `quantex exec` or shortcut `quantex <agent>` runs with `--timeout` and must install a missing agent before launch, Quantex SHALL apply the configured timeout to the install phase. After the deadline fires, Quantex SHALL wait up to `min(timeoutMs, 250)` for managed install work to finish before cancelling managed installer subprocesses.
 
 #### Scenario: Missing agent install times out before spawn
 
 - **GIVEN** the target agent is not currently installed
 - **AND** the user runs `quantex exec <agent> --install if-missing --timeout <duration>` or shortcut `quantex <agent> --timeout <duration>`
-- **WHEN** managed install work exceeds the configured timeout
+- **WHEN** managed install work exceeds the configured timeout and the late-completion grace window
 - **THEN** Quantex cancels the managed installer subprocesses
 - **AND** it returns a timeout result with exit code `10`
 - **AND** it does not continue to spawn the agent binary after the install deadline expires
@@ -416,7 +416,8 @@ When `quantex exec` or shortcut `quantex <agent>` runs with `--timeout` and must
 
 - **GIVEN** the target agent is not currently installed
 - **AND** the user runs `quantex exec <agent> --install if-missing --timeout <duration>` or shortcut `quantex <agent> --timeout <duration>`
-- **WHEN** managed install work completes successfully shortly after the timeout deadline fired
+- **AND** cancellation handlers would abort the install when invoked
+- **WHEN** managed install work completes successfully within the late-completion grace window after the timeout deadline fired
 - **THEN** Quantex reports install success
+- **AND** it does not cancel managed install work before the grace window ends
 - **AND** it continues to spawn the agent binary when launch is requested
-
