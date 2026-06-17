@@ -2,6 +2,13 @@
 
 This changelog is maintained by release-please Release PRs.
 
+## [0.24.2](https://github.com/Drswith/quantex-cli/compare/v0.24.1...v0.24.2) (2026-06-17)
+
+
+### Bug Fixes
+
+* **cli:** defer exec install cancel and preserve timeout failures ([2fa93f3](https://github.com/Drswith/quantex-cli/commit/2fa93f33fe1ad4844c5fd769875afcf9d6dff241))
+
 ## [0.24.1](https://github.com/Drswith/quantex-cli/compare/v0.24.0...v0.24.1) (2026-06-16)
 
 
