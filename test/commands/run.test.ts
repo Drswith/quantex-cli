@@ -1,6 +1,6 @@
 import { afterAll, afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import * as agents from '../../src/agents'
-import { setCliContext } from '../../src/cli-context'
+import { setCliContext, getCliContext } from '../../src/cli-context'
 import { runCommand } from '../../src/commands/run'
 import * as pm from '../../src/package-manager'
 import * as detect from '../../src/utils/detect'
@@ -275,12 +275,11 @@ describe('runCommand', () => {
     })
     agentSpy.mockReturnValue(testAgent)
     binaryInPathSpy.mockResolvedValue(false)
-    installSpy.mockImplementation(
-      () =>
-        new Promise(resolve => {
-          setTimeout(() => resolve({ success: true }), 30)
-        }),
-    )
+    installSpy.mockImplementation(async () => {
+      await new Promise(resolve => setTimeout(resolve, 30))
+      if (getCliContext().cancelled) return { success: false }
+      return { success: true }
+    })
     mockSpawn.mockReturnValue({ exited: Promise.resolve(), exitCode: 0 })
 
     const code = await runCommand('test-agent', ['--help'], {
@@ -290,6 +289,30 @@ describe('runCommand', () => {
 
     expect(code).toBe(0)
     expect(mockSpawn).toHaveBeenCalledWith(['test-bin', '--help'], expect.any(Object))
+  })
+
+  it('returns install failure when install fails after the timeout deadline fires', async () => {
+    setCliContext({
+      interactive: false,
+      outputMode: 'human',
+      runId: 'run-install-late-failure-id',
+      timeoutMs: 20,
+    })
+    agentSpy.mockReturnValue(testAgent)
+    binaryInPathSpy.mockResolvedValue(false)
+    installSpy.mockImplementation(async () => {
+      await new Promise(resolve => setTimeout(resolve, 30))
+      return { success: false }
+    })
+
+    const code = await runCommand('test-agent', ['--help'], {
+      install: 'if-missing',
+      nonInteractive: true,
+    })
+
+    expect(code).toBe(1)
+    expect(stdoutWriteSpy).toHaveBeenCalledWith(expect.stringContaining('Failed to install'))
+    expect(mockSpawn).not.toHaveBeenCalled()
   })
 
   it('returns timeout when the spawned agent exceeds the configured limit', async () => {

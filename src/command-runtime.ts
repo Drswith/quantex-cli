@@ -63,8 +63,8 @@ async function executeCommandWithRuntimeInternal<T>(options: ExecuteCommandOptio
       let result = await Promise.race([runPromise, timeoutPromise])
 
       if (!result.ok && result.error?.code === 'TIMEOUT') {
-        const lateSuccess = await waitForLateSuccessfulCompletion(runPromise, timeoutMs)
-        result = lateSuccess ?? (await emitTimeoutCancellation(options, timeoutMs))
+        const lateResult = await waitForLateTerminalCompletion(runPromise, timeoutMs)
+        result = lateResult ?? (await emitTimeoutCancellation(options, timeoutMs))
       }
 
       if (timeoutId !== undefined) {
@@ -206,7 +206,7 @@ async function withSignalCancellation<T>(
   }
 }
 
-async function waitForLateSuccessfulCompletion<T>(
+async function waitForLateTerminalCompletion<T>(
   runPromise: Promise<CommandResult<T>>,
   timeoutMs: number,
 ): Promise<CommandResult<T> | undefined> {
@@ -218,7 +218,7 @@ async function waitForLateSuccessfulCompletion<T>(
     }),
   ])
 
-  return runResult?.ok ? runResult : undefined
+  return runResult
 }
 
 async function runUntilTimeoutCancellation<T>(
@@ -226,10 +226,7 @@ async function runUntilTimeoutCancellation<T>(
   getTimeoutResult: () => Promise<CommandResult<T>>,
 ): Promise<CommandResult<T>> {
   try {
-    const result = await run()
-    if (result.ok) return result
-    if (getCliContext().cancelled) return getTimeoutResult()
-    return result
+    return await run()
   } catch (error) {
     if (getCliContext().cancelled) return getTimeoutResult()
     throw error
