@@ -1,0 +1,33 @@
+{
+  "name": "antigravity",
+  "lookupAliases": ["agy", "antigravity-cli"],
+  "displayName": "Antigravity CLI",
+  "homepage": "https://antigravity.google/product/antigravity-cli",
+  "binaryName": "agy",
+  "selfUpdate": {
+    "command": ["agy", "update"]
+  },
+  "versionProbe": {
+    "command": ["agy", "--version"]
+  },
+  "platforms": {
+    "windows": [
+      {
+        "command": "irm https://antigravity.google/cli/install.ps1 | iex",
+        "type": "script"
+      }
+    ],
+    "macos": [
+      {
+        "command": "curl -fsSL https://antigravity.google/cli/install.sh | bash",
+        "type": "script"
+      }
+    ],
+    "linux": [
+      {
+        "command": "curl -fsSL https://antigravity.google/cli/install.sh | bash",
+        "type": "script"
+      }
+    ]
+  }
+}

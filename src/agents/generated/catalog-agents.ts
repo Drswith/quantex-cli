@@ -3,6 +3,7 @@
 import { getCatalogAgent } from '../catalog'
 
 export const amp = getCatalogAgent('amp')
+export const antigravity = getCatalogAgent('antigravity')
 export const auggie = getCatalogAgent('auggie')
 export const autohand = getCatalogAgent('autohand')
 export const claude = getCatalogAgent('claude')

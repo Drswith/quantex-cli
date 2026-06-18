@@ -7,6 +7,7 @@ import { buildAgentCatalogManifest, readCatalogEntries } from '../scripts/write-
 import * as agentExports from '../src/agents'
 import {
   auggie,
+  antigravity,
   autohand,
   claude,
   codebuddy,
@@ -61,6 +62,44 @@ describe('agent registry', () => {
     const agent = getAgentByLookupName('agent')
     expect(agent).toBeDefined()
     expect(agent!.name).toBe('cursor')
+  })
+})
+
+describe('antigravity', () => {
+  it('is registered for lookup by canonical name and aliases', () => {
+    expect(getAgentByNameOrAlias('antigravity')).toBe(antigravity)
+    expect(getAgentByLookupName('agy')).toBe(antigravity)
+    expect(getAgentByLookupName('antigravity-cli')).toBe(antigravity)
+  })
+
+  it('has valid structure', () => {
+    validateAgent(antigravity)
+    expect(antigravity.name).toBe('antigravity')
+    expect(antigravity.lookupAliases).toEqual(['agy', 'antigravity-cli'])
+    expect(antigravity.displayName).toBe('Antigravity CLI')
+    expect(antigravity.binaryName).toBe('agy')
+    expect(antigravity.packages).toBeUndefined()
+    expect(antigravity.homepage).toBe('https://antigravity.google/product/antigravity-cli')
+    expect(antigravity.selfUpdate?.command).toEqual(['agy', 'update'])
+    expect(antigravity.versionProbe?.command).toEqual(['agy', '--version'])
+  })
+
+  it('exposes official script installers on all platforms', () => {
+    expect(
+      antigravity.platforms.windows!.find(
+        m => m.type === 'script' && m.command === 'irm https://antigravity.google/cli/install.ps1 | iex',
+      ),
+    ).toBeDefined()
+    expect(
+      antigravity.platforms.macos!.find(
+        m => m.type === 'script' && m.command === 'curl -fsSL https://antigravity.google/cli/install.sh | bash',
+      ),
+    ).toBeDefined()
+    expect(
+      antigravity.platforms.linux!.find(
+        m => m.type === 'script' && m.command === 'curl -fsSL https://antigravity.google/cli/install.sh | bash',
+      ),
+    ).toBeDefined()
   })
 })
 

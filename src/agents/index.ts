@@ -16,6 +16,7 @@ export function getAgentByNameOrAlias(name: string): AgentDefinition | undefined
 }
 
 export {
+  antigravity,
   auggie,
   autohand,
   amp,
