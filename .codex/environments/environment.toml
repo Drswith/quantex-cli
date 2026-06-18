@@ -3,4 +3,17 @@ version = 1
 name = "quantex-cli"
 
 [setup]
-script = "bun install"
+script = '''
+set -euo pipefail
+
+bun install --frozen-lockfile
+codegraph init -i
+'''
+
+[cleanup]
+script = '''
+set -euo pipefail
+
+rm -rf .tmp
+rm -f quantex-*.tgz
+'''
