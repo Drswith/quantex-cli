@@ -22,14 +22,14 @@ Install, inspect, update, uninstall, and run AI coding assistant CLIs from one a
 
 </div>
 
-Quantex is a `human-friendly + agent-friendly` lifecycle CLI for AI coding assistants and terminal coding agents. Use one `qtx` surface to install, inspect, update, uninstall, run, and automate Codex CLI, Claude Code, Gemini CLI, Cursor CLI, OpenCode, Amp, Kilo Code, and other assistant CLIs with stable machine-readable output. This README uses the shorter `qtx` form as the recommended entry point, while `quantex` remains the fully equivalent long command name.
+Quantex is a `human-friendly + agent-friendly` lifecycle CLI for AI coding assistants and terminal coding agents. Use one `qtx` surface to install, inspect, update, uninstall, run, and automate Codex CLI, Claude Code, Gemini CLI, Cursor CLI, OpenCode, Antigravity CLI, MiMoCode, Amp, Kilo CLI, and other assistant CLIs with stable machine-readable output. This README uses the shorter `qtx` form as the recommended entry point, while `quantex` remains the fully equivalent long command name.
 
 ## Why Quantex
 
 - Manage multiple AI coding assistant CLIs from one lifecycle command: install, ensure, inspect, update, uninstall, and run.
 - Designed for scripts and coding agents: stable `--json`, `--output ndjson`, `--non-interactive`, and `--dry-run` contracts for machine-readable automation.
 - Tracks real install sources: `update --all` groups updates by recorded source instead of guessing from PATH alone.
-- Supports managed agent installs through available Bun, npm, Homebrew, Cargo, Deno, pip, uv, and winget providers.
+- Supports managed agent installs through available Bun, npm, Homebrew, Cargo, Deno, mise, pip, uv, and winget providers.
 - Supports Quantex self-upgrade across Bun, npm, and standalone binary installs.
 
 ## Agent Quick Start
@@ -177,6 +177,7 @@ Note: `qtx upgrade` follows the registry actually used by the current Bun/npm se
 
 | Agent | Run Command | Description |
 |-------|-------------|-------------|
+| Antigravity CLI | `qtx antigravity` | Google's Antigravity terminal coding agent CLI |
 | Auggie CLI | `qtx auggie` | Augment's official terminal coding agent |
 | Autohand Code CLI | `qtx autohand` | Autohand's autonomous terminal coding agent CLI |
 | Amp | `qtx amp` | Sourcegraph's frontier AI coding agent CLI |
@@ -199,6 +200,7 @@ Note: `qtx upgrade` follows the registry actually used by the current Bun/npm se
 | Kilo CLI | `qtx kilo` | Kilo's official AI coding assistant CLI |
 | Kimi Code | `qtx kimi` | Moonshot AI's coding assistant CLI |
 | Kiro CLI | `qtx kiro` | Amazon's AI coding agent CLI |
+| MiMoCode | `qtx mimo` | Xiaomi's terminal-native AI coding assistant CLI |
 | Mistral Vibe | `qtx vibe` | Mistral's open-source CLI coding assistant |
 | OpenHands CLI | `qtx openhands` | OpenHands' open-source software development agent CLI |
 | OpenCode | `qtx opencode` | Open-source AI coding CLI |
@@ -246,7 +248,6 @@ User configuration lives at `~/.quantex/config.json`:
   "defaultPackageManager": "bun",
   "npmBunUpdateStrategy": "latest-major",
   "selfUpdateChannel": "stable",
-  "selfUpdateRegistry": "https://registry.npmjs.org",
   "networkRetries": 2,
   "networkTimeoutMs": 10000,
   "versionCacheTtlHours": 6
@@ -255,7 +256,7 @@ User configuration lives at `~/.quantex/config.json`:
 
 `defaultPackageManager` can be `bun`, `npm`, or `mise`. It only changes agent install-method ordering when the selected agent exposes that managed installer; it does not make Quantex install missing package managers for you.
 
-`selfUpdateRegistry` only affects the registry used when Quantex upgrades itself through Bun/npm. It does not change the default install source for your other projects. For a one-off override, use the `QTX_SELF_UPDATE_REGISTRY` environment variable.
+`selfUpdateRegistry` is unset by default. When unset, Quantex follows the active Bun/npm registry for self-upgrade. If you set `selfUpdateRegistry`, it only affects the registry used when Quantex upgrades itself through Bun/npm and does not change the default install source for your other projects. For a one-off override, use the `QTX_SELF_UPDATE_REGISTRY` environment variable.
 
 Runtime state lives at `~/.quantex/state.json`. Quantex records the actual install source for agents and itself, which powers grouped `update --all` execution, `doctor` recovery guidance, and self-upgrade source detection.
 

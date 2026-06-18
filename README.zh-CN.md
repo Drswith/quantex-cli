@@ -22,14 +22,14 @@
 
 </div>
 
-Quantex 是一个 `human-friendly + agent-friendly` 的 AI 编程助手 CLI lifecycle manager。它帮你把 Codex CLI、Claude Code、Gemini CLI、Cursor CLI、OpenCode、Amp、Kilo Code 等终端 coding agent 的安装、检查、更新、卸载、启动和自动化调用统一到一组稳定命令里：人可以直接用，脚本和 coding agent 也可以通过结构化输出可靠调用。本文默认使用更短的 `qtx` 作为推荐入口，`quantex` 是完全等价的完整命令名。
+Quantex 是一个 `human-friendly + agent-friendly` 的 AI 编程助手 CLI lifecycle manager。它帮你把 Codex CLI、Claude Code、Gemini CLI、Cursor CLI、OpenCode、Antigravity CLI、MiMoCode、Amp、Kilo CLI 等终端 coding agent 的安装、检查、更新、卸载、启动和自动化调用统一到一组稳定命令里：人可以直接用，脚本和 coding agent 也可以通过结构化输出可靠调用。本文默认使用更短的 `qtx` 作为推荐入口，`quantex` 是完全等价的完整命令名。
 
 ## 为什么用 Quantex
 
 - 一个生命周期命令管理多个 AI 编程助手 CLI：安装、确保可用、查询状态、更新、卸载、启动。
 - 适合脚本和 agent 调用：支持 `--json`、`--output ndjson`、`--non-interactive`、`--dry-run` 等适合机器读取的稳定契约。
 - 记住真实安装来源：`update --all` 会优先按已记录来源分组更新，避免混合安装环境下误用更新方式。
-- 支持通过可用的 Bun、npm、Homebrew、Cargo、Deno、pip、uv、winget provider 管理 agent 安装。
+- 支持通过可用的 Bun、npm、Homebrew、Cargo、Deno、mise、pip、uv、winget provider 管理 agent 安装。
 - 支持 Quantex 自升级：Bun、npm、独立二进制安装来源都有对应升级路径。
 
 ## Agent 快速接入
@@ -156,7 +156,7 @@ qtx upgrade --channel beta
 
 | 推荐命令 | 等价长命令 | 作用 |
 |------|------|------|
-| `qtx i <agent>` | `quantex install <agent>` | 安装 agent |
+| `qtx i <agent> [more-agents...]` | `quantex install <agent> [more-agents...]` | 安装一个或多个 agent |
 | `qtx ensure <agent>` | `quantex ensure <agent>` | 幂等确保 agent 已安装 |
 | `qtx u <agent>` | `quantex update <agent>` | 更新 agent |
 | `qtx update --all` | `quantex update --all` | 更新所有已安装 agent |
@@ -177,6 +177,7 @@ qtx upgrade --channel beta
 
 | Agent | 启动命令 | 描述 |
 |-------|----------|------|
+| Antigravity CLI | `qtx antigravity` | Google Antigravity 终端编程 Agent CLI |
 | Auggie CLI | `qtx auggie` | Augment 官方终端编程 Agent CLI |
 | Autohand Code CLI | `qtx autohand` | Autohand 官方自主终端编程 Agent CLI |
 | Amp | `qtx amp` | Sourcegraph 前沿 AI 编程 Agent CLI |
@@ -199,6 +200,7 @@ qtx upgrade --channel beta
 | Kilo CLI | `qtx kilo` | Kilo 官方 AI 编程助手 CLI |
 | Kimi Code | `qtx kimi` | Moonshot AI 编程助手 CLI |
 | Kiro CLI | `qtx kiro` | Amazon AI 编程 Agent CLI |
+| MiMoCode | `qtx mimo` | 小米终端原生 AI 编程助手 CLI |
 | Mistral Vibe | `qtx vibe` | Mistral 开源终端编程助手 |
 | OpenHands CLI | `qtx openhands` | OpenHands 开源软件开发 Agent CLI |
 | OpenCode | `qtx opencode` | 开源 AI 编程 CLI |
@@ -246,14 +248,15 @@ quantex schema --json
   "defaultPackageManager": "bun",
   "npmBunUpdateStrategy": "latest-major",
   "selfUpdateChannel": "stable",
-  "selfUpdateRegistry": "https://registry.npmjs.org",
   "networkRetries": 2,
   "networkTimeoutMs": 10000,
   "versionCacheTtlHours": 6
 }
 ```
 
-`selfUpdateRegistry` 只影响 Quantex 自身通过 Bun/npm 执行 `qtx upgrade` 的 registry 选择，不会修改你其他项目的默认安装源。一次性覆盖可使用环境变量 `QTX_SELF_UPDATE_REGISTRY`。
+`defaultPackageManager` 可以是 `bun`、`npm` 或 `mise`。它只会在目标 agent 暴露对应 managed installer 时调整 agent 安装方式排序，不会让 Quantex 自动替你安装缺失的 package manager。
+
+`selfUpdateRegistry` 默认不设置。未设置时，Quantex 自升级会跟随当前 Bun/npm 实际使用的 registry。设置 `selfUpdateRegistry` 后，它只影响 Quantex 自身通过 Bun/npm 执行 `qtx upgrade` 的 registry 选择，不会修改你其他项目的默认安装源。一次性覆盖可使用环境变量 `QTX_SELF_UPDATE_REGISTRY`。
 
 运行时状态位于 `~/.quantex/state.json`。Quantex 会记录 agent 和自身的实际安装来源，用于 `update --all` 分组更新、`doctor` 恢复建议和 self upgrade 来源判断。
 

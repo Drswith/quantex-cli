@@ -1,0 +1,5 @@
+- [x] 1.1 Verify current README-facing facts from CLI output, source defaults, and existing specs.
+- [x] 1.2 Update `README.md` with current agent catalog entries and configuration default guidance.
+- [x] 1.3 Update `README.zh-CN.md` with equivalent current agent catalog entries and configuration default guidance.
+- [x] 1.4 Update the `product-readme` OpenSpec delta for README catalog/default drift prevention.
+- [x] 1.5 Run required validation and report delivery closure state.
