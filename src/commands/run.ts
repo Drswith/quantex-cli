@@ -419,29 +419,49 @@ async function runSpawnedAgentProcess(handle: SpawnHandle, displayName: string):
       }
     })
 
-    const timeoutPromise =
-      timeoutMs === undefined
-        ? undefined
-        : new Promise<number>(resolve => {
-            timeoutId = setTimeout(() => {
-              cancellationCodePromise ??= (async () => {
-                await cancelCliContextOperations()
-                printError(pc.red(`${displayName} timed out after ${timeoutMs}ms.`))
-                return getExitCodeForError('TIMEOUT')
-              })()
-              void cancellationCodePromise.then(resolve)
-            }, timeoutMs)
-          })
+    const spawnPromise = waitForSpawnedAgentCommand(handle, () => cancellationCodePromise)
 
-    return await Promise.race([
-      waitForSpawnedAgentCommand(handle, () => cancellationCodePromise),
-      signalPromise,
-      ...(timeoutPromise ? [timeoutPromise] : []),
-    ])
+    if (timeoutMs === undefined) {
+      return await Promise.race([spawnPromise, signalPromise])
+    }
+
+    const timeoutPromise = new Promise<'timeout'>(resolve => {
+      timeoutId = setTimeout(() => {
+        resolve('timeout')
+      }, timeoutMs)
+    })
+
+    const result = await Promise.race([spawnPromise, signalPromise, timeoutPromise])
+    if (result === 'timeout') {
+      const lateCode = await waitForLateSpawnResult(spawnPromise, timeoutMs)
+      if (lateCode !== undefined) {
+        clearCliContextCancelled()
+        return lateCode
+      }
+
+      cancellationCodePromise ??= (async () => {
+        await cancelCliContextOperations()
+        printError(pc.red(`${displayName} timed out after ${timeoutMs}ms.`))
+        return getExitCodeForError('TIMEOUT')
+      })()
+      return await cancellationCodePromise
+    }
+
+    return result
   } finally {
     if (timeoutId) clearTimeout(timeoutId)
     cleanup?.()
   }
+}
+
+async function waitForLateSpawnResult(spawnPromise: Promise<number>, timeoutMs: number): Promise<number | undefined> {
+  const graceMs = Math.min(timeoutMs, 250)
+  return await Promise.race([
+    spawnPromise,
+    new Promise<undefined>(resolve => {
+      setTimeout(() => resolve(undefined), graceMs)
+    }),
+  ])
 }
 
 async function waitForSpawnedAgentCommand(
