@@ -363,6 +363,43 @@ describe('runCommand', () => {
     expect(stdoutWriteSpy).toHaveBeenCalledWith(expect.stringContaining('timed out'))
   })
 
+  it('returns agent exit code when spawn completes successfully after the timeout deadline fires', async () => {
+    const proc: any = {
+      exitCode: null,
+      exited: new Promise<number>(resolve => {
+        setTimeout(() => {
+          proc.exitCode = 0
+          resolve(0)
+        }, 30)
+      }),
+      kill: vi.fn(),
+    }
+
+    setCliContext({
+      interactive: false,
+      outputMode: 'human',
+      runId: 'run-spawn-late-success-id',
+      timeoutMs: 20,
+    })
+    agentSpy.mockReturnValue(testAgent)
+    binaryInPathSpy.mockResolvedValue(true)
+    mockSpawn.mockImplementation((command: string[]) => {
+      if (command[1] === '--help') return proc
+
+      return {
+        exitCode: 0,
+        exited: Promise.resolve(0),
+        stderr: '',
+        stdout: '/tmp/test-bin\n',
+      }
+    })
+
+    const code = await runCommand('test-agent', ['--help'])
+
+    expect(code).toBe(0)
+    expect(proc.kill).not.toHaveBeenCalled()
+  })
+
   it('returns cancelled when the spawned agent receives a termination signal', async () => {
     let resolveExited: (() => void) | undefined
     const proc: any = {
