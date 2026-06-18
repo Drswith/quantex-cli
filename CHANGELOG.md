@@ -2,6 +2,13 @@
 
 This changelog is maintained by release-please Release PRs.
 
+## [0.25.0](https://github.com/Drswith/quantex-cli/compare/v0.24.2...v0.25.0) (2026-06-18)
+
+
+### Features
+
+* **cli:** add Antigravity support and exec timeout grace ([662be3f](https://github.com/Drswith/quantex-cli/commit/662be3fd94ca42b57de5c3f27d013cffe518fa01))
+
 ## [0.24.2](https://github.com/Drswith/quantex-cli/compare/v0.24.1...v0.24.2) (2026-06-17)
 
 
