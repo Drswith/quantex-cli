@@ -2,6 +2,7 @@ import { existsSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterAll, beforeEach, describe, expect, it, vi } from 'vitest'
+import { markCliContextCancelled, resetCliContext, setCliContext } from '../../src/cli-context'
 import * as config from '../../src/config'
 import * as binaryPm from '../../src/package-manager/binary'
 import * as bunPm from '../../src/package-manager/bun'
@@ -210,6 +211,42 @@ describe('installAgent', () => {
     await expect(installAgent(testAgent)).rejects.toBeInstanceOf(StateFileError)
     expect(bunInstallSpy).toHaveBeenCalledWith('test-pkg')
     expect(bunUninstallSpy).toHaveBeenCalledWith('test-pkg')
+  })
+
+  it('does not persist installed state when CLI context is already cancelled', async () => {
+    setCliContext({
+      cancelled: true,
+      interactive: false,
+      outputMode: 'human',
+      runId: 'cancelled-install-id',
+    })
+    isBunSpy.mockResolvedValue(true)
+    bunInstallSpy.mockResolvedValue(true)
+    bunUninstallSpy.mockResolvedValue(true)
+
+    expect(await installAgent(testAgent)).toEqual({ success: false })
+    expect(setInstalledAgentStateSpy).not.toHaveBeenCalled()
+    expect(bunUninstallSpy).toHaveBeenCalledWith('test-pkg')
+    resetCliContext()
+  })
+
+  it('skips persistence and rolls back when cancellation is marked after managed install succeeds', async () => {
+    setCliContext({
+      interactive: false,
+      outputMode: 'human',
+      runId: 'late-cancel-install-id',
+    })
+    isBunSpy.mockResolvedValue(true)
+    bunInstallSpy.mockImplementation(async () => {
+      markCliContextCancelled()
+      return true
+    })
+    bunUninstallSpy.mockResolvedValue(true)
+
+    expect(await installAgent(testAgent)).toEqual({ success: false })
+    expect(setInstalledAgentStateSpy).not.toHaveBeenCalled()
+    expect(bunUninstallSpy).toHaveBeenCalledWith('test-pkg')
+    resetCliContext()
   })
 
   it('tries next method if first fails', async () => {
