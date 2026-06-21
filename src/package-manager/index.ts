@@ -2,6 +2,7 @@ import type { AgentDefinition, InstallMethod, ManagedInstallType } from '../agen
 import type { NpmBunUpdateStrategy } from '../config'
 import type { InstalledAgentState } from '../state'
 import type { ManagedInstallerUpdateOptions, ManagedPackageSpec } from './installers'
+import { getCliContext } from '../cli-context'
 import { loadConfig } from '../config'
 import { getInstalledAgentState, removeInstalledAgentState, setInstalledAgentState } from '../state'
 import { getPlatform } from '../utils/detect'
@@ -173,6 +174,8 @@ async function executeAgentUpdateCommand(agent: AgentDefinition): Promise<boolea
 }
 
 async function persistInstalledState(agent: AgentDefinition, method: InstallMethod): Promise<InstalledAgentState> {
+  if (getCliContext().cancelled) throw new Error('Cannot persist installed-agent state after cancellation.')
+
   const installedState: InstalledAgentState = {
     agentName: agent.name,
     installType: method.type,
@@ -199,6 +202,11 @@ export async function installAgent(agent: AgentDefinition): Promise<AgentOperati
 
     for (const method of methods) {
       if (await executeMethod(agent, method, 'install')) {
+        if (getCliContext().cancelled) {
+          await rollbackManagedInstall(agent, method)
+          return { success: false }
+        }
+
         try {
           return {
             success: true,

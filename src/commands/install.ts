@@ -1,4 +1,5 @@
 import type { CommandError, CommandResult, CommandWarning } from '../output/types'
+import { getCliContext } from '../cli-context'
 import { createErrorResult, createSuccessResult, emitCommandEvent, emitCommandResult } from '../output'
 import { installAgent, trackInstalledAgent } from '../package-manager'
 import { resolveAgentInspection } from '../services/agents'
@@ -90,6 +91,8 @@ export async function installCommand(
   const results: InstallBatchResultItem[] = []
 
   for (const agentName of requestedAgents) {
+    if (getCliContext().cancelled) break
+
     const singleResult = await performSingleInstall(agentName)
     const batchResult = toBatchResultItem(agentName, singleResult)
     results.push(batchResult)
@@ -103,6 +106,8 @@ export async function installCommand(
       },
       type: 'progress',
     })
+
+    if (getCliContext().cancelled) break
   }
 
   const data: InstallBatchCommandData = {
@@ -136,6 +141,20 @@ async function performSingleInstall(
   agentName: string,
   options: SingleInstallOptions = {},
 ): Promise<CommandResult<InstallCommandData>> {
+  if (getCliContext().cancelled) {
+    return createErrorResult<InstallCommandData>({
+      action: 'install',
+      error: {
+        code: 'CANCELLED',
+        message: 'Install was cancelled before it could start.',
+      },
+      target: {
+        kind: 'agent',
+        name: agentName,
+      },
+    })
+  }
+
   const resolved = await resolveAgentInspection(agentName)
   if (!resolved) {
     return createErrorResult<InstallCommandData>({
