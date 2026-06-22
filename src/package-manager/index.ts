@@ -2,6 +2,7 @@ import type { AgentDefinition, InstallMethod, ManagedInstallType } from '../agen
 import type { NpmBunUpdateStrategy } from '../config'
 import type { InstalledAgentState } from '../state'
 import type { ManagedInstallerUpdateOptions, ManagedPackageSpec } from './installers'
+import { getCliContext } from '../cli-context'
 import { loadConfig } from '../config'
 import { getInstalledAgentState, removeInstalledAgentState, setInstalledAgentState } from '../state'
 import { getPlatform } from '../utils/detect'
@@ -172,7 +173,7 @@ async function executeAgentUpdateCommand(agent: AgentDefinition): Promise<boolea
   return false
 }
 
-async function persistInstalledState(agent: AgentDefinition, method: InstallMethod): Promise<InstalledAgentState> {
+function buildInstalledState(agent: AgentDefinition, method: InstallMethod): InstalledAgentState {
   const installedState: InstalledAgentState = {
     agentName: agent.name,
     installType: method.type,
@@ -184,6 +185,24 @@ async function persistInstalledState(agent: AgentDefinition, method: InstallMeth
 
   if (binaryName) installedState.binaryName = binaryName
   if (method.packageInstallArgs?.length) installedState.packageInstallArgs = method.packageInstallArgs
+
+  return installedState
+}
+
+async function persistInstalledState(agent: AgentDefinition, method: InstallMethod): Promise<InstalledAgentState> {
+  const installedState = buildInstalledState(agent, method)
+  await setInstalledAgentState(installedState)
+  return installedState
+}
+
+async function persistInstalledStateIfNotCancelled(
+  agent: AgentDefinition,
+  method: InstallMethod,
+): Promise<InstalledAgentState | null> {
+  if (getCliContext().cancelled) return null
+
+  const installedState = buildInstalledState(agent, method)
+  if (getCliContext().cancelled) return null
 
   await setInstalledAgentState(installedState)
   return installedState
@@ -199,10 +218,21 @@ export async function installAgent(agent: AgentDefinition): Promise<AgentOperati
 
     for (const method of methods) {
       if (await executeMethod(agent, method, 'install')) {
+        if (getCliContext().cancelled) {
+          await rollbackManagedInstall(agent, method)
+          return { success: false }
+        }
+
         try {
+          const installedState = await persistInstalledStateIfNotCancelled(agent, method)
+          if (!installedState) {
+            await rollbackManagedInstall(agent, method)
+            return { success: false }
+          }
+
           return {
             success: true,
-            installedState: await persistInstalledState(agent, method),
+            installedState,
           }
         } catch (error) {
           await rollbackManagedInstall(agent, method)
@@ -235,6 +265,8 @@ export async function updateAgent(
         updateStrategy: npmBunUpdateStrategy,
       }))
     ) {
+      if (getCliContext().cancelled) return { success: false }
+
       await setInstalledAgentState(preferredState)
       return {
         success: true,
@@ -245,9 +277,12 @@ export async function updateAgent(
     if (!preferredState) {
       for (const method of methods) {
         if (await executeMethod(agent, method, 'update', npmBunUpdateStrategy)) {
+          const installedState = await persistInstalledStateIfNotCancelled(agent, method)
+          if (!installedState) return { success: false }
+
           return {
             success: true,
-            installedState: await persistInstalledState(agent, method),
+            installedState,
           }
         }
       }

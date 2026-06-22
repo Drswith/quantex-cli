@@ -1,7 +1,8 @@
 import process from 'node:process'
 import { afterAll, afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import * as agents from '../../src/agents'
-import { setCliContext } from '../../src/cli-context'
+import { cancelCliContextOperations, setCliContext } from '../../src/cli-context'
+import { executeCommandWithRuntime } from '../../src/command-runtime'
 import { installCommand } from '../../src/commands/install'
 import * as pm from '../../src/package-manager'
 import * as state from '../../src/state'
@@ -343,5 +344,70 @@ describe('installCommand', () => {
     expect(resultEvent.type).toBe('result')
     expect(resultEvent.data.data.scope).toBe('batch')
     expect(resultEvent.meta.runId).toBe('batch-ndjson-run-id')
+  })
+
+  it('stops batch install when the cli context is cancelled', async () => {
+    setCliContext({
+      interactive: false,
+      outputMode: 'json',
+      runId: 'batch-cancel-run',
+    })
+    agentSpy.mockImplementation((name: string) => {
+      if (name === 'test-agent') return testAgent
+      if (name === 'another-agent') return anotherAgent
+      return undefined
+    })
+    binaryInPathSpy.mockResolvedValue(false)
+    installSpy.mockImplementation(async agent => {
+      if (agent.name === 'test-agent') {
+        await cancelCliContextOperations()
+        return { success: false }
+      }
+
+      return { success: true }
+    })
+
+    await installCommand(['test-agent', 'another-agent'])
+
+    expect(installSpy).toHaveBeenCalledTimes(1)
+    expect(installSpy).toHaveBeenCalledWith(testAgent)
+  })
+
+  it('does not install remaining batch agents after timeout cancellation', async () => {
+    setCliContext({
+      interactive: false,
+      outputMode: 'json',
+      runId: 'batch-timeout-run',
+      timeoutMs: 50,
+    })
+    agentSpy.mockImplementation((name: string) => {
+      if (name === 'test-agent') return testAgent
+      if (name === 'another-agent') return anotherAgent
+      return undefined
+    })
+    binaryInPathSpy.mockResolvedValue(false)
+    installSpy.mockImplementation(async agent => {
+      if (agent.name === 'test-agent') {
+        await new Promise(resolve => setTimeout(resolve, 200))
+        return { success: false }
+      }
+
+      return { success: true }
+    })
+
+    const runtimeResult = await executeCommandWithRuntime({
+      action: 'install',
+      run: () => installCommand(['test-agent', 'another-agent']),
+      target: {
+        kind: 'agent',
+        name: 'another-agent,test-agent',
+      },
+    })
+
+    await new Promise(resolve => setTimeout(resolve, 300))
+
+    expect(runtimeResult.error?.code).toBe('TIMEOUT')
+    expect(installSpy).toHaveBeenCalledTimes(1)
+    expect(installSpy).toHaveBeenCalledWith(testAgent)
   })
 })

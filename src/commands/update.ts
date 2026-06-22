@@ -8,6 +8,7 @@ import {
   getManualAgentUpdateMessage,
   getUntrackedPathAgentUpdateMessage,
 } from '../agent-update'
+import { getCliContext } from '../cli-context'
 import { createErrorResult, createSuccessResult, emitCommandEvent, emitCommandResult } from '../output'
 import { updateAgent, updateAgentsByType } from '../package-manager'
 import { resolveAgent } from '../services/agents'
@@ -266,11 +267,17 @@ async function executePlannedUpdates(
   }
 
   for (const bucket of plan.grouped) {
+    if (getCliContext().cancelled) break
+
     const groupResults = await updateGroupedAgents(bucket.type, bucket.packages, bucket.updates)
     for (const result of groupResults) pushUpdateResult(results, result)
+
+    if (getCliContext().cancelled) break
   }
 
   for (const entry of plan.manual) {
+    if (getCliContext().cancelled) break
+
     pushUpdateResult(results, await performUpdate(entry.agent, entry.state, entry.inspection.methods, entry.inspection))
   }
 
@@ -333,6 +340,8 @@ async function updateGroupedAgents(
 
     const fallbackResults: UpdateResultItem[] = []
     for (const { agent, inspection, state } of updates) {
+      if (getCliContext().cancelled) break
+
       fallbackResults.push(await performUpdate(agent, state, inspection.methods, inspection))
     }
     return fallbackResults
@@ -358,6 +367,17 @@ async function performUpdate(
   methods?: InstallMethod[],
   inspection?: { installedVersion?: string; latestVersion?: string; methods?: InstallMethod[] },
 ): Promise<UpdateResultItem> {
+  if (getCliContext().cancelled) {
+    return {
+      displayName: agent.displayName,
+      installedVersion: inspection?.installedVersion,
+      latestVersion: inspection?.latestVersion,
+      message: 'Update was cancelled before it could start.',
+      name: agent.name,
+      status: 'failed',
+    }
+  }
+
   const resolvedMethods = methods ?? inspection?.methods ?? []
   const strategy = getAgentUpdateStrategy({
     agent,
