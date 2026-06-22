@@ -9,9 +9,11 @@ import { loadIdempotencyRecord } from '../src/idempotency'
 import { createErrorResult, createSuccessResult, emitCommandResult } from '../src/output'
 import * as selfModule from '../src/self'
 import * as updateNotice from '../src/self/update-notice'
+import * as agentsService from '../src/services/agents'
 import { saveState } from '../src/state'
 
 const inspectSelfSpy = vi.spyOn(selfModule, 'inspectSelf')
+const resolveAgentInspectionSpy = vi.spyOn(agentsService, 'resolveAgentInspection')
 
 describe('executeCommandWithRuntime', () => {
   let logSpy: ReturnType<typeof vi.spyOn>
@@ -27,6 +29,7 @@ describe('executeCommandWithRuntime', () => {
   afterEach(() => {
     logSpy.mockRestore()
     inspectSelfSpy.mockReset()
+    resolveAgentInspectionSpy.mockReset()
     vi.useRealTimers()
     if (originalHome === undefined) delete process.env.HOME
     else process.env.HOME = originalHome
@@ -387,6 +390,17 @@ describe('executeCommandWithRuntime', () => {
       }),
     )
 
+    resolveAgentInspectionSpy.mockResolvedValue({
+      agent: {
+        binaryName: 'codex',
+        displayName: 'Codex',
+        name: 'codex',
+      },
+      inspection: {
+        inPath: true,
+      },
+    } as Awaited<ReturnType<typeof agentsService.resolveAgentInspection>>)
+
     setCliContext({
       idempotencyKey: 'install-codex',
       interactive: false,
@@ -423,6 +437,134 @@ describe('executeCommandWithRuntime', () => {
     expect(replayed.ok).toBe(true)
     expect(replayed.meta.runId).toBe('second-run-id')
     expect(logSpy).toHaveBeenCalledWith(expect.stringContaining('"runId": "second-run-id"'))
+  })
+
+  it('does not replay install after the target agent was removed', async () => {
+    const run = vi.fn(async () =>
+      createSuccessResult({
+        action: 'install',
+        data: {
+          installed: true,
+        },
+        target: {
+          kind: 'agent',
+          name: 'codex',
+        },
+      }),
+    )
+
+    resolveAgentInspectionSpy.mockResolvedValue({
+      agent: {
+        binaryName: 'codex',
+        displayName: 'Codex',
+        name: 'codex',
+      },
+      inspection: {
+        inPath: false,
+      },
+    } as Awaited<ReturnType<typeof agentsService.resolveAgentInspection>>)
+
+    setCliContext({
+      idempotencyKey: 'install-codex-after-uninstall',
+      interactive: false,
+      outputMode: 'json',
+      runId: 'first-run-id',
+    })
+
+    await executeCommandWithRuntime({
+      action: 'install',
+      run,
+      target: {
+        kind: 'agent',
+        name: 'codex',
+      },
+    })
+
+    setCliContext({
+      idempotencyKey: 'install-codex-after-uninstall',
+      interactive: false,
+      outputMode: 'json',
+      runId: 'second-run-id',
+    })
+
+    const replayed = await executeCommandWithRuntime({
+      action: 'install',
+      run,
+      target: {
+        kind: 'agent',
+        name: 'codex',
+      },
+    })
+
+    expect(run).toHaveBeenCalledTimes(2)
+    expect(replayed.ok).toBe(true)
+    expect(replayed.meta.runId).toBe('second-run-id')
+  })
+
+  it('does not replay uninstall after the target agent was reinstalled', async () => {
+    const run = vi.fn(async () =>
+      createSuccessResult({
+        action: 'uninstall',
+        data: {
+          agent: {
+            displayName: 'Codex',
+            name: 'codex',
+          },
+          changed: true,
+        },
+        target: {
+          kind: 'agent',
+          name: 'codex',
+        },
+      }),
+    )
+
+    resolveAgentInspectionSpy.mockResolvedValue({
+      agent: {
+        binaryName: 'codex',
+        displayName: 'Codex',
+        name: 'codex',
+      },
+      inspection: {
+        inPath: true,
+      },
+    } as Awaited<ReturnType<typeof agentsService.resolveAgentInspection>>)
+
+    setCliContext({
+      idempotencyKey: 'uninstall-codex-after-reinstall',
+      interactive: false,
+      outputMode: 'json',
+      runId: 'first-run-id',
+    })
+
+    await executeCommandWithRuntime({
+      action: 'uninstall',
+      run,
+      target: {
+        kind: 'agent',
+        name: 'codex',
+      },
+    })
+
+    setCliContext({
+      idempotencyKey: 'uninstall-codex-after-reinstall',
+      interactive: false,
+      outputMode: 'json',
+      runId: 'second-run-id',
+    })
+
+    const replayed = await executeCommandWithRuntime({
+      action: 'uninstall',
+      run,
+      target: {
+        kind: 'agent',
+        name: 'codex',
+      },
+    })
+
+    expect(run).toHaveBeenCalledTimes(2)
+    expect(replayed.ok).toBe(true)
+    expect(replayed.meta.runId).toBe('second-run-id')
   })
 
   it('does not persist dry-run results for an idempotency key', async () => {

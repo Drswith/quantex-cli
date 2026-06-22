@@ -1,3 +1,4 @@
+import type { IdempotencyRecord } from './idempotency'
 import type { CommandResult, CommandTarget } from './output/types'
 
 function idempotencyTargetsMatch(stored?: CommandTarget, requested?: CommandTarget): boolean {
@@ -11,11 +12,51 @@ function idempotencyTargetsMatch(stored?: CommandTarget, requested?: CommandTarg
 function isDryRunIdempotencyResult(result: CommandResult): boolean {
   return result.warnings.some(warning => warning.code === 'DRY_RUN')
 }
+
+const agentPresenceRequiredActions = new Set(['install', 'ensure', 'update'])
+const agentAbsenceRequiredActions = new Set(['uninstall'])
+
+function getIdempotencyAgentNames(target?: CommandTarget): string[] | undefined {
+  if (target?.kind !== 'agent' || !target.name) return undefined
+
+  return target.name
+    .split(',')
+    .map(name => name.trim())
+    .filter(Boolean)
+}
+
+async function isStoredIdempotencyResultStillValid(record: IdempotencyRecord): Promise<boolean> {
+  if (!record.result.ok) return true
+
+  const agentNames = getIdempotencyAgentNames(record.target)
+  if (!agentNames || agentNames.length === 0) return true
+
+  if (agentPresenceRequiredActions.has(record.action)) {
+    for (const agentName of agentNames) {
+      const resolved = await resolveAgentInspection(agentName)
+      if (!resolved?.inspection.inPath) return false
+    }
+
+    return true
+  }
+
+  if (agentAbsenceRequiredActions.has(record.action)) {
+    for (const agentName of agentNames) {
+      const resolved = await resolveAgentInspection(agentName)
+      if (resolved?.inspection.inPath) return false
+    }
+
+    return true
+  }
+
+  return true
+}
 import process from 'node:process'
 import { cancelCliContextOperations, getCliContext } from './cli-context'
 import { loadIdempotencyRecord, saveIdempotencyRecord } from './idempotency'
 import { createErrorResult, emitCommandEvent, emitCommandResult } from './output'
 import { maybeRenderSelfUpdateNotice } from './self/update-notice'
+import { resolveAgentInspection } from './services/agents'
 import { getStateFilePath, StateFileError } from './state'
 import { pc } from './utils/color'
 import { createStateReadError } from './utils/lifecycle-errors'
@@ -149,6 +190,7 @@ async function replayIdempotentResult<T>(
 
   if (!idempotencyTargetsMatch(record.target, target)) return undefined
   if (isDryRunIdempotencyResult(record.result)) return undefined
+  if (!(await isStoredIdempotencyResultStillValid(record))) return undefined
 
   const replayedResult = {
     ...record.result,
