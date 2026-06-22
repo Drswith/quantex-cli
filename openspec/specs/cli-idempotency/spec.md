@@ -16,50 +16,21 @@ Mutating commands that accept `--idempotency-key` SHALL persist idempotency reco
 - WHEN the same command is invoked again with the same key, action, and target before the record expires
 - THEN Quantex replays the stored successful result without re-executing the primary command work
 
-#### Scenario: Dry run does not persist or replay as a real mutation
+#### Scenario: Install replay is skipped after the agent was removed
 
-- GIVEN a mutating command completes with `ok: true` during `--dry-run`
-- AND the caller supplied `--idempotency-key <key>`
-- WHEN the same command is invoked again without `--dry-run` using the same key, action, and target
-- THEN Quantex does not replay the dry-run result
-- AND it executes the real mutating command work
+- GIVEN a successful `install` idempotency record exists for key `<key>` and target agent `codex`
+- AND `codex` is no longer installed in `PATH`
+- WHEN `install` is invoked again with the same key, action, and target
+- THEN Quantex does not replay the stored install success
+- AND it executes the `codex` install work
 
-#### Scenario: Transient failure does not block retry
+#### Scenario: Uninstall replay is skipped after the agent was reinstalled
 
-- GIVEN a mutating command completes with `ok: false` (for example `TIMEOUT`, `CANCELLED`, or `INSTALL_FAILED`)
-- AND the caller supplied `--idempotency-key <key>`
-- WHEN the same command is invoked again with the same key and action
-- THEN Quantex does not replay the prior failure
-- AND it re-executes the primary command work
-
-#### Scenario: Action mismatch remains protected
-
-- GIVEN an idempotency record exists for key `<key>` and action `install`
-- WHEN a different action is invoked with the same key
-- THEN Quantex returns `INVALID_ARGUMENT`
-- AND it does not execute the new action
-
-#### Scenario: Target mismatch does not replay the wrong agent
-
-- GIVEN an idempotency record exists for key `<key>`, action `install`, and target agent `codex`
-- WHEN `install` is invoked again with the same key but target agent `cursor`
-- THEN Quantex does not replay the stored `codex` result
-- AND it executes the `cursor` install work
-
-#### Scenario: Batch install target mismatch does not replay the wrong agents
-
-- GIVEN an idempotency record exists for key `<key>`, action `install`, and target agents `codex,cursor`
-- WHEN `install` is invoked again with the same key but target agents `vtcode`
-- THEN Quantex does not replay the stored batch result
-- AND it executes the `vtcode` install work
-
-#### Scenario: Successful completion after timeout deadline is reported as success
-
-- GIVEN a mutating command is invoked with `--timeout` and `--idempotency-key`
-- AND the primary command work completes with `ok: true` after the timeout deadline fired
-- WHEN the runtime finalizes the command result
-- THEN Quantex returns the successful result
-- AND it persists the idempotency record for the successful completion
+- GIVEN a successful `uninstall` idempotency record exists for key `<key>` and target agent `codex`
+- AND `codex` is installed in `PATH` again
+- WHEN `uninstall` is invoked again with the same key, action, and target
+- THEN Quantex does not replay the stored uninstall success
+- AND it executes the `codex` uninstall work
 
 ### Requirement: Timeout handling MUST preserve terminal failure codes
 
@@ -84,3 +55,4 @@ Quantex SHALL map each distinct `--idempotency-key` value to a distinct on-disk 
 - WHEN a different mutating command is invoked with idempotency key `job-1_install_codex`
 - THEN Quantex does not replay the first command's stored result
 - AND it executes the new command work independently
+
