@@ -380,6 +380,22 @@ When Quantex cancels a managed lifecycle installer on Windows and a child proces
 - **AND** the installer descendant does not continue producing installer progress after Quantex returns the cancelled result
 - **AND** Quantex does not persist normal installed-agent state for the cancelled operation
 
+#### Scenario: Batch install does not continue after timeout cancellation
+
+- **GIVEN** the user runs `quantex install <slow-agent> <fast-agent> --timeout <duration>`
+- **AND** the first agent's install work exceeds the configured timeout and late-completion grace window
+- **WHEN** Quantex emits a timeout cancellation result for the command
+- **THEN** it does not install or persist state for `<fast-agent>`
+- **AND** it does not persist normal installed-agent state for the cancelled `<slow-agent>` operation
+
+#### Scenario: Batch update does not continue after timeout cancellation
+
+- **GIVEN** the user runs `quantex update --all --timeout <duration>`
+- **AND** an early update item exceeds the configured timeout and late-completion grace window
+- **WHEN** Quantex emits a timeout cancellation result for the command
+- **THEN** it does not perform later update work for remaining agents in the same command
+- **AND** it does not persist normal installed-agent state for the cancelled update operation
+
 ### Requirement: Uninstall MUST clear tracked unmanaged install state
 
 When an agent is recorded with install type `script` or `binary`, Quantex SHALL remove the installed-agent state entry on uninstall even though no managed package uninstall command exists.
@@ -441,3 +457,4 @@ When `quantex exec` or shortcut `quantex <agent>` runs with `--timeout` and laun
 - **WHEN** the spawned agent process exits successfully within the late-completion grace window after the timeout deadline fired
 - **THEN** Quantex returns the agent process exit code
 - **AND** it does not cancel the spawned agent process before the grace window ends
+
