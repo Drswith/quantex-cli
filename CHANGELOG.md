@@ -2,6 +2,13 @@
 
 This changelog is maintained by release-please Release PRs.
 
+## [0.25.1](https://github.com/Drswith/quantex-cli/compare/v0.25.0...v0.25.1) (2026-06-22)
+
+
+### Bug Fixes
+
+* **cli:** harden lifecycle cancellation and replay ([8cca879](https://github.com/Drswith/quantex-cli/commit/8cca879b32932a4d7cd9f5ed4dae8726245c1729))
+
 ## [0.25.0](https://github.com/Drswith/quantex-cli/compare/v0.24.2...v0.25.0) (2026-06-18)
 
 
