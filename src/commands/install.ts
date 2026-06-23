@@ -232,6 +232,19 @@ async function performSingleInstall(
 
       try {
         const installedState = await trackInstalledAgent(agent, adoptableMethod)
+        if (!installedState) {
+          return createErrorResult<InstallCommandData>({
+            action: 'install',
+            error: {
+              code: 'CANCELLED',
+              message: 'Install was cancelled before tracking could complete.',
+            },
+            target: {
+              kind: 'agent',
+              name: agent.name,
+            },
+          })
+        }
 
         return createSuccessResult<InstallCommandData>({
           action: 'install',
