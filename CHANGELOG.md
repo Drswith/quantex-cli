@@ -2,6 +2,13 @@
 
 This changelog is maintained by release-please Release PRs.
 
+## [0.25.2](https://github.com/Drswith/quantex-cli/compare/v0.25.1...v0.25.2) (2026-06-24)
+
+
+### Bug Fixes
+
+* **lifecycle:** roll back state when cancellation races persistence ([7f077e3](https://github.com/Drswith/quantex-cli/commit/7f077e32bc8b51b04d579c5e8e2c506606fa38ed))
+
 ## [0.25.1](https://github.com/Drswith/quantex-cli/compare/v0.25.0...v0.25.1) (2026-06-22)
 
 
