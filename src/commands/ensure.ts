@@ -121,6 +121,22 @@ export async function ensureCommand(agentName: string): Promise<CommandResult<En
 
       try {
         const installedState = await trackInstalledAgent(agent, adoptableMethod)
+        if (!installedState) {
+          return emitCommandResult(
+            createErrorResult<EnsureCommandData>({
+              action: 'ensure',
+              error: {
+                code: 'CANCELLED',
+                message: 'Ensure was cancelled before tracking could complete.',
+              },
+              target: {
+                kind: 'agent',
+                name: agent.name,
+              },
+            }),
+            renderEnsureHuman,
+          )
+        }
 
         return emitCommandResult(
           createSuccessResult<EnsureCommandData>({

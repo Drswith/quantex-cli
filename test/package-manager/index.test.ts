@@ -249,6 +249,26 @@ describe('installAgent', () => {
     resetCliContext()
   })
 
+  it('rolls back managed install when cancellation is marked during state persistence', async () => {
+    setCliContext({
+      interactive: false,
+      outputMode: 'human',
+      runId: 'persist-cancel-install-id',
+    })
+    isBunSpy.mockResolvedValue(true)
+    bunInstallSpy.mockResolvedValue(true)
+    bunUninstallSpy.mockResolvedValue(true)
+    setInstalledAgentStateSpy.mockImplementation(async () => {
+      markCliContextCancelled()
+    })
+
+    expect(await installAgent(testAgent)).toEqual({ success: false })
+    expect(setInstalledAgentStateSpy).toHaveBeenCalled()
+    expect(removeInstalledAgentStateSpy).toHaveBeenCalledWith('test-agent')
+    expect(bunUninstallSpy).toHaveBeenCalledWith('test-pkg')
+    resetCliContext()
+  })
+
   it('tries next method if first fails', async () => {
     isBunSpy.mockResolvedValue(true)
     isNpmSpy.mockResolvedValue(true)
@@ -431,6 +451,30 @@ describe('trackInstalledAgent', () => {
     expect(bunInstallSpy).not.toHaveBeenCalled()
     expect(npmInstallSpy).not.toHaveBeenCalled()
     expect(binarySpy).not.toHaveBeenCalled()
+  })
+
+  it('does not persist state when cancellation is marked during state persistence', async () => {
+    setCliContext({
+      interactive: false,
+      outputMode: 'human',
+      runId: 'persist-cancel-track-id',
+    })
+    setInstalledAgentStateSpy.mockImplementation(async () => {
+      markCliContextCancelled()
+    })
+
+    expect(
+      await trackInstalledAgent(
+        {
+          ...testAgent,
+          packages: undefined,
+        },
+        { type: 'script', command: 'curl https://example.com/install | bash' },
+      ),
+    ).toBeNull()
+    expect(setInstalledAgentStateSpy).toHaveBeenCalled()
+    expect(removeInstalledAgentStateSpy).toHaveBeenCalledWith('test-agent')
+    resetCliContext()
   })
 })
 

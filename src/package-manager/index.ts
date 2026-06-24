@@ -189,12 +189,6 @@ function buildInstalledState(agent: AgentDefinition, method: InstallMethod): Ins
   return installedState
 }
 
-async function persistInstalledState(agent: AgentDefinition, method: InstallMethod): Promise<InstalledAgentState> {
-  const installedState = buildInstalledState(agent, method)
-  await setInstalledAgentState(installedState)
-  return installedState
-}
-
 async function persistInstalledStateIfNotCancelled(
   agent: AgentDefinition,
   method: InstallMethod,
@@ -205,11 +199,19 @@ async function persistInstalledStateIfNotCancelled(
   if (getCliContext().cancelled) return null
 
   await setInstalledAgentState(installedState)
+  if (getCliContext().cancelled) {
+    await removeInstalledAgentState(agent.name)
+    return null
+  }
+
   return installedState
 }
 
-export async function trackInstalledAgent(agent: AgentDefinition, method: InstallMethod): Promise<InstalledAgentState> {
-  return withResourceLock(lifecycleLock, async () => persistInstalledState(agent, method))
+export async function trackInstalledAgent(
+  agent: AgentDefinition,
+  method: InstallMethod,
+): Promise<InstalledAgentState | null> {
+  return withResourceLock(lifecycleLock, async () => persistInstalledStateIfNotCancelled(agent, method))
 }
 
 export async function installAgent(agent: AgentDefinition): Promise<AgentOperationResult> {
@@ -268,6 +270,11 @@ export async function updateAgent(
       if (getCliContext().cancelled) return { success: false }
 
       await setInstalledAgentState(preferredState)
+      if (getCliContext().cancelled) {
+        await removeInstalledAgentState(agent.name)
+        return { success: false }
+      }
+
       return {
         success: true,
         installedState: preferredState,
