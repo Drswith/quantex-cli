@@ -270,10 +270,7 @@ export async function updateAgent(
       if (getCliContext().cancelled) return { success: false }
 
       await setInstalledAgentState(preferredState)
-      if (getCliContext().cancelled) {
-        await removeInstalledAgentState(agent.name)
-        return { success: false }
-      }
+      if (getCliContext().cancelled) return { success: false }
 
       return {
         success: true,
@@ -285,7 +282,10 @@ export async function updateAgent(
       for (const method of methods) {
         if (await executeMethod(agent, method, 'update', npmBunUpdateStrategy)) {
           const installedState = await persistInstalledStateIfNotCancelled(agent, method)
-          if (!installedState) return { success: false }
+          if (!installedState) {
+            await rollbackManagedInstall(agent, method)
+            return { success: false }
+          }
 
           return {
             success: true,
