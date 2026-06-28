@@ -504,6 +504,50 @@ describe('updateAgent', () => {
     expect(npmUpdateSpy).not.toHaveBeenCalled()
   })
 
+  it('preserves recorded install state when cancellation races update persistence', async () => {
+    const preferredState = {
+      agentName: 'test-agent',
+      installType: 'bun' as const,
+      packageName: 'test-pkg',
+    }
+
+    setCliContext({
+      interactive: false,
+      outputMode: 'human',
+      runId: 'persist-cancel-update-id',
+    })
+    isBunSpy.mockResolvedValue(true)
+    bunUpdateSpy.mockResolvedValue(true)
+    setInstalledAgentStateSpy.mockImplementation(async () => {
+      markCliContextCancelled()
+    })
+
+    expect(await updateAgent(testAgent, preferredState)).toEqual({ success: false })
+    expect(bunUpdateSpy).toHaveBeenCalledWith('test-pkg', 'latest-major')
+    expect(setInstalledAgentStateSpy).toHaveBeenCalledWith(preferredState)
+    expect(removeInstalledAgentStateSpy).not.toHaveBeenCalled()
+    resetCliContext()
+  })
+
+  it('preserves recorded install state when cancellation races fallback update persistence', async () => {
+    setCliContext({
+      interactive: false,
+      outputMode: 'human',
+      runId: 'persist-cancel-fallback-update-id',
+    })
+    isBunSpy.mockResolvedValue(true)
+    bunUpdateSpy.mockResolvedValue(true)
+    setInstalledAgentStateSpy.mockImplementation(async () => {
+      markCliContextCancelled()
+    })
+
+    expect(await updateAgent(testAgent)).toEqual({ success: false })
+    expect(bunUpdateSpy).toHaveBeenCalledWith('test-pkg', 'latest-major')
+    expect(setInstalledAgentStateSpy).toHaveBeenCalled()
+    expect(removeInstalledAgentStateSpy).not.toHaveBeenCalled()
+    resetCliContext()
+  })
+
   it('does not replace recorded unmanaged state with candidate managed methods', async () => {
     isBunSpy.mockResolvedValue(true)
     bunUpdateSpy.mockResolvedValue(true)

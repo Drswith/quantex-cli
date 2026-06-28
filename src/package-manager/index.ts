@@ -192,6 +192,9 @@ function buildInstalledState(agent: AgentDefinition, method: InstallMethod): Ins
 async function persistInstalledStateIfNotCancelled(
   agent: AgentDefinition,
   method: InstallMethod,
+  options?: {
+    removeStateOnCancel?: boolean
+  },
 ): Promise<InstalledAgentState | null> {
   if (getCliContext().cancelled) return null
 
@@ -200,7 +203,7 @@ async function persistInstalledStateIfNotCancelled(
 
   await setInstalledAgentState(installedState)
   if (getCliContext().cancelled) {
-    await removeInstalledAgentState(agent.name)
+    if (options?.removeStateOnCancel !== false) await removeInstalledAgentState(agent.name)
     return null
   }
 
@@ -270,10 +273,7 @@ export async function updateAgent(
       if (getCliContext().cancelled) return { success: false }
 
       await setInstalledAgentState(preferredState)
-      if (getCliContext().cancelled) {
-        await removeInstalledAgentState(agent.name)
-        return { success: false }
-      }
+      if (getCliContext().cancelled) return { success: false }
 
       return {
         success: true,
@@ -284,7 +284,9 @@ export async function updateAgent(
     if (!preferredState) {
       for (const method of methods) {
         if (await executeMethod(agent, method, 'update', npmBunUpdateStrategy)) {
-          const installedState = await persistInstalledStateIfNotCancelled(agent, method)
+          const installedState = await persistInstalledStateIfNotCancelled(agent, method, {
+            removeStateOnCancel: false,
+          })
           if (!installedState) return { success: false }
 
           return {
