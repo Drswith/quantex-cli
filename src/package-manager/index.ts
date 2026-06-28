@@ -270,10 +270,7 @@ export async function updateAgent(
       if (getCliContext().cancelled) return { success: false }
 
       await setInstalledAgentState(preferredState)
-      if (getCliContext().cancelled) {
-        await removeInstalledAgentState(agent.name)
-        return { success: false }
-      }
+      if (getCliContext().cancelled) return { success: false }
 
       return {
         success: true,
