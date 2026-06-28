@@ -56,6 +56,14 @@ The agent update system SHALL choose the best available update strategy for a si
 - THEN Quantex attempts to roll back the managed install
 - AND the install operation surfaces the state persistence failure
 
+#### Scenario: Managed update keeps tracked state when cancellation follows a successful recorded update
+
+- GIVEN an agent has recorded managed install state
+- AND a managed update command succeeds for that recorded source
+- WHEN Quantex observes cancellation after re-persisting the recorded install state
+- THEN Quantex reports update failure to callers
+- AND it does not remove the agent's installed-agent state entry
+
 #### Scenario: Self-update only reports an upgrade when the installed version changes
 
 - GIVEN an installed agent is updated through a self-update command
@@ -457,4 +465,3 @@ When `quantex exec` or shortcut `quantex <agent>` runs with `--timeout` and laun
 - **WHEN** the spawned agent process exits successfully within the late-completion grace window after the timeout deadline fired
 - **THEN** Quantex returns the agent process exit code
 - **AND** it does not cancel the spawned agent process before the grace window ends
-
