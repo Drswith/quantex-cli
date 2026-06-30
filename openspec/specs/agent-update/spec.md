@@ -423,6 +423,29 @@ When an agent is recorded with install type `script` or `binary`, Quantex SHALL 
 - **THEN** Quantex removes the installed-agent state entry
 - **AND** the uninstall command reports success
 
+### Requirement: Uninstall MUST recover ghost managed install state
+
+When a managed package is no longer installed but Quantex still records install state, uninstall SHALL clear the stale state entry after confirming package absence through the recorded installer.
+
+#### Scenario: Retrying uninstall after package removal succeeded but state persistence failed
+
+- **GIVEN** an agent has recorded managed install state
+- **AND** the managed package is no longer installed on the system
+- **AND** the recorded package manager is available and can confirm absence
+- **WHEN** the user runs `quantex uninstall <agent>`
+- **AND** the managed package-manager uninstall command reports failure
+- **THEN** Quantex removes the installed-agent state entry
+- **AND** the uninstall command reports success
+
+#### Scenario: Ghost recovery does not run when the package manager is unavailable
+
+- **GIVEN** an agent has recorded managed install state
+- **AND** the recorded package manager is unavailable
+- **WHEN** the user runs `quantex uninstall <agent>`
+- **AND** the managed package-manager uninstall command reports failure
+- **THEN** Quantex does not remove the installed-agent state entry
+- **AND** the uninstall command reports failure
+
 ### Requirement: Exec and shortcut install flows MUST honor global timeout during managed install
 
 When `quantex exec` or shortcut `quantex <agent>` runs with `--timeout` and must install a missing agent before launch, Quantex SHALL apply the configured timeout to the install phase. After the deadline fires, Quantex SHALL wait up to `min(timeoutMs, 250)` for managed install work to finish before cancelling managed installer subprocesses.
