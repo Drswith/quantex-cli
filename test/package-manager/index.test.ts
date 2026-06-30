@@ -26,6 +26,7 @@ const bunInstallSpy = vi.spyOn(bunPm, 'install')
 const bunUpdateSpy = vi.spyOn(bunPm, 'update')
 const bunUpdateManySpy = vi.spyOn(bunPm, 'updateMany')
 const bunUninstallSpy = vi.spyOn(bunPm, 'uninstall')
+const bunGetInstalledVersionSpy = vi.spyOn(bunPm, 'getInstalledVersion')
 const cargoInstallSpy = vi.spyOn(cargoPm, 'install')
 const cargoUpdateSpy = vi.spyOn(cargoPm, 'update')
 const cargoUpdateManySpy = vi.spyOn(cargoPm, 'updateMany')
@@ -78,6 +79,7 @@ beforeEach(() => {
   bunUpdateSpy.mockClear()
   bunUpdateManySpy.mockClear()
   bunUninstallSpy.mockClear()
+  bunGetInstalledVersionSpy.mockClear()
   cargoInstallSpy.mockClear()
   cargoUpdateSpy.mockClear()
   cargoUpdateManySpy.mockClear()
@@ -133,6 +135,7 @@ afterAll(() => {
   bunUpdateSpy.mockRestore()
   bunUpdateManySpy.mockRestore()
   bunUninstallSpy.mockRestore()
+  bunGetInstalledVersionSpy.mockRestore()
   cargoInstallSpy.mockRestore()
   cargoUpdateSpy.mockRestore()
   cargoUpdateManySpy.mockRestore()
@@ -1001,5 +1004,49 @@ describe('uninstallAgent', () => {
     expect(binarySpy).not.toHaveBeenCalled()
     expect(bunUninstallSpy).not.toHaveBeenCalled()
     expect(removeInstalledAgentStateSpy).toHaveBeenCalledWith('test-agent')
+  })
+
+  it('recovers ghost state when managed uninstall fails but the package is already absent', async () => {
+    getInstalledAgentStateSpy.mockResolvedValue({
+      agentName: 'test-agent',
+      installType: 'bun',
+      packageName: 'test-pkg',
+    })
+    isBunSpy.mockResolvedValue(true)
+    bunUninstallSpy.mockResolvedValue(false)
+    bunGetInstalledVersionSpy.mockResolvedValue(undefined)
+
+    expect(await uninstallAgent(testAgent)).toBe(true)
+    expect(bunUninstallSpy).toHaveBeenCalledWith('test-pkg')
+    expect(bunGetInstalledVersionSpy).toHaveBeenCalledWith('test-pkg')
+    expect(removeInstalledAgentStateSpy).toHaveBeenCalledWith('test-agent')
+  })
+
+  it('does not recover ghost state when the managed package is still installed', async () => {
+    getInstalledAgentStateSpy.mockResolvedValue({
+      agentName: 'test-agent',
+      installType: 'bun',
+      packageName: 'test-pkg',
+    })
+    isBunSpy.mockResolvedValue(true)
+    bunUninstallSpy.mockResolvedValue(false)
+    bunGetInstalledVersionSpy.mockResolvedValue('1.2.3')
+
+    expect(await uninstallAgent(testAgent)).toBe(false)
+    expect(removeInstalledAgentStateSpy).not.toHaveBeenCalled()
+  })
+
+  it('does not recover ghost state when the package manager is unavailable', async () => {
+    getInstalledAgentStateSpy.mockResolvedValue({
+      agentName: 'test-agent',
+      installType: 'bun',
+      packageName: 'test-pkg',
+    })
+    isBunSpy.mockResolvedValue(false)
+    bunUninstallSpy.mockResolvedValue(false)
+
+    expect(await uninstallAgent(testAgent)).toBe(false)
+    expect(bunGetInstalledVersionSpy).not.toHaveBeenCalled()
+    expect(removeInstalledAgentStateSpy).not.toHaveBeenCalled()
   })
 })

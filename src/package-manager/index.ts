@@ -337,6 +337,23 @@ export async function getManagedInstalledPackageVersion(
   return installer.getInstalledVersion(packageName, packageTargetKind)
 }
 
+async function isManagedPackageAbsent(
+  state: InstalledAgentState,
+  agent?: Pick<AgentDefinition, 'packages'>,
+): Promise<boolean> {
+  if (!isManagedInstallType(state.installType)) return false
+
+  const installer = getManagedInstaller(state.installType)
+  if (!installer.getInstalledVersion) return false
+  if (!(await installer.isAvailable())) return false
+
+  const packageName = resolveManagedPackageName(state, agent)
+  if (!packageName) return false
+
+  const installedVersion = await installer.getInstalledVersion(packageName, state.packageTargetKind)
+  return installedVersion === undefined
+}
+
 export async function uninstallAgent(agent: AgentDefinition): Promise<boolean> {
   return withResourceLock(lifecycleLock, async () => {
     const installedState = await getInstalledAgentState(agent.name)
@@ -348,7 +365,16 @@ export async function uninstallAgent(agent: AgentDefinition): Promise<boolean> {
     }
 
     const success = await executeInstalledState(installedState, 'uninstall', { agent })
-    if (success) await removeInstalledAgentState(agent.name)
-    return success
+    if (success) {
+      await removeInstalledAgentState(agent.name)
+      return true
+    }
+
+    if (await isManagedPackageAbsent(installedState, agent)) {
+      await removeInstalledAgentState(agent.name)
+      return true
+    }
+
+    return false
   })
 }
