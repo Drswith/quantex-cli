@@ -2,6 +2,13 @@
 
 This changelog is maintained by release-please Release PRs.
 
+## [0.25.4](https://github.com/Drswith/quantex-cli/compare/v0.25.3...v0.25.4) (2026-06-30)
+
+
+### Bug Fixes
+
+* **lifecycle:** recover uninstall ghost state when package is absent ([0b499c3](https://github.com/Drswith/quantex-cli/commit/0b499c300c164102983e3c1701eaff4a324f6fdf))
+
 ## [0.25.3](https://github.com/Drswith/quantex-cli/compare/v0.25.2...v0.25.3) (2026-06-28)
 
 
