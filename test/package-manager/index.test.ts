@@ -43,6 +43,7 @@ const npmInstallSpy = vi.spyOn(npmPm, 'install')
 const npmUpdateSpy = vi.spyOn(npmPm, 'update')
 const npmUpdateManySpy = vi.spyOn(npmPm, 'updateMany')
 const npmUninstallSpy = vi.spyOn(npmPm, 'uninstall')
+const npmProbePackagePresenceSpy = vi.spyOn(npmPm, 'probePackagePresence')
 const uvInstallSpy = vi.spyOn(uvPm, 'install')
 const uvUpdateSpy = vi.spyOn(uvPm, 'update')
 const uvUpdateManySpy = vi.spyOn(uvPm, 'updateMany')
@@ -96,6 +97,7 @@ beforeEach(() => {
   npmUpdateSpy.mockClear()
   npmUpdateManySpy.mockClear()
   npmUninstallSpy.mockClear()
+  npmProbePackagePresenceSpy.mockClear()
   uvInstallSpy.mockClear()
   uvUpdateSpy.mockClear()
   uvUpdateManySpy.mockClear()
@@ -152,6 +154,7 @@ afterAll(() => {
   npmUpdateSpy.mockRestore()
   npmUpdateManySpy.mockRestore()
   npmUninstallSpy.mockRestore()
+  npmProbePackagePresenceSpy.mockRestore()
   uvInstallSpy.mockRestore()
   uvUpdateSpy.mockRestore()
   uvUpdateManySpy.mockRestore()
@@ -1047,6 +1050,50 @@ describe('uninstallAgent', () => {
 
     expect(await uninstallAgent(testAgent)).toBe(false)
     expect(bunGetInstalledVersionSpy).not.toHaveBeenCalled()
+    expect(removeInstalledAgentStateSpy).not.toHaveBeenCalled()
+  })
+
+  it('recovers npm ghost state when uninstall fails but absence is confirmed', async () => {
+    getInstalledAgentStateSpy.mockResolvedValue({
+      agentName: 'test-agent',
+      installType: 'npm',
+      packageName: 'test-pkg',
+    })
+    isNpmSpy.mockResolvedValue(true)
+    npmUninstallSpy.mockResolvedValue(false)
+    npmProbePackagePresenceSpy.mockResolvedValue('absent')
+
+    expect(await uninstallAgent(testAgent)).toBe(true)
+    expect(npmUninstallSpy).toHaveBeenCalledWith('test-pkg')
+    expect(npmProbePackagePresenceSpy).toHaveBeenCalledWith('test-pkg')
+    expect(removeInstalledAgentStateSpy).toHaveBeenCalledWith('test-agent')
+  })
+
+  it('does not recover npm ghost state when presence probing is inconclusive', async () => {
+    getInstalledAgentStateSpy.mockResolvedValue({
+      agentName: 'test-agent',
+      installType: 'npm',
+      packageName: 'test-pkg',
+    })
+    isNpmSpy.mockResolvedValue(true)
+    npmUninstallSpy.mockResolvedValue(false)
+    npmProbePackagePresenceSpy.mockResolvedValue('unknown')
+
+    expect(await uninstallAgent(testAgent)).toBe(false)
+    expect(removeInstalledAgentStateSpy).not.toHaveBeenCalled()
+  })
+
+  it('does not recover npm ghost state when the package is still installed', async () => {
+    getInstalledAgentStateSpy.mockResolvedValue({
+      agentName: 'test-agent',
+      installType: 'npm',
+      packageName: 'test-pkg',
+    })
+    isNpmSpy.mockResolvedValue(true)
+    npmUninstallSpy.mockResolvedValue(false)
+    npmProbePackagePresenceSpy.mockResolvedValue('present')
+
+    expect(await uninstallAgent(testAgent)).toBe(false)
     expect(removeInstalledAgentStateSpy).not.toHaveBeenCalled()
   })
 })

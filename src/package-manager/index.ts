@@ -350,6 +350,11 @@ async function isManagedPackageAbsent(
   const packageName = resolveManagedPackageName(state, agent)
   if (!packageName) return false
 
+  if (installer.probePackagePresence) {
+    const presence = await installer.probePackagePresence(packageName, state.packageTargetKind)
+    return presence === 'absent'
+  }
+
   const installedVersion = await installer.getInstalledVersion(packageName, state.packageTargetKind)
   return installedVersion === undefined
 }
