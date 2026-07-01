@@ -93,3 +93,125 @@ describe('npm uninstall', () => {
     expect(await uninstall('some-package')).toBe(false)
   })
 })
+
+function createListProc(exitCode: number, stdout: string) {
+  return {
+    exited: Promise.resolve(),
+    exitCode,
+    stdout,
+  }
+}
+
+describe('parseGlobalPackageVersion', () => {
+  it('parses scoped and unscoped packages from npm global list JSON', async () => {
+    const { parseGlobalPackageVersion } = await import('../../src/package-manager/npm')
+    const output = JSON.stringify({
+      dependencies: {
+        'test-pkg': { version: '1.2.3' },
+        '@scope/name': { version: '4.5.6' },
+      },
+    })
+
+    expect(parseGlobalPackageVersion(output, 'test-pkg')).toBe('1.2.3')
+    expect(parseGlobalPackageVersion(output, '@scope/name')).toBe('4.5.6')
+    expect(parseGlobalPackageVersion(output, 'missing-package')).toBeUndefined()
+  })
+})
+
+describe('probePackagePresence', () => {
+  it('returns present when scoped npm list JSON includes the package', async () => {
+    const { probePackagePresence } = await import('../../src/package-manager/npm')
+    mockSpawn.mockReturnValue(
+      createListProc(
+        1,
+        JSON.stringify({
+          dependencies: {
+            'test-pkg': { version: '1.2.3' },
+          },
+        }),
+      ),
+    )
+
+    expect(await probePackagePresence('test-pkg')).toBe('present')
+    expect(mockSpawn).toHaveBeenCalledWith(['npm', 'list', '-g', 'test-pkg', '--depth=0', '--json'], expect.any(Object))
+  })
+
+  it('returns absent when scoped npm list JSON omits the package', async () => {
+    const { probePackagePresence } = await import('../../src/package-manager/npm')
+    mockSpawn.mockReturnValue(
+      createListProc(
+        1,
+        JSON.stringify({
+          dependencies: {},
+        }),
+      ),
+    )
+
+    expect(await probePackagePresence('test-pkg')).toBe('absent')
+  })
+
+  it('returns present when the package entry exists without a readable version', async () => {
+    const { probePackagePresence } = await import('../../src/package-manager/npm')
+    mockSpawn.mockReturnValue(
+      createListProc(
+        1,
+        JSON.stringify({
+          dependencies: {
+            'test-pkg': { invalid: true },
+          },
+        }),
+      ),
+    )
+
+    expect(await probePackagePresence('test-pkg')).toBe('present')
+  })
+
+  it('returns unknown when npm reports a structured error', async () => {
+    const { probePackagePresence } = await import('../../src/package-manager/npm')
+    mockSpawn.mockReturnValue(
+      createListProc(
+        1,
+        JSON.stringify({
+          error: {
+            code: 'EJSONPARSE',
+            summary: 'Invalid package metadata',
+          },
+        }),
+      ),
+    )
+
+    expect(await probePackagePresence('test-pkg')).toBe('unknown')
+  })
+
+  it('returns unknown when npm list output is empty', async () => {
+    const { probePackagePresence } = await import('../../src/package-manager/npm')
+    mockSpawn.mockReturnValue(createListProc(1, ''))
+
+    expect(await probePackagePresence('test-pkg')).toBe('unknown')
+  })
+
+  it('returns unknown when npm list output is not valid JSON', async () => {
+    const { probePackagePresence } = await import('../../src/package-manager/npm')
+    mockSpawn.mockReturnValue(createListProc(1, 'npm ERR! broken'))
+
+    expect(await probePackagePresence('test-pkg')).toBe('unknown')
+  })
+})
+
+describe('getInstalledVersion', () => {
+  it('returns the version when scoped npm list JSON includes the package', async () => {
+    const { getInstalledVersion } = await import('../../src/package-manager/npm')
+    mockSpawn.mockReturnValue(
+      createListProc(
+        1,
+        JSON.stringify({
+          dependencies: {
+            'test-pkg': { version: '2.0.0' },
+          },
+        }),
+      ),
+    )
+
+    expect(await getInstalledVersion('test-pkg')).toBe('2.0.0')
+  })
+})

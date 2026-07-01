@@ -34,9 +34,15 @@ export interface ManagedInstallerUpdateOptions {
   packageInstallArgs?: string[]
 }
 
+export type ManagedPackagePresenceProbe = 'present' | 'absent' | 'unknown'
+
 export interface ManagedInstaller {
   type: ManagedInstallType
   getInstalledVersion?: (packageName: string, packageTargetKind?: PackageTargetKind) => Promise<string | undefined>
+  probePackagePresence?: (
+    packageName: string,
+    packageTargetKind?: PackageTargetKind,
+  ) => Promise<ManagedPackagePresenceProbe>
   isAvailable: () => Promise<boolean>
   install: (
     packageName: string,
@@ -123,6 +129,7 @@ const managedInstallers: Record<ManagedInstallType, ManagedInstaller> = {
   npm: {
     type: 'npm',
     getInstalledVersion: async packageName => npmPm.getInstalledVersion(packageName),
+    probePackagePresence: async packageName => npmPm.probePackagePresence(packageName),
     isAvailable: async () => isNpmAvailable(),
     install: async packageName => npmPm.install(packageName),
     uninstall: async packageName => npmPm.uninstall(packageName),

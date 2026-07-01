@@ -79,19 +79,50 @@ export async function uninstall(packageName: string): Promise<boolean> {
   }
 }
 
-export async function getInstalledVersion(packageName: string): Promise<string | undefined> {
+export type PackagePresenceProbe = 'present' | 'absent' | 'unknown'
+
+interface PackagePresenceResult {
+  presence: PackagePresenceProbe
+  version?: string
+}
+
+async function readPackagePresence(packageName: string): Promise<PackagePresenceResult> {
   try {
-    const proc = spawnCommand(['npm', 'list', '-g', '--depth=0', '--json'], {
+    const proc = spawnCommand(['npm', 'list', '-g', packageName, '--depth=0', '--json'], {
       stdio: ['ignore', 'pipe', 'ignore'],
     })
-    const { exitCode, stdout } = await readProcessOutput(proc)
+    const { stdout } = await readProcessOutput(proc)
+    if (!stdout.trim()) return { presence: 'unknown' }
 
-    if (exitCode !== 0) return undefined
+    try {
+      const data = JSON.parse(stdout) as {
+        dependencies?: Record<string, { version?: unknown }>
+        error?: unknown
+      }
+      if (!data || typeof data !== 'object' || Array.isArray(data) || Object.hasOwn(data, 'error')) {
+        return { presence: 'unknown' }
+      }
 
-    return parseGlobalPackageVersion(stdout, packageName)
+      if (data.dependencies && Object.hasOwn(data.dependencies, packageName)) {
+        const version = parseGlobalPackageVersion(stdout, packageName)
+        return version ? { presence: 'present', version } : { presence: 'present' }
+      }
+
+      return { presence: 'absent' }
+    } catch {
+      return { presence: 'unknown' }
+    }
   } catch {
-    return undefined
+    return { presence: 'unknown' }
   }
+}
+
+export async function probePackagePresence(packageName: string): Promise<PackagePresenceProbe> {
+  return (await readPackagePresence(packageName)).presence
+}
+
+export async function getInstalledVersion(packageName: string): Promise<string | undefined> {
+  return (await readPackagePresence(packageName)).version
 }
 
 export function parseGlobalPackageVersion(output: string, packageName: string): string | undefined {
