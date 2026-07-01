@@ -2,6 +2,13 @@
 
 This changelog is maintained by release-please Release PRs.
 
+## [0.25.5](https://github.com/Drswith/quantex-cli/compare/v0.25.4...v0.25.5) (2026-07-01)
+
+
+### Bug Fixes
+
+* **lifecycle:** fail closed on inconclusive npm ghost probes ([8bd2d1b](https://github.com/Drswith/quantex-cli/commit/8bd2d1b817540b0d0385f44ad2f06d9db7e1a1c4))
+
 ## [0.25.4](https://github.com/Drswith/quantex-cli/compare/v0.25.3...v0.25.4) (2026-06-30)
 
 
