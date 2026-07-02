@@ -141,7 +141,7 @@ When Quantex performs a grouped managed batch update for an installer type, it S
 
 ### Requirement: Bun-managed updates MUST trust requested blocked lifecycle scripts across platform path styles
 
-The agent update system SHALL recognize Bun global untrusted package output for requested managed packages regardless of whether Bun prints `node_modules` paths with POSIX or Windows separators. When the untrusted probe cannot be read after a successful Bun global install or update command, Quantex SHALL NOT report that managed operation as successful.
+The agent update system SHALL recognize Bun global untrusted package output for requested managed packages regardless of whether Bun prints `node_modules` paths with POSIX or Windows separators. When the untrusted probe cannot be read after a successful Bun global install or update command, Quantex SHALL NOT report that managed operation as successful. When trust verification fails after a successful Bun global **install** command, Quantex SHALL roll back the newly added package before reporting install failure.
 
 #### Scenario: Trusting a requested scoped package from Windows Bun output
 
@@ -167,6 +167,16 @@ The agent update system SHALL recognize Bun global untrusted package output for 
 - WHEN Quantex evaluates blocked lifecycle scripts
 - THEN Quantex reports the managed operation as failed
 - AND it does not claim the install or update succeeded without completing trust verification
+
+#### Scenario: Rolling back a Bun install when trust verification fails
+
+- GIVEN a Bun-managed install requested one or more package names
+- AND `bun add -g` exits successfully for those packages
+- AND Bun trust verification fails afterward
+- WHEN Quantex evaluates the managed install outcome
+- THEN Quantex removes the packages that were just added with `bun remove -g`
+- AND it reports the Bun install attempt as failed
+- AND a subsequent fallback install method may run without leaving a duplicate Bun global install behind
 
 #### Scenario: Skipping untracked PATH detections during batch update
 
