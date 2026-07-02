@@ -99,7 +99,22 @@ async function runGlobalBunCommandWithTrust(command: string[], packageNames: str
 
   if (exitCode !== 0) return false
 
-  return trustBlockedGlobalPackages(packageNames)
+  const trusted = await trustBlockedGlobalPackages(packageNames)
+  if (!trusted && command[1] === 'add') {
+    await rollbackGlobalBunPackages(packageNames)
+  }
+
+  return trusted
+}
+
+async function rollbackGlobalBunPackages(packageNames: string[]): Promise<void> {
+  for (const packageName of new Set(packageNames)) {
+    try {
+      await waitForSpawnedCommand(spawnWithQuantexStdio(['bun', 'remove', '-g', packageName]))
+    } catch {
+      // Best-effort rollback so fallback install methods do not inherit duplicate Bun globals.
+    }
+  }
 }
 
 async function trustBlockedGlobalPackages(packageNames: string[]): Promise<boolean> {

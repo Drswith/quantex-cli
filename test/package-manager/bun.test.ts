@@ -48,11 +48,12 @@ describe('bun install', () => {
 
   it('returns false when the untrusted probe fails after install', async () => {
     const { install } = await import('../../src/package-manager/bun')
-    mockSpawn.mockReturnValueOnce(createProc(0)).mockReturnValueOnce(createProc(1))
+    mockSpawn.mockReturnValueOnce(createProc(0)).mockReturnValueOnce(createProc(1)).mockReturnValueOnce(createProc(0))
 
     expect(await install('some-package')).toBe(false)
     expect(mockSpawn).toHaveBeenNthCalledWith(2, ['bun', 'pm', '-g', 'untrusted'], expect.any(Object))
-    expect(mockSpawn).toHaveBeenCalledTimes(2)
+    expect(mockSpawn).toHaveBeenNthCalledWith(3, ['bun', 'remove', '-g', 'some-package'], expect.any(Object))
+    expect(mockSpawn).toHaveBeenCalledTimes(3)
   })
 
   it('trusts blocked postinstall packages after install', async () => {
@@ -106,6 +107,21 @@ describe('bun update', () => {
 
     expect(await update('some-package')).toBe(false)
     expect(mockSpawn).toHaveBeenNthCalledWith(3, ['bun', 'pm', '-g', 'trust', 'some-package'], expect.any(Object))
+    expect(mockSpawn).toHaveBeenCalledTimes(3)
+  })
+
+  it('rolls back install when trust fails for a blocked package', async () => {
+    const { install } = await import('../../src/package-manager/bun')
+    mockSpawn
+      .mockReturnValueOnce(createProc(0))
+      .mockReturnValueOnce(createProc(0, './node_modules/some-package @1.0.0\n » [postinstall]: node install.cjs\n'))
+      .mockReturnValueOnce(createProc(1))
+      .mockReturnValueOnce(createProc(0))
+
+    expect(await install('some-package')).toBe(false)
+    expect(mockSpawn).toHaveBeenNthCalledWith(3, ['bun', 'pm', '-g', 'trust', 'some-package'], expect.any(Object))
+    expect(mockSpawn).toHaveBeenNthCalledWith(4, ['bun', 'remove', '-g', 'some-package'], expect.any(Object))
+    expect(mockSpawn).toHaveBeenCalledTimes(4)
   })
 })
 
