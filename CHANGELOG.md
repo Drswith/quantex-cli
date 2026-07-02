@@ -2,6 +2,13 @@
 
 This changelog is maintained by release-please Release PRs.
 
+## [0.25.6](https://github.com/Drswith/quantex-cli/compare/v0.25.5...v0.25.6) (2026-07-02)
+
+
+### Bug Fixes
+
+* **lifecycle:** roll back bun install when trust verification fails ([ac25c92](https://github.com/Drswith/quantex-cli/commit/ac25c92a5bd99de5be7eadad8da75d99c9599807))
+
 ## [0.25.5](https://github.com/Drswith/quantex-cli/compare/v0.25.4...v0.25.5) (2026-07-01)
 
 
