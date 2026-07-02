@@ -286,6 +286,27 @@ describe('installAgent', () => {
     expect(npmInstallSpy).toHaveBeenCalledWith('test-pkg')
   })
 
+  it('falls back to the next install method after bun trust failure rolls back the install', async () => {
+    isBunSpy.mockResolvedValue(true)
+    isNpmSpy.mockResolvedValue(true)
+    bunInstallSpy.mockResolvedValue(false)
+    bunUninstallSpy.mockResolvedValue(true)
+    npmInstallSpy.mockResolvedValue(true)
+    setInstalledAgentStateSpy.mockResolvedValue()
+
+    expect(await installAgent(testAgent)).toMatchObject({
+      success: true,
+      installedState: {
+        agentName: 'test-agent',
+        installType: 'npm',
+        packageName: 'test-pkg',
+      },
+    })
+    expect(bunInstallSpy).toHaveBeenCalledWith('test-pkg')
+    expect(bunUninstallSpy).not.toHaveBeenCalled()
+    expect(npmInstallSpy).toHaveBeenCalledWith('test-pkg')
+  })
+
   it('returns false if all methods fail', async () => {
     isBunSpy.mockResolvedValue(true)
     isNpmSpy.mockResolvedValue(true)
