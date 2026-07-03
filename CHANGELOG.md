@@ -2,6 +2,13 @@
 
 This changelog is maintained by release-please Release PRs.
 
+## [0.25.8](https://github.com/Drswith/quantex-cli/compare/v0.25.7...v0.25.8) (2026-07-03)
+
+
+### Bug Fixes
+
+* **uninstall:** explain unmanaged agent uninstall targets ([d484df9](https://github.com/Drswith/quantex-cli/commit/d484df92896fe50449d8ec2496cdc258ed80046b))
+
 ## [0.25.7](https://github.com/Drswith/quantex-cli/compare/v0.25.6...v0.25.7) (2026-07-03)
 
 
