@@ -106,6 +106,11 @@ describe('agent registry', () => {
     expect(agent?.name).toBe('qoder')
   })
 
+  it('resolves Qoder by display name', () => {
+    const agent = getAgentByNameOrAlias('Qoder CLI')
+    expect(agent?.name).toBe('qoder')
+  })
+
   it('resolves Reasonix by repository-style alias', () => {
     const agent = getAgentByLookupName('deepseek-reasonix')
     expect(agent?.name).toBe('reasonix')

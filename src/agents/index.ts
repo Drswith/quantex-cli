@@ -8,7 +8,11 @@ export function getAllAgents(): AgentDefinition[] {
 }
 
 export function getAgentByLookupName(name: string): AgentDefinition | undefined {
-  return agents.find(agent => agent.name === name || (agent.lookupAliases?.includes(name) ?? false))
+  const directMatch = agents.find(agent => agent.name === name || (agent.lookupAliases?.includes(name) ?? false))
+  if (directMatch) return directMatch
+
+  const normalizedDisplayName = normalizeDisplayName(name)
+  return agents.find(agent => normalizeDisplayName(agent.displayName) === normalizedDisplayName)
 }
 
 export function getAgentByNameOrAlias(name: string): AgentDefinition | undefined {
@@ -67,3 +71,7 @@ export type {
   Platform,
   ScriptInstallMethod,
 } from './types'
+
+function normalizeDisplayName(name: string): string {
+  return name.trim().toLowerCase()
+}

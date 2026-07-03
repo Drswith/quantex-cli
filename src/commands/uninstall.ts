@@ -1,3 +1,4 @@
+import type { AgentDefinition } from '../agents'
 import type { CommandResult } from '../output/types'
 import { createErrorResult, createSuccessResult, emitCommandResult } from '../output'
 import { uninstallAgent } from '../package-manager'
@@ -38,32 +39,12 @@ export async function uninstallCommand(agentName: string): Promise<CommandResult
     )
   }
 
-  if (isDryRunEnabled()) {
-    const installedState = await getInstalledAgentState(agent.name)
-    if (!installedState) {
-      return emitCommandResult(
-        createErrorResult<UninstallCommandData>({
-          action: 'uninstall',
-          data: {
-            agent: {
-              displayName: agent.displayName,
-              name: agent.name,
-            },
-            changed: false,
-          },
-          error: {
-            code: 'UNINSTALL_FAILED',
-            message: `Failed to uninstall ${agent.displayName}.`,
-          },
-          target: {
-            kind: 'agent',
-            name: agent.name,
-          },
-        }),
-        renderUninstallHuman,
-      )
-    }
+  const installedState = await getInstalledAgentState(agent.name)
+  if (!installedState) {
+    return emitCommandResult(createUnmanagedUninstallResult(agentName, agent), renderUninstallHuman)
+  }
 
+  if (isDryRunEnabled()) {
     return emitCommandResult(
       createSuccessResult<UninstallCommandData>({
         action: 'uninstall',
@@ -157,6 +138,34 @@ export async function uninstallCommand(agentName: string): Promise<CommandResult
     }),
     renderUninstallHuman,
   )
+}
+
+function createUnmanagedUninstallResult(agentName: string, agent: AgentDefinition) {
+  return createErrorResult<UninstallCommandData>({
+    action: 'uninstall',
+    data: {
+      agent: {
+        displayName: agent.displayName,
+        name: agent.name,
+      },
+      changed: false,
+    },
+    error: {
+      code: 'UNINSTALL_UNMANAGED',
+      details: {
+        canAutoUninstall: false,
+        displayName: agent.displayName,
+        input: agentName,
+        lifecycle: 'unmanaged',
+        name: agent.name,
+      },
+      message: `${agent.displayName} is not managed by qtx, so qtx cannot auto-uninstall it. Run qtx inspect ${agent.name} for details.`,
+    },
+    target: {
+      kind: 'agent',
+      name: agent.name,
+    },
+  })
 }
 
 function renderUninstallHuman(result: {
