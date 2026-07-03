@@ -219,6 +219,10 @@ export async function installAgent(agent: AgentDefinition): Promise<AgentOperati
     const methods = await getOrderedInstallMethods(agent)
 
     for (const method of methods) {
+      if (getCliContext().cancelled) {
+        return { success: false }
+      }
+
       if (await executeMethod(agent, method, 'install')) {
         if (getCliContext().cancelled) {
           await rollbackManagedInstall(agent, method)
@@ -240,6 +244,11 @@ export async function installAgent(agent: AgentDefinition): Promise<AgentOperati
           await rollbackManagedInstall(agent, method)
           throw error
         }
+      }
+
+      if (getCliContext().cancelled) {
+        await rollbackManagedInstall(agent, method)
+        return { success: false }
       }
     }
 

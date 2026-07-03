@@ -231,8 +231,9 @@ describe('installAgent', () => {
     bunUninstallSpy.mockResolvedValue(true)
 
     expect(await installAgent(testAgent)).toEqual({ success: false })
+    expect(bunInstallSpy).not.toHaveBeenCalled()
     expect(setInstalledAgentStateSpy).not.toHaveBeenCalled()
-    expect(bunUninstallSpy).toHaveBeenCalledWith('test-pkg')
+    expect(bunUninstallSpy).not.toHaveBeenCalled()
     resetCliContext()
   })
 
@@ -284,6 +285,29 @@ describe('installAgent', () => {
     expect(await installAgent(testAgent)).toMatchObject({ success: true })
     expect(bunInstallSpy).toHaveBeenCalledWith('test-pkg')
     expect(npmInstallSpy).toHaveBeenCalledWith('test-pkg')
+  })
+
+  it('rolls back and stops fallback when cancellation turns a successful managed install into failure', async () => {
+    setCliContext({
+      interactive: false,
+      outputMode: 'human',
+      runId: 'cancel-after-exit-install-id',
+    })
+    isBunSpy.mockResolvedValue(true)
+    isNpmSpy.mockResolvedValue(true)
+    bunInstallSpy.mockImplementation(async () => {
+      markCliContextCancelled()
+      return false
+    })
+    bunUninstallSpy.mockResolvedValue(true)
+    npmInstallSpy.mockResolvedValue(true)
+
+    expect(await installAgent(testAgent)).toEqual({ success: false })
+    expect(bunInstallSpy).toHaveBeenCalledWith('test-pkg')
+    expect(bunUninstallSpy).toHaveBeenCalledWith('test-pkg')
+    expect(npmInstallSpy).not.toHaveBeenCalled()
+    expect(setInstalledAgentStateSpy).not.toHaveBeenCalled()
+    resetCliContext()
   })
 
   it('falls back to the next install method after bun trust failure rolls back the install', async () => {
