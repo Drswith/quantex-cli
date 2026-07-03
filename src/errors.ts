@@ -13,6 +13,7 @@ export const cliErrorCodes = [
   'STATE_READ_ERROR',
   'TIMEOUT',
   'UNINSTALL_FAILED',
+  'UNINSTALL_UNMANAGED',
   'UPDATE_FAILED',
   'UPGRADE_FAILED',
 ] as const
