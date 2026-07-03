@@ -2,6 +2,13 @@
 
 This changelog is maintained by release-please Release PRs.
 
+## [0.25.7](https://github.com/Drswith/quantex-cli/compare/v0.25.6...v0.25.7) (2026-07-03)
+
+
+### Bug Fixes
+
+* **lifecycle:** stop install fallback when cancellation races managed install ([79a26d4](https://github.com/Drswith/quantex-cli/commit/79a26d44f48a7433b62f582ccacf3cd2ac616805))
+
 ## [0.25.6](https://github.com/Drswith/quantex-cli/compare/v0.25.5...v0.25.6) (2026-07-02)
 
 
