@@ -2,6 +2,13 @@
 
 This changelog is maintained by release-please Release PRs.
 
+## [0.25.9](https://github.com/Drswith/quantex-cli/compare/v0.25.8...v0.25.9) (2026-07-04)
+
+
+### Bug Fixes
+
+* **lifecycle:** fail closed on bun/mise/uv ghost uninstall probes ([60d9797](https://github.com/Drswith/quantex-cli/commit/60d97979db5a03440eb53f9855ce2e937c449631))
+
 ## [0.25.8](https://github.com/Drswith/quantex-cli/compare/v0.25.7...v0.25.8) (2026-07-03)
 
 
