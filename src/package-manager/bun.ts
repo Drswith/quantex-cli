@@ -65,19 +65,38 @@ export async function uninstall(packageName: string): Promise<boolean> {
   }
 }
 
-export async function getInstalledVersion(packageName: string): Promise<string | undefined> {
+export type PackagePresenceProbe = 'present' | 'absent' | 'unknown'
+
+async function readPackagePresence(packageName: string): Promise<{ presence: PackagePresenceProbe; version?: string }> {
   try {
     const proc = spawnCommand(['bun', 'pm', '-g', 'ls'], {
       stdio: createPipedStdio(),
     })
-    const { exitCode, stdout } = await readProcessOutput(proc)
+    const { stdout } = await readProcessOutput(proc)
+    if (!stdout.trim()) return { presence: 'unknown' }
 
-    if (exitCode !== 0) return undefined
+    const version = parseGlobalPackageVersion(stdout, packageName)
+    if (version) return { presence: 'present', version }
+    if (hasGlobalPackageEntry(stdout, packageName)) return { presence: 'present' }
 
-    return parseGlobalPackageVersion(stdout, packageName)
+    return { presence: 'absent' }
   } catch {
-    return undefined
+    return { presence: 'unknown' }
   }
+}
+
+export async function probePackagePresence(packageName: string): Promise<PackagePresenceProbe> {
+  return (await readPackagePresence(packageName)).presence
+}
+
+export async function getInstalledVersion(packageName: string): Promise<string | undefined> {
+  return (await readPackagePresence(packageName)).version
+}
+
+function hasGlobalPackageEntry(output: string, packageName: string): boolean {
+  const marker = `${packageName}@`
+
+  return output.split('\n').some(line => line.trim().split(/\s+/).at(-1)?.startsWith(marker))
 }
 
 export function parseGlobalPackageVersion(output: string, packageName: string): string | undefined {

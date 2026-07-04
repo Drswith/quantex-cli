@@ -223,6 +223,37 @@ describe('parseGlobalPackageVersion', () => {
   })
 })
 
+describe('probePackagePresence', () => {
+  it('returns present when bun global list output includes the package', async () => {
+    const { probePackagePresence } = await import('../../src/package-manager/bun')
+    mockSpawn.mockReturnValue(createProc(1, ['├── test-pkg@1.2.3', '└── other-pkg@2.0.0'].join('\n')))
+
+    expect(await probePackagePresence('test-pkg')).toBe('present')
+    expect(mockSpawn).toHaveBeenCalledWith(['bun', 'pm', '-g', 'ls'], expect.any(Object))
+  })
+
+  it('returns absent when bun global list output omits the package', async () => {
+    const { probePackagePresence } = await import('../../src/package-manager/bun')
+    mockSpawn.mockReturnValue(createProc(1, '└── other-pkg@2.0.0'))
+
+    expect(await probePackagePresence('test-pkg')).toBe('absent')
+  })
+
+  it('returns present when the package entry exists without a readable version', async () => {
+    const { probePackagePresence } = await import('../../src/package-manager/bun')
+    mockSpawn.mockReturnValue(createProc(1, '└── test-pkg@'))
+
+    expect(await probePackagePresence('test-pkg')).toBe('present')
+  })
+
+  it('returns unknown when bun global list output is empty', async () => {
+    const { probePackagePresence } = await import('../../src/package-manager/bun')
+    mockSpawn.mockReturnValue(createProc(1, ''))
+
+    expect(await probePackagePresence('test-pkg')).toBe('unknown')
+  })
+})
+
 describe('bun uninstall', () => {
   it('returns true on success', async () => {
     const { uninstall } = await import('../../src/package-manager/bun')

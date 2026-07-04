@@ -74,6 +74,7 @@ const managedInstallers: Record<ManagedInstallType, ManagedInstaller> = {
   bun: {
     type: 'bun',
     getInstalledVersion: async packageName => bunPm.getInstalledVersion(packageName),
+    probePackagePresence: async packageName => bunPm.probePackagePresence(packageName),
     isAvailable: async () => isBunAvailable(),
     install: async packageName => bunPm.install(packageName),
     uninstall: async packageName => bunPm.uninstall(packageName),
@@ -120,6 +121,7 @@ const managedInstallers: Record<ManagedInstallType, ManagedInstaller> = {
   mise: {
     type: 'mise',
     getInstalledVersion: async packageName => misePm.getInstalledVersion(packageName),
+    probePackagePresence: async packageName => misePm.probePackagePresence(packageName),
     isAvailable: async () => isMiseAvailable(),
     install: async packageName => misePm.install(packageName),
     uninstall: async packageName => misePm.uninstall(packageName),
@@ -152,6 +154,7 @@ const managedInstallers: Record<ManagedInstallType, ManagedInstaller> = {
   uv: {
     type: 'uv',
     getInstalledVersion: async packageName => uvPm.getInstalledVersion(packageName),
+    probePackagePresence: async packageName => uvPm.probePackagePresence(packageName),
     isAvailable: async () => isUvAvailable(),
     install: async (packageName, _packageTargetKind, packageInstallArgs) =>
       uvPm.install(packageName, packageInstallArgs),

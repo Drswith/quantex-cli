@@ -75,6 +75,58 @@ describe('mise uninstall', () => {
   })
 })
 
+describe('probePackagePresence', () => {
+  it('returns present when scoped mise ls json includes the tool', async () => {
+    const { probePackagePresence } = await import('../../src/package-manager/mise')
+    mockSpawn.mockReturnValue({
+      exited: Promise.resolve(),
+      exitCode: 1,
+      stdout: JSON.stringify({
+        'npm:@openai/codex': [{ active: true, version: '0.26.0' }],
+      }),
+    })
+
+    expect(await probePackagePresence('npm:@openai/codex')).toBe('present')
+    expect(mockSpawn).toHaveBeenCalledWith(
+      ['mise', 'ls', '--installed', '--json', 'npm:@openai/codex'],
+      expect.any(Object),
+    )
+  })
+
+  it('returns absent when scoped mise ls json omits the tool', async () => {
+    const { probePackagePresence } = await import('../../src/package-manager/mise')
+    mockSpawn.mockReturnValue({
+      exited: Promise.resolve(),
+      exitCode: 0,
+      stdout: JSON.stringify({}),
+    })
+
+    expect(await probePackagePresence('npm:@openai/codex')).toBe('absent')
+  })
+
+  it('returns unknown when mise ls output is empty', async () => {
+    const { probePackagePresence } = await import('../../src/package-manager/mise')
+    mockSpawn.mockReturnValue({
+      exited: Promise.resolve(),
+      exitCode: 1,
+      stdout: '',
+    })
+
+    expect(await probePackagePresence('npm:@openai/codex')).toBe('unknown')
+  })
+
+  it('returns unknown when mise ls output is not valid JSON', async () => {
+    const { probePackagePresence } = await import('../../src/package-manager/mise')
+    mockSpawn.mockReturnValue({
+      exited: Promise.resolve(),
+      exitCode: 1,
+      stdout: 'mise error: broken',
+    })
+
+    expect(await probePackagePresence('npm:@openai/codex')).toBe('unknown')
+  })
+})
+
 describe('parseMiseInstalledVersion', () => {
   it('extracts a version from mise ls json output', () => {
     expect(
