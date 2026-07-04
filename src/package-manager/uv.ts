@@ -42,19 +42,36 @@ export async function uninstall(packageName: string): Promise<boolean> {
   }
 }
 
-export async function getInstalledVersion(packageName: string): Promise<string | undefined> {
+export type PackagePresenceProbe = 'present' | 'absent' | 'unknown'
+
+async function readPackagePresence(packageName: string): Promise<{ presence: PackagePresenceProbe; version?: string }> {
   try {
     const proc = spawnCommand(['uv', 'tool', 'list'], {
       stdio: ['ignore', 'pipe', 'ignore'],
     })
-    const { exitCode, stdout } = await readProcessOutput(proc)
+    const { stdout } = await readProcessOutput(proc)
+    if (!stdout.trim()) return { presence: 'unknown' }
 
-    if (exitCode !== 0) return undefined
+    const version = parseToolListVersion(stdout, packageName)
+    if (version) return { presence: 'present', version }
+    if (!hasUvToolEntries(stdout)) return { presence: 'unknown' }
 
-    return parseToolListVersion(stdout, packageName)
+    return { presence: 'absent' }
   } catch {
-    return undefined
+    return { presence: 'unknown' }
   }
+}
+
+export async function probePackagePresence(packageName: string): Promise<PackagePresenceProbe> {
+  return (await readPackagePresence(packageName)).presence
+}
+
+export async function getInstalledVersion(packageName: string): Promise<string | undefined> {
+  return (await readPackagePresence(packageName)).version
+}
+
+function hasUvToolEntries(output: string): boolean {
+  return output.split(/\r?\n/).some(line => /^\S+\s+v[^\s]+/.test(line.trim()))
 }
 
 export function parseToolListVersion(output: string, packageName: string): string | undefined {

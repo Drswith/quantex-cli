@@ -33,19 +33,40 @@ export async function uninstall(packageName: string): Promise<boolean> {
   }
 }
 
-export async function getInstalledVersion(packageName: string): Promise<string | undefined> {
+export type PackagePresenceProbe = 'present' | 'absent' | 'unknown'
+
+async function readPackagePresence(packageName: string): Promise<{ presence: PackagePresenceProbe; version?: string }> {
   try {
     const proc = spawnCommand(['mise', 'ls', '--installed', '--json', packageName], {
       stdio: ['ignore', 'pipe', 'ignore'],
     })
-    const { exitCode, stdout } = await readProcessOutput(proc)
+    const { stdout } = await readProcessOutput(proc)
+    if (!stdout.trim()) return { presence: 'unknown' }
 
-    if (exitCode !== 0) return undefined
+    try {
+      const parsed = JSON.parse(stdout) as unknown
+      if (!isPlainObject(parsed)) return { presence: 'unknown' }
 
-    return parseMiseInstalledVersion(stdout, packageName)
+      const key = findMiseToolKey(parsed, packageName)
+      const entries = key ? parsed[key] : undefined
+      if (!Array.isArray(entries) || entries.length === 0) return { presence: 'absent' }
+
+      const version = parseMiseInstalledVersion(stdout, packageName)
+      return version ? { presence: 'present', version } : { presence: 'present' }
+    } catch {
+      return { presence: 'unknown' }
+    }
   } catch {
-    return undefined
+    return { presence: 'unknown' }
   }
+}
+
+export async function probePackagePresence(packageName: string): Promise<PackagePresenceProbe> {
+  return (await readPackagePresence(packageName)).presence
+}
+
+export async function getInstalledVersion(packageName: string): Promise<string | undefined> {
+  return (await readPackagePresence(packageName)).version
 }
 
 export function parseMiseInstalledVersion(output: string, packageName: string): string | undefined {

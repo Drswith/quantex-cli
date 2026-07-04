@@ -85,6 +85,53 @@ describe('uv uninstall', () => {
   })
 })
 
+describe('probePackagePresence', () => {
+  it('returns present when uv tool list includes the package', async () => {
+    const { probePackagePresence } = await import('../../src/package-manager/uv')
+    mockSpawn.mockReturnValue({
+      exited: Promise.resolve(),
+      exitCode: 1,
+      stdout: 'mistral-vibe v1.2.3\n- vibe\n',
+    })
+
+    expect(await probePackagePresence('mistral-vibe')).toBe('present')
+    expect(mockSpawn).toHaveBeenCalledWith(['uv', 'tool', 'list'], expect.any(Object))
+  })
+
+  it('returns absent when uv tool list omits the package', async () => {
+    const { probePackagePresence } = await import('../../src/package-manager/uv')
+    mockSpawn.mockReturnValue({
+      exited: Promise.resolve(),
+      exitCode: 0,
+      stdout: 'other-tool v1.2.3\n- other\n',
+    })
+
+    expect(await probePackagePresence('mistral-vibe')).toBe('absent')
+  })
+
+  it('returns unknown when uv tool list output is empty', async () => {
+    const { probePackagePresence } = await import('../../src/package-manager/uv')
+    mockSpawn.mockReturnValue({
+      exited: Promise.resolve(),
+      exitCode: 1,
+      stdout: '',
+    })
+
+    expect(await probePackagePresence('mistral-vibe')).toBe('unknown')
+  })
+
+  it('returns unknown when uv tool list output has no parseable tool entries', async () => {
+    const { probePackagePresence } = await import('../../src/package-manager/uv')
+    mockSpawn.mockReturnValue({
+      exited: Promise.resolve(),
+      exitCode: 1,
+      stdout: 'uv error: failed to list tools',
+    })
+
+    expect(await probePackagePresence('mistral-vibe')).toBe('unknown')
+  })
+})
+
 describe('parseToolListVersion', () => {
   it('extracts a tool version from uv tool list output', () => {
     expect(parseToolListVersion('mistral-vibe v1.2.3\n- vibe\n', 'mistral-vibe')).toBe('1.2.3')

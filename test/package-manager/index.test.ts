@@ -27,6 +27,7 @@ const bunUpdateSpy = vi.spyOn(bunPm, 'update')
 const bunUpdateManySpy = vi.spyOn(bunPm, 'updateMany')
 const bunUninstallSpy = vi.spyOn(bunPm, 'uninstall')
 const bunGetInstalledVersionSpy = vi.spyOn(bunPm, 'getInstalledVersion')
+const bunProbePackagePresenceSpy = vi.spyOn(bunPm, 'probePackagePresence')
 const cargoInstallSpy = vi.spyOn(cargoPm, 'install')
 const cargoUpdateSpy = vi.spyOn(cargoPm, 'update')
 const cargoUpdateManySpy = vi.spyOn(cargoPm, 'updateMany')
@@ -39,6 +40,7 @@ const miseInstallSpy = vi.spyOn(misePm, 'install')
 const miseUpdateSpy = vi.spyOn(misePm, 'update')
 const miseUpdateManySpy = vi.spyOn(misePm, 'updateMany')
 const miseUninstallSpy = vi.spyOn(misePm, 'uninstall')
+const miseProbePackagePresenceSpy = vi.spyOn(misePm, 'probePackagePresence')
 const npmInstallSpy = vi.spyOn(npmPm, 'install')
 const npmUpdateSpy = vi.spyOn(npmPm, 'update')
 const npmUpdateManySpy = vi.spyOn(npmPm, 'updateMany')
@@ -48,6 +50,7 @@ const uvInstallSpy = vi.spyOn(uvPm, 'install')
 const uvUpdateSpy = vi.spyOn(uvPm, 'update')
 const uvUpdateManySpy = vi.spyOn(uvPm, 'updateMany')
 const uvUninstallSpy = vi.spyOn(uvPm, 'uninstall')
+const uvProbePackagePresenceSpy = vi.spyOn(uvPm, 'probePackagePresence')
 const binarySpy = vi.spyOn(binaryPm, 'runBinaryInstall')
 const loadConfigSpy = vi.spyOn(config, 'loadConfig')
 const getPlatformSpy = vi.spyOn(detectUtils, 'getPlatform')
@@ -81,6 +84,7 @@ beforeEach(() => {
   bunUpdateManySpy.mockClear()
   bunUninstallSpy.mockClear()
   bunGetInstalledVersionSpy.mockClear()
+  bunProbePackagePresenceSpy.mockClear()
   cargoInstallSpy.mockClear()
   cargoUpdateSpy.mockClear()
   cargoUpdateManySpy.mockClear()
@@ -93,6 +97,7 @@ beforeEach(() => {
   miseUpdateSpy.mockClear()
   miseUpdateManySpy.mockClear()
   miseUninstallSpy.mockClear()
+  miseProbePackagePresenceSpy.mockClear()
   npmInstallSpy.mockClear()
   npmUpdateSpy.mockClear()
   npmUpdateManySpy.mockClear()
@@ -102,6 +107,7 @@ beforeEach(() => {
   uvUpdateSpy.mockClear()
   uvUpdateManySpy.mockClear()
   uvUninstallSpy.mockClear()
+  uvProbePackagePresenceSpy.mockClear()
   binarySpy.mockClear()
   loadConfigSpy.mockClear()
   getPlatformSpy.mockClear()
@@ -1062,11 +1068,11 @@ describe('uninstallAgent', () => {
     })
     isBunSpy.mockResolvedValue(true)
     bunUninstallSpy.mockResolvedValue(false)
-    bunGetInstalledVersionSpy.mockResolvedValue(undefined)
+    bunProbePackagePresenceSpy.mockResolvedValue('absent')
 
     expect(await uninstallAgent(testAgent)).toBe(true)
     expect(bunUninstallSpy).toHaveBeenCalledWith('test-pkg')
-    expect(bunGetInstalledVersionSpy).toHaveBeenCalledWith('test-pkg')
+    expect(bunProbePackagePresenceSpy).toHaveBeenCalledWith('test-pkg')
     expect(removeInstalledAgentStateSpy).toHaveBeenCalledWith('test-agent')
   })
 
@@ -1078,7 +1084,21 @@ describe('uninstallAgent', () => {
     })
     isBunSpy.mockResolvedValue(true)
     bunUninstallSpy.mockResolvedValue(false)
-    bunGetInstalledVersionSpy.mockResolvedValue('1.2.3')
+    bunProbePackagePresenceSpy.mockResolvedValue('present')
+
+    expect(await uninstallAgent(testAgent)).toBe(false)
+    expect(removeInstalledAgentStateSpy).not.toHaveBeenCalled()
+  })
+
+  it('does not recover bun ghost state when presence probing is inconclusive', async () => {
+    getInstalledAgentStateSpy.mockResolvedValue({
+      agentName: 'test-agent',
+      installType: 'bun',
+      packageName: 'test-pkg',
+    })
+    isBunSpy.mockResolvedValue(true)
+    bunUninstallSpy.mockResolvedValue(false)
+    bunProbePackagePresenceSpy.mockResolvedValue('unknown')
 
     expect(await uninstallAgent(testAgent)).toBe(false)
     expect(removeInstalledAgentStateSpy).not.toHaveBeenCalled()
@@ -1137,6 +1157,66 @@ describe('uninstallAgent', () => {
     isNpmSpy.mockResolvedValue(true)
     npmUninstallSpy.mockResolvedValue(false)
     npmProbePackagePresenceSpy.mockResolvedValue('present')
+
+    expect(await uninstallAgent(testAgent)).toBe(false)
+    expect(removeInstalledAgentStateSpy).not.toHaveBeenCalled()
+  })
+
+  it('recovers mise ghost state when uninstall fails but absence is confirmed', async () => {
+    getInstalledAgentStateSpy.mockResolvedValue({
+      agentName: 'test-agent',
+      installType: 'mise',
+      packageName: 'npm:test-pkg',
+    })
+    isMiseSpy.mockResolvedValue(true)
+    miseUninstallSpy.mockResolvedValue(false)
+    miseProbePackagePresenceSpy.mockResolvedValue('absent')
+
+    expect(await uninstallAgent(testAgent)).toBe(true)
+    expect(miseUninstallSpy).toHaveBeenCalledWith('npm:test-pkg')
+    expect(miseProbePackagePresenceSpy).toHaveBeenCalledWith('npm:test-pkg')
+    expect(removeInstalledAgentStateSpy).toHaveBeenCalledWith('test-agent')
+  })
+
+  it('does not recover mise ghost state when presence probing is inconclusive', async () => {
+    getInstalledAgentStateSpy.mockResolvedValue({
+      agentName: 'test-agent',
+      installType: 'mise',
+      packageName: 'npm:test-pkg',
+    })
+    isMiseSpy.mockResolvedValue(true)
+    miseUninstallSpy.mockResolvedValue(false)
+    miseProbePackagePresenceSpy.mockResolvedValue('unknown')
+
+    expect(await uninstallAgent(testAgent)).toBe(false)
+    expect(removeInstalledAgentStateSpy).not.toHaveBeenCalled()
+  })
+
+  it('recovers uv ghost state when uninstall fails but absence is confirmed', async () => {
+    getInstalledAgentStateSpy.mockResolvedValue({
+      agentName: 'test-agent',
+      installType: 'uv',
+      packageName: 'test-pkg',
+    })
+    isUvSpy.mockResolvedValue(true)
+    uvUninstallSpy.mockResolvedValue(false)
+    uvProbePackagePresenceSpy.mockResolvedValue('absent')
+
+    expect(await uninstallAgent(testAgent)).toBe(true)
+    expect(uvUninstallSpy).toHaveBeenCalledWith('test-pkg')
+    expect(uvProbePackagePresenceSpy).toHaveBeenCalledWith('test-pkg')
+    expect(removeInstalledAgentStateSpy).toHaveBeenCalledWith('test-agent')
+  })
+
+  it('does not recover uv ghost state when presence probing is inconclusive', async () => {
+    getInstalledAgentStateSpy.mockResolvedValue({
+      agentName: 'test-agent',
+      installType: 'uv',
+      packageName: 'test-pkg',
+    })
+    isUvSpy.mockResolvedValue(true)
+    uvUninstallSpy.mockResolvedValue(false)
+    uvProbePackagePresenceSpy.mockResolvedValue('unknown')
 
     expect(await uninstallAgent(testAgent)).toBe(false)
     expect(removeInstalledAgentStateSpy).not.toHaveBeenCalled()
