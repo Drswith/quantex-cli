@@ -12,3 +12,5 @@ logs
 node_modules
 tmp
 temp
+# Claude Code local worktree state (the tracked skill entry lives at .claude/skills/)
+.claude/worktrees/
