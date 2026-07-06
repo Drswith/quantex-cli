@@ -38,6 +38,7 @@ export {
   gemini,
   genie,
   goose,
+  hermes,
   jcode,
   junie,
   kilo,

@@ -195,6 +195,7 @@ Note: `qtx upgrade` follows the registry actually used by the current Bun/npm se
 | Genie | `qtx genie` | Deno-distributed terminal LLM agent |
 | GitHub Copilot CLI | `qtx copilot` | GitHub Copilot command-line tool |
 | Goose | `qtx goose` | Block's open-source extensible AI agent CLI |
+| Hermes Agent | `qtx hermes` | Nous Research's self-improving AI agent CLI |
 | JCode | `qtx jcode` | High-performance coding agent harness for multi-session workflows |
 | Junie CLI | `qtx junie` | JetBrains' AI coding agent CLI |
 | Kilo CLI | `qtx kilo` | Kilo's official AI coding assistant CLI |

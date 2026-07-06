@@ -22,6 +22,7 @@ import {
   getAgentByLookupName,
   getAgentByNameOrAlias,
   getAllAgents,
+  hermes,
   jcode,
   junie,
   kilo,
@@ -1035,6 +1036,54 @@ describe('vtcode', () => {
     }
 
     expect(vtcode.platforms.windows!.find(m => m.type === 'brew')).toBeUndefined()
+  })
+})
+
+describe('hermes', () => {
+  it('is registered for lookup by canonical name and alias', () => {
+    expect(getAgentByNameOrAlias('hermes')).toBe(hermes)
+    expect(getAgentByLookupName('hermes-agent')).toBe(hermes)
+  })
+
+  it('has valid structure', () => {
+    validateAgent(hermes)
+    expect(hermes.name).toBe('hermes')
+    expect(hermes.lookupAliases).toEqual(['hermes-agent'])
+    expect(hermes.displayName).toBe('Hermes Agent')
+    expect(hermes.packages).toBeUndefined()
+    expect(hermes.binaryName).toBe('hermes')
+    expect(hermes.homepage).toBe('https://github.com/NousResearch/hermes-agent')
+    expect(hermes.selfUpdate?.command).toEqual(['hermes', 'update'])
+    expect(hermes.versionProbe?.command).toEqual(['hermes', '--version'])
+  })
+
+  it('exposes official native install methods per platform', () => {
+    expect(hermes.platforms.macos!.map(m => m.type)).toEqual(['script'])
+    expect(hermes.platforms.linux!.map(m => m.type)).toEqual(['script'])
+    expect(hermes.platforms.windows!.map(m => m.type)).toEqual(['script'])
+
+    for (const methods of [hermes.platforms.macos!, hermes.platforms.linux!]) {
+      expect(
+        methods.find(
+          m => m.type === 'script' && m.command.includes('https://hermes-agent.nousresearch.com/install.sh'),
+        ),
+      ).toBeDefined()
+    }
+
+    expect(
+      hermes.platforms.windows!.find(
+        m => m.type === 'script' && m.command.includes('https://hermes-agent.nousresearch.com/install.ps1'),
+      ),
+    ).toBeDefined()
+
+    for (const methods of [hermes.platforms.windows!, hermes.platforms.macos!, hermes.platforms.linux!]) {
+      expect(methods.find(m => m.type === 'npm')).toBeUndefined()
+      expect(methods.find(m => m.type === 'brew')).toBeUndefined()
+      expect(methods.find(m => m.type === 'cargo')).toBeUndefined()
+      expect(methods.find(m => m.type === 'uv')).toBeUndefined()
+      expect(methods.find(m => m.type === 'pip')).toBeUndefined()
+      expect(methods.find(m => m.type === 'winget')).toBeUndefined()
+    }
   })
 })
 
