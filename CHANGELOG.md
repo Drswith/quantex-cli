@@ -2,6 +2,13 @@
 
 This changelog is maintained by release-please Release PRs.
 
+## [0.26.0](https://github.com/Drswith/quantex-cli/compare/v0.25.10...v0.26.0) (2026-07-06)
+
+
+### Features
+
+* **agent-catalog:** add Hermes Agent support ([f3ca204](https://github.com/Drswith/quantex-cli/commit/f3ca20457211b655ee897b407413f554acf96012)), closes [#418](https://github.com/Drswith/quantex-cli/issues/418)
+
 ## [0.25.10](https://github.com/Drswith/quantex-cli/compare/v0.25.9...v0.25.10) (2026-07-06)
 
 
