@@ -1,7 +1,8 @@
 import type { ManagedInstallType } from '../../src/package-manager'
 import { afterAll, afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import * as agents from '../../src/agents'
-import { resetCliContext, setCliContext } from '../../src/cli-context'
+import { cancelCliContextOperations, resetCliContext, setCliContext } from '../../src/cli-context'
+import { executeCommandWithRuntime } from '../../src/command-runtime'
 import { updateCommand } from '../../src/commands/update'
 import * as pm from '../../src/package-manager'
 import * as state from '../../src/state'
@@ -299,6 +300,132 @@ describe('updateCommand', () => {
     expect(output).toContain('Agent 2: manual action required.')
     expect(output).toContain('detected in PATH but not tracked as a Quantex-managed install')
     expect(output).toContain('Summary: updated 1, manual 1')
+  })
+
+  it('stops batch update when the cli context is cancelled', async () => {
+    const agent2 = {
+      ...testAgent,
+      name: 'agent2',
+      binaryName: 'bin2',
+      packages: { npm: 'pkg2' },
+      displayName: 'Agent 2',
+    }
+
+    allAgentsSpy.mockReturnValue([testAgent, agent2])
+    binaryInPathSpy.mockResolvedValue(true)
+    installedVerSpy.mockResolvedValue('1.0.0')
+    latestVerSpy.mockResolvedValue('2.0.0')
+    installedStateSpy.mockImplementation(async (name: string) => {
+      if (name === 'test-agent') {
+        return {
+          agentName: 'test-agent',
+          installType: 'bun',
+          packageName: 'test-pkg',
+        }
+      }
+
+      if (name === 'agent2') {
+        return {
+          agentName: 'agent2',
+          installType: 'bun',
+          packageName: 'pkg2',
+        }
+      }
+
+      return undefined
+    })
+    updateAgentsByTypeSpy.mockResolvedValue(false)
+    updateSpy.mockImplementation(async agent => {
+      if (agent.name === 'test-agent') {
+        await cancelCliContextOperations()
+        return { success: true }
+      }
+
+      return { success: true }
+    })
+
+    const result = await updateCommand(undefined, true)
+
+    expect(result.ok).toBe(false)
+    expect(result.error?.code).toBe('CANCELLED')
+    expect(updateSpy).toHaveBeenCalledTimes(1)
+    expect(updateSpy).toHaveBeenCalledWith(
+      testAgent,
+      expect.objectContaining({
+        agentName: 'test-agent',
+        installType: 'bun',
+      }),
+    )
+  })
+
+  it('does not report overall success for update --all after timeout cancellation', async () => {
+    const agent2 = {
+      ...testAgent,
+      name: 'agent2',
+      binaryName: 'bin2',
+      packages: { npm: 'pkg2' },
+      displayName: 'Agent 2',
+    }
+
+    setCliContext({
+      interactive: false,
+      outputMode: 'json',
+      runId: 'batch-update-timeout-run',
+      timeoutMs: 50,
+    })
+    allAgentsSpy.mockReturnValue([testAgent, agent2])
+    binaryInPathSpy.mockResolvedValue(true)
+    installedVerSpy.mockResolvedValue('1.0.0')
+    latestVerSpy.mockResolvedValue('2.0.0')
+    installedStateSpy.mockImplementation(async (name: string) => {
+      if (name === 'test-agent') {
+        return {
+          agentName: 'test-agent',
+          installType: 'bun',
+          packageName: 'test-pkg',
+        }
+      }
+
+      if (name === 'agent2') {
+        return {
+          agentName: 'agent2',
+          installType: 'bun',
+          packageName: 'pkg2',
+        }
+      }
+
+      return undefined
+    })
+    updateAgentsByTypeSpy.mockResolvedValue(false)
+    updateSpy.mockImplementation(async agent => {
+      if (agent.name === 'test-agent') {
+        await new Promise(resolve => setTimeout(resolve, 200))
+        return { success: true }
+      }
+
+      return { success: true }
+    })
+
+    const runtimeResult = await executeCommandWithRuntime({
+      action: 'update',
+      run: () => updateCommand(undefined, true),
+      target: {
+        kind: 'agent',
+      },
+    })
+
+    await new Promise(resolve => setTimeout(resolve, 300))
+
+    expect(runtimeResult.ok).toBe(false)
+    expect(['CANCELLED', 'TIMEOUT']).toContain(runtimeResult.error?.code)
+    expect(updateSpy).toHaveBeenCalledTimes(1)
+    expect(updateSpy).toHaveBeenCalledWith(
+      testAgent,
+      expect.objectContaining({
+        agentName: 'test-agent',
+        installType: 'bun',
+      }),
+    )
   })
 
   it('falls back from failed grouped updates without concurrent lifecycle lock contention', async () => {
