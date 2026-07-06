@@ -2,6 +2,13 @@
 
 This changelog is maintained by release-please Release PRs.
 
+## [0.25.10](https://github.com/Drswith/quantex-cli/compare/v0.25.9...v0.25.10) (2026-07-06)
+
+
+### Bug Fixes
+
+* **update:** fail closed when update --all is cancelled mid-batch ([857f101](https://github.com/Drswith/quantex-cli/commit/857f1010c03ac767937e72812a69560b2d49865f))
+
 ## [0.25.9](https://github.com/Drswith/quantex-cli/compare/v0.25.8...v0.25.9) (2026-07-04)
 
 
