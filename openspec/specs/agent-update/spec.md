@@ -414,6 +414,15 @@ When Quantex cancels a managed lifecycle installer on Windows and a child proces
 - **THEN** it does not perform later update work for remaining agents in the same command
 - **AND** it does not persist normal installed-agent state for the cancelled update operation
 
+#### Scenario: Batch update reports failure when cancellation interrupts processing
+
+- **GIVEN** the user runs `quantex update --all`
+- **AND** Quantex begins updating tracked agents
+- **WHEN** the CLI context becomes cancelled before every planned update entry is processed
+- **THEN** Quantex does not report overall command success
+- **AND** the command result uses a cancellation failure code
+- **AND** any agents already updated remain listed in the partial `results` payload
+
 ### Requirement: Uninstall MUST clear tracked unmanaged install state
 
 When an agent is recorded with install type `script` or `binary`, Quantex SHALL remove the installed-agent state entry on uninstall even though no managed package uninstall command exists.
