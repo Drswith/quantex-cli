@@ -195,6 +195,7 @@ qtx upgrade --channel beta
 | Genie | `qtx genie` | 通过 Deno 分发的终端 LLM agent |
 | GitHub Copilot CLI | `qtx copilot` | GitHub Copilot 命令行工具 |
 | Goose | `qtx goose` | Block 开源可扩展 AI Agent CLI |
+| Hermes Agent | `qtx hermes` | Nous Research 自我进化的 AI Agent CLI |
 | JCode | `qtx jcode` | 面向多 session 工作流的高性能编程 Agent harness |
 | Junie CLI | `qtx junie` | JetBrains 官方 AI 编程 Agent CLI |
 | Kilo CLI | `qtx kilo` | Kilo 官方 AI 编程助手 CLI |

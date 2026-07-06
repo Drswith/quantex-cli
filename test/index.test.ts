@@ -12,6 +12,7 @@ import {
   droid,
   gemini,
   genie,
+  hermes,
   jcode,
   getAgentByLookupName,
   getAgentByNameOrAlias,
@@ -121,6 +122,14 @@ describe('agent registry', () => {
     expect(agent).toBeDefined()
     expect(agent!.name).toBe('vtcode')
     expect(agent!.binaryName).toBe('vtcode')
+  })
+
+  it('finds Hermes Agent by name and resolves by alias', () => {
+    const agent = getAgentByNameOrAlias('hermes')
+    expect(agent).toBeDefined()
+    expect(agent!.name).toBe('hermes')
+    expect(agent!.binaryName).toBe('hermes')
+    expect(getAgentByLookupName('hermes-agent')?.name).toBe('hermes')
   })
 
   it('finds Genie by name', () => {
