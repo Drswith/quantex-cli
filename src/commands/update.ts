@@ -99,6 +99,26 @@ async function updateAllAgents(): Promise<CommandResult<UpdateCommandData>> {
   const plan = await planAgentUpdates()
   const execution = await executePlannedUpdates(plan)
 
+  if (getCliContext().cancelled) {
+    return emitCommandResult(
+      createErrorResult<UpdateCommandData>({
+        action: 'update',
+        data: {
+          results: execution.results,
+          scope: 'all',
+        },
+        error: {
+          code: 'CANCELLED',
+          message: 'Update was cancelled before all agents could be updated.',
+        },
+        target: {
+          kind: 'agent',
+        },
+      }),
+      renderUpdateHuman,
+    )
+  }
+
   if (execution.hasFailures) {
     return emitCommandResult(
       createErrorResult<UpdateCommandData>({
