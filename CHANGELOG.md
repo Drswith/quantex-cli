@@ -2,6 +2,13 @@
 
 This changelog is maintained by release-please Release PRs.
 
+## [0.27.0](https://github.com/Drswith/quantex-cli/compare/v0.26.0...v0.27.0) (2026-07-07)
+
+
+### Features
+
+* **agent-catalog:** add OpenClaw support ([#422](https://github.com/Drswith/quantex-cli/issues/422)) ([5de4833](https://github.com/Drswith/quantex-cli/commit/5de483311159f11df2e66b8abbfce62919ce7886))
+
 ## [0.26.0](https://github.com/Drswith/quantex-cli/compare/v0.25.10...v0.26.0) (2026-07-06)
 
 
