@@ -1,0 +1,53 @@
+{
+  "name": "openclaw",
+  "displayName": "OpenClaw",
+  "homepage": "https://github.com/openclaw/openclaw",
+  "packages": {
+    "npm": "openclaw"
+  },
+  "binaryName": "openclaw",
+  "selfUpdate": {
+    "command": ["openclaw", "update"]
+  },
+  "versionProbe": {
+    "command": ["openclaw", "--version"]
+  },
+  "platforms": {
+    "windows": [
+      {
+        "type": "bun"
+      },
+      {
+        "type": "npm"
+      },
+      {
+        "command": "iwr -useb https://openclaw.ai/install.ps1 | iex",
+        "type": "script"
+      }
+    ],
+    "macos": [
+      {
+        "type": "bun"
+      },
+      {
+        "type": "npm"
+      },
+      {
+        "command": "curl -fsSL https://openclaw.ai/install.sh | bash",
+        "type": "script"
+      }
+    ],
+    "linux": [
+      {
+        "type": "bun"
+      },
+      {
+        "type": "npm"
+      },
+      {
+        "command": "curl -fsSL https://openclaw.ai/install.sh | bash",
+        "type": "script"
+      }
+    ]
+  }
+}

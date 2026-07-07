@@ -22,6 +22,7 @@ import {
   kilo,
   mimo,
   omp,
+  openclaw,
   openhands,
   opencode,
   pi,
@@ -130,6 +131,14 @@ describe('agent registry', () => {
     expect(agent!.name).toBe('hermes')
     expect(agent!.binaryName).toBe('hermes')
     expect(getAgentByLookupName('hermes-agent')?.name).toBe('hermes')
+  })
+
+  it('finds OpenClaw by name', () => {
+    const agent = getAgentByNameOrAlias('openclaw')
+    expect(agent).toBeDefined()
+    expect(agent).toBe(openclaw)
+    expect(agent!.name).toBe('openclaw')
+    expect(agent!.binaryName).toBe('openclaw')
   })
 
   it('finds Genie by name', () => {

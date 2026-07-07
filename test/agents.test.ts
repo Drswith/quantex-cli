@@ -29,6 +29,7 @@ import {
   kimi,
   mimo,
   omp,
+  openclaw,
   opencode,
   openhands,
   pi,
@@ -1078,6 +1079,48 @@ describe('hermes', () => {
 
     for (const methods of [hermes.platforms.windows!, hermes.platforms.macos!, hermes.platforms.linux!]) {
       expect(methods.find(m => m.type === 'npm')).toBeUndefined()
+      expect(methods.find(m => m.type === 'brew')).toBeUndefined()
+      expect(methods.find(m => m.type === 'cargo')).toBeUndefined()
+      expect(methods.find(m => m.type === 'uv')).toBeUndefined()
+      expect(methods.find(m => m.type === 'pip')).toBeUndefined()
+      expect(methods.find(m => m.type === 'winget')).toBeUndefined()
+    }
+  })
+})
+
+describe('openclaw', () => {
+  it('is registered for lookup by canonical name', () => {
+    expect(getAgentByNameOrAlias('openclaw')).toBe(openclaw)
+  })
+
+  it('has valid structure', () => {
+    validateAgent(openclaw)
+    expect(openclaw.name).toBe('openclaw')
+    expect(openclaw.lookupAliases).toBeUndefined()
+    expect(openclaw.displayName).toBe('OpenClaw')
+    expect(openclaw.packages?.npm).toBe('openclaw')
+    expect(openclaw.binaryName).toBe('openclaw')
+    expect(openclaw.homepage).toBe('https://github.com/openclaw/openclaw')
+    expect(openclaw.selfUpdate?.command).toEqual(['openclaw', 'update'])
+    expect(openclaw.versionProbe?.command).toEqual(['openclaw', '--version'])
+  })
+
+  it('exposes npm, bun, and official native install methods per platform', () => {
+    for (const methods of [openclaw.platforms.macos!, openclaw.platforms.linux!]) {
+      expect(methods.map(m => m.type)).toEqual(['bun', 'npm', 'script'])
+      expect(
+        methods.find(m => m.type === 'script' && m.command === 'curl -fsSL https://openclaw.ai/install.sh | bash'),
+      ).toBeDefined()
+    }
+
+    expect(openclaw.platforms.windows!.map(m => m.type)).toEqual(['bun', 'npm', 'script'])
+    expect(
+      openclaw.platforms.windows!.find(
+        m => m.type === 'script' && m.command === 'iwr -useb https://openclaw.ai/install.ps1 | iex',
+      ),
+    ).toBeDefined()
+
+    for (const methods of [openclaw.platforms.windows!, openclaw.platforms.macos!, openclaw.platforms.linux!]) {
       expect(methods.find(m => m.type === 'brew')).toBeUndefined()
       expect(methods.find(m => m.type === 'cargo')).toBeUndefined()
       expect(methods.find(m => m.type === 'uv')).toBeUndefined()
