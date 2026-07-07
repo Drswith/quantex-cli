@@ -46,6 +46,7 @@ export {
   kiro,
   mimo,
   omp,
+  openclaw,
   openhands,
   opencode,
   pi,

@@ -203,6 +203,7 @@ qtx upgrade --channel beta
 | Kiro CLI | `qtx kiro` | Amazon AI 编程 Agent CLI |
 | MiMoCode | `qtx mimo` | 小米终端原生 AI 编程助手 CLI |
 | Mistral Vibe | `qtx vibe` | Mistral 开源终端编程助手 |
+| OpenClaw | `qtx openclaw` | OpenClaw 开源 AI Agent 运行时 CLI |
 | OpenHands CLI | `qtx openhands` | OpenHands 开源软件开发 Agent CLI |
 | OpenCode | `qtx opencode` | 开源 AI 编程 CLI |
 | oh-my-pi (OMP) | `qtx omp` | oh-my-pi coding agent CLI |

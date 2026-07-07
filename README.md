@@ -203,6 +203,7 @@ Note: `qtx upgrade` follows the registry actually used by the current Bun/npm se
 | Kiro CLI | `qtx kiro` | Amazon's AI coding agent CLI |
 | MiMoCode | `qtx mimo` | Xiaomi's terminal-native AI coding assistant CLI |
 | Mistral Vibe | `qtx vibe` | Mistral's open-source CLI coding assistant |
+| OpenClaw | `qtx openclaw` | OpenClaw's open-source AI agent runtime CLI |
 | OpenHands CLI | `qtx openhands` | OpenHands' open-source software development agent CLI |
 | OpenCode | `qtx opencode` | Open-source AI coding CLI |
 | oh-my-pi (OMP) | `qtx omp` | oh-my-pi coding agent CLI |

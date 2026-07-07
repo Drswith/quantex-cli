@@ -34,6 +34,7 @@ export {
   kilo,
   mimo,
   omp,
+  openclaw,
   openhands,
   opencode,
   pi,
