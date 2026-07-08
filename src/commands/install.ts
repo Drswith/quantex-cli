@@ -116,6 +116,23 @@ export async function installCommand(
     summary: summarizeBatchResults(results),
   }
 
+  if (getCliContext().cancelled && results.length < requestedAgents.length) {
+    return emitCommandResult(
+      createErrorResult<InstallBatchCommandData>({
+        action: 'install',
+        data,
+        error: {
+          code: 'CANCELLED',
+          message: 'Install was cancelled before all agents could be installed.',
+        },
+        target: {
+          kind: 'agent',
+        },
+      }),
+      renderBatchInstallHuman,
+    )
+  }
+
   const hasFailures = results.some(result => !result.ok)
   const batchResult = hasFailures
     ? createErrorResult<InstallBatchCommandData>({
