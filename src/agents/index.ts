@@ -28,6 +28,7 @@ export {
   codebuddy,
   codewhale,
   codex,
+  commandcode,
   copilot,
   crush,
   cursor,

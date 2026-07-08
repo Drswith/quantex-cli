@@ -13,6 +13,7 @@ import {
   codebuddy,
   codewhale,
   codex,
+  commandcode,
   copilot,
   cursor,
   deepcode,
@@ -304,6 +305,36 @@ describe('codex', () => {
     expect(codex.platforms.macos!.find(m => m.type === 'mise')).toBeDefined()
     expect(codex.platforms.linux!.find(m => m.type === 'mise')).toBeDefined()
     expect(codex.platforms.windows!.find(m => m.type === 'brew')).toBeUndefined()
+  })
+})
+
+describe('commandcode', () => {
+  it('is registered for lookup by canonical name and aliases', () => {
+    expect(getAgentByNameOrAlias('commandcode')).toBe(commandcode)
+    expect(getAgentByLookupName('command-code')).toBe(commandcode)
+    expect(getAgentByLookupName('cmd')).toBe(commandcode)
+    expect(getAgentByLookupName('cmdc')).toBe(commandcode)
+  })
+
+  it('has valid structure', () => {
+    validateAgent(commandcode)
+    expect(commandcode.name).toBe('commandcode')
+    expect(commandcode.lookupAliases).toEqual(['command-code', 'cmd', 'cmdc'])
+    expect(commandcode.displayName).toBe('Command Code')
+    expect(commandcode.packages?.npm).toBe('command-code')
+    expect(commandcode.binaryName).toBe('command-code')
+    expect(commandcode.homepage).toBe('https://commandcode.ai/docs/quickstart')
+    expect(commandcode.selfUpdate?.command).toEqual(['command-code', 'update'])
+    expect(commandcode.versionProbe?.command).toEqual(['command-code', '--version'])
+  })
+
+  it('supports npm-managed installs on all platforms', () => {
+    for (const methods of [commandcode.platforms.windows, commandcode.platforms.macos, commandcode.platforms.linux]) {
+      const method = methods!.find(m => m.type === 'npm')
+
+      expect(method).toBeDefined()
+      expect(formatInstallMethodCommand(commandcode, method!)).toBe('npm i -g command-code')
+    }
   })
 })
 
