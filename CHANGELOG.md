@@ -2,6 +2,13 @@
 
 This changelog is maintained by release-please Release PRs.
 
+## [0.27.1](https://github.com/Drswith/quantex-cli/compare/v0.27.0...v0.27.1) (2026-07-08)
+
+
+### Bug Fixes
+
+* **install:** fail closed when batch install is cancelled mid-fleet ([1fd5de6](https://github.com/Drswith/quantex-cli/commit/1fd5de6e1f7305925b2c5364808d4ec9b77723b0))
+
 ## [0.27.0](https://github.com/Drswith/quantex-cli/compare/v0.26.0...v0.27.0) (2026-07-07)
 
 
