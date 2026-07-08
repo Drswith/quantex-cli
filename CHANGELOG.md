@@ -2,6 +2,13 @@
 
 This changelog is maintained by release-please Release PRs.
 
+## [0.28.0](https://github.com/Drswith/quantex-cli/compare/v0.27.1...v0.28.0) (2026-07-08)
+
+
+### Features
+
+* **agent-catalog:** add Command Code support ([c077435](https://github.com/Drswith/quantex-cli/commit/c077435f253a4a31c881b0d7319d1aaea7616cf6))
+
 ## [0.27.1](https://github.com/Drswith/quantex-cli/compare/v0.27.0...v0.27.1) (2026-07-08)
 
 
