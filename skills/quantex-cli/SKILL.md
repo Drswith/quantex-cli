@@ -28,6 +28,7 @@ Reach for this skill when you need to:
 If the environment or command surface is unclear, start with:
 
 ```bash
+quantex list --json
 quantex capabilities --json
 quantex commands --json
 quantex schema --json

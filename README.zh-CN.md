@@ -22,7 +22,7 @@
 
 </div>
 
-Quantex 是一个 `human-friendly + agent-friendly` 的 AI 编程助手 CLI lifecycle manager。它帮你把 Codex CLI、Claude Code、Gemini CLI、Cursor CLI、OpenCode、Antigravity CLI、MiMoCode、Amp、Kilo CLI 等终端 coding agent 的安装、检查、更新、卸载、启动和自动化调用统一到一组稳定命令里：人可以直接用，脚本和 coding agent 也可以通过结构化输出可靠调用。本文默认使用更短的 `qtx` 作为推荐入口，`quantex` 是完全等价的完整命令名。
+Quantex 是一个 `human-friendly + agent-friendly` 的 AI 编程助手 CLI lifecycle manager。它帮你把 Codex CLI、Claude Code、Gemini CLI、Cursor CLI、OpenCode、Antigravity CLI、Command Code、MiMoCode、Amp、Kilo CLI 等终端 coding agent 的安装、检查、更新、卸载、启动和自动化调用统一到一组稳定命令里：人可以直接用，脚本和 coding agent 也可以通过结构化输出可靠调用。本文默认使用更短的 `qtx` 作为推荐入口，`quantex` 是完全等价的完整命令名。
 
 ## 为什么用 Quantex
 
@@ -184,6 +184,7 @@ qtx upgrade --channel beta
 | Claude Code | `qtx claude` | Anthropic 官方 AI 编程助手 CLI |
 | CodeBuddy Code | `qtx codebuddy` | 腾讯官方 AI 编程助手 CLI |
 | Codex CLI | `qtx codex` | OpenAI 官方 AI 编程助手 CLI |
+| Command Code | `qtx commandcode` | Command Code AI 编程助手 CLI |
 | Crush | `qtx crush` | Charmbracelet 终端 AI 编程 Agent CLI |
 | Cursor CLI | `qtx cursor` | Cursor AI 编程助手命令行工具 |
 | Deep Code CLI | `qtx deepcode` | Deep Code 终端编程 Agent CLI |

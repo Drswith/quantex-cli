@@ -22,7 +22,7 @@ Install, inspect, update, uninstall, and run AI coding assistant CLIs from one a
 
 </div>
 
-Quantex is a `human-friendly + agent-friendly` lifecycle CLI for AI coding assistants and terminal coding agents. Use one `qtx` surface to install, inspect, update, uninstall, run, and automate Codex CLI, Claude Code, Gemini CLI, Cursor CLI, OpenCode, Antigravity CLI, MiMoCode, Amp, Kilo CLI, and other assistant CLIs with stable machine-readable output. This README uses the shorter `qtx` form as the recommended entry point, while `quantex` remains the fully equivalent long command name.
+Quantex is a `human-friendly + agent-friendly` lifecycle CLI for AI coding assistants and terminal coding agents. Use one `qtx` surface to install, inspect, update, uninstall, run, and automate Codex CLI, Claude Code, Gemini CLI, Cursor CLI, OpenCode, Antigravity CLI, Command Code, MiMoCode, Amp, Kilo CLI, and other assistant CLIs with stable machine-readable output. This README uses the shorter `qtx` form as the recommended entry point, while `quantex` remains the fully equivalent long command name.
 
 ## Why Quantex
 
@@ -184,6 +184,7 @@ Note: `qtx upgrade` follows the registry actually used by the current Bun/npm se
 | Claude Code | `qtx claude` | Anthropic's official AI coding assistant CLI |
 | CodeBuddy Code | `qtx codebuddy` | Tencent's official AI coding assistant CLI |
 | Codex CLI | `qtx codex` | OpenAI's official AI coding assistant CLI |
+| Command Code | `qtx commandcode` | Command Code's AI coding assistant CLI |
 | Crush | `qtx crush` | Charmbracelet's terminal AI coding agent CLI |
 | Cursor CLI | `qtx cursor` | Cursor AI coding assistant CLI |
 | Deep Code CLI | `qtx deepcode` | Deep Code's terminal coding agent CLI |

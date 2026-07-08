@@ -1,0 +1,6 @@
+- [x] 1.1 Verify current supported-agent facts from `src/agents/catalog/*.json`, `bun run dev -- list --json`, and the active docs/issue surfaces.
+- [x] 1.2 Update `README.md` and `README.zh-CN.md` so supported-agent references match the current catalog.
+- [x] 1.3 Update active support-tracking docs under `docs/` and `skills/quantex-cli/` so supported snapshots and backlog pointers match current policy.
+- [x] 1.4 Update GitHub issue `#134` so delivered candidates and active backlog state match the current catalog rollout.
+- [x] 1.5 Update the `project-memory` OpenSpec delta for active-doc and backlog-tracker alignment.
+- [x] 1.6 Run required validation and report delivery closure state.

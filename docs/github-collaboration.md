@@ -34,6 +34,15 @@ Use the repository for:
 7. Update any affected runbooks, specs, or ADRs; if an OpenSpec change lands, merge its delta into `openspec/specs/` and archive or close the change.
 8. Treat "implementation merged" and "OpenSpec archived" as separate closure steps; a non-trivial change is not fully done until a Superpowers/Quantex-runtime archive follow-up reaches PR or merge delivery.
 
+## Top-level backlog issues
+
+Use a single top-level backlog issue when a workstream needs planning-only triage across many candidates, such as agent-catalog expansion.
+
+- keep the top-level issue as planning and triage only; supported state still lives in repo-native catalog/spec/docs artifacts
+- open a dedicated per-agent issue once implementation becomes actionable
+- pair that per-agent issue with OpenSpec when catalog behavior, product-facing docs, or durable workflow expectations change
+- keep delivered candidates checked in their original triage bucket or a documented delivered section so backlog history stays meaningful
+
 ## Delivery closure states
 
 Use explicit closure language when handing work between agents, reviewers, and automation:
