@@ -1,0 +1,33 @@
+{
+  "name": "commandcode",
+  "lookupAliases": ["command-code", "cmd", "cmdc"],
+  "displayName": "Command Code",
+  "homepage": "https://commandcode.ai/docs/quickstart",
+  "packages": {
+    "npm": "command-code"
+  },
+  "binaryName": "command-code",
+  "selfUpdate": {
+    "command": ["command-code", "update"]
+  },
+  "versionProbe": {
+    "command": ["command-code", "--version"]
+  },
+  "platforms": {
+    "windows": [
+      {
+        "type": "npm"
+      }
+    ],
+    "macos": [
+      {
+        "type": "npm"
+      }
+    ],
+    "linux": [
+      {
+        "type": "npm"
+      }
+    ]
+  }
+}
