@@ -6,26 +6,33 @@ Use this file when you need concrete Quantex command choices, example invocation
 
 This skill snapshot knows about these Quantex agent names:
 
+- `amp`
+- `antigravity`
 - `auggie`
 - `autohand`
-- `amp`
 - `claude`
 - `codebuddy`
 - `codewhale`
 - `codex`
+- `commandcode`
 - `copilot`
 - `crush`
 - `cursor`
+- `deepcode`
 - `devin`
 - `droid`
 - `forgecode`
 - `gemini`
+- `genie`
 - `goose`
+- `hermes`
 - `jcode`
 - `junie`
 - `kilo`
 - `kimi`
 - `kiro`
+- `mimo`
+- `openclaw`
 - `openhands`
 - `opencode`
 - `omp`
@@ -39,6 +46,7 @@ This skill snapshot knows about these Quantex agent names:
 The running binary remains the source of truth. If you are unsure whether the current binary supports a specific agent, command, flag, or output shape, run:
 
 ```bash
+quantex list --json
 quantex capabilities --json
 quantex commands --json
 ```
@@ -49,6 +57,7 @@ quantex commands --json
 
 ```bash
 quantex list
+quantex list --json
 quantex info codex
 quantex inspect codex --json
 quantex resolve codex --json
@@ -60,6 +69,7 @@ quantex schema --json
 Use:
 
 - `list` for human overview
+- `list --json` for an exact supported-agent inventory
 - `info` for human-friendly details
 - `inspect` for structured state
 - `resolve` for executable path and launch resolution

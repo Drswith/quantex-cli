@@ -1,12 +1,16 @@
 # Agent Support Matrix
 
-This page defines the review format for Quantex agent-support coverage. It is a documentation and planning aid, not the runtime source of truth.
+This page defines the review format and current live-doc handoff for Quantex agent-support coverage. It is a documentation and planning aid, not the runtime source of truth.
 
-## Source Of Truth
+## Current Surfaces
 
-- `supported` entries must match validated per-agent catalog data in `src/agents/catalog/*.json`.
-- `in-progress` entries should point to an active OpenSpec change when one exists.
-- `candidate` and `excluded` entries are evaluation states only; they do not create product guarantees.
+- `supported` entries come from validated per-agent catalog data in `src/agents/catalog/*.json` and can be verified with `bun run dev -- list --json`.
+- Unsupported-candidate triage lives in GitHub issue [#134](https://github.com/Drswith/quantex-cli/issues/134). Keep per-agent implementation work in dedicated issues and OpenSpec changes; keep `#134` as the top-level backlog index until a successor issue is explicitly declared.
+- Historical records under `openspec/changes/archive/`, `docs/sessions/`, `docs/postmortems/`, and `docs/archive/` remain point-in-time artifacts and should not be rewritten as the current support matrix.
+
+## Current Supported Canonical Slugs
+
+`amp`, `antigravity`, `auggie`, `autohand`, `claude`, `codebuddy`, `codewhale`, `codex`, `commandcode`, `copilot`, `crush`, `cursor`, `deepcode`, `devin`, `droid`, `forgecode`, `gemini`, `genie`, `goose`, `hermes`, `jcode`, `junie`, `kilo`, `kimi`, `kiro`, `mimo`, `omp`, `openclaw`, `opencode`, `openhands`, `pi`, `qoder`, `qwen`, `reasonix`, `vibe`, `vtcode`
 
 ## Required Fields
 
@@ -45,14 +49,15 @@ Exception rule:
 | Product | Canonical slug | Binary command | Aliases | Status | Notes |
 |---|---|---|---|---|---|
 | Claude Code | `claude` | `claude` | - | `supported` | Default rule: branded product and executable already match. |
-| GitHub Copilot CLI | `copilot` | `copilot` | - | `supported` | Quantex identifier follows the executable command. |
+| Command Code | `commandcode` | `command-code` | `command-code`, `cmd`, `cmdc` | `supported` | Quantex keeps a product-specific slug while the upstream binary keeps its hyphenated command. |
 | Cursor CLI | `cursor` | `agent` | `agent` | `supported` | Exception rule: `agent` is too generic to use as the primary Quantex slug. |
-| Crush | `crush` | `crush` | - | `in-progress` | Track through the active OpenSpec change while implementation is unfinished. |
+| Bob | `bob` | `bob` | - | `candidate` | Has a CLI, but support should not start until backlog triage is ready for implementation. |
 | Warp | `warp` | `warp` | - | `excluded` | Terminal product rather than a Quantex-style lifecycle agent CLI. |
 
 ## Maintenance Notes
 
 - Prefer updating this page together with any catalog naming or support-status decisions.
-- Do not copy long installer details here; keep the matrix focused on identity and support state.
+- Keep candidate and excluded rationale in issue `#134` or an explicitly linked successor issue instead of duplicating a second long-lived backlog table here.
+- Do not copy long installer details here; keep the matrix focused on identity, review fields, and where to find the live backlog.
 - After adding, removing, or renaming a catalog JSON file, run `bun run agent-catalog:generate` and commit the generated manifest/schema changes.
-- If support-matrix maintenance becomes noisy, follow up with automation that derives supported rows from `src/agents/catalog/*.json`.
+- If a supported-agent snapshot changes, update this page, the README tables, `skills/quantex-cli/references/command-recipes.md`, and issue `#134` in the same branch when backlog meaning changes.
