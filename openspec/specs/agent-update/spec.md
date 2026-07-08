@@ -406,6 +406,15 @@ When Quantex cancels a managed lifecycle installer on Windows and a child proces
 - **THEN** it does not install or persist state for `<fast-agent>`
 - **AND** it does not persist normal installed-agent state for the cancelled `<slow-agent>` operation
 
+#### Scenario: Batch install reports failure when cancellation interrupts processing
+
+- **GIVEN** the user runs `quantex install <agent-a> <agent-b>`
+- **AND** Quantex begins installing requested agents
+- **WHEN** the CLI context becomes cancelled before every requested agent is processed
+- **THEN** Quantex does not report overall command success
+- **AND** the command result uses a cancellation failure code
+- **AND** any agents already installed remain listed in the partial `results` payload
+
 #### Scenario: Batch update does not continue after timeout cancellation
 
 - **GIVEN** the user runs `quantex update --all --timeout <duration>`
