@@ -1,12 +1,10 @@
 import type { AgentDefinition } from '../agents'
 import type { CommandResult } from '../output/types'
+import type { UninstallLifecycleOutcome } from '../services/uninstall'
 import { createErrorResult, createSuccessResult, emitCommandResult } from '../output'
-import { uninstallAgent } from '../package-manager'
-import { resolveAgent } from '../services/agents'
-import { getInstalledAgentState } from '../state'
+import { runUninstallLifecycle } from '../services/uninstall'
 import { pc } from '../utils/color'
 import { createResourceLockedError } from '../utils/lifecycle-errors'
-import { isResourceLockError } from '../utils/lock'
 import { isDryRunEnabled, printError, printInfo, printWarn } from '../utils/user-output'
 
 interface UninstallCommandData {
@@ -18,126 +16,94 @@ interface UninstallCommandData {
 }
 
 export async function uninstallCommand(agentName: string): Promise<CommandResult<UninstallCommandData>> {
-  const agent = resolveAgent(agentName)
-  if (!agent) {
-    return emitCommandResult(
-      createErrorResult<UninstallCommandData>({
-        action: 'uninstall',
-        error: {
-          code: 'AGENT_NOT_FOUND',
-          details: {
-            input: agentName,
-          },
-          message: `Unknown agent: ${agentName}`,
+  const outcome = await runUninstallLifecycle(agentName, {
+    dryRun: isDryRunEnabled(),
+  })
+
+  return emitCommandResult(createUninstallResult(agentName, outcome), renderUninstallHuman)
+}
+
+function createUninstallResult(
+  agentName: string,
+  outcome: UninstallLifecycleOutcome,
+): CommandResult<UninstallCommandData> {
+  if (outcome.kind === 'agent-not-found') {
+    return createErrorResult<UninstallCommandData>({
+      action: 'uninstall',
+      error: {
+        code: 'AGENT_NOT_FOUND',
+        details: {
+          input: outcome.input,
         },
-        target: {
-          kind: 'agent',
-          name: agentName,
-        },
-      }),
-      renderUninstallHuman,
-    )
+        message: `Unknown agent: ${outcome.input}`,
+      },
+      target: {
+        kind: 'agent',
+        name: agentName,
+      },
+    })
   }
 
-  const installedState = await getInstalledAgentState(agent.name)
-  if (!installedState) {
-    return emitCommandResult(createUnmanagedUninstallResult(agentName, agent), renderUninstallHuman)
+  const { agent } = outcome
+  const target = {
+    kind: 'agent' as const,
+    name: agent.name,
+  }
+  const agentData = {
+    displayName: agent.displayName,
+    name: agent.name,
   }
 
-  if (isDryRunEnabled()) {
-    return emitCommandResult(
-      createSuccessResult<UninstallCommandData>({
+  switch (outcome.kind) {
+    case 'unmanaged':
+      return createUnmanagedUninstallResult(outcome.input, agent)
+    case 'would-uninstall':
+      return createSuccessResult<UninstallCommandData>({
         action: 'uninstall',
         data: {
-          agent: {
-            displayName: agent.displayName,
-            name: agent.name,
-          },
+          agent: agentData,
           changed: false,
         },
-        target: {
-          kind: 'agent',
-          name: agent.name,
-        },
+        target,
         warnings: [
           {
             code: 'DRY_RUN',
             message: `Dry run: would uninstall ${agent.displayName}.`,
           },
         ],
-      }),
-      renderUninstallHuman,
-    )
-  }
-
-  let success
-  try {
-    success = await uninstallAgent(agent)
-  } catch (error) {
-    if (isResourceLockError(error)) {
-      return emitCommandResult(
-        createErrorResult<UninstallCommandData>({
-          action: 'uninstall',
-          data: {
-            agent: {
-              displayName: agent.displayName,
-              name: agent.name,
-            },
-            changed: false,
-          },
-          ...createResourceLockedError(error, {
-            kind: 'agent',
-            name: agent.name,
-          }),
-        }),
-        renderUninstallHuman,
-      )
-    }
-
-    throw error
-  }
-
-  if (success) {
-    return emitCommandResult(
-      createSuccessResult<UninstallCommandData>({
+      })
+    case 'uninstalled':
+      return createSuccessResult<UninstallCommandData>({
         action: 'uninstall',
         data: {
-          agent: {
-            displayName: agent.displayName,
-            name: agent.name,
-          },
+          agent: agentData,
           changed: true,
         },
-        target: {
-          kind: 'agent',
-          name: agent.name,
+        target,
+      })
+    case 'uninstall-failed':
+      return createErrorResult<UninstallCommandData>({
+        action: 'uninstall',
+        data: {
+          agent: agentData,
+          changed: false,
         },
-      }),
-      renderUninstallHuman,
-    )
+        error: {
+          code: 'UNINSTALL_FAILED',
+          message: `Failed to uninstall ${agent.displayName}.`,
+        },
+        target,
+      })
+    case 'resource-locked':
+      return createErrorResult<UninstallCommandData>({
+        action: 'uninstall',
+        data: {
+          agent: agentData,
+          changed: false,
+        },
+        ...createResourceLockedError(outcome.error, target),
+      })
   }
-
-  return emitCommandResult(
-    createErrorResult<UninstallCommandData>({
-      action: 'uninstall',
-      data: {
-        agent: {
-          displayName: agent.displayName,
-          name: agent.name,
-        },
-        changed: false,
-      },
-      error: {
-        code: 'UNINSTALL_FAILED',
-        message: `Failed to uninstall ${agent.displayName}.`,
-      },
-      target: {
-        kind: 'agent',
-        name: agent.name,
-      },
-    }),
-    renderUninstallHuman,
-  )
 }
 
 function createUnmanagedUninstallResult(agentName: string, agent: AgentDefinition) {

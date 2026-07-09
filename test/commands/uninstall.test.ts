@@ -63,8 +63,23 @@ describe('uninstallCommand', () => {
     agentSpy.mockReturnValue(testAgent)
     installedStateSpy.mockResolvedValue(managedInstalledState)
     uninstallSpy.mockResolvedValue(true)
-    await uninstallCommand('test-agent')
+    const result = await uninstallCommand('test-agent')
     expect(uninstallSpy).toHaveBeenCalledWith(testAgent)
+    expect(result).toMatchObject({
+      action: 'uninstall',
+      data: {
+        agent: {
+          displayName: 'Test Agent',
+          name: 'test-agent',
+        },
+        changed: true,
+      },
+      ok: true,
+      target: {
+        kind: 'agent',
+        name: 'test-agent',
+      },
+    })
     expect(stdoutWriteSpy).toHaveBeenCalledWith(expect.stringContaining('uninstalled successfully'))
   })
 
@@ -73,7 +88,16 @@ describe('uninstallCommand', () => {
     installedStateSpy.mockResolvedValue(managedInstalledState)
     uninstallSpy.mockResolvedValue(false)
     const result = await uninstallCommand('test-agent')
-    expect(result.error?.code).toBe('UNINSTALL_FAILED')
+    expect(result).toMatchObject({
+      action: 'uninstall',
+      data: {
+        changed: false,
+      },
+      error: {
+        code: 'UNINSTALL_FAILED',
+      },
+      ok: false,
+    })
     expect(stdoutWriteSpy).toHaveBeenCalledWith(expect.stringContaining('Failed to uninstall'))
   })
 
@@ -108,7 +132,20 @@ describe('uninstallCommand', () => {
 
     const result = await uninstallCommand('test-agent')
 
-    expect(result.error?.code).toBe('RESOURCE_LOCKED')
+    expect(result).toMatchObject({
+      action: 'uninstall',
+      data: {
+        changed: false,
+      },
+      error: {
+        code: 'RESOURCE_LOCKED',
+      },
+      ok: false,
+      target: {
+        kind: 'agent',
+        name: 'test-agent',
+      },
+    })
     expect(stdoutWriteSpy).toHaveBeenCalledWith(expect.stringContaining('agent lifecycle lock'))
   })
 
@@ -128,9 +165,18 @@ describe('uninstallCommand', () => {
 
     const result = await uninstallCommand('test-agent')
 
-    expect(result.ok).toBe(true)
-    expect(result.data?.changed).toBe(false)
-    expect(result.warnings[0]?.code).toBe('DRY_RUN')
+    expect(result).toMatchObject({
+      action: 'uninstall',
+      data: {
+        changed: false,
+      },
+      ok: true,
+      warnings: [
+        {
+          code: 'DRY_RUN',
+        },
+      ],
+    })
     expect(uninstallSpy).not.toHaveBeenCalled()
   })
 

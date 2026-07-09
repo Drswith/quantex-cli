@@ -6,6 +6,7 @@ import { ensureCommand } from '../../src/commands/ensure'
 import * as pm from '../../src/package-manager'
 import * as state from '../../src/state'
 import * as detect from '../../src/utils/detect'
+import { ResourceLockError } from '../../src/utils/lock'
 
 const agentSpy = vi.spyOn(agents, 'getAgentByNameOrAlias')
 const installSpy = vi.spyOn(pm, 'installAgent')
@@ -176,5 +177,103 @@ describe('ensureCommand', () => {
     expect(payload.data.changed).toBe(true)
     expect(payload.data.installed).toBe(true)
     expect(payload.meta.runId).toBe('ensure-run-id')
+  })
+
+  it('returns a dry-run plan without invoking installAgent', async () => {
+    setCliContext({
+      dryRun: true,
+      interactive: false,
+      outputMode: 'json',
+      runId: 'ensure-dry-run-id',
+    })
+    agentSpy.mockReturnValue(testAgent)
+    binaryInPathSpy.mockResolvedValue(false)
+
+    const result = await ensureCommand('test-agent')
+
+    expect(result).toMatchObject({
+      action: 'ensure',
+      data: {
+        changed: false,
+        installed: false,
+      },
+      ok: true,
+      warnings: [
+        {
+          code: 'DRY_RUN',
+        },
+      ],
+    })
+    expect(installSpy).not.toHaveBeenCalled()
+  })
+
+  it('preserves install failure data when the installer returns false', async () => {
+    agentSpy.mockReturnValue(testAgent)
+    binaryInPathSpy.mockResolvedValue(false)
+    installSpy.mockResolvedValue({ success: false })
+
+    const result = await ensureCommand('test-agent')
+
+    expect(result).toMatchObject({
+      action: 'ensure',
+      data: {
+        changed: false,
+        installed: false,
+      },
+      error: {
+        code: 'INSTALL_FAILED',
+      },
+      ok: false,
+      target: {
+        kind: 'agent',
+        name: 'test-agent',
+      },
+    })
+  })
+
+  it('returns the stable cancellation result when tracking cannot complete', async () => {
+    agentSpy.mockReturnValue(scriptOnlyAgent)
+    binaryInPathSpy.mockResolvedValue(true)
+    trackSpy.mockResolvedValue(null)
+
+    const result = await ensureCommand('script-agent')
+
+    expect(result).toMatchObject({
+      action: 'ensure',
+      error: {
+        code: 'CANCELLED',
+        message: 'Ensure was cancelled before tracking could complete.',
+      },
+      ok: false,
+      target: {
+        kind: 'agent',
+        name: 'script-agent',
+      },
+    })
+    expect(installSpy).not.toHaveBeenCalled()
+  })
+
+  it('returns a stable conflict when installation cannot acquire the lifecycle lock', async () => {
+    agentSpy.mockReturnValue(testAgent)
+    binaryInPathSpy.mockResolvedValue(false)
+    installSpy.mockRejectedValue(new ResourceLockError('agent lifecycle', '/tmp/agent-lifecycle.lock'))
+
+    const result = await ensureCommand('test-agent')
+
+    expect(result).toMatchObject({
+      action: 'ensure',
+      data: {
+        changed: false,
+        installed: false,
+      },
+      error: {
+        code: 'RESOURCE_LOCKED',
+      },
+      ok: false,
+      target: {
+        kind: 'agent',
+        name: 'test-agent',
+      },
+    })
   })
 })

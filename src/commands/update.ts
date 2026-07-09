@@ -1,41 +1,16 @@
-import type { AgentDefinition, InstallMethod, ManagedInstallType } from '../agents'
+import type { AgentDefinition } from '../agents'
 import type { CommandResult } from '../output/types'
-import type { ManagedPackageSpec } from '../package-manager'
-import type { InstalledAgentState } from '../state'
-import {
-  getAgentUpdateFailureHint,
-  getAgentUpdateStrategy,
-  getManualAgentUpdateMessage,
-  getUntrackedPathAgentUpdateMessage,
-} from '../agent-update'
 import { getCliContext } from '../cli-context'
 import { createErrorResult, createSuccessResult, emitCommandEvent, emitCommandResult } from '../output'
-import { updateAgent, updateAgentsByType } from '../package-manager'
 import { resolveAgent } from '../services/agents'
 import { planAgentUpdates, planSingleAgentUpdate } from '../services/update'
+import { executePlannedUpdates, type UpdateResultItem } from '../services/update-execution'
 import { pc } from '../utils/color'
-import { canAutoUpdateAgent } from '../utils/install'
-import { isResourceLockError } from '../utils/lock'
 import { isDryRunEnabled, printError, printInfo, printWarn } from '../utils/user-output'
-import { getInstalledVersion } from '../utils/version'
-
-type UpdateStatus = 'failed' | 'locked' | 'manual-required' | 'planned' | 'up-to-date' | 'updated'
 
 interface UpdateCommandData {
   results: UpdateResultItem[]
   scope: 'all' | 'single'
-}
-
-interface UpdateResultItem {
-  displayName: string
-  hint?: string
-  installedVersion?: string
-  latestVersion?: string
-  message?: string
-  name: string
-  resource?: string
-  status: UpdateStatus
-  strategy?: string
 }
 
 export async function updateCommand(
@@ -97,7 +72,7 @@ async function updateAllAgents(): Promise<CommandResult<UpdateCommandData>> {
   })
 
   const plan = await planAgentUpdates()
-  const execution = await executePlannedUpdates(plan)
+  const execution = await executePlannedUpdates(plan, createUpdateExecutionOptions())
 
   if (getCliContext().cancelled) {
     return emitCommandResult(
@@ -187,7 +162,7 @@ async function updateSingleAgent(agent: AgentDefinition): Promise<CommandResult<
     )
   }
 
-  const execution = await executePlannedUpdates(plan)
+  const execution = await executePlannedUpdates(plan, createUpdateExecutionOptions())
   const lockedResult = getSingleLockedResult(execution.results)
 
   if (lockedResult) {
@@ -253,249 +228,21 @@ async function updateSingleAgent(agent: AgentDefinition): Promise<CommandResult<
   )
 }
 
-async function executePlannedUpdates(
-  plan: Awaited<ReturnType<typeof planAgentUpdates>>,
-): Promise<{ hasFailures: boolean; results: UpdateResultItem[] }> {
-  const results: UpdateResultItem[] = []
-
-  for (const inspection of plan.upToDate) {
-    pushUpdateResult(results, {
-      displayName: inspection.agent.displayName,
-      installedVersion: inspection.installedVersion,
-      latestVersion: inspection.latestVersion,
-      name: inspection.agent.name,
-      status: 'up-to-date',
-    })
-  }
-
-  for (const inspection of plan.skippedManualCheck) {
-    pushUpdateResult(results, {
-      displayName: inspection.agent.displayName,
-      message: getManualAgentUpdateMessage(inspection.agent),
-      name: inspection.agent.name,
-      status: 'manual-required',
-    })
-  }
-
-  for (const inspection of plan.untrackedInPath) {
-    pushUpdateResult(results, {
-      displayName: inspection.agent.displayName,
-      message: getUntrackedPathAgentUpdateMessage(inspection.agent),
-      name: inspection.agent.name,
-      status: 'manual-required',
-    })
-  }
-
-  for (const bucket of plan.grouped) {
-    if (getCliContext().cancelled) break
-
-    const groupResults = await updateGroupedAgents(bucket.type, bucket.packages, bucket.updates)
-    for (const result of groupResults) pushUpdateResult(results, result)
-
-    if (getCliContext().cancelled) break
-  }
-
-  for (const entry of plan.manual) {
-    if (getCliContext().cancelled) break
-
-    pushUpdateResult(results, await performUpdate(entry.agent, entry.state, entry.inspection.methods, entry.inspection))
-  }
-
+function createUpdateExecutionOptions() {
   return {
-    hasFailures: results.some(result => result.status === 'failed' || result.status === 'locked'),
-    results,
-  }
-}
-
-function pushUpdateResult(results: UpdateResultItem[], result: UpdateResultItem): void {
-  results.push(result)
-  emitCommandEvent({
-    action: 'update',
-    data: result,
-    target: {
-      kind: 'agent',
-      name: result.name,
+    dryRun: isDryRunEnabled(),
+    isCancelled: () => Boolean(getCliContext().cancelled),
+    onProgress: (result: UpdateResultItem) => {
+      emitCommandEvent({
+        action: 'update',
+        data: result,
+        target: {
+          kind: 'agent',
+          name: result.name,
+        },
+        type: 'progress',
+      })
     },
-    type: 'progress',
-  })
-}
-
-async function updateGroupedAgents(
-  type: ManagedInstallType,
-  packages: ManagedPackageSpec[],
-  updates: Array<{
-    agent: AgentDefinition
-    inspection: { installedVersion?: string; latestVersion?: string; methods?: InstallMethod[] }
-    state?: InstalledAgentState
-    strategy: 'managed' | 'manual-hint' | 'self-update'
-  }>,
-): Promise<UpdateResultItem[]> {
-  if (updates.length === 0) return []
-
-  if (isDryRunEnabled()) {
-    return updates.map(({ agent, inspection, strategy }) => ({
-      displayName: agent.displayName,
-      installedVersion: inspection.installedVersion,
-      latestVersion: inspection.latestVersion,
-      message: `Dry run: would update ${agent.displayName}.`,
-      name: agent.name,
-      status: 'planned',
-      strategy: strategy === 'managed' ? `managed/${type}` : strategy,
-    }))
-  }
-
-  try {
-    const success = await updateAgentsByType(type, packages)
-
-    if (success) {
-      return updates.map(({ agent, inspection, strategy }) => ({
-        displayName: agent.displayName,
-        installedVersion: inspection.installedVersion,
-        latestVersion: inspection.latestVersion,
-        name: agent.name,
-        status: 'updated',
-        strategy: strategy === 'managed' ? `managed/${type}` : strategy,
-      }))
-    }
-
-    const fallbackResults: UpdateResultItem[] = []
-    for (const { agent, inspection, state } of updates) {
-      if (getCliContext().cancelled) break
-
-      fallbackResults.push(await performUpdate(agent, state, inspection.methods, inspection))
-    }
-    return fallbackResults
-  } catch (error) {
-    if (!isResourceLockError(error)) throw error
-
-    return updates.map(({ agent, inspection, strategy }) => ({
-      displayName: agent.displayName,
-      installedVersion: inspection.installedVersion,
-      latestVersion: inspection.latestVersion,
-      message: error.message,
-      name: agent.name,
-      resource: error.resource,
-      status: 'locked',
-      strategy: strategy === 'managed' ? `managed/${type}` : strategy,
-    }))
-  }
-}
-
-async function performUpdate(
-  agent: AgentDefinition,
-  installedState?: InstalledAgentState,
-  methods?: InstallMethod[],
-  inspection?: { installedVersion?: string; latestVersion?: string; methods?: InstallMethod[] },
-): Promise<UpdateResultItem> {
-  if (getCliContext().cancelled) {
-    return {
-      displayName: agent.displayName,
-      installedVersion: inspection?.installedVersion,
-      latestVersion: inspection?.latestVersion,
-      message: 'Update was cancelled before it could start.',
-      name: agent.name,
-      status: 'failed',
-    }
-  }
-
-  const resolvedMethods = methods ?? inspection?.methods ?? []
-  const strategy = getAgentUpdateStrategy({
-    agent,
-    installedState,
-    methods: resolvedMethods,
-  })
-  const installedVersion = inspection?.installedVersion
-  const latestVersion = inspection?.latestVersion
-
-  if (strategy === 'manual-hint' && !canAutoUpdateAgent(agent, installedState)) {
-    return {
-      displayName: agent.displayName,
-      installedVersion,
-      latestVersion,
-      message: getManualAgentUpdateMessage(agent),
-      name: agent.name,
-      status: 'manual-required',
-      strategy,
-    }
-  }
-
-  if (isDryRunEnabled()) {
-    return {
-      displayName: agent.displayName,
-      installedVersion,
-      latestVersion,
-      message: `Dry run: would update ${agent.displayName}.`,
-      name: agent.name,
-      status: 'planned',
-      strategy,
-    }
-  }
-
-  let result
-  try {
-    result = await updateAgent(agent, installedState)
-  } catch (error) {
-    if (isResourceLockError(error)) {
-      return {
-        displayName: agent.displayName,
-        installedVersion,
-        latestVersion,
-        message: error.message,
-        name: agent.name,
-        resource: error.resource,
-        status: 'locked',
-        strategy,
-      }
-    }
-
-    throw error
-  }
-
-  if (result.success) {
-    if (strategy === 'self-update') {
-      const verifiedVersion = await getInstalledVersion(agent.binaryName, agent.versionProbe)
-
-      if (installedVersion && verifiedVersion) {
-        if (verifiedVersion === installedVersion) {
-          return {
-            displayName: agent.displayName,
-            installedVersion: verifiedVersion,
-            latestVersion: verifiedVersion,
-            name: agent.name,
-            status: 'up-to-date',
-            strategy,
-          }
-        }
-
-        return {
-          displayName: agent.displayName,
-          installedVersion,
-          latestVersion: verifiedVersion,
-          name: agent.name,
-          status: 'updated',
-          strategy,
-        }
-      }
-    }
-
-    return {
-      displayName: agent.displayName,
-      installedVersion,
-      latestVersion,
-      name: agent.name,
-      status: 'updated',
-      strategy,
-    }
-  }
-
-  return {
-    displayName: agent.displayName,
-    hint: getAgentUpdateFailureHint(agent, strategy),
-    installedVersion,
-    latestVersion,
-    name: agent.name,
-    status: 'failed',
-    strategy,
   }
 }
 

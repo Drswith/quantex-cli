@@ -117,7 +117,7 @@ describe('installCommand', () => {
       command: expectedScriptInstallCommand,
     })
 
-    await installCommand('script-agent')
+    const result = await installCommand('script-agent')
 
     expect(trackSpy).toHaveBeenCalledWith(
       scriptOnlyAgent,
@@ -127,6 +127,30 @@ describe('installCommand', () => {
       }),
     )
     expect(installSpy).not.toHaveBeenCalled()
+    expect(result).toMatchObject({
+      action: 'install',
+      data: {
+        agent: {
+          displayName: 'Script Agent',
+          name: 'script-agent',
+        },
+        changed: true,
+        installState: {
+          installType: 'script',
+        },
+        installed: true,
+      },
+      ok: true,
+      target: {
+        kind: 'agent',
+        name: 'script-agent',
+      },
+      warnings: [
+        {
+          code: 'TRACKED_EXISTING_INSTALL',
+        },
+      ],
+    })
     expect(stdoutWriteSpy).toHaveBeenCalledWith(expect.stringContaining('Quantex is now tracking the existing install'))
   })
 
@@ -134,11 +158,46 @@ describe('installCommand', () => {
     agentSpy.mockReturnValue(testAgent)
     binaryInPathSpy.mockResolvedValue(true)
 
-    await installCommand('test-agent')
+    const result = await installCommand('test-agent')
 
     expect(trackSpy).not.toHaveBeenCalled()
     expect(installSpy).not.toHaveBeenCalled()
+    expect(result).toMatchObject({
+      action: 'install',
+      data: {
+        changed: false,
+        installed: true,
+      },
+      ok: true,
+      warnings: [
+        {
+          code: 'UNTRACKED_EXISTING_INSTALL',
+        },
+      ],
+    })
     expect(stdoutWriteSpy).toHaveBeenCalledWith(expect.stringContaining('not tracked by Quantex'))
+  })
+
+  it('returns the stable cancellation result when tracking cannot complete', async () => {
+    agentSpy.mockReturnValue(scriptOnlyAgent)
+    binaryInPathSpy.mockResolvedValue(true)
+    trackSpy.mockResolvedValue(null)
+
+    const result = await installCommand('script-agent')
+
+    expect(result).toMatchObject({
+      action: 'install',
+      error: {
+        code: 'CANCELLED',
+        message: 'Install was cancelled before tracking could complete.',
+      },
+      ok: false,
+      target: {
+        kind: 'agent',
+        name: 'script-agent',
+      },
+    })
+    expect(installSpy).not.toHaveBeenCalled()
   })
 
   it('calls installAgent and shows success', async () => {
@@ -166,6 +225,18 @@ describe('installCommand', () => {
     const result = await installCommand('test-agent')
 
     expect(result.error?.code).toBe('RESOURCE_LOCKED')
+    expect(result).toMatchObject({
+      action: 'install',
+      data: {
+        changed: false,
+        installed: false,
+      },
+      ok: false,
+      target: {
+        kind: 'agent',
+        name: 'test-agent',
+      },
+    })
     expect(stdoutWriteSpy).toHaveBeenCalledWith(expect.stringContaining('agent lifecycle lock'))
   })
 

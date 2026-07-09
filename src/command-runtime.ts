@@ -1,62 +1,13 @@
-import type { IdempotencyRecord } from './idempotency'
 import type { CommandResult, CommandTarget } from './output/types'
-
-function idempotencyTargetsMatch(stored?: CommandTarget, requested?: CommandTarget): boolean {
-  if (stored === undefined && requested === undefined) return true
-  if (stored === undefined || requested === undefined) return false
-  if (stored.kind !== requested.kind) return false
-  if (stored.kind === 'agent' && (!stored.name || !requested.name)) return false
-  return stored.name === requested.name
-}
-
-function isDryRunIdempotencyResult(result: CommandResult): boolean {
-  return result.warnings.some(warning => warning.code === 'DRY_RUN')
-}
-
-const agentPresenceRequiredActions = new Set(['install', 'ensure', 'update'])
-const agentAbsenceRequiredActions = new Set(['uninstall'])
-
-function getIdempotencyAgentNames(target?: CommandTarget): string[] | undefined {
-  if (target?.kind !== 'agent' || !target.name) return undefined
-
-  return target.name
-    .split(',')
-    .map(name => name.trim())
-    .filter(Boolean)
-}
-
-async function isStoredIdempotencyResultStillValid(record: IdempotencyRecord): Promise<boolean> {
-  if (!record.result.ok) return true
-
-  const agentNames = getIdempotencyAgentNames(record.target)
-  if (!agentNames || agentNames.length === 0) return true
-
-  if (agentPresenceRequiredActions.has(record.action)) {
-    for (const agentName of agentNames) {
-      const resolved = await resolveAgentInspection(agentName)
-      if (!resolved?.inspection.inPath) return false
-    }
-
-    return true
-  }
-
-  if (agentAbsenceRequiredActions.has(record.action)) {
-    for (const agentName of agentNames) {
-      const resolved = await resolveAgentInspection(agentName)
-      if (resolved?.inspection.inPath) return false
-    }
-
-    return true
-  }
-
-  return true
-}
-import process from 'node:process'
 import { cancelCliContextOperations, getCliContext } from './cli-context'
-import { loadIdempotencyRecord, saveIdempotencyRecord } from './idempotency'
 import { createErrorResult, emitCommandEvent, emitCommandResult } from './output'
 import { maybeRenderSelfUpdateNotice } from './self/update-notice'
-import { resolveAgentInspection } from './services/agents'
+import { executeWithRuntimeDeadline, executeWithSignalCancellation } from './services/runtime-cancellation'
+import {
+  persistIdempotentExecution,
+  resolveIdempotentExecution,
+  type RuntimeIdempotencyInvocation,
+} from './services/runtime-idempotency'
 import { getStateFilePath, StateFileError } from './state'
 import { pc } from './utils/color'
 import { createStateReadError } from './utils/lifecycle-errors'
@@ -78,238 +29,110 @@ export async function executeCommandWithRuntime<T>(options: ExecuteCommandOption
 }
 
 async function executeCommandWithRuntimeInternal<T>(options: ExecuteCommandOptions<T>): Promise<CommandResult<T>> {
-  const replayedResult = await replayIdempotentResult<T>(options.action, options.target)
-  if (replayedResult) return replayedResult
+  const idempotencyInvocation = createIdempotencyInvocation(options.action, options.target)
+  const idempotencyOutcome = await resolveIdempotentExecution<T>(idempotencyInvocation)
 
-  const timeoutMs = getCliContext().timeoutMs
+  if (idempotencyOutcome.kind === 'conflict') {
+    return emitIdempotencyConflict(options, idempotencyOutcome.existingAction, idempotencyOutcome.idempotencyKey)
+  }
 
-  if (timeoutMs === undefined)
-    return withSignalCancellation(options, () =>
-      options.run().then(result => finalizeSuccessfulRun(options.action, options.target, result)),
-    )
+  if (idempotencyOutcome.kind === 'replay') {
+    emitCommandResult(idempotencyOutcome.result, renderRuntimeHuman, { force: true })
+    return idempotencyOutcome.result
+  }
 
-  let timeoutId: ReturnType<typeof setTimeout> | undefined
+  const context = getCliContext()
+  const signalOutcome = await executeWithSignalCancellation({
+    cancelOperations: cancelCliContextOperations,
+    isCancelled: () => Boolean(getCliContext().cancelled),
+    run: async () => {
+      const deadlineOutcome = await executeWithRuntimeDeadline({
+        cancelOperations: cancelCliContextOperations,
+        isCancelled: () => Boolean(getCliContext().cancelled),
+        run: options.run,
+        timeoutMs: context.timeoutMs,
+      })
 
-  try {
-    const timeoutPromise = new Promise<CommandResult<T>>(resolve => {
-      timeoutId = setTimeout(() => {
-        resolve(createTimeoutCancellationResult(options, timeoutMs))
-      }, timeoutMs)
-    })
+      const result =
+        deadlineOutcome.kind === 'completed'
+          ? deadlineOutcome.result
+          : emitTimeoutCancellation(options, deadlineOutcome.timeoutMs)
 
-    // Race only the primary command work against the deadline. Post-run steps (idempotency
-    // persistence and passive self-update notice) must not consume the timeout budget.
-    return await withSignalCancellation(options, async () => {
-      const runPromise = runUntilTimeoutCancellation(options.run, () => timeoutPromise)
-      let result = await Promise.race([runPromise, timeoutPromise])
+      return finalizeRun(idempotencyInvocation, result)
+    },
+  })
 
-      if (!result.ok && result.error?.code === 'TIMEOUT') {
-        const lateResult = await waitForLateTerminalCompletion(runPromise, timeoutMs)
-        result = lateResult ?? (await emitTimeoutCancellation(options, timeoutMs))
-      }
+  if (signalOutcome.kind === 'signal-cancelled') {
+    return emitSignalCancellation(options, signalOutcome.signal)
+  }
 
-      if (timeoutId !== undefined) {
-        clearTimeout(timeoutId)
-        timeoutId = undefined
-      }
-      return finalizeSuccessfulRun(options.action, options.target, result)
-    })
-  } finally {
-    if (timeoutId) clearTimeout(timeoutId)
+  return signalOutcome.result
+}
+
+function createIdempotencyInvocation(action: string, target?: CommandTarget): RuntimeIdempotencyInvocation {
+  const context = getCliContext()
+  return {
+    action,
+    dryRun: Boolean(context.dryRun),
+    idempotencyKey: context.idempotencyKey,
+    outputMode: context.outputMode,
+    runId: context.runId,
+    target,
   }
 }
 
-async function resolveStateReadError<T>(
-  options: ExecuteCommandOptions<T>,
-  error: StateFileError,
-): Promise<CommandResult<T>> {
-  return emitCommandResult(
-    createErrorResult<T>({
-      action: options.action,
-      ...createStateReadError(error, getStateFilePath(), options.target),
-    }),
-    renderStateReadHuman,
-  )
-}
-
-function renderStateReadHuman(result: Pick<CommandResult, 'error'>): void {
-  if (result.error) console.error(pc.red(result.error.message))
-}
-
-async function finalizeSuccessfulRun<T>(
-  action: string,
-  target: CommandTarget | undefined,
+async function finalizeRun<T>(
+  invocation: RuntimeIdempotencyInvocation,
   result: CommandResult<T>,
 ): Promise<CommandResult<T>> {
-  const storedResult = await storeIdempotentResult(action, target, result)
+  await persistIdempotentExecution(invocation, result)
 
   try {
     await maybeRenderSelfUpdateNotice({
-      action,
-      ok: storedResult.ok,
+      action: invocation.action,
+      ok: result.ok,
     })
   } catch {
     // Passive reminders must never fail the primary command path.
   }
 
-  return storedResult
-}
-
-function renderTimeoutHuman(result: Pick<CommandResult, 'error'>): void {
-  if (result.error) console.error(pc.red(result.error.message))
-}
-
-async function replayIdempotentResult<T>(
-  action: string,
-  target?: CommandTarget,
-): Promise<CommandResult<T> | undefined> {
-  const context = getCliContext()
-  if (!context.idempotencyKey) return undefined
-
-  const record = await loadIdempotencyRecord(context.idempotencyKey)
-  if (!record) return undefined
-
-  if (record.action !== action) {
-    return emitCommandResult(
-      createErrorResult<T>({
-        action,
-        error: {
-          code: 'INVALID_ARGUMENT',
-          details: {
-            existingAction: record.action,
-            idempotencyKey: context.idempotencyKey,
-          },
-          message: `Idempotency key ${context.idempotencyKey} was already used for ${record.action}.`,
-        },
-        target,
-      }),
-      renderTimeoutHuman,
-      { force: true },
-    )
-  }
-
-  if (!idempotencyTargetsMatch(record.target, target)) return undefined
-  if (isDryRunIdempotencyResult(record.result)) return undefined
-  if (!(await isStoredIdempotencyResultStillValid(record))) return undefined
-
-  const replayedResult = {
-    ...record.result,
-    meta: {
-      ...record.result.meta,
-      mode: context.outputMode,
-      runId: context.runId,
-      timestamp: new Date().toISOString(),
-    },
-  } as CommandResult<T>
-
-  emitCommandResult(replayedResult, renderTimeoutHuman, { force: true })
-  return replayedResult
-}
-
-async function storeIdempotentResult<T>(
-  action: string,
-  target: CommandTarget | undefined,
-  result: CommandResult<T>,
-): Promise<CommandResult<T>> {
-  const context = getCliContext()
-  if (context.idempotencyKey && result.ok && !context.dryRun && !isDryRunIdempotencyResult(result))
-    await saveIdempotencyRecord(context.idempotencyKey, { action, result, target })
-
   return result
 }
 
-async function withSignalCancellation<T>(
+function emitIdempotencyConflict<T>(
   options: ExecuteCommandOptions<T>,
-  run: () => Promise<CommandResult<T>>,
-): Promise<CommandResult<T>> {
-  let signalResultPromise: Promise<CommandResult<T>> | undefined
-  let cleanup: (() => void) | undefined
-
-  try {
-    const signalPromise = new Promise<CommandResult<T>>(resolve => {
-      const handleSignal = (signal: NodeJS.Signals): void => {
-        signalResultPromise ??= resolveSignalCancellation(options, signal)
-        void signalResultPromise.then(resolve)
-      }
-
-      const sigintHandler = (): void => handleSignal('SIGINT')
-      const sigtermHandler = (): void => handleSignal('SIGTERM')
-      process.once('SIGINT', sigintHandler)
-      process.once('SIGTERM', sigtermHandler)
-      cleanup = (): void => {
-        process.off('SIGINT', sigintHandler)
-        process.off('SIGTERM', sigtermHandler)
-      }
-    })
-
-    return await Promise.race([runUntilSignalCancellation(run, () => signalResultPromise), signalPromise])
-  } finally {
-    cleanup?.()
-  }
-}
-
-async function waitForLateTerminalCompletion<T>(
-  runPromise: Promise<CommandResult<T>>,
-  timeoutMs: number,
-): Promise<CommandResult<T> | undefined> {
-  const graceMs = Math.min(timeoutMs, 250)
-  const runResult = await Promise.race([
-    runPromise,
-    new Promise<undefined>(resolve => {
-      setTimeout(() => resolve(undefined), graceMs)
-    }),
-  ])
-
-  return runResult
-}
-
-async function runUntilTimeoutCancellation<T>(
-  run: () => Promise<CommandResult<T>>,
-  getTimeoutResult: () => Promise<CommandResult<T>>,
-): Promise<CommandResult<T>> {
-  try {
-    return await run()
-  } catch (error) {
-    if (getCliContext().cancelled) return getTimeoutResult()
-    throw error
-  }
-}
-
-async function runUntilSignalCancellation<T>(
-  run: () => Promise<CommandResult<T>>,
-  getSignalResult: () => Promise<CommandResult<T>> | undefined,
-): Promise<CommandResult<T>> {
-  try {
-    const result = await run()
-    const signalResult = getSignalResult()
-    if (getCliContext().cancelled && signalResult) return signalResult
-    return result
-  } catch (error) {
-    const signalResult = getSignalResult()
-    if (getCliContext().cancelled && signalResult) return signalResult
-    throw error
-  }
-}
-
-function createTimeoutCancellationResult<T>(options: ExecuteCommandOptions<T>, timeoutMs: number): CommandResult<T> {
-  return createErrorResult<T>({
-    action: options.action,
-    error: {
-      code: 'TIMEOUT',
-      details: {
-        timeoutMs,
+  existingAction: string,
+  idempotencyKey: string,
+): CommandResult<T> {
+  return emitCommandResult(
+    createErrorResult<T>({
+      action: options.action,
+      error: {
+        code: 'INVALID_ARGUMENT',
+        details: {
+          existingAction,
+          idempotencyKey,
+        },
+        message: `Idempotency key ${idempotencyKey} was already used for ${existingAction}.`,
       },
-      message: `Command timed out after ${timeoutMs}ms.`,
-    },
-    target: options.target,
-  })
+      target: options.target,
+    }),
+    renderRuntimeHuman,
+    { force: true },
+  )
 }
 
-async function emitTimeoutCancellation<T>(
-  options: ExecuteCommandOptions<T>,
-  timeoutMs: number,
-): Promise<CommandResult<T>> {
-  await cancelCliContextOperations()
+function resolveStateReadError<T>(options: ExecuteCommandOptions<T>, error: StateFileError): CommandResult<T> {
+  return emitCommandResult(
+    createErrorResult<T>({
+      action: options.action,
+      ...createStateReadError(error, getStateFilePath(), options.target),
+    }),
+    renderRuntimeHuman,
+  )
+}
+
+function emitTimeoutCancellation<T>(options: ExecuteCommandOptions<T>, timeoutMs: number): CommandResult<T> {
   emitCommandEvent(
     {
       action: options.action,
@@ -323,14 +146,24 @@ async function emitTimeoutCancellation<T>(
     { force: true },
   )
 
-  return emitCommandResult(createTimeoutCancellationResult(options, timeoutMs), renderTimeoutHuman, { force: true })
+  return emitCommandResult(
+    createErrorResult<T>({
+      action: options.action,
+      error: {
+        code: 'TIMEOUT',
+        details: {
+          timeoutMs,
+        },
+        message: `Command timed out after ${timeoutMs}ms.`,
+      },
+      target: options.target,
+    }),
+    renderRuntimeHuman,
+    { force: true },
+  )
 }
 
-async function resolveSignalCancellation<T>(
-  options: ExecuteCommandOptions<T>,
-  signal: NodeJS.Signals,
-): Promise<CommandResult<T>> {
-  await cancelCliContextOperations()
+function emitSignalCancellation<T>(options: ExecuteCommandOptions<T>, signal: 'SIGINT' | 'SIGTERM'): CommandResult<T> {
   emitCommandEvent(
     {
       action: options.action,
@@ -356,7 +189,11 @@ async function resolveSignalCancellation<T>(
       },
       target: options.target,
     }),
-    renderTimeoutHuman,
+    renderRuntimeHuman,
     { force: true },
   )
+}
+
+function renderRuntimeHuman(result: Pick<CommandResult, 'error'>): void {
+  if (result.error) console.error(pc.red(result.error.message))
 }
