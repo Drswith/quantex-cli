@@ -193,7 +193,19 @@ function inferManagedInstallTypeFromBinaryPath(binaryPath?: string): 'bun' | 'mi
   const normalized = binaryPath.replaceAll('\\', '/')
   if (normalized.includes('/.bun/bin/') || normalized.includes('/.bun/install/global/')) return 'bun'
   if (normalized.includes('/.local/share/mise/shims/') || normalized.includes('/.mise/shims/')) return 'mise'
-  if (normalized.includes('/node_modules/.bin/') || normalized.includes('/node_modules/')) return 'npm'
+  if (isGlobalNpmBinaryPath(normalized)) return 'npm'
 
   return undefined
+}
+
+function isGlobalNpmBinaryPath(normalized: string): boolean {
+  if (normalized.includes('/node_modules/.bin/')) return false
+
+  return (
+    normalized.includes('/lib/node_modules/') ||
+    normalized.includes('/AppData/Roaming/npm/') ||
+    normalized.includes('/.nvm/versions/node/') ||
+    normalized.includes('/.fnm/node-versions/') ||
+    normalized.includes('/.volta/tools/image/node/')
+  )
 }
