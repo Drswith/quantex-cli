@@ -25,6 +25,24 @@ describe('getAdoptableExistingInstallMethod', () => {
 
     expect(method).toEqual({ type: 'mise' })
   })
+
+  it('does not adopt a project-local npm install from node_modules/.bin', () => {
+    const method = getAdoptableExistingInstallMethod(
+      [{ type: 'bun' }, { type: 'npm' }],
+      '/workspace/my-app/node_modules/.bin/codex',
+    )
+
+    expect(method).toBeUndefined()
+  })
+
+  it('adopts a global npm-managed existing install when the binary path identifies a global lib layout', () => {
+    const method = getAdoptableExistingInstallMethod(
+      [{ type: 'bun' }, { type: 'npm' }],
+      '/usr/local/lib/node_modules/@openai/codex/bin/codex',
+    )
+
+    expect(method).toEqual({ type: 'npm' })
+  })
 })
 
 describe('formatInstallMethodCommand', () => {
