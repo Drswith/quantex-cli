@@ -23,6 +23,7 @@ export {
   droid,
   gemini,
   genie,
+  grok,
   hermes,
   jcode,
   getCatalogAgent,
