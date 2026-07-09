@@ -2,6 +2,13 @@
 
 This changelog is maintained by release-please Release PRs.
 
+## [0.29.0](https://github.com/Drswith/quantex-cli/compare/v0.28.1...v0.29.0) (2026-07-09)
+
+
+### Features
+
+* **agent-catalog:** add Grok Build support ([#435](https://github.com/Drswith/quantex-cli/issues/435)) ([42e1567](https://github.com/Drswith/quantex-cli/commit/42e1567f1c20155510a1560636d66826dff8b993))
+
 ## [0.28.1](https://github.com/Drswith/quantex-cli/compare/v0.28.0...v0.28.1) (2026-07-09)
 
 
