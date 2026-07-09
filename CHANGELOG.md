@@ -2,6 +2,13 @@
 
 This changelog is maintained by release-please Release PRs.
 
+## [0.28.1](https://github.com/Drswith/quantex-cli/compare/v0.28.0...v0.28.1) (2026-07-09)
+
+
+### Bug Fixes
+
+* **lifecycle:** refuse project-local npm adoption ([#432](https://github.com/Drswith/quantex-cli/issues/432)) ([8e42c4c](https://github.com/Drswith/quantex-cli/commit/8e42c4cfd2cec2047001093a92b66451b185e452))
+
 ## [0.28.0](https://github.com/Drswith/quantex-cli/compare/v0.27.1...v0.28.0) (2026-07-08)
 
 
