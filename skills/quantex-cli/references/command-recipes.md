@@ -25,6 +25,7 @@ This skill snapshot knows about these Quantex agent names:
 - `gemini`
 - `genie`
 - `goose`
+- `grok`
 - `hermes`
 - `jcode`
 - `junie`

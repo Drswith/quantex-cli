@@ -23,6 +23,7 @@ import {
   getAgentByLookupName,
   getAgentByNameOrAlias,
   getAllAgents,
+  grok,
   hermes,
   jcode,
   junie,
@@ -823,6 +824,48 @@ describe('mimo', () => {
         m => m.type === 'script' && m.command === 'curl -fsSL https://mimo.xiaomi.com/install | bash',
       ),
     ).toBeDefined()
+  })
+})
+
+describe('grok', () => {
+  it('is registered for lookup by canonical name and alias', () => {
+    expect(getAgentByNameOrAlias('grok')).toBe(grok)
+    expect(getAgentByLookupName('grok-build')).toBe(grok)
+    expect(getAgentByLookupName('agent')).not.toBe(grok)
+  })
+
+  it('has valid structure', () => {
+    validateAgent(grok)
+    expect(grok.name).toBe('grok')
+    expect(grok.lookupAliases).toEqual(['grok-build'])
+    expect(grok.displayName).toBe('Grok Build')
+    expect(grok.binaryName).toBe('grok')
+    expect(grok.packages).toBeUndefined()
+    expect(grok.homepage).toBe('https://docs.x.ai/build/overview')
+    expect(grok.selfUpdate?.command).toEqual(['grok', 'update'])
+    expect(grok.versionProbe?.command).toEqual(['grok', '--version'])
+  })
+
+  it('exposes official script installers on all platforms without inventing managed installs', () => {
+    expect(
+      grok.platforms.windows!.find(m => m.type === 'script' && m.command === 'irm https://x.ai/cli/install.ps1 | iex'),
+    ).toBeDefined()
+    expect(
+      grok.platforms.macos!.find(
+        m => m.type === 'script' && m.command === 'curl -fsSL https://x.ai/cli/install.sh | bash',
+      ),
+    ).toBeDefined()
+    expect(
+      grok.platforms.linux!.find(
+        m => m.type === 'script' && m.command === 'curl -fsSL https://x.ai/cli/install.sh | bash',
+      ),
+    ).toBeDefined()
+
+    for (const methods of [grok.platforms.windows!, grok.platforms.macos!, grok.platforms.linux!]) {
+      expect(methods.find(m => m.type === 'npm')).toBeUndefined()
+      expect(methods.find(m => m.type === 'bun')).toBeUndefined()
+      expect(methods.find(m => m.type === 'brew')).toBeUndefined()
+    }
   })
 })
 

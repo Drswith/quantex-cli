@@ -19,23 +19,24 @@ import agent15 from '../catalog/forgecode.json'
 import agent16 from '../catalog/gemini.json'
 import agent17 from '../catalog/genie.json'
 import agent18 from '../catalog/goose.json'
-import agent19 from '../catalog/hermes.json'
-import agent20 from '../catalog/jcode.json'
-import agent21 from '../catalog/junie.json'
-import agent22 from '../catalog/kilo.json'
-import agent23 from '../catalog/kimi.json'
-import agent24 from '../catalog/kiro.json'
-import agent25 from '../catalog/mimo.json'
-import agent26 from '../catalog/omp.json'
-import agent27 from '../catalog/openclaw.json'
-import agent28 from '../catalog/opencode.json'
-import agent29 from '../catalog/openhands.json'
-import agent30 from '../catalog/pi.json'
-import agent31 from '../catalog/qoder.json'
-import agent32 from '../catalog/qwen.json'
-import agent33 from '../catalog/reasonix.json'
-import agent34 from '../catalog/vibe.json'
-import agent35 from '../catalog/vtcode.json'
+import agent19 from '../catalog/grok.json'
+import agent20 from '../catalog/hermes.json'
+import agent21 from '../catalog/jcode.json'
+import agent22 from '../catalog/junie.json'
+import agent23 from '../catalog/kilo.json'
+import agent24 from '../catalog/kimi.json'
+import agent25 from '../catalog/kiro.json'
+import agent26 from '../catalog/mimo.json'
+import agent27 from '../catalog/omp.json'
+import agent28 from '../catalog/openclaw.json'
+import agent29 from '../catalog/opencode.json'
+import agent30 from '../catalog/openhands.json'
+import agent31 from '../catalog/pi.json'
+import agent32 from '../catalog/qoder.json'
+import agent33 from '../catalog/qwen.json'
+import agent34 from '../catalog/reasonix.json'
+import agent35 from '../catalog/vibe.json'
+import agent36 from '../catalog/vtcode.json'
 
 export const catalogData = [
   agent0,
@@ -74,4 +75,5 @@ export const catalogData = [
   agent33,
   agent34,
   agent35,
+  agent36,
 ]

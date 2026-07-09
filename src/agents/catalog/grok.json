@@ -1,0 +1,33 @@
+{
+  "name": "grok",
+  "lookupAliases": ["grok-build"],
+  "displayName": "Grok Build",
+  "homepage": "https://docs.x.ai/build/overview",
+  "binaryName": "grok",
+  "selfUpdate": {
+    "command": ["grok", "update"]
+  },
+  "versionProbe": {
+    "command": ["grok", "--version"]
+  },
+  "platforms": {
+    "windows": [
+      {
+        "command": "irm https://x.ai/cli/install.ps1 | iex",
+        "type": "script"
+      }
+    ],
+    "macos": [
+      {
+        "command": "curl -fsSL https://x.ai/cli/install.sh | bash",
+        "type": "script"
+      }
+    ],
+    "linux": [
+      {
+        "command": "curl -fsSL https://x.ai/cli/install.sh | bash",
+        "type": "script"
+      }
+    ]
+  }
+}

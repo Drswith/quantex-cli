@@ -12,6 +12,7 @@ import {
   droid,
   gemini,
   genie,
+  grok,
   hermes,
   jcode,
   getAgentByLookupName,
@@ -152,6 +153,12 @@ describe('agent registry', () => {
     expect(getAgentByLookupName('mimocode')?.name).toBe('mimo')
     expect(getAgentByLookupName('mimo-code')?.name).toBe('mimo')
   })
+
+  it('resolves Grok Build by product-style alias without claiming agent', () => {
+    expect(getAgentByLookupName('grok-build')?.name).toBe('grok')
+    expect(getAgentByNameOrAlias('grok')?.name).toBe('grok')
+    expect(getAgentByLookupName('agent')?.name).toBe('cursor')
+  })
 })
 
 describe('agent definitions', () => {
@@ -254,6 +261,15 @@ describe('agent definitions', () => {
     expect(agent!.selfUpdate).toBeUndefined()
   })
 
+  it('grok has correct structure', () => {
+    const agent = getAgentByNameOrAlias('grok')
+    expect(agent).toBeDefined()
+    expect(agent!.displayName).toBe('Grok Build')
+    expect(agent!.packages).toBeUndefined()
+    expect(agent!.binaryName).toBe('grok')
+    expect(agent!.selfUpdate?.command).toEqual(['grok', 'update'])
+  })
+
   it('jcode has correct structure', () => {
     const agent = getAgentByNameOrAlias('jcode')
     expect(agent).toBeDefined()
@@ -319,6 +335,7 @@ describe('agent definitions', () => {
     expect(devin.name).toBe('devin')
     expect(droid.name).toBe('droid')
     expect(gemini.name).toBe('gemini')
+    expect(grok.name).toBe('grok')
     expect(jcode.name).toBe('jcode')
     expect(junie.name).toBe('junie')
     expect(kilo.name).toBe('kilo')
