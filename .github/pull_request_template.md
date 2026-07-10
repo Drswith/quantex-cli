@@ -42,7 +42,7 @@ Describe the change and why it exists.
 
 - [ ] Working tree was clean after commit.
 - [ ] Branch was pushed and this PR is the active delivery artifact.
-- [ ] OpenSpec change is not needed, still active by design until merge, already archived, or queued for agent-driven archive closure.
+- [ ] OpenSpec change is not needed, still active until this merge, active across milestone merges by design, queued for agent-driven archive closure after completion, or already archived.
 - [ ] Release is not applicable, delegated to release automation, or verified.
 
 ## Notes

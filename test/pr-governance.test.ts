@@ -1,4 +1,4 @@
-import { readFileSync } from 'node:fs'
+import { existsSync, readFileSync } from 'node:fs'
 import { describe, expect, it } from 'vitest'
 
 const ciWorkflow = readFileSync('.github/workflows/ci.yml', 'utf8')
@@ -6,6 +6,10 @@ const prGovernanceWorkflow = readFileSync('.github/workflows/pr-governance.yml',
 const prTemplate = readFileSync('.github/pull_request_template.md', 'utf8')
 const prBodyPolicyScript = readFileSync('scripts/pr-body-policy.ts', 'utf8')
 const prMergeCommitPolicyScript = readFileSync('scripts/pr-merge-commit-policy.ts', 'utf8')
+const collaborationGuide = readFileSync('docs/github-collaboration.md', 'utf8')
+const openspecReadme = readFileSync('openspec/README.md', 'utf8')
+const runtimeSkill = readFileSync('skills/quantex-agent-runtime/SKILL.md', 'utf8')
+const integrationRunbookPath = 'docs/runbooks/lifecycle-integration-delivery.md'
 
 describe('pr governance release intent', () => {
   it('requires a release intent section in PR bodies', () => {
@@ -53,6 +57,29 @@ describe('pr governance release intent', () => {
   it('keeps PR template compatible with agent-driven OpenSpec archive closure', () => {
     expect(prTemplate).toContain('## Closure Check')
     expect(prTemplate).toContain('queued for agent-driven archive closure')
+  })
+
+  it('documents lifecycle integration setup, runtime, promotion, and teardown', () => {
+    expect(existsSync(integrationRunbookPath)).toBe(true)
+    if (!existsSync(integrationRunbookPath)) return
+
+    const runbook = readFileSync(integrationRunbookPath, 'utf8')
+
+    expect(runbook).toContain('codex/redesign-lifecycle-integration')
+    expect(runbook).toContain('main -> integration')
+    expect(runbook).toContain('integration -> main')
+    expect(runbook).toContain('74/74')
+    expect(runbook).toContain('sandbox-tests')
+    expect(runbook).toContain('must not publish')
+    expect(runbook).toContain('Post-promotion teardown')
+  })
+
+  it('keeps umbrella changes active across milestone merges', () => {
+    expect(runtimeSkill).toContain('docs/runbooks/lifecycle-integration-delivery.md')
+    expect(runtimeSkill).toContain('milestone merge is not archive eligibility')
+    expect(openspecReadme).toContain('milestone merge is not archive eligibility')
+    expect(collaborationGuide).toContain('Lifecycle Integration Delivery')
+    expect(prTemplate).toContain('active across milestone merges by design')
   })
 
   it('runs commit trailer governance from CI through a local repository script', () => {
