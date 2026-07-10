@@ -65,6 +65,10 @@ export interface ManagedInstaller {
 const managedInstallers: Record<ManagedInstallType, ManagedInstaller> = {
   brew: {
     type: 'brew',
+    getInstalledVersion: async (packageName, packageTargetKind) =>
+      brewPm.getInstalledVersion(packageName, packageTargetKind),
+    probePackagePresence: async (packageName, packageTargetKind) =>
+      brewPm.probePackagePresence(packageName, packageTargetKind),
     isAvailable: async () => isBrewAvailable(),
     install: async (packageName, packageTargetKind) => brewPm.install(packageName, packageTargetKind),
     uninstall: async (packageName, packageTargetKind) => brewPm.uninstall(packageName, packageTargetKind),

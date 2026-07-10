@@ -5,6 +5,7 @@ import { afterAll, beforeEach, describe, expect, it, vi } from 'vitest'
 import { markCliContextCancelled, resetCliContext, setCliContext } from '../../src/cli-context'
 import * as config from '../../src/config'
 import * as binaryPm from '../../src/package-manager/binary'
+import * as brewPm from '../../src/package-manager/brew'
 import * as bunPm from '../../src/package-manager/bun'
 import * as cargoPm from '../../src/package-manager/cargo'
 import * as denoPm from '../../src/package-manager/deno'
@@ -52,9 +53,12 @@ const uvUpdateManySpy = vi.spyOn(uvPm, 'updateMany')
 const uvUninstallSpy = vi.spyOn(uvPm, 'uninstall')
 const uvProbePackagePresenceSpy = vi.spyOn(uvPm, 'probePackagePresence')
 const binarySpy = vi.spyOn(binaryPm, 'runBinaryInstall')
+const brewUninstallSpy = vi.spyOn(brewPm, 'uninstall')
+const brewProbePackagePresenceSpy = vi.spyOn(brewPm, 'probePackagePresence')
 const loadConfigSpy = vi.spyOn(config, 'loadConfig')
 const getPlatformSpy = vi.spyOn(detectUtils, 'getPlatform')
 const isBunSpy = vi.spyOn(detectUtils, 'isBunAvailable')
+const isBrewSpy = vi.spyOn(detectUtils, 'isBrewAvailable')
 const isCargoSpy = vi.spyOn(detectUtils, 'isCargoAvailable')
 const isDenoSpy = vi.spyOn(detectUtils, 'isDenoAvailable')
 const isMiseSpy = vi.spyOn(detectUtils, 'isMiseAvailable')
@@ -109,9 +113,12 @@ beforeEach(() => {
   uvUninstallSpy.mockClear()
   uvProbePackagePresenceSpy.mockClear()
   binarySpy.mockClear()
+  brewUninstallSpy.mockClear()
+  brewProbePackagePresenceSpy.mockClear()
   loadConfigSpy.mockClear()
   getPlatformSpy.mockClear()
   isBunSpy.mockClear()
+  isBrewSpy.mockClear()
   isCargoSpy.mockClear()
   isDenoSpy.mockClear()
   isMiseSpy.mockClear()
@@ -1219,6 +1226,38 @@ describe('uninstallAgent', () => {
     uvProbePackagePresenceSpy.mockResolvedValue('unknown')
 
     expect(await uninstallAgent(testAgent)).toBe(false)
+    expect(removeInstalledAgentStateSpy).not.toHaveBeenCalled()
+  })
+
+  it('recovers brew ghost state when uninstall fails but absence is confirmed', async () => {
+    getInstalledAgentStateSpy.mockResolvedValue({
+      agentName: 'test-agent',
+      installType: 'brew',
+      packageName: 'crush',
+    })
+    isBrewSpy.mockResolvedValue(true)
+    brewUninstallSpy.mockResolvedValue(false)
+    brewProbePackagePresenceSpy.mockResolvedValue('absent')
+
+    expect(await uninstallAgent(testAgent)).toBe(true)
+    expect(brewUninstallSpy).toHaveBeenCalledWith('crush', undefined)
+    expect(brewProbePackagePresenceSpy).toHaveBeenCalledWith('crush', undefined)
+    expect(removeInstalledAgentStateSpy).toHaveBeenCalledWith('test-agent')
+  })
+
+  it('does not recover brew ghost state when presence probing is inconclusive', async () => {
+    getInstalledAgentStateSpy.mockResolvedValue({
+      agentName: 'test-agent',
+      installType: 'brew',
+      packageName: 'crush',
+      packageTargetKind: 'cask',
+    })
+    isBrewSpy.mockResolvedValue(true)
+    brewUninstallSpy.mockResolvedValue(false)
+    brewProbePackagePresenceSpy.mockResolvedValue('unknown')
+
+    expect(await uninstallAgent(testAgent)).toBe(false)
+    expect(brewProbePackagePresenceSpy).toHaveBeenCalledWith('crush', 'cask')
     expect(removeInstalledAgentStateSpy).not.toHaveBeenCalled()
   })
 })
