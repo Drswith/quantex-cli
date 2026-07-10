@@ -25,6 +25,7 @@ This repository uses OpenSpec for behavior contracts and non-trivial change plan
 - after the implementation PR lands, the change is still only "implemented"
 - treat the change as fully "done" only after specs are synced and `openspec archive <name> --yes` has moved it into `openspec/changes/archive/`
 - protected branches close that final gap through an explicit agent-driven archive follow-up, not repository bot automation
+- for an active umbrella delivered through milestones, a milestone merge is not archive eligibility; update genuine task progress and keep the change active until its completion and promotion conditions are satisfied
 
 Prefer Superpowers for agent behavior and the official OpenSpec CLI for OpenSpec state transitions. This repository should store OpenSpec artifacts, not grow custom project-management commands unless they directly serve Quantex users.
 
@@ -80,6 +81,7 @@ Do not reintroduce full per-agent OPSX command bodies without a new OpenSpec cha
 Archive timing:
 
 - do not archive an active change before its implementation PR has merged
+- do not archive an umbrella change after an intermediate milestone merge; keep its delta under the active change until all accepted requirements and promotion conditions are satisfied
 - sync any accepted spec delta into `openspec/specs/` before archiving
 - run `bun run openspec:validate` before and after archive operations
 - on `main` and `beta`, an agent should open an archive follow-up PR for completed active changes so merge/release success does not leave project memory half-closed

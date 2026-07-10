@@ -56,6 +56,10 @@ Use explicit closure language when handing work between agents, reviewers, and a
 
 Agents should not summarize a task as simply "done" when the current state is only local implementation or PR delivery. If the next step belongs to CI, reviewer approval, release automation, or agent-driven OpenSpec archive closure, name that owner explicitly.
 
+## Long-lived integration delivery
+
+When a large compatibility-preserving redesign needs staged review without exposing partial internals to the release line, follow [Lifecycle Integration Delivery](./runbooks/lifecycle-integration-delivery.md). The temporary integration branch is a protected aggregation target, not a release channel. Every milestone keeps an independent plan, commit, PR, validation, review, and OpenSpec task update; final promotion and post-promotion archive closure remain separate operations.
+
 ## Pull request body preflight
 
 PR descriptions are part of the delivery contract, not a best-effort summary. Before creating or editing a PR body, agents should:
@@ -191,7 +195,7 @@ For non-trivial behavior or durable-process changes, use Superpowers plus the ce
 - OpenSpec CLI: proposal, design, spec, task, status, instructions, validation, and archive state transitions
 - [Quantex Task Start](./runbooks/quantex-task-start.md): copy-paste start prompt for fresh agent conversations when a native slash or skill launcher is unavailable
 
-On protected branches, archive closure is an explicit agent-driven follow-up. A fresh agent session should be able to resume from Superpowers + `skills/quantex-agent-runtime/SKILL.md`, inspect active OpenSpec changes, archive completed work, validate, and deliver the archive PR.
+On protected branches, archive closure is an explicit agent-driven follow-up. A fresh agent session should be able to resume from Superpowers + `skills/quantex-agent-runtime/SKILL.md`, inspect active OpenSpec changes, archive completed work, validate, and deliver the archive PR. For an umbrella change delivered through a protected integration branch, each milestone merge closes only that milestone; archive eligibility begins only after the umbrella completion and promotion conditions are satisfied.
 
 Agents should use `openspec status --change <id> --json` and `openspec instructions <artifact> --change <id> --json` when they need to determine the next artifact or implementation step.
 

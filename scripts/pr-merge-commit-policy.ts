@@ -8,17 +8,24 @@ export interface PullRequestCommitMetadata {
 }
 
 export interface PullRequestMergeCommitPolicyInput {
+  baseBranch?: string
   commits: PullRequestCommitMetadata[]
+  headBranch?: string
+  sameRepository?: boolean
   validatedReleasePr?: boolean
 }
+
+type PullRequestTopology = 'final-promotion' | 'main-sync' | 'ordinary'
 
 const prohibitedTrailerPattern = /^co-authored-by:\s*/i
 const riskyAuthorPatterns = [/cursoragent@cursor\.com/i, /^cursor agent$/i, /\[bot\]@users\.noreply\.github\.com$/i]
 const trustedReleaseBotEmailPattern = /^279595574\+quantex-cli-release-bot\[bot\]@users\.noreply\.github\.com$/i
 const trustedReleaseBotNamePattern = /^quantex-cli-release-bot\[bot\]$/i
+const lifecycleIntegrationBranch = 'codex/redesign-lifecycle-integration'
 
 export function validatePullRequestMergeCommitPolicy(input: PullRequestMergeCommitPolicyInput): string[] {
   const commits = input.commits
+  const topology = classifyPullRequestTopology(input)
   const validatedReleasePr = input.validatedReleasePr === true
   const issues: string[] = []
 
@@ -43,7 +50,7 @@ export function validatePullRequestMergeCommitPolicy(input: PullRequestMergeComm
     }
   }
 
-  if (commits.length > 1) {
+  if (commits.length > 1 && topology === 'ordinary') {
     issues.push(
       [
         `Pull request contains ${commits.length} commits; GitHub squash merge can synthesize Co-authored-by trailers from multi-commit contributor metadata.`,
@@ -53,6 +60,7 @@ export function validatePullRequestMergeCommitPolicy(input: PullRequestMergeComm
   }
 
   for (const commit of commits) {
+    if (topology === 'main-sync') continue
     if (validatedReleasePr && isTrustedReleaseBotAuthor(commit)) continue
 
     const authorValues = [commit.authorEmail, commit.authorName].filter(Boolean) as string[]
@@ -72,8 +80,12 @@ export function validatePullRequestMergeCommitPolicy(input: PullRequestMergeComm
 
 if (import.meta.main) {
   const commits = parseCommits(process.argv.slice(2), process.env.PR_COMMITS_JSON)
+  const baseBranch = process.env.PR_BASE_BRANCH
+  const headBranch = process.env.PR_HEAD_BRANCH
+  const sameRepository = parseBooleanFlag(process.env.PR_SAME_REPOSITORY)
   const validatedReleasePr = parseBooleanFlag(process.env.PR_IS_VALIDATED_RELEASE_PR)
-  const issues = validatePullRequestMergeCommitPolicy({ commits, validatedReleasePr })
+  const policyInput = { baseBranch, commits, headBranch, sameRepository, validatedReleasePr }
+  const issues = validatePullRequestMergeCommitPolicy(policyInput)
 
   if (issues.length > 0) {
     console.error('PR merge commit policy check failed:\n')
@@ -81,7 +93,21 @@ if (import.meta.main) {
     process.exit(1)
   }
 
-  console.log('PR merge commit policy check passed.')
+  console.log(`PR merge commit policy check passed (${classifyPullRequestTopology(policyInput)} topology).`)
+}
+
+function classifyPullRequestTopology(input: PullRequestMergeCommitPolicyInput): PullRequestTopology {
+  if (input.sameRepository !== true) return 'ordinary'
+
+  if (input.baseBranch === lifecycleIntegrationBranch && input.headBranch === 'main') {
+    return 'main-sync'
+  }
+
+  if (input.baseBranch === 'main' && input.headBranch === lifecycleIntegrationBranch) {
+    return 'final-promotion'
+  }
+
+  return 'ordinary'
 }
 
 function parseCommits(args: string[], commitsJsonEnv: string | undefined): PullRequestCommitMetadata[] {
