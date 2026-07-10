@@ -10,13 +10,14 @@
 - [x] 1.8 Add the setup/runtime/teardown procedure to the canonical delivery runbook and route the central Quantex runtime skill to it without expanding thin agent bootstraps.
 - [x] 1.9 Run the focused workflow/policy tests, `bun run test`, `bun run lint`, `bun run format:check`, `bun run typecheck`, `bun run openspec:validate`, and `bun run memory:check` for the complete bootstrap diff.
 - [x] 1.10 Prepare and validate a process-only PR body, verify the diff contains no lifecycle redesign implementation and changes no redesign task number, checkbox count, denominator, implementation scope, or earned completion credit, and deliver the one allowed bootstrap pull request to `main`.
-- [ ] 1.11 Merge the bootstrap through the ordinary single-commit path only after the six live `main` contexts succeed, then record merge closure separately from release and archive closure.
+- [x] 1.11 Merge the bootstrap through the ordinary single-commit path only after the six live `main` contexts succeed, then record merge closure separately from release and archive closure.
 
 ## 2. Integration Setup
 
-- [ ] 2.1 Before protection, synchronize `codex/redesign-lifecycle-integration` to the exact post-bootstrap `main` tip and verify the live remote comparison is zero commits ahead and zero commits behind.
-- [ ] 2.2 Create the temporary integration ruleset requiring pull requests and exact contexts `classify`, `lint`, `test (ubuntu-latest)`, `test (windows-latest)`, `test (macos-latest)`, and `sandbox-tests`, and disallow direct updates after initialization.
+- [x] 2.1 Before protection, synchronize `codex/redesign-lifecycle-integration` to the exact post-bootstrap `main` tip and verify the live remote comparison is zero commits ahead and zero commits behind.
+- [x] 2.2 Create the temporary integration ruleset requiring pull requests and exact contexts `classify`, `lint`, `test (ubuntu-latest)`, `test (windows-latest)`, `test (macos-latest)`, and `sandbox-tests`, and disallow direct updates after initialization.
 - [ ] 2.3 Verify from live repository state that an integration-target pull request receives all six contexts, PR Governance runs separately through its unfiltered trigger, integration push triggers are absent from CI and Sandbox Tests, and no release entry point accepts the branch.
+- [x] 2.4 Add a focused lint-staged regression and configure both oxfmt tasks so a matched set containing only formatter-ignored lifecycle fixtures is a successful no-op while supported staged files, `oxlint --fix`, and real failure propagation remain enforced.
 
 ## 3. Milestone Runtime
 

@@ -14,6 +14,7 @@ Stakeholders are maintainers delivering lifecycle milestones, reviewers protecti
 
 - Aggregate lifecycle redesign milestones on a temporary protected branch without making that branch a release line.
 - Apply the same six live `protect-main` required contexts to integration and `main`, while keeping PR Governance as a separate all-PR workflow.
+- Preserve deliberate formatter-ignore boundaries for golden fixtures without letting an all-ignored lint-staged match block a milestone commit.
 - Preserve the repository's single-commit default and allow multi-commit history only for two exact, same-repository synchronization/promotion topologies.
 - Make setup, steady-state operation, final promotion, teardown, spec synchronization, and archive closure one explicit lifecycle.
 - Keep the redesign umbrella change independent and require genuine `74/74` completion before final promotion.
@@ -24,6 +25,7 @@ Stakeholders are maintainers delivering lifecycle milestones, reviewers protecti
 - Publishing from integration, generating integration Release PRs, or deriving an npm tag/channel from integration.
 - Merging any lifecycle redesign implementation into `main` through the bootstrap pull request.
 - Replacing the existing six contexts, weakening `main` protection, or adding integration `push` triggers to CI or Sandbox Tests.
+- Formatting golden fixtures that are deliberately excluded by `.oxfmtrc.json`, skipping hooks, or suppressing formatter/linter failures for supported staged files.
 - Renumbering `redesign-lifecycle-engine` tasks, changing its checkbox count or 74-task denominator, expanding its implementation scope, or awarding completion credit before the clarified criteria are met. Only task `11.6` wording may be clarified to separate post-promotion follow-up readiness from later execution.
 
 ## Decisions
@@ -67,7 +69,15 @@ PR Governance already uses an unfiltered `pull_request` trigger and continues to
 
 A separate integration workflow was rejected because duplicated job names and logic would drift from `main`. Adding integration to either workflow's `push` filter was rejected because it provides no additional merge gate and could be mistaken for a release-adjacent signal.
 
-### 4. Identify the only two multi-commit exceptions from immutable PR topology
+### 4. Treat an all-ignored lint-staged formatter match as a successful no-op
+
+Lifecycle compatibility baselines include golden JSON under `test/fixtures`. The formatter configuration deliberately ignores that directory so formatting cannot silently rewrite hard fixture bytes, while the broad lint-staged JSON glob still selects those paths before oxfmt applies its own ignore rules. Pinned oxfmt exits non-zero when every path passed to one invocation is ignored, which made a valid fixture-only JSON group abort the Phase 0/1 commit even though repository-wide format validation was green.
+
+Both lint-staged oxfmt commands use the pinned `--no-error-on-unmatched-pattern` option. This preserves the existing ignore configuration: an all-ignored matched set formats zero files and succeeds, while any supported staged JavaScript, TypeScript, JSON, or config file still runs through oxfmt and JavaScript/TypeScript still runs through `oxlint --fix`. The option does not bypass the hook or convert real formatter/linter failures on supported files into success.
+
+Removing `test/fixtures` from the formatter ignore list was rejected because hard fixtures should not be mechanically rewritten. Narrowing lint-staged globs around one current fixture path was rejected because future ignored formatter paths could reproduce the same failure. Skipping the hook was rejected because the repository contract requires local pre-commit enforcement.
+
+### 5. Identify the only two multi-commit exceptions from immutable PR topology
 
 Ordinary pull requests continue to contain exactly one commit when evaluated by PR Governance. A multiple-commit pull request is permitted only when all repository identity and ref predicates match one of these shapes:
 
@@ -84,7 +94,7 @@ Before a recurring main-sync merge, the operator refreshes both remote refs and 
 
 Squashing these two operations was rejected because it would destroy ancestry and make later synchronization ambiguous. Rebasing was rejected because it would rewrite already reviewed milestone commits. Branch-name-only detection was rejected because a fork could imitate the ref name.
 
-### 5. Gate final promotion on redesign completion, not milestone count
+### 6. Gate final promotion on redesign completion, not milestone count
 
 Milestone merges into integration close only that milestone's PR and validation state. They do not make either OpenSpec change archive-eligible. `redesign-lifecycle-engine` stays active while its counter advances from `8/74`; this delivery change stays active throughout the branch lifecycle.
 
@@ -104,7 +114,7 @@ The exact integration-to-`main` pull request then uses a merge commit and the no
 
 Archiving at `74/74` before promotion was rejected because implementation/readiness completion is not merge closure. Archiving on a milestone merge was rejected because the umbrella contract spans all milestones.
 
-### 6. Treat teardown and archive closure as post-promotion work
+### 7. Treat teardown and archive closure as post-promotion work
 
 The final promotion is followed by an explicit teardown:
 
@@ -124,6 +134,7 @@ Leaving dormant integration triggers and policy exceptions in place was rejected
 - [A broad multi-commit exemption weakens PR governance] -> Match repository identity plus both exact refs, test near misses, and remove the exemption during teardown.
 - [Integration accidentally becomes releasable] -> Keep a positive `main`/`beta` release allowlist at every entry point and add negative tests proving workflow, manual, and Release PR gates stop integration before resolver and npm-channel paths.
 - [The initial ruleset protects stale workflow content] -> Create protection only after the post-bootstrap exact synchronization is verified `0/0`.
+- [Golden fixtures make pre-commit fail despite being deliberately ignored] -> Keep ignore boundaries intact and let oxfmt's all-ignored matched set succeed without suppressing checks on supported staged files.
 - [Partial redesign reaches `main`] -> Allow only process/bootstrap changes before the `74/74` gate and review the complete final comparison.
 - [Task `11.6` creates a promotion/archive dependency cycle] -> Clarify only its readiness semantics without renumbering, changing the denominator or scope, awarding early credit, or executing post-promotion work before promotion.
 - [Two active changes are archived too early] -> Model milestone merge, final promotion, release, teardown, spec sync, and archive as distinct closure states.
@@ -141,9 +152,10 @@ Leaving dormant integration triggers and policy exceptions in place was rejected
 
 ### Runtime
 
-1. Deliver lifecycle milestones as ordinary single-commit pull requests to integration.
-2. When `main` advances, open the exact same-repository `main -> integration` pull request, pass all six contexts, and merge it with a merge commit.
-3. Continue reporting milestone closure separately while both OpenSpec changes remain active.
+1. Verify lint-staged can accept deliberately formatter-ignored compatibility fixtures without formatting them or bypassing supported-file checks.
+2. Deliver lifecycle milestones as ordinary single-commit pull requests to integration.
+3. When `main` advances, open the exact same-repository `main -> integration` pull request, pass all six contexts, and merge it with a merge commit.
+4. Continue reporting milestone closure separately while both OpenSpec changes remain active.
 
 ### Final promotion and teardown
 
