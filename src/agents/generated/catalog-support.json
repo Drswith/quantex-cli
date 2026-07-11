@@ -1,0 +1,2031 @@
+{
+  "agents": [
+    {
+      "binaryName": "amp",
+      "name": "amp",
+      "platforms": {
+        "linux": [
+          {
+            "probes": ["executable-presence", "installed-version", "package-presence", "target-version"],
+            "provider": "bun",
+            "targetId": "@sourcegraph/amp",
+            "targetKind": "package"
+          },
+          {
+            "probes": ["executable-presence", "installed-version", "package-presence", "target-version"],
+            "provider": "npm",
+            "targetId": "@sourcegraph/amp",
+            "targetKind": "package"
+          }
+        ],
+        "macos": [
+          {
+            "probes": ["executable-presence", "installed-version", "package-presence", "target-version"],
+            "provider": "bun",
+            "targetId": "@sourcegraph/amp",
+            "targetKind": "package"
+          },
+          {
+            "probes": ["executable-presence", "installed-version", "package-presence", "target-version"],
+            "provider": "npm",
+            "targetId": "@sourcegraph/amp",
+            "targetKind": "package"
+          }
+        ],
+        "windows": [
+          {
+            "probes": ["executable-presence", "installed-version", "package-presence", "target-version"],
+            "provider": "bun",
+            "targetId": "@sourcegraph/amp",
+            "targetKind": "package"
+          },
+          {
+            "probes": ["executable-presence", "installed-version", "package-presence", "target-version"],
+            "provider": "npm",
+            "targetId": "@sourcegraph/amp",
+            "targetKind": "package"
+          }
+        ]
+      }
+    },
+    {
+      "binaryName": "agy",
+      "name": "antigravity",
+      "platforms": {
+        "linux": [
+          {
+            "probes": ["executable-presence"],
+            "provider": "script",
+            "targetId": "https://antigravity.google/cli/install.sh",
+            "targetKind": "script"
+          }
+        ],
+        "macos": [
+          {
+            "probes": ["executable-presence"],
+            "provider": "script",
+            "targetId": "https://antigravity.google/cli/install.sh",
+            "targetKind": "script"
+          }
+        ],
+        "windows": [
+          {
+            "probes": ["executable-presence"],
+            "provider": "script",
+            "targetId": "https://antigravity.google/cli/install.ps1",
+            "targetKind": "script"
+          }
+        ]
+      }
+    },
+    {
+      "binaryName": "auggie",
+      "name": "auggie",
+      "platforms": {
+        "linux": [
+          {
+            "probes": ["executable-presence", "installed-version", "package-presence", "target-version"],
+            "provider": "bun",
+            "targetId": "@augmentcode/auggie",
+            "targetKind": "package"
+          },
+          {
+            "probes": ["executable-presence", "installed-version", "package-presence", "target-version"],
+            "provider": "npm",
+            "targetId": "@augmentcode/auggie",
+            "targetKind": "package"
+          }
+        ],
+        "macos": [
+          {
+            "probes": ["executable-presence", "installed-version", "package-presence", "target-version"],
+            "provider": "bun",
+            "targetId": "@augmentcode/auggie",
+            "targetKind": "package"
+          },
+          {
+            "probes": ["executable-presence", "installed-version", "package-presence", "target-version"],
+            "provider": "npm",
+            "targetId": "@augmentcode/auggie",
+            "targetKind": "package"
+          }
+        ]
+      }
+    },
+    {
+      "binaryName": "autohand",
+      "name": "autohand",
+      "platforms": {
+        "linux": [
+          {
+            "probes": ["executable-presence"],
+            "provider": "script",
+            "targetId": "https://autohand.ai/install.sh",
+            "targetKind": "script"
+          }
+        ],
+        "macos": [
+          {
+            "probes": ["executable-presence"],
+            "provider": "script",
+            "targetId": "https://autohand.ai/install.sh",
+            "targetKind": "script"
+          }
+        ],
+        "windows": [
+          {
+            "probes": ["executable-presence"],
+            "provider": "script",
+            "targetId": "https://autohand.ai/install.ps1",
+            "targetKind": "script"
+          }
+        ]
+      }
+    },
+    {
+      "binaryName": "claude",
+      "name": "claude",
+      "platforms": {
+        "linux": [
+          {
+            "probes": ["executable-presence", "installed-version", "package-presence", "target-version"],
+            "provider": "bun",
+            "targetId": "@anthropic-ai/claude-code",
+            "targetKind": "package"
+          },
+          {
+            "probes": ["executable-presence", "installed-version", "package-presence", "target-version"],
+            "provider": "npm",
+            "targetId": "@anthropic-ai/claude-code",
+            "targetKind": "package"
+          },
+          {
+            "probes": ["executable-presence"],
+            "provider": "script",
+            "targetId": "https://claude.ai/install.sh",
+            "targetKind": "script"
+          },
+          {
+            "probes": ["executable-presence"],
+            "provider": "brew",
+            "targetId": "claude-code",
+            "targetKind": "cask"
+          }
+        ],
+        "macos": [
+          {
+            "probes": ["executable-presence", "installed-version", "package-presence", "target-version"],
+            "provider": "bun",
+            "targetId": "@anthropic-ai/claude-code",
+            "targetKind": "package"
+          },
+          {
+            "probes": ["executable-presence", "installed-version", "package-presence", "target-version"],
+            "provider": "npm",
+            "targetId": "@anthropic-ai/claude-code",
+            "targetKind": "package"
+          },
+          {
+            "probes": ["executable-presence"],
+            "provider": "script",
+            "targetId": "https://claude.ai/install.sh",
+            "targetKind": "script"
+          },
+          {
+            "probes": ["executable-presence"],
+            "provider": "brew",
+            "targetId": "claude-code",
+            "targetKind": "cask"
+          }
+        ],
+        "windows": [
+          {
+            "probes": ["executable-presence", "installed-version", "package-presence", "target-version"],
+            "provider": "bun",
+            "targetId": "@anthropic-ai/claude-code",
+            "targetKind": "package"
+          },
+          {
+            "probes": ["executable-presence", "installed-version", "package-presence", "target-version"],
+            "provider": "npm",
+            "targetId": "@anthropic-ai/claude-code",
+            "targetKind": "package"
+          },
+          {
+            "probes": ["executable-presence"],
+            "provider": "script",
+            "targetId": "https://claude.ai/install.ps1",
+            "targetKind": "script"
+          },
+          {
+            "probes": ["executable-presence"],
+            "provider": "winget",
+            "targetId": "Anthropic.ClaudeCode",
+            "targetKind": "id"
+          }
+        ]
+      }
+    },
+    {
+      "binaryName": "codebuddy",
+      "name": "codebuddy",
+      "platforms": {
+        "linux": [
+          {
+            "probes": ["executable-presence", "installed-version", "package-presence", "target-version"],
+            "provider": "bun",
+            "targetId": "@tencent-ai/codebuddy-code",
+            "targetKind": "package"
+          },
+          {
+            "probes": ["executable-presence", "installed-version", "package-presence", "target-version"],
+            "provider": "npm",
+            "targetId": "@tencent-ai/codebuddy-code",
+            "targetKind": "package"
+          },
+          {
+            "probes": ["executable-presence"],
+            "provider": "script",
+            "targetId": "https://www.codebuddy.cn/cli/install.sh",
+            "targetKind": "script"
+          },
+          {
+            "probes": ["executable-presence"],
+            "provider": "brew",
+            "targetId": "Tencent-CodeBuddy/tap/codebuddy-code",
+            "targetKind": "formula"
+          }
+        ],
+        "macos": [
+          {
+            "probes": ["executable-presence", "installed-version", "package-presence", "target-version"],
+            "provider": "bun",
+            "targetId": "@tencent-ai/codebuddy-code",
+            "targetKind": "package"
+          },
+          {
+            "probes": ["executable-presence", "installed-version", "package-presence", "target-version"],
+            "provider": "npm",
+            "targetId": "@tencent-ai/codebuddy-code",
+            "targetKind": "package"
+          },
+          {
+            "probes": ["executable-presence"],
+            "provider": "script",
+            "targetId": "https://www.codebuddy.cn/cli/install.sh",
+            "targetKind": "script"
+          },
+          {
+            "probes": ["executable-presence"],
+            "provider": "brew",
+            "targetId": "Tencent-CodeBuddy/tap/codebuddy-code",
+            "targetKind": "formula"
+          }
+        ],
+        "windows": [
+          {
+            "probes": ["executable-presence", "installed-version", "package-presence", "target-version"],
+            "provider": "bun",
+            "targetId": "@tencent-ai/codebuddy-code",
+            "targetKind": "package"
+          },
+          {
+            "probes": ["executable-presence", "installed-version", "package-presence", "target-version"],
+            "provider": "npm",
+            "targetId": "@tencent-ai/codebuddy-code",
+            "targetKind": "package"
+          },
+          {
+            "probes": ["executable-presence"],
+            "provider": "script",
+            "targetId": "https://www.codebuddy.cn/cli/install.ps1",
+            "targetKind": "script"
+          }
+        ]
+      }
+    },
+    {
+      "binaryName": "codewhale",
+      "name": "codewhale",
+      "platforms": {
+        "linux": [
+          {
+            "probes": ["executable-presence", "installed-version", "package-presence", "target-version"],
+            "provider": "npm",
+            "targetId": "codewhale",
+            "targetKind": "package"
+          },
+          {
+            "probes": ["executable-presence"],
+            "provider": "cargo",
+            "targetId": "codewhale-cli",
+            "targetKind": "package"
+          }
+        ],
+        "macos": [
+          {
+            "probes": ["executable-presence", "installed-version", "package-presence", "target-version"],
+            "provider": "npm",
+            "targetId": "codewhale",
+            "targetKind": "package"
+          },
+          {
+            "probes": ["executable-presence"],
+            "provider": "cargo",
+            "targetId": "codewhale-cli",
+            "targetKind": "package"
+          }
+        ],
+        "windows": [
+          {
+            "probes": ["executable-presence", "installed-version", "package-presence", "target-version"],
+            "provider": "npm",
+            "targetId": "codewhale",
+            "targetKind": "package"
+          },
+          {
+            "probes": ["executable-presence"],
+            "provider": "cargo",
+            "targetId": "codewhale-cli",
+            "targetKind": "package"
+          }
+        ]
+      }
+    },
+    {
+      "binaryName": "codex",
+      "name": "codex",
+      "platforms": {
+        "linux": [
+          {
+            "probes": ["executable-presence", "installed-version", "package-presence", "target-version"],
+            "provider": "bun",
+            "targetId": "@openai/codex",
+            "targetKind": "package"
+          },
+          {
+            "probes": ["executable-presence", "installed-version", "package-presence", "target-version"],
+            "provider": "npm",
+            "targetId": "@openai/codex",
+            "targetKind": "package"
+          },
+          {
+            "probes": ["executable-presence", "installed-version", "package-presence"],
+            "provider": "mise",
+            "targetId": "npm:@openai/codex",
+            "targetKind": "tool"
+          },
+          {
+            "probes": ["executable-presence"],
+            "provider": "brew",
+            "targetId": "codex",
+            "targetKind": "formula"
+          }
+        ],
+        "macos": [
+          {
+            "probes": ["executable-presence", "installed-version", "package-presence", "target-version"],
+            "provider": "bun",
+            "targetId": "@openai/codex",
+            "targetKind": "package"
+          },
+          {
+            "probes": ["executable-presence", "installed-version", "package-presence", "target-version"],
+            "provider": "npm",
+            "targetId": "@openai/codex",
+            "targetKind": "package"
+          },
+          {
+            "probes": ["executable-presence", "installed-version", "package-presence"],
+            "provider": "mise",
+            "targetId": "npm:@openai/codex",
+            "targetKind": "tool"
+          },
+          {
+            "probes": ["executable-presence"],
+            "provider": "brew",
+            "targetId": "codex",
+            "targetKind": "formula"
+          }
+        ],
+        "windows": [
+          {
+            "probes": ["executable-presence", "installed-version", "package-presence", "target-version"],
+            "provider": "bun",
+            "targetId": "@openai/codex",
+            "targetKind": "package"
+          },
+          {
+            "probes": ["executable-presence", "installed-version", "package-presence", "target-version"],
+            "provider": "npm",
+            "targetId": "@openai/codex",
+            "targetKind": "package"
+          },
+          {
+            "probes": ["executable-presence", "installed-version", "package-presence"],
+            "provider": "mise",
+            "targetId": "npm:@openai/codex",
+            "targetKind": "tool"
+          }
+        ]
+      }
+    },
+    {
+      "binaryName": "command-code",
+      "name": "commandcode",
+      "platforms": {
+        "linux": [
+          {
+            "probes": ["executable-presence", "installed-version", "package-presence", "target-version"],
+            "provider": "npm",
+            "targetId": "command-code",
+            "targetKind": "package"
+          }
+        ],
+        "macos": [
+          {
+            "probes": ["executable-presence", "installed-version", "package-presence", "target-version"],
+            "provider": "npm",
+            "targetId": "command-code",
+            "targetKind": "package"
+          }
+        ],
+        "windows": [
+          {
+            "probes": ["executable-presence", "installed-version", "package-presence", "target-version"],
+            "provider": "npm",
+            "targetId": "command-code",
+            "targetKind": "package"
+          }
+        ]
+      }
+    },
+    {
+      "binaryName": "copilot",
+      "name": "copilot",
+      "platforms": {
+        "linux": [
+          {
+            "probes": ["executable-presence", "installed-version", "package-presence", "target-version"],
+            "provider": "bun",
+            "targetId": "@github/copilot",
+            "targetKind": "package"
+          },
+          {
+            "probes": ["executable-presence", "installed-version", "package-presence", "target-version"],
+            "provider": "npm",
+            "targetId": "@github/copilot",
+            "targetKind": "package"
+          },
+          {
+            "probes": ["executable-presence"],
+            "provider": "script",
+            "targetId": "https://gh.io/copilot-install",
+            "targetKind": "script"
+          },
+          {
+            "probes": ["executable-presence"],
+            "provider": "brew",
+            "targetId": "copilot-cli",
+            "targetKind": "formula"
+          }
+        ],
+        "macos": [
+          {
+            "probes": ["executable-presence", "installed-version", "package-presence", "target-version"],
+            "provider": "bun",
+            "targetId": "@github/copilot",
+            "targetKind": "package"
+          },
+          {
+            "probes": ["executable-presence", "installed-version", "package-presence", "target-version"],
+            "provider": "npm",
+            "targetId": "@github/copilot",
+            "targetKind": "package"
+          },
+          {
+            "probes": ["executable-presence"],
+            "provider": "script",
+            "targetId": "https://gh.io/copilot-install",
+            "targetKind": "script"
+          },
+          {
+            "probes": ["executable-presence"],
+            "provider": "brew",
+            "targetId": "copilot-cli",
+            "targetKind": "formula"
+          }
+        ],
+        "windows": [
+          {
+            "probes": ["executable-presence"],
+            "provider": "winget",
+            "targetId": "GitHub.Copilot",
+            "targetKind": "id"
+          }
+        ]
+      }
+    },
+    {
+      "binaryName": "crush",
+      "name": "crush",
+      "platforms": {
+        "linux": [
+          {
+            "probes": ["executable-presence", "installed-version", "package-presence", "target-version"],
+            "provider": "bun",
+            "targetId": "@charmland/crush",
+            "targetKind": "package"
+          },
+          {
+            "probes": ["executable-presence", "installed-version", "package-presence", "target-version"],
+            "provider": "npm",
+            "targetId": "@charmland/crush",
+            "targetKind": "package"
+          },
+          {
+            "probes": ["executable-presence"],
+            "provider": "brew",
+            "targetId": "charmbracelet/tap/crush",
+            "targetKind": "formula"
+          }
+        ],
+        "macos": [
+          {
+            "probes": ["executable-presence", "installed-version", "package-presence", "target-version"],
+            "provider": "bun",
+            "targetId": "@charmland/crush",
+            "targetKind": "package"
+          },
+          {
+            "probes": ["executable-presence", "installed-version", "package-presence", "target-version"],
+            "provider": "npm",
+            "targetId": "@charmland/crush",
+            "targetKind": "package"
+          },
+          {
+            "probes": ["executable-presence"],
+            "provider": "brew",
+            "targetId": "charmbracelet/tap/crush",
+            "targetKind": "formula"
+          }
+        ],
+        "windows": [
+          {
+            "probes": ["executable-presence", "installed-version", "package-presence", "target-version"],
+            "provider": "bun",
+            "targetId": "@charmland/crush",
+            "targetKind": "package"
+          },
+          {
+            "probes": ["executable-presence", "installed-version", "package-presence", "target-version"],
+            "provider": "npm",
+            "targetId": "@charmland/crush",
+            "targetKind": "package"
+          },
+          {
+            "probes": ["executable-presence"],
+            "provider": "winget",
+            "targetId": "charmbracelet.crush",
+            "targetKind": "id"
+          }
+        ]
+      }
+    },
+    {
+      "binaryName": "agent",
+      "name": "cursor",
+      "platforms": {
+        "linux": [
+          {
+            "probes": ["executable-presence"],
+            "provider": "script",
+            "targetId": "https://cursor.com/install",
+            "targetKind": "script"
+          }
+        ],
+        "macos": [
+          {
+            "probes": ["executable-presence"],
+            "provider": "script",
+            "targetId": "https://cursor.com/install",
+            "targetKind": "script"
+          }
+        ],
+        "windows": [
+          {
+            "probes": ["executable-presence"],
+            "provider": "script",
+            "targetId": "https://cursor.com/install?win32=true",
+            "targetKind": "script"
+          }
+        ]
+      }
+    },
+    {
+      "binaryName": "deepcode",
+      "name": "deepcode",
+      "platforms": {
+        "linux": [
+          {
+            "probes": ["executable-presence", "installed-version", "package-presence", "target-version"],
+            "provider": "npm",
+            "targetId": "@vegamo/deepcode-cli",
+            "targetKind": "package"
+          }
+        ],
+        "macos": [
+          {
+            "probes": ["executable-presence", "installed-version", "package-presence", "target-version"],
+            "provider": "npm",
+            "targetId": "@vegamo/deepcode-cli",
+            "targetKind": "package"
+          }
+        ],
+        "windows": [
+          {
+            "probes": ["executable-presence", "installed-version", "package-presence", "target-version"],
+            "provider": "npm",
+            "targetId": "@vegamo/deepcode-cli",
+            "targetKind": "package"
+          }
+        ]
+      }
+    },
+    {
+      "binaryName": "devin",
+      "name": "devin",
+      "platforms": {
+        "linux": [
+          {
+            "probes": ["executable-presence"],
+            "provider": "script",
+            "targetId": "https://cli.devin.ai/install.sh",
+            "targetKind": "script"
+          }
+        ],
+        "macos": [
+          {
+            "probes": ["executable-presence"],
+            "provider": "script",
+            "targetId": "https://cli.devin.ai/install.sh",
+            "targetKind": "script"
+          }
+        ],
+        "windows": [
+          {
+            "probes": ["executable-presence"],
+            "provider": "script",
+            "targetId": "https://static.devin.ai/cli/setup.ps1",
+            "targetKind": "script"
+          }
+        ]
+      }
+    },
+    {
+      "binaryName": "droid",
+      "name": "droid",
+      "platforms": {
+        "linux": [
+          {
+            "probes": ["executable-presence", "installed-version", "package-presence", "target-version"],
+            "provider": "bun",
+            "targetId": "droid",
+            "targetKind": "package"
+          },
+          {
+            "probes": ["executable-presence", "installed-version", "package-presence", "target-version"],
+            "provider": "npm",
+            "targetId": "droid",
+            "targetKind": "package"
+          },
+          {
+            "probes": ["executable-presence"],
+            "provider": "script",
+            "targetId": "https://app.factory.ai/cli",
+            "targetKind": "script"
+          },
+          {
+            "probes": ["executable-presence"],
+            "provider": "brew",
+            "targetId": "droid",
+            "targetKind": "cask"
+          }
+        ],
+        "macos": [
+          {
+            "probes": ["executable-presence", "installed-version", "package-presence", "target-version"],
+            "provider": "bun",
+            "targetId": "droid",
+            "targetKind": "package"
+          },
+          {
+            "probes": ["executable-presence", "installed-version", "package-presence", "target-version"],
+            "provider": "npm",
+            "targetId": "droid",
+            "targetKind": "package"
+          },
+          {
+            "probes": ["executable-presence"],
+            "provider": "script",
+            "targetId": "https://app.factory.ai/cli",
+            "targetKind": "script"
+          },
+          {
+            "probes": ["executable-presence"],
+            "provider": "brew",
+            "targetId": "droid",
+            "targetKind": "cask"
+          }
+        ],
+        "windows": [
+          {
+            "probes": ["executable-presence", "installed-version", "package-presence", "target-version"],
+            "provider": "bun",
+            "targetId": "droid",
+            "targetKind": "package"
+          },
+          {
+            "probes": ["executable-presence", "installed-version", "package-presence", "target-version"],
+            "provider": "npm",
+            "targetId": "droid",
+            "targetKind": "package"
+          },
+          {
+            "probes": ["executable-presence"],
+            "provider": "script",
+            "targetId": "https://app.factory.ai/cli/windows",
+            "targetKind": "script"
+          }
+        ]
+      }
+    },
+    {
+      "binaryName": "forge",
+      "name": "forgecode",
+      "platforms": {
+        "linux": [
+          {
+            "probes": ["executable-presence", "installed-version", "package-presence", "target-version"],
+            "provider": "bun",
+            "targetId": "forgecode",
+            "targetKind": "package"
+          },
+          {
+            "probes": ["executable-presence", "installed-version", "package-presence", "target-version"],
+            "provider": "npm",
+            "targetId": "forgecode",
+            "targetKind": "package"
+          },
+          {
+            "probes": ["executable-presence"],
+            "provider": "script",
+            "targetId": "https://forgecode.dev/cli",
+            "targetKind": "script"
+          }
+        ],
+        "macos": [
+          {
+            "probes": ["executable-presence", "installed-version", "package-presence", "target-version"],
+            "provider": "bun",
+            "targetId": "forgecode",
+            "targetKind": "package"
+          },
+          {
+            "probes": ["executable-presence", "installed-version", "package-presence", "target-version"],
+            "provider": "npm",
+            "targetId": "forgecode",
+            "targetKind": "package"
+          },
+          {
+            "probes": ["executable-presence"],
+            "provider": "script",
+            "targetId": "https://forgecode.dev/cli",
+            "targetKind": "script"
+          }
+        ],
+        "windows": [
+          {
+            "probes": ["executable-presence", "installed-version", "package-presence", "target-version"],
+            "provider": "bun",
+            "targetId": "forgecode",
+            "targetKind": "package"
+          },
+          {
+            "probes": ["executable-presence", "installed-version", "package-presence", "target-version"],
+            "provider": "npm",
+            "targetId": "forgecode",
+            "targetKind": "package"
+          },
+          {
+            "probes": ["executable-presence"],
+            "provider": "script",
+            "targetId": "https://forgecode.dev/cli",
+            "targetKind": "script"
+          }
+        ]
+      }
+    },
+    {
+      "binaryName": "gemini",
+      "name": "gemini",
+      "platforms": {
+        "linux": [
+          {
+            "probes": ["executable-presence", "installed-version", "package-presence", "target-version"],
+            "provider": "bun",
+            "targetId": "@google/gemini-cli",
+            "targetKind": "package"
+          },
+          {
+            "probes": ["executable-presence", "installed-version", "package-presence", "target-version"],
+            "provider": "npm",
+            "targetId": "@google/gemini-cli",
+            "targetKind": "package"
+          },
+          {
+            "probes": ["executable-presence"],
+            "provider": "brew",
+            "targetId": "gemini-cli",
+            "targetKind": "formula"
+          }
+        ],
+        "macos": [
+          {
+            "probes": ["executable-presence", "installed-version", "package-presence", "target-version"],
+            "provider": "bun",
+            "targetId": "@google/gemini-cli",
+            "targetKind": "package"
+          },
+          {
+            "probes": ["executable-presence", "installed-version", "package-presence", "target-version"],
+            "provider": "npm",
+            "targetId": "@google/gemini-cli",
+            "targetKind": "package"
+          },
+          {
+            "probes": ["executable-presence"],
+            "provider": "brew",
+            "targetId": "gemini-cli",
+            "targetKind": "formula"
+          }
+        ],
+        "windows": [
+          {
+            "probes": ["executable-presence", "installed-version", "package-presence", "target-version"],
+            "provider": "bun",
+            "targetId": "@google/gemini-cli",
+            "targetKind": "package"
+          },
+          {
+            "probes": ["executable-presence", "installed-version", "package-presence", "target-version"],
+            "provider": "npm",
+            "targetId": "@google/gemini-cli",
+            "targetKind": "package"
+          }
+        ]
+      }
+    },
+    {
+      "binaryName": "genie",
+      "name": "genie",
+      "platforms": {
+        "linux": [
+          {
+            "probes": ["executable-presence"],
+            "provider": "deno",
+            "targetId": "jsr:@nicorio/genie",
+            "targetKind": "tool"
+          }
+        ],
+        "macos": [
+          {
+            "probes": ["executable-presence"],
+            "provider": "deno",
+            "targetId": "jsr:@nicorio/genie",
+            "targetKind": "tool"
+          }
+        ],
+        "windows": [
+          {
+            "probes": ["executable-presence"],
+            "provider": "deno",
+            "targetId": "jsr:@nicorio/genie",
+            "targetKind": "tool"
+          }
+        ]
+      }
+    },
+    {
+      "binaryName": "goose",
+      "name": "goose",
+      "platforms": {
+        "linux": [
+          {
+            "probes": ["executable-presence"],
+            "provider": "script",
+            "targetId": "https://github.com/aaif-goose/goose/releases/download/stable/download_cli.sh",
+            "targetKind": "script"
+          },
+          {
+            "probes": ["executable-presence"],
+            "provider": "brew",
+            "targetId": "block-goose-cli",
+            "targetKind": "formula"
+          }
+        ],
+        "macos": [
+          {
+            "probes": ["executable-presence"],
+            "provider": "script",
+            "targetId": "https://github.com/aaif-goose/goose/releases/download/stable/download_cli.sh",
+            "targetKind": "script"
+          },
+          {
+            "probes": ["executable-presence"],
+            "provider": "brew",
+            "targetId": "block-goose-cli",
+            "targetKind": "formula"
+          }
+        ],
+        "windows": [
+          {
+            "probes": ["executable-presence"],
+            "provider": "script",
+            "targetId": "https://github.com/aaif-goose/goose/releases/download/stable/download_cli.sh",
+            "targetKind": "script"
+          },
+          {
+            "probes": ["executable-presence"],
+            "provider": "script",
+            "targetId": "https://raw.githubusercontent.com/aaif-goose/goose/main/download_cli.ps1",
+            "targetKind": "script"
+          }
+        ]
+      }
+    },
+    {
+      "binaryName": "grok",
+      "name": "grok",
+      "platforms": {
+        "linux": [
+          {
+            "probes": ["executable-presence"],
+            "provider": "script",
+            "targetId": "https://x.ai/cli/install.sh",
+            "targetKind": "script"
+          }
+        ],
+        "macos": [
+          {
+            "probes": ["executable-presence"],
+            "provider": "script",
+            "targetId": "https://x.ai/cli/install.sh",
+            "targetKind": "script"
+          }
+        ],
+        "windows": [
+          {
+            "probes": ["executable-presence"],
+            "provider": "script",
+            "targetId": "https://x.ai/cli/install.ps1",
+            "targetKind": "script"
+          }
+        ]
+      }
+    },
+    {
+      "binaryName": "hermes",
+      "name": "hermes",
+      "platforms": {
+        "linux": [
+          {
+            "probes": ["executable-presence"],
+            "provider": "script",
+            "targetId": "https://hermes-agent.nousresearch.com/install.sh",
+            "targetKind": "script"
+          }
+        ],
+        "macos": [
+          {
+            "probes": ["executable-presence"],
+            "provider": "script",
+            "targetId": "https://hermes-agent.nousresearch.com/install.sh",
+            "targetKind": "script"
+          }
+        ],
+        "windows": [
+          {
+            "probes": ["executable-presence"],
+            "provider": "script",
+            "targetId": "https://hermes-agent.nousresearch.com/install.ps1",
+            "targetKind": "script"
+          }
+        ]
+      }
+    },
+    {
+      "binaryName": "jcode",
+      "name": "jcode",
+      "platforms": {
+        "linux": [
+          {
+            "probes": ["executable-presence"],
+            "provider": "script",
+            "targetId": "https://raw.githubusercontent.com/1jehuang/jcode/master/scripts/install.sh",
+            "targetKind": "script"
+          }
+        ],
+        "macos": [
+          {
+            "probes": ["executable-presence"],
+            "provider": "brew",
+            "targetId": "1jehuang/jcode/jcode",
+            "targetKind": "formula"
+          },
+          {
+            "probes": ["executable-presence"],
+            "provider": "script",
+            "targetId": "https://raw.githubusercontent.com/1jehuang/jcode/master/scripts/install.sh",
+            "targetKind": "script"
+          }
+        ],
+        "windows": [
+          {
+            "probes": ["executable-presence"],
+            "provider": "script",
+            "targetId": "https://raw.githubusercontent.com/1jehuang/jcode/master/scripts/install.ps1",
+            "targetKind": "script"
+          }
+        ]
+      }
+    },
+    {
+      "binaryName": "junie",
+      "name": "junie",
+      "platforms": {
+        "linux": [
+          {
+            "probes": ["executable-presence", "installed-version", "package-presence", "target-version"],
+            "provider": "bun",
+            "targetId": "@jetbrains/junie",
+            "targetKind": "package"
+          },
+          {
+            "probes": ["executable-presence", "installed-version", "package-presence", "target-version"],
+            "provider": "npm",
+            "targetId": "@jetbrains/junie",
+            "targetKind": "package"
+          },
+          {
+            "probes": ["executable-presence"],
+            "provider": "script",
+            "targetId": "https://junie.jetbrains.com/install.sh",
+            "targetKind": "script"
+          },
+          {
+            "probes": ["executable-presence"],
+            "provider": "brew",
+            "targetId": "jetbrains-junie/junie/junie",
+            "targetKind": "formula"
+          }
+        ],
+        "macos": [
+          {
+            "probes": ["executable-presence", "installed-version", "package-presence", "target-version"],
+            "provider": "bun",
+            "targetId": "@jetbrains/junie",
+            "targetKind": "package"
+          },
+          {
+            "probes": ["executable-presence", "installed-version", "package-presence", "target-version"],
+            "provider": "npm",
+            "targetId": "@jetbrains/junie",
+            "targetKind": "package"
+          },
+          {
+            "probes": ["executable-presence"],
+            "provider": "script",
+            "targetId": "https://junie.jetbrains.com/install.sh",
+            "targetKind": "script"
+          },
+          {
+            "probes": ["executable-presence"],
+            "provider": "brew",
+            "targetId": "jetbrains-junie/junie/junie",
+            "targetKind": "formula"
+          }
+        ],
+        "windows": [
+          {
+            "probes": ["executable-presence", "installed-version", "package-presence", "target-version"],
+            "provider": "bun",
+            "targetId": "@jetbrains/junie",
+            "targetKind": "package"
+          },
+          {
+            "probes": ["executable-presence", "installed-version", "package-presence", "target-version"],
+            "provider": "npm",
+            "targetId": "@jetbrains/junie",
+            "targetKind": "package"
+          },
+          {
+            "probes": ["executable-presence"],
+            "provider": "script",
+            "targetId": "https://junie.jetbrains.com/install.ps1",
+            "targetKind": "script"
+          }
+        ]
+      }
+    },
+    {
+      "binaryName": "kilo",
+      "name": "kilo",
+      "platforms": {
+        "linux": [
+          {
+            "probes": ["executable-presence", "installed-version", "package-presence", "target-version"],
+            "provider": "bun",
+            "targetId": "@kilocode/cli",
+            "targetKind": "package"
+          },
+          {
+            "probes": ["executable-presence", "installed-version", "package-presence", "target-version"],
+            "provider": "npm",
+            "targetId": "@kilocode/cli",
+            "targetKind": "package"
+          }
+        ],
+        "macos": [
+          {
+            "probes": ["executable-presence", "installed-version", "package-presence", "target-version"],
+            "provider": "bun",
+            "targetId": "@kilocode/cli",
+            "targetKind": "package"
+          },
+          {
+            "probes": ["executable-presence", "installed-version", "package-presence", "target-version"],
+            "provider": "npm",
+            "targetId": "@kilocode/cli",
+            "targetKind": "package"
+          }
+        ],
+        "windows": [
+          {
+            "probes": ["executable-presence", "installed-version", "package-presence", "target-version"],
+            "provider": "bun",
+            "targetId": "@kilocode/cli",
+            "targetKind": "package"
+          },
+          {
+            "probes": ["executable-presence", "installed-version", "package-presence", "target-version"],
+            "provider": "npm",
+            "targetId": "@kilocode/cli",
+            "targetKind": "package"
+          }
+        ]
+      }
+    },
+    {
+      "binaryName": "kimi",
+      "name": "kimi",
+      "platforms": {
+        "linux": [
+          {
+            "probes": ["executable-presence"],
+            "provider": "script",
+            "targetId": "https://code.kimi.com/kimi-code/install.sh",
+            "targetKind": "script"
+          },
+          {
+            "probes": ["executable-presence", "installed-version", "package-presence", "target-version"],
+            "provider": "npm",
+            "targetId": "@moonshot-ai/kimi-code",
+            "targetKind": "package"
+          }
+        ],
+        "macos": [
+          {
+            "probes": ["executable-presence"],
+            "provider": "script",
+            "targetId": "https://code.kimi.com/kimi-code/install.sh",
+            "targetKind": "script"
+          },
+          {
+            "probes": ["executable-presence", "installed-version", "package-presence", "target-version"],
+            "provider": "npm",
+            "targetId": "@moonshot-ai/kimi-code",
+            "targetKind": "package"
+          }
+        ],
+        "windows": [
+          {
+            "probes": ["executable-presence"],
+            "provider": "script",
+            "targetId": "https://code.kimi.com/kimi-code/install.ps1",
+            "targetKind": "script"
+          },
+          {
+            "probes": ["executable-presence", "installed-version", "package-presence", "target-version"],
+            "provider": "npm",
+            "targetId": "@moonshot-ai/kimi-code",
+            "targetKind": "package"
+          }
+        ]
+      }
+    },
+    {
+      "binaryName": "kiro-cli",
+      "name": "kiro",
+      "platforms": {
+        "linux": [
+          {
+            "probes": ["executable-presence"],
+            "provider": "script",
+            "targetId": "https://cli.kiro.dev/install",
+            "targetKind": "script"
+          }
+        ],
+        "macos": [
+          {
+            "probes": ["executable-presence"],
+            "provider": "script",
+            "targetId": "https://cli.kiro.dev/install",
+            "targetKind": "script"
+          }
+        ],
+        "windows": [
+          {
+            "probes": ["executable-presence"],
+            "provider": "script",
+            "targetId": "https://cli.kiro.dev/install.ps1",
+            "targetKind": "script"
+          }
+        ]
+      }
+    },
+    {
+      "binaryName": "mimo",
+      "name": "mimo",
+      "platforms": {
+        "linux": [
+          {
+            "probes": ["executable-presence"],
+            "provider": "script",
+            "targetId": "https://mimo.xiaomi.com/install",
+            "targetKind": "script"
+          },
+          {
+            "probes": ["executable-presence", "installed-version", "package-presence", "target-version"],
+            "provider": "npm",
+            "targetId": "@mimo-ai/cli",
+            "targetKind": "package"
+          }
+        ],
+        "macos": [
+          {
+            "probes": ["executable-presence"],
+            "provider": "script",
+            "targetId": "https://mimo.xiaomi.com/install",
+            "targetKind": "script"
+          },
+          {
+            "probes": ["executable-presence", "installed-version", "package-presence", "target-version"],
+            "provider": "npm",
+            "targetId": "@mimo-ai/cli",
+            "targetKind": "package"
+          }
+        ],
+        "windows": [
+          {
+            "probes": ["executable-presence", "installed-version", "package-presence", "target-version"],
+            "provider": "npm",
+            "targetId": "@mimo-ai/cli",
+            "targetKind": "package"
+          }
+        ]
+      }
+    },
+    {
+      "binaryName": "omp",
+      "name": "omp",
+      "platforms": {
+        "linux": [
+          {
+            "probes": ["executable-presence", "installed-version", "package-presence", "target-version"],
+            "provider": "bun",
+            "targetId": "@oh-my-pi/pi-coding-agent",
+            "targetKind": "package"
+          },
+          {
+            "probes": ["executable-presence"],
+            "provider": "script",
+            "targetId": "https://omp.sh/install",
+            "targetKind": "script"
+          }
+        ],
+        "macos": [
+          {
+            "probes": ["executable-presence", "installed-version", "package-presence", "target-version"],
+            "provider": "bun",
+            "targetId": "@oh-my-pi/pi-coding-agent",
+            "targetKind": "package"
+          },
+          {
+            "probes": ["executable-presence"],
+            "provider": "script",
+            "targetId": "https://omp.sh/install",
+            "targetKind": "script"
+          }
+        ],
+        "windows": [
+          {
+            "probes": ["executable-presence", "installed-version", "package-presence", "target-version"],
+            "provider": "bun",
+            "targetId": "@oh-my-pi/pi-coding-agent",
+            "targetKind": "package"
+          },
+          {
+            "probes": ["executable-presence"],
+            "provider": "script",
+            "targetId": "https://omp.sh/install.ps1",
+            "targetKind": "script"
+          }
+        ]
+      }
+    },
+    {
+      "binaryName": "openclaw",
+      "name": "openclaw",
+      "platforms": {
+        "linux": [
+          {
+            "probes": ["executable-presence", "installed-version", "package-presence", "target-version"],
+            "provider": "bun",
+            "targetId": "openclaw",
+            "targetKind": "package"
+          },
+          {
+            "probes": ["executable-presence", "installed-version", "package-presence", "target-version"],
+            "provider": "npm",
+            "targetId": "openclaw",
+            "targetKind": "package"
+          },
+          {
+            "probes": ["executable-presence"],
+            "provider": "script",
+            "targetId": "https://openclaw.ai/install.sh",
+            "targetKind": "script"
+          }
+        ],
+        "macos": [
+          {
+            "probes": ["executable-presence", "installed-version", "package-presence", "target-version"],
+            "provider": "bun",
+            "targetId": "openclaw",
+            "targetKind": "package"
+          },
+          {
+            "probes": ["executable-presence", "installed-version", "package-presence", "target-version"],
+            "provider": "npm",
+            "targetId": "openclaw",
+            "targetKind": "package"
+          },
+          {
+            "probes": ["executable-presence"],
+            "provider": "script",
+            "targetId": "https://openclaw.ai/install.sh",
+            "targetKind": "script"
+          }
+        ],
+        "windows": [
+          {
+            "probes": ["executable-presence", "installed-version", "package-presence", "target-version"],
+            "provider": "bun",
+            "targetId": "openclaw",
+            "targetKind": "package"
+          },
+          {
+            "probes": ["executable-presence", "installed-version", "package-presence", "target-version"],
+            "provider": "npm",
+            "targetId": "openclaw",
+            "targetKind": "package"
+          },
+          {
+            "probes": ["executable-presence"],
+            "provider": "script",
+            "targetId": "https://openclaw.ai/install.ps1",
+            "targetKind": "script"
+          }
+        ]
+      }
+    },
+    {
+      "binaryName": "opencode",
+      "name": "opencode",
+      "platforms": {
+        "linux": [
+          {
+            "probes": ["executable-presence", "installed-version", "package-presence", "target-version"],
+            "provider": "bun",
+            "targetId": "opencode-ai",
+            "targetKind": "package"
+          },
+          {
+            "probes": ["executable-presence", "installed-version", "package-presence", "target-version"],
+            "provider": "npm",
+            "targetId": "opencode-ai",
+            "targetKind": "package"
+          },
+          {
+            "probes": ["executable-presence"],
+            "provider": "script",
+            "targetId": "https://opencode.ai/install",
+            "targetKind": "script"
+          },
+          {
+            "probes": ["executable-presence"],
+            "provider": "brew",
+            "targetId": "anomalyco/tap/opencode",
+            "targetKind": "formula"
+          }
+        ],
+        "macos": [
+          {
+            "probes": ["executable-presence", "installed-version", "package-presence", "target-version"],
+            "provider": "bun",
+            "targetId": "opencode-ai",
+            "targetKind": "package"
+          },
+          {
+            "probes": ["executable-presence", "installed-version", "package-presence", "target-version"],
+            "provider": "npm",
+            "targetId": "opencode-ai",
+            "targetKind": "package"
+          },
+          {
+            "probes": ["executable-presence"],
+            "provider": "script",
+            "targetId": "https://opencode.ai/install",
+            "targetKind": "script"
+          },
+          {
+            "probes": ["executable-presence"],
+            "provider": "brew",
+            "targetId": "anomalyco/tap/opencode",
+            "targetKind": "formula"
+          }
+        ],
+        "windows": [
+          {
+            "probes": ["executable-presence", "installed-version", "package-presence", "target-version"],
+            "provider": "bun",
+            "targetId": "opencode-ai",
+            "targetKind": "package"
+          },
+          {
+            "probes": ["executable-presence", "installed-version", "package-presence", "target-version"],
+            "provider": "npm",
+            "targetId": "opencode-ai",
+            "targetKind": "package"
+          }
+        ]
+      }
+    },
+    {
+      "binaryName": "openhands",
+      "name": "openhands",
+      "platforms": {
+        "linux": [
+          {
+            "probes": ["executable-presence", "installed-version", "package-presence"],
+            "provider": "uv",
+            "targetId": "openhands",
+            "targetKind": "tool"
+          },
+          {
+            "probes": ["executable-presence"],
+            "provider": "script",
+            "targetId": "https://install.openhands.dev/install.sh",
+            "targetKind": "script"
+          }
+        ],
+        "macos": [
+          {
+            "probes": ["executable-presence", "installed-version", "package-presence"],
+            "provider": "uv",
+            "targetId": "openhands",
+            "targetKind": "tool"
+          },
+          {
+            "probes": ["executable-presence"],
+            "provider": "script",
+            "targetId": "https://install.openhands.dev/install.sh",
+            "targetKind": "script"
+          }
+        ]
+      }
+    },
+    {
+      "binaryName": "pi",
+      "name": "pi",
+      "platforms": {
+        "linux": [
+          {
+            "probes": ["executable-presence", "installed-version", "package-presence", "target-version"],
+            "provider": "bun",
+            "targetId": "@mariozechner/pi-coding-agent",
+            "targetKind": "package"
+          },
+          {
+            "probes": ["executable-presence", "installed-version", "package-presence", "target-version"],
+            "provider": "npm",
+            "targetId": "@mariozechner/pi-coding-agent",
+            "targetKind": "package"
+          }
+        ],
+        "macos": [
+          {
+            "probes": ["executable-presence", "installed-version", "package-presence", "target-version"],
+            "provider": "bun",
+            "targetId": "@mariozechner/pi-coding-agent",
+            "targetKind": "package"
+          },
+          {
+            "probes": ["executable-presence", "installed-version", "package-presence", "target-version"],
+            "provider": "npm",
+            "targetId": "@mariozechner/pi-coding-agent",
+            "targetKind": "package"
+          }
+        ],
+        "windows": [
+          {
+            "probes": ["executable-presence", "installed-version", "package-presence", "target-version"],
+            "provider": "bun",
+            "targetId": "@mariozechner/pi-coding-agent",
+            "targetKind": "package"
+          },
+          {
+            "probes": ["executable-presence", "installed-version", "package-presence", "target-version"],
+            "provider": "npm",
+            "targetId": "@mariozechner/pi-coding-agent",
+            "targetKind": "package"
+          }
+        ]
+      }
+    },
+    {
+      "binaryName": "qodercli",
+      "name": "qoder",
+      "platforms": {
+        "linux": [
+          {
+            "probes": ["executable-presence", "installed-version", "package-presence", "target-version"],
+            "provider": "bun",
+            "targetId": "@qoder-ai/qodercli",
+            "targetKind": "package"
+          },
+          {
+            "probes": ["executable-presence", "installed-version", "package-presence", "target-version"],
+            "provider": "npm",
+            "targetId": "@qoder-ai/qodercli",
+            "targetKind": "package"
+          },
+          {
+            "probes": ["executable-presence"],
+            "provider": "script",
+            "targetId": "https://qoder.com/install",
+            "targetKind": "script"
+          },
+          {
+            "probes": ["executable-presence"],
+            "provider": "brew",
+            "targetId": "qoderai/qoder/qodercli",
+            "targetKind": "cask"
+          }
+        ],
+        "macos": [
+          {
+            "probes": ["executable-presence", "installed-version", "package-presence", "target-version"],
+            "provider": "bun",
+            "targetId": "@qoder-ai/qodercli",
+            "targetKind": "package"
+          },
+          {
+            "probes": ["executable-presence", "installed-version", "package-presence", "target-version"],
+            "provider": "npm",
+            "targetId": "@qoder-ai/qodercli",
+            "targetKind": "package"
+          },
+          {
+            "probes": ["executable-presence"],
+            "provider": "script",
+            "targetId": "https://qoder.com/install",
+            "targetKind": "script"
+          },
+          {
+            "probes": ["executable-presence"],
+            "provider": "brew",
+            "targetId": "qoderai/qoder/qodercli",
+            "targetKind": "cask"
+          }
+        ],
+        "windows": [
+          {
+            "probes": ["executable-presence", "installed-version", "package-presence", "target-version"],
+            "provider": "bun",
+            "targetId": "@qoder-ai/qodercli",
+            "targetKind": "package"
+          },
+          {
+            "probes": ["executable-presence", "installed-version", "package-presence", "target-version"],
+            "provider": "npm",
+            "targetId": "@qoder-ai/qodercli",
+            "targetKind": "package"
+          }
+        ]
+      }
+    },
+    {
+      "binaryName": "qwen",
+      "name": "qwen",
+      "platforms": {
+        "linux": [
+          {
+            "probes": ["executable-presence"],
+            "provider": "script",
+            "targetId": "https://qwen-code-assets.oss-cn-hangzhou.aliyuncs.com/installation/install-qwen.sh",
+            "targetKind": "script"
+          },
+          {
+            "probes": ["executable-presence", "installed-version", "package-presence", "target-version"],
+            "provider": "bun",
+            "targetId": "@qwen-code/qwen-code",
+            "targetKind": "package"
+          },
+          {
+            "probes": ["executable-presence", "installed-version", "package-presence", "target-version"],
+            "provider": "npm",
+            "targetId": "@qwen-code/qwen-code",
+            "targetKind": "package"
+          },
+          {
+            "probes": ["executable-presence"],
+            "provider": "brew",
+            "targetId": "qwen-code",
+            "targetKind": "formula"
+          }
+        ],
+        "macos": [
+          {
+            "probes": ["executable-presence"],
+            "provider": "script",
+            "targetId": "https://qwen-code-assets.oss-cn-hangzhou.aliyuncs.com/installation/install-qwen.sh",
+            "targetKind": "script"
+          },
+          {
+            "probes": ["executable-presence", "installed-version", "package-presence", "target-version"],
+            "provider": "bun",
+            "targetId": "@qwen-code/qwen-code",
+            "targetKind": "package"
+          },
+          {
+            "probes": ["executable-presence", "installed-version", "package-presence", "target-version"],
+            "provider": "npm",
+            "targetId": "@qwen-code/qwen-code",
+            "targetKind": "package"
+          },
+          {
+            "probes": ["executable-presence"],
+            "provider": "brew",
+            "targetId": "qwen-code",
+            "targetKind": "formula"
+          }
+        ],
+        "windows": [
+          {
+            "probes": ["executable-presence"],
+            "provider": "script",
+            "targetId": "https://qwen-code-assets.oss-cn-hangzhou.aliyuncs.com/installation/install-qwen.bat",
+            "targetKind": "script"
+          },
+          {
+            "probes": ["executable-presence", "installed-version", "package-presence", "target-version"],
+            "provider": "bun",
+            "targetId": "@qwen-code/qwen-code",
+            "targetKind": "package"
+          },
+          {
+            "probes": ["executable-presence", "installed-version", "package-presence", "target-version"],
+            "provider": "npm",
+            "targetId": "@qwen-code/qwen-code",
+            "targetKind": "package"
+          }
+        ]
+      }
+    },
+    {
+      "binaryName": "reasonix",
+      "name": "reasonix",
+      "platforms": {
+        "linux": [
+          {
+            "probes": ["executable-presence", "installed-version", "package-presence", "target-version"],
+            "provider": "npm",
+            "targetId": "reasonix",
+            "targetKind": "package"
+          }
+        ],
+        "macos": [
+          {
+            "probes": ["executable-presence", "installed-version", "package-presence", "target-version"],
+            "provider": "npm",
+            "targetId": "reasonix",
+            "targetKind": "package"
+          }
+        ],
+        "windows": [
+          {
+            "probes": ["executable-presence", "installed-version", "package-presence", "target-version"],
+            "provider": "npm",
+            "targetId": "reasonix",
+            "targetKind": "package"
+          }
+        ]
+      }
+    },
+    {
+      "binaryName": "vibe",
+      "name": "vibe",
+      "platforms": {
+        "linux": [
+          {
+            "probes": ["executable-presence"],
+            "provider": "script",
+            "targetId": "https://mistral.ai/vibe/install.sh",
+            "targetKind": "script"
+          },
+          {
+            "probes": ["executable-presence", "installed-version", "package-presence"],
+            "provider": "uv",
+            "targetId": "mistral-vibe",
+            "targetKind": "tool"
+          },
+          {
+            "probes": ["executable-presence"],
+            "provider": "pip",
+            "targetId": "mistral-vibe",
+            "targetKind": "package"
+          }
+        ],
+        "macos": [
+          {
+            "probes": ["executable-presence"],
+            "provider": "script",
+            "targetId": "https://mistral.ai/vibe/install.sh",
+            "targetKind": "script"
+          },
+          {
+            "probes": ["executable-presence", "installed-version", "package-presence"],
+            "provider": "uv",
+            "targetId": "mistral-vibe",
+            "targetKind": "tool"
+          },
+          {
+            "probes": ["executable-presence"],
+            "provider": "pip",
+            "targetId": "mistral-vibe",
+            "targetKind": "package"
+          }
+        ],
+        "windows": [
+          {
+            "probes": ["executable-presence", "installed-version", "package-presence"],
+            "provider": "uv",
+            "targetId": "mistral-vibe",
+            "targetKind": "tool"
+          },
+          {
+            "probes": ["executable-presence"],
+            "provider": "pip",
+            "targetId": "mistral-vibe",
+            "targetKind": "package"
+          }
+        ]
+      }
+    },
+    {
+      "binaryName": "vtcode",
+      "name": "vtcode",
+      "platforms": {
+        "linux": [
+          {
+            "probes": ["executable-presence"],
+            "provider": "script",
+            "targetId": "https://raw.githubusercontent.com/vinhnx/vtcode/main/scripts/install.sh",
+            "targetKind": "script"
+          },
+          {
+            "probes": ["executable-presence"],
+            "provider": "cargo",
+            "targetId": "vtcode",
+            "targetKind": "package"
+          },
+          {
+            "probes": ["executable-presence"],
+            "provider": "brew",
+            "targetId": "vtcode",
+            "targetKind": "formula"
+          }
+        ],
+        "macos": [
+          {
+            "probes": ["executable-presence"],
+            "provider": "script",
+            "targetId": "https://raw.githubusercontent.com/vinhnx/vtcode/main/scripts/install.sh",
+            "targetKind": "script"
+          },
+          {
+            "probes": ["executable-presence"],
+            "provider": "cargo",
+            "targetId": "vtcode",
+            "targetKind": "package"
+          },
+          {
+            "probes": ["executable-presence"],
+            "provider": "brew",
+            "targetId": "vtcode",
+            "targetKind": "formula"
+          }
+        ],
+        "windows": [
+          {
+            "probes": ["executable-presence"],
+            "provider": "cargo",
+            "targetId": "vtcode",
+            "targetKind": "package"
+          },
+          {
+            "probes": ["executable-presence"],
+            "provider": "script",
+            "targetId": "https://raw.githubusercontent.com/vinhnx/vtcode/main/scripts/install.ps1",
+            "targetKind": "script"
+          }
+        ]
+      }
+    }
+  ],
+  "providers": {
+    "bun": {
+      "agents": [
+        "amp",
+        "auggie",
+        "claude",
+        "codebuddy",
+        "codex",
+        "copilot",
+        "crush",
+        "droid",
+        "forgecode",
+        "gemini",
+        "junie",
+        "kilo",
+        "omp",
+        "openclaw",
+        "opencode",
+        "pi",
+        "qoder",
+        "qwen"
+      ],
+      "platforms": ["linux", "macos", "windows"],
+      "probes": ["executable-presence", "installed-version", "package-presence", "target-version"],
+      "targetKinds": ["package"]
+    },
+    "npm": {
+      "agents": [
+        "amp",
+        "auggie",
+        "claude",
+        "codebuddy",
+        "codewhale",
+        "codex",
+        "commandcode",
+        "copilot",
+        "crush",
+        "deepcode",
+        "droid",
+        "forgecode",
+        "gemini",
+        "junie",
+        "kilo",
+        "kimi",
+        "mimo",
+        "openclaw",
+        "opencode",
+        "pi",
+        "qoder",
+        "qwen",
+        "reasonix"
+      ],
+      "platforms": ["linux", "macos", "windows"],
+      "probes": ["executable-presence", "installed-version", "package-presence", "target-version"],
+      "targetKinds": ["package"]
+    },
+    "brew": {
+      "agents": [
+        "claude",
+        "codebuddy",
+        "codex",
+        "copilot",
+        "crush",
+        "droid",
+        "gemini",
+        "goose",
+        "jcode",
+        "junie",
+        "opencode",
+        "qoder",
+        "qwen",
+        "vtcode"
+      ],
+      "platforms": ["linux", "macos"],
+      "probes": ["executable-presence"],
+      "targetKinds": ["cask", "formula"]
+    },
+    "cargo": {
+      "agents": ["codewhale", "vtcode"],
+      "platforms": ["linux", "macos", "windows"],
+      "probes": ["executable-presence"],
+      "targetKinds": ["package"]
+    },
+    "deno": {
+      "agents": ["genie"],
+      "platforms": ["linux", "macos", "windows"],
+      "probes": ["executable-presence"],
+      "targetKinds": ["tool"]
+    },
+    "mise": {
+      "agents": ["codex"],
+      "platforms": ["linux", "macos", "windows"],
+      "probes": ["executable-presence", "installed-version", "package-presence"],
+      "targetKinds": ["tool"]
+    },
+    "pip": {
+      "agents": ["vibe"],
+      "platforms": ["linux", "macos", "windows"],
+      "probes": ["executable-presence"],
+      "targetKinds": ["package"]
+    },
+    "uv": {
+      "agents": ["openhands", "vibe"],
+      "platforms": ["linux", "macos", "windows"],
+      "probes": ["executable-presence", "installed-version", "package-presence"],
+      "targetKinds": ["tool"]
+    },
+    "winget": {
+      "agents": ["claude", "copilot", "crush"],
+      "platforms": ["windows"],
+      "probes": ["executable-presence"],
+      "targetKinds": ["id"]
+    },
+    "script": {
+      "agents": [
+        "antigravity",
+        "autohand",
+        "claude",
+        "codebuddy",
+        "copilot",
+        "cursor",
+        "devin",
+        "droid",
+        "forgecode",
+        "goose",
+        "grok",
+        "hermes",
+        "jcode",
+        "junie",
+        "kimi",
+        "kiro",
+        "mimo",
+        "omp",
+        "openclaw",
+        "opencode",
+        "openhands",
+        "qoder",
+        "qwen",
+        "vibe",
+        "vtcode"
+      ],
+      "platforms": ["linux", "macos", "windows"],
+      "probes": ["executable-presence"],
+      "targetKinds": ["script"]
+    },
+    "binary": {
+      "agents": [],
+      "platforms": [],
+      "probes": [],
+      "targetKinds": []
+    }
+  },
+  "schemaVersion": 1
+}

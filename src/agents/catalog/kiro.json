@@ -10,20 +10,44 @@
   "platforms": {
     "windows": [
       {
-        "command": "irm 'https://cli.kiro.dev/install.ps1' | iex",
-        "type": "script"
+        "probes": ["executable-presence"],
+        "provider": "script",
+        "target": {
+          "id": "https://cli.kiro.dev/install.ps1",
+          "kind": "script",
+          "effect": {
+            "command": "irm 'https://cli.kiro.dev/install.ps1' | iex",
+            "kind": "shell-script"
+          }
+        }
       }
     ],
     "macos": [
       {
-        "command": "curl -fsSL https://cli.kiro.dev/install | bash",
-        "type": "script"
+        "probes": ["executable-presence"],
+        "provider": "script",
+        "target": {
+          "id": "https://cli.kiro.dev/install",
+          "kind": "script",
+          "effect": {
+            "command": "curl -fsSL https://cli.kiro.dev/install | bash",
+            "kind": "shell-script"
+          }
+        }
       }
     ],
     "linux": [
       {
-        "command": "curl -fsSL https://cli.kiro.dev/install | bash",
-        "type": "script"
+        "probes": ["executable-presence"],
+        "provider": "script",
+        "target": {
+          "id": "https://cli.kiro.dev/install",
+          "kind": "script",
+          "effect": {
+            "command": "curl -fsSL https://cli.kiro.dev/install | bash",
+            "kind": "shell-script"
+          }
+        }
       }
     ]
   }

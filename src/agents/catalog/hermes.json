@@ -13,20 +13,44 @@
   "platforms": {
     "windows": [
       {
-        "command": "iex (irm https://hermes-agent.nousresearch.com/install.ps1)",
-        "type": "script"
+        "probes": ["executable-presence"],
+        "provider": "script",
+        "target": {
+          "id": "https://hermes-agent.nousresearch.com/install.ps1",
+          "kind": "script",
+          "effect": {
+            "command": "iex (irm https://hermes-agent.nousresearch.com/install.ps1)",
+            "kind": "shell-script"
+          }
+        }
       }
     ],
     "macos": [
       {
-        "command": "curl -fsSL https://hermes-agent.nousresearch.com/install.sh | bash",
-        "type": "script"
+        "probes": ["executable-presence"],
+        "provider": "script",
+        "target": {
+          "id": "https://hermes-agent.nousresearch.com/install.sh",
+          "kind": "script",
+          "effect": {
+            "command": "curl -fsSL https://hermes-agent.nousresearch.com/install.sh | bash",
+            "kind": "shell-script"
+          }
+        }
       }
     ],
     "linux": [
       {
-        "command": "curl -fsSL https://hermes-agent.nousresearch.com/install.sh | bash",
-        "type": "script"
+        "probes": ["executable-presence"],
+        "provider": "script",
+        "target": {
+          "id": "https://hermes-agent.nousresearch.com/install.sh",
+          "kind": "script",
+          "effect": {
+            "command": "curl -fsSL https://hermes-agent.nousresearch.com/install.sh | bash",
+            "kind": "shell-script"
+          }
+        }
       }
     ]
   }

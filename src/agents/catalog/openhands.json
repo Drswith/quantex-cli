@@ -3,9 +3,6 @@
   "displayName": "OpenHands CLI",
   "homepage": "https://docs.openhands.dev/openhands/usage/cli/installation",
   "binaryName": "openhands",
-  "packages": {
-    "uv": "openhands"
-  },
   "selfUpdate": {
     "command": ["uv", "tool", "upgrade", "openhands", "--python", "3.12"]
   },
@@ -15,22 +12,48 @@
   "platforms": {
     "macos": [
       {
-        "packageInstallArgs": ["--python", "3.12"],
-        "type": "uv"
+        "provider": "uv",
+        "target": {
+          "id": "openhands",
+          "kind": "tool",
+          "arguments": ["--python", "3.12"]
+        },
+        "probes": ["executable-presence", "installed-version", "package-presence"]
       },
       {
-        "command": "curl -fsSL https://install.openhands.dev/install.sh | sh",
-        "type": "script"
+        "probes": ["executable-presence"],
+        "provider": "script",
+        "target": {
+          "id": "https://install.openhands.dev/install.sh",
+          "kind": "script",
+          "effect": {
+            "command": "curl -fsSL https://install.openhands.dev/install.sh | sh",
+            "kind": "shell-script"
+          }
+        }
       }
     ],
     "linux": [
       {
-        "packageInstallArgs": ["--python", "3.12"],
-        "type": "uv"
+        "provider": "uv",
+        "target": {
+          "id": "openhands",
+          "kind": "tool",
+          "arguments": ["--python", "3.12"]
+        },
+        "probes": ["executable-presence", "installed-version", "package-presence"]
       },
       {
-        "command": "curl -fsSL https://install.openhands.dev/install.sh | sh",
-        "type": "script"
+        "probes": ["executable-presence"],
+        "provider": "script",
+        "target": {
+          "id": "https://install.openhands.dev/install.sh",
+          "kind": "script",
+          "effect": {
+            "command": "curl -fsSL https://install.openhands.dev/install.sh | sh",
+            "kind": "shell-script"
+          }
+        }
       }
     ]
   }

@@ -3,9 +3,6 @@
   "lookupAliases": ["deepseek-reasonix"],
   "displayName": "Reasonix",
   "homepage": "https://github.com/esengine/DeepSeek-Reasonix",
-  "packages": {
-    "npm": "reasonix"
-  },
   "binaryName": "reasonix",
   "selfUpdate": {
     "command": ["reasonix", "update"]
@@ -16,17 +13,32 @@
   "platforms": {
     "windows": [
       {
-        "type": "npm"
+        "probes": ["executable-presence", "installed-version", "package-presence", "target-version"],
+        "provider": "npm",
+        "target": {
+          "id": "reasonix",
+          "kind": "package"
+        }
       }
     ],
     "macos": [
       {
-        "type": "npm"
+        "probes": ["executable-presence", "installed-version", "package-presence", "target-version"],
+        "provider": "npm",
+        "target": {
+          "id": "reasonix",
+          "kind": "package"
+        }
       }
     ],
     "linux": [
       {
-        "type": "npm"
+        "probes": ["executable-presence", "installed-version", "package-presence", "target-version"],
+        "provider": "npm",
+        "target": {
+          "id": "reasonix",
+          "kind": "package"
+        }
       }
     ]
   }

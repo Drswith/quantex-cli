@@ -6,6 +6,7 @@ import type { ManagedPackageSpec } from '../package-manager'
 import type { InstalledAgentState } from '../state'
 import { resolveAgentUpdateProvider } from '../agent-update'
 import * as inspectionService from '../inspection'
+import { getManagedInstallTypes } from '../package-manager/capabilities'
 import * as updatePlanning from '../planning'
 import { getManagedPackageName } from '../utils/install'
 import { inspectRegisteredAgents } from './agents'
@@ -40,18 +41,6 @@ export interface SingleAgentUpdateStatus {
   updateAvailable: boolean
 }
 
-const groupedInstallerOrder: ManagedInstallType[] = [
-  'bun',
-  'npm',
-  'brew',
-  'cargo',
-  'deno',
-  'mise',
-  'pip',
-  'uv',
-  'winget',
-]
-
 export async function getSingleAgentUpdateStatus(agent: AgentDefinition): Promise<SingleAgentUpdateStatus> {
   const inspection = await inspectionService.inspectAgent(agent)
   return {
@@ -85,7 +74,7 @@ function buildPlannedAgentUpdates(
 ): PlannedAgentUpdates {
   const plan = updatePlanning.createUpdatePlan(inspections, options)
   const groupedFallbacks: PendingAgentUpdate[] = []
-  const grouped = groupedInstallerOrder
+  const grouped = getManagedInstallTypes()
     .map(type => createManagedUpdateBucket(type, plan.grouped[type], groupedFallbacks))
     .filter((bucket): bucket is ManagedUpdateBucket => bucket !== undefined)
 

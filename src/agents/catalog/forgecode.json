@@ -3,9 +3,6 @@
   "lookupAliases": ["forge"],
   "displayName": "ForgeCode",
   "homepage": "https://forgecode.dev",
-  "packages": {
-    "npm": "forgecode"
-  },
   "binaryName": "forge",
   "selfUpdate": {
     "command": ["forge", "update"]
@@ -16,38 +13,92 @@
   "platforms": {
     "windows": [
       {
-        "type": "bun"
+        "probes": ["executable-presence", "installed-version", "package-presence", "target-version"],
+        "provider": "bun",
+        "target": {
+          "id": "forgecode",
+          "kind": "package"
+        }
       },
       {
-        "type": "npm"
+        "probes": ["executable-presence", "installed-version", "package-presence", "target-version"],
+        "provider": "npm",
+        "target": {
+          "id": "forgecode",
+          "kind": "package"
+        }
       },
       {
-        "command": "irm https://forgecode.dev/cli | iex",
-        "type": "script"
+        "probes": ["executable-presence"],
+        "provider": "script",
+        "target": {
+          "id": "https://forgecode.dev/cli",
+          "kind": "script",
+          "effect": {
+            "command": "irm https://forgecode.dev/cli | iex",
+            "kind": "shell-script"
+          }
+        }
       }
     ],
     "macos": [
       {
-        "type": "bun"
+        "probes": ["executable-presence", "installed-version", "package-presence", "target-version"],
+        "provider": "bun",
+        "target": {
+          "id": "forgecode",
+          "kind": "package"
+        }
       },
       {
-        "type": "npm"
+        "probes": ["executable-presence", "installed-version", "package-presence", "target-version"],
+        "provider": "npm",
+        "target": {
+          "id": "forgecode",
+          "kind": "package"
+        }
       },
       {
-        "command": "curl -fsSL https://forgecode.dev/cli | sh",
-        "type": "script"
+        "probes": ["executable-presence"],
+        "provider": "script",
+        "target": {
+          "id": "https://forgecode.dev/cli",
+          "kind": "script",
+          "effect": {
+            "command": "curl -fsSL https://forgecode.dev/cli | sh",
+            "kind": "shell-script"
+          }
+        }
       }
     ],
     "linux": [
       {
-        "type": "bun"
+        "probes": ["executable-presence", "installed-version", "package-presence", "target-version"],
+        "provider": "bun",
+        "target": {
+          "id": "forgecode",
+          "kind": "package"
+        }
       },
       {
-        "type": "npm"
+        "probes": ["executable-presence", "installed-version", "package-presence", "target-version"],
+        "provider": "npm",
+        "target": {
+          "id": "forgecode",
+          "kind": "package"
+        }
       },
       {
-        "command": "curl -fsSL https://forgecode.dev/cli | sh",
-        "type": "script"
+        "probes": ["executable-presence"],
+        "provider": "script",
+        "target": {
+          "id": "https://forgecode.dev/cli",
+          "kind": "script",
+          "effect": {
+            "command": "curl -fsSL https://forgecode.dev/cli | sh",
+            "kind": "shell-script"
+          }
+        }
       }
     ]
   }

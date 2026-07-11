@@ -2,27 +2,39 @@
   "name": "genie",
   "displayName": "Genie",
   "homepage": "https://jsr.io/@nicorio/genie",
-  "packages": {
-    "deno": "jsr:@nicorio/genie"
-  },
   "binaryName": "genie",
   "platforms": {
     "windows": [
       {
-        "packageInstallArgs": ["-A"],
-        "type": "deno"
+        "provider": "deno",
+        "target": {
+          "id": "jsr:@nicorio/genie",
+          "kind": "tool",
+          "arguments": ["-A"]
+        },
+        "probes": ["executable-presence"]
       }
     ],
     "macos": [
       {
-        "packageInstallArgs": ["-A"],
-        "type": "deno"
+        "provider": "deno",
+        "target": {
+          "id": "jsr:@nicorio/genie",
+          "kind": "tool",
+          "arguments": ["-A"]
+        },
+        "probes": ["executable-presence"]
       }
     ],
     "linux": [
       {
-        "packageInstallArgs": ["-A"],
-        "type": "deno"
+        "provider": "deno",
+        "target": {
+          "id": "jsr:@nicorio/genie",
+          "kind": "tool",
+          "arguments": ["-A"]
+        },
+        "probes": ["executable-presence"]
       }
     ]
   }

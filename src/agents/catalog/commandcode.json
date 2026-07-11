@@ -3,9 +3,6 @@
   "lookupAliases": ["command-code", "cmd", "cmdc"],
   "displayName": "Command Code",
   "homepage": "https://commandcode.ai/docs/quickstart",
-  "packages": {
-    "npm": "command-code"
-  },
   "binaryName": "command-code",
   "selfUpdate": {
     "command": ["command-code", "update"]
@@ -16,17 +13,32 @@
   "platforms": {
     "windows": [
       {
-        "type": "npm"
+        "probes": ["executable-presence", "installed-version", "package-presence", "target-version"],
+        "provider": "npm",
+        "target": {
+          "id": "command-code",
+          "kind": "package"
+        }
       }
     ],
     "macos": [
       {
-        "type": "npm"
+        "probes": ["executable-presence", "installed-version", "package-presence", "target-version"],
+        "provider": "npm",
+        "target": {
+          "id": "command-code",
+          "kind": "package"
+        }
       }
     ],
     "linux": [
       {
-        "type": "npm"
+        "probes": ["executable-presence", "installed-version", "package-presence", "target-version"],
+        "provider": "npm",
+        "target": {
+          "id": "command-code",
+          "kind": "package"
+        }
       }
     ]
   }

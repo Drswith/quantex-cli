@@ -2,9 +2,6 @@
   "name": "auggie",
   "displayName": "Auggie CLI",
   "homepage": "https://docs.augmentcode.com/cli/overview",
-  "packages": {
-    "npm": "@augmentcode/auggie"
-  },
   "binaryName": "auggie",
   "selfUpdate": {
     "command": ["auggie", "upgrade"]
@@ -15,18 +12,38 @@
   "platforms": {
     "macos": [
       {
-        "type": "bun"
+        "probes": ["executable-presence", "installed-version", "package-presence", "target-version"],
+        "provider": "bun",
+        "target": {
+          "id": "@augmentcode/auggie",
+          "kind": "package"
+        }
       },
       {
-        "type": "npm"
+        "probes": ["executable-presence", "installed-version", "package-presence", "target-version"],
+        "provider": "npm",
+        "target": {
+          "id": "@augmentcode/auggie",
+          "kind": "package"
+        }
       }
     ],
     "linux": [
       {
-        "type": "bun"
+        "probes": ["executable-presence", "installed-version", "package-presence", "target-version"],
+        "provider": "bun",
+        "target": {
+          "id": "@augmentcode/auggie",
+          "kind": "package"
+        }
       },
       {
-        "type": "npm"
+        "probes": ["executable-presence", "installed-version", "package-presence", "target-version"],
+        "provider": "npm",
+        "target": {
+          "id": "@augmentcode/auggie",
+          "kind": "package"
+        }
       }
     ]
   }

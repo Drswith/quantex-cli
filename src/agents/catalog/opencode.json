@@ -2,9 +2,6 @@
   "name": "opencode",
   "displayName": "OpenCode",
   "homepage": "https://opencode.ai",
-  "packages": {
-    "npm": "opencode-ai"
-  },
   "binaryName": "opencode",
   "selfUpdate": {
     "command": ["opencode", "upgrade"]
@@ -12,42 +9,96 @@
   "platforms": {
     "windows": [
       {
-        "type": "bun"
+        "probes": ["executable-presence", "installed-version", "package-presence", "target-version"],
+        "provider": "bun",
+        "target": {
+          "id": "opencode-ai",
+          "kind": "package"
+        }
       },
       {
-        "type": "npm"
+        "probes": ["executable-presence", "installed-version", "package-presence", "target-version"],
+        "provider": "npm",
+        "target": {
+          "id": "opencode-ai",
+          "kind": "package"
+        }
       }
     ],
     "macos": [
       {
-        "type": "bun"
+        "probes": ["executable-presence", "installed-version", "package-presence", "target-version"],
+        "provider": "bun",
+        "target": {
+          "id": "opencode-ai",
+          "kind": "package"
+        }
       },
       {
-        "type": "npm"
+        "probes": ["executable-presence", "installed-version", "package-presence", "target-version"],
+        "provider": "npm",
+        "target": {
+          "id": "opencode-ai",
+          "kind": "package"
+        }
       },
       {
-        "command": "curl -fsSL https://opencode.ai/install | bash",
-        "type": "script"
+        "probes": ["executable-presence"],
+        "provider": "script",
+        "target": {
+          "id": "https://opencode.ai/install",
+          "kind": "script",
+          "effect": {
+            "command": "curl -fsSL https://opencode.ai/install | bash",
+            "kind": "shell-script"
+          }
+        }
       },
       {
-        "packageName": "anomalyco/tap/opencode",
-        "type": "brew"
+        "probes": ["executable-presence"],
+        "provider": "brew",
+        "target": {
+          "id": "anomalyco/tap/opencode",
+          "kind": "formula"
+        }
       }
     ],
     "linux": [
       {
-        "type": "bun"
+        "probes": ["executable-presence", "installed-version", "package-presence", "target-version"],
+        "provider": "bun",
+        "target": {
+          "id": "opencode-ai",
+          "kind": "package"
+        }
       },
       {
-        "type": "npm"
+        "probes": ["executable-presence", "installed-version", "package-presence", "target-version"],
+        "provider": "npm",
+        "target": {
+          "id": "opencode-ai",
+          "kind": "package"
+        }
       },
       {
-        "command": "curl -fsSL https://opencode.ai/install | bash",
-        "type": "script"
+        "probes": ["executable-presence"],
+        "provider": "script",
+        "target": {
+          "id": "https://opencode.ai/install",
+          "kind": "script",
+          "effect": {
+            "command": "curl -fsSL https://opencode.ai/install | bash",
+            "kind": "shell-script"
+          }
+        }
       },
       {
-        "packageName": "anomalyco/tap/opencode",
-        "type": "brew"
+        "probes": ["executable-presence"],
+        "provider": "brew",
+        "target": {
+          "id": "anomalyco/tap/opencode",
+          "kind": "formula"
+        }
       }
     ]
   }
