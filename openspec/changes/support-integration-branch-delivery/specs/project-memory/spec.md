@@ -28,6 +28,7 @@ The delivery change SHALL own the complete temporary-branch lifecycle. Setup MUS
 - **WHEN** lifecycle milestones are delivered before final promotion
 - **THEN** they MUST enter the integration branch through pull requests
 - **AND** later `main` changes MUST enter integration only through the verified same-repository main-sync topology after protection is active
+- **AND** every pull request MUST use rebase merge first or squash merge only as the fallback, without an agent or automation selecting a merge commit
 - **AND** neither active OpenSpec change MAY be archived during this runtime phase
 
 #### Scenario: Final promotion becomes eligible
@@ -36,7 +37,7 @@ The delivery change SHALL own the complete temporary-branch lifecycle. Setup MUS
 - **WHEN** maintainers propose final integration-to-`main` promotion
 - **THEN** the redesign change MUST report exactly `74/74` after its other 73 tasks complete on their existing terms and clarified task `11.6` has real post-promotion follow-up readiness
 - **AND** the task `11.6` clarification MUST preserve its number, checkbox, 74-task denominator, implementation scope, and completion credit while deferring actual current-spec synchronization and archive execution
-- **AND** integration MUST contain the latest `main` tip through a final verified main sync
+- **AND** a final verified main sync MUST prove through expected-tree and refreshed content-comparison evidence that integration contains the latest `main` content alongside the accepted redesign delta, without requiring the `main` tip to be an ancestor
 - **AND** all required redesign validation MUST pass and no lifecycle milestone pull request may remain open
 
 #### Scenario: Redesign task 11.6 is clarified before promotion

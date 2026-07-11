@@ -4,7 +4,7 @@
 - [x] 1.2 Update only the CI and Sandbox Tests `pull_request` base filters needed by the integration tests, keep both workflows' `push` filters on `main`/`beta`, and leave PR Governance without a base filter.
 - [x] 1.3 Add focused release regression tests proving the existing positive `main`/`beta` allowlist rejects integration for Release `workflow_run`, manual target selection, and Release PR targeting/validation before release-target resolution or npm tag/channel derivation can run.
 - [x] 1.4 Keep the production Release workflow, Release PR, policy, and resolver surfaces unchanged when the regression tests pass; only if a test exposes a concrete allowlist gap, make the smallest correction and prove it with that regression.
-- [x] 1.5 Add focused PR-policy tests for the ordinary single-commit rule, both exact same-repository multi-commit topology exceptions, and fork/ref/lookalike near misses; retain actual merge-commit delivery verification in runtime tasks 3.3 and 4.4.
+- [x] 1.5 Add focused PR-policy tests for the ordinary single-commit rule, both exact same-repository multi-commit topology exceptions, and fork/ref/lookalike near misses; retain actual merge-method and content-result delivery verification in runtime tasks 3.3 and 4.4.
 - [x] 1.6 Update PR Governance payload collection and merge-commit policy logic to satisfy the topology tests without granting any other multi-commit exception.
 - [x] 1.7 Clarify only `redesign-lifecycle-engine` task `11.6` so it tracks readiness of the explicit post-promotion spec-sync/archive follow-up; preserve its number, checkbox, 74-task denominator, implementation scope, and completion credit, leave it unchecked during the clarification, and do not perform spec sync or archive before promotion.
 - [x] 1.8 Add the setup/runtime/teardown procedure to the canonical delivery runbook and route the central Quantex runtime skill to it without expanding thin agent bootstraps.
@@ -21,17 +21,17 @@
 
 ## 3. Milestone Runtime
 
-- [ ] 3.1 Deliver each `redesign-lifecycle-engine` milestone as an ordinary single-commit pull request to the protected integration branch and require all six contexts before merge; retain the existing allowed merge methods for these ordinary pull requests rather than imposing the exceptional merge-commit rule.
+- [ ] 3.1 Deliver each `redesign-lifecycle-engine` milestone as an ordinary single-commit pull request to the protected integration branch and require all six contexts before merge; use rebase merge first or squash merge only as the fallback, and never let an agent or automation select a merge commit.
 - [ ] 3.2 After each milestone merge, update only redesign tasks actually completed, run the milestone's required validation, and report milestone closure while both OpenSpec changes remain active.
-- [ ] 3.3 Whenever `main` advances, use only a same-repository pull request with base `codex/redesign-lifecycle-integration` and head `main`, merge it with a merge commit after all checks pass, and verify the resulting two-parent topology.
+- [ ] 3.3 At each synchronization checkpoint, compare the refreshed integration tree with the merge-tree result for integration plus `main` and create the exact same-repository main-sync pull request only when those trees differ; after all checks pass, atomically persist approved tips and expected tree under the worktree Git metadata path, reload and revalidate them after a final fetch, stop on drift, use rebase merge first or squash merge only as the fallback, then reload the ledger to verify the protected integration tree and remaining content diff without making ancestry or two-parent claims or treating graph diagnostics as a sync trigger.
 - [ ] 3.4 Confirm throughout runtime that integration produces no Release workflow run, Release PR, npm tag/channel, package publication, or archive eligibility.
 
 ## 4. Final Promotion
 
 - [ ] 4.1 Complete the other 73 `redesign-lifecycle-engine` tasks on their existing terms and satisfy clarified task `11.6` post-promotion follow-up readiness so the unchanged 74-checkbox denominator reports exactly `74/74`; run its final test, build, binary, package, and release-artifact gates, but defer actual current-spec synchronization and archive execution to tasks 5.4 and 5.5.
-- [ ] 4.2 Perform a final verified same-repository main-sync merge, refresh both remote refs, prove the current `main` tip is an ancestor of integration, and confirm no lifecycle milestone pull request remains open.
+- [ ] 4.2 Perform a final verified same-repository main sync, refresh both remote refs, prove through expected-tree and content-comparison evidence that integration includes the latest `main` content alongside only the accepted redesign delta, and confirm no lifecycle milestone pull request remains open.
 - [ ] 4.3 Review the complete integration-to-`main` comparison for only accepted redesign work, validate the PR body, and open the exact same-repository final-promotion pull request.
-- [ ] 4.4 After every required `main` context succeeds, merge final promotion with a merge commit and verify its two parents are the approved refreshed `main` and integration tips.
+- [ ] 4.4 After every required `main` context succeeds, atomically persist the approved final-promotion tips and expected tree under the worktree Git metadata path, reload and revalidate them after a final fetch, stop on drift, use rebase merge or squash only as the fallback, then reload the ledger and refresh `main` to verify its tree matches the expected promotion result and contains all approved integration content without requiring source ancestry or a two-parent commit.
 - [ ] 4.5 Let normal post-merge `main` release automation classify the promoted product delta and report promotion, release, and still-pending archive closure separately.
 
 ## 5. Post-Promotion Teardown

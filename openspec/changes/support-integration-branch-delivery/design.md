@@ -77,22 +77,24 @@ Both lint-staged oxfmt commands use the pinned `--no-error-on-unmatched-pattern`
 
 Removing `test/fixtures` from the formatter ignore list was rejected because hard fixtures should not be mechanically rewritten. Narrowing lint-staged globs around one current fixture path was rejected because future ignored formatter paths could reproduce the same failure. Skipping the hook was rejected because the repository contract requires local pre-commit enforcement.
 
-### 5. Identify the only two multi-commit exceptions from immutable PR topology
+### 5. Keep multi-commit exceptions narrow and use linear merge methods
 
 Ordinary pull requests continue to contain exactly one commit when evaluated by PR Governance. A multiple-commit pull request is permitted only when all repository identity and ref predicates match one of these shapes:
 
-| Multi-commit operation | Base repository/ref | Head repository/ref | Required merge method |
+| Multi-commit operation | Base repository/ref | Head repository/ref | Merge-method order |
 |---|---|---|---|
-| Periodic main sync | this repository / `codex/redesign-lifecycle-integration` | this same repository / `main` | merge commit |
-| Final promotion | this repository / `main` | this same repository / `codex/redesign-lifecycle-integration` | merge commit |
+| Periodic main sync | this repository / `codex/redesign-lifecycle-integration` | this same repository / `main` | rebase first; squash only if rebase is unavailable or unsafe |
+| Final promotion | this repository / `main` | this same repository / `codex/redesign-lifecycle-integration` | rebase first; squash only if rebase is unavailable or unsafe |
 
 Forks, lookalike branch names, reversed refs, other bases, and other heads do not qualify. PR Governance receives base/head repository identity and exact refs from the pull-request payload and tests both allowed shapes and near misses. Release-please validation remains separate and does not create another integration exception.
 
-This change does not impose a merge method on ordinary single-commit milestone or product pull requests; their existing repository governance remains authoritative. The merge-commit mandate applies only when one of the two exact exceptions actually contains multiple commits.
+The same ordering applies to every remaining ordinary milestone, process, synchronization, promotion, cleanup, and archive pull request in this lifecycle: use rebase merge when GitHub and repository governance can apply it safely, otherwise use squash merge. Agents and automation MUST NOT select a merge commit. A later human decision to use any other method requires an explicit contract amendment rather than an automatic fallback.
 
-Before a recurring main-sync merge, the operator refreshes both remote refs and verifies the PR contains only commits newly accepted on `main`. Before final promotion, the operator refreshes both refs, verifies `origin/main` is an ancestor of the integration head, verifies there are no open lifecycle milestone pull requests, and verifies that the comparison contains only the accepted redesign delta. After each exceptional merge, the operator verifies the resulting protected-branch commit has two parents with the expected base and head tips.
+Before a recurring main-sync merge, the operator refreshes both remote refs, verifies the pull request contains only content newly accepted on `main`, and records the content tree expected from combining the approved base and head. The approved tips and expected tree are written atomically to a per-worktree Git metadata ledger resolved with `git rev-parse --git-path`, not to a tracked file or ephemeral shell-only variables. A fresh process MUST reload that ledger after another fetch and prove both remote tips still equal the approved values; any drift stops delivery until the result is recomputed, reviewed, and re-approved. After the rebase or squash merge, another fresh process reloads the ledger, refreshes the protected ref, and verifies its tree matches that expected result; the operator then reviews the two-tip content diff and confirms that only the accepted redesign delta remains between approved `main` and integration. Before final promotion, the operator applies the same durable-ledger and pre-merge drift checks, verifies there are no open lifecycle milestone pull requests, and verifies the comparison contains only the accepted redesign delta. Final promotion closes only when refreshed `main` has the ledger's expected result tree and no approved integration content is missing.
 
-Squashing these two operations was rejected because it would destroy ancestry and make later synchronization ambiguous. Rebasing was rejected because it would rewrite already reviewed milestone commits. Branch-name-only detection was rejected because a fork could imitate the ref name.
+Because rebase and squash do not preserve source commit ancestry, `rev-list`, commit logs, and ahead/behind counts are graph diagnostics only. Main-sync is needed only when the merge-tree result calculated from the refreshed integration and `main` tips differs from the current integration tree; equality proves there is no content to synchronize even when the commit graph diverges.
+
+Merge commits were rejected as the automatic delivery method because they create unnecessary graph branches for synchronization and promotion. Rebase is preferred because it keeps the protected target linear; squash remains the explicit second choice when rebase is unavailable or unsafe. Either method may rewrite commit identity, so delivery closure relies on refreshed comparison, expected-tree, changed-file, and content evidence rather than ancestry or parent-count claims. Branch-name-only detection was rejected because a fork could imitate the ref name.
 
 ### 6. Gate final promotion on redesign completion, not milestone count
 
@@ -106,11 +108,11 @@ Final promotion may open only after all of the following are true:
 
 - `redesign-lifecycle-engine` reports exactly `74/74`: the other 73 tasks are complete on their existing terms and clarified `11.6` has genuine post-promotion follow-up readiness, without early spec synchronization or archive execution;
 - all redesign validation and final release-artifact gates required by that change pass;
-- integration has received a final same-repository `main` sync and contains the latest protected `main` tip;
+- integration has received a final same-repository `main` sync whose expected-tree and content-comparison evidence proves that the latest protected `main` content is present alongside the accepted redesign delta;
 - no lifecycle milestone pull request remains open;
 - the final `integration -> main` comparison has been reviewed as the complete accepted redesign and contains no unrelated product work.
 
-The exact integration-to-`main` pull request then uses a merge commit and the normal `main` required checks. Integration itself still does not release. Once the promotion merge exists on `main`, normal `main` release classification and automation decide whether and how the product delta releases.
+The exact integration-to-`main` pull request then passes the normal `main` required checks and uses rebase merge, or squash merge only when rebase is unavailable or unsafe. Integration itself still does not release. Once the promotion result exists on `main`, normal `main` release classification and automation decide whether and how the product delta releases.
 
 Archiving at `74/74` before promotion was rejected because implementation/readiness completion is not merge closure. Archiving on a milestone merge was rejected because the umbrella contract spans all milestones.
 
@@ -118,7 +120,7 @@ Archiving at `74/74` before promotion was rejected because implementation/readin
 
 The final promotion is followed by an explicit teardown:
 
-1. Verify the promotion merge on `main` and record its two-parent topology.
+1. Verify the promotion result on `main` and record the approved base/head tips, selected linear merge method, expected result tree, and refreshed content comparison.
 2. Deliver a process-only cleanup pull request to `main` that removes integration-specific CI targeting and temporary PR-policy exceptions, and updates runtime/runbook guidance to the completed state. It MUST NOT publish a release by itself.
 3. Remove the temporary integration ruleset, then delete the temporary integration branch after the cleanup is merged and no recovery use remains.
 4. Reconcile accepted delta requirements into current specs, preserving only the durable conditional/closure rules and keeping transient execution evidence in the archived changes or runbook history.
@@ -130,7 +132,7 @@ Leaving dormant integration triggers and policy exceptions in place was rejected
 
 ## Risks / Trade-offs
 
-- [The temporary branch diverges from new `main` fixes] -> Use only the exact same-repository `main -> integration` PR topology, require the six contexts, merge with a merge commit, and perform a final sync before promotion.
+- [The temporary branch diverges from new `main` fixes] -> Use only the exact same-repository `main -> integration` PR topology, require the six contexts, apply rebase first or squash second, and verify the expected result tree and remaining content diff before the next milestone.
 - [A broad multi-commit exemption weakens PR governance] -> Match repository identity plus both exact refs, test near misses, and remove the exemption during teardown.
 - [Integration accidentally becomes releasable] -> Keep a positive `main`/`beta` release allowlist at every entry point and add negative tests proving workflow, manual, and Release PR gates stop integration before resolver and npm-channel paths.
 - [The initial ruleset protects stale workflow content] -> Create protection only after the post-bootstrap exact synchronization is verified `0/0`.
@@ -138,7 +140,7 @@ Leaving dormant integration triggers and policy exceptions in place was rejected
 - [Partial redesign reaches `main`] -> Allow only process/bootstrap changes before the `74/74` gate and review the complete final comparison.
 - [Task `11.6` creates a promotion/archive dependency cycle] -> Clarify only its readiness semantics without renumbering, changing the denominator or scope, awarding early credit, or executing post-promotion work before promotion.
 - [Two active changes are archived too early] -> Model milestone merge, final promotion, release, teardown, spec sync, and archive as distinct closure states.
-- [Merge commits complicate history] -> Permit them for only the two ancestry-preserving operations; keep all milestone and ordinary pull requests single-commit.
+- [Synchronization or promotion creates abnormal graph history] -> Prefer rebase for every pull request, use squash only as the documented fallback, never let an agent or automation select a merge commit, and use content evidence because linear methods do not preserve source-tip ancestry.
 
 ## Migration Plan
 
@@ -154,17 +156,17 @@ Leaving dormant integration triggers and policy exceptions in place was rejected
 
 1. Verify lint-staged can accept deliberately formatter-ignored compatibility fixtures without formatting them or bypassing supported-file checks.
 2. Deliver lifecycle milestones as ordinary single-commit pull requests to integration.
-3. When `main` advances, open the exact same-repository `main -> integration` pull request, pass all six contexts, and merge it with a merge commit.
+3. When `main` advances, open the exact same-repository `main -> integration` pull request, pass all six contexts, record the expected result tree, and merge it with rebase first or squash second; then verify the refreshed integration tree and remaining content diff.
 4. Continue reporting milestone closure separately while both OpenSpec changes remain active.
 
 ### Final promotion and teardown
 
 1. Confirm the other 73 redesign tasks and clarified `11.6` follow-up readiness produce genuine `74/74`, then verify full validation, final main sync, clean PR inventory, and the complete comparison; do not execute spec sync/archive yet.
-2. Merge the exact integration-to-`main` promotion pull request with a merge commit and let normal `main` release automation evaluate the promoted product delta.
+2. Merge the exact integration-to-`main` promotion pull request with rebase first or squash second, verify the refreshed `main` result tree and content equality, and let normal `main` release automation evaluate the promoted product delta.
 3. Merge the process-only workflow/policy cleanup, remove the temporary ruleset and branch, synchronize current specs, and archive both changes through an explicit follow-up.
 
 Rollback before final promotion is to stop new milestone PRs, retain integration for diagnosis, and leave `main` unchanged. Rollback after promotion follows the normal protected-`main` revert/release process; the integration branch is retained until cleanup confirms it is no longer required for recovery.
 
 ## Open Questions
 
-None. The exact branch names, six contexts, two allowed multi-commit topologies, non-release boundary, `74/74` gate, and post-promotion teardown/archive order are fixed by this change.
+None. The exact branch names, six contexts, two allowed multi-commit topologies, rebase-first/squash-second merge ordering, content-based closure evidence, non-release boundary, `74/74` gate, and post-promotion teardown/archive order are fixed by this change.
