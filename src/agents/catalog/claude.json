@@ -2,9 +2,6 @@
   "name": "claude",
   "displayName": "Claude Code",
   "homepage": "https://code.claude.com/docs",
-  "packages": {
-    "npm": "@anthropic-ai/claude-code"
-  },
   "binaryName": "claude",
   "selfUpdate": {
     "command": ["claude", "update"],
@@ -13,53 +10,116 @@
   "platforms": {
     "windows": [
       {
-        "type": "bun"
+        "probes": ["executable-presence", "installed-version", "package-presence", "target-version"],
+        "provider": "bun",
+        "target": {
+          "id": "@anthropic-ai/claude-code",
+          "kind": "package"
+        }
       },
       {
-        "type": "npm"
+        "probes": ["executable-presence", "installed-version", "package-presence", "target-version"],
+        "provider": "npm",
+        "target": {
+          "id": "@anthropic-ai/claude-code",
+          "kind": "package"
+        }
       },
       {
-        "command": "irm https://claude.ai/install.ps1 | iex",
-        "type": "script"
+        "probes": ["executable-presence"],
+        "provider": "script",
+        "target": {
+          "id": "https://claude.ai/install.ps1",
+          "kind": "script",
+          "effect": {
+            "command": "irm https://claude.ai/install.ps1 | iex",
+            "kind": "shell-script"
+          }
+        }
       },
       {
-        "packageName": "Anthropic.ClaudeCode",
-        "packageTargetKind": "id",
-        "type": "winget"
+        "probes": ["executable-presence"],
+        "provider": "winget",
+        "target": {
+          "id": "Anthropic.ClaudeCode",
+          "kind": "id"
+        }
       }
     ],
     "macos": [
       {
-        "type": "bun"
+        "probes": ["executable-presence", "installed-version", "package-presence", "target-version"],
+        "provider": "bun",
+        "target": {
+          "id": "@anthropic-ai/claude-code",
+          "kind": "package"
+        }
       },
       {
-        "type": "npm"
+        "probes": ["executable-presence", "installed-version", "package-presence", "target-version"],
+        "provider": "npm",
+        "target": {
+          "id": "@anthropic-ai/claude-code",
+          "kind": "package"
+        }
       },
       {
-        "command": "curl -fsSL https://claude.ai/install.sh | bash",
-        "type": "script"
+        "probes": ["executable-presence"],
+        "provider": "script",
+        "target": {
+          "id": "https://claude.ai/install.sh",
+          "kind": "script",
+          "effect": {
+            "command": "curl -fsSL https://claude.ai/install.sh | bash",
+            "kind": "shell-script"
+          }
+        }
       },
       {
-        "packageName": "claude-code",
-        "packageTargetKind": "cask",
-        "type": "brew"
+        "probes": ["executable-presence"],
+        "provider": "brew",
+        "target": {
+          "id": "claude-code",
+          "kind": "cask"
+        }
       }
     ],
     "linux": [
       {
-        "type": "bun"
+        "probes": ["executable-presence", "installed-version", "package-presence", "target-version"],
+        "provider": "bun",
+        "target": {
+          "id": "@anthropic-ai/claude-code",
+          "kind": "package"
+        }
       },
       {
-        "type": "npm"
+        "probes": ["executable-presence", "installed-version", "package-presence", "target-version"],
+        "provider": "npm",
+        "target": {
+          "id": "@anthropic-ai/claude-code",
+          "kind": "package"
+        }
       },
       {
-        "command": "curl -fsSL https://claude.ai/install.sh | bash",
-        "type": "script"
+        "probes": ["executable-presence"],
+        "provider": "script",
+        "target": {
+          "id": "https://claude.ai/install.sh",
+          "kind": "script",
+          "effect": {
+            "command": "curl -fsSL https://claude.ai/install.sh | bash",
+            "kind": "shell-script"
+          }
+        }
       },
       {
-        "packageName": "claude-code",
-        "packageTargetKind": "cask",
-        "type": "brew"
+        "probes": ["executable-presence"],
+        "provider": "brew",
+        "target": {
+          "id": "claude-code",
+          "kind": "cask"
+        }
       }
     ]
   }

@@ -2,41 +2,76 @@
   "name": "gemini",
   "displayName": "Gemini CLI",
   "homepage": "https://google-gemini.github.io/gemini-cli/docs/",
-  "packages": {
-    "npm": "@google/gemini-cli"
-  },
   "binaryName": "gemini",
   "platforms": {
     "windows": [
       {
-        "type": "bun"
+        "probes": ["executable-presence", "installed-version", "package-presence", "target-version"],
+        "provider": "bun",
+        "target": {
+          "id": "@google/gemini-cli",
+          "kind": "package"
+        }
       },
       {
-        "type": "npm"
+        "probes": ["executable-presence", "installed-version", "package-presence", "target-version"],
+        "provider": "npm",
+        "target": {
+          "id": "@google/gemini-cli",
+          "kind": "package"
+        }
       }
     ],
     "macos": [
       {
-        "type": "bun"
+        "probes": ["executable-presence", "installed-version", "package-presence", "target-version"],
+        "provider": "bun",
+        "target": {
+          "id": "@google/gemini-cli",
+          "kind": "package"
+        }
       },
       {
-        "type": "npm"
+        "probes": ["executable-presence", "installed-version", "package-presence", "target-version"],
+        "provider": "npm",
+        "target": {
+          "id": "@google/gemini-cli",
+          "kind": "package"
+        }
       },
       {
-        "packageName": "gemini-cli",
-        "type": "brew"
+        "probes": ["executable-presence"],
+        "provider": "brew",
+        "target": {
+          "id": "gemini-cli",
+          "kind": "formula"
+        }
       }
     ],
     "linux": [
       {
-        "type": "bun"
+        "probes": ["executable-presence", "installed-version", "package-presence", "target-version"],
+        "provider": "bun",
+        "target": {
+          "id": "@google/gemini-cli",
+          "kind": "package"
+        }
       },
       {
-        "type": "npm"
+        "probes": ["executable-presence", "installed-version", "package-presence", "target-version"],
+        "provider": "npm",
+        "target": {
+          "id": "@google/gemini-cli",
+          "kind": "package"
+        }
       },
       {
-        "packageName": "gemini-cli",
-        "type": "brew"
+        "probes": ["executable-presence"],
+        "provider": "brew",
+        "target": {
+          "id": "gemini-cli",
+          "kind": "formula"
+        }
       }
     ]
   }

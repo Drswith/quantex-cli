@@ -2,9 +2,6 @@
   "name": "openclaw",
   "displayName": "OpenClaw",
   "homepage": "https://github.com/openclaw/openclaw",
-  "packages": {
-    "npm": "openclaw"
-  },
   "binaryName": "openclaw",
   "selfUpdate": {
     "command": ["openclaw", "update"]
@@ -15,38 +12,92 @@
   "platforms": {
     "windows": [
       {
-        "type": "bun"
+        "probes": ["executable-presence", "installed-version", "package-presence", "target-version"],
+        "provider": "bun",
+        "target": {
+          "id": "openclaw",
+          "kind": "package"
+        }
       },
       {
-        "type": "npm"
+        "probes": ["executable-presence", "installed-version", "package-presence", "target-version"],
+        "provider": "npm",
+        "target": {
+          "id": "openclaw",
+          "kind": "package"
+        }
       },
       {
-        "command": "iwr -useb https://openclaw.ai/install.ps1 | iex",
-        "type": "script"
+        "probes": ["executable-presence"],
+        "provider": "script",
+        "target": {
+          "id": "https://openclaw.ai/install.ps1",
+          "kind": "script",
+          "effect": {
+            "command": "iwr -useb https://openclaw.ai/install.ps1 | iex",
+            "kind": "shell-script"
+          }
+        }
       }
     ],
     "macos": [
       {
-        "type": "bun"
+        "probes": ["executable-presence", "installed-version", "package-presence", "target-version"],
+        "provider": "bun",
+        "target": {
+          "id": "openclaw",
+          "kind": "package"
+        }
       },
       {
-        "type": "npm"
+        "probes": ["executable-presence", "installed-version", "package-presence", "target-version"],
+        "provider": "npm",
+        "target": {
+          "id": "openclaw",
+          "kind": "package"
+        }
       },
       {
-        "command": "curl -fsSL https://openclaw.ai/install.sh | bash",
-        "type": "script"
+        "probes": ["executable-presence"],
+        "provider": "script",
+        "target": {
+          "id": "https://openclaw.ai/install.sh",
+          "kind": "script",
+          "effect": {
+            "command": "curl -fsSL https://openclaw.ai/install.sh | bash",
+            "kind": "shell-script"
+          }
+        }
       }
     ],
     "linux": [
       {
-        "type": "bun"
+        "probes": ["executable-presence", "installed-version", "package-presence", "target-version"],
+        "provider": "bun",
+        "target": {
+          "id": "openclaw",
+          "kind": "package"
+        }
       },
       {
-        "type": "npm"
+        "probes": ["executable-presence", "installed-version", "package-presence", "target-version"],
+        "provider": "npm",
+        "target": {
+          "id": "openclaw",
+          "kind": "package"
+        }
       },
       {
-        "command": "curl -fsSL https://openclaw.ai/install.sh | bash",
-        "type": "script"
+        "probes": ["executable-presence"],
+        "provider": "script",
+        "target": {
+          "id": "https://openclaw.ai/install.sh",
+          "kind": "script",
+          "effect": {
+            "command": "curl -fsSL https://openclaw.ai/install.sh | bash",
+            "kind": "shell-script"
+          }
+        }
       }
     ]
   }

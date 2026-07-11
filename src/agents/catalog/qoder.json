@@ -3,9 +3,6 @@
   "lookupAliases": ["qodercli"],
   "displayName": "Qoder CLI",
   "homepage": "https://docs.qoder.com/cli/quick-start",
-  "packages": {
-    "npm": "@qoder-ai/qodercli"
-  },
   "binaryName": "qodercli",
   "selfUpdate": {
     "command": ["qodercli", "update"]
@@ -13,44 +10,96 @@
   "platforms": {
     "windows": [
       {
-        "type": "bun"
+        "probes": ["executable-presence", "installed-version", "package-presence", "target-version"],
+        "provider": "bun",
+        "target": {
+          "id": "@qoder-ai/qodercli",
+          "kind": "package"
+        }
       },
       {
-        "type": "npm"
+        "probes": ["executable-presence", "installed-version", "package-presence", "target-version"],
+        "provider": "npm",
+        "target": {
+          "id": "@qoder-ai/qodercli",
+          "kind": "package"
+        }
       }
     ],
     "macos": [
       {
-        "type": "bun"
+        "probes": ["executable-presence", "installed-version", "package-presence", "target-version"],
+        "provider": "bun",
+        "target": {
+          "id": "@qoder-ai/qodercli",
+          "kind": "package"
+        }
       },
       {
-        "type": "npm"
+        "probes": ["executable-presence", "installed-version", "package-presence", "target-version"],
+        "provider": "npm",
+        "target": {
+          "id": "@qoder-ai/qodercli",
+          "kind": "package"
+        }
       },
       {
-        "command": "curl -fsSL https://qoder.com/install | bash",
-        "type": "script"
+        "probes": ["executable-presence"],
+        "provider": "script",
+        "target": {
+          "id": "https://qoder.com/install",
+          "kind": "script",
+          "effect": {
+            "command": "curl -fsSL https://qoder.com/install | bash",
+            "kind": "shell-script"
+          }
+        }
       },
       {
-        "packageName": "qoderai/qoder/qodercli",
-        "packageTargetKind": "cask",
-        "type": "brew"
+        "probes": ["executable-presence"],
+        "provider": "brew",
+        "target": {
+          "id": "qoderai/qoder/qodercli",
+          "kind": "cask"
+        }
       }
     ],
     "linux": [
       {
-        "type": "bun"
+        "probes": ["executable-presence", "installed-version", "package-presence", "target-version"],
+        "provider": "bun",
+        "target": {
+          "id": "@qoder-ai/qodercli",
+          "kind": "package"
+        }
       },
       {
-        "type": "npm"
+        "probes": ["executable-presence", "installed-version", "package-presence", "target-version"],
+        "provider": "npm",
+        "target": {
+          "id": "@qoder-ai/qodercli",
+          "kind": "package"
+        }
       },
       {
-        "command": "curl -fsSL https://qoder.com/install | bash",
-        "type": "script"
+        "probes": ["executable-presence"],
+        "provider": "script",
+        "target": {
+          "id": "https://qoder.com/install",
+          "kind": "script",
+          "effect": {
+            "command": "curl -fsSL https://qoder.com/install | bash",
+            "kind": "shell-script"
+          }
+        }
       },
       {
-        "packageName": "qoderai/qoder/qodercli",
-        "packageTargetKind": "cask",
-        "type": "brew"
+        "probes": ["executable-presence"],
+        "provider": "brew",
+        "target": {
+          "id": "qoderai/qoder/qodercli",
+          "kind": "cask"
+        }
       }
     ]
   }

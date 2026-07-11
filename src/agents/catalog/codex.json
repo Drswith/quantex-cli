@@ -2,10 +2,6 @@
   "name": "codex",
   "displayName": "Codex CLI",
   "homepage": "https://developers.openai.com/codex/cli",
-  "packages": {
-    "mise": "npm:@openai/codex",
-    "npm": "@openai/codex"
-  },
   "binaryName": "codex",
   "selfUpdate": {
     "command": ["codex", "--upgrade"]
@@ -13,43 +9,96 @@
   "platforms": {
     "windows": [
       {
-        "type": "bun"
+        "probes": ["executable-presence", "installed-version", "package-presence", "target-version"],
+        "provider": "bun",
+        "target": {
+          "id": "@openai/codex",
+          "kind": "package"
+        }
       },
       {
-        "type": "npm"
+        "probes": ["executable-presence", "installed-version", "package-presence", "target-version"],
+        "provider": "npm",
+        "target": {
+          "id": "@openai/codex",
+          "kind": "package"
+        }
       },
       {
-        "type": "mise"
+        "probes": ["executable-presence", "installed-version", "package-presence"],
+        "provider": "mise",
+        "target": {
+          "id": "npm:@openai/codex",
+          "kind": "tool"
+        }
       }
     ],
     "macos": [
       {
-        "type": "bun"
+        "probes": ["executable-presence", "installed-version", "package-presence", "target-version"],
+        "provider": "bun",
+        "target": {
+          "id": "@openai/codex",
+          "kind": "package"
+        }
       },
       {
-        "type": "npm"
+        "probes": ["executable-presence", "installed-version", "package-presence", "target-version"],
+        "provider": "npm",
+        "target": {
+          "id": "@openai/codex",
+          "kind": "package"
+        }
       },
       {
-        "type": "mise"
+        "probes": ["executable-presence", "installed-version", "package-presence"],
+        "provider": "mise",
+        "target": {
+          "id": "npm:@openai/codex",
+          "kind": "tool"
+        }
       },
       {
-        "packageName": "codex",
-        "type": "brew"
+        "probes": ["executable-presence"],
+        "provider": "brew",
+        "target": {
+          "id": "codex",
+          "kind": "formula"
+        }
       }
     ],
     "linux": [
       {
-        "type": "bun"
+        "probes": ["executable-presence", "installed-version", "package-presence", "target-version"],
+        "provider": "bun",
+        "target": {
+          "id": "@openai/codex",
+          "kind": "package"
+        }
       },
       {
-        "type": "npm"
+        "probes": ["executable-presence", "installed-version", "package-presence", "target-version"],
+        "provider": "npm",
+        "target": {
+          "id": "@openai/codex",
+          "kind": "package"
+        }
       },
       {
-        "type": "mise"
+        "probes": ["executable-presence", "installed-version", "package-presence"],
+        "provider": "mise",
+        "target": {
+          "id": "npm:@openai/codex",
+          "kind": "tool"
+        }
       },
       {
-        "packageName": "codex",
-        "type": "brew"
+        "probes": ["executable-presence"],
+        "provider": "brew",
+        "target": {
+          "id": "codex",
+          "kind": "formula"
+        }
       }
     ]
   }

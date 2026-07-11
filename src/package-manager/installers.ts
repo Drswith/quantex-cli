@@ -1,25 +1,24 @@
 import type { ManagedInstallType, PackageTargetKind } from '../agents/types'
 import type { NpmBunUpdateStrategy } from '../config'
-import {
-  isBrewAvailable,
-  isBunAvailable,
-  isCargoAvailable,
-  isDenoAvailable,
-  isMiseAvailable,
-  isNpmAvailable,
-  isPipAvailable,
-  isUvAvailable,
-  isWingetAvailable,
-} from '../utils/detect'
-import * as brewPm from './brew'
+import type {
+  ProviderAdapter,
+  ProviderOperationContext,
+  ProviderTarget,
+  RegistryPackageOperationOptions,
+} from '../providers'
+import { brewProviderAdapter } from '../providers/adapters/brew'
+import { bunProviderAdapter } from '../providers/adapters/bun'
+import { cargoProviderAdapter } from '../providers/adapters/cargo'
+import { denoProviderAdapter } from '../providers/adapters/deno'
+import { miseProviderAdapter } from '../providers/adapters/mise'
+import { npmProviderAdapter } from '../providers/adapters/npm'
+import { pipProviderAdapter } from '../providers/adapters/pip'
+import { uvProviderAdapter } from '../providers/adapters/uv'
+import { wingetProviderAdapter } from '../providers/adapters/winget'
 import * as bunPm from './bun'
-import * as cargoPm from './cargo'
-import * as denoPm from './deno'
 import * as misePm from './mise'
 import * as npmPm from './npm'
-import * as pipPm from './pip'
 import * as uvPm from './uv'
-import * as wingetPm from './winget'
 
 export interface ManagedPackageSpec {
   binaryName?: string
@@ -62,120 +61,179 @@ export interface ManagedInstaller {
   updateMany: (packages: ManagedPackageSpec[], options?: ManagedInstallerUpdateOptions) => Promise<boolean>
 }
 
+interface RegistryManagedInstallerProbes {
+  readonly getInstalledVersion: (packageName: string) => Promise<string | undefined>
+  readonly probePackagePresence: (packageName: string) => Promise<ManagedPackagePresenceProbe>
+}
+
+function createRegistryManagedInstaller(
+  type: Extract<ManagedInstallType, 'bun' | 'npm'>,
+  adapter: ProviderAdapter,
+  probes: RegistryManagedInstallerProbes,
+): ManagedInstaller {
+  return {
+    type,
+    getInstalledVersion: packageName => probes.getInstalledVersion(packageName),
+    probePackagePresence: packageName => probes.probePackagePresence(packageName),
+    isAvailable: async () => (await adapter.availability(createProviderContext())).kind === 'success',
+    install: async (packageName, packageTargetKind, packageInstallArgs) => {
+      if (!adapter.install) return false
+      const outcome = await adapter.install({
+        context: createProviderContext(),
+        target: createProviderTarget(packageName, packageTargetKind, undefined, packageInstallArgs),
+      })
+      return outcome.kind === 'success'
+    },
+    uninstall: async (packageName, packageTargetKind, options) => {
+      if (!adapter.uninstall) return false
+      const outcome = await adapter.uninstall({
+        context: createProviderContext(),
+        target: createProviderTarget(packageName, packageTargetKind, options?.binaryName),
+      })
+      return outcome.kind === 'success'
+    },
+    update: async (packageName, packageTargetKind, options) => {
+      if (!adapter.update) return false
+      const operationOptions = createRegistryOperationOptions(options)
+      const outcome = await adapter.update({
+        context: createProviderContext(),
+        ...(operationOptions ? { options: operationOptions } : {}),
+        target: createProviderTarget(packageName, packageTargetKind, options?.binaryName, options?.packageInstallArgs),
+      })
+      return outcome.kind === 'success'
+    },
+    updateMany: async (packages, options) => {
+      if (!adapter.updateMany) return false
+      const operationOptions = createRegistryOperationOptions(options)
+      const outcome = await adapter.updateMany({
+        context: createProviderContext(),
+        ...(operationOptions ? { options: operationOptions } : {}),
+        targets: packages.map(pkg =>
+          createProviderTarget(pkg.packageName, pkg.packageTargetKind, pkg.binaryName, pkg.packageInstallArgs),
+        ),
+      })
+      return outcome.kind === 'success'
+    },
+  }
+}
+
+function createProviderContext(): ProviderOperationContext {
+  return { signal: new AbortController().signal }
+}
+
+function createProviderTarget(
+  packageName: string,
+  packageTargetKind?: PackageTargetKind,
+  binaryName?: string,
+  packageInstallArgs?: string[],
+): ProviderTarget {
+  return {
+    ...(packageInstallArgs?.length ? { arguments: packageInstallArgs } : {}),
+    ...(binaryName ? { binaryName } : {}),
+    id: packageName,
+    kind: packageTargetKind ?? 'package',
+  }
+}
+
+function createRegistryOperationOptions(
+  options?: ManagedInstallerUpdateOptions,
+): RegistryPackageOperationOptions | undefined {
+  return options?.npmBunUpdateStrategy ? { updateStrategy: options.npmBunUpdateStrategy } : undefined
+}
+
+function createSystemManagedInstaller(
+  type: Extract<ManagedInstallType, 'brew' | 'cargo' | 'deno' | 'mise' | 'pip' | 'uv' | 'winget'>,
+  adapter: ProviderAdapter,
+  resolveKind: (packageTargetKind?: PackageTargetKind) => ProviderTarget['kind'],
+  compatibility: Pick<ManagedInstaller, 'getInstalledVersion' | 'probePackagePresence'> = {},
+): ManagedInstaller {
+  const target = (
+    packageName: string,
+    packageTargetKind?: PackageTargetKind,
+    packageInstallArgs?: string[],
+    binaryName?: string,
+  ): ProviderTarget => ({
+    ...(packageInstallArgs?.length ? { arguments: packageInstallArgs } : {}),
+    ...(binaryName ? { binaryName } : {}),
+    id: packageName,
+    kind: resolveKind(packageTargetKind),
+  })
+
+  return {
+    ...compatibility,
+    type,
+    isAvailable: async () => (await adapter.availability(createProviderContext())).kind === 'success',
+    install: async (packageName, packageTargetKind, packageInstallArgs) => {
+      if (!adapter.install) return false
+      return (
+        (
+          await adapter.install({
+            context: createProviderContext(),
+            target: target(packageName, packageTargetKind, packageInstallArgs),
+          })
+        ).kind === 'success'
+      )
+    },
+    uninstall: async (packageName, packageTargetKind, options) => {
+      if (!adapter.uninstall) return false
+      return (
+        (
+          await adapter.uninstall({
+            context: createProviderContext(),
+            target: target(packageName, packageTargetKind, undefined, options?.binaryName),
+          })
+        ).kind === 'success'
+      )
+    },
+    update: async (packageName, packageTargetKind, options) => {
+      if (!adapter.update) return false
+      return (
+        (
+          await adapter.update({
+            context: createProviderContext(),
+            target: target(packageName, packageTargetKind, options?.packageInstallArgs, options?.binaryName),
+          })
+        ).kind === 'success'
+      )
+    },
+    updateMany: async packages => {
+      if (!adapter.updateMany) return false
+      return (
+        (
+          await adapter.updateMany({
+            context: createProviderContext(),
+            targets: packages.map(pkg =>
+              target(pkg.packageName, pkg.packageTargetKind, pkg.packageInstallArgs, pkg.binaryName),
+            ),
+          })
+        ).kind === 'success'
+      )
+    },
+  }
+}
+
 const managedInstallers: Record<ManagedInstallType, ManagedInstaller> = {
-  brew: {
-    type: 'brew',
-    isAvailable: async () => isBrewAvailable(),
-    install: async (packageName, packageTargetKind) => brewPm.install(packageName, packageTargetKind),
-    uninstall: async (packageName, packageTargetKind) => brewPm.uninstall(packageName, packageTargetKind),
-    update: async (packageName, packageTargetKind) => brewPm.update(packageName, packageTargetKind),
-    updateMany: async packages => brewPm.updateMany(packages),
-  },
-  bun: {
-    type: 'bun',
-    getInstalledVersion: async packageName => bunPm.getInstalledVersion(packageName),
-    probePackagePresence: async packageName => bunPm.probePackagePresence(packageName),
-    isAvailable: async () => isBunAvailable(),
-    install: async packageName => bunPm.install(packageName),
-    uninstall: async packageName => bunPm.uninstall(packageName),
-    update: async (packageName, _packageTargetKind, options) =>
-      bunPm.update(packageName, options?.npmBunUpdateStrategy),
-    updateMany: async (packages, options) =>
-      bunPm.updateMany(
-        packages.map(pkg => pkg.packageName),
-        options?.npmBunUpdateStrategy,
-      ),
-  },
-  cargo: {
-    type: 'cargo',
-    isAvailable: async () => isCargoAvailable(),
-    install: async (packageName, _packageTargetKind, packageInstallArgs) =>
-      cargoPm.install(packageName, packageInstallArgs),
-    uninstall: async packageName => cargoPm.uninstall(packageName),
-    update: async (packageName, _packageTargetKind, options) =>
-      cargoPm.update(packageName, options?.packageInstallArgs),
-    updateMany: async packages =>
-      cargoPm.updateMany(
-        packages.map(pkg => ({
-          packageInstallArgs: pkg.packageInstallArgs,
-          packageName: pkg.packageName,
-        })),
-      ),
-  },
-  deno: {
-    type: 'deno',
-    isAvailable: async () => isDenoAvailable(),
-    install: async (packageName, _packageTargetKind, packageInstallArgs) =>
-      denoPm.install(packageName, packageInstallArgs),
-    uninstall: async (packageName, _packageTargetKind, options) => denoPm.uninstall(options?.binaryName ?? packageName),
-    update: async (packageName, _packageTargetKind, options) => denoPm.update(packageName, options?.packageInstallArgs),
-    updateMany: async packages =>
-      denoPm.updateMany(
-        packages.map(pkg => ({
-          binaryName: pkg.binaryName,
-          packageInstallArgs: pkg.packageInstallArgs,
-          packageName: pkg.packageName,
-        })),
-      ),
-  },
-  mise: {
-    type: 'mise',
-    getInstalledVersion: async packageName => misePm.getInstalledVersion(packageName),
-    probePackagePresence: async packageName => misePm.probePackagePresence(packageName),
-    isAvailable: async () => isMiseAvailable(),
-    install: async packageName => misePm.install(packageName),
-    uninstall: async packageName => misePm.uninstall(packageName),
-    update: async packageName => misePm.update(packageName),
-    updateMany: async packages => misePm.updateMany(packages.map(pkg => ({ packageName: pkg.packageName }))),
-  },
-  npm: {
-    type: 'npm',
-    getInstalledVersion: async packageName => npmPm.getInstalledVersion(packageName),
-    probePackagePresence: async packageName => npmPm.probePackagePresence(packageName),
-    isAvailable: async () => isNpmAvailable(),
-    install: async packageName => npmPm.install(packageName),
-    uninstall: async packageName => npmPm.uninstall(packageName),
-    update: async (packageName, _packageTargetKind, options) =>
-      npmPm.update(packageName, options?.npmBunUpdateStrategy),
-    updateMany: async (packages, options) =>
-      npmPm.updateMany(
-        packages.map(pkg => pkg.packageName),
-        options?.npmBunUpdateStrategy,
-      ),
-  },
-  pip: {
-    type: 'pip',
-    isAvailable: async () => isPipAvailable(),
-    install: async packageName => pipPm.install(packageName),
-    uninstall: async packageName => pipPm.uninstall(packageName),
-    update: async packageName => pipPm.update(packageName),
-    updateMany: async packages => pipPm.updateMany(packages.map(pkg => ({ packageName: pkg.packageName }))),
-  },
-  uv: {
-    type: 'uv',
-    getInstalledVersion: async packageName => uvPm.getInstalledVersion(packageName),
-    probePackagePresence: async packageName => uvPm.probePackagePresence(packageName),
-    isAvailable: async () => isUvAvailable(),
-    install: async (packageName, _packageTargetKind, packageInstallArgs) =>
-      uvPm.install(packageName, packageInstallArgs),
-    uninstall: async packageName => uvPm.uninstall(packageName),
-    update: async (packageName, _packageTargetKind, options) => uvPm.update(packageName, options?.packageInstallArgs),
-    updateMany: async packages =>
-      uvPm.updateMany(
-        packages.map(pkg => ({
-          packageInstallArgs: pkg.packageInstallArgs,
-          packageName: pkg.packageName,
-        })),
-      ),
-  },
-  winget: {
-    type: 'winget',
-    isAvailable: async () => isWingetAvailable(),
-    install: async packageName => wingetPm.install(packageName),
-    uninstall: async packageName => wingetPm.uninstall(packageName),
-    update: async packageName => wingetPm.update(packageName),
-    updateMany: async packages => wingetPm.updateMany(packages.map(pkg => ({ packageName: pkg.packageName }))),
-  },
+  brew: createSystemManagedInstaller('brew', brewProviderAdapter, kind => (kind === 'cask' ? 'cask' : 'formula')),
+  bun: createRegistryManagedInstaller('bun', bunProviderAdapter, {
+    getInstalledVersion: packageName => bunPm.getInstalledVersion(packageName),
+    probePackagePresence: packageName => bunPm.probePackagePresence(packageName),
+  }),
+  cargo: createSystemManagedInstaller('cargo', cargoProviderAdapter, () => 'package'),
+  deno: createSystemManagedInstaller('deno', denoProviderAdapter, () => 'tool'),
+  mise: createSystemManagedInstaller('mise', miseProviderAdapter, () => 'tool', {
+    getInstalledVersion: packageName => misePm.getInstalledVersion(packageName),
+    probePackagePresence: packageName => misePm.probePackagePresence(packageName),
+  }),
+  npm: createRegistryManagedInstaller('npm', npmProviderAdapter, {
+    getInstalledVersion: packageName => npmPm.getInstalledVersion(packageName),
+    probePackagePresence: packageName => npmPm.probePackagePresence(packageName),
+  }),
+  pip: createSystemManagedInstaller('pip', pipProviderAdapter, () => 'package'),
+  uv: createSystemManagedInstaller('uv', uvProviderAdapter, () => 'tool', {
+    getInstalledVersion: packageName => uvPm.getInstalledVersion(packageName),
+    probePackagePresence: packageName => uvPm.probePackagePresence(packageName),
+  }),
+  winget: createSystemManagedInstaller('winget', wingetProviderAdapter, () => 'id'),
 }
 
 export function getManagedInstaller(type: ManagedInstallType): ManagedInstaller {

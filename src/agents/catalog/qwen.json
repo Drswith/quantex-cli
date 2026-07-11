@@ -2,53 +2,112 @@
   "name": "qwen",
   "displayName": "Qwen Code",
   "homepage": "https://qwenlm.github.io/qwen-code-docs/",
-  "packages": {
-    "npm": "@qwen-code/qwen-code"
-  },
   "binaryName": "qwen",
   "platforms": {
     "windows": [
       {
-        "command": "curl -fsSL -o %TEMP%\\install-qwen.bat https://qwen-code-assets.oss-cn-hangzhou.aliyuncs.com/installation/install-qwen.bat && %TEMP%\\install-qwen.bat",
-        "type": "script"
+        "probes": ["executable-presence"],
+        "provider": "script",
+        "target": {
+          "id": "https://qwen-code-assets.oss-cn-hangzhou.aliyuncs.com/installation/install-qwen.bat",
+          "kind": "script",
+          "effect": {
+            "command": "curl -fsSL -o %TEMP%\\install-qwen.bat https://qwen-code-assets.oss-cn-hangzhou.aliyuncs.com/installation/install-qwen.bat && %TEMP%\\install-qwen.bat",
+            "kind": "shell-script"
+          }
+        }
       },
       {
-        "type": "bun"
+        "probes": ["executable-presence", "installed-version", "package-presence", "target-version"],
+        "provider": "bun",
+        "target": {
+          "id": "@qwen-code/qwen-code",
+          "kind": "package"
+        }
       },
       {
-        "type": "npm"
+        "probes": ["executable-presence", "installed-version", "package-presence", "target-version"],
+        "provider": "npm",
+        "target": {
+          "id": "@qwen-code/qwen-code",
+          "kind": "package"
+        }
       }
     ],
     "macos": [
       {
-        "command": "curl -fsSL https://qwen-code-assets.oss-cn-hangzhou.aliyuncs.com/installation/install-qwen.sh | bash",
-        "type": "script"
+        "probes": ["executable-presence"],
+        "provider": "script",
+        "target": {
+          "id": "https://qwen-code-assets.oss-cn-hangzhou.aliyuncs.com/installation/install-qwen.sh",
+          "kind": "script",
+          "effect": {
+            "command": "curl -fsSL https://qwen-code-assets.oss-cn-hangzhou.aliyuncs.com/installation/install-qwen.sh | bash",
+            "kind": "shell-script"
+          }
+        }
       },
       {
-        "type": "bun"
+        "probes": ["executable-presence", "installed-version", "package-presence", "target-version"],
+        "provider": "bun",
+        "target": {
+          "id": "@qwen-code/qwen-code",
+          "kind": "package"
+        }
       },
       {
-        "type": "npm"
+        "probes": ["executable-presence", "installed-version", "package-presence", "target-version"],
+        "provider": "npm",
+        "target": {
+          "id": "@qwen-code/qwen-code",
+          "kind": "package"
+        }
       },
       {
-        "packageName": "qwen-code",
-        "type": "brew"
+        "probes": ["executable-presence"],
+        "provider": "brew",
+        "target": {
+          "id": "qwen-code",
+          "kind": "formula"
+        }
       }
     ],
     "linux": [
       {
-        "command": "curl -fsSL https://qwen-code-assets.oss-cn-hangzhou.aliyuncs.com/installation/install-qwen.sh | bash",
-        "type": "script"
+        "probes": ["executable-presence"],
+        "provider": "script",
+        "target": {
+          "id": "https://qwen-code-assets.oss-cn-hangzhou.aliyuncs.com/installation/install-qwen.sh",
+          "kind": "script",
+          "effect": {
+            "command": "curl -fsSL https://qwen-code-assets.oss-cn-hangzhou.aliyuncs.com/installation/install-qwen.sh | bash",
+            "kind": "shell-script"
+          }
+        }
       },
       {
-        "type": "bun"
+        "probes": ["executable-presence", "installed-version", "package-presence", "target-version"],
+        "provider": "bun",
+        "target": {
+          "id": "@qwen-code/qwen-code",
+          "kind": "package"
+        }
       },
       {
-        "type": "npm"
+        "probes": ["executable-presence", "installed-version", "package-presence", "target-version"],
+        "provider": "npm",
+        "target": {
+          "id": "@qwen-code/qwen-code",
+          "kind": "package"
+        }
       },
       {
-        "packageName": "qwen-code",
-        "type": "brew"
+        "probes": ["executable-presence"],
+        "provider": "brew",
+        "target": {
+          "id": "qwen-code",
+          "kind": "formula"
+        }
       }
     ]
   }

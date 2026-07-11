@@ -27,20 +27,20 @@
 
 ## 4. Provider and Catalog Contracts
 
-- [ ] 4.1 Define the compile-time provider adapter registry with typed availability, observation, install, update, uninstall, and verification operations.
-- [ ] 4.2 Add a reusable provider conformance suite for unsupported operations, typed failures, cancellation, timeout, presence, and verification evidence.
-- [ ] 4.3 Migrate npm and Bun adapters to the typed contract and preserve registry/update-strategy behavior.
-- [ ] 4.4 Migrate Homebrew and winget adapters to the typed contract and preserve formula, cask, and package-id semantics.
-- [ ] 4.5 Migrate Cargo and Deno adapters to the typed contract and preserve package arguments and executable-name semantics.
-- [ ] 4.6 Migrate pip, uv, and mise adapters to the typed contract and preserve provider-specific presence/version behavior.
-- [ ] 4.7 Represent script and standalone-binary candidates with explicit executable or shell-script effects without adding dynamic provider loading.
-- [ ] 4.8 Replace duplicated provider capability tables and hard-coded update bucket enumerations with capabilities derived from registered adapters.
-- [ ] 4.9 Update the agent catalog schema so each candidate binds provider and provider-specific target identity once.
-- [ ] 4.10 Migrate npm, Bun, and mise-backed catalog entries to provider-bound candidates and declarative probes.
-- [ ] 4.11 Migrate Cargo, Deno, pip, and uv-backed catalog entries to provider-bound candidates and declarative probes.
-- [ ] 4.12 Migrate Homebrew and winget-backed catalog entries to provider-bound candidates and declarative probes.
-- [ ] 4.13 Migrate script and standalone-binary catalog entries without changing agent identity or platform coverage.
-- [ ] 4.14 Generate catalog support documentation and validation inputs from the normalized catalog model.
+- [x] 4.1 Define the compile-time provider adapter registry with typed availability, observation, install, update, uninstall, and verification operations.
+- [x] 4.2 Add a reusable provider conformance suite for unsupported operations, typed failures, cancellation, timeout, presence, and verification evidence.
+- [x] 4.3 Migrate npm and Bun adapters to the typed contract and preserve registry/update-strategy behavior.
+- [x] 4.4 Migrate Homebrew and winget adapters to the typed contract and preserve formula, cask, and package-id semantics.
+- [x] 4.5 Migrate Cargo and Deno adapters to the typed contract and preserve package arguments and executable-name semantics.
+- [x] 4.6 Migrate pip, uv, and mise adapters to the typed contract and preserve provider-specific presence/version behavior.
+- [x] 4.7 Represent script and standalone-binary candidates with explicit executable or shell-script effects without adding dynamic provider loading.
+- [x] 4.8 Replace duplicated provider capability tables and hard-coded update bucket enumerations with capabilities derived from registered adapters.
+- [x] 4.9 Update the agent catalog schema so each candidate binds provider and provider-specific target identity once.
+- [x] 4.10 Migrate npm, Bun, and mise-backed catalog entries to provider-bound candidates and declarative probes.
+- [x] 4.11 Migrate Cargo, Deno, pip, and uv-backed catalog entries to provider-bound candidates and declarative probes.
+- [x] 4.12 Migrate Homebrew and winget-backed catalog entries to provider-bound candidates and declarative probes.
+- [x] 4.13 Migrate script and standalone-binary catalog entries without changing agent identity or platform coverage.
+- [x] 4.14 Generate catalog support documentation and validation inputs from the normalized catalog model.
 
 ## 5. Observation and Read-Only Migration
 

@@ -2,9 +2,6 @@
   "name": "crush",
   "displayName": "Crush",
   "homepage": "https://github.com/charmbracelet/crush",
-  "packages": {
-    "npm": "@charmland/crush"
-  },
   "binaryName": "crush",
   "selfUpdate": {
     "command": ["crush", "update"]
@@ -15,39 +12,80 @@
   "platforms": {
     "windows": [
       {
-        "type": "bun"
+        "probes": ["executable-presence", "installed-version", "package-presence", "target-version"],
+        "provider": "bun",
+        "target": {
+          "id": "@charmland/crush",
+          "kind": "package"
+        }
       },
       {
-        "type": "npm"
+        "probes": ["executable-presence", "installed-version", "package-presence", "target-version"],
+        "provider": "npm",
+        "target": {
+          "id": "@charmland/crush",
+          "kind": "package"
+        }
       },
       {
-        "packageName": "charmbracelet.crush",
-        "packageTargetKind": "id",
-        "type": "winget"
+        "probes": ["executable-presence"],
+        "provider": "winget",
+        "target": {
+          "id": "charmbracelet.crush",
+          "kind": "id"
+        }
       }
     ],
     "macos": [
       {
-        "type": "bun"
+        "probes": ["executable-presence", "installed-version", "package-presence", "target-version"],
+        "provider": "bun",
+        "target": {
+          "id": "@charmland/crush",
+          "kind": "package"
+        }
       },
       {
-        "type": "npm"
+        "probes": ["executable-presence", "installed-version", "package-presence", "target-version"],
+        "provider": "npm",
+        "target": {
+          "id": "@charmland/crush",
+          "kind": "package"
+        }
       },
       {
-        "packageName": "charmbracelet/tap/crush",
-        "type": "brew"
+        "probes": ["executable-presence"],
+        "provider": "brew",
+        "target": {
+          "id": "charmbracelet/tap/crush",
+          "kind": "formula"
+        }
       }
     ],
     "linux": [
       {
-        "type": "bun"
+        "probes": ["executable-presence", "installed-version", "package-presence", "target-version"],
+        "provider": "bun",
+        "target": {
+          "id": "@charmland/crush",
+          "kind": "package"
+        }
       },
       {
-        "type": "npm"
+        "probes": ["executable-presence", "installed-version", "package-presence", "target-version"],
+        "provider": "npm",
+        "target": {
+          "id": "@charmland/crush",
+          "kind": "package"
+        }
       },
       {
-        "packageName": "charmbracelet/tap/crush",
-        "type": "brew"
+        "probes": ["executable-presence"],
+        "provider": "brew",
+        "target": {
+          "id": "charmbracelet/tap/crush",
+          "kind": "formula"
+        }
       }
     ]
   }
