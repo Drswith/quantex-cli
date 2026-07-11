@@ -6,7 +6,7 @@
 - [x] 1.4 Keep the production Release workflow, Release PR, policy, and resolver surfaces unchanged when the regression tests pass; only if a test exposes a concrete allowlist gap, make the smallest correction and prove it with that regression.
 - [x] 1.5 Add focused PR-policy tests for the ordinary single-commit rule, both exact same-repository multi-commit topology exceptions, and fork/ref/lookalike near misses; retain actual merge-commit delivery verification in runtime tasks 3.3 and 4.4.
 - [x] 1.6 Update PR Governance payload collection and merge-commit policy logic to satisfy the topology tests without granting any other multi-commit exception.
-- [ ] 1.7 Clarify only `redesign-lifecycle-engine` task `11.6` so it tracks readiness of the explicit post-promotion spec-sync/archive follow-up; preserve its number, checkbox, 74-task denominator, implementation scope, and completion credit, leave it unchecked during the clarification, and do not perform spec sync or archive before promotion.
+- [x] 1.7 Clarify only `redesign-lifecycle-engine` task `11.6` so it tracks readiness of the explicit post-promotion spec-sync/archive follow-up; preserve its number, checkbox, 74-task denominator, implementation scope, and completion credit, leave it unchecked during the clarification, and do not perform spec sync or archive before promotion.
 - [x] 1.8 Add the setup/runtime/teardown procedure to the canonical delivery runbook and route the central Quantex runtime skill to it without expanding thin agent bootstraps.
 - [x] 1.9 Run the focused workflow/policy tests, `bun run test`, `bun run lint`, `bun run format:check`, `bun run typecheck`, `bun run openspec:validate`, and `bun run memory:check` for the complete bootstrap diff.
 - [x] 1.10 Prepare and validate a process-only PR body, verify the diff contains no lifecycle redesign implementation and changes no redesign task number, checkbox count, denominator, implementation scope, or earned completion credit, and deliver the one allowed bootstrap pull request to `main`.
@@ -16,7 +16,7 @@
 
 - [x] 2.1 Before protection, synchronize `codex/redesign-lifecycle-integration` to the exact post-bootstrap `main` tip and verify the live remote comparison is zero commits ahead and zero commits behind.
 - [x] 2.2 Create the temporary integration ruleset requiring pull requests and exact contexts `classify`, `lint`, `test (ubuntu-latest)`, `test (windows-latest)`, `test (macos-latest)`, and `sandbox-tests`, and disallow direct updates after initialization.
-- [ ] 2.3 Verify from live repository state that an integration-target pull request receives all six contexts, PR Governance runs separately through its unfiltered trigger, integration push triggers are absent from CI and Sandbox Tests, and no release entry point accepts the branch.
+- [x] 2.3 Verify from live repository state that an integration-target pull request receives all six contexts, PR Governance runs separately through its unfiltered trigger, integration push triggers are absent from CI and Sandbox Tests, and no release entry point accepts the branch.
 - [x] 2.4 Add a focused lint-staged regression and configure both oxfmt tasks so a matched set containing only formatter-ignored lifecycle fixtures is a successful no-op while supported staged files, `oxlint --fix`, and real failure propagation remain enforced.
 
 ## 3. Milestone Runtime

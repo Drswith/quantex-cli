@@ -1,0 +1,11 @@
+{
+  "installedAgents": {
+    "codex": {
+      "agentName": "codex",
+      "binaryName": "codex",
+      "installType": "npm",
+      "packageName": "@openai/codex"
+    }
+  },
+  "self": {}
+}

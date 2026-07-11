@@ -19,13 +19,19 @@ describe('surface contracts', () => {
       [
         "capabilities",
         "commands",
+        "config",
         "doctor",
         "exec",
-        "install",
         "ensure",
+        "info",
         "inspect",
+        "install",
+        "list",
         "resolve",
         "schema",
+        "update",
+        "uninstall",
+        "upgrade",
       ]
     `)
   })

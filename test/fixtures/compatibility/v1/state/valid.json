@@ -1,0 +1,15 @@
+{
+  "installedAgents": {
+    "codex": {
+      "agentName": "codex",
+      "binaryName": "codex",
+      "installType": "bun",
+      "packageInstallArgs": ["--global"],
+      "packageName": "@openai/codex",
+      "packageTargetKind": "package"
+    }
+  },
+  "self": {
+    "installSource": "bun"
+  }
+}
