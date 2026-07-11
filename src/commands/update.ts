@@ -216,6 +216,27 @@ async function updateSingleAgent(agent: AgentDefinition): Promise<CommandResult<
     )
   }
 
+  if (getCliContext().cancelled) {
+    return emitCommandResult(
+      createErrorResult<UpdateCommandData>({
+        action: 'update',
+        data: {
+          results: execution.results,
+          scope: 'single',
+        },
+        error: {
+          code: 'CANCELLED',
+          message: `Update was cancelled before ${agent.displayName} could finish updating.`,
+        },
+        target: {
+          kind: 'agent',
+          name: agent.name,
+        },
+      }),
+      renderUpdateHuman,
+    )
+  }
+
   if (execution.hasFailures) {
     return emitCommandResult(
       createErrorResult<UpdateCommandData>({

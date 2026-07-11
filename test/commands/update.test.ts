@@ -358,6 +358,36 @@ describe('updateCommand', () => {
     )
   })
 
+  it('does not report overall success for single-agent update when cancelled mid-update', async () => {
+    agentSpy.mockReturnValue(testAgent)
+    binaryInPathSpy.mockResolvedValue(true)
+    installedVerSpy.mockResolvedValue('1.0.0')
+    latestVerSpy.mockResolvedValue('2.0.0')
+    installedStateSpy.mockResolvedValue({
+      agentName: 'test-agent',
+      installType: 'bun',
+      packageName: 'test-pkg',
+    })
+    updateAgentsByTypeSpy.mockResolvedValue(false)
+    updateSpy.mockImplementation(async () => {
+      await cancelCliContextOperations()
+      return { success: true }
+    })
+
+    const result = await updateCommand('test-agent', false)
+
+    expect(result.ok).toBe(false)
+    expect(result.error?.code).toBe('CANCELLED')
+    expect(result.data?.scope).toBe('single')
+    expect(result.data?.results).toEqual([
+      expect.objectContaining({
+        name: 'test-agent',
+        status: 'updated',
+      }),
+    ])
+    expect(updateSpy).toHaveBeenCalledTimes(1)
+  })
+
   it('does not report overall success for update --all after timeout cancellation', async () => {
     const agent2 = {
       ...testAgent,
