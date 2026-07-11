@@ -2,9 +2,6 @@
   "name": "omp",
   "displayName": "oh-my-pi (OMP)",
   "homepage": "https://github.com/can1357/oh-my-pi",
-  "packages": {
-    "npm": "@oh-my-pi/pi-coding-agent"
-  },
   "binaryName": "omp",
   "versionProbe": {
     "command": ["omp", "--version"]
@@ -12,29 +9,68 @@
   "platforms": {
     "windows": [
       {
-        "type": "bun"
+        "probes": ["executable-presence", "installed-version", "package-presence", "target-version"],
+        "provider": "bun",
+        "target": {
+          "id": "@oh-my-pi/pi-coding-agent",
+          "kind": "package"
+        }
       },
       {
-        "command": "irm https://omp.sh/install.ps1 | iex",
-        "type": "script"
+        "probes": ["executable-presence"],
+        "provider": "script",
+        "target": {
+          "id": "https://omp.sh/install.ps1",
+          "kind": "script",
+          "effect": {
+            "command": "irm https://omp.sh/install.ps1 | iex",
+            "kind": "shell-script"
+          }
+        }
       }
     ],
     "macos": [
       {
-        "type": "bun"
+        "probes": ["executable-presence", "installed-version", "package-presence", "target-version"],
+        "provider": "bun",
+        "target": {
+          "id": "@oh-my-pi/pi-coding-agent",
+          "kind": "package"
+        }
       },
       {
-        "command": "curl -fsSL https://omp.sh/install | sh",
-        "type": "script"
+        "probes": ["executable-presence"],
+        "provider": "script",
+        "target": {
+          "id": "https://omp.sh/install",
+          "kind": "script",
+          "effect": {
+            "command": "curl -fsSL https://omp.sh/install | sh",
+            "kind": "shell-script"
+          }
+        }
       }
     ],
     "linux": [
       {
-        "type": "bun"
+        "probes": ["executable-presence", "installed-version", "package-presence", "target-version"],
+        "provider": "bun",
+        "target": {
+          "id": "@oh-my-pi/pi-coding-agent",
+          "kind": "package"
+        }
       },
       {
-        "command": "curl -fsSL https://omp.sh/install | sh",
-        "type": "script"
+        "probes": ["executable-presence"],
+        "provider": "script",
+        "target": {
+          "id": "https://omp.sh/install",
+          "kind": "script",
+          "effect": {
+            "command": "curl -fsSL https://omp.sh/install | sh",
+            "kind": "shell-script"
+          }
+        }
       }
     ]
   }

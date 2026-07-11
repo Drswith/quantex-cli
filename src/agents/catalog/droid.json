@@ -2,9 +2,6 @@
   "name": "droid",
   "displayName": "Droid",
   "homepage": "https://docs.factory.ai/cli/getting-started/overview",
-  "packages": {
-    "npm": "droid"
-  },
   "binaryName": "droid",
   "selfUpdate": {
     "command": ["droid", "update"]
@@ -12,48 +9,108 @@
   "platforms": {
     "windows": [
       {
-        "type": "bun"
+        "probes": ["executable-presence", "installed-version", "package-presence", "target-version"],
+        "provider": "bun",
+        "target": {
+          "id": "droid",
+          "kind": "package"
+        }
       },
       {
-        "type": "npm"
+        "probes": ["executable-presence", "installed-version", "package-presence", "target-version"],
+        "provider": "npm",
+        "target": {
+          "id": "droid",
+          "kind": "package"
+        }
       },
       {
-        "command": "irm https://app.factory.ai/cli/windows | iex",
-        "type": "script"
+        "probes": ["executable-presence"],
+        "provider": "script",
+        "target": {
+          "id": "https://app.factory.ai/cli/windows",
+          "kind": "script",
+          "effect": {
+            "command": "irm https://app.factory.ai/cli/windows | iex",
+            "kind": "shell-script"
+          }
+        }
       }
     ],
     "macos": [
       {
-        "type": "bun"
+        "probes": ["executable-presence", "installed-version", "package-presence", "target-version"],
+        "provider": "bun",
+        "target": {
+          "id": "droid",
+          "kind": "package"
+        }
       },
       {
-        "type": "npm"
+        "probes": ["executable-presence", "installed-version", "package-presence", "target-version"],
+        "provider": "npm",
+        "target": {
+          "id": "droid",
+          "kind": "package"
+        }
       },
       {
-        "command": "curl -fsSL https://app.factory.ai/cli | sh",
-        "type": "script"
+        "probes": ["executable-presence"],
+        "provider": "script",
+        "target": {
+          "id": "https://app.factory.ai/cli",
+          "kind": "script",
+          "effect": {
+            "command": "curl -fsSL https://app.factory.ai/cli | sh",
+            "kind": "shell-script"
+          }
+        }
       },
       {
-        "packageName": "droid",
-        "packageTargetKind": "cask",
-        "type": "brew"
+        "probes": ["executable-presence"],
+        "provider": "brew",
+        "target": {
+          "id": "droid",
+          "kind": "cask"
+        }
       }
     ],
     "linux": [
       {
-        "type": "bun"
+        "probes": ["executable-presence", "installed-version", "package-presence", "target-version"],
+        "provider": "bun",
+        "target": {
+          "id": "droid",
+          "kind": "package"
+        }
       },
       {
-        "type": "npm"
+        "probes": ["executable-presence", "installed-version", "package-presence", "target-version"],
+        "provider": "npm",
+        "target": {
+          "id": "droid",
+          "kind": "package"
+        }
       },
       {
-        "command": "curl -fsSL https://app.factory.ai/cli | sh",
-        "type": "script"
+        "probes": ["executable-presence"],
+        "provider": "script",
+        "target": {
+          "id": "https://app.factory.ai/cli",
+          "kind": "script",
+          "effect": {
+            "command": "curl -fsSL https://app.factory.ai/cli | sh",
+            "kind": "shell-script"
+          }
+        }
       },
       {
-        "packageName": "droid",
-        "packageTargetKind": "cask",
-        "type": "brew"
+        "probes": ["executable-presence"],
+        "provider": "brew",
+        "target": {
+          "id": "droid",
+          "kind": "cask"
+        }
       }
     ]
   }

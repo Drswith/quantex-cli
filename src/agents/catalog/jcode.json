@@ -9,24 +9,52 @@
   "platforms": {
     "windows": [
       {
-        "command": "irm https://raw.githubusercontent.com/1jehuang/jcode/master/scripts/install.ps1 | iex",
-        "type": "script"
+        "probes": ["executable-presence"],
+        "provider": "script",
+        "target": {
+          "id": "https://raw.githubusercontent.com/1jehuang/jcode/master/scripts/install.ps1",
+          "kind": "script",
+          "effect": {
+            "command": "irm https://raw.githubusercontent.com/1jehuang/jcode/master/scripts/install.ps1 | iex",
+            "kind": "shell-script"
+          }
+        }
       }
     ],
     "macos": [
       {
-        "packageName": "1jehuang/jcode/jcode",
-        "type": "brew"
+        "probes": ["executable-presence"],
+        "provider": "brew",
+        "target": {
+          "id": "1jehuang/jcode/jcode",
+          "kind": "formula"
+        }
       },
       {
-        "command": "curl -fsSL https://raw.githubusercontent.com/1jehuang/jcode/master/scripts/install.sh | bash",
-        "type": "script"
+        "probes": ["executable-presence"],
+        "provider": "script",
+        "target": {
+          "id": "https://raw.githubusercontent.com/1jehuang/jcode/master/scripts/install.sh",
+          "kind": "script",
+          "effect": {
+            "command": "curl -fsSL https://raw.githubusercontent.com/1jehuang/jcode/master/scripts/install.sh | bash",
+            "kind": "shell-script"
+          }
+        }
       }
     ],
     "linux": [
       {
-        "command": "curl -fsSL https://raw.githubusercontent.com/1jehuang/jcode/master/scripts/install.sh | bash",
-        "type": "script"
+        "probes": ["executable-presence"],
+        "provider": "script",
+        "target": {
+          "id": "https://raw.githubusercontent.com/1jehuang/jcode/master/scripts/install.sh",
+          "kind": "script",
+          "effect": {
+            "command": "curl -fsSL https://raw.githubusercontent.com/1jehuang/jcode/master/scripts/install.sh | bash",
+            "kind": "shell-script"
+          }
+        }
       }
     ]
   }

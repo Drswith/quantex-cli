@@ -1,4 +1,5 @@
 import type { InstallType, ManagedInstallType } from '../agents/types'
+import { firstPartyProviderRegistry } from '../providers/first-party'
 
 interface InstallerCapabilities {
   canInstall: true
@@ -8,92 +9,39 @@ interface InstallerCapabilities {
   lifecycle: 'managed' | 'unmanaged'
 }
 
-const INSTALLER_CAPABILITIES: Record<InstallType, InstallerCapabilities> = {
-  binary: {
-    canInstall: true,
-    canLookupLatestVersion: false,
-    canUninstall: false,
-    canUpdate: false,
-    lifecycle: 'unmanaged',
-  },
-  brew: {
-    canInstall: true,
-    canLookupLatestVersion: false,
-    canUninstall: true,
-    canUpdate: true,
-    lifecycle: 'managed',
-  },
-  bun: {
-    canInstall: true,
-    canLookupLatestVersion: true,
-    canUninstall: true,
-    canUpdate: true,
-    lifecycle: 'managed',
-  },
-  cargo: {
-    canInstall: true,
-    canLookupLatestVersion: false,
-    canUninstall: true,
-    canUpdate: true,
-    lifecycle: 'managed',
-  },
-  deno: {
-    canInstall: true,
-    canLookupLatestVersion: false,
-    canUninstall: true,
-    canUpdate: true,
-    lifecycle: 'managed',
-  },
-  mise: {
-    canInstall: true,
-    canLookupLatestVersion: false,
-    canUninstall: true,
-    canUpdate: true,
-    lifecycle: 'managed',
-  },
-  npm: {
-    canInstall: true,
-    canLookupLatestVersion: true,
-    canUninstall: true,
-    canUpdate: true,
-    lifecycle: 'managed',
-  },
-  pip: {
-    canInstall: true,
-    canLookupLatestVersion: false,
-    canUninstall: true,
-    canUpdate: true,
-    lifecycle: 'managed',
-  },
-  uv: {
-    canInstall: true,
-    canLookupLatestVersion: false,
-    canUninstall: true,
-    canUpdate: true,
-    lifecycle: 'managed',
-  },
-  script: {
-    canInstall: true,
-    canLookupLatestVersion: false,
-    canUninstall: false,
-    canUpdate: false,
-    lifecycle: 'unmanaged',
-  },
-  winget: {
-    canInstall: true,
-    canLookupLatestVersion: false,
-    canUninstall: true,
-    canUpdate: true,
-    lifecycle: 'managed',
-  },
-}
+const managedInstallTypes = Object.freeze(
+  firstPartyProviderRegistry
+    .list()
+    .filter(adapter => {
+      const capabilities = firstPartyProviderRegistry.getCapabilities(adapter.id)
+      return capabilities.includes('update') && capabilities.includes('uninstall')
+    })
+    .map(adapter => adapter.id as ManagedInstallType),
+)
 
 export function getInstallerCapabilities(type: InstallType): InstallerCapabilities {
-  return INSTALLER_CAPABILITIES[type]
+  const capabilities = firstPartyProviderRegistry.getCapabilities(type)
+  if (!capabilities.includes('install')) {
+    throw new Error(`First-party provider ${type} must implement install`)
+  }
+
+  const canUpdate = capabilities.includes('update')
+  const canUninstall = capabilities.includes('uninstall')
+  return {
+    canInstall: true,
+    canLookupLatestVersion: capabilities.includes('resolve-latest-version'),
+    canUninstall,
+    canUpdate,
+    lifecycle: canUpdate && canUninstall ? 'managed' : 'unmanaged',
+  }
+}
+
+export function getManagedInstallTypes(): readonly ManagedInstallType[] {
+  return managedInstallTypes
 }
 
 export function isManagedInstallType(type: InstallType): type is ManagedInstallType {
-  return getInstallerCapabilities(type).lifecycle === 'managed'
+  return managedInstallTypes.includes(type as ManagedInstallType)
 }
 
 export function getInstallLifecycle(type: InstallType): 'managed' | 'unmanaged' {

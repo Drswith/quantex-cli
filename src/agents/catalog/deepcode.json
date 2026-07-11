@@ -2,9 +2,6 @@
   "name": "deepcode",
   "displayName": "Deep Code CLI",
   "homepage": "https://github.com/lessweb/deepcode-cli",
-  "packages": {
-    "npm": "@vegamo/deepcode-cli"
-  },
   "binaryName": "deepcode",
   "versionProbe": {
     "command": ["deepcode", "--version"]
@@ -12,17 +9,32 @@
   "platforms": {
     "windows": [
       {
-        "type": "npm"
+        "probes": ["executable-presence", "installed-version", "package-presence", "target-version"],
+        "provider": "npm",
+        "target": {
+          "id": "@vegamo/deepcode-cli",
+          "kind": "package"
+        }
       }
     ],
     "macos": [
       {
-        "type": "npm"
+        "probes": ["executable-presence", "installed-version", "package-presence", "target-version"],
+        "provider": "npm",
+        "target": {
+          "id": "@vegamo/deepcode-cli",
+          "kind": "package"
+        }
       }
     ],
     "linux": [
       {
-        "type": "npm"
+        "probes": ["executable-presence", "installed-version", "package-presence", "target-version"],
+        "provider": "npm",
+        "target": {
+          "id": "@vegamo/deepcode-cli",
+          "kind": "package"
+        }
       }
     ]
   }

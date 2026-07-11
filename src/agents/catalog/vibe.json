@@ -4,50 +4,104 @@
   "displayName": "Mistral Vibe",
   "homepage": "https://docs.mistral.ai/mistral-vibe/terminal/install",
   "binaryName": "vibe",
-  "packages": {
-    "pip": "mistral-vibe",
-    "uv": "mistral-vibe"
-  },
   "versionProbe": {
     "command": ["vibe", "--version"]
   },
   "platforms": {
     "windows": [
       {
-        "packageName": "mistral-vibe",
-        "type": "uv"
+        "provider": "uv",
+        "target": {
+          "id": "mistral-vibe",
+          "kind": "tool"
+        },
+        "probes": ["executable-presence", "installed-version", "package-presence"],
+        "legacy": {
+          "packageNameInMethod": true
+        }
       },
       {
-        "packageName": "mistral-vibe",
-        "type": "pip"
+        "provider": "pip",
+        "target": {
+          "id": "mistral-vibe",
+          "kind": "package"
+        },
+        "probes": ["executable-presence"],
+        "legacy": {
+          "packageNameInMethod": true
+        }
       }
     ],
     "macos": [
       {
-        "command": "curl -LsSf https://mistral.ai/vibe/install.sh | bash",
-        "type": "script"
+        "probes": ["executable-presence"],
+        "provider": "script",
+        "target": {
+          "id": "https://mistral.ai/vibe/install.sh",
+          "kind": "script",
+          "effect": {
+            "command": "curl -LsSf https://mistral.ai/vibe/install.sh | bash",
+            "kind": "shell-script"
+          }
+        }
       },
       {
-        "packageName": "mistral-vibe",
-        "type": "uv"
+        "provider": "uv",
+        "target": {
+          "id": "mistral-vibe",
+          "kind": "tool"
+        },
+        "probes": ["executable-presence", "installed-version", "package-presence"],
+        "legacy": {
+          "packageNameInMethod": true
+        }
       },
       {
-        "packageName": "mistral-vibe",
-        "type": "pip"
+        "provider": "pip",
+        "target": {
+          "id": "mistral-vibe",
+          "kind": "package"
+        },
+        "probes": ["executable-presence"],
+        "legacy": {
+          "packageNameInMethod": true
+        }
       }
     ],
     "linux": [
       {
-        "command": "curl -LsSf https://mistral.ai/vibe/install.sh | bash",
-        "type": "script"
+        "probes": ["executable-presence"],
+        "provider": "script",
+        "target": {
+          "id": "https://mistral.ai/vibe/install.sh",
+          "kind": "script",
+          "effect": {
+            "command": "curl -LsSf https://mistral.ai/vibe/install.sh | bash",
+            "kind": "shell-script"
+          }
+        }
       },
       {
-        "packageName": "mistral-vibe",
-        "type": "uv"
+        "provider": "uv",
+        "target": {
+          "id": "mistral-vibe",
+          "kind": "tool"
+        },
+        "probes": ["executable-presence", "installed-version", "package-presence"],
+        "legacy": {
+          "packageNameInMethod": true
+        }
       },
       {
-        "packageName": "mistral-vibe",
-        "type": "pip"
+        "provider": "pip",
+        "target": {
+          "id": "mistral-vibe",
+          "kind": "package"
+        },
+        "probes": ["executable-presence"],
+        "legacy": {
+          "packageNameInMethod": true
+        }
       }
     ]
   }

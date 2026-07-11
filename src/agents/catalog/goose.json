@@ -12,32 +12,72 @@
   "platforms": {
     "windows": [
       {
-        "command": "curl -fsSL https://github.com/aaif-goose/goose/releases/download/stable/download_cli.sh | bash",
-        "type": "script"
+        "probes": ["executable-presence"],
+        "provider": "script",
+        "target": {
+          "id": "https://github.com/aaif-goose/goose/releases/download/stable/download_cli.sh",
+          "kind": "script",
+          "effect": {
+            "command": "curl -fsSL https://github.com/aaif-goose/goose/releases/download/stable/download_cli.sh | bash",
+            "kind": "shell-script"
+          }
+        }
       },
       {
-        "command": "Invoke-WebRequest -Uri \"https://raw.githubusercontent.com/aaif-goose/goose/main/download_cli.ps1\" -OutFile \"download_cli.ps1\"; ./download_cli.ps1",
-        "type": "script"
+        "probes": ["executable-presence"],
+        "provider": "script",
+        "target": {
+          "id": "https://raw.githubusercontent.com/aaif-goose/goose/main/download_cli.ps1",
+          "kind": "script",
+          "effect": {
+            "command": "Invoke-WebRequest -Uri \"https://raw.githubusercontent.com/aaif-goose/goose/main/download_cli.ps1\" -OutFile \"download_cli.ps1\"; ./download_cli.ps1",
+            "kind": "shell-script"
+          }
+        }
       }
     ],
     "macos": [
       {
-        "command": "curl -fsSL https://github.com/aaif-goose/goose/releases/download/stable/download_cli.sh | bash",
-        "type": "script"
+        "probes": ["executable-presence"],
+        "provider": "script",
+        "target": {
+          "id": "https://github.com/aaif-goose/goose/releases/download/stable/download_cli.sh",
+          "kind": "script",
+          "effect": {
+            "command": "curl -fsSL https://github.com/aaif-goose/goose/releases/download/stable/download_cli.sh | bash",
+            "kind": "shell-script"
+          }
+        }
       },
       {
-        "packageName": "block-goose-cli",
-        "type": "brew"
+        "probes": ["executable-presence"],
+        "provider": "brew",
+        "target": {
+          "id": "block-goose-cli",
+          "kind": "formula"
+        }
       }
     ],
     "linux": [
       {
-        "command": "curl -fsSL https://github.com/aaif-goose/goose/releases/download/stable/download_cli.sh | bash",
-        "type": "script"
+        "probes": ["executable-presence"],
+        "provider": "script",
+        "target": {
+          "id": "https://github.com/aaif-goose/goose/releases/download/stable/download_cli.sh",
+          "kind": "script",
+          "effect": {
+            "command": "curl -fsSL https://github.com/aaif-goose/goose/releases/download/stable/download_cli.sh | bash",
+            "kind": "shell-script"
+          }
+        }
       },
       {
-        "packageName": "block-goose-cli",
-        "type": "brew"
+        "probes": ["executable-presence"],
+        "provider": "brew",
+        "target": {
+          "id": "block-goose-cli",
+          "kind": "formula"
+        }
       }
     ]
   }

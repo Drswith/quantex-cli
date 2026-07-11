@@ -2,48 +2,92 @@
   "name": "copilot",
   "displayName": "GitHub Copilot CLI",
   "homepage": "https://github.com/features/copilot/cli",
-  "packages": {
-    "npm": "@github/copilot"
-  },
   "binaryName": "copilot",
   "platforms": {
     "windows": [
       {
-        "packageName": "GitHub.Copilot",
-        "packageTargetKind": "id",
-        "type": "winget"
+        "probes": ["executable-presence"],
+        "provider": "winget",
+        "target": {
+          "id": "GitHub.Copilot",
+          "kind": "id"
+        }
       }
     ],
     "macos": [
       {
-        "type": "bun"
+        "probes": ["executable-presence", "installed-version", "package-presence", "target-version"],
+        "provider": "bun",
+        "target": {
+          "id": "@github/copilot",
+          "kind": "package"
+        }
       },
       {
-        "type": "npm"
+        "probes": ["executable-presence", "installed-version", "package-presence", "target-version"],
+        "provider": "npm",
+        "target": {
+          "id": "@github/copilot",
+          "kind": "package"
+        }
       },
       {
-        "command": "curl -fsSL https://gh.io/copilot-install | bash",
-        "type": "script"
+        "probes": ["executable-presence"],
+        "provider": "script",
+        "target": {
+          "id": "https://gh.io/copilot-install",
+          "kind": "script",
+          "effect": {
+            "command": "curl -fsSL https://gh.io/copilot-install | bash",
+            "kind": "shell-script"
+          }
+        }
       },
       {
-        "packageName": "copilot-cli",
-        "type": "brew"
+        "probes": ["executable-presence"],
+        "provider": "brew",
+        "target": {
+          "id": "copilot-cli",
+          "kind": "formula"
+        }
       }
     ],
     "linux": [
       {
-        "type": "bun"
+        "probes": ["executable-presence", "installed-version", "package-presence", "target-version"],
+        "provider": "bun",
+        "target": {
+          "id": "@github/copilot",
+          "kind": "package"
+        }
       },
       {
-        "type": "npm"
+        "probes": ["executable-presence", "installed-version", "package-presence", "target-version"],
+        "provider": "npm",
+        "target": {
+          "id": "@github/copilot",
+          "kind": "package"
+        }
       },
       {
-        "command": "curl -fsSL https://gh.io/copilot-install | bash",
-        "type": "script"
+        "probes": ["executable-presence"],
+        "provider": "script",
+        "target": {
+          "id": "https://gh.io/copilot-install",
+          "kind": "script",
+          "effect": {
+            "command": "curl -fsSL https://gh.io/copilot-install | bash",
+            "kind": "shell-script"
+          }
+        }
       },
       {
-        "packageName": "copilot-cli",
-        "type": "brew"
+        "probes": ["executable-presence"],
+        "provider": "brew",
+        "target": {
+          "id": "copilot-cli",
+          "kind": "formula"
+        }
       }
     ]
   }

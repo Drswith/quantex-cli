@@ -5,6 +5,7 @@ This page defines the review format and current live-doc handoff for Quantex age
 ## Current Surfaces
 
 - `supported` entries come from validated per-agent catalog data in `src/agents/catalog/*.json` and can be verified with `bun run dev -- list --json`.
+- Provider, platform, target-kind, and probe coverage is generated from those normalized candidates in [`docs/generated/agent-provider-support.md`](generated/agent-provider-support.md); stale output fails catalog tests.
 - Unsupported-candidate triage lives in GitHub issue [#134](https://github.com/Drswith/quantex-cli/issues/134). Keep per-agent implementation work in dedicated issues and OpenSpec changes; keep `#134` as the top-level backlog index until a successor issue is explicitly declared.
 - Historical records under `openspec/changes/archive/`, `docs/sessions/`, `docs/postmortems/`, and `docs/archive/` remain point-in-time artifacts and should not be rewritten as the current support matrix.
 
@@ -59,5 +60,5 @@ Exception rule:
 - Prefer updating this page together with any catalog naming or support-status decisions.
 - Keep candidate and excluded rationale in issue `#134` or an explicitly linked successor issue instead of duplicating a second long-lived backlog table here.
 - Do not copy long installer details here; keep the matrix focused on identity, review fields, and where to find the live backlog.
-- After adding, removing, or renaming a catalog JSON file, run `bun run agent-catalog:generate` and commit the generated manifest/schema changes.
+- After changing catalog entries, run `bun run agent-catalog:generate` and commit the generated manifest, schema, support JSON, and provider-support matrix changes.
 - If a supported-agent snapshot changes, update this page, the README tables, `skills/quantex-cli/references/command-recipes.md`, and issue `#134` in the same branch when backlog meaning changes.

@@ -4,6 +4,7 @@ import type { InstalledAgentState } from '../state'
 import type { ManagedInstallerUpdateOptions, ManagedPackageSpec } from './installers'
 import { getCliContext } from '../cli-context'
 import { loadConfig } from '../config'
+import { binaryProviderAdapter, scriptProviderAdapter } from '../providers/adapters/install-effect'
 import { getInstalledAgentState, removeInstalledAgentState, setInstalledAgentState } from '../state'
 import { getPlatform } from '../utils/detect'
 import {
@@ -103,8 +104,17 @@ async function executeMethod(
   if (action === 'update' && !canUpdateInstallType(method.type)) return false
 
   if (!method.command) return false
-
-  return runBinaryInstall(method.command)
+  const adapter = method.type === 'script' ? scriptProviderAdapter : binaryProviderAdapter
+  const outcome = await adapter.install?.({
+    context: { signal: new AbortController().signal },
+    target: {
+      binaryName: method.binaryName ?? agent.binaryName,
+      effect: { command: method.command, kind: 'shell-script' },
+      id: agent.name,
+      kind: method.type,
+    },
+  })
+  return outcome?.kind === 'success'
 }
 
 function resolveManagedPackageName(

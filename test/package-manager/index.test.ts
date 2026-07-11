@@ -449,6 +449,29 @@ describe('installAgent', () => {
     expect(npmInstallSpy).not.toHaveBeenCalled()
   })
 
+  it('projects legacy script commands to explicit typed shell-script effects', async () => {
+    const scriptAgent = {
+      ...testAgent,
+      packages: undefined,
+      platforms: {
+        linux: [{ command: 'curl https://example.com/install | bash', type: 'script' as const }],
+      },
+    }
+
+    binarySpy.mockResolvedValue(true)
+    setInstalledAgentStateSpy.mockResolvedValue()
+
+    expect(await installAgent(scriptAgent)).toMatchObject({
+      success: true,
+      installedState: {
+        agentName: 'test-agent',
+        command: 'curl https://example.com/install | bash',
+        installType: 'script',
+      },
+    })
+    expect(binarySpy).toHaveBeenCalledWith('curl https://example.com/install | bash')
+  })
+
   it('prefers mise when defaultPackageManager is mise and the agent exposes mise', async () => {
     const multiMethodAgent = {
       ...testAgent,

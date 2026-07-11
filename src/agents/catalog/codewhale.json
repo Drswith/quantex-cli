@@ -2,10 +2,6 @@
   "name": "codewhale",
   "displayName": "CodeWhale",
   "homepage": "https://github.com/Hmbown/CodeWhale",
-  "packages": {
-    "cargo": "codewhale-cli",
-    "npm": "codewhale"
-  },
   "binaryName": "codewhale",
   "selfUpdate": {
     "command": ["codewhale", "update"]
@@ -16,29 +12,59 @@
   "platforms": {
     "windows": [
       {
-        "type": "npm"
+        "probes": ["executable-presence", "installed-version", "package-presence", "target-version"],
+        "provider": "npm",
+        "target": {
+          "id": "codewhale",
+          "kind": "package"
+        }
       },
       {
-        "packageInstallArgs": ["--locked"],
-        "type": "cargo"
+        "provider": "cargo",
+        "target": {
+          "id": "codewhale-cli",
+          "kind": "package",
+          "arguments": ["--locked"]
+        },
+        "probes": ["executable-presence"]
       }
     ],
     "macos": [
       {
-        "type": "npm"
+        "probes": ["executable-presence", "installed-version", "package-presence", "target-version"],
+        "provider": "npm",
+        "target": {
+          "id": "codewhale",
+          "kind": "package"
+        }
       },
       {
-        "packageInstallArgs": ["--locked"],
-        "type": "cargo"
+        "provider": "cargo",
+        "target": {
+          "id": "codewhale-cli",
+          "kind": "package",
+          "arguments": ["--locked"]
+        },
+        "probes": ["executable-presence"]
       }
     ],
     "linux": [
       {
-        "type": "npm"
+        "probes": ["executable-presence", "installed-version", "package-presence", "target-version"],
+        "provider": "npm",
+        "target": {
+          "id": "codewhale",
+          "kind": "package"
+        }
       },
       {
-        "packageInstallArgs": ["--locked"],
-        "type": "cargo"
+        "provider": "cargo",
+        "target": {
+          "id": "codewhale-cli",
+          "kind": "package",
+          "arguments": ["--locked"]
+        },
+        "probes": ["executable-presence"]
       }
     ]
   }

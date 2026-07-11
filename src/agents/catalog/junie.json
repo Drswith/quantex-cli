@@ -2,9 +2,6 @@
   "name": "junie",
   "displayName": "Junie CLI",
   "homepage": "https://junie.jetbrains.com/docs/junie-cli.html",
-  "packages": {
-    "npm": "@jetbrains/junie"
-  },
   "binaryName": "junie",
   "versionProbe": {
     "command": ["junie", "--version"]
@@ -12,46 +9,108 @@
   "platforms": {
     "windows": [
       {
-        "type": "bun"
+        "probes": ["executable-presence", "installed-version", "package-presence", "target-version"],
+        "provider": "bun",
+        "target": {
+          "id": "@jetbrains/junie",
+          "kind": "package"
+        }
       },
       {
-        "type": "npm"
+        "probes": ["executable-presence", "installed-version", "package-presence", "target-version"],
+        "provider": "npm",
+        "target": {
+          "id": "@jetbrains/junie",
+          "kind": "package"
+        }
       },
       {
-        "command": "iex (irm 'https://junie.jetbrains.com/install.ps1')",
-        "type": "script"
+        "probes": ["executable-presence"],
+        "provider": "script",
+        "target": {
+          "id": "https://junie.jetbrains.com/install.ps1",
+          "kind": "script",
+          "effect": {
+            "command": "iex (irm 'https://junie.jetbrains.com/install.ps1')",
+            "kind": "shell-script"
+          }
+        }
       }
     ],
     "macos": [
       {
-        "type": "bun"
+        "probes": ["executable-presence", "installed-version", "package-presence", "target-version"],
+        "provider": "bun",
+        "target": {
+          "id": "@jetbrains/junie",
+          "kind": "package"
+        }
       },
       {
-        "type": "npm"
+        "probes": ["executable-presence", "installed-version", "package-presence", "target-version"],
+        "provider": "npm",
+        "target": {
+          "id": "@jetbrains/junie",
+          "kind": "package"
+        }
       },
       {
-        "command": "curl -fsSL https://junie.jetbrains.com/install.sh | bash",
-        "type": "script"
+        "probes": ["executable-presence"],
+        "provider": "script",
+        "target": {
+          "id": "https://junie.jetbrains.com/install.sh",
+          "kind": "script",
+          "effect": {
+            "command": "curl -fsSL https://junie.jetbrains.com/install.sh | bash",
+            "kind": "shell-script"
+          }
+        }
       },
       {
-        "packageName": "jetbrains-junie/junie/junie",
-        "type": "brew"
+        "probes": ["executable-presence"],
+        "provider": "brew",
+        "target": {
+          "id": "jetbrains-junie/junie/junie",
+          "kind": "formula"
+        }
       }
     ],
     "linux": [
       {
-        "type": "bun"
+        "probes": ["executable-presence", "installed-version", "package-presence", "target-version"],
+        "provider": "bun",
+        "target": {
+          "id": "@jetbrains/junie",
+          "kind": "package"
+        }
       },
       {
-        "type": "npm"
+        "probes": ["executable-presence", "installed-version", "package-presence", "target-version"],
+        "provider": "npm",
+        "target": {
+          "id": "@jetbrains/junie",
+          "kind": "package"
+        }
       },
       {
-        "command": "curl -fsSL https://junie.jetbrains.com/install.sh | bash",
-        "type": "script"
+        "probes": ["executable-presence"],
+        "provider": "script",
+        "target": {
+          "id": "https://junie.jetbrains.com/install.sh",
+          "kind": "script",
+          "effect": {
+            "command": "curl -fsSL https://junie.jetbrains.com/install.sh | bash",
+            "kind": "shell-script"
+          }
+        }
       },
       {
-        "packageName": "jetbrains-junie/junie/junie",
-        "type": "brew"
+        "probes": ["executable-presence"],
+        "provider": "brew",
+        "target": {
+          "id": "jetbrains-junie/junie/junie",
+          "kind": "formula"
+        }
       }
     ]
   }

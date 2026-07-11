@@ -4,9 +4,6 @@
   "displayName": "Kimi Code",
   "homepage": "https://moonshotai.github.io/kimi-code/",
   "binaryName": "kimi",
-  "packages": {
-    "npm": "@moonshot-ai/kimi-code"
-  },
   "selfUpdate": {
     "command": ["kimi", "upgrade"]
   },
@@ -16,29 +13,68 @@
   "platforms": {
     "windows": [
       {
-        "command": "irm https://code.kimi.com/kimi-code/install.ps1 | iex",
-        "type": "script"
+        "probes": ["executable-presence"],
+        "provider": "script",
+        "target": {
+          "id": "https://code.kimi.com/kimi-code/install.ps1",
+          "kind": "script",
+          "effect": {
+            "command": "irm https://code.kimi.com/kimi-code/install.ps1 | iex",
+            "kind": "shell-script"
+          }
+        }
       },
       {
-        "type": "npm"
+        "probes": ["executable-presence", "installed-version", "package-presence", "target-version"],
+        "provider": "npm",
+        "target": {
+          "id": "@moonshot-ai/kimi-code",
+          "kind": "package"
+        }
       }
     ],
     "macos": [
       {
-        "command": "curl -fsSL https://code.kimi.com/kimi-code/install.sh | bash",
-        "type": "script"
+        "probes": ["executable-presence"],
+        "provider": "script",
+        "target": {
+          "id": "https://code.kimi.com/kimi-code/install.sh",
+          "kind": "script",
+          "effect": {
+            "command": "curl -fsSL https://code.kimi.com/kimi-code/install.sh | bash",
+            "kind": "shell-script"
+          }
+        }
       },
       {
-        "type": "npm"
+        "probes": ["executable-presence", "installed-version", "package-presence", "target-version"],
+        "provider": "npm",
+        "target": {
+          "id": "@moonshot-ai/kimi-code",
+          "kind": "package"
+        }
       }
     ],
     "linux": [
       {
-        "command": "curl -fsSL https://code.kimi.com/kimi-code/install.sh | bash",
-        "type": "script"
+        "probes": ["executable-presence"],
+        "provider": "script",
+        "target": {
+          "id": "https://code.kimi.com/kimi-code/install.sh",
+          "kind": "script",
+          "effect": {
+            "command": "curl -fsSL https://code.kimi.com/kimi-code/install.sh | bash",
+            "kind": "shell-script"
+          }
+        }
       },
       {
-        "type": "npm"
+        "probes": ["executable-presence", "installed-version", "package-presence", "target-version"],
+        "provider": "npm",
+        "target": {
+          "id": "@moonshot-ai/kimi-code",
+          "kind": "package"
+        }
       }
     ]
   }

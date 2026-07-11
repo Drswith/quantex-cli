@@ -13,20 +13,44 @@
   "platforms": {
     "windows": [
       {
-        "command": "irm 'https://cursor.com/install?win32=true' | iex",
-        "type": "script"
+        "probes": ["executable-presence"],
+        "provider": "script",
+        "target": {
+          "id": "https://cursor.com/install?win32=true",
+          "kind": "script",
+          "effect": {
+            "command": "irm 'https://cursor.com/install?win32=true' | iex",
+            "kind": "shell-script"
+          }
+        }
       }
     ],
     "macos": [
       {
-        "command": "curl https://cursor.com/install -fsS | bash",
-        "type": "script"
+        "probes": ["executable-presence"],
+        "provider": "script",
+        "target": {
+          "id": "https://cursor.com/install",
+          "kind": "script",
+          "effect": {
+            "command": "curl https://cursor.com/install -fsS | bash",
+            "kind": "shell-script"
+          }
+        }
       }
     ],
     "linux": [
       {
-        "command": "curl https://cursor.com/install -fsS | bash",
-        "type": "script"
+        "probes": ["executable-presence"],
+        "provider": "script",
+        "target": {
+          "id": "https://cursor.com/install",
+          "kind": "script",
+          "effect": {
+            "command": "curl https://cursor.com/install -fsS | bash",
+            "kind": "shell-script"
+          }
+        }
       }
     ]
   }

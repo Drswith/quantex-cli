@@ -1,6 +1,7 @@
 import type { AgentInspection } from '../inspection'
 import type { ManagedInstallType } from '../package-manager'
 import { resolveAgentUpdateProvider } from '../agent-update'
+import { getManagedInstallTypes } from '../package-manager/capabilities'
 import { canAutoUpdateAgent } from '../utils/install'
 
 export interface UpdatePlanEntry {
@@ -24,17 +25,14 @@ export function createUpdatePlan(
     skipUntrackedInPath?: boolean
   } = {},
 ): UpdatePlan {
-  const grouped: Record<ManagedInstallType, UpdatePlanEntry[]> = {
-    bun: [],
-    npm: [],
-    brew: [],
-    cargo: [],
-    deno: [],
-    mise: [],
-    pip: [],
-    uv: [],
-    winget: [],
-  }
+  const managedInstallTypes = getManagedInstallTypes()
+  const grouped = managedInstallTypes.reduce(
+    (groups, type) => {
+      groups[type] = []
+      return groups
+    },
+    {} as Record<ManagedInstallType, UpdatePlanEntry[]>,
+  )
   const manual: UpdatePlanEntry[] = []
   const skippedManualCheck: AgentInspection[] = []
   const untrackedInPath: AgentInspection[] = []
@@ -89,18 +87,7 @@ export function createUpdatePlan(
   }
 
   return {
-    entries: [
-      ...grouped.bun,
-      ...grouped.npm,
-      ...grouped.brew,
-      ...grouped.cargo,
-      ...grouped.deno,
-      ...grouped.mise,
-      ...grouped.pip,
-      ...grouped.uv,
-      ...grouped.winget,
-      ...manual,
-    ],
+    entries: [...managedInstallTypes.flatMap(type => grouped[type]), ...manual],
     grouped,
     manual,
     skippedManualCheck,

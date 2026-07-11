@@ -2,9 +2,6 @@
   "name": "pi",
   "displayName": "Pi",
   "homepage": "https://pi.dev",
-  "packages": {
-    "npm": "@mariozechner/pi-coding-agent"
-  },
   "binaryName": "pi",
   "selfUpdate": {
     "command": ["pi", "update"]
@@ -12,26 +9,56 @@
   "platforms": {
     "windows": [
       {
-        "type": "bun"
+        "probes": ["executable-presence", "installed-version", "package-presence", "target-version"],
+        "provider": "bun",
+        "target": {
+          "id": "@mariozechner/pi-coding-agent",
+          "kind": "package"
+        }
       },
       {
-        "type": "npm"
+        "probes": ["executable-presence", "installed-version", "package-presence", "target-version"],
+        "provider": "npm",
+        "target": {
+          "id": "@mariozechner/pi-coding-agent",
+          "kind": "package"
+        }
       }
     ],
     "macos": [
       {
-        "type": "bun"
+        "probes": ["executable-presence", "installed-version", "package-presence", "target-version"],
+        "provider": "bun",
+        "target": {
+          "id": "@mariozechner/pi-coding-agent",
+          "kind": "package"
+        }
       },
       {
-        "type": "npm"
+        "probes": ["executable-presence", "installed-version", "package-presence", "target-version"],
+        "provider": "npm",
+        "target": {
+          "id": "@mariozechner/pi-coding-agent",
+          "kind": "package"
+        }
       }
     ],
     "linux": [
       {
-        "type": "bun"
+        "probes": ["executable-presence", "installed-version", "package-presence", "target-version"],
+        "provider": "bun",
+        "target": {
+          "id": "@mariozechner/pi-coding-agent",
+          "kind": "package"
+        }
       },
       {
-        "type": "npm"
+        "probes": ["executable-presence", "installed-version", "package-presence", "target-version"],
+        "provider": "npm",
+        "target": {
+          "id": "@mariozechner/pi-coding-agent",
+          "kind": "package"
+        }
       }
     ]
   }

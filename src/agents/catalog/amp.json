@@ -2,9 +2,6 @@
   "name": "amp",
   "displayName": "Amp",
   "homepage": "https://ampcode.com/",
-  "packages": {
-    "npm": "@sourcegraph/amp"
-  },
   "binaryName": "amp",
   "selfUpdate": {
     "command": ["amp", "update"]
@@ -15,26 +12,56 @@
   "platforms": {
     "windows": [
       {
-        "type": "bun"
+        "probes": ["executable-presence", "installed-version", "package-presence", "target-version"],
+        "provider": "bun",
+        "target": {
+          "id": "@sourcegraph/amp",
+          "kind": "package"
+        }
       },
       {
-        "type": "npm"
+        "probes": ["executable-presence", "installed-version", "package-presence", "target-version"],
+        "provider": "npm",
+        "target": {
+          "id": "@sourcegraph/amp",
+          "kind": "package"
+        }
       }
     ],
     "macos": [
       {
-        "type": "bun"
+        "probes": ["executable-presence", "installed-version", "package-presence", "target-version"],
+        "provider": "bun",
+        "target": {
+          "id": "@sourcegraph/amp",
+          "kind": "package"
+        }
       },
       {
-        "type": "npm"
+        "probes": ["executable-presence", "installed-version", "package-presence", "target-version"],
+        "provider": "npm",
+        "target": {
+          "id": "@sourcegraph/amp",
+          "kind": "package"
+        }
       }
     ],
     "linux": [
       {
-        "type": "bun"
+        "probes": ["executable-presence", "installed-version", "package-presence", "target-version"],
+        "provider": "bun",
+        "target": {
+          "id": "@sourcegraph/amp",
+          "kind": "package"
+        }
       },
       {
-        "type": "npm"
+        "probes": ["executable-presence", "installed-version", "package-presence", "target-version"],
+        "provider": "npm",
+        "target": {
+          "id": "@sourcegraph/amp",
+          "kind": "package"
+        }
       }
     ]
   }

@@ -43,7 +43,7 @@ import {
 } from '../src/agents'
 import catalogSchemaFile from '../src/agents/catalog.schema.json'
 import { catalogData } from '../src/agents/generated/catalog-data'
-import { agentCatalogJsonSchema, agentCatalogSchema } from '../src/agents/schema'
+import { agentCatalogJsonSchema, catalogSourceSchema } from '../src/agents/schema'
 import { formatInstallMethodCommand } from '../src/utils/install'
 
 describe('agent registry', () => {
@@ -140,7 +140,7 @@ function validateAgent(agent: AgentDefinition): void {
 
 describe('agent catalog data schema', () => {
   it('validates the checked-in catalog data', () => {
-    const parsed = agentCatalogSchema.parse(catalogData)
+    const parsed = catalogSourceSchema.parse(catalogData)
 
     expect(parsed.map(agent => agent.name)).toEqual(getAllAgents().map(agent => agent.name))
   })
@@ -155,7 +155,7 @@ describe('agent catalog data schema', () => {
       },
     ]
 
-    expect(() => agentCatalogSchema.parse(invalidCatalog)).toThrow()
+    expect(() => catalogSourceSchema.parse(invalidCatalog)).toThrow()
   })
 
   it('keeps the checked-in JSON Schema in sync with the Zod contract', () => {
