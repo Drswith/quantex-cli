@@ -52,6 +52,25 @@ describe('schemaCommand', () => {
     expect(logSpy).toHaveBeenCalledWith(expect.stringContaining('Unknown schema target'))
   })
 
+  it.each(['config', 'info', 'list', 'update', 'uninstall', 'upgrade'])(
+    'resolves the %s stable command schema',
+    async commandName => {
+      setCliContext({
+        interactive: false,
+        outputMode: 'json',
+        runId: `schema-${commandName}-run-id`,
+      })
+
+      const result = await schemaCommand(commandName)
+
+      expect(result.ok).toBe(true)
+      expect(result.data?.commands).toHaveLength(1)
+      expect(result.data?.commands[0]?.name).toBe(commandName)
+      expect(result.data?.commands[0]?.envelopeSchema).toBeDefined()
+      expect(result.data?.commands[0]?.ndjsonEventSchema).toBeDefined()
+    },
+  )
+
   it('returns the doctor schema in json mode', async () => {
     setCliContext({
       interactive: false,
