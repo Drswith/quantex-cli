@@ -4,7 +4,7 @@
 
 **Goal:** 建立长期 `codex/redesign-lifecycle-integration` 集成线，使生命周期引擎重构按独立里程碑进入受保护的 integration 分支；在全部 74 项实现任务、兼容性验证和发布验证完成前，不让重构代码进入 `main` 或触发 npm 发布。
 
-**Architecture:** `main` 继续是正式发布源；integration 是从 `main` 派生、只接收受审 PR 的临时聚合分支。普通里程碑分支始终从最新 integration 建立，并以单提交 PR 合入 integration。只有两个精确、同仓库拓扑允许多提交 PR：`main -> integration` 的定期同步，以及 `integration -> main` 的最终提升；两者必须使用 merge commit 保留祖先关系。CI 和 Sandbox 只为“目标分支是 integration”的 PR 增加触发，integration 的 push 永远不进入 CI push 或 Release 发布触发。
+**Architecture:** `main` 继续是正式发布源；integration 是从 `main` 派生、只接收受审 PR 的临时聚合分支。普通里程碑分支始终从最新 integration 建立，并以单提交 PR 合入 integration。只有两个精确、同仓库拓扑允许多提交 PR：`main -> integration` 的定期同步，以及 `integration -> main` 的最终提升。所有剩余 PR 统一 rebase 优先、squash 其次，agent 或 automation 不得自动选择 merge commit；同步与提升以 expected tree 和内容比较取代祖先/双亲验收。CI 和 Sandbox 只为“目标分支是 integration”的 PR 增加触发，integration 的 push 永远不进入 CI push 或 Release 发布触发。
 
 **Tech Stack:** Bun 1.3.11、TypeScript、Vitest、GitHub Actions、GitHub Rulesets、OpenSpec 1.3.1、Git/GitHub CLI。
 
@@ -28,13 +28,14 @@
 - 临时规则集 `protect-lifecycle-integration`（ID `18789571`）已启用，精确匹配 integration ref，禁止绕过和 non-fast-forward，并镜像 `protect-main` 的 PR 规则与六项 required contexts。
 - prerequisite PR #443 已通过六项 required contexts、独立 PR Governance 和 Cursor review，以普通单提交路径合入 integration（`925e6b00fd01c710ed1fa006541ad1c9affdf9aa`）；integration push 仍未触发 CI、Sandbox Tests 或 Release。
 - Phase 0/1 已刷新到该受保护 integration 基线，正在规范化为一个独立里程碑提交。
+- 2026-07-11 合并方法已按用户最新决定修正：后续所有 PR rebase 优先、squash 其次；不得由 agent 或 automation 自动选择 merge commit，也不再用 source-tip 祖先关系或双亲提交作为同步/提升完成证据。
 
 ## 全局不变量
 
 1. `beta` 不参与本策略。
 2. integration 的精确分支名只有 `codex/redesign-lifecycle-integration`；禁止通配符，避免意外覆盖其他 `codex/*` 分支。
 3. integration 只进入 CI/Sandbox 的 `pull_request` 目标列表，不进入任何 `push` 发布链或 Release workflow。
-4. 普通里程碑 PR 保持单提交，并沿用仓库现有 merge/squash/rebase 选择；只有 `main -> integration` 同步 PR 和 `integration -> main` 最终提升 PR 可保持多提交，且必须使用 merge commit，禁止 squash/rebase。
+4. 普通里程碑 PR 保持单提交；`main -> integration` 同步 PR 和 `integration -> main` 最终提升 PR 可保持多提交。所有剩余 PR 一律先选 rebase，只有 rebase 不可用或不安全时才记录原因并选 squash；禁止 agent 或 automation 自动选择 merge commit。
 5. 每个里程碑在独立 worktree/分支中实施，拥有自己的计划、测试证据、spec review、code-quality review、PR 和精确 OpenSpec checkbox 更新。
 6. `redesign-lifecycle-engine` 与本计划新增的交付策略 change 都保持 active；任何单个里程碑合并都不构成 archive 条件。
 7. integration 的同步、保护、PR 和最终提升均使用远端实时状态作为依据，不依赖本地缓存判断。
@@ -122,7 +123,7 @@ bun run openspec:instructions -- proposal --change support-integration-branch-de
 
 1. `code-quality-tooling`：目标为精确 integration 的 PR 必须获得与 main PR 相同的六个 required contexts；integration push 不增加触发。
 2. `release-workflow`：integration 不得出现在 Release `workflow_run`、手动发布目标、Release PR 目标或 npm tag/channel 推导中。
-3. `release-governance`：普通 PR 继续单提交；只有经过验证的同仓库 main-sync topology 和精确的 `integration -> main` 可以多提交，且必须使用 merge commit。
+3. `release-governance`：普通 PR 继续单提交；只有经过验证的同仓库 main-sync topology 和精确的 `integration -> main` 可以多提交；所有 PR 使用 rebase-first/squash-second 顺序，且同步/提升必须通过 expected-tree 与内容证据验收。
 4. `project-memory`：umbrella change 可跨 milestone merge 保持 active；milestone merge 只报告 merge closure，最终 promotion 后才进入 spec sync/archive eligibility。
 
 **Step 4: tasks 同时覆盖 setup、运行期和 teardown**
@@ -276,8 +277,9 @@ bun run test -- test/pr-merge-commit-policy.test.ts test/workflow-classification
 
 - 拓扑、分支命名、非发布边界和临时 ruleset。
 - 新里程碑 worktree 创建、baseline 验证、单提交 PR 和两阶段 review。
-- `git rev-list --left-right --count origin/main...origin/codex/redesign-lifecycle-integration` 漂移检测。
-- main 同步 PR 和最终提升 PR 必须使用 merge commit；普通里程碑仍单提交。
+- 用 integration/current tree 与 integration+main merge-tree expected tree 判定是否存在未同步内容；`rev-list`/commit log 只保留为图诊断，不作为同步触发器。
+- main-sync 与 final-promotion 的 approved tips/expected tree 必须原子写入 `git rev-parse --git-path quantex/lifecycle-integration/...` 指向的 per-worktree ledger，跨新 shell 恢复并复验，禁止写入或提交 worktree 文件。
+- 所有剩余 PR 均 rebase 优先、squash 其次，禁止 agent/automation 自动选择 merge commit；普通里程碑仍单提交，同步/最终提升保留精确多提交拓扑例外并使用内容级验收。
 - 每个 PR 的 validation/OpenSpec/git/commit/remote/PR/merge/release/archive 分层报告。
 - 最终 teardown 次序和失败回滚方式。
 
@@ -342,7 +344,7 @@ gh pr create --repo Drswith/quantex-cli --base main --head codex/support-integra
 
 **Step 5: 等待所有检查和 review 后合并**
 
-bootstrap PR 可 squash 或 rebase 为一个 conventional commit。合并后验证 main CI 和 Release reconciliation；process-only `ci:` 变更不应生成 npm publish。若出现发布意图，停止并先修复隔离。
+bootstrap PR 使用 rebase 优先、squash 其次的一个 conventional commit。合并后验证 main CI 和 Release reconciliation；process-only `ci:` 变更不应生成 npm publish。若出现发布意图，停止并先修复隔离。
 
 ---
 
@@ -379,7 +381,7 @@ gh api repos/Drswith/quantex-cli/rulesets --jq '.[] | select(.name == "protect-l
 gh run list --repo Drswith/quantex-cli --branch codex/redesign-lifecycle-integration --limit 20
 ```
 
-确认 integration ruleset 的 required contexts、PR requirement、allowed merge methods 和 non-fast-forward rule 与实时 main ruleset 一致。同步/最终提升必须由操作流程显式选择 merge commit；普通单提交里程碑沿用现有 merge methods。确认 integration push 没有 Release run，记录 ruleset ID供最终 teardown 使用。
+确认 integration ruleset 的 required contexts、PR requirement、allowed merge methods 和 non-fast-forward rule 与实时 main ruleset 一致。操作流程对所有 PR 显式选择 rebase，只有 rebase 不可用或不安全时才记录原因并选择 squash；不得自动选择 merge commit。确认 integration push 没有 Release run，记录 ruleset ID供最终 teardown 使用。
 
 ---
 
@@ -450,7 +452,7 @@ commit 数必须为 1。PR base 必须是 `codex/redesign-lifecycle-integration`
 
 PR body 应列出完成的 8 个 task、剩余 `66/74`、兼容性边界、`Release: not applicable`、redesign 保持 active、archive/release pending。用 `pr:body:check` 后创建 PR。
 
-等待 `classify`、`lint`、三平台 `test`、`sandbox-tests`、PR Governance 和独立代码审查全部通过，再按普通单提交 PR 的现有 merge method 合入 integration。合并后对比 PR merge SHA 与 integration diff；确认无遗漏后才删除本地 `codex/redesign-lifecycle-engine-task-history`。
+等待 `classify`、`lint`、三平台 `test`、`sandbox-tests`、PR Governance 和独立代码审查全部通过，再以 rebase 优先、squash 其次的顺序合入 integration。合并后对比 PR 结果与 integration diff；确认无遗漏后才删除本地 `codex/redesign-lifecycle-engine-task-history`。
 
 ---
 
@@ -470,12 +472,20 @@ PR body 应列出完成的 8 个 task、剩余 `66/74`、兼容性边界、`Rele
 
 **每个里程碑的固定循环：**
 
-**Step 1: 检查 main 漂移并先执行 Task 10 的同步流程**
+**Step 1: 检查 main 内容并按需执行 Task 10 的同步流程**
 
 ```bash
+set -euo pipefail
 git fetch origin --prune
-git rev-list --left-right --count origin/main...origin/codex/redesign-lifecycle-integration
+integration_tip=$(git rev-parse origin/codex/redesign-lifecycle-integration)
+main_tip=$(git rev-parse origin/main)
+integration_tree=$(git rev-parse "$integration_tip^{tree}")
+expected_sync_tree=$(git merge-tree --write-tree "$integration_tip" "$main_tip")
+test "$(git cat-file -t "$expected_sync_tree")" = tree
+test "$expected_sync_tree" = "$integration_tree"
 ```
+
+最后一个 `test` 成功表示内容已经同步，即使 `rev-list` 显示图分叉也不得重复创建 sync PR；失败才进入 Task 10。
 
 **Step 2: 从最新 integration 建立全新 worktree/branch**
 
@@ -510,42 +520,91 @@ bun run memory:check
 
 **Step 6: 单提交 PR 到 integration**
 
-在 push 前把里程碑归一为一个 conventional commit。按 PR template 写 body、运行 `pr:body:check`，base 精确设为 integration。所有 required checks 和两阶段 review 通过后沿用仓库现有 ordinary merge method 合并；不归档 change，不发布 npm。
+在 push 前把里程碑归一为一个 conventional commit。按 PR template 写 body、运行 `pr:body:check`，base 精确设为 integration。所有 required checks 和两阶段 review 通过后先选择 rebase，只有 rebase 不可用或不安全时才记录原因并选择 squash；不得自动选择 merge commit，不归档 change，不发布 npm。
 
 ---
 
 ## Task 10: 定期通过 PR 同步最新 `main`
 
-触发条件：每个里程碑开始前、main 有新 release/修复后、或 integration 与 main 的 drift 超过一个里程碑周期。
+检查时机：每个里程碑开始前，以及 main 有新 release/修复后。是否创建同步 PR 只由内容树判定，不由 commit graph 判定。
 
-**Step 1: 量化漂移**
+**Step 1: 判定是否有未同步内容**
 
 ```bash
+set -euo pipefail
 git fetch origin --prune
-git rev-list --left-right --count origin/main...origin/codex/redesign-lifecycle-integration
-git log --oneline origin/codex/redesign-lifecycle-integration..origin/main
+integration_tip=$(git rev-parse origin/codex/redesign-lifecycle-integration)
+main_tip=$(git rev-parse origin/main)
+integration_tree=$(git rev-parse "$integration_tip^{tree}")
+expected_sync_tree=$(git merge-tree --write-tree "$integration_tip" "$main_tip")
+test "$(git cat-file -t "$expected_sync_tree")" = tree
+git rev-list --left-right --count "$main_tip...$integration_tip"
 ```
 
-若 main 没有 integration 尚未包含的 commit，不创建空 PR。
+若 `expected_sync_tree` 等于 `integration_tree`，内容已经同步，不创建 PR。`rev-list` 和 commit log 只能解释图结构；rebase/squash 后即使它们列出不同 SHA，也不能据此认定 main 内容缺失。只有两个 tree 不等时才继续。
 
 **Step 2: 创建同仓库同步 PR**
 
-使用 head=`main`、base=`codex/redesign-lifecycle-integration`。PR title 使用 `chore(integration): sync latest main`，body 列出漂移 commit、冲突评估、非发布说明和 active OpenSpec 状态。
+使用 head=`main`、base=`codex/redesign-lifecycle-integration`。PR title 使用 `chore(integration): sync latest main`，body 列出内容差异、仅作为诊断的图差异、冲突评估、非发布说明和 active OpenSpec 状态。
 
 **Step 3: 等待 integration 的全部 gate**
 
 该 PR 应被治理脚本识别为 `main-sync`，允许多提交，但 CI/Sandbox 必须完整运行。若精确 `main -> integration` PR 发生冲突，停止该次同步并创建一个窄 OpenSpec amendment 设计可验证的冲突解决拓扑；不得临时放宽分支名前缀、关闭 ruleset 或直接 push integration。
 
-**Step 4: 使用 merge commit 合并**
+**Step 4: 使用 rebase-first / squash-second 合并并验证内容**
 
-禁止 squash/rebase，因为这会破坏 main 祖先关系并让后续每次同步重复携带历史。合并后：
+Review 批准精确 tips 后，把 approved tips 与 expected tree 原子写入当前 worktree 的 Git metadata：
 
 ```bash
+set -euo pipefail
 git fetch origin --prune
-git merge-base --is-ancestor origin/main origin/codex/redesign-lifecycle-integration
+ledger_root=$(git rev-parse --git-path quantex/lifecycle-integration)
+ledger="$ledger_root/main-sync.approved"
+ledger_tmp="$ledger.tmp.$$"
+mkdir -p "$ledger_root"
+trap 'rm -f "$ledger_tmp"' EXIT
+trap 'exit 1' HUP INT TERM
+approved_base_tip=$(git rev-parse origin/codex/redesign-lifecycle-integration)
+approved_source_tip=$(git rev-parse origin/main)
+approved_expected_tree=$(git merge-tree --write-tree "$approved_base_tip" "$approved_source_tip")
+printf '%s\n%s\n%s\n' "$approved_base_tip" "$approved_source_tip" "$approved_expected_tree" >"$ledger_tmp"
+mv "$ledger_tmp" "$ledger"
+trap - EXIT HUP INT TERM
 ```
 
-integration push 不应触发 Release；验证后再创建下一里程碑 worktree。
+合并动作前必须在新 shell 中重新 fetch、从 ledger 恢复值，并验证 refs 没有漂移：
+
+```bash
+set -euo pipefail
+git fetch origin --prune
+ledger=$(git rev-parse --git-path quantex/lifecycle-integration/main-sync.approved)
+test "$(wc -l <"$ledger" | tr -d '[:space:]')" = 3
+approved_base_tip=$(sed -n '1p' "$ledger")
+approved_source_tip=$(sed -n '2p' "$ledger")
+approved_expected_tree=$(sed -n '3p' "$ledger")
+test "$(git rev-parse origin/codex/redesign-lifecycle-integration)" = "$approved_base_tip"
+test "$(git rev-parse origin/main)" = "$approved_source_tip"
+test "$(git merge-tree --write-tree "$approved_base_tip" "$approved_source_tip")" = "$approved_expected_tree"
+: "${PR_NUMBER:?set PR_NUMBER to the approved main-sync pull request number}"
+gh pr merge "$PR_NUMBER" --rebase --match-head-commit "$approved_source_tip"
+```
+
+任一 tip 漂移或 `--match-head-commit` 比较交换失败都必须停止，重新计算、重审、重跑 checks 并替换 ledger。rebase 因网络失败时重试 rebase；只有确认 rebase 不可用或不安全并记录原因后，才重跑完整 pre-merge block，并把最后一行替换为 `gh pr merge "$PR_NUMBER" --squash --match-head-commit "$approved_source_tip"`。agent/automation 不得使用 `--merge`。
+
+合并后再开新 shell，从同一 ledger 恢复 approved values 并验证：
+
+```bash
+set -euo pipefail
+git fetch origin --prune
+ledger=$(git rev-parse --git-path quantex/lifecycle-integration/main-sync.approved)
+approved_source_tip=$(sed -n '2p' "$ledger")
+approved_expected_tree=$(sed -n '3p' "$ledger")
+test "$(git rev-parse origin/codex/redesign-lifecycle-integration^{tree})" = "$approved_expected_tree"
+git diff --name-status "$approved_source_tip"..origin/codex/redesign-lifecycle-integration
+git diff "$approved_source_tip"..origin/codex/redesign-lifecycle-integration
+```
+
+剩余 diff 必须只有已接受的 lifecycle redesign 内容；不得声称 approved source 是 integration 的祖先或要求双亲提交。runtime ledger 不得加入 commit。integration push 不应触发 Release；验证后再创建下一里程碑 worktree。
 
 ---
 
@@ -584,20 +643,64 @@ bun run test:container
 
 治理脚本应识别 `final-promotion`，允许多提交但仍执行 author/trailer 检查。PR body 汇总 74 项证据、所有里程碑 PR、兼容性结果、发布意图和回滚方案。使用 main 的 required checks 和独立最终 code review。
 
-**Step 4: 使用 merge commit 合入 main**
+**Step 4: 使用 rebase-first / squash-second 合入 main**
 
-禁止 squash/rebase，保留所有 milestone 与 main sync 祖先关系。合并后先验证 main CI 和正式 Release workflow；只有 release 自动化完成且 npm/package/binary smoke 通过，才报告 release closure。
+Review 批准精确 refs 后，将 final-promotion evidence 原子写入 Git metadata，而不是只留在 shell：
+
+```bash
+set -euo pipefail
+git fetch origin --prune
+ledger_root=$(git rev-parse --git-path quantex/lifecycle-integration)
+ledger="$ledger_root/final-promotion.approved"
+ledger_tmp="$ledger.tmp.$$"
+mkdir -p "$ledger_root"
+trap 'rm -f "$ledger_tmp"' EXIT
+trap 'exit 1' HUP INT TERM
+approved_base_tip=$(git rev-parse origin/main)
+approved_source_tip=$(git rev-parse origin/codex/redesign-lifecycle-integration)
+approved_expected_tree=$(git merge-tree --write-tree "$approved_base_tip" "$approved_source_tip")
+test "$(git rev-parse "$approved_source_tip^{tree}")" = "$approved_expected_tree"
+printf '%s\n%s\n%s\n' "$approved_base_tip" "$approved_source_tip" "$approved_expected_tree" >"$ledger_tmp"
+mv "$ledger_tmp" "$ledger"
+trap - EXIT HUP INT TERM
+```
+
+合并动作前必须在新 shell 重新 fetch、恢复 ledger，并验证当前 main/integration tips 仍等于 approved values；任一漂移都停止并重新计算、重审、重跑 checks：
+
+```bash
+set -euo pipefail
+git fetch origin --prune
+ledger=$(git rev-parse --git-path quantex/lifecycle-integration/final-promotion.approved)
+test "$(wc -l <"$ledger" | tr -d '[:space:]')" = 3
+approved_base_tip=$(sed -n '1p' "$ledger")
+approved_source_tip=$(sed -n '2p' "$ledger")
+approved_expected_tree=$(sed -n '3p' "$ledger")
+test "$(git rev-parse origin/main)" = "$approved_base_tip"
+test "$(git rev-parse origin/codex/redesign-lifecycle-integration)" = "$approved_source_tip"
+test "$(git merge-tree --write-tree "$approved_base_tip" "$approved_source_tip")" = "$approved_expected_tree"
+: "${PR_NUMBER:?set PR_NUMBER to the approved final-promotion pull request number}"
+gh pr merge "$PR_NUMBER" --rebase --match-head-commit "$approved_source_tip"
+```
+
+任一 tip 漂移或 `--match-head-commit` 比较交换失败都停止。rebase 因网络失败时重试 rebase；只有确认 rebase 不可用或不安全并记录原因后，才重跑完整 pre-merge block，并把最后一行替换为 `gh pr merge "$PR_NUMBER" --squash --match-head-commit "$approved_source_tip"`。agent/automation 不得自动选择 merge commit。
+
+合并后再用新 shell 从 ledger 恢复并 fail-fast 验证：
+
+```bash
+set -euo pipefail
+git fetch origin --prune
+ledger=$(git rev-parse --git-path quantex/lifecycle-integration/final-promotion.approved)
+approved_source_tip=$(sed -n '2p' "$ledger")
+approved_expected_tree=$(sed -n '3p' "$ledger")
+test "$(git rev-parse origin/main^{tree})" = "$approved_expected_tree"
+git diff --exit-code "$approved_source_tip" origin/main
+```
+
+不得以 integration tip 是 `main` 祖先或结果有两个 parent 作为完成条件，runtime ledger 也不得加入 commit。内容验收通过后再验证 main CI 和正式 Release workflow；只有 release 自动化完成且 npm/package/binary smoke 通过，才报告 release closure。
 
 **Step 5: release 成功后删除临时远端状态**
 
-确认 main 已包含 integration 全部 commit，且 main CI、正式 release 和 package/binary smoke 均闭环后：
-
-```bash
-git fetch origin --prune
-git merge-base --is-ancestor origin/codex/redesign-lifecycle-integration origin/main
-```
-
-祖先检查通过后，先删除 `protect-lifecycle-integration` ruleset，再删除远端 integration 分支。若检查失败或 release 尚未闭环，禁止删除并恢复到差异审计。
+确认已记录的 promotion result tree 与 approved integration 内容一致，审查 promotion 后任何仅存在于 `main` 的 release/recovery delta，并确认 main CI、正式 release 和 package/binary smoke 均闭环。内容证据和 recovery 条件通过后，先删除 `protect-lifecycle-integration` ruleset，再删除远端 integration 分支；不得用 source-tip 祖先检查替代内容证据。若内容审计失败或 release 尚未闭环，禁止删除并恢复到差异审计。
 
 **Step 6: 显式 post-promotion closure PR**
 
