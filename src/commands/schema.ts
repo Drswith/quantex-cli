@@ -2,15 +2,17 @@ import type { CommandResult } from '../output/types'
 import { createErrorResult, createSuccessResult, emitCommandResult } from '../output'
 import { pc } from '../utils/color'
 
-interface JsonSchema {
+type JsonSchemaType = 'array' | 'boolean' | 'integer' | 'null' | 'number' | 'object' | 'string'
+
+export interface JsonSchema {
   additionalProperties?: boolean
   items?: JsonSchema
   properties?: Record<string, JsonSchema>
   required?: string[]
-  type: 'array' | 'boolean' | 'integer' | 'null' | 'number' | 'object' | 'string'
+  type: JsonSchemaType | JsonSchemaType[]
 }
 
-interface SchemaDocument {
+export interface SchemaDocument {
   dataSchema: JsonSchema
   description: string
   envelopeSchema: JsonSchema
@@ -238,6 +240,23 @@ const schemaCatalog: SchemaDocument[] = [
     dataSchema: {
       additionalProperties: false,
       properties: {
+        action: { type: 'string' },
+        config: { type: 'object' },
+        key: { type: 'string' },
+        value: { type: ['number', 'string'] },
+      },
+      required: ['action'],
+      type: 'object',
+    },
+    description: 'Configuration read or mutation result',
+    envelopeSchema: baseEnvelopeSchema,
+    name: 'config',
+    ndjsonEventSchema: baseNdjsonEventSchema,
+  },
+  {
+    dataSchema: {
+      additionalProperties: false,
+      properties: {
         agents: {
           items: {
             additionalProperties: false,
@@ -407,6 +426,91 @@ const schemaCatalog: SchemaDocument[] = [
         changed: { type: 'boolean' },
         installState: { type: 'object' },
         installed: { type: 'boolean' },
+      },
+      required: ['agent', 'changed', 'installed'],
+      type: 'object',
+    },
+    description: 'Ensure result for an agent',
+    envelopeSchema: baseEnvelopeSchema,
+    name: 'ensure',
+    ndjsonEventSchema: baseNdjsonEventSchema,
+  },
+  {
+    dataSchema: {
+      additionalProperties: false,
+      properties: {
+        agent: {
+          additionalProperties: false,
+          properties: {
+            aliases: { items: { type: 'string' }, type: 'array' },
+            binaryName: { type: 'string' },
+            displayName: { type: 'string' },
+            installMethods: {
+              items: {
+                additionalProperties: false,
+                properties: {
+                  command: { type: 'string' },
+                  label: { type: 'string' },
+                  type: { type: 'string' },
+                },
+                required: ['command', 'label', 'type'],
+                type: 'object',
+              },
+              type: 'array',
+            },
+            name: { type: 'string' },
+            packageName: { type: 'string' },
+            selfUpdateCommands: { items: { type: 'string' }, type: 'array' },
+          },
+          required: ['aliases', 'binaryName', 'displayName', 'installMethods', 'name', 'selfUpdateCommands'],
+          type: 'object',
+        },
+        inspection: {
+          additionalProperties: false,
+          properties: {
+            binaryPath: { type: 'string' },
+            installed: { type: 'boolean' },
+            installedVersion: { type: 'string' },
+            latestVersion: { type: 'string' },
+            lifecycle: { type: 'string' },
+            sourceLabel: { type: 'string' },
+          },
+          required: ['installed', 'lifecycle'],
+          type: 'object',
+        },
+      },
+      required: ['agent', 'inspection'],
+      type: 'object',
+    },
+    description: 'Human-friendly details for an agent',
+    envelopeSchema: baseEnvelopeSchema,
+    name: 'info',
+    ndjsonEventSchema: baseNdjsonEventSchema,
+  },
+  {
+    dataSchema: {
+      additionalProperties: false,
+      properties: {
+        agent: { type: 'object' },
+        capabilities: { type: 'object' },
+        inspection: { type: 'object' },
+      },
+      required: ['agent', 'capabilities', 'inspection'],
+      type: 'object',
+    },
+    description: 'Structured inspection result for an agent',
+    envelopeSchema: baseEnvelopeSchema,
+    name: 'inspect',
+    ndjsonEventSchema: baseNdjsonEventSchema,
+  },
+  {
+    dataSchema: {
+      additionalProperties: false,
+      properties: {
+        agent: { type: 'object' },
+        changed: { type: 'boolean' },
+        installState: { type: 'object' },
+        installed: { type: 'boolean' },
         results: {
           items: {
             additionalProperties: false,
@@ -443,33 +547,32 @@ const schemaCatalog: SchemaDocument[] = [
     dataSchema: {
       additionalProperties: false,
       properties: {
-        agent: { type: 'object' },
-        changed: { type: 'boolean' },
-        installState: { type: 'object' },
-        installed: { type: 'boolean' },
+        agents: {
+          items: {
+            additionalProperties: false,
+            properties: {
+              binaryName: { type: 'string' },
+              displayName: { type: 'string' },
+              installed: { type: 'boolean' },
+              installedVersion: { type: 'string' },
+              latestVersion: { type: 'string' },
+              lifecycle: { type: 'string' },
+              name: { type: 'string' },
+              sourceLabel: { type: 'string' },
+              updateLabel: { type: 'string' },
+            },
+            required: ['binaryName', 'displayName', 'installed', 'lifecycle', 'name', 'sourceLabel', 'updateLabel'],
+            type: 'object',
+          },
+          type: 'array',
+        },
       },
-      required: ['agent', 'changed', 'installed'],
+      required: ['agents'],
       type: 'object',
     },
-    description: 'Ensure result for an agent',
+    description: 'Supported agent catalog',
     envelopeSchema: baseEnvelopeSchema,
-    name: 'ensure',
-    ndjsonEventSchema: baseNdjsonEventSchema,
-  },
-  {
-    dataSchema: {
-      additionalProperties: false,
-      properties: {
-        agent: { type: 'object' },
-        capabilities: { type: 'object' },
-        inspection: { type: 'object' },
-      },
-      required: ['agent', 'capabilities', 'inspection'],
-      type: 'object',
-    },
-    description: 'Structured inspection result for an agent',
-    envelopeSchema: baseEnvelopeSchema,
-    name: 'inspect',
+    name: 'list',
     ndjsonEventSchema: baseNdjsonEventSchema,
   },
   {
@@ -552,6 +655,82 @@ const schemaCatalog: SchemaDocument[] = [
     description: 'Structured schema catalog',
     envelopeSchema: baseEnvelopeSchema,
     name: 'schema',
+    ndjsonEventSchema: baseNdjsonEventSchema,
+  },
+  {
+    dataSchema: {
+      additionalProperties: false,
+      properties: {
+        results: {
+          items: {
+            additionalProperties: false,
+            properties: {
+              displayName: { type: 'string' },
+              hint: { type: 'string' },
+              installedVersion: { type: 'string' },
+              latestVersion: { type: 'string' },
+              message: { type: 'string' },
+              name: { type: 'string' },
+              resource: { type: 'string' },
+              status: { type: 'string' },
+              strategy: { type: 'string' },
+            },
+            required: ['displayName', 'name', 'status'],
+            type: 'object',
+          },
+          type: 'array',
+        },
+        scope: { type: 'string' },
+      },
+      required: ['results', 'scope'],
+      type: 'object',
+    },
+    description: 'Update result for one or all agents',
+    envelopeSchema: baseEnvelopeSchema,
+    name: 'update',
+    ndjsonEventSchema: baseNdjsonEventSchema,
+  },
+  {
+    dataSchema: {
+      additionalProperties: false,
+      properties: {
+        agent: {
+          additionalProperties: false,
+          properties: {
+            displayName: { type: 'string' },
+            name: { type: 'string' },
+          },
+          required: ['displayName', 'name'],
+          type: 'object',
+        },
+        changed: { type: 'boolean' },
+      },
+      required: ['agent', 'changed'],
+      type: 'object',
+    },
+    description: 'Uninstall result for an agent',
+    envelopeSchema: baseEnvelopeSchema,
+    name: 'uninstall',
+    ndjsonEventSchema: baseNdjsonEventSchema,
+  },
+  {
+    dataSchema: {
+      additionalProperties: false,
+      properties: {
+        canAutoUpdate: { type: 'boolean' },
+        channel: { type: 'string' },
+        currentVersion: { type: 'string' },
+        installSource: { type: 'string' },
+        latestVersion: { type: 'string' },
+        recoveryHint: { type: 'string' },
+        status: { type: 'string' },
+      },
+      required: ['canAutoUpdate', 'channel', 'currentVersion', 'installSource', 'status'],
+      type: 'object',
+    },
+    description: 'Quantex self-upgrade status',
+    envelopeSchema: baseEnvelopeSchema,
+    name: 'upgrade',
     ndjsonEventSchema: baseNdjsonEventSchema,
   },
 ]

@@ -1,0 +1,39 @@
+{
+  "schemaVersion": "1",
+  "packageName": "quantex-cli",
+  "binaryNames": ["qtx", "quantex"],
+  "commands": [
+    "capabilities",
+    "commands",
+    "config",
+    "doctor",
+    "exec",
+    "ensure",
+    "info",
+    "inspect",
+    "install",
+    "list",
+    "resolve",
+    "schema",
+    "update",
+    "uninstall",
+    "upgrade"
+  ],
+  "errorCodes": [
+    "AGENT_NOT_FOUND",
+    "AGENT_NOT_INSTALLED",
+    "CANCELLED",
+    "INSTALL_FAILED",
+    "INTERACTION_REQUIRED",
+    "INVALID_ARGUMENT",
+    "MANUAL_ACTION_REQUIRED",
+    "NETWORK_ERROR",
+    "RESOURCE_LOCKED",
+    "STATE_READ_ERROR",
+    "TIMEOUT",
+    "UNINSTALL_FAILED",
+    "UNINSTALL_UNMANAGED",
+    "UPDATE_FAILED",
+    "UPGRADE_FAILED"
+  ]
+}
