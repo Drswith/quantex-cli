@@ -1,16 +1,26 @@
-import type { ManagedInstallType } from '../agents/types'
+import type { InstallMethod, ManagedInstallType } from '../agents/types'
 import type { AgentUpdateContext, AgentUpdateProvider } from './types'
 import { canUpdateInstallType, isManagedInstallType } from '../package-manager/capabilities'
-import { canAutoUpdateAgent, canUpdateInstalledState } from '../utils/install'
+import { canAutoUpdateAgent, canUpdateInstalledState, inferManagedInstallTypeFromBinaryPath } from '../utils/install'
 
 function getManagedInstallerTypeFromContext(context: AgentUpdateContext): ManagedInstallType | undefined {
   if (context.installedState) {
     return isManagedInstallType(context.installedState.installType) ? context.installedState.installType : undefined
   }
 
-  for (const method of context.methods) {
-    if (isManagedInstallType(method.type) && canUpdateInstallType(method.type)) return method.type
+  const inferredManagedType = inferManagedInstallTypeFromBinaryPath(context.binaryPath)
+  if (inferredManagedType) {
+    const inferredMethod = context.methods.find(
+      method => method.type === inferredManagedType && canUpdateInstallType(method.type),
+    )
+    if (inferredMethod) return inferredManagedType
   }
+
+  const updateableManagedMethods = context.methods.filter(
+    (method): method is InstallMethod & { type: ManagedInstallType } =>
+      isManagedInstallType(method.type) && canUpdateInstallType(method.type),
+  )
+  if (updateableManagedMethods.length === 1) return updateableManagedMethods[0]?.type
 
   return undefined
 }

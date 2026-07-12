@@ -5,6 +5,7 @@ export type AgentUpdateStrategy = 'managed' | 'manual-hint' | 'self-update'
 
 export interface AgentUpdateContext {
   agent: Pick<AgentDefinition, 'packages' | 'selfUpdate'>
+  binaryPath?: string
   methods: InstallMethod[]
   installedState?: Pick<InstalledAgentState, 'installType' | 'packageName'>
 }

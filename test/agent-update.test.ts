@@ -29,6 +29,56 @@ describe('agent update providers', () => {
     expect(strategy).toBe('managed')
   })
 
+  it('prefers path-inferred npm over preferred Bun for untracked multi-managed agents', () => {
+    const provider = resolveAgentUpdateProvider({
+      agent: {
+        packages: {
+          npm: 'test-pkg',
+        },
+        selfUpdate: {
+          command: ['test-bin', 'update'],
+        },
+      },
+      binaryPath: '/usr/local/lib/node_modules/test-pkg/bin/test-bin',
+      installedState: undefined,
+      methods: [{ type: 'bun' }, { type: 'npm' }],
+    })
+
+    expect(provider.strategy).toBe('managed')
+    expect(
+      provider.getManagedInstallerType?.({
+        agent: {},
+        binaryPath: '/usr/local/lib/node_modules/test-pkg/bin/test-bin',
+        installedState: undefined,
+        methods: [{ type: 'bun' }, { type: 'npm' }],
+      }),
+    ).toBe('npm')
+  })
+
+  it('does not invent preferred Bun for ambiguous untracked multi-managed agents', () => {
+    const provider = resolveAgentUpdateProvider({
+      agent: {
+        packages: {
+          npm: 'test-pkg',
+        },
+        selfUpdate: {
+          command: ['test-bin', 'update'],
+        },
+      },
+      installedState: undefined,
+      methods: [{ type: 'bun' }, { type: 'npm' }],
+    })
+
+    expect(provider.strategy).toBe('self-update')
+    expect(
+      provider.getManagedInstallerType?.({
+        agent: {},
+        installedState: undefined,
+        methods: [{ type: 'bun' }, { type: 'npm' }],
+      }),
+    ).toBe(undefined)
+  })
+
   it('does not reclassify recorded unmanaged state through candidate managed methods', () => {
     const provider = resolveAgentUpdateProvider({
       agent: {

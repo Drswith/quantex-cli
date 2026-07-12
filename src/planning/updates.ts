@@ -58,20 +58,16 @@ export function createUpdatePlan(
       continue
     }
 
-    const strategy = resolveAgentUpdateProvider({
+    const updateContext = {
       agent: inspection.agent,
+      binaryPath: inspection.resolvedBinaryPath ?? inspection.binaryPath,
       installedState: inspection.installedState,
       methods: inspection.methods,
-    })
+    }
+    const strategy = resolveAgentUpdateProvider(updateContext)
 
     const installerType =
-      strategy.strategy === 'managed'
-        ? strategy.getManagedInstallerType?.({
-            agent: inspection.agent,
-            installedState: inspection.installedState,
-            methods: inspection.methods,
-          })
-        : undefined
+      strategy.strategy === 'managed' ? strategy.getManagedInstallerType?.(updateContext) : undefined
     if (installerType) {
       const entry: UpdatePlanEntry = {
         inspection,

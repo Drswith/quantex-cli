@@ -187,7 +187,7 @@ export function getAdoptableExistingInstallMethod(
   return method
 }
 
-function inferManagedInstallTypeFromBinaryPath(binaryPath?: string): 'bun' | 'mise' | 'npm' | undefined {
+export function inferManagedInstallTypeFromBinaryPath(binaryPath?: string): 'bun' | 'mise' | 'npm' | undefined {
   if (!binaryPath) return undefined
 
   const normalized = binaryPath.replaceAll('\\', '/')

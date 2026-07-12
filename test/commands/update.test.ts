@@ -18,6 +18,8 @@ const managedInstalledVersionSpy = vi.spyOn(pm, 'getManagedInstalledPackageVersi
 const binaryInPathSpy = vi.spyOn(detect, 'isBinaryInPath')
 const installedVerSpy = vi.spyOn(version, 'getInstalledVersion')
 const latestVerSpy = vi.spyOn(version, 'getLatestVersion')
+const binaryPathSpy = vi.spyOn(version, 'getBinaryPath')
+const resolvedBinaryPathSpy = vi.spyOn(version, 'getResolvedBinaryPath')
 const installedStateSpy = vi.spyOn(state, 'getInstalledAgentState')
 
 afterAll(() => {
@@ -29,6 +31,8 @@ afterAll(() => {
   binaryInPathSpy.mockRestore()
   installedVerSpy.mockRestore()
   latestVerSpy.mockRestore()
+  binaryPathSpy.mockRestore()
+  resolvedBinaryPathSpy.mockRestore()
   installedStateSpy.mockRestore()
 })
 
@@ -63,6 +67,10 @@ describe('updateCommand', () => {
     binaryInPathSpy.mockClear()
     installedVerSpy.mockClear()
     latestVerSpy.mockClear()
+    binaryPathSpy.mockClear()
+    binaryPathSpy.mockResolvedValue(undefined)
+    resolvedBinaryPathSpy.mockClear()
+    resolvedBinaryPathSpy.mockResolvedValue(undefined)
     installedStateSpy.mockClear()
   })
 
@@ -105,6 +113,65 @@ describe('updateCommand', () => {
       expect.stringContaining('Updating Test Agent via managed/bun... (1.0.0 -> 2.0.0)'),
     )
     expect(stdoutWriteSpy).toHaveBeenCalledWith(expect.stringContaining('updated successfully'))
+  })
+
+  it('uses npm for untracked PATH installs whose binary identifies a global npm layout', async () => {
+    const multiManagedAgent = {
+      ...testAgent,
+      platforms: {
+        linux: [{ type: 'bun' as const }, { type: 'npm' as const }],
+        macos: [{ type: 'bun' as const }, { type: 'npm' as const }],
+        windows: [{ type: 'bun' as const }, { type: 'npm' as const }],
+      },
+    }
+
+    agentSpy.mockReturnValue(multiManagedAgent)
+    binaryInPathSpy.mockResolvedValue(true)
+    binaryPathSpy.mockResolvedValue('/usr/local/bin/test-bin')
+    resolvedBinaryPathSpy.mockResolvedValue('/usr/local/lib/node_modules/test-pkg/bin/test-bin')
+    installedVerSpy.mockResolvedValue('1.0.0')
+    latestVerSpy.mockResolvedValue('2.0.0')
+    installedStateSpy.mockResolvedValue(undefined)
+    updateAgentsByTypeSpy.mockResolvedValue(true)
+
+    await updateCommand('test-agent', false)
+
+    expect(updateAgentsByTypeSpy).toHaveBeenCalledWith('npm', [
+      { packageName: 'test-pkg', packageTargetKind: undefined },
+    ])
+    expect(updateSpy).not.toHaveBeenCalled()
+    expect(stdoutWriteSpy).toHaveBeenCalledWith(
+      expect.stringContaining('Updating Test Agent via managed/npm... (1.0.0 -> 2.0.0)'),
+    )
+  })
+
+  it('uses self-update for ambiguous untracked multi-managed PATH installs', async () => {
+    const multiManagedAgent = {
+      ...testAgent,
+      selfUpdate: {
+        command: ['test-bin', 'update'],
+      },
+      platforms: {
+        linux: [{ type: 'bun' as const }, { type: 'npm' as const }],
+        macos: [{ type: 'bun' as const }, { type: 'npm' as const }],
+        windows: [{ type: 'bun' as const }, { type: 'npm' as const }],
+      },
+    }
+
+    agentSpy.mockReturnValue(multiManagedAgent)
+    binaryInPathSpy.mockResolvedValue(true)
+    installedVerSpy.mockResolvedValueOnce('1.0.0').mockResolvedValueOnce('2.0.0')
+    latestVerSpy.mockResolvedValue(undefined)
+    installedStateSpy.mockResolvedValue(undefined)
+    updateSpy.mockResolvedValue({ success: true })
+
+    await updateCommand('test-agent', false)
+
+    expect(updateAgentsByTypeSpy).not.toHaveBeenCalled()
+    expect(updateSpy).toHaveBeenCalledWith(multiManagedAgent, undefined)
+    expect(stdoutWriteSpy).toHaveBeenCalledWith(
+      expect.stringContaining('Updating Test Agent via self-update... (1.0.0 -> 2.0.0)'),
+    )
   })
 
   it('updates pip-managed agents via updateAgentsByType when versions differ', async () => {

@@ -69,14 +69,31 @@ async function executeManagedMethod(
 
   if (action === 'install') return installer.install(packageName, packageTargetKind, packageInstallArgs)
 
-  if (action === 'update')
+  if (action === 'update') {
+    if (!(await areManagedPackagesPresent(installer, [{ packageName, packageTargetKind }]))) return false
+
     return installer.update(packageName, packageTargetKind, {
       binaryName,
       npmBunUpdateStrategy: updateStrategy,
       packageInstallArgs,
     })
+  }
 
   return installer.uninstall(packageName, packageTargetKind, { binaryName })
+}
+
+async function areManagedPackagesPresent(
+  installer: ReturnType<typeof getManagedInstaller>,
+  packages: Array<Pick<ManagedPackageSpec, 'packageName' | 'packageTargetKind'>>,
+): Promise<boolean> {
+  if (!installer.probePackagePresence) return true
+
+  for (const pkg of packages) {
+    const presence = await installer.probePackagePresence(pkg.packageName, pkg.packageTargetKind)
+    if (presence === 'absent') return false
+  }
+
+  return true
 }
 
 async function executeMethod(
@@ -330,6 +347,7 @@ export async function updateAgentsByType(type: ManagedInstallType, packages: Man
 
     const installer = getManagedInstaller(type)
     if (!(await installer.isAvailable())) return false
+    if (!(await areManagedPackagesPresent(installer, uniquePackages))) return false
     return installer.updateMany(uniquePackages, await getManagedUpdateOptions())
   })
 }

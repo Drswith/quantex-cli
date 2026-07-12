@@ -125,16 +125,14 @@ function hasManagedPackageSpec(
 }
 
 function toPendingAgentUpdate(inspection: AgentInspection): PendingAgentUpdate {
-  const provider = resolveAgentUpdateProvider({
+  const updateContext = {
     agent: inspection.agent,
+    binaryPath: inspection.resolvedBinaryPath ?? inspection.binaryPath,
     installedState: inspection.installedState,
     methods: inspection.methods,
-  })
-  const installerType = provider.getManagedInstallerType?.({
-    agent: inspection.agent,
-    installedState: inspection.installedState,
-    methods: inspection.methods,
-  })
+  }
+  const provider = resolveAgentUpdateProvider(updateContext)
+  const installerType = provider.getManagedInstallerType?.(updateContext)
 
   return {
     agent: inspection.agent,

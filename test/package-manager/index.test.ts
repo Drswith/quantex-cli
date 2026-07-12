@@ -85,6 +85,7 @@ beforeEach(() => {
   bunUninstallSpy.mockClear()
   bunGetInstalledVersionSpy.mockClear()
   bunProbePackagePresenceSpy.mockClear()
+  bunProbePackagePresenceSpy.mockResolvedValue('present')
   cargoInstallSpy.mockClear()
   cargoUpdateSpy.mockClear()
   cargoUpdateManySpy.mockClear()
@@ -98,16 +99,19 @@ beforeEach(() => {
   miseUpdateManySpy.mockClear()
   miseUninstallSpy.mockClear()
   miseProbePackagePresenceSpy.mockClear()
+  miseProbePackagePresenceSpy.mockResolvedValue('present')
   npmInstallSpy.mockClear()
   npmUpdateSpy.mockClear()
   npmUpdateManySpy.mockClear()
   npmUninstallSpy.mockClear()
   npmProbePackagePresenceSpy.mockClear()
+  npmProbePackagePresenceSpy.mockResolvedValue('present')
   uvInstallSpy.mockClear()
   uvUpdateSpy.mockClear()
   uvUpdateManySpy.mockClear()
   uvUninstallSpy.mockClear()
   uvProbePackagePresenceSpy.mockClear()
+  uvProbePackagePresenceSpy.mockResolvedValue('present')
   binarySpy.mockClear()
   loadConfigSpy.mockClear()
   getPlatformSpy.mockClear()
@@ -863,6 +867,35 @@ describe('updateAgentsByType', () => {
       ]),
     ).toBe(true)
     expect(bunUpdateManySpy).toHaveBeenCalledWith(['test-pkg', 'other-pkg'], 'latest-major')
+  })
+
+  it('refuses bun updates when presence probing reports the package absent', async () => {
+    isBunSpy.mockResolvedValue(true)
+    bunProbePackagePresenceSpy.mockResolvedValue('absent')
+    bunUpdateManySpy.mockResolvedValue(true)
+
+    expect(await updateAgentsByType('bun', [{ packageName: 'test-pkg' }])).toBe(false)
+    expect(bunProbePackagePresenceSpy).toHaveBeenCalledWith('test-pkg')
+    expect(bunUpdateManySpy).not.toHaveBeenCalled()
+  })
+
+  it('refuses npm updates when presence probing reports the package absent', async () => {
+    isNpmSpy.mockResolvedValue(true)
+    npmProbePackagePresenceSpy.mockResolvedValue('absent')
+    npmUpdateManySpy.mockResolvedValue(true)
+
+    expect(await updateAgentsByType('npm', [{ packageName: 'test-pkg' }])).toBe(false)
+    expect(npmProbePackagePresenceSpy).toHaveBeenCalledWith('test-pkg')
+    expect(npmUpdateManySpy).not.toHaveBeenCalled()
+  })
+
+  it('still attempts bun updates when presence probing is inconclusive', async () => {
+    isBunSpy.mockResolvedValue(true)
+    bunProbePackagePresenceSpy.mockResolvedValue('unknown')
+    bunUpdateManySpy.mockResolvedValue(true)
+
+    expect(await updateAgentsByType('bun', [{ packageName: 'test-pkg' }])).toBe(true)
+    expect(bunUpdateManySpy).toHaveBeenCalledWith(['test-pkg'], 'latest-major')
   })
 
   it('batches cargo updates', async () => {

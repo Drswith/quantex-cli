@@ -385,7 +385,13 @@ async function performUpdate(
   agent: AgentDefinition,
   installedState?: InstalledAgentState,
   methods?: InstallMethod[],
-  inspection?: { installedVersion?: string; latestVersion?: string; methods?: InstallMethod[] },
+  inspection?: {
+    binaryPath?: string
+    installedVersion?: string
+    latestVersion?: string
+    methods?: InstallMethod[]
+    resolvedBinaryPath?: string
+  },
 ): Promise<UpdateResultItem> {
   if (getCliContext().cancelled) {
     return {
@@ -401,6 +407,7 @@ async function performUpdate(
   const resolvedMethods = methods ?? inspection?.methods ?? []
   const strategy = getAgentUpdateStrategy({
     agent,
+    binaryPath: inspection?.resolvedBinaryPath ?? inspection?.binaryPath,
     installedState,
     methods: resolvedMethods,
   })
