@@ -8,11 +8,12 @@ import type {
 } from '../types'
 import { runBinaryInstall } from '../../package-manager/binary'
 import { spawnWithQuantexStdio, waitForSpawnedCommand } from '../../utils/child-process'
-import { getPlatform } from '../../utils/detect'
+import { getPlatform, isBinaryInPath } from '../../utils/detect'
 import { interruptedOutcome, isInterruptedOperation, runPendingOperation } from './legacy-operation'
 
 export interface InstallEffectAdapterDependencies {
   readonly execute: (effect: ProviderExecutionEffect) => Promise<boolean>
+  readonly isExecutablePresent: (binaryName: string) => Promise<boolean>
 }
 
 const defaultDependencies: InstallEffectAdapterDependencies = {
@@ -24,12 +25,14 @@ const defaultDependencies: InstallEffectAdapterDependencies = {
       return false
     }
   },
+  isExecutablePresent: isBinaryInPath,
 }
 
 export function createInstallEffectProviderAdapter<Id extends 'binary' | 'script'>(
   id: Id,
-  dependencies: InstallEffectAdapterDependencies = defaultDependencies,
+  overrides: Partial<InstallEffectAdapterDependencies> = {},
 ): ProviderAdapter & { readonly id: Id } {
+  const dependencies = { ...defaultDependencies, ...overrides }
   return {
     availability: async context => availableShell(context),
     id,
@@ -61,11 +64,33 @@ export function createInstallEffectProviderAdapter<Id extends 'binary' | 'script
 
       return { kind: 'success', value: { evidence, target: request.target } }
     },
-    observe: async request => ({
-      evidence: [{ kind: 'provider', value: `${id}:${request.target.id}:presence-unknown` }],
-      kind: 'indeterminate',
-      reason: `${id} candidate does not declare a presence probe`,
-    }),
+    observe: async request => {
+      const binaryName = request.target.binaryName
+      if (!binaryName) {
+        return {
+          evidence: [{ kind: 'provider', value: `${id}:${request.target.id}:presence-unknown` }],
+          kind: 'indeterminate',
+          reason: `${id} candidate does not declare an executable presence probe`,
+        }
+      }
+      const operation = await runPendingOperation(request.context, () => dependencies.isExecutablePresent(binaryName))
+      if (isInterruptedOperation(operation)) return interruptedOutcome(operation)
+      if (operation.kind === 'rejected') {
+        return {
+          kind: 'failed',
+          reason: `${id} executable probe failed for ${request.target.id}: ${operation.reason}`,
+          retryable: true,
+        }
+      }
+      return {
+        kind: 'success',
+        value: {
+          evidence: [{ kind: 'executable', value: binaryName }],
+          kind: operation.value ? 'present' : 'absent',
+          target: request.target,
+        },
+      }
+    },
   }
 }
 

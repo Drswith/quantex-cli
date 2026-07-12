@@ -2,6 +2,7 @@ import type { AgentDefinition, InstallMethod, ManagedInstallType } from '../agen
 import type { NpmBunUpdateStrategy } from '../config'
 import type { InstalledAgentState } from '../state'
 import type { ManagedInstallerUpdateOptions, ManagedPackageSpec } from './installers'
+import { AsyncLocalStorage } from 'node:async_hooks'
 import { getCliContext } from '../cli-context'
 import { loadConfig } from '../config'
 import { binaryProviderAdapter, scriptProviderAdapter } from '../providers/adapters/install-effect'
@@ -29,6 +30,12 @@ const lifecycleLock = {
   resource: 'agent lifecycle',
   scope: ['agent-lifecycle'],
 } as const
+const lifecycleLockContext = new AsyncLocalStorage<boolean>()
+
+export function withAgentLifecycleLock<T>(run: () => Promise<T>): Promise<T> {
+  if (lifecycleLockContext.getStore()) return run()
+  return withResourceLock(lifecycleLock, () => lifecycleLockContext.run(true, run))
+}
 
 async function getPreferredManagedInstallType(): Promise<ManagedInstallType | undefined> {
   const config = await loadConfig()
@@ -221,11 +228,11 @@ export async function trackInstalledAgent(
   agent: AgentDefinition,
   method: InstallMethod,
 ): Promise<InstalledAgentState | null> {
-  return withResourceLock(lifecycleLock, async () => persistInstalledStateIfNotCancelled(agent, method))
+  return withAgentLifecycleLock(async () => persistInstalledStateIfNotCancelled(agent, method))
 }
 
 export async function installAgent(agent: AgentDefinition): Promise<AgentOperationResult> {
-  return withResourceLock(lifecycleLock, async () => {
+  return withAgentLifecycleLock(async () => {
     const methods = await getOrderedInstallMethods(agent)
 
     for (const method of methods) {
@@ -270,7 +277,7 @@ export async function updateAgent(
   agent: AgentDefinition,
   preferredState?: InstalledAgentState,
 ): Promise<AgentOperationResult> {
-  return withResourceLock(lifecycleLock, async () => {
+  return withAgentLifecycleLock(async () => {
     const { npmBunUpdateStrategy } = await getManagedUpdateOptions()
     const methods = await getOrderedInstallMethods(agent)
 
@@ -323,7 +330,7 @@ export async function updateAgent(
 }
 
 export async function updateAgentsByType(type: ManagedInstallType, packages: ManagedPackageSpec[]): Promise<boolean> {
-  return withResourceLock(lifecycleLock, async () => {
+  return withAgentLifecycleLock(async () => {
     const uniquePackages = [
       ...new Map(
         packages
@@ -379,26 +386,43 @@ async function isManagedPackageAbsent(
 }
 
 export async function uninstallAgent(agent: AgentDefinition): Promise<boolean> {
-  return withResourceLock(lifecycleLock, async () => {
+  return withAgentLifecycleLock(async () => {
     const installedState = await getInstalledAgentState(agent.name)
     if (!installedState) return false
 
-    if (!canUninstallInstallType(installedState.installType)) {
-      await removeInstalledAgentState(agent.name)
-      return true
-    }
-
-    const success = await executeInstalledState(installedState, 'uninstall', { agent })
-    if (success) {
-      await removeInstalledAgentState(agent.name)
-      return true
-    }
-
-    if (await isManagedPackageAbsent(installedState, agent)) {
-      await removeInstalledAgentState(agent.name)
-      return true
-    }
-
-    return false
+    return uninstallInstalledAgent(agent, installedState)
   })
+}
+
+export async function uninstallInstalledAgent(
+  agent: AgentDefinition,
+  installedState: InstalledAgentState,
+): Promise<boolean> {
+  if (!canUninstallInstallType(installedState.installType)) {
+    await removeInstalledAgentState(agent.name)
+    return true
+  }
+
+  const success = await executeInstalledState(installedState, 'uninstall', { agent })
+  if (success) {
+    await removeInstalledAgentState(agent.name)
+    return true
+  }
+
+  if (await isManagedPackageAbsent(installedState, agent)) {
+    await removeInstalledAgentState(agent.name)
+    return true
+  }
+
+  return false
+}
+
+export async function reinstallInstalledAgent(
+  agent: AgentDefinition,
+  installedState: InstalledAgentState,
+): Promise<AgentOperationResult> {
+  const success = await executeInstalledState(installedState, 'install', { agent })
+  if (!success) return { success: false }
+  await setInstalledAgentState(installedState)
+  return { installedState, success: true }
 }
