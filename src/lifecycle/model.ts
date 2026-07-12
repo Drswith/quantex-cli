@@ -126,10 +126,12 @@ export type LifecycleVerification =
     }
 
 export interface LifecycleReceipt {
+  readonly executableName?: string
   readonly executablePath?: string
   readonly kind: 'lifecycle-receipt'
   readonly providerId: string
   readonly providerTargetId: string
+  readonly providerTargetKind?: 'binary' | 'cask' | 'formula' | 'id' | 'package' | 'script' | 'tool'
   readonly schemaVersion: number
   readonly targetId: string
   readonly verifiedAt: string

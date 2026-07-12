@@ -1,3 +1,7 @@
+import { readFile } from 'node:fs/promises'
+import { homedir } from 'node:os'
+import { join } from 'node:path'
+import process from 'node:process'
 import { readProcessOutput, spawnCommand, spawnWithQuantexStdio, waitForSpawnedCommand } from '../utils/child-process'
 import { normalizeRegistryUrl } from '../utils/registry'
 
@@ -67,13 +71,38 @@ export async function uninstall(packageName: string): Promise<boolean> {
 
 export type PackagePresenceProbe = 'present' | 'absent' | 'unknown'
 
-async function readPackagePresence(packageName: string): Promise<{ presence: PackagePresenceProbe; version?: string }> {
+export interface BunPresenceProbeDependencies {
+  readonly readGlobalManifest: () => Promise<string>
+}
+
+const defaultPresenceDependencies: BunPresenceProbeDependencies = {
+  readGlobalManifest: () =>
+    readFile(
+      join(process.env.BUN_INSTALL_GLOBAL_DIR ?? join(homedir(), '.bun', 'install', 'global'), 'package.json'),
+      'utf8',
+    ),
+}
+
+async function readPackagePresence(
+  packageName: string,
+  dependencies: BunPresenceProbeDependencies = defaultPresenceDependencies,
+): Promise<{ presence: PackagePresenceProbe; version?: string }> {
   try {
     const proc = spawnCommand(['bun', 'pm', '-g', 'ls'], {
       stdio: createPipedStdio(),
     })
-    const { stdout } = await readProcessOutput(proc)
-    if (!stdout.trim()) return { presence: 'unknown' }
+    const { stderr, stdout } = await readProcessOutput(proc)
+    if (!stdout.trim()) {
+      if (stderr.includes('No package.json was found for directory')) return { presence: 'absent' }
+      if (stderr.includes('Lockfile not found')) {
+        try {
+          return { presence: classifyGlobalManifestPresence(await dependencies.readGlobalManifest(), packageName) }
+        } catch {
+          return { presence: 'unknown' }
+        }
+      }
+      return { presence: 'unknown' }
+    }
 
     const version = parseGlobalPackageVersion(stdout, packageName)
     if (version) return { presence: 'present', version }
@@ -85,8 +114,11 @@ async function readPackagePresence(packageName: string): Promise<{ presence: Pac
   }
 }
 
-export async function probePackagePresence(packageName: string): Promise<PackagePresenceProbe> {
-  return (await readPackagePresence(packageName)).presence
+export async function probePackagePresence(
+  packageName: string,
+  dependencies: BunPresenceProbeDependencies = defaultPresenceDependencies,
+): Promise<PackagePresenceProbe> {
+  return (await readPackagePresence(packageName, dependencies)).presence
 }
 
 export async function getInstalledVersion(packageName: string): Promise<string | undefined> {
@@ -97,6 +129,20 @@ function hasGlobalPackageEntry(output: string, packageName: string): boolean {
   const marker = `${packageName}@`
 
   return output.split('\n').some(line => line.trim().split(/\s+/).at(-1)?.startsWith(marker))
+}
+
+function classifyGlobalManifestPresence(manifestText: string, packageName: string): PackagePresenceProbe {
+  const manifest = JSON.parse(manifestText) as unknown
+  if (typeof manifest !== 'object' || manifest === null || Array.isArray(manifest)) return 'unknown'
+
+  for (const field of ['dependencies', 'devDependencies', 'optionalDependencies', 'peerDependencies'] as const) {
+    if (!Object.hasOwn(manifest, field)) continue
+    const dependencies = (manifest as Record<string, unknown>)[field]
+    if (typeof dependencies !== 'object' || dependencies === null || Array.isArray(dependencies)) return 'unknown'
+    if (Object.hasOwn(dependencies, packageName)) return 'present'
+  }
+
+  return 'absent'
 }
 
 export function parseGlobalPackageVersion(output: string, packageName: string): string | undefined {
@@ -178,6 +224,6 @@ export function parseUntrustedPackages(output: string): Set<string> {
   return packages
 }
 
-function createPipedStdio(): ['ignore', 'pipe', 'ignore'] {
-  return ['ignore', 'pipe', 'ignore']
+function createPipedStdio(): ['ignore', 'pipe', 'pipe'] {
+  return ['ignore', 'pipe', 'pipe']
 }
