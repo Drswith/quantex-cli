@@ -1,9 +1,11 @@
+import type { AgentDefinition } from '../../src/agents'
 import process from 'node:process'
 import { afterAll, afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import * as agents from '../../src/agents'
 import { cancelCliContextOperations, setCliContext } from '../../src/cli-context'
 import { executeCommandWithRuntime } from '../../src/command-runtime'
 import { installCommand } from '../../src/commands/install'
+import * as providerEvidence from '../../src/lifecycle/provider-evidence'
 import * as pm from '../../src/package-manager'
 import * as state from '../../src/state'
 import * as detect from '../../src/utils/detect'
@@ -11,16 +13,26 @@ import { ResourceLockError } from '../../src/utils/lock'
 
 const agentSpy = vi.spyOn(agents, 'getAgentByNameOrAlias')
 const installSpy = vi.spyOn(pm, 'installAgent')
+const reinstallSpy = vi.spyOn(pm, 'reinstallInstalledAgent')
 const trackSpy = vi.spyOn(pm, 'trackInstalledAgent')
+const lifecycleLockSpy = vi.spyOn(pm, 'withAgentLifecycleLock')
 const binaryInPathSpy = vi.spyOn(detect, 'isBinaryInPath')
 const installedStateSpy = vi.spyOn(state, 'getInstalledAgentState')
+const removeInstalledStateSpy = vi.spyOn(state, 'removeInstalledAgentState')
+const setReceiptSpy = vi.spyOn(state, 'setLifecycleReceipt')
+const observeProviderSpy = vi.spyOn(providerEvidence, 'observeLifecycleProvider')
 
 afterAll(() => {
   agentSpy.mockRestore()
   installSpy.mockRestore()
+  reinstallSpy.mockRestore()
   trackSpy.mockRestore()
+  lifecycleLockSpy.mockRestore()
   binaryInPathSpy.mockRestore()
   installedStateSpy.mockRestore()
+  removeInstalledStateSpy.mockRestore()
+  setReceiptSpy.mockRestore()
+  observeProviderSpy.mockRestore()
 })
 
 const testAgent = {
@@ -75,9 +87,27 @@ describe('installCommand', () => {
     stdoutWriteSpy = vi.spyOn(process.stdout, 'write').mockReturnValue(true)
     agentSpy.mockClear()
     installSpy.mockClear()
+    reinstallSpy.mockReset()
+    reinstallSpy.mockImplementation(async (_agent, installedState) => ({ installedState, success: true }))
     trackSpy.mockClear()
-    binaryInPathSpy.mockClear()
+    lifecycleLockSpy.mockReset()
+    lifecycleLockSpy.mockImplementation(async run => run())
+    binaryInPathSpy.mockReset()
     installedStateSpy.mockClear()
+    removeInstalledStateSpy.mockReset()
+    removeInstalledStateSpy.mockResolvedValue()
+    setReceiptSpy.mockReset()
+    setReceiptSpy.mockResolvedValue()
+    observeProviderSpy.mockReset()
+    observeProviderSpy.mockImplementation(async binding => ({
+      kind: 'success',
+      value: {
+        executablePath: `/bin/${binding.target.id}`,
+        kind: 'present',
+        target: binding.target,
+        version: '1.2.3',
+      },
+    }))
     installedStateSpy.mockResolvedValue(undefined)
   })
 
@@ -90,6 +120,7 @@ describe('installCommand', () => {
     agentSpy.mockReturnValue(undefined)
     await installCommand('unknown')
     expect(stdoutWriteSpy).toHaveBeenCalledWith(expect.stringContaining('Unknown agent'))
+    expect(lifecycleLockSpy).not.toHaveBeenCalled()
   })
 
   it('shows already installed when a tracked install exists', async () => {
@@ -143,11 +174,86 @@ describe('installCommand', () => {
 
   it('calls installAgent and shows success', async () => {
     agentSpy.mockReturnValue(testAgent)
-    binaryInPathSpy.mockResolvedValue(false)
-    installSpy.mockResolvedValue({ success: true })
+    mockMissingThenVerified(binaryInPathSpy)
+    installSpy.mockResolvedValue(successfulInstall(testAgent))
     await installCommand('test-agent')
     expect(installSpy).toHaveBeenCalledWith(testAgent)
     expect(stdoutWriteSpy).toHaveBeenCalledWith(expect.stringContaining('installed successfully'))
+  })
+
+  it('records a receipt only after the installed binary is verified', async () => {
+    agentSpy.mockReturnValue(testAgent)
+    binaryInPathSpy.mockResolvedValueOnce(false).mockResolvedValueOnce(true)
+    installSpy.mockResolvedValue({
+      installedState: {
+        agentName: 'test-agent',
+        installType: 'bun',
+        packageName: 'test-pkg',
+      },
+      success: true,
+    })
+
+    const result = await installCommand('test-agent')
+
+    expect(result.ok).toBe(true)
+    expect(setReceiptSpy).toHaveBeenCalledWith(
+      expect.objectContaining({
+        providerId: 'bun',
+        providerTargetId: 'test-pkg',
+        targetId: 'test-agent',
+      }),
+    )
+  })
+
+  it('returns a typed partial failure and preserves source evidence when verification fails', async () => {
+    agentSpy.mockReturnValue(testAgent)
+    binaryInPathSpy.mockResolvedValue(false)
+    installSpy.mockResolvedValue({
+      installedState: {
+        agentName: 'test-agent',
+        installType: 'bun',
+        packageName: 'test-pkg',
+      },
+      success: true,
+    })
+
+    const result = await installCommand('test-agent')
+
+    expect(result.ok).toBe(false)
+    expect(result.error).toMatchObject({
+      code: 'INSTALL_FAILED',
+      details: { lifecycle: 'verification-failed' },
+    })
+    expect(setReceiptSpy).not.toHaveBeenCalled()
+    expect(removeInstalledStateSpy).not.toHaveBeenCalled()
+  })
+
+  it('reinstalls a tracked ghost instead of treating stale state as satisfied', async () => {
+    agentSpy.mockReturnValue(testAgent)
+    installedStateSpy.mockResolvedValue({
+      agentName: 'test-agent',
+      installType: 'bun',
+      packageName: 'test-pkg',
+    })
+    binaryInPathSpy.mockResolvedValueOnce(false).mockResolvedValueOnce(true)
+    observeProviderSpy
+      .mockImplementationOnce(async binding => ({
+        kind: 'success',
+        value: { kind: 'absent', target: binding.target },
+      }))
+      .mockImplementationOnce(async binding => ({
+        kind: 'success',
+        value: { kind: 'present', target: binding.target },
+      }))
+
+    const result = await installCommand('test-agent')
+
+    expect(result.ok).toBe(true)
+    expect(reinstallSpy).toHaveBeenCalledWith(
+      testAgent,
+      expect.objectContaining({ installType: 'bun', packageName: 'test-pkg' }),
+    )
+    expect(installSpy).not.toHaveBeenCalled()
   })
 
   it('shows failure message when installAgent returns false', async () => {
@@ -185,6 +291,7 @@ describe('installCommand', () => {
     expect(result.data?.changed).toBe(false)
     expect(result.warnings[0]?.code).toBe('DRY_RUN')
     expect(installSpy).not.toHaveBeenCalled()
+    expect(lifecycleLockSpy).not.toHaveBeenCalled()
   })
 
   it('suppresses informational success logs in quiet mode', async () => {
@@ -195,8 +302,8 @@ describe('installCommand', () => {
       runId: 'quiet-run-id',
     })
     agentSpy.mockReturnValue(testAgent)
-    binaryInPathSpy.mockResolvedValue(false)
-    installSpy.mockResolvedValue({ success: true })
+    mockMissingThenVerified(binaryInPathSpy)
+    installSpy.mockResolvedValue(successfulInstall(testAgent))
 
     await installCommand('test-agent')
 
@@ -210,7 +317,7 @@ describe('installCommand', () => {
       runId: 'test-run-id',
     })
     agentSpy.mockReturnValue(testAgent)
-    binaryInPathSpy.mockResolvedValue(false)
+    mockMissingThenVerified(binaryInPathSpy)
     installSpy.mockResolvedValue({
       installedState: {
         agentName: 'test-agent',
@@ -238,7 +345,7 @@ describe('installCommand', () => {
       runId: 'test-run-id',
     })
     agentSpy.mockReturnValue(testAgent)
-    binaryInPathSpy.mockResolvedValue(false)
+    mockMissingThenVerified(binaryInPathSpy)
     installSpy.mockResolvedValue({
       installedState: {
         agentName: 'test-agent',
@@ -265,8 +372,8 @@ describe('installCommand', () => {
       if (name === 'another-agent') return anotherAgent
       return undefined
     })
-    binaryInPathSpy.mockResolvedValue(false)
-    installSpy.mockResolvedValue({ success: true })
+    mockMissingThenVerified(binaryInPathSpy, 2)
+    installSpy.mockImplementation(async agent => successfulInstall(agent))
 
     const result = await installCommand(['test-agent', 'another-agent'])
 
@@ -290,8 +397,8 @@ describe('installCommand', () => {
       if (name === 'test-agent') return testAgent
       return undefined
     })
-    binaryInPathSpy.mockResolvedValue(false)
-    installSpy.mockResolvedValue({ success: true })
+    mockMissingThenVerified(binaryInPathSpy)
+    installSpy.mockResolvedValue(successfulInstall(testAgent))
 
     const result = await installCommand(['test-agent', 'unknown'])
 
@@ -325,8 +432,8 @@ describe('installCommand', () => {
       if (name === 'another-agent') return anotherAgent
       return undefined
     })
-    binaryInPathSpy.mockResolvedValue(false)
-    installSpy.mockResolvedValue({ success: true })
+    mockMissingThenVerified(binaryInPathSpy, 2)
+    installSpy.mockImplementation(async agent => successfulInstall(agent))
 
     await installCommand(['test-agent', 'another-agent'])
 
@@ -422,25 +529,41 @@ describe('installCommand', () => {
       return undefined
     })
     binaryInPathSpy.mockResolvedValue(false)
+    let markInstallStarted!: () => void
+    let releaseInstall!: () => void
+    let lateCommand!: ReturnType<typeof installCommand>
+    const installStarted = new Promise<void>(resolve => {
+      markInstallStarted = resolve
+    })
+    const installRelease = new Promise<void>(resolve => {
+      releaseInstall = resolve
+    })
     installSpy.mockImplementation(async agent => {
       if (agent.name === 'test-agent') {
-        await new Promise(resolve => setTimeout(resolve, 200))
+        markInstallStarted()
+        await installRelease
         return { success: false }
       }
 
       return { success: true }
     })
 
-    const runtimeResult = await executeCommandWithRuntime({
+    const runtimePromise = executeCommandWithRuntime({
       action: 'install',
-      run: () => installCommand(['test-agent', 'another-agent']),
+      run: () => {
+        lateCommand = installCommand(['test-agent', 'another-agent'])
+        return lateCommand
+      },
       target: {
         kind: 'agent',
         name: 'another-agent,test-agent',
       },
     })
 
-    await new Promise(resolve => setTimeout(resolve, 300))
+    await installStarted
+    const runtimeResult = await runtimePromise
+    releaseInstall()
+    await lateCommand
 
     expect(runtimeResult.error?.code).toBe('TIMEOUT')
     expect(installSpy).toHaveBeenCalledTimes(1)
@@ -460,9 +583,19 @@ describe('installCommand', () => {
       return undefined
     })
     binaryInPathSpy.mockResolvedValue(false)
+    let markInstallStarted!: () => void
+    let releaseInstall!: () => void
+    const installStarted = new Promise<void>(resolve => {
+      markInstallStarted = resolve
+    })
+    const installRelease = new Promise<void>(resolve => {
+      releaseInstall = resolve
+    })
+    let lateCommand!: ReturnType<typeof installCommand>
     installSpy.mockImplementation(async agent => {
       if (agent.name === 'test-agent') {
-        await new Promise(resolve => setTimeout(resolve, 200))
+        markInstallStarted()
+        await installRelease
         return {
           success: true,
           installedState: {
@@ -476,16 +609,22 @@ describe('installCommand', () => {
       return { success: true }
     })
 
-    const runtimeResult = await executeCommandWithRuntime({
+    const runtimePromise = executeCommandWithRuntime({
       action: 'install',
-      run: () => installCommand(['test-agent', 'another-agent']),
+      run: () => {
+        lateCommand = installCommand(['test-agent', 'another-agent'])
+        return lateCommand
+      },
       target: {
         kind: 'agent',
         name: 'another-agent,test-agent',
       },
     })
 
-    await new Promise(resolve => setTimeout(resolve, 300))
+    await installStarted
+    const runtimeResult = await runtimePromise
+    releaseInstall()
+    await lateCommand
 
     expect(runtimeResult.ok).toBe(false)
     expect(['CANCELLED', 'TIMEOUT']).toContain(runtimeResult.error?.code)
@@ -493,3 +632,20 @@ describe('installCommand', () => {
     expect(installSpy).toHaveBeenCalledWith(testAgent)
   })
 })
+
+function successfulInstall(agent: AgentDefinition) {
+  return {
+    installedState: {
+      agentName: agent.name,
+      installType: 'bun' as const,
+      packageName: agent.packages?.npm,
+    },
+    success: true,
+  }
+}
+
+function mockMissingThenVerified(spy: typeof binaryInPathSpy, count = 1): void {
+  for (let index = 0; index < count; index += 1) {
+    spy.mockResolvedValueOnce(false).mockResolvedValueOnce(true)
+  }
+}

@@ -3,10 +3,11 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 const mockSpawn = vi.fn()
 let originalSpawn: typeof Bun.spawn
 
-function createProc(exitCode: number, stdout = '') {
+function createProc(exitCode: number, stdout = '', stderr = '') {
   return {
     exited: Promise.resolve(),
     exitCode,
+    stderr,
     stdout,
   }
 }
@@ -251,6 +252,52 @@ describe('probePackagePresence', () => {
     mockSpawn.mockReturnValue(createProc(1, ''))
 
     expect(await probePackagePresence('test-pkg')).toBe('unknown')
+  })
+
+  it('returns absent when Bun reports an uninitialized empty global package root', async () => {
+    const { probePackagePresence } = await import('../../src/package-manager/bun')
+    mockSpawn.mockReturnValue(
+      createProc(
+        1,
+        '',
+        'error: No package.json was found for directory "/root/.bun/install/global"\nnote: Run "bun init" to initialize a project\n',
+      ),
+    )
+
+    expect(await probePackagePresence('test-pkg')).toBe('absent')
+  })
+
+  it('uses an empty global manifest to classify Bun missing-lockfile output as absent', async () => {
+    const { probePackagePresence } = await import('../../src/package-manager/bun')
+    mockSpawn.mockReturnValue(createProc(1, '', 'error: Lockfile not found\n'))
+
+    expect(
+      await probePackagePresence('test-pkg', {
+        readGlobalManifest: async () => '{}',
+      }),
+    ).toBe('absent')
+  })
+
+  it('fails closed when a missing-lockfile manifest still records the package', async () => {
+    const { probePackagePresence } = await import('../../src/package-manager/bun')
+    mockSpawn.mockReturnValue(createProc(1, '', 'error: Lockfile not found\n'))
+
+    expect(
+      await probePackagePresence('test-pkg', {
+        readGlobalManifest: async () => JSON.stringify({ dependencies: { 'test-pkg': '^1.0.0' } }),
+      }),
+    ).toBe('present')
+  })
+
+  it('fails closed when a missing-lockfile manifest has a malformed dependency map', async () => {
+    const { probePackagePresence } = await import('../../src/package-manager/bun')
+    mockSpawn.mockReturnValue(createProc(1, '', 'error: Lockfile not found\n'))
+
+    expect(
+      await probePackagePresence('test-pkg', {
+        readGlobalManifest: async () => JSON.stringify({ dependencies: [] }),
+      }),
+    ).toBe('unknown')
   })
 })
 

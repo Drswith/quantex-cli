@@ -3,22 +3,33 @@ import { afterAll, afterEach, beforeEach, describe, expect, it, vi } from 'vites
 import * as agents from '../../src/agents'
 import { setCliContext } from '../../src/cli-context'
 import { ensureCommand } from '../../src/commands/ensure'
+import * as providerEvidence from '../../src/lifecycle/provider-evidence'
 import * as pm from '../../src/package-manager'
 import * as state from '../../src/state'
 import * as detect from '../../src/utils/detect'
 
 const agentSpy = vi.spyOn(agents, 'getAgentByNameOrAlias')
 const installSpy = vi.spyOn(pm, 'installAgent')
+const reinstallSpy = vi.spyOn(pm, 'reinstallInstalledAgent')
 const trackSpy = vi.spyOn(pm, 'trackInstalledAgent')
+const lifecycleLockSpy = vi.spyOn(pm, 'withAgentLifecycleLock')
 const binaryInPathSpy = vi.spyOn(detect, 'isBinaryInPath')
 const installedStateSpy = vi.spyOn(state, 'getInstalledAgentState')
+const removeInstalledStateSpy = vi.spyOn(state, 'removeInstalledAgentState')
+const setReceiptSpy = vi.spyOn(state, 'setLifecycleReceipt')
+const observeProviderSpy = vi.spyOn(providerEvidence, 'observeLifecycleProvider')
 
 afterAll(() => {
   agentSpy.mockRestore()
   installSpy.mockRestore()
+  reinstallSpy.mockRestore()
   trackSpy.mockRestore()
+  lifecycleLockSpy.mockRestore()
   binaryInPathSpy.mockRestore()
   installedStateSpy.mockRestore()
+  removeInstalledStateSpy.mockRestore()
+  setReceiptSpy.mockRestore()
+  observeProviderSpy.mockRestore()
 })
 
 const testAgent = {
@@ -65,9 +76,27 @@ describe('ensureCommand', () => {
     stdoutWriteSpy = vi.spyOn(process.stdout, 'write').mockReturnValue(true)
     agentSpy.mockClear()
     installSpy.mockClear()
+    reinstallSpy.mockReset()
+    reinstallSpy.mockImplementation(async (_agent, installedState) => ({ installedState, success: true }))
     trackSpy.mockClear()
+    lifecycleLockSpy.mockReset()
+    lifecycleLockSpy.mockImplementation(async run => run())
     binaryInPathSpy.mockClear()
     installedStateSpy.mockClear()
+    removeInstalledStateSpy.mockReset()
+    removeInstalledStateSpy.mockResolvedValue()
+    setReceiptSpy.mockReset()
+    setReceiptSpy.mockResolvedValue()
+    observeProviderSpy.mockReset()
+    observeProviderSpy.mockImplementation(async binding => ({
+      kind: 'success',
+      value: {
+        executablePath: '/bin/test-bin',
+        kind: 'present',
+        target: binding.target,
+        version: '1.2.3',
+      },
+    }))
     installedStateSpy.mockResolvedValue(undefined)
   })
 
@@ -80,6 +109,7 @@ describe('ensureCommand', () => {
     agentSpy.mockReturnValue(undefined)
     await ensureCommand('unknown')
     expect(stdoutWriteSpy).toHaveBeenCalledWith(expect.stringContaining('Unknown agent'))
+    expect(lifecycleLockSpy).not.toHaveBeenCalled()
   })
 
   it('returns already installed without reinstalling when state is already tracked', async () => {
@@ -96,6 +126,42 @@ describe('ensureCommand', () => {
     expect(installSpy).not.toHaveBeenCalled()
     expect(trackSpy).not.toHaveBeenCalled()
     expect(stdoutWriteSpy).toHaveBeenCalledWith(expect.stringContaining('already installed'))
+  })
+
+  it('does not backfill a receipt for an already tracked agent during dry run', async () => {
+    setCliContext({
+      dryRun: true,
+      interactive: false,
+      outputMode: 'json',
+      runId: 'ensure-dry-run',
+    })
+    agentSpy.mockReturnValue(testAgent)
+    binaryInPathSpy.mockResolvedValue(true)
+    installedStateSpy.mockResolvedValue({
+      agentName: 'test-agent',
+      installType: 'bun',
+      packageName: 'test-pkg',
+    })
+
+    const result = await ensureCommand('test-agent')
+
+    expect(result.ok).toBe(true)
+    expect(result.data?.changed).toBe(false)
+    expect(setReceiptSpy).not.toHaveBeenCalled()
+    expect(lifecycleLockSpy).not.toHaveBeenCalled()
+  })
+
+  it('keeps tracked-ghost dry-run conditional without acquiring the lifecycle lock', async () => {
+    setCliContext({ dryRun: true, interactive: false, outputMode: 'json', runId: 'ghost-dry-run' })
+    agentSpy.mockReturnValue(testAgent)
+    installedStateSpy.mockResolvedValue(managedInstalledState)
+    binaryInPathSpy.mockResolvedValue(false)
+
+    const result = await ensureCommand('test-agent')
+
+    expect(result.warnings[0]?.message).toContain('only if its recorded provider target is confirmed absent')
+    expect(lifecycleLockSpy).not.toHaveBeenCalled()
+    expect(observeProviderSpy).not.toHaveBeenCalled()
   })
 
   it('tracks an existing script install when ensure can identify the source safely', async () => {
@@ -133,7 +199,7 @@ describe('ensureCommand', () => {
 
   it('installs the agent when missing', async () => {
     agentSpy.mockReturnValue(testAgent)
-    binaryInPathSpy.mockResolvedValue(false)
+    binaryInPathSpy.mockResolvedValueOnce(false).mockResolvedValueOnce(true)
     installSpy.mockResolvedValue({
       installedState: {
         agentName: 'test-agent',
@@ -146,6 +212,15 @@ describe('ensureCommand', () => {
     await ensureCommand('test-agent')
 
     expect(installSpy).toHaveBeenCalledWith(testAgent)
+    expect(setReceiptSpy).toHaveBeenCalledWith(
+      expect.objectContaining({
+        kind: 'lifecycle-receipt',
+        providerId: 'bun',
+        providerTargetId: 'test-pkg',
+        targetId: 'test-agent',
+        version: '1.2.3',
+      }),
+    )
     const output = stdoutWriteSpy.mock.calls.map((c: any[]) => c[0]).join('\n')
     expect(output).toContain('Installing Test Agent')
     expect(output).toContain('now installed')
@@ -158,7 +233,7 @@ describe('ensureCommand', () => {
       runId: 'ensure-run-id',
     })
     agentSpy.mockReturnValue(testAgent)
-    binaryInPathSpy.mockResolvedValue(false)
+    binaryInPathSpy.mockResolvedValueOnce(false).mockResolvedValueOnce(true)
     installSpy.mockResolvedValue({
       installedState: {
         agentName: 'test-agent',
@@ -177,4 +252,169 @@ describe('ensureCommand', () => {
     expect(payload.data.installed).toBe(true)
     expect(payload.meta.runId).toBe('ensure-run-id')
   })
+
+  it('does not report installation success when the live postcondition is unsatisfied', async () => {
+    agentSpy.mockReturnValue(testAgent)
+    binaryInPathSpy.mockResolvedValue(false)
+    installSpy.mockResolvedValue({
+      installedState: {
+        agentName: 'test-agent',
+        installType: 'bun',
+        packageName: 'test-pkg',
+      },
+      success: true,
+    })
+
+    const result = await ensureCommand('test-agent')
+
+    expect(result.ok).toBe(false)
+    expect(result.error).toMatchObject({
+      code: 'INSTALL_FAILED',
+      details: { lifecycle: 'verification-failed' },
+    })
+    expect(setReceiptSpy).not.toHaveBeenCalled()
+    expect(removeInstalledStateSpy).not.toHaveBeenCalled()
+  })
+
+  it('rejects a same-name executable when the bound provider target is absent', async () => {
+    agentSpy.mockReturnValue(testAgent)
+    binaryInPathSpy.mockResolvedValueOnce(false).mockResolvedValueOnce(true)
+    installSpy.mockResolvedValue({
+      installedState: {
+        agentName: 'test-agent',
+        installType: 'bun',
+        packageName: 'test-pkg',
+      },
+      success: true,
+    })
+    observeProviderSpy.mockImplementation(async binding => ({
+      kind: 'success',
+      value: {
+        kind: 'absent',
+        target: binding.target,
+      },
+    }))
+
+    const result = await ensureCommand('test-agent')
+
+    expect(result.error).toMatchObject({
+      code: 'INSTALL_FAILED',
+      details: { lifecycle: 'verification-failed' },
+    })
+    expect(setReceiptSpy).not.toHaveBeenCalled()
+    expect(removeInstalledStateSpy).not.toHaveBeenCalled()
+  })
+
+  it('does not report success when the verified receipt cannot be persisted', async () => {
+    agentSpy.mockReturnValue(testAgent)
+    binaryInPathSpy.mockResolvedValueOnce(false).mockResolvedValueOnce(true)
+    installSpy.mockResolvedValue({
+      installedState: {
+        agentName: 'test-agent',
+        installType: 'bun',
+        packageName: 'test-pkg',
+      },
+      success: true,
+    })
+    setReceiptSpy.mockRejectedValue(new Error('disk-full'))
+
+    const result = await ensureCommand('test-agent')
+
+    expect(result.ok).toBe(false)
+    expect(result.error).toMatchObject({
+      code: 'INSTALL_FAILED',
+      details: { lifecycle: 'state-write-failed' },
+    })
+    expect(removeInstalledStateSpy).not.toHaveBeenCalled()
+  })
+
+  it('does not treat PATH presence as exact script provider evidence', async () => {
+    agentSpy.mockReturnValue(scriptOnlyAgent)
+    binaryInPathSpy.mockResolvedValueOnce(false).mockResolvedValueOnce(true)
+    installSpy.mockResolvedValue({
+      installedState: {
+        agentName: 'script-agent',
+        command: expectedScriptInstallCommand,
+        installType: 'script',
+      },
+      success: true,
+    })
+    observeProviderSpy.mockResolvedValue({
+      kind: 'indeterminate',
+      reason: 'script presence unknown',
+    })
+
+    const result = await ensureCommand('script-agent')
+
+    expect(result.error).toMatchObject({
+      code: 'INSTALL_FAILED',
+      details: { lifecycle: 'verification-failed' },
+    })
+    expect(setReceiptSpy).not.toHaveBeenCalled()
+  })
+
+  it('keeps execution, verification, and receipt recording under one lifecycle lock', async () => {
+    let insideLifecycleLock = false
+    lifecycleLockSpy.mockImplementation(async run => {
+      insideLifecycleLock = true
+      try {
+        return await run()
+      } finally {
+        insideLifecycleLock = false
+      }
+    })
+    agentSpy.mockReturnValue(testAgent)
+    binaryInPathSpy.mockResolvedValueOnce(false).mockResolvedValueOnce(true)
+    installSpy.mockResolvedValue({
+      installedState: managedInstalledState,
+      success: true,
+    })
+    setReceiptSpy.mockImplementation(async () => {
+      expect(insideLifecycleLock).toBe(true)
+    })
+
+    const result = await ensureCommand('test-agent')
+
+    expect(result.ok).toBe(true)
+    expect(lifecycleLockSpy).toHaveBeenCalledTimes(2)
+  })
+
+  it('reinstalls a tracked ghost instead of repeatedly verifying stale state', async () => {
+    agentSpy.mockReturnValue(testAgent)
+    installedStateSpy.mockResolvedValue(managedInstalledState)
+    binaryInPathSpy.mockResolvedValueOnce(false).mockResolvedValueOnce(true)
+    observeProviderSpy
+      .mockImplementationOnce(async binding => ({
+        kind: 'success',
+        value: { kind: 'absent', target: binding.target },
+      }))
+      .mockImplementationOnce(async binding => ({
+        kind: 'success',
+        value: { kind: 'present', target: binding.target },
+      }))
+
+    const result = await ensureCommand('test-agent')
+
+    expect(result.ok).toBe(true)
+    expect(reinstallSpy).toHaveBeenCalledWith(testAgent, managedInstalledState)
+    expect(installSpy).not.toHaveBeenCalled()
+  })
+
+  it('does not reinstall when only PATH evidence is absent', async () => {
+    agentSpy.mockReturnValue(testAgent)
+    installedStateSpy.mockResolvedValue(managedInstalledState)
+    binaryInPathSpy.mockResolvedValue(false)
+
+    const result = await ensureCommand('test-agent')
+
+    expect(result.ok).toBe(false)
+    expect(reinstallSpy).not.toHaveBeenCalled()
+    expect(installSpy).not.toHaveBeenCalled()
+  })
 })
+
+const managedInstalledState = {
+  agentName: 'test-agent',
+  installType: 'bun' as const,
+  packageName: 'test-pkg',
+}

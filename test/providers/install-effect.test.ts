@@ -57,10 +57,35 @@ describe('script and standalone-binary provider effects', () => {
     })
   })
 
+  it('observes the exact declared executable for install-effect targets', async () => {
+    const isExecutablePresent = vi.fn(async (binaryName: string) => binaryName === 'example')
+    const adapter = createInstallEffectProviderAdapter('script', {
+      execute: vi.fn(async () => true),
+      isExecutablePresent,
+    })
+    const requestedTarget = target('script', {
+      command: 'curl -fsSL https://example.com/install.sh | sh',
+      kind: 'shell-script',
+    })
+
+    expect(await adapter.observe({ context, target: requestedTarget })).toEqual({
+      kind: 'success',
+      value: {
+        evidence: [{ kind: 'executable', value: 'example' }],
+        kind: 'present',
+        target: requestedTarget,
+      },
+    })
+    expect(isExecutablePresent).toHaveBeenCalledWith('example')
+  })
+
   it('keeps effect failure, cancellation, timeout, and indeterminate observation typed', async () => {
     const effect = { command: 'curl -fsSL https://example.com/install.sh | sh', kind: 'shell-script' } as const
     const requestedTarget = target('script', effect)
-    const failed = createInstallEffectProviderAdapter('script', { execute: vi.fn(async () => false) })
+    const failed = createInstallEffectProviderAdapter('script', {
+      execute: vi.fn(async () => false),
+      isExecutablePresent: vi.fn(async () => false),
+    })
     const pending = createInstallEffectProviderAdapter('script', {
       execute: vi.fn(() => new Promise<boolean>(() => {})),
     })
@@ -78,9 +103,28 @@ describe('script and standalone-binary provider effects', () => {
       await pending.install?.({ context: { signal: context.signal, timeoutMs: 2 }, target: requestedTarget }),
     ).toEqual({ kind: 'timed-out', timeoutMs: 2 })
     expect(await failed.observe({ context, target: requestedTarget })).toEqual({
-      evidence: [{ kind: 'provider', value: 'script:example-agent:presence-unknown' }],
-      kind: 'indeterminate',
-      reason: 'script candidate does not declare a presence probe',
+      kind: 'success',
+      value: {
+        evidence: [{ kind: 'executable', value: 'example' }],
+        kind: 'absent',
+        target: requestedTarget,
+      },
     })
+
+    const pendingObservation = createInstallEffectProviderAdapter('script', {
+      isExecutablePresent: vi.fn(() => new Promise<boolean>(() => {})),
+    })
+    expect(
+      await pendingObservation.observe({
+        context: { signal: cancelledController.signal },
+        target: requestedTarget,
+      }),
+    ).toEqual({ kind: 'cancelled', reason: 'cancelled fixture' })
+    expect(
+      await pendingObservation.observe({
+        context: { signal: context.signal, timeoutMs: 2 },
+        target: requestedTarget,
+      }),
+    ).toEqual({ kind: 'timed-out', timeoutMs: 2 })
   })
 })

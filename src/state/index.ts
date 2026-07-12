@@ -1,39 +1,21 @@
-import type { InstallType, PackageTargetKind } from '../agents/types'
+import type { LifecycleReceipt } from '../lifecycle/model'
 import type { SelfInstallSource } from '../self/types'
+import type { InstalledAgentState, QuantexState, SelfState } from './schema'
 import { mkdir, readFile, rename, rm, writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
 import process from 'node:process'
 import { getConfigDir } from '../config'
-import { isManagedInstallType } from '../utils/install'
 import { acquireResourceLock, getResourceLockPath } from '../utils/lock'
+import { StateSchemaError } from './schema'
+import { FileStateDocumentPersistence, LifecycleStateStore, type StateFileSystem } from './store'
+
+export type { InstalledAgentState, QuantexState, SelfState } from './schema'
 
 export class StateFileError extends Error {
   constructor(message: string, options?: { cause?: unknown }) {
     super(message, options)
     this.name = 'StateFileError'
   }
-}
-
-export interface InstalledAgentState {
-  agentName: string
-  binaryName?: string
-  installType: InstallType
-  packageInstallArgs?: string[]
-  packageName?: string
-  packageTargetKind?: PackageTargetKind
-  command?: string
-}
-
-export interface SelfState {
-  installSource?: SelfInstallSource
-  updateNoticeAt?: string
-  updateNoticeVersion?: string
-  [key: string]: unknown
-}
-
-export interface QuantexState {
-  installedAgents: Record<string, InstalledAgentState>
-  self: SelfState
 }
 
 const defaultState: QuantexState = {
@@ -71,6 +53,47 @@ export async function getInstalledAgentState(agentName: string): Promise<Install
   return state.installedAgents[agentName]
 }
 
+export async function getLifecycleReceipt(targetId: string): Promise<LifecycleReceipt | undefined> {
+  try {
+    return await createStateStore().getReceipt(targetId)
+  } catch (error) {
+    if (error instanceof StateFileError) throw error
+    throw new StateFileError('Failed to read Quantex state file.', { cause: error })
+  }
+}
+
+export async function setLifecycleReceipt(receipt: LifecycleReceipt): Promise<void> {
+  const release = await acquireResourceLock({
+    resource: 'state',
+    scope: ['state'],
+  })
+
+  try {
+    await createStateStore().setReceipt(receipt)
+  } catch (error) {
+    if (error instanceof StateFileError) throw error
+    throw new StateFileError('Failed to write Quantex state file.', { cause: error })
+  } finally {
+    await release()
+  }
+}
+
+export async function removeLifecycleReceipt(targetId: string): Promise<void> {
+  const release = await acquireResourceLock({
+    resource: 'state',
+    scope: ['state'],
+  })
+
+  try {
+    await createStateStore().removeReceipt(targetId)
+  } catch (error) {
+    if (error instanceof StateFileError) throw error
+    throw new StateFileError('Failed to write Quantex state file.', { cause: error })
+  } finally {
+    await release()
+  }
+}
+
 export async function setInstalledAgentState(agentState: InstalledAgentState): Promise<void> {
   await mutateState(state => {
     state.installedAgents[agentState.agentName] = agentState
@@ -103,159 +126,57 @@ export async function setSelfUpdateNoticeState(updateNoticeVersion: string, upda
 
 async function readState(): Promise<QuantexState> {
   try {
-    const data: unknown = JSON.parse(await readFile(getStateFilePath(), 'utf8'))
-
-    if (!isPlainObject(data)) {
-      throw new StateFileError('Failed to read Quantex state file: root value must be an object.')
-    }
-
-    const self = normalizeSelfState(data.self)
-
-    return {
-      installedAgents: normalizeInstalledAgents(data.installedAgents as unknown),
-      self,
-    }
+    return await createStateStore().loadProjection()
   } catch (error) {
     if (isMissingStateFileError(error)) return { ...defaultState }
     if (error instanceof StateFileError) throw error
+
+    if (error instanceof StateSchemaError) {
+      throw new StateFileError(`Failed to read Quantex state file: ${error.message}`, { cause: error })
+    }
 
     throw new StateFileError('Failed to read Quantex state file.', { cause: error })
   }
 }
 
-const VALID_INSTALL_TYPES = new Set<InstallType>([
-  'binary',
-  'brew',
-  'bun',
-  'cargo',
-  'deno',
-  'mise',
-  'npm',
-  'pip',
-  'script',
-  'uv',
-  'winget',
-])
-
-function normalizeInstalledAgents(rawInstalledAgents: unknown): Record<string, InstalledAgentState> {
-  if (rawInstalledAgents === undefined) return {}
-
-  if (!isPlainObject(rawInstalledAgents)) {
-    throw new StateFileError('Failed to read Quantex state file: installedAgents must be an object.')
-  }
-
-  const installedAgents: Record<string, InstalledAgentState> = {}
-
-  for (const [agentName, rawAgentState] of Object.entries(rawInstalledAgents)) {
-    installedAgents[agentName] = normalizeInstalledAgentState(agentName, rawAgentState)
-  }
-
-  return installedAgents
-}
-
-function normalizeInstalledAgentState(agentName: string, rawAgentState: unknown): InstalledAgentState {
-  if (!isPlainObject(rawAgentState)) {
-    throw new StateFileError(`Failed to read Quantex state file: installed agent "${agentName}" must be an object.`)
-  }
-
-  if (typeof rawAgentState.agentName !== 'string' || rawAgentState.agentName !== agentName) {
-    throw new StateFileError(
-      `Failed to read Quantex state file: installed agent "${agentName}" has an invalid agentName.`,
-    )
-  }
-
-  if (!isInstallType(rawAgentState.installType)) {
-    throw new StateFileError(
-      `Failed to read Quantex state file: installed agent "${agentName}" has an invalid installType.`,
-    )
-  }
-
-  const agentState: InstalledAgentState = {
-    agentName,
-    installType: rawAgentState.installType,
-  }
-
-  if (typeof rawAgentState.binaryName === 'string') agentState.binaryName = rawAgentState.binaryName
-  if (Array.isArray(rawAgentState.packageInstallArgs) && rawAgentState.packageInstallArgs.every(isString)) {
-    agentState.packageInstallArgs = rawAgentState.packageInstallArgs
-  }
-  if (typeof rawAgentState.packageName === 'string') {
-    if (rawAgentState.packageName.length === 0 && isManagedInstallType(rawAgentState.installType)) {
-      throw new StateFileError(
-        `Failed to read Quantex state file: installed agent "${agentName}" has an empty packageName.`,
-      )
-    }
-
-    agentState.packageName = rawAgentState.packageName
-  }
-  if (isPackageTargetKind(rawAgentState.packageTargetKind)) {
-    agentState.packageTargetKind = rawAgentState.packageTargetKind
-  }
-  if (typeof rawAgentState.command === 'string') agentState.command = rawAgentState.command
-
-  return agentState
-}
-
-function isInstallType(value: unknown): value is InstallType {
-  return typeof value === 'string' && VALID_INSTALL_TYPES.has(value as InstallType)
-}
-
-function isPackageTargetKind(value: unknown): value is PackageTargetKind {
-  return value === 'package' || value === 'cask' || value === 'id'
-}
-
-function isString(value: unknown): value is string {
-  return typeof value === 'string'
-}
-
-function normalizeSelfState(rawSelf: unknown): SelfState {
-  if (!isPlainObject(rawSelf)) return {}
-
-  const self: SelfState = { ...rawSelf }
-
-  if (isSelfInstallSource(rawSelf.installSource)) {
-    self.installSource = rawSelf.installSource
-  } else {
-    delete self.installSource
-  }
-
-  if (typeof rawSelf.updateNoticeAt === 'string') {
-    self.updateNoticeAt = rawSelf.updateNoticeAt
-  } else {
-    delete self.updateNoticeAt
-  }
-
-  if (typeof rawSelf.updateNoticeVersion === 'string') {
-    self.updateNoticeVersion = rawSelf.updateNoticeVersion
-  } else {
-    delete self.updateNoticeVersion
-  }
-
-  return self
-}
-
-function isSelfInstallSource(value: unknown): value is SelfInstallSource {
-  return value === 'binary' || value === 'bun' || value === 'npm' || value === 'source' || value === 'unknown'
-}
-
-function isPlainObject(value: unknown): value is Record<string, unknown> {
-  return typeof value === 'object' && value !== null && !Array.isArray(value)
-}
-
 async function writeState(state: QuantexState): Promise<void> {
-  await mkdir(getConfigDir(), { recursive: true })
-
-  const stateFilePath = getStateFilePath()
-  const tempFilePath = `${stateFilePath}.tmp-${process.pid}`
-  const payload = `${JSON.stringify(state, null, 2)}\n`
-
   try {
-    await writeFile(tempFilePath, payload, 'utf8')
-    await rename(tempFilePath, stateFilePath)
+    await createStateStore().saveProjection(state)
   } catch (error) {
-    await rm(tempFilePath, { force: true })
-    throw error
+    if (error instanceof StateFileError) throw error
+    throw new StateFileError('Failed to write Quantex state file.', { cause: error })
   }
+}
+
+const nodeStateFileSystem: StateFileSystem = {
+  async makeDirectory(path) {
+    await mkdir(path, { recursive: true })
+  },
+  async readText(path) {
+    return readFile(path, 'utf8')
+  },
+  async remove(path) {
+    await rm(path, { force: true })
+  },
+  async rename(from, to) {
+    await rename(from, to)
+  },
+  async writeText(path, data) {
+    await writeFile(path, data, 'utf8')
+  },
+}
+
+function createStateStore(): LifecycleStateStore {
+  const stateFilePath = getStateFilePath()
+  return new LifecycleStateStore(
+    new FileStateDocumentPersistence({
+      backupFilePath: `${stateFilePath}.v1.bak`,
+      directoryPath: getConfigDir(),
+      fileSystem: nodeStateFileSystem,
+      stateFilePath,
+      tempFileSuffix: String(process.pid),
+    }),
+  )
 }
 
 function isMissingStateFileError(error: unknown): boolean {

@@ -54,14 +54,14 @@
 
 ## 6. Versioned State and Core Mutations
 
-- [ ] 6.1 Add schema-versioned lifecycle receipts while retaining the legacy `installedAgents` and `self` projection.
-- [ ] 6.2 Implement atomic legacy-state migration, validated backup retention, rollback, and fail-closed read/write behavior.
-- [ ] 6.3 Add fault-injection tests for interrupted migration, invalid schema, backup restore, older-version projection rewrite, and receipt rebuilding.
-- [ ] 6.4 Add shadow planning for current mutation handlers and report plan mismatches in tests without changing default execution.
-- [ ] 6.5 Migrate `ensure` to reconciliation and require verified installation/adoption postconditions before writing a receipt.
-- [ ] 6.6 Migrate single and multi-agent `install` to planned execution, typed partial results, compensation, and verified receipts.
-- [ ] 6.7 Migrate `uninstall` to receipt/provider/PATH reconciliation with distinct unmanaged, ghost, provider-failure, and verification-failure outcomes.
-- [ ] 6.8 Verify migrated mutations preserve locks, cancellation, timeout, dry-run, non-interactive, and source-aware behavior.
+- [x] 6.1 Add schema-versioned lifecycle receipts while retaining the legacy `installedAgents` and `self` projection.
+- [x] 6.2 Implement atomic legacy-state migration, validated backup retention, rollback, and fail-closed read/write behavior.
+- [x] 6.3 Add fault-injection tests for interrupted migration, invalid schema, backup restore, older-version projection rewrite, and receipt rebuilding.
+- [x] 6.4 Add shadow planning for current mutation handlers and report plan mismatches in tests without changing default execution.
+- [x] 6.5 Migrate `ensure` to reconciliation and require verified installation/adoption postconditions before writing a receipt.
+- [x] 6.6 Migrate single and multi-agent `install` to planned execution, typed partial results, compensation, and verified receipts.
+- [x] 6.7 Migrate `uninstall` to receipt/provider/PATH reconciliation with distinct unmanaged, ghost, provider-failure, and verification-failure outcomes.
+- [x] 6.8 Verify migrated mutations preserve locks, cancellation, timeout, dry-run, non-interactive, and source-aware behavior.
 
 ## 7. Update and Idempotency Migration
 

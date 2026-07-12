@@ -1,8 +1,15 @@
+import type { AgentDefinition } from '../agents'
 import type { CommandError, CommandResult, CommandWarning } from '../output/types'
 import { getCliContext } from '../cli-context'
+import {
+  type AgentInstallationExecutionValue,
+  type AgentInstallationRoute,
+  reconcileAgentInstallation,
+  reconcileVerifiedMutation,
+} from '../lifecycle'
 import { createErrorResult, createSuccessResult, emitCommandEvent, emitCommandResult } from '../output'
-import { installAgent, trackInstalledAgent } from '../package-manager'
-import { resolveAgentInspection } from '../services/agents'
+import { withAgentLifecycleLock } from '../package-manager'
+import { resolveAgent, resolveAgentInspection } from '../services/agents'
 import { pc } from '../utils/color'
 import { getAdoptableExistingInstallMethod } from '../utils/install'
 import { createResourceLockedError } from '../utils/lifecycle-errors'
@@ -158,6 +165,27 @@ async function performSingleInstall(
   agentName: string,
   options: SingleInstallOptions = {},
 ): Promise<CommandResult<InstallCommandData>> {
+  if (getCliContext().cancelled) return performSingleInstallLocked(agentName, options)
+  if (!resolveAgent(agentName) || isDryRunEnabled()) return performSingleInstallLocked(agentName, options)
+
+  try {
+    return await withAgentLifecycleLock(() => performSingleInstallLocked(agentName, options))
+  } catch (error) {
+    if (isResourceLockError(error)) {
+      return createErrorResult<InstallCommandData>({
+        action: 'install',
+        ...createResourceLockedError(error, { kind: 'agent', name: agentName }),
+        target: { kind: 'agent', name: agentName },
+      })
+    }
+    throw error
+  }
+}
+
+async function performSingleInstallLocked(
+  agentName: string,
+  options: SingleInstallOptions,
+): Promise<CommandResult<InstallCommandData>> {
   if (getCliContext().cancelled) {
     return createErrorResult<InstallCommandData>({
       action: 'install',
@@ -191,178 +219,34 @@ async function performSingleInstall(
   }
 
   const { agent, inspection } = resolved
-  if (inspection.inPath) {
-    if (inspection.installedState) {
-      return createSuccessResult<InstallCommandData>({
-        action: 'install',
-        data: {
-          agent: {
-            displayName: agent.displayName,
-            name: agent.name,
-          },
-          changed: false,
-          installed: true,
-        },
-        target: {
-          kind: 'agent',
-          name: agent.name,
-        },
-        warnings: [
-          {
-            code: 'ALREADY_INSTALLED',
-            message: `${agent.displayName} is already installed.`,
-          },
-        ],
-      })
-    }
+  const adoptableMethod =
+    inspection.inPath && !inspection.installedState
+      ? getAdoptableExistingInstallMethod(inspection.methods, inspection.resolvedBinaryPath ?? inspection.binaryPath)
+      : undefined
 
-    const adoptableMethod = getAdoptableExistingInstallMethod(
-      inspection.methods,
-      inspection.resolvedBinaryPath ?? inspection.binaryPath,
-    )
-    if (adoptableMethod) {
-      if (isDryRunEnabled()) {
-        return createSuccessResult<InstallCommandData>({
-          action: 'install',
-          data: {
-            agent: {
-              displayName: agent.displayName,
-              name: agent.name,
-            },
-            changed: false,
-            installed: true,
-          },
-          target: {
-            kind: 'agent',
-            name: agent.name,
-          },
-          warnings: [
-            {
-              code: 'DRY_RUN',
-              message: `Dry run: would record the existing ${agent.displayName} install in Quantex state.`,
-            },
-          ],
-        })
-      }
-
-      emitInstallStarted(agent, options.emitStartedEvent)
-
-      try {
-        const installedState = await trackInstalledAgent(agent, adoptableMethod)
-        if (!installedState) {
-          return createErrorResult<InstallCommandData>({
-            action: 'install',
-            error: {
-              code: 'CANCELLED',
-              message: 'Install was cancelled before tracking could complete.',
-            },
-            target: {
-              kind: 'agent',
-              name: agent.name,
-            },
-          })
-        }
-
-        return createSuccessResult<InstallCommandData>({
-          action: 'install',
-          data: {
-            agent: {
-              displayName: agent.displayName,
-              name: agent.name,
-            },
-            changed: true,
-            installState: {
-              installType: installedState.installType,
-              packageName: installedState.packageName,
-            },
-            installed: true,
-          },
-          target: {
-            kind: 'agent',
-            name: agent.name,
-          },
-          warnings: [
-            {
-              code: 'TRACKED_EXISTING_INSTALL',
-              message: `${agent.displayName} is already installed. Quantex is now tracking the existing install.`,
-            },
-          ],
-        })
-      } catch (error) {
-        if (isResourceLockError(error)) {
-          return createErrorResult<InstallCommandData>({
-            action: 'install',
-            data: {
-              agent: {
-                displayName: agent.displayName,
-                name: agent.name,
-              },
-              changed: false,
-              installed: true,
-            },
-            ...createResourceLockedError(error, {
-              kind: 'agent',
-              name: agent.name,
-            }),
-          })
-        }
-
-        throw error
-      }
-    }
-
-    return createSuccessResult<InstallCommandData>({
-      action: 'install',
-      data: {
-        agent: {
-          displayName: agent.displayName,
-          name: agent.name,
-        },
-        changed: false,
-        installed: true,
-      },
-      target: {
-        kind: 'agent',
-        name: agent.name,
-      },
-      warnings: [
-        {
-          code: 'UNTRACKED_EXISTING_INSTALL',
-          message: `${agent.displayName} is already installed but not tracked by Quantex. Quantex could not safely determine the supported install source, so the existing install remains unmanaged.`,
-        },
-      ],
-    })
+  if (inspection.inPath && !inspection.installedState && !adoptableMethod) {
+    return createUnmanagedInstallResult(agent)
   }
 
+  const route: AgentInstallationRoute =
+    inspection.installedState && inspection.inPath ? 'satisfied' : adoptableMethod ? 'adopt' : 'install'
   if (isDryRunEnabled()) {
-    return createSuccessResult<InstallCommandData>({
-      action: 'install',
-      data: {
-        agent: {
-          displayName: agent.displayName,
-          name: agent.name,
-        },
-        changed: false,
-        installed: false,
-      },
-      target: {
-        kind: 'agent',
-        name: agent.name,
-      },
-      warnings: [
-        {
-          code: 'DRY_RUN',
-          message: `Dry run: would install ${agent.displayName}.`,
-        },
-      ],
-    })
+    return route === 'satisfied'
+      ? createAlreadyInstalledResult(agent)
+      : createDryRunInstallResult(agent, route === 'adopt', Boolean(inspection.installedState))
   }
 
-  emitInstallStarted(agent, options.emitStartedEvent)
+  if (route !== 'satisfied') emitInstallStarted(agent, options.emitStartedEvent)
 
-  let result
   try {
-    result = await installAgent(agent)
+    const result = await reconcileAgentInstallation({
+      adoptableMethod,
+      agent,
+      inspection,
+      operation: 'install',
+      route,
+    })
+    return mapInstallOutcome(agent, route, result)
   } catch (error) {
     if (isResourceLockError(error)) {
       return createErrorResult<InstallCommandData>({
@@ -373,7 +257,7 @@ async function performSingleInstall(
             name: agent.name,
           },
           changed: false,
-          installed: false,
+          installed: inspection.inPath,
         },
         ...createResourceLockedError(error, {
           kind: 'agent',
@@ -384,8 +268,16 @@ async function performSingleInstall(
 
     throw error
   }
+}
 
-  if (result.success) {
+function mapInstallOutcome(
+  agent: AgentDefinition,
+  route: AgentInstallationRoute,
+  outcome: Awaited<ReturnType<typeof reconcileVerifiedMutation<AgentInstallationExecutionValue>>>,
+): CommandResult<InstallCommandData> {
+  if (outcome.kind === 'success') {
+    if (route === 'satisfied') return createAlreadyInstalledResult(agent)
+    const installedState = outcome.value.value.installedState
     return createSuccessResult<InstallCommandData>({
       action: 'install',
       data: {
@@ -393,21 +285,45 @@ async function performSingleInstall(
           displayName: agent.displayName,
           name: agent.name,
         },
-        changed: true,
-        installState: result.installedState
-          ? {
-              installType: result.installedState.installType,
-              packageName: result.installedState.packageName,
-            }
-          : undefined,
+        changed: outcome.value.changed,
+        installState: {
+          installType: installedState.installType,
+          packageName: installedState.packageName,
+        },
         installed: true,
       },
       target: {
         kind: 'agent',
         name: agent.name,
       },
+      warnings:
+        route === 'adopt'
+          ? [
+              {
+                code: 'TRACKED_EXISTING_INSTALL',
+                message: `${agent.displayName} is already installed. Quantex is now tracking the existing install.`,
+              },
+            ]
+          : [],
     })
   }
+
+  const error: CommandError =
+    outcome.kind === 'cancelled'
+      ? { code: 'CANCELLED', message: 'Install was cancelled before tracking could complete.' }
+      : outcome.kind === 'failed' && outcome.reason === 'receipt-write-failed'
+        ? {
+            code: 'INSTALL_FAILED',
+            details: { lifecycle: 'state-write-failed' },
+            message: `Failed to record verified state for ${agent.displayName}.`,
+          }
+        : (outcome.kind === 'failed' && outcome.reason.endsWith('-after-install')) || outcome.kind === 'indeterminate'
+          ? {
+              code: 'INSTALL_FAILED',
+              details: { lifecycle: 'verification-failed' },
+              message: `${agent.displayName} could not be verified after installation.`,
+            }
+          : { code: 'INSTALL_FAILED', message: `Failed to install ${agent.displayName}.` }
 
   return createErrorResult<InstallCommandData>({
     action: 'install',
@@ -419,14 +335,68 @@ async function performSingleInstall(
       changed: false,
       installed: false,
     },
-    error: {
-      code: 'INSTALL_FAILED',
-      message: `Failed to install ${agent.displayName}.`,
-    },
+    error,
     target: {
       kind: 'agent',
       name: agent.name,
     },
+  })
+}
+
+function createAlreadyInstalledResult(agent: AgentDefinition): CommandResult<InstallCommandData> {
+  return createSuccessResult({
+    action: 'install',
+    data: {
+      agent: { displayName: agent.displayName, name: agent.name },
+      changed: false,
+      installed: true,
+    },
+    target: { kind: 'agent', name: agent.name },
+    warnings: [{ code: 'ALREADY_INSTALLED', message: `${agent.displayName} is already installed.` }],
+  })
+}
+
+function createDryRunInstallResult(
+  agent: AgentDefinition,
+  adopt: boolean,
+  trackedGhost: boolean,
+): CommandResult<InstallCommandData> {
+  return createSuccessResult({
+    action: 'install',
+    data: {
+      agent: { displayName: agent.displayName, name: agent.name },
+      changed: false,
+      installed: adopt,
+    },
+    target: { kind: 'agent', name: agent.name },
+    warnings: [
+      {
+        code: 'DRY_RUN',
+        message: adopt
+          ? `Dry run: would record the existing ${agent.displayName} install in Quantex state.`
+          : trackedGhost
+            ? `Dry run: would reinstall ${agent.displayName} only if its recorded provider target is confirmed absent.`
+            : `Dry run: would install ${agent.displayName}.`,
+      },
+    ],
+  })
+}
+
+function createUnmanagedInstallResult(agent: AgentDefinition): CommandResult<InstallCommandData> {
+  return createSuccessResult({
+    action: 'install',
+    data: {
+      agent: { displayName: agent.displayName, name: agent.name },
+      changed: false,
+      installed: true,
+    },
+    target: { kind: 'agent', name: agent.name },
+    warnings: [
+      {
+        code: 'UNTRACKED_EXISTING_INSTALL',
+        message: `${agent.displayName} is already installed but not tracked by Quantex. Quantex could not safely determine the supported install source, so the existing install remains unmanaged.`,
+      },
+    ],
   })
 }
 

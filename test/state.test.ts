@@ -4,15 +4,19 @@ import { join } from 'node:path'
 import { afterAll, afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import * as config from '../src/config'
 import {
+  getLifecycleReceipt,
   getSelfState,
   getStateFilePath,
   getStateLockPath,
   loadState,
+  removeLifecycleReceipt,
   saveState,
+  setLifecycleReceipt,
   setSelfInstallSource,
   setSelfUpdateNoticeState,
   StateFileError,
 } from '../src/state'
+import { CURRENT_STATE_SCHEMA_VERSION, LIFECYCLE_RECEIPT_SCHEMA_VERSION } from '../src/state/schema'
 import { acquireResourceLock } from '../src/utils/lock'
 
 const tempHome = join(tmpdir(), `quantex-state-test-${Date.now()}`)
@@ -55,6 +59,119 @@ describe('state helpers', () => {
 
     expect(state.installedAgents.codex?.installType).toBe('bun')
     expect(state.self).toEqual({})
+  })
+
+  it('projects current versioned state through the legacy public shape', async () => {
+    const stateFilePath = getStateFilePath()
+    mkdirSync(tempDir, { recursive: true })
+    writeFileSync(
+      stateFilePath,
+      `${JSON.stringify(
+        {
+          installedAgents: {},
+          lifecycleReceipts: {
+            codex: {
+              kind: 'lifecycle-receipt',
+              providerId: 'bun',
+              providerTargetId: '@openai/codex',
+              schemaVersion: LIFECYCLE_RECEIPT_SCHEMA_VERSION,
+              targetId: 'codex',
+              verifiedAt: '2026-07-12T00:00:00.000Z',
+            },
+          },
+          schemaVersion: CURRENT_STATE_SCHEMA_VERSION,
+          self: {
+            installSource: 'npm',
+          },
+        },
+        null,
+        2,
+      )}\n`,
+    )
+
+    expect(await loadState()).toEqual({
+      installedAgents: {},
+      self: {
+        installSource: 'npm',
+      },
+    })
+  })
+
+  it('does not migrate legacy state until a locked mutation writes it', async () => {
+    const stateFilePath = getStateFilePath()
+    const legacy = `${JSON.stringify({ installedAgents: {}, self: {} }, null, 2)}\n`
+    mkdirSync(tempDir, { recursive: true })
+    writeFileSync(stateFilePath, legacy)
+
+    await loadState()
+
+    expect(readFileSync(stateFilePath, 'utf8')).toBe(legacy)
+    expect(existsSync(`${stateFilePath}.v1.bak`)).toBe(false)
+
+    await setSelfInstallSource('binary')
+
+    expect(readFileSync(`${stateFilePath}.v1.bak`, 'utf8')).toBe(legacy)
+    expect(JSON.parse(readFileSync(stateFilePath, 'utf8'))).toMatchObject({
+      lifecycleReceipts: {},
+      schemaVersion: CURRENT_STATE_SCHEMA_VERSION,
+      self: {
+        installSource: 'binary',
+      },
+    })
+  })
+
+  it('preserves current lifecycle receipts across public projection mutations', async () => {
+    const stateFilePath = getStateFilePath()
+    mkdirSync(tempDir, { recursive: true })
+    writeFileSync(
+      stateFilePath,
+      `${JSON.stringify({
+        installedAgents: {},
+        lifecycleReceipts: {
+          codex: {
+            kind: 'lifecycle-receipt',
+            providerId: 'bun',
+            providerTargetId: '@openai/codex',
+            schemaVersion: LIFECYCLE_RECEIPT_SCHEMA_VERSION,
+            targetId: 'codex',
+            verifiedAt: '2026-07-12T00:00:00.000Z',
+          },
+        },
+        schemaVersion: CURRENT_STATE_SCHEMA_VERSION,
+        self: {},
+      })}\n`,
+    )
+
+    await setSelfInstallSource('npm')
+
+    expect(JSON.parse(readFileSync(stateFilePath, 'utf8')).lifecycleReceipts.codex).toMatchObject({
+      providerId: 'bun',
+      targetId: 'codex',
+    })
+  })
+
+  it('persists verified lifecycle receipts behind the state lock', async () => {
+    await setLifecycleReceipt({
+      kind: 'lifecycle-receipt',
+      providerId: 'bun',
+      providerTargetId: '@openai/codex',
+      schemaVersion: LIFECYCLE_RECEIPT_SCHEMA_VERSION,
+      targetId: 'codex',
+      verifiedAt: '2026-07-12T02:00:00.000Z',
+    })
+
+    expect(await getLifecycleReceipt('codex')).toMatchObject({
+      providerId: 'bun',
+      targetId: 'codex',
+    })
+    expect(JSON.parse(readFileSync(getStateFilePath(), 'utf8')).lifecycleReceipts.codex).toMatchObject({
+      providerId: 'bun',
+      targetId: 'codex',
+    })
+
+    await removeLifecycleReceipt('codex')
+
+    expect(await getLifecycleReceipt('codex')).toBeUndefined()
   })
 
   it('persists the self install source', async () => {
