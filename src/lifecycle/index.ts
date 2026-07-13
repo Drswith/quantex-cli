@@ -18,6 +18,12 @@ export type {
   ProviderCapability,
 } from './model'
 export {
+  type AgentExecutableObservation,
+  type AgentLifecycleObservationPorts,
+  type AgentLifecycleObservationResult,
+  observeAgentLifecycle,
+} from './agent-observation'
+export {
   type LifecycleMutationDecision,
   type LifecycleMutationPlanningInput,
   type LifecycleMutationPlanningResult,
@@ -25,9 +31,13 @@ export {
 } from './mutation-planner'
 export { type PlanValidationIssue, type PlanValidationIssueCode, validateLifecyclePlan } from './plan-validation'
 export {
+  type CatalogProviderEvidence,
   type LifecycleProviderBinding,
   type ObserveLifecycleProviderOptions,
   observeLifecycleProvider,
+  providerBindingsEqual,
+  resolveCatalogProviderBindings,
+  resolveCatalogProviderEvidence,
   resolveReceiptProviderBinding,
   resolveStateProviderBinding,
 } from './provider-evidence'

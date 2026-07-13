@@ -1,29 +1,43 @@
-# Task 1 Brief: Typed Provider Contracts And Registry
+### Task 1: Build the live agent lifecycle observer (OpenSpec 5.1)
 
-## Objective
+**Files:**
+- Create: `src/lifecycle/agent-observation.ts`
+- Create: `test/lifecycle/agent-observation.test.ts`
+- Modify: `src/lifecycle/model.ts`
+- Modify: `src/lifecycle/index.ts`
+- Modify: `src/lifecycle/provider-evidence.ts`
 
-Implement the smallest compile-time provider boundary that fully expresses OpenSpec task `4.1` without rerouting legacy command behavior.
+**Interfaces:**
+- Consumes: `AgentDefinition`, `InstalledAgentState`, `LifecycleReceipt`, `ProviderRegistry`, `resolveStateProviderBinding`, `resolveReceiptProviderBinding`, `observeLifecycleProvider`.
+- Produces: `observeAgentLifecycle(agent, ports): Promise<AgentLifecycleObservationResult>` where the result contains the domain `LifecycleObservation`, exact provider binding/capabilities when resolvable, executable/version facts, installed-state provenance, receipt, and normalized catalog methods.
 
-## Required behavior
+- [ ] **Step 1: Write table-driven failing observation tests**
 
-- Stable first-party provider IDs are unique and exhaustively typed.
-- Registry lookup/list APIs are read-only and offer no dynamic registration mutation.
-- An adapter exposes typed availability and observation operations plus optional typed install, update, uninstall, latest-version, batch-update, and verification operations.
-- Capabilities are derived solely from operation presence.
-- Outcomes distinguish success, unsupported, unavailable, failed, cancelled, timed out, and indeterminate states.
-- Provider failures can preserve argv, exit status, retryability, and safe remediation/evidence.
-- Operation context carries `AbortSignal` and optional timeout without importing CLI state.
+  Cover: absent/no evidence, live untracked executable, verified tracked state+receipt, legacy tracked state without receipt, conclusive ghost, state/receipt provider conflict, provider-present/PATH-absent conflict, provider-absent/PATH-present conflict, unsupported binding, and indeterminate provider outcome. For agents without state or receipt, explicitly cover one candidate provider present, multiple candidate providers present, and candidate probe failure while PATH is present. Assert provider id, target id/kind, capabilities, drift kind, version/path, and that no state mutator is called.
 
-## Compatibility boundary
+- [ ] **Step 2: Verify the tests fail for the missing observer**
 
-- Do not change `AgentDefinition`, catalog JSON, public root exports, command handlers, or current installer behavior in this task.
-- Do not replace `INSTALLER_CAPABILITIES` yet; that happens only after all adapters exist.
-- Do not mark OpenSpec `4.1` complete until tests and the exact contract categories above pass.
+  Run: `bun run test -- test/lifecycle/agent-observation.test.ts`
 
-## TDD loop
+  Expected: FAIL because `observeAgentLifecycle` is not defined.
 
-1. Create `test/providers/registry.test.ts` importing modules that do not yet exist.
-2. Run the focused test and record the expected module/contract failure.
-3. Add minimal provider types and a compile-time registry implementation.
-4. Re-run focused tests, lint, format check, and typecheck.
-5. Write `task-1-report.md`, update progress, update OpenSpec only if literally complete, and create the checkpoint commit.
+- [ ] **Step 3: Implement minimal injected observation ports**
+
+  Define ports for clock, executable/path/version inspection, installed-state/receipt reads, provider registry, and provider observation. Use exact state/receipt bindings; compare provider id, target id, target kind, and executable identity. When no persisted binding exists, observe every catalog candidate: exactly one live candidate may establish provider ownership, multiple live candidates classify as `conflicting-source`, and any unresolved candidate probe that prevents a conclusive decision classifies as `indeterminate`. PATH presence alone never establishes provider ownership. Preserve typed provider outcomes rather than branching on messages.
+
+- [ ] **Step 4: Make drift classification explicit and exhaustive**
+
+  Use only `none`, `untracked`, `recorded-absent`, `conflicting-source`, and `indeterminate`. A present executable is not proof of provider ownership; a receipt is provenance, not live proof.
+
+- [ ] **Step 5: Run the focused gate and checkpoint**
+
+  Run:
+
+  ```bash
+  bun run test -- test/lifecycle/agent-observation.test.ts test/lifecycle/provider-evidence.test.ts test/state.test.ts
+  bun run format:check
+  bun run lint
+  bun run typecheck
+  ```
+
+  Commit: `feat(lifecycle): observe live agent evidence`

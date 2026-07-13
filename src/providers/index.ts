@@ -22,6 +22,7 @@ export {
   type ProviderOperationContext,
   type ProviderOutcome,
   type ProviderResolvedVersion,
+  type ProviderResourceCleanup,
   type ProviderTarget,
   type ProviderTargetKind,
   type ProviderTargetOperation,

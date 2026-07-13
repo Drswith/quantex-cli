@@ -1,99 +1,157 @@
+import type { AgentDefinition, InstallMethod } from '../../src/agents'
+import type { ResolvedAgentObservation } from '../../src/services/lifecycle-observations'
 import { afterAll, afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import * as agents from '../../src/agents'
+import { setCliContext } from '../../src/cli-context'
 import { infoCommand } from '../../src/commands/info'
-import * as state from '../../src/state'
-import * as detect from '../../src/utils/detect'
-import * as version from '../../src/utils/version'
+import * as legacyAgentsService from '../../src/services/agents'
+import * as lifecycleObservations from '../../src/services/lifecycle-observations'
 
-const agentSpy = vi.spyOn(agents, 'getAgentByNameOrAlias')
-const binaryInPathSpy = vi.spyOn(detect, 'isBinaryInPath')
-const installedStateSpy = vi.spyOn(state, 'getInstalledAgentState')
-const installedVerSpy = vi.spyOn(version, 'getInstalledVersion')
-const latestVerSpy = vi.spyOn(version, 'getLatestVersion')
-const binaryPathSpy = vi.spyOn(version, 'getBinaryPath')
+const resolveAgentInspectionSpy = vi.spyOn(legacyAgentsService, 'resolveAgentInspection')
+const resolveAgentObservationSpy = vi.spyOn(lifecycleObservations, 'resolveAgentObservation')
 
-afterAll(() => {
-  agentSpy.mockRestore()
-  binaryInPathSpy.mockRestore()
-  installedStateSpy.mockRestore()
-  installedVerSpy.mockRestore()
-  latestVerSpy.mockRestore()
-  binaryPathSpy.mockRestore()
-})
-
-const testAgent = {
-  name: 'test-agent',
-  lookupAliases: ['ta'],
+const testAgent: AgentDefinition = {
+  binaryName: 'test-bin',
   displayName: 'Test Agent',
   homepage: 'https://example.com',
+  lookupAliases: ['ta'],
+  name: 'test-agent',
   packages: { npm: 'test-pkg' },
-  binaryName: 'test-bin',
-  selfUpdate: {
-    command: ['test-bin', 'update'],
-  },
-  platforms: {
-    linux: [{ type: 'bun' as const }],
-    macos: [{ type: 'bun' as const }],
-    windows: [{ type: 'bun' as const }],
-  },
+  platforms: { linux: [{ packageName: 'test-pkg', type: 'bun' }] },
+  selfUpdate: { command: ['test-bin', 'update'] },
 }
+
+afterAll(() => {
+  resolveAgentInspectionSpy.mockRestore()
+  resolveAgentObservationSpy.mockRestore()
+})
 
 describe('infoCommand', () => {
   let logSpy: ReturnType<typeof vi.spyOn>
 
   beforeEach(() => {
+    setCliContext({ interactive: false, outputMode: 'human', runId: 'info-test' })
     logSpy = vi.spyOn(console, 'log').mockImplementation(() => {})
-    agentSpy.mockClear()
-    binaryInPathSpy.mockClear()
-    installedStateSpy.mockClear()
-    installedVerSpy.mockClear()
-    latestVerSpy.mockClear()
-    binaryPathSpy.mockClear()
+    resolveAgentInspectionSpy.mockReset()
+    resolveAgentInspectionSpy.mockRejectedValue(new Error('legacy info inspection must not run'))
+    resolveAgentObservationSpy.mockReset()
   })
 
   afterEach(() => {
     logSpy.mockRestore()
   })
 
-  it('shows error for unknown agent', async () => {
-    agentSpy.mockReturnValue(undefined)
-    await infoCommand('unknown')
-    expect(logSpy).toHaveBeenCalledWith(expect.stringContaining('Unknown agent'))
-  })
+  it('routes the exact v1 success projection through lifecycle observation', async () => {
+    resolveAgentObservationSpy.mockResolvedValueOnce(observed())
 
-  it('shows all agent details for known agent', async () => {
-    agentSpy.mockReturnValue(testAgent)
-    binaryInPathSpy.mockResolvedValue(true)
-    installedStateSpy.mockResolvedValue({
-      agentName: 'test-agent',
-      installType: 'bun',
-      packageName: 'test-pkg',
-      command: 'bun add -g test-pkg',
+    const result = await infoCommand('ta')
+
+    expect(resolveAgentObservationSpy).toHaveBeenCalledWith('ta')
+    expect(resolveAgentInspectionSpy).not.toHaveBeenCalled()
+    expect(result).toMatchObject({
+      action: 'info',
+      data: {
+        agent: {
+          aliases: ['ta'],
+          binaryName: 'test-bin',
+          displayName: 'Test Agent',
+          installMethods: [{ command: 'bun add -g test-pkg', label: 'managed/bun (test-pkg)', type: 'bun' }],
+          name: 'test-agent',
+          packageName: 'test-pkg',
+          selfUpdateCommands: ['test-bin update'],
+        },
+        inspection: {
+          binaryPath: '/usr/bin/test-bin',
+          installed: true,
+          installedVersion: '1.2.3',
+          latestVersion: '2.0.0',
+          lifecycle: 'managed',
+          sourceLabel: 'managed via bun (test-pkg)',
+        },
+      },
+      error: null,
+      ok: true,
+      target: { kind: 'agent', name: 'test-agent' },
     })
-    installedVerSpy.mockResolvedValue('1.0.0')
-    latestVerSpy.mockResolvedValue('2.0.0')
-    binaryPathSpy.mockResolvedValue('/usr/bin/test-bin')
-    await infoCommand('test-agent')
-    const output = logSpy.mock.calls.map((c: any[]) => c[0]).join('\n')
-    expect(output).toContain('test-agent')
-    expect(output).toContain('ta')
-    expect(output).toContain('test-pkg')
-    expect(output).toContain('test-bin')
-    expect(output).toContain('test-bin update')
-    expect(output).toContain('managed via bun (test-pkg)')
-    expect(output).toContain('managed')
-    expect(output).toContain('1.0.0')
-    expect(output).toContain('2.0.0')
-    expect(output).toContain('/usr/bin/test-bin')
+    expect(result.data?.inspection).not.toHaveProperty('drift')
+    expect(result.data?.inspection).not.toHaveProperty('receipt')
+    expect(result.data?.inspection).not.toHaveProperty('capabilities')
   })
 
-  it('shows install methods with platform support indicators', async () => {
-    agentSpy.mockReturnValue(testAgent)
-    binaryInPathSpy.mockResolvedValue(false)
+  it('preserves human details and install-method rendering', async () => {
+    resolveAgentObservationSpy.mockResolvedValueOnce(observed())
+
     await infoCommand('test-agent')
-    const output = logSpy.mock.calls.map((c: any[]) => c[0]).join('\n')
-    expect(output).toContain('Install Methods')
-    expect(output).toContain('managed/bun')
-    expect(output).toContain('bun add -g test-pkg')
+
+    const output = logSpy.mock.calls.map((call: any[]) => call[0]).join('\n')
+    for (const value of [
+      'test-agent',
+      'ta',
+      'test-pkg',
+      'test-bin',
+      'test-bin update',
+      'managed via bun (test-pkg)',
+      'managed',
+      '1.2.3',
+      '2.0.0',
+      '/usr/bin/test-bin',
+      'Install Methods',
+      'managed/bun (test-pkg)',
+      'bun add -g test-pkg',
+    ]) {
+      expect(output).toContain(value)
+    }
+  })
+
+  it('preserves the v1 unknown-agent error through lifecycle observation', async () => {
+    resolveAgentObservationSpy.mockResolvedValueOnce(undefined)
+
+    const result = await infoCommand('missing')
+
+    expect(resolveAgentObservationSpy).toHaveBeenCalledWith('missing')
+    expect(resolveAgentInspectionSpy).not.toHaveBeenCalled()
+    expect(result).toMatchObject({
+      action: 'info',
+      data: undefined,
+      error: {
+        code: 'AGENT_NOT_FOUND',
+        details: { input: 'missing' },
+        message: 'Unknown agent: missing',
+      },
+      ok: false,
+      target: { kind: 'agent', name: 'missing' },
+    })
   })
 })
+
+function observed(): ResolvedAgentObservation {
+  const methods: InstallMethod[] = [{ packageName: 'test-pkg', type: 'bun' }]
+  const executable = { path: '/usr/bin/test-bin', present: true as const, version: '1.2.3' }
+
+  return {
+    agent: testAgent,
+    capabilities: ['observe', 'update'],
+    catalogMethods: [],
+    executable,
+    installedState: { agentName: 'test-agent', installType: 'bun', packageName: 'test-pkg' },
+    latestVersion: '2.0.0',
+    methods,
+    observation: {
+      drift: { kind: 'none' },
+      executablePath: '/usr/bin/test-bin',
+      kind: 'present',
+      targetId: 'test-agent',
+      version: '1.2.3',
+    },
+    pathExecutable: executable,
+    receipt: {
+      kind: 'lifecycle-receipt',
+      providerId: 'bun',
+      providerTargetId: 'test-pkg',
+      providerTargetKind: 'package',
+      schemaVersion: 1,
+      targetId: 'test-agent',
+      verifiedAt: '2026-07-12T08:00:00.000Z',
+    },
+    resolvedBinaryPath: '/usr/bin/test-bin',
+  }
+}

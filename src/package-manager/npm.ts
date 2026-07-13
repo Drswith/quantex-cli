@@ -1,5 +1,13 @@
+import type { ProviderOperationContext } from '../providers'
 import type { RegistryUpdateStrategy } from './bun'
-import { readProcessOutput, spawnCommand, spawnWithQuantexStdio, waitForSpawnedCommand } from '../utils/child-process'
+import {
+  readProcessOutput,
+  readProcessOutputWithContext,
+  isProcessInterruptionError,
+  spawnCommand,
+  spawnWithQuantexStdio,
+  waitForSpawnedCommand,
+} from '../utils/child-process'
 import { normalizeRegistryUrl } from '../utils/registry'
 
 export async function install(packageName: string, distTag?: string, registry?: string): Promise<boolean> {
@@ -86,12 +94,16 @@ interface PackagePresenceResult {
   version?: string
 }
 
-async function readPackagePresence(packageName: string): Promise<PackagePresenceResult> {
+async function readPackagePresence(
+  packageName: string,
+  context?: ProviderOperationContext,
+): Promise<PackagePresenceResult> {
   try {
     const proc = spawnCommand(['npm', 'list', '-g', packageName, '--depth=0', '--json'], {
+      detached: context !== undefined && process.platform !== 'win32',
       stdio: ['ignore', 'pipe', 'ignore'],
     })
-    const { stdout } = await readProcessOutput(proc)
+    const { stdout } = context ? await readProcessOutputWithContext(proc, context) : await readProcessOutput(proc)
     if (!stdout.trim()) return { presence: 'unknown' }
 
     try {
@@ -112,17 +124,24 @@ async function readPackagePresence(packageName: string): Promise<PackagePresence
     } catch {
       return { presence: 'unknown' }
     }
-  } catch {
+  } catch (error) {
+    if (isProcessInterruptionError(error)) throw error
     return { presence: 'unknown' }
   }
 }
 
-export async function probePackagePresence(packageName: string): Promise<PackagePresenceProbe> {
-  return (await readPackagePresence(packageName)).presence
+export async function probePackagePresence(
+  packageName: string,
+  context?: ProviderOperationContext,
+): Promise<PackagePresenceProbe> {
+  return (await readPackagePresence(packageName, context)).presence
 }
 
-export async function getInstalledVersion(packageName: string): Promise<string | undefined> {
-  return (await readPackagePresence(packageName)).version
+export async function getInstalledVersion(
+  packageName: string,
+  context?: ProviderOperationContext,
+): Promise<string | undefined> {
+  return (await readPackagePresence(packageName, context)).version
 }
 
 export function parseGlobalPackageVersion(output: string, packageName: string): string | undefined {

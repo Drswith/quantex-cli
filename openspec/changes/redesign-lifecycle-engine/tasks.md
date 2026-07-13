@@ -44,13 +44,13 @@
 
 ## 5. Observation and Read-Only Migration
 
-- [ ] 5.1 Implement live observation that combines executable, provider, version, receipt, and capability evidence into explicit consistency/drift classifications.
-- [ ] 5.2 Implement pure lifecycle planning for already-satisfied, absent, tracked, untracked, ghost, conflicting, unsupported, and indeterminate observations.
-- [ ] 5.3 Migrate `list` and `info` to the new catalog/application boundary and verify v1 compatibility fixtures.
-- [ ] 5.4 Migrate `inspect` and `resolve` to live observations and preserve install guidance and structured fields.
-- [ ] 5.5 Migrate `capabilities` to registry-derived provider and command capabilities without adding fields to strict v1 projections.
-- [ ] 5.6 Migrate `doctor` to observation-based diagnostics while keeping explicitly declared network checks and remediation semantics.
-- [ ] 5.7 Run read-only commands against real local and container environments and compare results with the compatibility baseline.
+- [x] 5.1 Implement live observation that combines executable, provider, version, receipt, and capability evidence into explicit consistency/drift classifications.
+- [x] 5.2 Implement pure lifecycle planning for already-satisfied, absent, tracked, untracked, ghost, conflicting, unsupported, and indeterminate observations.
+- [x] 5.3 Migrate `list` and `info` to the new catalog/application boundary and verify v1 compatibility fixtures.
+- [x] 5.4 Migrate `inspect` and `resolve` to live observations and preserve install guidance and structured fields.
+- [x] 5.5 Migrate `capabilities` to registry-derived provider and command capabilities without adding fields to strict v1 projections.
+- [x] 5.6 Migrate `doctor` to observation-based diagnostics while keeping explicitly declared network checks and remediation semantics.
+- [x] 5.7 Run read-only commands against real local and container environments and compare results with the compatibility baseline.
 
 ## 6. Versioned State and Core Mutations
 

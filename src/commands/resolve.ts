@@ -1,6 +1,7 @@
 import type { CommandResult } from '../output/types'
+import { projectObservationToV1Inspection } from '../compatibility/agent-inspection'
 import { createErrorResult, createSuccessResult, emitCommandResult } from '../output'
-import { resolveAgentInspection } from '../services/agents'
+import { resolveAgentObservation } from '../services/lifecycle-observations'
 import { pc } from '../utils/color'
 import { formatInstallMethodCommand, formatInstallMethodLabel } from '../utils/install'
 
@@ -32,7 +33,7 @@ interface ResolveCommandData {
 }
 
 export async function resolveCommand(agentName: string): Promise<CommandResult<ResolveCommandData>> {
-  const resolved = await resolveAgentInspection(agentName)
+  const resolved = await resolveAgentObservation(agentName)
   if (!resolved) {
     return emitCommandResult(
       createErrorResult<ResolveCommandData>({
@@ -53,7 +54,8 @@ export async function resolveCommand(agentName: string): Promise<CommandResult<R
     )
   }
 
-  const { agent, inspection } = resolved
+  const { agent } = resolved
+  const inspection = projectObservationToV1Inspection(resolved)
   if (!inspection.inPath || !inspection.binaryPath) {
     const installMethods = inspection.methods
       .map(method => ({

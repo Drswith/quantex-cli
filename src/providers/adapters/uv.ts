@@ -5,10 +5,11 @@ import * as detectUtils from '../../utils/detect'
 import { createSystemPackageAdapter } from './system-package'
 
 const defaultDependencies: SystemPackageAdapterDependencies = {
-  getInstalledVersion: target => uvPm.getInstalledVersion(target.id),
+  contextualObservation: true,
+  getInstalledVersion: (target, context) => uvPm.getInstalledVersion(target.id, context),
   install: target => uvPm.install(target.id, target.arguments ? [...target.arguments] : undefined),
-  isAvailable: () => detectUtils.isUvAvailable(),
-  probePackagePresence: target => uvPm.probePackagePresence(target.id),
+  isAvailable: context => detectUtils.isUvAvailable(context),
+  probePackagePresence: (target, context) => uvPm.probePackagePresence(target.id, context),
   uninstall: target => uvPm.uninstall(target.id),
   update: target => uvPm.update(target.id, target.arguments ? [...target.arguments] : undefined),
   updateMany: targets =>

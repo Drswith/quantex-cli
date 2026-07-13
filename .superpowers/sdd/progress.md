@@ -1,23 +1,16 @@
-# Provider/Catalog Milestone Progress
+# Observation and Read-Only Milestone Progress
 
-Base: `origin/codex/redesign-lifecycle-integration@af78c65e6f47e9c9804eb5844db82dd96628e631`
+Base: `origin/codex/redesign-lifecycle-integration@7b1dcf5b0caf8750f073a5252b4798548a9a1296`
 
 | Task | State | Checkpoint | Evidence |
 | --- | --- | --- | --- |
-| 1. Typed provider contracts and registry | complete | `feat(providers): add typed provider registry` | Red→green; 6 focused tests; 749 full tests; independent review passed |
-| 2. Provider conformance harness | complete | `test(providers): add adapter conformance suite` | 8 reusable cases; production unsupported boundary; independent review passed |
-| 3. npm/Bun adapters | complete | `refactor(providers): migrate npm and bun adapters` | Typed adapters + boolean compatibility facade; 153 focused / 790 full tests |
-| 4. Homebrew/winget adapters | complete | `refactor(providers): migrate brew and winget adapters` | Typed adapters + formula/cask/id compatibility; 106 focused / 811 full tests |
-| 5. Cargo/Deno adapters | complete | `refactor(providers): migrate cargo and deno adapters` | Typed adapters + arguments/binary-name compatibility; 121 focused / 832 full tests |
-| 6. pip/uv/mise adapters | complete | `refactor(providers): migrate pip uv and mise adapters` | Typed adapters + uv args and uv/mise presence/version; 144 focused / 860 full tests |
-| 7a. Script/binary explicit effects | complete | `refactor(providers): model script and binary effects` | Typed first-party adapters + shell/argv effects; 70 focused / 865 full tests |
-| 7b. Registry-derived capabilities | complete | `refactor(providers): derive capabilities from registry` | Single first-party registry + derived compatibility/update order; 100 focused / 868 full tests |
-| 8. Normalized catalog candidate schema | complete | `refactor(catalog): add provider-bound candidate schema` | Strict staged source schema + v1 projection; 118 focused / 872 full tests |
-| 9a. npm/Bun/mise catalog entries | complete | `refactor(catalog): normalize npm bun and mise candidates` | 24 source files + v1 package/method projection; 202 focused / 874 full tests |
-| 9b. Cargo/Deno/pip/uv catalog entries | complete | `refactor(catalog): normalize rust and python candidates` | 5 source files + args/probes/legacy package-name projection; 204 focused / 876 full tests |
-| 9c. Homebrew/winget catalog entries | complete | `refactor(catalog): normalize system package candidates` | 14 source files + formula/cask/id projection; 202 focused / 878 full tests |
-| 9d. Script/binary catalog entries | complete | `refactor(catalog): normalize install effect candidates` | Explicit source/effects + complete typed edge coverage; 186 focused / 881 full tests |
-| 10. Generated support data/docs | complete | `docs(catalog): generate provider support matrix` | Deterministic JSON/Markdown + stale-output validation; 111 focused / 883 full tests |
-| 11. Milestone validation/review/delivery | complete | PR [#450](https://github.com/Drswith/quantex-cli/pull/450) | One commit; full gates/build passed; independent review found no blocker/important |
+| 1. Live lifecycle observer | complete | `2a7218d` + `68704c5` | 44 focused tests; controller gate passed; independent re-review approved |
+| 2. Deterministic observation planning | complete | `00f12a7` + `bcf9ad9` | 88 focused tests; controller gate passed; independent re-review approved |
+| 3. Read-only application and v1 projection | complete | `7500245` + `879c29f` | 47 focused tests; controller gate passed; independent re-review approved |
+| 4. list/info migration | complete | `7aa8645` + `c864132` | 27 focused tests; controller gate passed; independent re-review approved |
+| 5. inspect/resolve migration | complete | `f7e059f` + `be27468` | 37 focused tests; controller gate passed; independent re-review approved |
+| 6. capabilities/doctor migration | complete | `a3d815d` + `2323960` | 58 controller tests; independent re-review approved |
+| 7. Real-environment and OpenSpec closure | complete after sixth fix wave | prior checkpoints + `f6fa654` + `4066817` | Invocation interruption wins request transport rejection before headers |
+| 8. Review and integration PR | whole-branch review approved | pending | No Critical, Important, or Minor findings; normalization in progress |
 
 Recovery rule: resume the first row that is not `complete`; inspect its brief/report and `git status` before running commands.

@@ -45,12 +45,24 @@ export type LifecycleObservation =
       readonly kind: 'present'
       readonly providerId?: string
       readonly providerTargetId?: string
+      readonly providerTargetKind?: 'binary' | 'cask' | 'formula' | 'id' | 'package' | 'script' | 'tool'
       readonly version?: string
     })
   | (LifecycleObservationBase & {
       readonly kind: 'indeterminate'
       readonly reason: string
     })
+
+export type LifecycleProviderTargetKind = NonNullable<
+  Extract<LifecycleObservation, { kind: 'present' }>['providerTargetKind']
+>
+
+export interface LifecyclePlanningProvider {
+  readonly capabilities: readonly string[]
+  readonly providerId: string
+  readonly targetId: string
+  readonly targetKind: LifecycleProviderTargetKind
+}
 
 interface ProviderEffectBase {
   readonly capability: ProviderCapability

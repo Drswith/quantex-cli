@@ -1,4 +1,4 @@
-import type { AgentDefinition } from '../agents'
+import type { AgentDefinition, InstallMethod, Platform } from '../agents'
 import type {
   ProviderId,
   ProviderObservation,
@@ -14,6 +14,11 @@ import { firstPartyProviderRegistry, firstPartyProviderIds } from '../providers'
 export interface LifecycleProviderBinding {
   readonly providerId: ProviderId
   readonly target: ProviderTarget
+}
+
+export interface CatalogProviderEvidence {
+  readonly bindings: readonly LifecycleProviderBinding[]
+  readonly unresolvedCandidates: readonly InstallMethod[]
 }
 
 export interface ObserveLifecycleProviderOptions {
@@ -81,6 +86,54 @@ export async function observeLifecycleProvider(
     },
     target: binding.target,
   })
+}
+
+export function resolveCatalogProviderBindings(
+  agent: AgentDefinition,
+  platform: Platform,
+): readonly LifecycleProviderBinding[] {
+  return resolveCatalogProviderEvidence(agent, platform).bindings
+}
+
+export function resolveCatalogProviderEvidence(agent: AgentDefinition, platform: Platform): CatalogProviderEvidence {
+  const resolved = (agent.platforms[platform] ?? []).map(method => ({
+    binding: resolveStateProviderBinding(agent, {
+      agentName: agent.name,
+      ...(method.binaryName ? { binaryName: method.binaryName } : {}),
+      ...(method.command ? { command: method.command } : {}),
+      installType: method.type,
+      ...(method.packageInstallArgs ? { packageInstallArgs: method.packageInstallArgs } : {}),
+      ...(method.packageName ? { packageName: method.packageName } : {}),
+      ...(method.packageTargetKind ? { packageTargetKind: method.packageTargetKind } : {}),
+    }),
+    method,
+  }))
+  const bindings = resolved
+    .map(candidate => candidate.binding)
+    .filter((binding): binding is LifecycleProviderBinding => binding !== undefined)
+
+  return {
+    bindings: bindings.filter(
+      (binding, index) =>
+        bindings.findIndex(candidate => providerBindingsEqual(candidate, binding, agent.binaryName)) === index,
+    ),
+    unresolvedCandidates: resolved
+      .filter(candidate => candidate.binding === undefined)
+      .map(candidate => candidate.method),
+  }
+}
+
+export function providerBindingsEqual(
+  left: LifecycleProviderBinding,
+  right: LifecycleProviderBinding,
+  defaultExecutableName?: string,
+): boolean {
+  return (
+    left.providerId === right.providerId &&
+    left.target.id === right.target.id &&
+    left.target.kind === right.target.kind &&
+    (left.target.binaryName ?? defaultExecutableName) === (right.target.binaryName ?? defaultExecutableName)
+  )
 }
 
 function resolveStateTargetId(agent: AgentDefinition, state: InstalledAgentState): string | undefined {

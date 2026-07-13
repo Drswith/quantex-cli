@@ -34,13 +34,14 @@ const commands: RegistryPackageCommandBuilders = {
 }
 
 const defaultDependencies: BunProviderDependencies = {
-  getInstalledVersion: packageName => bunPm.getInstalledVersion(packageName),
+  contextualPackageObservation: true,
+  getInstalledVersion: (packageName, context) => bunPm.getInstalledVersion(packageName, context),
   install: (packageName, distTag, registry) =>
     distTag === undefined && registry === undefined
       ? bunPm.install(packageName)
       : bunPm.install(packageName, distTag, registry),
-  isAvailable: () => detectUtils.isBunAvailable(),
-  probePackagePresence: packageName => bunPm.probePackagePresence(packageName),
+  isAvailable: context => detectUtils.isBunAvailable(context),
+  probePackagePresence: (packageName, context) => bunPm.probePackagePresence(packageName, undefined, context),
   resolveLatestVersion: (packageName, distTag, registry) =>
     versionUtils.getLatestVersion(packageName, distTag, { registry }),
   uninstall: packageName => bunPm.uninstall(packageName),

@@ -8,15 +8,27 @@ import type {
   ProviderTarget,
   ProviderTargetRequest,
 } from '../types'
-import { interruptedOutcome, isInterruptedOperation, runPendingOperation } from './legacy-operation'
+import {
+  interruptedOutcome,
+  isInterruptedOperation,
+  runContextualOperation,
+  runPendingOperation,
+} from './legacy-operation'
 
 export type SystemPackagePresence = 'absent' | 'present' | 'unknown'
 
 export interface SystemPackageAdapterDependencies {
-  readonly getInstalledVersion?: (target: ProviderTarget) => Promise<string | undefined>
+  readonly contextualObservation?: boolean
+  readonly getInstalledVersion?: (
+    target: ProviderTarget,
+    context?: import('../types').ProviderOperationContext,
+  ) => Promise<string | undefined>
   readonly install: (target: ProviderTarget) => Promise<boolean>
-  readonly isAvailable: () => Promise<boolean>
-  readonly probePackagePresence: (target: ProviderTarget) => Promise<SystemPackagePresence>
+  readonly isAvailable: (context?: import('../types').ProviderOperationContext) => Promise<boolean>
+  readonly probePackagePresence: (
+    target: ProviderTarget,
+    context?: import('../types').ProviderOperationContext,
+  ) => Promise<SystemPackagePresence>
   readonly uninstall: (target: ProviderTarget) => Promise<boolean>
   readonly update: (target: ProviderTarget) => Promise<boolean>
   readonly updateMany: (targets: readonly ProviderTarget[]) => Promise<boolean>
@@ -41,7 +53,9 @@ export function createSystemPackageAdapter<Id extends SystemPackageProviderId>(
   dependencies: SystemPackageAdapterDependencies,
 ): ProviderAdapter & { readonly id: Id } {
   const observe = async (request: ProviderTargetRequest) => {
-    const presence = await runPendingOperation(request.context, () => dependencies.probePackagePresence(request.target))
+    const presence = await runObservation(request.context, dependencies.contextualObservation, () =>
+      dependencies.probePackagePresence(request.target, request.context),
+    )
     if (isInterruptedOperation(presence)) return interruptedOutcome(presence)
 
     if (presence.kind === 'rejected' || presence.value === 'unknown') {
@@ -60,7 +74,9 @@ export function createSystemPackageAdapter<Id extends SystemPackageProviderId>(
     }
 
     const version = dependencies.getInstalledVersion
-      ? await runPendingOperation(request.context, () => dependencies.getInstalledVersion!(request.target))
+      ? await runObservation(request.context, dependencies.contextualObservation, () =>
+          dependencies.getInstalledVersion!(request.target, request.context),
+        )
       : undefined
     if (version && isInterruptedOperation(version)) return interruptedOutcome(version)
 
@@ -74,7 +90,9 @@ export function createSystemPackageAdapter<Id extends SystemPackageProviderId>(
 
   return {
     availability: async context => {
-      const available = await runPendingOperation(context, () => dependencies.isAvailable())
+      const available = await runObservation(context, dependencies.contextualObservation, () =>
+        dependencies.isAvailable(context),
+      )
       if (isInterruptedOperation(available)) return interruptedOutcome(available)
       if (available.kind === 'rejected' || !available.value) {
         return { kind: 'unavailable', reason: `${config.id} executable is unavailable` }
@@ -102,6 +120,14 @@ export function createSystemPackageAdapter<Id extends SystemPackageProviderId>(
       return success({ evidence: observation.value.evidence ?? [], kind: 'satisfied' as const })
     },
   }
+}
+
+function runObservation<T>(
+  context: import('../types').ProviderOperationContext,
+  contextual: boolean | undefined,
+  invoke: () => Promise<T>,
+): Promise<import('./legacy-operation').PendingOperation<T>> {
+  return contextual ? runContextualOperation(context, invoke) : runPendingOperation(context, invoke)
 }
 
 async function mutate<Id extends SystemPackageProviderId>(

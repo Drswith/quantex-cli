@@ -1,7 +1,14 @@
 import type { AgentVersionProbe } from '../agents'
+import type { ProviderOperationContext } from '../providers'
 import { realpath } from 'node:fs/promises'
 import process from 'node:process'
-import { readProcessOutput, spawnCommand } from './child-process'
+import {
+  isProcessInterruptionError,
+  ProcessInterruptionError,
+  readProcessOutput,
+  readProcessOutputWithContext,
+  spawnCommand,
+} from './child-process'
 import { fetchJsonWithCache } from './network'
 import { buildRegistryPackageVersionUrl, OFFICIAL_NPM_REGISTRY, normalizeRegistryUrl } from './registry'
 
@@ -37,15 +44,20 @@ export function isVersionNewer(candidate: string, current: string): boolean {
 export async function getInstalledVersion(
   binaryName: string,
   versionProbe?: AgentVersionProbe,
+  context?: ProviderOperationContext,
 ): Promise<string | undefined> {
   const command = versionProbe?.command ?? [binaryName, '--version']
 
   try {
-    const { exitCode, stdout } = await readProcessOutput(spawnCommand(command))
+    const proc = spawnCommand(command, { detached: context !== undefined && process.platform !== 'win32' })
+    const { exitCode, stdout } = context
+      ? await readProcessOutputWithContext(proc, context)
+      : await readProcessOutput(proc)
     if (exitCode !== 0) return undefined
     const text = stdout
     return parseInstalledVersionOutput(text, versionProbe?.parser)
-  } catch {
+  } catch (error) {
+    if (isProcessInterruptionError(error)) throw error
     return undefined
   }
 }
@@ -53,40 +65,65 @@ export async function getInstalledVersion(
 export async function getLatestVersion(
   packageName: string,
   distTag: string = 'latest',
-  options: { registry?: string } = {},
+  options: { context?: ProviderOperationContext; registry?: string } = {},
 ): Promise<string | undefined> {
   try {
     const registry = normalizeRegistryUrl(options.registry) ?? OFFICIAL_NPM_REGISTRY
     const data = await fetchJsonWithCache<{ version: string }>(
       buildRegistryPackageVersionUrl(packageName, distTag, registry),
       `npm:${registry}:${packageName}:${distTag}`,
+      { context: options.context },
     )
+    if (options.context?.signal.aborted) throw cancelledError(options.context.signal)
     return data?.version
-  } catch {
+  } catch (error) {
+    if (isProcessInterruptionError(error)) throw error
+    if (options.context?.signal.aborted) throw cancelledError(options.context.signal)
     return undefined
   }
 }
 
-export async function getBinaryPath(binaryName: string): Promise<string | undefined> {
+export async function getBinaryPath(
+  binaryName: string,
+  context?: ProviderOperationContext,
+): Promise<string | undefined> {
   try {
     const cmd = process.platform === 'win32' ? 'where' : 'which'
-    const { exitCode, stdout } = await readProcessOutput(spawnCommand([cmd, binaryName]))
+    const proc = spawnCommand([cmd, binaryName], {
+      detached: context !== undefined && process.platform !== 'win32',
+    })
+    const { exitCode, stdout } = context
+      ? await readProcessOutputWithContext(proc, context)
+      : await readProcessOutput(proc)
     if (exitCode !== 0) return undefined
     const text = stdout
     return text.trim().split('\n')[0]
-  } catch {
+  } catch (error) {
+    if (isProcessInterruptionError(error)) throw error
     return undefined
   }
 }
 
-export async function getResolvedBinaryPath(binaryPath?: string): Promise<string | undefined> {
+export async function getResolvedBinaryPath(
+  binaryPath?: string,
+  context?: ProviderOperationContext,
+): Promise<string | undefined> {
   if (!binaryPath) return undefined
+  if (context?.signal.aborted) throw cancelledError(context.signal)
 
   try {
-    return await realpath(binaryPath)
+    const path = await realpath(binaryPath)
+    if (context?.signal.aborted) throw cancelledError(context.signal)
+    return path
   } catch {
+    if (context?.signal.aborted) throw cancelledError(context.signal)
     return binaryPath
   }
+}
+
+function cancelledError(signal: AbortSignal): ProcessInterruptionError {
+  const reason = typeof signal.reason === 'string' ? signal.reason : undefined
+  return new ProcessInterruptionError({ kind: 'cancelled', reason })
 }
 
 interface ParsedVersion {

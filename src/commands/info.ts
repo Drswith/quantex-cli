@@ -1,6 +1,7 @@
 import type { CommandResult } from '../output/types'
+import { projectObservationToV1Inspection } from '../compatibility/agent-inspection'
 import { createErrorResult, createSuccessResult, emitCommandResult } from '../output'
-import { resolveAgentInspection } from '../services/agents'
+import { resolveAgentObservation } from '../services/lifecycle-observations'
 import { pc } from '../utils/color'
 import { formatInstallMethodCommand, formatInstallMethodLabel } from '../utils/install'
 
@@ -29,7 +30,7 @@ interface AgentInfoData {
 }
 
 export async function infoCommand(agentName: string): Promise<CommandResult<AgentInfoData>> {
-  const resolved = await resolveAgentInspection(agentName)
+  const resolved = await resolveAgentObservation(agentName)
   if (!resolved) {
     return emitCommandResult(
       createErrorResult<AgentInfoData>({
@@ -50,7 +51,8 @@ export async function infoCommand(agentName: string): Promise<CommandResult<Agen
     )
   }
 
-  const { agent, inspection } = resolved
+  const { agent } = resolved
+  const inspection = projectObservationToV1Inspection(resolved)
   const selfUpdateCommands = agent.selfUpdate
     ? [agent.selfUpdate.command, ...(agent.selfUpdate.fallbackCommands ?? [])].map(command => command.join(' '))
     : []

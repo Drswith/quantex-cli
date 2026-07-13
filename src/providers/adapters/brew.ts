@@ -5,8 +5,9 @@ import * as detectUtils from '../../utils/detect'
 import { createSystemPackageAdapter } from './system-package'
 
 const defaultDependencies: SystemPackageAdapterDependencies = {
+  contextualObservation: true,
   install: target => brewPm.install(target.id, target.kind === 'cask' ? 'cask' : 'package'),
-  isAvailable: () => detectUtils.isBrewAvailable(),
+  isAvailable: context => detectUtils.isBrewAvailable(context),
   probePackagePresence: async () => 'unknown',
   uninstall: target => brewPm.uninstall(target.id, target.kind === 'cask' ? 'cask' : 'package'),
   update: target => brewPm.update(target.id, target.kind === 'cask' ? 'cask' : 'package'),

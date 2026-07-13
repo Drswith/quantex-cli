@@ -1,145 +1,234 @@
+import type { AgentDefinition, InstallMethod } from '../../src/agents'
+import type { LifecycleObservation } from '../../src/lifecycle'
+import type { ResolvedAgentObservation } from '../../src/services/lifecycle-observations'
+import type { InstalledAgentState } from '../../src/state'
 import { afterAll, afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import * as agents from '../../src/agents'
 import { setCliContext } from '../../src/cli-context'
 import { resolveCommand } from '../../src/commands/resolve'
-import * as state from '../../src/state'
-import * as detect from '../../src/utils/detect'
-import * as version from '../../src/utils/version'
+import * as legacyAgentsService from '../../src/services/agents'
+import * as lifecycleObservations from '../../src/services/lifecycle-observations'
 
-const agentSpy = vi.spyOn(agents, 'getAgentByNameOrAlias')
-const binaryInPathSpy = vi.spyOn(detect, 'isBinaryInPath')
-const installedStateSpy = vi.spyOn(state, 'getInstalledAgentState')
-const installedVerSpy = vi.spyOn(version, 'getInstalledVersion')
-const latestVerSpy = vi.spyOn(version, 'getLatestVersion')
-const binaryPathSpy = vi.spyOn(version, 'getBinaryPath')
+const resolveAgentInspectionSpy = vi.spyOn(legacyAgentsService, 'resolveAgentInspection')
+const resolveAgentObservationSpy = vi.spyOn(lifecycleObservations, 'resolveAgentObservation')
 
-afterAll(() => {
-  agentSpy.mockRestore()
-  binaryInPathSpy.mockRestore()
-  installedStateSpy.mockRestore()
-  installedVerSpy.mockRestore()
-  latestVerSpy.mockRestore()
-  binaryPathSpy.mockRestore()
-})
-
-const testAgent = {
-  name: 'test-agent',
-  lookupAliases: ['ta'],
+const testAgent: AgentDefinition = {
+  binaryName: 'test-bin',
   displayName: 'Test Agent',
   homepage: 'https://example.com',
+  lookupAliases: ['ta'],
+  name: 'test-agent',
   packages: { npm: 'test-pkg' },
-  binaryName: 'test-bin',
-  platforms: {
-    linux: [{ type: 'bun' as const }],
-    macos: [{ type: 'bun' as const }],
-    windows: [{ type: 'bun' as const }],
-  },
+  platforms: { linux: [{ packageName: 'test-pkg', type: 'bun' }] },
 }
+const trackedState: InstalledAgentState = {
+  agentName: 'test-agent',
+  installType: 'bun',
+  packageName: 'test-pkg',
+}
+
+afterAll(() => {
+  resolveAgentInspectionSpy.mockRestore()
+  resolveAgentObservationSpy.mockRestore()
+})
 
 describe('resolveCommand', () => {
   let logSpy: ReturnType<typeof vi.spyOn>
 
   beforeEach(() => {
+    setCliContext({ colorMode: 'never', interactive: false, outputMode: 'human', runId: 'resolve-test' })
     logSpy = vi.spyOn(console, 'log').mockImplementation(() => {})
-    agentSpy.mockClear()
-    binaryInPathSpy.mockClear()
-    installedStateSpy.mockClear()
-    installedVerSpy.mockClear()
-    latestVerSpy.mockClear()
-    binaryPathSpy.mockClear()
+    resolveAgentInspectionSpy.mockReset()
+    resolveAgentInspectionSpy.mockRejectedValue(new Error('legacy resolve inspection must not run'))
+    resolveAgentObservationSpy.mockReset()
   })
 
   afterEach(() => {
     logSpy.mockRestore()
   })
 
-  it('shows error for unknown agent', async () => {
-    agentSpy.mockReturnValue(undefined)
-    await resolveCommand('unknown')
-    expect(logSpy).toHaveBeenCalledWith(expect.stringContaining('Unknown agent'))
+  it('resolves an alias through observation and preserves managed source, version, and launch argv', async () => {
+    resolveAgentObservationSpy.mockResolvedValueOnce(observed(present({ kind: 'none' }), trackedState))
+
+    const result = await resolveCommand('ta')
+
+    expect(resolveAgentObservationSpy).toHaveBeenCalledWith('ta')
+    expect(resolveAgentInspectionSpy).not.toHaveBeenCalled()
+    expect(result).toMatchObject({
+      action: 'resolve',
+      data: {
+        agent: { binaryName: 'test-bin', displayName: 'Test Agent', name: 'test-agent' },
+        resolution: {
+          binaryPath: '/usr/bin/test-bin',
+          installed: true,
+          installSource: 'bun',
+          installedVersion: '1.2.3',
+          lifecycle: 'managed',
+          sourceLabel: 'managed via bun (test-pkg)',
+          suggestedLaunchCommand: ['/usr/bin/test-bin'],
+        },
+      },
+      error: null,
+      ok: true,
+      target: { kind: 'agent', name: 'test-agent' },
+    })
+    expectNoInternalObservationFields(result.data)
+    expect(logSpy.mock.calls.map((call: unknown[]) => call[0])).toEqual([
+      '\nTest Agent\n',
+      '  Name:         test-agent',
+      '  Binary:       test-bin',
+      '  Path:         /usr/bin/test-bin',
+      '  Source:       managed via bun (test-pkg)',
+      '  Lifecycle:    managed',
+      '  Install Type: bun',
+      '  Version:      1.2.3',
+      '  Launch:       /usr/bin/test-bin',
+      undefined,
+    ])
   })
 
-  it('shows error when the agent is not installed', async () => {
-    agentSpy.mockReturnValue(testAgent)
-    binaryInPathSpy.mockResolvedValue(false)
+  it('preserves untracked PATH resolution semantics', async () => {
+    resolveAgentObservationSpy.mockResolvedValueOnce(observed(present({ kind: 'untracked' })))
 
-    await resolveCommand('test-agent')
+    const result = await resolveCommand('test-agent')
 
-    expect(logSpy).toHaveBeenCalledWith(expect.stringContaining('is not installed'))
-    expect(logSpy).toHaveBeenCalledWith(expect.stringContaining('quantex ensure test-agent'))
+    expect(result.data?.resolution).toEqual({
+      binaryPath: '/usr/bin/test-bin',
+      installed: true,
+      installSource: 'detected-in-path',
+      installedVersion: '1.2.3',
+      lifecycle: 'unmanaged',
+      sourceLabel: 'detected in PATH',
+      suggestedLaunchCommand: ['/usr/bin/test-bin'],
+    })
   })
 
-  it('shows resolved executable information for an installed agent', async () => {
-    agentSpy.mockReturnValue(testAgent)
-    binaryInPathSpy.mockResolvedValue(true)
-    installedStateSpy.mockResolvedValue({
-      agentName: 'test-agent',
-      installType: 'bun',
-      packageName: 'test-pkg',
-      command: 'bun add -g test-pkg',
+  it.each([
+    ['absent', absent({ kind: 'none' }), undefined],
+    ['ghost', absent({ kind: 'recorded-absent' }), trackedState],
+    ['conflicting', absent({ kind: 'conflicting-source' }), trackedState],
+    ['indeterminate', indeterminate(), trackedState],
+  ] as const)(
+    'returns unchanged install guidance for %s evidence without PATH presence',
+    async (_name, observation, state) => {
+      resolveAgentObservationSpy.mockResolvedValueOnce(observed(observation, state, { present: false }))
+
+      const result = await resolveCommand('test-agent')
+
+      const installGuidance = {
+        docsRef: 'skills/quantex-cli/references/command-recipes.md',
+        installMethods: [{ command: 'bun add -g test-pkg', label: 'managed/bun (test-pkg)', type: 'bun' }],
+        suggestedAction: 'ensure-agent-installed',
+        suggestedEnsureCommand: 'quantex ensure test-agent',
+      }
+      expect(result).toMatchObject({
+        action: 'resolve',
+        data: {
+          agent: { binaryName: 'test-bin', displayName: 'Test Agent', name: 'test-agent' },
+          resolution: {
+            binaryPath: '',
+            installGuidance,
+            installed: false,
+            installSource: 'not-installed',
+            lifecycle: 'unmanaged',
+            sourceLabel: 'not installed',
+            suggestedLaunchCommand: [],
+          },
+        },
+        error: {
+          code: 'AGENT_NOT_INSTALLED',
+          details: installGuidance,
+          message: 'Test Agent is not installed.',
+        },
+        ok: false,
+        target: { kind: 'agent', name: 'test-agent' },
+      })
+      expect(resolveAgentInspectionSpy).not.toHaveBeenCalled()
+      expectNoInternalObservationFields(result.data)
+      expect(logSpy.mock.calls.map((call: unknown[]) => call[0])).toEqual([
+        'Test Agent is not installed.',
+        'Try: quantex ensure test-agent',
+        'Install: [managed/bun (test-pkg)] bun add -g test-pkg',
+      ])
+    },
+  )
+
+  it('preserves the v1 unknown-agent error', async () => {
+    resolveAgentObservationSpy.mockResolvedValueOnce(undefined)
+
+    const result = await resolveCommand('unknown')
+
+    expect(result).toMatchObject({
+      action: 'resolve',
+      data: undefined,
+      error: { code: 'AGENT_NOT_FOUND', details: { input: 'unknown' }, message: 'Unknown agent: unknown' },
+      ok: false,
+      target: { kind: 'agent', name: 'unknown' },
     })
-    installedVerSpy.mockResolvedValue('1.0.0')
-    latestVerSpy.mockResolvedValue('2.0.0')
-    binaryPathSpy.mockResolvedValue('/usr/bin/test-bin')
-
-    await resolveCommand('test-agent')
-
-    const output = logSpy.mock.calls.map((c: any[]) => c[0]).join('\n')
-    expect(output).toContain('Path:')
-    expect(output).toContain('/usr/bin/test-bin')
-    expect(output).toContain('Launch:')
-    expect(output).toContain('Install Type:')
-  })
-
-  it('emits a structured envelope in json mode', async () => {
-    setCliContext({
-      interactive: false,
-      outputMode: 'json',
-      runId: 'resolve-run-id',
-    })
-    agentSpy.mockReturnValue(testAgent)
-    binaryInPathSpy.mockResolvedValue(true)
-    installedStateSpy.mockResolvedValue({
-      agentName: 'test-agent',
-      installType: 'bun',
-      packageName: 'test-pkg',
-      command: 'bun add -g test-pkg',
-    })
-    installedVerSpy.mockResolvedValue('1.0.0')
-    binaryPathSpy.mockResolvedValue('/usr/bin/test-bin')
-
-    await resolveCommand('test-agent')
-
-    const payload = JSON.parse(logSpy.mock.calls[0][0])
-    expect(payload.ok).toBe(true)
-    expect(payload.action).toBe('resolve')
-    expect(payload.data.agent.name).toBe('test-agent')
-    expect(payload.data.resolution.binaryPath).toBe('/usr/bin/test-bin')
-    expect(payload.data.resolution.suggestedLaunchCommand).toEqual(['/usr/bin/test-bin'])
-    expect(payload.meta.runId).toBe('resolve-run-id')
-  })
-
-  it('emits machine-actionable install guidance when the agent is not installed', async () => {
-    setCliContext({
-      interactive: false,
-      outputMode: 'json',
-      runId: 'resolve-missing-run-id',
-    })
-    agentSpy.mockReturnValue(testAgent)
-    binaryInPathSpy.mockResolvedValue(false)
-
-    await resolveCommand('test-agent')
-
-    const payload = JSON.parse(logSpy.mock.calls[0][0])
-    expect(payload.ok).toBe(false)
-    expect(payload.error.code).toBe('AGENT_NOT_INSTALLED')
-    expect(payload.data.agent.name).toBe('test-agent')
-    expect(payload.data.resolution.installed).toBe(false)
-    expect(payload.data.resolution.installGuidance.suggestedAction).toBe('ensure-agent-installed')
-    expect(payload.data.resolution.installGuidance.suggestedEnsureCommand).toBe('quantex ensure test-agent')
-    expect(payload.data.resolution.installGuidance.installMethods[0]).toMatchObject({
-      command: 'bun add -g test-pkg',
-      type: 'bun',
-    })
+    expect(resolveAgentInspectionSpy).not.toHaveBeenCalled()
+    expect(logSpy.mock.calls.map((call: unknown[]) => call[0])).toEqual(['Unknown agent: unknown'])
   })
 })
+
+function observed(
+  observation: LifecycleObservation,
+  installedState?: InstalledAgentState,
+  pathExecutable: ResolvedAgentObservation['pathExecutable'] = {
+    path: '/usr/bin/test-bin',
+    present: true,
+    version: '1.2.3',
+  },
+): ResolvedAgentObservation {
+  const methods: InstallMethod[] = [{ packageName: 'test-pkg', type: 'bun' }]
+  return {
+    agent: testAgent,
+    capabilities: ['observe', 'update'],
+    catalogMethods: [],
+    executable: pathExecutable,
+    installedState,
+    latestVersion: '2.0.0',
+    methods,
+    observation,
+    pathExecutable,
+    receipt: installedState
+      ? {
+          kind: 'lifecycle-receipt',
+          providerId: 'bun',
+          providerTargetId: 'test-pkg',
+          providerTargetKind: 'package',
+          schemaVersion: 1,
+          targetId: 'test-agent',
+          verifiedAt: '2026-07-12T08:00:00.000Z',
+        }
+      : undefined,
+    resolvedBinaryPath: pathExecutable.path,
+  }
+}
+
+function present(drift: LifecycleObservation['drift']): LifecycleObservation {
+  return {
+    drift,
+    executablePath: '/usr/bin/test-bin',
+    kind: 'present',
+    targetId: 'test-agent',
+    version: '1.2.3',
+  }
+}
+
+function absent(drift: LifecycleObservation['drift']): LifecycleObservation {
+  return { drift, kind: 'absent', targetId: 'test-agent' }
+}
+
+function indeterminate(): LifecycleObservation {
+  return {
+    drift: { kind: 'indeterminate', reason: 'provider unavailable' },
+    kind: 'indeterminate',
+    reason: 'provider unavailable',
+    targetId: 'test-agent',
+  }
+}
+
+function expectNoInternalObservationFields(value: unknown): void {
+  expect(JSON.stringify(value)).not.toMatch(
+    /"(?:binding|capabilities|drift|providerTarget|providerTargetId|providerTargetKind|receipt)"/,
+  )
+}
