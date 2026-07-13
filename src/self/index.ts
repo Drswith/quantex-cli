@@ -1,5 +1,7 @@
+import type { ProviderOperationContext } from '../providers'
 import type { SelfInspection, SelfInstallSource, SelfUpdateChannel, SelfUpdateResult, SelfUpgradePlan } from './types'
 import process from 'node:process'
+import { resolveSelfInstallFactsReadOnly } from './facts'
 import { acquireSelfUpgradeLock } from './lock'
 import {
   buildPlanFromInspection,
@@ -12,6 +14,14 @@ import { getSelfUpgradeRecoveryHint } from './recovery'
 
 export async function inspectSelf(options?: { updateChannel?: SelfUpdateChannel }): Promise<SelfInspection> {
   return buildSelfInspectionFromPlan(await planSelfUpgrade({ updateChannel: options?.updateChannel }))
+}
+
+export async function inspectSelfReadOnly(options?: {
+  context?: ProviderOperationContext
+  updateChannel?: SelfUpdateChannel
+}): Promise<SelfInspection> {
+  const facts = await resolveSelfInstallFactsReadOnly({ updateChannel: options?.updateChannel })
+  return buildSelfInspectionFromPlan(await planSelfUpgrade({ context: options?.context, facts }))
 }
 
 export async function upgradeSelf(planOrInspection?: SelfInspection | SelfUpgradePlan): Promise<SelfUpdateResult> {
@@ -69,6 +79,8 @@ export {
   getSelfVersion,
   reconcileSelfInstallSource,
   resolveSelfInstallFacts,
+  resolveSelfInstallFactsReadOnly,
+  resolveSelfInstallSource,
   resolveSelfPackageMetadata,
 } from './facts'
 export {

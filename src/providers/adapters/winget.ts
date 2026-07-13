@@ -5,8 +5,9 @@ import * as detectUtils from '../../utils/detect'
 import { createSystemPackageAdapter } from './system-package'
 
 const defaultDependencies: SystemPackageAdapterDependencies = {
+  contextualObservation: true,
   install: target => wingetPm.install(target.id),
-  isAvailable: () => detectUtils.isWingetAvailable(),
+  isAvailable: context => detectUtils.isWingetAvailable(context),
   probePackagePresence: async () => 'unknown',
   uninstall: target => wingetPm.uninstall(target.id),
   update: target => wingetPm.update(target.id),

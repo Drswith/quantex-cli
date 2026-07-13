@@ -5,6 +5,7 @@ import type { InstalledAgentState } from '../../src/state'
 import { describe, expect, it, vi } from 'vitest'
 import {
   observeLifecycleProvider,
+  resolveCatalogProviderEvidence,
   resolveReceiptProviderBinding,
   resolveStateProviderBinding,
 } from '../../src/lifecycle/provider-evidence'
@@ -71,6 +72,26 @@ describe('lifecycle provider evidence', () => {
     ).toEqual({
       providerId: 'brew',
       target: { id: 'test-cask', kind: 'cask' },
+    })
+  })
+
+  it('deduplicates equivalent catalog bindings without reporting an unresolved candidate', () => {
+    const evidence = resolveCatalogProviderEvidence(
+      {
+        ...agent,
+        platforms: {
+          linux: [
+            { packageName: 'test-pkg', type: 'bun' },
+            { packageName: 'test-pkg', type: 'bun' },
+          ],
+        },
+      },
+      'linux',
+    )
+
+    expect(evidence).toEqual({
+      bindings: [{ providerId: 'bun', target: { id: 'test-pkg', kind: 'package' } }],
+      unresolvedCandidates: [],
     })
   })
 

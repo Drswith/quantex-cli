@@ -5,10 +5,11 @@ import * as detectUtils from '../../utils/detect'
 import { createSystemPackageAdapter } from './system-package'
 
 const defaultDependencies: SystemPackageAdapterDependencies = {
-  getInstalledVersion: target => misePm.getInstalledVersion(target.id),
+  contextualObservation: true,
+  getInstalledVersion: (target, context) => misePm.getInstalledVersion(target.id, context),
   install: target => misePm.install(target.id),
-  isAvailable: () => detectUtils.isMiseAvailable(),
-  probePackagePresence: target => misePm.probePackagePresence(target.id),
+  isAvailable: context => detectUtils.isMiseAvailable(context),
+  probePackagePresence: (target, context) => misePm.probePackagePresence(target.id, context),
   uninstall: target => misePm.uninstall(target.id),
   update: target => misePm.update(target.id),
   updateMany: targets => misePm.updateMany(targets.map(target => ({ packageName: target.id }))),

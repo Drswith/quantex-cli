@@ -1,31 +1,39 @@
-# Task 3 Brief: Migrate npm And Bun Adapters
+### Task 3: Add the read-only application and v1 projection boundary
 
-## Objective
+**Files:**
+- Create: `src/services/lifecycle-observations.ts`
+- Create: `src/compatibility/agent-inspection.ts`
+- Create: `test/services/lifecycle-observations.test.ts`
+- Create: `test/compatibility/agent-inspection.test.ts`
+- Modify: `src/services/agents.ts`
 
-Implement typed npm and Bun provider adapters, run both through the reusable conformance harness, and route the maintained `ManagedInstaller` npm/Bun entries through a boolean compatibility projection without changing current CLI or root-export behavior.
+**Interfaces:**
+- Consumes: agent registry, live observer, current catalog method formatting inputs, and existing `AgentInspection` semantics.
+- Produces: `resolveAgentObservation(name)` and `observeRegisteredAgents()` plus `projectObservationToV1Inspection(result): AgentInspection`.
 
-## Architecture
+The existing `inspectRegisteredAgents` and `resolveAgentInspection` exports remain on the legacy implementation for mutation and execution consumers. Add an import/route boundary test that fails if this milestone rewires ensure/install/run/update or removes those exports; only the six read-only commands consume the new service.
 
-- Add a shared internal registry-package adapter factory only where npm/Bun behavior is genuinely identical; keep provider-specific command construction/default dependencies in separate `src/providers/adapters/npm.ts` and `bun.ts` modules.
-- Dependencies are injectable for deterministic conformance tests. Default dependencies call the existing `src/package-manager/npm.ts`, `bun.ts`, `utils/detect`, and npm-registry version resolver through namespace/property access so existing Vitest spies remain effective.
-- Typed operations preflight an aborted signal and distinguish cancellation/timeout/failure. A timeout race may stop waiting on a legacy boolean dependency, but this milestone must not claim process-tree cancellation or route a new timeout into existing CLI behavior.
-- Provider requests carry typed npm/Bun options for update strategy, dist tag, and registry. Do not encode these options in untyped metadata.
-- Observation maps `present`, `absent`, and `unknown` into typed present/absent/indeterminate outcomes and preserves provider/version evidence. Verification derives satisfied/unsatisfied/indeterminate from a fresh observation.
-- Mutation success/failure carries exact command/provider evidence; false legacy results become typed failures without fabricating an exit code.
-- `ManagedInstaller` remains a maintained compatibility type/root export. Its npm/Bun entries project typed outcomes back to existing booleans and preserve direct installed-version/presence probes so current call counts and meanings do not drift.
-- Do not migrate the other seven managed providers, remove the capability table, normalize catalog data, or route command handlers directly to typed outcomes in this task.
+- [ ] **Step 1: Add failing service tests for aliases, ordering, and unknown agents**
 
-## Required tests
+  Assert canonical registry order, alias resolution, one observation per agent, no provider/state mutation, and unchanged legacy service exports for non-read-only callers.
 
-1. Add failing `test/providers/npm.test.ts` and `bun.test.ts` before adapter modules exist.
-2. Invoke `describeProviderConformance` for each real adapter factory with injected deterministic dependencies. The reusable unsupported case may be omitted for a full-capability adapter because production target/batch unsupported mapping is already tested centrally.
-3. Prove npm/Bun install, update, update-many, uninstall, observation, latest-version resolution, and verification preserve provider identity/evidence.
-4. Prove `latest-major` and `respect-semver`, dist tag, and normalized registry inputs reach the existing provider-specific dependencies unchanged.
-5. Prove a never-settling dependency returns the exact requested timeout and an already-aborted signal never invokes the dependency.
-6. Run existing npm/Bun low-level tests to preserve npm argv, registry normalization, Bun trust/rollback, Windows scoped-package parsing, presence, and version parsing.
-7. Run existing package-manager/index and update tests to prove the compatibility facade remains boolean and strategy-aware.
+- [ ] **Step 2: Add failing compatibility projection tests**
 
-## Completion
+  Lock current meanings of `inPath`, `binaryPath`, `resolvedBinaryPath`, `installedVersion`, `latestVersion`, `lifecycle`, `sourceLabel`, and `updateLabel` across tracked, untracked, ghost, conflicting, and indeterminate internal observations.
 
-- Update OpenSpec `4.3` only after both default adapters are wired through the compatibility facade, both conformance suites pass, all focused legacy tests pass, and independent review has no blocker/important finding.
-- Write `task-3-report.md`, update progress, and create checkpoint `refactor(providers): migrate npm and bun adapters`.
+- [ ] **Step 3: Implement the application service and one-way compatibility adapter**
+
+  Domain/application code must not import output envelopes or presenters. The compatibility adapter may reuse current label helpers but must omit new drift/capability fields from v1 objects.
+
+- [ ] **Step 4: Run focused tests and checkpoint**
+
+  Run:
+
+  ```bash
+  bun run test -- test/services/lifecycle-observations.test.ts test/compatibility/agent-inspection.test.ts test/commands/list.test.ts test/commands/info.test.ts
+  bun run format:check
+  bun run lint
+  bun run typecheck
+  ```
+
+  Commit: `feat(observation): add read-only application boundary`

@@ -1,28 +1,46 @@
-# Task 6 Report: Migrate pip, uv, And mise Adapters
+# Task 6 Report: Derive Capabilities And Doctor Diagnostics
 
 ## Result
 
-OpenSpec `4.6` is complete. pip, uv, and mise now expose typed availability, observation, mutation, verification, cancellation, timeout, failure, and evidence behavior. uv preserves tool arguments; uv and mise project parsed installed versions into typed observations.
+`capabilities` and `doctor` now consume one shared provider snapshot derived from
+`firstPartyProviderRegistry.list()`, `getCapabilities(id)`, and each adapter's typed `availability` operation.
+The strict v1 installer projection remains exactly the existing nine managed providers; script and binary adapters
+remain available to the internal registry without appearing in the v1 `installers` object.
 
-The maintained `ManagedInstaller` entries route mutations through typed adapters and project typed success back to booleans. Existing uv/mise presence and installed-version methods remain direct compatibility projections, while default adapter dependencies retain the existing low-level module call shapes.
+`doctor` now consumes live lifecycle observations and uses observation drift for agent diagnostics. The v1 agent,
+installer, self-upgrade, issue, blocking, remediation, platform-reason, feature, JSON, and human projections remain
+unchanged. Explicitly network-aware `inspectSelf()` checks remain scoped to these commands; no other command gained a
+network effect.
 
-## TDD evidence
+After review, the v1 feature projection also consumes a command capability snapshot derived from the authoritative
+command-contract registry flags and effects. The projection preserves every existing v1 feature field and value while
+removing the command module's duplicated support booleans.
 
-- Red: the provider suite failed until pip, uv, and mise typed adapters existed.
-- Red: compatibility tests proved their maintained installer entries still bypassed typed adapters.
-- Green: all three adapters pass the shared conformance harness, including typed version observations for uv and mise.
-- The shared system-package adapter now uses explicit operation identities in diagnostics instead of inferring them from provider-specific command positions.
+## TDD Evidence
+
+- Red: provider snapshot tests failed on the unimplemented snapshot and projection behavior.
+- Red: command route tests rejected every direct `is*Available` call; both legacy command routes failed.
+- Green: each registered adapter availability operation is invoked once, capabilities are obtained from the registry,
+  and cancelled, timed-out, and unavailable outcomes retain their typed form.
+- Green: command tests lock the nine strict installer keys, platform reasons, feature fields, self-upgrade projection,
+  installer booleans, established issue codes, blocking flags, remediation commands, and live-drift routing.
+- Negative projections prove script/binary providers and internal observation fields do not leak into v1 output.
+- Review RED removed `--yes`/`--refresh` and upgrade mutation/network effects from a registry fixture; the previous
+  hard-coded command projection incorrectly remained true.
+- Review GREEN derives feature support from registry flags/effects and uses a real timed-out provider observation to
+  prove indeterminate live drift does not fabricate an untracked-agent issue or alter established self remediation.
 
 ## Validation
 
-- Focused provider/package-manager/update suite: 6 files / 144 tests passed.
-- Full suite: 74 files / 860 tests passed.
-- lint: 0 warnings / 0 errors.
-- format check, typecheck, OpenSpec 16/16, and memory check passed.
+- Brief-focused gate: 4 files / 30 tests passed.
+- Observation and v1 protocol gate: 4 files / 36 tests passed.
+- Full suite: 95 files / 1034 tests passed.
+- Format check, lint, and typecheck passed.
 
-## Scope retained
+## State
 
-- pip presence remains typed `indeterminate`; no package-state probe is fabricated.
-- Script and standalone-binary candidates remain unmigrated.
-- OpenSpec `4.2` remains unchecked until every first-party provider runs the conformance suite.
-- Capability derivation, catalog normalization, commands, and state migration remain untouched.
+- Independent re-review approved Task 6 with no Critical, Important, or Minor findings.
+- The controller reran the combined 8-file / 58-test provider, command, observation, compatibility, inspect, and resolve gate plus format, lint, and typecheck successfully.
+- OpenSpec `5.5` and `5.6` remain unchecked for controller-owned review and integration closure.
+- Other read-only commands, mutation/execution paths, legacy routes, provider adapters, state, and self-upgrade behavior
+  were not changed.

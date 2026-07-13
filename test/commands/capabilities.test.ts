@@ -1,8 +1,10 @@
 import { afterAll, afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import * as agents from '../../src/agents'
 import { setCliContext } from '../../src/cli-context'
+import * as commandRegistry from '../../src/command-contract/registry'
 import { capabilitiesCommand } from '../../src/commands/capabilities'
 import * as selfModule from '../../src/self'
+import * as providerObservations from '../../src/services/provider-observations'
 import * as detect from '../../src/utils/detect'
 
 const allAgentsSpy = vi.spyOn(agents, 'getAllAgents')
@@ -15,7 +17,10 @@ const isMiseSpy = vi.spyOn(detect, 'isMiseAvailable')
 const isPipSpy = vi.spyOn(detect, 'isPipAvailable')
 const isUvSpy = vi.spyOn(detect, 'isUvAvailable')
 const isWingetSpy = vi.spyOn(detect, 'isWingetAvailable')
-const inspectSelfSpy = vi.spyOn(selfModule, 'inspectSelf')
+const inspectSelfSpy = vi.spyOn(selfModule, 'inspectSelfReadOnly')
+const providerSnapshotSpy = vi.spyOn(providerObservations, 'observeProviderSnapshot')
+const originalCommandContracts = commandRegistry.getCommandContracts()
+const commandContractsSpy = vi.spyOn(commandRegistry, 'getCommandContracts')
 
 afterAll(() => {
   allAgentsSpy.mockRestore()
@@ -29,6 +34,8 @@ afterAll(() => {
   isUvSpy.mockRestore()
   isWingetSpy.mockRestore()
   inspectSelfSpy.mockRestore()
+  providerSnapshotSpy.mockRestore()
+  commandContractsSpy.mockRestore()
 })
 
 describe('capabilitiesCommand', () => {
@@ -47,6 +54,9 @@ describe('capabilitiesCommand', () => {
     isUvSpy.mockClear()
     isWingetSpy.mockClear()
     inspectSelfSpy.mockClear()
+    providerSnapshotSpy.mockReset()
+    commandContractsSpy.mockReset()
+    commandContractsSpy.mockReturnValue(originalCommandContracts)
     allAgentsSpy.mockReturnValue([
       {
         binaryName: 'claude',
@@ -73,6 +83,20 @@ describe('capabilitiesCommand', () => {
       recommendedUpgradeCommand: 'quantex upgrade',
       updateChannel: 'stable',
     })
+    providerSnapshotSpy.mockResolvedValue(providerSnapshot())
+    for (const directAvailabilitySpy of [
+      isBunSpy,
+      isNpmSpy,
+      isBrewSpy,
+      isCargoSpy,
+      isDenoSpy,
+      isMiseSpy,
+      isPipSpy,
+      isUvSpy,
+      isWingetSpy,
+    ]) {
+      directAvailabilitySpy.mockRejectedValue(new Error('direct availability route used'))
+    }
   })
 
   afterEach(() => {
@@ -80,15 +104,7 @@ describe('capabilitiesCommand', () => {
   })
 
   it('shows installer availability and feature summary', async () => {
-    isBunSpy.mockResolvedValue(true)
-    isNpmSpy.mockResolvedValue(true)
-    isBrewSpy.mockResolvedValue(false)
-    isCargoSpy.mockResolvedValue(false)
-    isDenoSpy.mockResolvedValue(true)
-    isMiseSpy.mockResolvedValue(false)
-    isPipSpy.mockResolvedValue(false)
-    isUvSpy.mockResolvedValue(false)
-    isWingetSpy.mockResolvedValue(false)
+    providerSnapshotSpy.mockResolvedValue(providerSnapshot({ bun: true, deno: true, npm: true }))
 
     await capabilitiesCommand()
 
@@ -108,15 +124,9 @@ describe('capabilitiesCommand', () => {
       outputMode: 'json',
       runId: 'cap-run-id',
     })
-    isBunSpy.mockResolvedValue(true)
-    isNpmSpy.mockResolvedValue(true)
-    isBrewSpy.mockResolvedValue(false)
-    isCargoSpy.mockResolvedValue(true)
-    isDenoSpy.mockResolvedValue(true)
-    isMiseSpy.mockResolvedValue(true)
-    isPipSpy.mockResolvedValue(true)
-    isUvSpy.mockResolvedValue(true)
-    isWingetSpy.mockResolvedValue(false)
+    providerSnapshotSpy.mockResolvedValue(
+      providerSnapshot({ bun: true, cargo: true, deno: true, mise: true, npm: true, pip: true, uv: true }),
+    )
 
     await capabilitiesCommand()
 
@@ -139,7 +149,69 @@ describe('capabilitiesCommand', () => {
     expect(payload.data.features.logLevels).toEqual(['silent', 'error', 'warn', 'info', 'debug'])
     expect(payload.data.features.quietLogs).toBe(true)
     expect(payload.data.features.timeout).toBe(true)
+    expect(payload.data.features).toEqual({
+      assumeYes: true,
+      cacheBypass: true,
+      cacheRefresh: true,
+      channels: ['stable', 'beta'],
+      colorModes: ['auto', 'always', 'never'],
+      dryRun: true,
+      execInstallPolicies: ['never', 'if-missing', 'always'],
+      freshnessMetadata: true,
+      idempotencyKey: true,
+      logLevels: ['silent', 'error', 'warn', 'info', 'debug'],
+      quietLogs: true,
+      selfUpgrade: true,
+      timeout: true,
+    })
     expect(payload.data.outputModes).toEqual(['human', 'json', 'ndjson'])
+    expect(Object.keys(payload.data.installers)).toEqual([
+      'brew',
+      'bun',
+      'cargo',
+      'deno',
+      'mise',
+      'npm',
+      'pip',
+      'uv',
+      'winget',
+    ])
+    expect(payload.data.installers.brew.reason).toBe(process.platform === 'win32' ? 'not-on-platform' : 'not-found')
+    expect(payload.data.installers.winget.reason).toBe(process.platform === 'win32' ? 'not-found' : 'not-on-platform')
+    expect(payload.data.features.selfUpgrade).toBe(true)
     expect(payload.meta.runId).toBe('cap-run-id')
+    expect(providerSnapshotSpy).toHaveBeenCalledTimes(1)
+    expect(inspectSelfSpy).toHaveBeenCalledTimes(1)
+  })
+
+  it('derives v1 feature support from command registry flags and effects', async () => {
+    setCliContext({ interactive: false, outputMode: 'json', runId: 'cap-registry-run-id' })
+    commandContractsSpy.mockReturnValue(
+      originalCommandContracts.map(contract => ({
+        ...contract,
+        effects:
+          contract.name === 'upgrade'
+            ? contract.effects.filter(effect => effect !== 'mutation' && effect !== 'network')
+            : contract.effects,
+        flags: contract.flags.filter(flag => flag !== '--yes' && flag !== '--refresh'),
+      })),
+    )
+
+    const result = await capabilitiesCommand()
+
+    expect(result.data?.features.assumeYes).toBe(false)
+    expect(result.data?.features.cacheRefresh).toBe(false)
+    expect(result.data?.features.selfUpgrade).toBe(false)
+    expect(commandContractsSpy).toHaveBeenCalledTimes(1)
   })
 })
+
+function providerSnapshot(available: Partial<Record<string, boolean>> = {}) {
+  return ['bun', 'npm', 'brew', 'cargo', 'deno', 'mise', 'pip', 'uv', 'winget', 'script', 'binary'].map(id => ({
+    availability: available[id]
+      ? { kind: 'success' as const, value: { executable: id } }
+      : { kind: 'unavailable' as const, reason: `${id} unavailable` },
+    capabilities: ['availability', 'observe'] as const,
+    id: id as any,
+  }))
+}

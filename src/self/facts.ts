@@ -15,13 +15,28 @@ const NODE_MODULES_SEGMENT = `/node_modules/${CLI_NPM_PACKAGE_NAME}`
 export async function resolveSelfInstallFacts(options?: {
   updateChannel?: SelfUpdateChannel
 }): Promise<SelfInstallFacts> {
+  return resolveSelfInstallFactsWithPersistence(options, true)
+}
+
+export async function resolveSelfInstallFactsReadOnly(options?: {
+  updateChannel?: SelfUpdateChannel
+}): Promise<SelfInstallFacts> {
+  return resolveSelfInstallFactsWithPersistence(options, false)
+}
+
+async function resolveSelfInstallFactsWithPersistence(
+  options: { updateChannel?: SelfUpdateChannel } | undefined,
+  persistDetectedSource: boolean,
+): Promise<SelfInstallFacts> {
   const metadata = await resolveSelfPackageMetadata()
   const executablePath = process.execPath
   const detectedInstallSource = metadata.foundPackageJson
     ? detectSelfInstallSource(metadata.packageRoot)
     : detectSelfInstallSource('', executablePath)
   const state = await getSelfState()
-  const installSource = await reconcileSelfInstallSource(state.installSource, detectedInstallSource)
+  const installSource = persistDetectedSource
+    ? await reconcileSelfInstallSource(state.installSource, detectedInstallSource)
+    : resolveSelfInstallSource(state.installSource, detectedInstallSource)
   const config = await loadConfig()
   const updateChannel = getSelfUpdateChannel(options?.updateChannel, config.selfUpdateChannel)
 
@@ -33,6 +48,13 @@ export async function resolveSelfInstallFacts(options?: {
     packageRoot: metadata.packageRoot,
     updateChannel,
   }
+}
+
+export function resolveSelfInstallSource(
+  storedInstallSource: SelfInstallSource | undefined,
+  detectedInstallSource: SelfInstallSource,
+): SelfInstallSource {
+  return detectedInstallSource !== 'unknown' ? detectedInstallSource : (storedInstallSource ?? detectedInstallSource)
 }
 
 export function canAutoUpdateSelf(installSource: SelfInstallSource): boolean {
@@ -48,7 +70,7 @@ export async function reconcileSelfInstallSource(
     return detectedInstallSource
   }
 
-  return storedInstallSource ?? detectedInstallSource
+  return resolveSelfInstallSource(storedInstallSource, detectedInstallSource)
 }
 
 export function detectSelfInstallSource(

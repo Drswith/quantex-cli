@@ -5,8 +5,9 @@ import * as detectUtils from '../../utils/detect'
 import { createSystemPackageAdapter } from './system-package'
 
 const defaultDependencies: SystemPackageAdapterDependencies = {
+  contextualObservation: true,
   install: target => denoPm.install(target.id, target.arguments ? [...target.arguments] : undefined),
-  isAvailable: () => detectUtils.isDenoAvailable(),
+  isAvailable: context => detectUtils.isDenoAvailable(context),
   probePackagePresence: async () => 'unknown',
   uninstall: target => denoPm.uninstall(target.binaryName ?? target.id),
   update: target => denoPm.update(target.id, target.arguments ? [...target.arguments] : undefined),

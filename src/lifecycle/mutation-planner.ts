@@ -2,6 +2,7 @@ import type {
   LifecycleIntent,
   LifecycleObservation,
   LifecyclePlan,
+  LifecyclePlanningProvider,
   LifecyclePostcondition,
   LifecycleStep,
 } from './model'
@@ -13,11 +14,14 @@ export type LifecycleMutationDecision =
   | 'install'
   | 'preserve-unmanaged'
   | 'satisfied'
+  | 'unsupported'
   | 'uninstall'
 
 export interface LifecycleMutationPlanningInput {
   readonly intent: LifecycleIntent
   readonly observation: LifecycleObservation
+  readonly provider?: LifecyclePlanningProvider
+  /** Compatibility fields for the already-migrated Phase 6 mutation paths. */
   readonly providerId?: string
   readonly providerTargetId?: string
 }
@@ -45,12 +49,14 @@ function decideMutation(input: LifecycleMutationPlanningInput): LifecycleMutatio
 
   if (observation.kind === 'indeterminate' || observation.drift.kind === 'indeterminate') return 'blocked'
   if (observation.drift.kind === 'conflicting-source') return 'blocked'
+  if (providerContextConflicts(input)) return 'blocked'
 
   if (intent.kind === 'uninstall') {
     if (observation.kind === 'absent') {
       return observation.drift.kind === 'recorded-absent' ? 'clear-ghost' : 'preserve-unmanaged'
     }
-    return observation.providerId && input.providerTargetId ? 'uninstall' : 'preserve-unmanaged'
+    if (!observation.providerId || !providerTargetId(input)) return 'preserve-unmanaged'
+    return supports(input, 'uninstall') ? 'uninstall' : 'unsupported'
   }
 
   if (observation.kind === 'present') {
@@ -60,7 +66,23 @@ function decideMutation(input: LifecycleMutationPlanningInput): LifecycleMutatio
     return 'satisfied'
   }
 
-  return input.providerId && input.providerTargetId ? 'install' : 'blocked'
+  if (!providerId(input) || !providerTargetId(input)) return 'blocked'
+  return supports(input, 'install') ? 'install' : 'unsupported'
+}
+
+function providerContextConflicts(input: LifecycleMutationPlanningInput): boolean {
+  const { observation, provider } = input
+  if (observation.kind !== 'present' || provider === undefined) return false
+
+  return (
+    (observation.providerId !== undefined && observation.providerId !== provider.providerId) ||
+    (observation.providerTargetId !== undefined && observation.providerTargetId !== provider.targetId) ||
+    (observation.providerTargetKind !== undefined && observation.providerTargetKind !== provider.targetKind)
+  )
+}
+
+function supports(input: LifecycleMutationPlanningInput, operation: 'install' | 'uninstall'): boolean {
+  return input.provider === undefined || input.provider.capabilities.includes(operation)
 }
 
 function createSteps(
@@ -89,6 +111,7 @@ function createSteps(
     case 'blocked':
     case 'preserve-unmanaged':
     case 'satisfied':
+    case 'unsupported':
       return []
   }
 }
@@ -98,18 +121,17 @@ function providerMutationStep(
   input: LifecycleMutationPlanningInput,
   postcondition: LifecyclePostcondition,
 ): LifecycleStep {
-  const providerId =
-    input.observation.kind === 'present' ? (input.observation.providerId ?? input.providerId) : input.providerId
-  const providerTargetId = input.providerTargetId!
+  const resolvedProviderId = providerId(input)!
+  const resolvedProviderTargetId = providerTargetId(input)!
 
   return {
     dependsOn: [],
     effects: [
       {
-        capability: `${providerId}-${operation}`,
+        capability: `${resolvedProviderId}-${operation}`,
         kind: 'provider-mutation',
-        providerId,
-        targetId: providerTargetId,
+        providerId: resolvedProviderId,
+        targetId: resolvedProviderTargetId,
       },
     ],
     id: `${operation}-${input.intent.targetId}`,
@@ -125,10 +147,21 @@ function packagePostcondition(
 ): LifecyclePostcondition {
   return {
     kind,
-    providerId:
-      input.observation.kind === 'present' ? (input.observation.providerId ?? input.providerId!) : input.providerId!,
-    targetId: input.providerTargetId!,
+    providerId: providerId(input)!,
+    targetId: providerTargetId(input)!,
   }
+}
+
+function providerId(input: LifecycleMutationPlanningInput): string | undefined {
+  return input.observation.kind === 'present'
+    ? (input.observation.providerId ?? input.provider?.providerId ?? input.providerId)
+    : (input.provider?.providerId ?? input.providerId)
+}
+
+function providerTargetId(input: LifecycleMutationPlanningInput): string | undefined {
+  return input.observation.kind === 'present'
+    ? (input.observation.providerTargetId ?? input.provider?.targetId ?? input.providerTargetId)
+    : (input.provider?.targetId ?? input.providerTargetId)
 }
 
 function operationStep(id: string, postconditions: readonly LifecyclePostcondition[]): LifecycleStep {

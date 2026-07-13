@@ -1,8 +1,16 @@
+import type { ProviderOperationContext } from '../providers'
 import { readFile } from 'node:fs/promises'
 import { homedir } from 'node:os'
 import { join } from 'node:path'
 import process from 'node:process'
-import { readProcessOutput, spawnCommand, spawnWithQuantexStdio, waitForSpawnedCommand } from '../utils/child-process'
+import {
+  readProcessOutput,
+  readProcessOutputWithContext,
+  isProcessInterruptionError,
+  spawnCommand,
+  spawnWithQuantexStdio,
+  waitForSpawnedCommand,
+} from '../utils/child-process'
 import { normalizeRegistryUrl } from '../utils/registry'
 
 export type RegistryUpdateStrategy = 'latest-major' | 'respect-semver'
@@ -86,12 +94,16 @@ const defaultPresenceDependencies: BunPresenceProbeDependencies = {
 async function readPackagePresence(
   packageName: string,
   dependencies: BunPresenceProbeDependencies = defaultPresenceDependencies,
+  context?: ProviderOperationContext,
 ): Promise<{ presence: PackagePresenceProbe; version?: string }> {
   try {
     const proc = spawnCommand(['bun', 'pm', '-g', 'ls'], {
+      detached: context !== undefined && process.platform !== 'win32',
       stdio: createPipedStdio(),
     })
-    const { stderr, stdout } = await readProcessOutput(proc)
+    const { stderr, stdout } = context
+      ? await readProcessOutputWithContext(proc, context)
+      : await readProcessOutput(proc)
     if (!stdout.trim()) {
       if (stderr.includes('No package.json was found for directory')) return { presence: 'absent' }
       if (stderr.includes('Lockfile not found')) {
@@ -109,7 +121,8 @@ async function readPackagePresence(
     if (hasGlobalPackageEntry(stdout, packageName)) return { presence: 'present' }
 
     return { presence: 'absent' }
-  } catch {
+  } catch (error) {
+    if (isProcessInterruptionError(error)) throw error
     return { presence: 'unknown' }
   }
 }
@@ -117,12 +130,16 @@ async function readPackagePresence(
 export async function probePackagePresence(
   packageName: string,
   dependencies: BunPresenceProbeDependencies = defaultPresenceDependencies,
+  context?: ProviderOperationContext,
 ): Promise<PackagePresenceProbe> {
-  return (await readPackagePresence(packageName, dependencies)).presence
+  return (await readPackagePresence(packageName, dependencies, context)).presence
 }
 
-export async function getInstalledVersion(packageName: string): Promise<string | undefined> {
-  return (await readPackagePresence(packageName)).version
+export async function getInstalledVersion(
+  packageName: string,
+  context?: ProviderOperationContext,
+): Promise<string | undefined> {
+  return (await readPackagePresence(packageName, defaultPresenceDependencies, context)).version
 }
 
 function hasGlobalPackageEntry(output: string, packageName: string): boolean {

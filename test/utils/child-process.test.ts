@@ -1,7 +1,13 @@
+import { EventEmitter } from 'node:events'
 import process from 'node:process'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { cancelCliContextOperations, setCliContext } from '../../src/cli-context'
-import { spawnWithQuantexStdio, waitForSpawnedCommand } from '../../src/utils/child-process'
+import {
+  readProcessOutputWithContext,
+  spawnWithQuantexStdio,
+  terminateWindowsProcessTree,
+  waitForSpawnedCommand,
+} from '../../src/utils/child-process'
 
 const mockSpawn = vi.fn()
 let originalSpawn: typeof Bun.spawn
@@ -122,5 +128,47 @@ describe('spawnWithQuantexStdio', () => {
 
     expect(exitCode).toBe(1)
     expect(kill).toHaveBeenCalledWith('SIGTERM')
+  })
+})
+
+describe('context-aware process observations', () => {
+  it('escalates a timed-out observation from TERM to KILL', async () => {
+    const signals: NodeJS.Signals[] = []
+    const never = new Promise<number>(() => {})
+    const proc = {
+      exitCode: null,
+      exited: never,
+      kill: (signal: NodeJS.Signals) => {
+        signals.push(signal)
+        return true
+      },
+      stderr: null,
+      stdout: null,
+      unref: () => undefined,
+    }
+
+    await expect(
+      readProcessOutputWithContext(proc, {
+        signal: new AbortController().signal,
+        timeoutMs: 5,
+      }),
+    ).rejects.toMatchObject({ kind: 'timed-out', timeoutMs: 5 })
+    expect(signals).toEqual(['SIGTERM', 'SIGKILL'])
+  })
+
+  it('uses taskkill tree force flags for Windows cleanup', async () => {
+    const calls: unknown[][] = []
+    const spawnProcess = ((...args: unknown[]) => {
+      calls.push(args)
+      const child = new EventEmitter()
+      queueMicrotask(() => child.emit('close', 0))
+      return child
+    }) as unknown as typeof import('node:child_process').spawn
+
+    await terminateWindowsProcessTree(42, spawnProcess)
+
+    expect(calls).toEqual([
+      ['taskkill.exe', ['/PID', '42', '/T', '/F'], { stdio: ['ignore', 'ignore', 'ignore'], windowsHide: true }],
+    ])
   })
 })

@@ -1,21 +1,13 @@
 import type { CommandResult } from '../output/types'
 import { getAgentUpdateFailureHint, getManualAgentUpdateMessage } from '../agent-update'
+import { projectObservationToV1Inspection } from '../compatibility/agent-inspection'
 import { BUILD_PACKAGE_NAME } from '../generated/build-meta'
 import { createSuccessResult, emitCommandResult } from '../output'
-import { getSelfUpgradeRecoveryHintForInspection, inspectSelf } from '../self'
-import { inspectRegisteredAgents } from '../services/agents'
+import { createCliOperationContext } from '../runtime/cli-operation-context'
+import { getSelfUpgradeRecoveryHintForInspection, inspectSelfReadOnly } from '../self'
+import { observeRegisteredAgents } from '../services/lifecycle-observations'
+import { observeProviderSnapshot, projectProviderSnapshotToV1Installers } from '../services/provider-observations'
 import { pc } from '../utils/color'
-import {
-  isBrewAvailable,
-  isBunAvailable,
-  isCargoAvailable,
-  isDenoAvailable,
-  isMiseAvailable,
-  isNpmAvailable,
-  isPipAvailable,
-  isUvAvailable,
-  isWingetAvailable,
-} from '../utils/detect'
 import { isVersionNewer } from '../utils/version'
 
 type DoctorIssueCategory = 'agent' | 'installers' | 'self'
@@ -76,24 +68,43 @@ interface DoctorData {
 }
 
 export async function doctorCommand(): Promise<CommandResult<DoctorData>> {
-  const bunAvailable = await isBunAvailable()
-  const npmAvailable = await isNpmAvailable()
-  const brewAvailable = await isBrewAvailable()
-  const cargoAvailable = await isCargoAvailable()
-  const denoAvailable = await isDenoAvailable()
-  const miseAvailable = await isMiseAvailable()
-  const pipAvailable = await isPipAvailable()
-  const uvAvailable = await isUvAvailable()
-  const wingetAvailable = await isWingetAvailable()
-
-  const selfInspection = await inspectSelf()
+  const operation = createCliOperationContext()
+  let providerSnapshot: Awaited<ReturnType<typeof observeProviderSnapshot>>
+  let selfInspection: Awaited<ReturnType<typeof inspectSelfReadOnly>>
+  let observations: Awaited<ReturnType<typeof observeRegisteredAgents>>
+  try {
+    ;[providerSnapshot, selfInspection, observations] = await operation.run(() =>
+      Promise.all([
+        observeProviderSnapshot({ context: operation.context }),
+        inspectSelfReadOnly({ context: operation.context }),
+        observeRegisteredAgents(),
+      ]),
+    )
+  } finally {
+    operation.dispose()
+  }
+  const installers = projectProviderSnapshotToV1Installers(
+    providerSnapshot,
+    entry => entry.availability.kind === 'success',
+  )
+  const { brew: brewAvailable, bun: bunAvailable, cargo: cargoAvailable, deno: denoAvailable } = installers
+  const {
+    mise: miseAvailable,
+    npm: npmAvailable,
+    pip: pipAvailable,
+    uv: uvAvailable,
+    winget: wingetAvailable,
+  } = installers
   const selfOutdated = selfInspection.latestVersion
     ? isVersionNewer(selfInspection.latestVersion, selfInspection.currentVersion)
     : false
-  const inspections = await inspectRegisteredAgents()
+  const inspections = observations.map(observation => ({
+    inspection: projectObservationToV1Inspection(observation),
+    observation,
+  }))
   const installedAgents = inspections
-    .filter(inspection => inspection.inPath)
-    .map(inspection => ({
+    .filter(({ inspection }) => inspection.inPath)
+    .map(({ inspection }) => ({
       displayName: inspection.agent.displayName,
       installedVersion: inspection.installedVersion,
       latestVersion: inspection.latestVersion,
@@ -182,8 +193,8 @@ export async function doctorCommand(): Promise<CommandResult<DoctorData>> {
     })
   }
 
-  for (const inspection of inspections.filter(candidate => candidate.inPath)) {
-    if (!inspection.installedState) {
+  for (const { inspection, observation } of inspections.filter(candidate => candidate.inspection.inPath)) {
+    if (observation.observation.drift.kind === 'untracked') {
       issues.push({
         blocking: false,
         category: 'agent',
@@ -232,17 +243,7 @@ export async function doctorCommand(): Promise<CommandResult<DoctorData>> {
       data: {
         agents: installedAgents,
         issues,
-        installers: {
-          brew: brewAvailable,
-          bun: bunAvailable,
-          cargo: cargoAvailable,
-          deno: denoAvailable,
-          mise: miseAvailable,
-          npm: npmAvailable,
-          pip: pipAvailable,
-          uv: uvAvailable,
-          winget: wingetAvailable,
-        },
+        installers,
         self: {
           canAutoUpdate: selfInspection.canAutoUpdate,
           currentVersion: selfInspection.currentVersion,

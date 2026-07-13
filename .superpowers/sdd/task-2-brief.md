@@ -1,28 +1,38 @@
-# Task 2 Brief: Reusable Provider Conformance Harness
+### Task 2: Complete deterministic planning over observation states (OpenSpec 5.2)
 
-## Objective
+**Files:**
+- Modify: `src/lifecycle/mutation-planner.ts`
+- Modify: `src/lifecycle/model.ts`
+- Modify: `test/lifecycle/mutation-planner.test.ts`
+- Create: `test/lifecycle/observation-planning.test.ts`
 
-Create one reusable Vitest contract that later provider adapter tests can invoke with injected deterministic cases. This task establishes the harness and proves it against a fixture adapter; it does not claim real-provider conformance yet.
+**Interfaces:**
+- Consumes: `LifecycleObservation`, requested `LifecycleIntent`, exact provider binding, and registry-derived capabilities.
+- Produces: deterministic `LifecycleMutationPlanningResult` with decisions for satisfied, install, adopt, preserve-unmanaged, clear-ghost, uninstall, unsupported, and blocked.
 
-## Required cases
+- [ ] **Step 1: Add failing planner matrix tests**
 
-- Unsupported optional operation is absent from derived capabilities and maps to a typed `unsupported` outcome.
-- Failure preserves reason, command, exit code, retryability, remediation, and evidence.
-- An already-aborted operation returns `cancelled`, not generic failure.
-- Provider timeout returns `timed-out` with the effective timeout.
-- Observation distinguishes typed present and absent results; present evidence includes version/provider detail.
-- Provider unavailability remains distinct from command failure.
-- Successful verification is satisfied and carries non-empty provider-specific evidence.
+  Use one row for every required state: already-satisfied, absent, tracked, untracked, ghost, conflicting, unsupported, and indeterminate. Repeat each row to prove stable plan ids, step ordering, effects, and postconditions.
 
-## Boundary
+- [ ] **Step 2: Verify unsupported and contradictory rows fail**
 
-- Keep the reusable harness in `test/providers/conformance.ts`.
-- Use a fresh subject per test so cancellation or mutable fixtures cannot leak between adapters.
-- Do not mark OpenSpec `4.2` complete until every real first-party adapter is migrated and invokes this harness; this checkpoint only makes later group completion mechanically enforceable.
+  Run: `bun run test -- test/lifecycle/mutation-planner.test.ts test/lifecycle/observation-planning.test.ts`
 
-## TDD loop
+  Expected: FAIL until capability-aware decisions exist.
 
-1. Add a fixture test importing the not-yet-created conformance helper and confirm module failure.
-2. Implement the smallest reusable helper that asserts the required cases.
-3. Run focused tests and static checks.
-4. Request a narrow independent review, write the task report, and create a checkpoint commit while leaving `4.2` unchecked.
+- [ ] **Step 3: Extend the pure planner only**
+
+  Add no filesystem, process, provider, console, output-envelope, or Commander imports. An absent required provider capability returns `unsupported`; conflicting/indeterminate observations return `blocked`; read-only callers may consume the plan without executing it.
+
+- [ ] **Step 4: Run focused tests and checkpoint**
+
+  Run:
+
+  ```bash
+  bun run test -- test/lifecycle/mutation-planner.test.ts test/lifecycle/observation-planning.test.ts test/lifecycle/shadow-planning.test.ts test/commands/ensure.test.ts test/commands/install.test.ts test/commands/uninstall.test.ts
+  bun run format:check
+  bun run lint
+  bun run typecheck
+  ```
+
+  Commit: `refactor(lifecycle): plan from live observations`

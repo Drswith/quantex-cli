@@ -1,9 +1,9 @@
 import { getCliContext } from '../cli-context'
-import { getSelfState, setSelfUpdateNoticeState } from '../state'
+import { getSelfState } from '../state'
 import { pc } from '../utils/color'
 import { printInfo } from '../utils/user-output'
 import { isVersionNewer } from '../utils/version'
-import { inspectSelf } from './index'
+import { inspectSelfReadOnly } from './index'
 
 const UPDATE_NOTICE_THROTTLE_MS = 24 * 60 * 60 * 1000
 const SELF_UPGRADE_NOTICE_SKIPPED_ACTIONS = new Set(['doctor', 'upgrade'])
@@ -14,7 +14,7 @@ export async function maybeRenderSelfUpdateNotice(options: { action: string; ok:
   const context = getCliContext()
   if (context.outputMode !== 'human' || context.quiet) return
 
-  const inspection = await inspectSelf()
+  const inspection = await inspectSelfReadOnly()
   if (!inspection.latestVersion || !isVersionNewer(inspection.latestVersion, inspection.currentVersion)) return
 
   const selfState = await getSelfState()
@@ -33,7 +33,6 @@ export async function maybeRenderSelfUpdateNotice(options: { action: string; ok:
       `Quantex CLI ${inspection.latestVersion} is available (current ${inspection.currentVersion}). ${nextStep}`,
     ),
   )
-  await setSelfUpdateNoticeState(inspection.latestVersion, new Date(now).toISOString())
 }
 
 export function shouldSuppressUpdateNotice(

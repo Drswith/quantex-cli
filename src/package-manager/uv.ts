@@ -1,4 +1,13 @@
-import { readProcessOutput, spawnCommand, spawnWithQuantexStdio, waitForSpawnedCommand } from '../utils/child-process'
+import type { ProviderOperationContext } from '../providers'
+import process from 'node:process'
+import {
+  readProcessOutput,
+  readProcessOutputWithContext,
+  isProcessInterruptionError,
+  spawnCommand,
+  spawnWithQuantexStdio,
+  waitForSpawnedCommand,
+} from '../utils/child-process'
 
 async function runUvToolCommand(
   action: 'install' | 'upgrade',
@@ -44,12 +53,16 @@ export async function uninstall(packageName: string): Promise<boolean> {
 
 export type PackagePresenceProbe = 'present' | 'absent' | 'unknown'
 
-async function readPackagePresence(packageName: string): Promise<{ presence: PackagePresenceProbe; version?: string }> {
+async function readPackagePresence(
+  packageName: string,
+  context?: ProviderOperationContext,
+): Promise<{ presence: PackagePresenceProbe; version?: string }> {
   try {
     const proc = spawnCommand(['uv', 'tool', 'list'], {
+      detached: context !== undefined && process.platform !== 'win32',
       stdio: ['ignore', 'pipe', 'ignore'],
     })
-    const { stdout } = await readProcessOutput(proc)
+    const { stdout } = context ? await readProcessOutputWithContext(proc, context) : await readProcessOutput(proc)
     if (!stdout.trim()) return { presence: 'unknown' }
 
     const version = parseToolListVersion(stdout, packageName)
@@ -57,17 +70,24 @@ async function readPackagePresence(packageName: string): Promise<{ presence: Pac
     if (!hasUvToolEntries(stdout)) return { presence: 'unknown' }
 
     return { presence: 'absent' }
-  } catch {
+  } catch (error) {
+    if (isProcessInterruptionError(error)) throw error
     return { presence: 'unknown' }
   }
 }
 
-export async function probePackagePresence(packageName: string): Promise<PackagePresenceProbe> {
-  return (await readPackagePresence(packageName)).presence
+export async function probePackagePresence(
+  packageName: string,
+  context?: ProviderOperationContext,
+): Promise<PackagePresenceProbe> {
+  return (await readPackagePresence(packageName, context)).presence
 }
 
-export async function getInstalledVersion(packageName: string): Promise<string | undefined> {
-  return (await readPackagePresence(packageName)).version
+export async function getInstalledVersion(
+  packageName: string,
+  context?: ProviderOperationContext,
+): Promise<string | undefined> {
+  return (await readPackagePresence(packageName, context)).version
 }
 
 function hasUvToolEntries(output: string): boolean {
