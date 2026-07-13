@@ -4,8 +4,9 @@ import * as detectUtils from '../../utils/detect'
 import { createSystemPackageAdapter } from './system-package'
 
 const defaultDependencies: SystemPackageAdapterDependencies = {
+  contextualObservation: true,
   install: target => pipPm.install(target.id),
-  isAvailable: () => detectUtils.isPipAvailable(),
+  isAvailable: context => detectUtils.isPipAvailable(context),
   probePackagePresence: async () => 'unknown',
   uninstall: target => pipPm.uninstall(target.id),
   update: target => pipPm.update(target.id),

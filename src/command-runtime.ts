@@ -58,6 +58,7 @@ import { createErrorResult, emitCommandEvent, emitCommandResult } from './output
 import { maybeRenderSelfUpdateNotice } from './self/update-notice'
 import { resolveAgentInspection } from './services/agents'
 import { getStateFilePath, StateFileError } from './state'
+import { isProcessInterruptionError } from './utils/child-process'
 import { pc } from './utils/color'
 import { createStateReadError } from './utils/lifecycle-errors'
 
@@ -105,7 +106,10 @@ async function executeCommandWithRuntimeInternal<T>(options: ExecuteCommandOptio
 
       if (!result.ok && result.error?.code === 'TIMEOUT') {
         const lateResult = await waitForLateTerminalCompletion(runPromise, timeoutMs)
-        result = lateResult ?? (await emitTimeoutCancellation(options, timeoutMs))
+        result =
+          lateResult && lateResult.error?.code !== 'TIMEOUT'
+            ? lateResult
+            : await emitTimeoutCancellation(options, timeoutMs)
       }
 
       if (timeoutId !== undefined) {
@@ -270,6 +274,7 @@ async function runUntilTimeoutCancellation<T>(
   try {
     return await run()
   } catch (error) {
+    if (isProcessInterruptionError(error) && error.kind === 'timed-out') return getTimeoutResult()
     if (getCliContext().cancelled) return getTimeoutResult()
     throw error
   }

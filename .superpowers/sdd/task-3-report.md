@@ -1,39 +1,56 @@
-# Task 3 Report: Migrate npm And Bun Adapters
+# Task 3 Report: Read-Only Application and v1 Projection Boundary
 
 ## Result
 
-OpenSpec `4.3` is complete. npm and Bun now have typed provider adapters with injectable dependencies, typed availability/observation/latest-version/mutation/verification outcomes, exact provider and command evidence, safe failure reasons, pre-aborted cancellation, and bounded timeout results.
+Implemented the Task 3 application boundary without migrating any command. `resolveAgentObservation(name)` and
+`observeRegisteredAgents()` resolve the canonical registry, run the live observer exactly once per agent, preserve
+registry ordering, and combine the observation with current ordered install methods and the values required by the
+v1 `AgentInspection` compatibility shape.
 
-The maintained `ManagedInstaller` root-export contract remains boolean. Its npm/Bun entries now call the typed adapters and project success back to `true`; installed-version and presence probes remain direct compatibility projections so existing probe behavior and call counts stay stable.
+The one-way `projectObservationToV1Inspection()` adapter preserves the historical meanings of PATH presence,
+binary/resolved paths, installed/latest versions, lifecycle, source label, and update label. It does not expose drift,
+receipts, provider targets, or capabilities.
 
-## Compatibility preserved
+## RED and GREEN evidence
 
-- npm and Bun `latest-major` / `respect-semver` strategies.
-- Explicit versus default dist tags, including explicit `latest` command evidence.
-- Registry URL normalization and registry-aware install/update/latest-version resolution.
-- npm argv behavior and Bun trust, rollback, scoped-package parsing, presence, and version behavior through the unchanged low-level modules.
-- Batch target identity, install arguments, direct provider probes, current command handlers, state, output, and root exports.
+- Initial RED: both focused suites failed to load because `src/services/lifecycle-observations.ts` and
+  `src/compatibility/agent-inspection.ts` did not exist.
+- Compatibility RED: the service initially did not share installed state with executable inspection, so a tracked
+  package-manager version could not preserve legacy precedence. The focused test failed with an undefined version.
+- GREEN: the two new suites pass 14 tests, including aliases, unknown agents, canonical ordering, one observation per
+  agent, one installed-state read, legacy route boundaries, read-only imports, and six projection states.
+- Final focused command gate: 4 files and 23 tests passed.
+- `bun run format:check`, `bun run lint`, and `bun run typecheck` passed.
 
-## TDD and interruption evidence
+## Compatibility and scope
 
-- Initial red: both provider tests failed because `src/providers/adapters/npm.ts` and `bun.ts` did not exist.
-- The delegated implementation turn later stopped on an account usage limit. Its uncommitted tests and adapter files remained in the worktree; recovery resumed from `.superpowers/sdd/progress.md` without repeating completed Tasks 1/2.
-- Compatibility red: three tests proved `ManagedInstaller` still bypassed typed adapters before the facade was changed.
-- Additional red/green loops covered TypeScript outcome narrowing, lint-safe timeout racing, explicit `latest` evidence, and preservation of safe dependency rejection reasons.
+- `inspectRegisteredAgents` and `resolveAgentInspection` remain unchanged legacy implementations.
+- `ensure`, `install`, `run`, `update`, and update planning remain routed through `src/services/agents.ts`.
+- No list/info/inspect/resolve/capabilities/doctor command was modified; OpenSpec 5.3-5.6 migration has not started.
+- Application and domain code import no output envelope, presenter, Commander, state mutator, or lifecycle lock.
+- The service reuses one installed-state read for live observation and managed-version probing, avoiding inconsistent
+  evidence within one agent observation.
 
-## Validation
+## Checkpoint and review state
 
-- Focused provider/legacy/update suite: 7 files / 153 tests passed.
-- Full suite: 71 files / 790 tests passed.
-- `bun run lint`: 0 warnings / 0 errors.
-- `bun run format:check`: passed.
-- `bun run typecheck`: passed.
-- `bun run openspec:validate`: 16/16 passed.
-- `bun run memory:check`: passed.
+- Checkpoint: `feat(observation): add read-only application boundary` (this commit).
+- State: implementation complete; independent review pending.
+- OpenSpec: `redesign-lifecycle-engine` remains active and no checkbox was changed.
 
-## Scope retained
+## Important review fix: raw PATH evidence
 
-- The other seven managed providers remain on the legacy registry.
-- The duplicated capability table and hard-coded update groups remain until OpenSpec `4.8`.
-- OpenSpec `4.2` remains unchecked until every real first-party provider uses the conformance harness.
-- Catalog normalization and command/state lifecycle migration remain untouched.
+Review found that the v1 compatibility adapter projected the observer's merged executable evidence. When PATH was
+absent but a tracked provider reported the executable present, the lifecycle observation correctly became
+`present` / `conflicting-source`, but v1 incorrectly reported `inPath: true` and exposed provider-derived path and
+version values.
+
+- RED: the projection reproduced all four drifted v1 fields; the observer lacked explicit raw PATH evidence; the
+  service resolved the provider path instead of the original PATH probe path.
+- GREEN: `AgentLifecycleObservationResult.pathExecutable` now preserves the raw executable probe while the existing
+  merged `executable` and lifecycle observation remain unchanged. The service resolves only the raw path, and the v1
+  adapter derives `inPath`, `binaryPath`, `resolvedBinaryPath`, and `installedVersion` only from raw PATH evidence.
+- Review-fix focused gate: 5 files and 47 tests passed; format, lint, and typecheck passed.
+- Scope remains Task 3 only: no command route, legacy service, output key, or OpenSpec checkbox changed.
+- Planned review-fix commit: `fix(observation): preserve v1 path inspection semantics` (new commit; no amend).
+- Independent re-review approved Task 3 with no Critical, Important, or Minor findings.
+- The controller reran the 5-file / 47-test focused gate plus format, lint, and typecheck successfully.

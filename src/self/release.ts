@@ -1,3 +1,4 @@
+import type { ProviderOperationContext } from '../providers'
 import type { SelfUpdateChannel } from './types'
 import { basename } from 'node:path'
 import process from 'node:process'
@@ -89,21 +90,29 @@ export async function fetchBinaryReleaseChecksum(assetName: string): Promise<str
   return checksum
 }
 
-export async function fetchBinaryReleaseManifest(channel: SelfUpdateChannel): Promise<BinaryReleaseManifest> {
-  const manifestUrl = await resolveBinaryReleaseManifestUrl(channel)
-  const manifest = await fetchJsonWithCache<BinaryReleaseManifest>(manifestUrl, `self:manifest:${channel}`)
+export async function fetchBinaryReleaseManifest(
+  channel: SelfUpdateChannel,
+  context?: ProviderOperationContext,
+): Promise<BinaryReleaseManifest> {
+  const manifestUrl = await resolveBinaryReleaseManifestUrl(channel, context)
+  const manifest = await fetchJsonWithCache<BinaryReleaseManifest>(manifestUrl, `self:manifest:${channel}`, {
+    context,
+  })
 
   if (!manifest) throw new Error('Failed to download release manifest.')
 
   return manifest
 }
 
-export async function resolveBinaryReleaseManifestUrl(channel: SelfUpdateChannel): Promise<string> {
+export async function resolveBinaryReleaseManifestUrl(
+  channel: SelfUpdateChannel,
+  context?: ProviderOperationContext,
+): Promise<string> {
   if (!BUILD_REPOSITORY_URL) throw new Error('No repository URL is configured for Quantex releases.')
 
   if (channel === 'stable') return `${BUILD_REPOSITORY_URL}/releases/latest/download/manifest.json`
 
-  const release = await fetchGitHubReleaseSummary(channel)
+  const release = await fetchGitHubReleaseSummary(channel, context)
   const manifestAsset = release.assets.find(asset => asset.name === 'manifest.json')
 
   if (!manifestAsset?.browser_download_url)
@@ -112,7 +121,10 @@ export async function resolveBinaryReleaseManifestUrl(channel: SelfUpdateChannel
   return manifestAsset.browser_download_url
 }
 
-export async function fetchGitHubReleaseSummary(channel: SelfUpdateChannel): Promise<GitHubReleaseSummary> {
+export async function fetchGitHubReleaseSummary(
+  channel: SelfUpdateChannel,
+  context?: ProviderOperationContext,
+): Promise<GitHubReleaseSummary> {
   const repositorySlug = getRepositorySlug()
 
   if (!repositorySlug) throw new Error('Failed to resolve the GitHub repository slug for Quantex releases.')
@@ -120,6 +132,7 @@ export async function fetchGitHubReleaseSummary(channel: SelfUpdateChannel): Pro
   const releases = await fetchJsonWithCache<GitHubReleaseSummary[]>(
     `https://api.github.com/repos/${repositorySlug}/releases?per_page=20`,
     'self:github-releases',
+    { context },
   )
 
   if (!releases) throw new Error('Failed to query GitHub releases.')

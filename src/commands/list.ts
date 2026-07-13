@@ -1,6 +1,7 @@
 import type { CommandResult } from '../output/types'
+import { projectObservationToV1Inspection } from '../compatibility/agent-inspection'
 import { createSuccessResult, emitCommandResult } from '../output'
-import { inspectRegisteredAgents } from '../services/agents'
+import { observeRegisteredAgents } from '../services/lifecycle-observations'
 import { pc } from '../utils/color'
 
 interface ListedAgent {
@@ -16,7 +17,7 @@ interface ListedAgent {
 }
 
 export async function listCommand(): Promise<CommandResult<{ agents: ListedAgent[] }>> {
-  const inspections = await inspectRegisteredAgents()
+  const inspections = (await observeRegisteredAgents()).map(projectObservationToV1Inspection)
 
   return emitCommandResult(
     createSuccessResult<{ agents: ListedAgent[] }>({

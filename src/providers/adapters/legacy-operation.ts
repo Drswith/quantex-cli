@@ -1,4 +1,5 @@
 import type { ProviderOperationContext, ProviderOutcome } from '../types'
+import { isProcessInterruptionError } from '../../utils/child-process'
 
 export type PendingOperation<T> =
   | { readonly kind: 'cancelled'; readonly reason?: string }
@@ -51,6 +52,23 @@ export async function runPendingOperation<T>(
   if (timeout) clearTimeout(timeout)
   context.signal.removeEventListener('abort', cancel)
   return outcome
+}
+
+export async function runContextualOperation<T>(
+  context: ProviderOperationContext,
+  invoke: () => Promise<T>,
+): Promise<PendingOperation<T>> {
+  if (context.signal.aborted) return { kind: 'cancelled', reason: abortReason(context.signal) }
+  try {
+    return { kind: 'resolved', value: await invoke() }
+  } catch (error) {
+    if (isProcessInterruptionError(error)) {
+      return error.kind === 'timed-out'
+        ? { kind: 'timed-out', timeoutMs: error.timeoutMs! }
+        : { kind: 'cancelled', ...(error.reason ? { reason: error.reason } : {}) }
+    }
+    return { kind: 'rejected', reason: safeErrorReason(error) }
+  }
 }
 
 function abortReason(signal: AbortSignal): string | undefined {

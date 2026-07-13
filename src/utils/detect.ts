@@ -1,6 +1,12 @@
 import type { Platform } from '../agents/types'
+import type { ProviderOperationContext } from '../providers'
 import process from 'node:process'
-import { readProcessOutput, spawnCommand } from './child-process'
+import {
+  isProcessInterruptionError,
+  readProcessOutput,
+  readProcessOutputWithContext,
+  spawnCommand,
+} from './child-process'
 
 export function getPlatform(): Platform {
   switch (process.platform) {
@@ -13,74 +19,90 @@ export function getPlatform(): Platform {
   }
 }
 
-async function isCommandAvailable(command: string): Promise<boolean> {
+async function isCommandAvailable(command: string, context?: ProviderOperationContext): Promise<boolean> {
   try {
-    const { exitCode } = await readProcessOutput(spawnCommand([command, '--version']))
+    const proc = spawnCommand([command, '--version'], {
+      detached: context !== undefined && process.platform !== 'win32',
+    })
+    const { exitCode } = context ? await readProcessOutputWithContext(proc, context) : await readProcessOutput(proc)
     return exitCode === 0
-  } catch {
+  } catch (error) {
+    if (isProcessInterruptionError(error)) throw error
     return false
   }
 }
 
-export async function isBunAvailable(): Promise<boolean> {
-  return isCommandAvailable('bun')
+export async function isBunAvailable(context?: ProviderOperationContext): Promise<boolean> {
+  return isCommandAvailable('bun', context)
 }
 
-export async function isNpmAvailable(): Promise<boolean> {
-  return isCommandAvailable('npm')
+export async function isNpmAvailable(context?: ProviderOperationContext): Promise<boolean> {
+  return isCommandAvailable('npm', context)
 }
 
-export async function isBrewAvailable(): Promise<boolean> {
-  return isCommandAvailable('brew')
+export async function isBrewAvailable(context?: ProviderOperationContext): Promise<boolean> {
+  return isCommandAvailable('brew', context)
 }
 
-export async function isDenoAvailable(): Promise<boolean> {
-  return isCommandAvailable('deno')
+export async function isDenoAvailable(context?: ProviderOperationContext): Promise<boolean> {
+  return isCommandAvailable('deno', context)
 }
 
-export async function isCargoAvailable(): Promise<boolean> {
-  return isCommandAvailable('cargo')
+export async function isCargoAvailable(context?: ProviderOperationContext): Promise<boolean> {
+  return isCommandAvailable('cargo', context)
 }
 
-export async function isMiseAvailable(): Promise<boolean> {
-  return isCommandAvailable('mise')
+export async function isMiseAvailable(context?: ProviderOperationContext): Promise<boolean> {
+  return isCommandAvailable('mise', context)
 }
 
-export async function isWingetAvailable(): Promise<boolean> {
-  return isCommandAvailable('winget')
+export async function isWingetAvailable(context?: ProviderOperationContext): Promise<boolean> {
+  return isCommandAvailable('winget', context)
 }
 
-export async function isPipAvailable(): Promise<boolean> {
-  if (await isCommandAvailable('pip')) return true
-  if (await isCommandAvailable('pip3')) return true
-  return isPythonModulePipAvailable()
+export async function isPipAvailable(context?: ProviderOperationContext): Promise<boolean> {
+  if (await isCommandAvailable('pip', context)) return true
+  if (await isCommandAvailable('pip3', context)) return true
+  return isPythonModulePipAvailable(context)
 }
 
-export async function isUvAvailable(): Promise<boolean> {
-  return isCommandAvailable('uv')
+export async function isUvAvailable(context?: ProviderOperationContext): Promise<boolean> {
+  return isCommandAvailable('uv', context)
 }
 
-async function isPythonModulePipAvailable(): Promise<boolean> {
+async function isPythonModulePipAvailable(context?: ProviderOperationContext): Promise<boolean> {
   try {
-    const { exitCode } = await readProcessOutput(spawnCommand(['python', '-m', 'pip', '--version']))
+    const proc = spawnCommand(['python', '-m', 'pip', '--version'], {
+      detached: context !== undefined && process.platform !== 'win32',
+    })
+    const { exitCode } = context ? await readProcessOutputWithContext(proc, context) : await readProcessOutput(proc)
     if (exitCode === 0) return true
-  } catch {
+  } catch (error) {
+    if (isProcessInterruptionError(error)) throw error
     /* ignore */
   }
   try {
-    const { exitCode } = await readProcessOutput(spawnCommand(['python3', '-m', 'pip', '--version']))
+    const proc = spawnCommand(['python3', '-m', 'pip', '--version'], {
+      detached: context !== undefined && process.platform !== 'win32',
+    })
+    const { exitCode } = context ? await readProcessOutputWithContext(proc, context) : await readProcessOutput(proc)
     return exitCode === 0
-  } catch {
+  } catch (error) {
+    if (isProcessInterruptionError(error)) throw error
     return false
   }
 }
 
-export async function isBinaryInPath(binaryName: string): Promise<boolean> {
+export async function isBinaryInPath(binaryName: string, context?: ProviderOperationContext): Promise<boolean> {
   try {
     const cmd = process.platform === 'win32' ? 'where' : 'which'
-    const { exitCode } = await readProcessOutput(spawnCommand([cmd, binaryName]))
+    const proc = spawnCommand([cmd, binaryName], {
+      detached: context !== undefined && process.platform !== 'win32',
+    })
+    const { exitCode } = context ? await readProcessOutputWithContext(proc, context) : await readProcessOutput(proc)
     return exitCode === 0
-  } catch {
+  } catch (error) {
+    if (isProcessInterruptionError(error)) throw error
     return false
   }
 }

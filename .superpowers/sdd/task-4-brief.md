@@ -1,22 +1,33 @@
-# Task 4 Brief: Migrate Homebrew And winget Adapters
+### Task 4: Migrate list and info without v1 drift (OpenSpec 5.3)
 
-## Objective
+**Files:**
+- Modify: `src/commands/list.ts`
+- Modify: `src/commands/info.ts`
+- Modify: `test/commands/list.test.ts`
+- Modify: `test/commands/info.test.ts`
+- Modify: `test/compatibility/v1-baseline.test.ts`
 
-Implement typed Homebrew and winget adapters, preserve formula/cask/package-ID semantics, run both through the shared conformance harness, and route their maintained `ManagedInstaller` entries through typed-to-boolean compatibility projections.
+**Interfaces:**
+- Consumes: `observeRegisteredAgents`, `resolveAgentObservation`, and the v1 inspection projection.
+- Produces: unchanged `list` and `info` `CommandResult` data and human presentation.
 
-## Boundary
+- [ ] **Step 1: Add route-boundary tests**
 
-- Reuse the existing cancellation/timeout/typed-failure machinery through a narrow shared legacy-operation helper; do not duplicate another promise race.
-- Homebrew targets normalize to `formula` unless explicitly `cask`; winget targets normalize to `id`.
-- Preserve exact command forms: `brew <action> [--cask] <name>` and `winget <action> --id <id> -e`.
-- Existing low-level boolean modules remain unchanged and are default adapter dependencies accessed through module namespaces so spies remain effective.
-- Package presence is injectable for conformance. Until a later observation implementation supplies a real probe, default Homebrew/winget observation is typed `indeterminate`, not fabricated absence or presence.
-- Do not migrate Cargo/Deno, capabilities, update buckets, catalog data, state, or command handlers.
+  Mock the new observation service, make legacy inspection calls fail if invoked, and assert existing success/error envelopes, ordering, source/update labels, versions, and install-method rendering.
 
-## Completion
+- [ ] **Step 2: Route list/info through the new boundary**
 
-- Start with failing provider tests for missing adapter modules.
-- Verify formula/cask/id commands, batch identity, typed outcomes, cancellation, timeout, and boolean compatibility routing.
-- Run focused legacy/update tests and the full repository gates.
-- Mark OpenSpec `4.4` only after both adapters and facade entries pass; keep `4.2` unchecked.
-- Write the report and checkpoint `refactor(providers): migrate brew and winget adapters`.
+  Keep the existing result interfaces and presenters unchanged. Do not expose drift, receipt, provider target, or capability arrays in v1 output.
+
+- [ ] **Step 3: Run command and compatibility gates**
+
+  Run:
+
+  ```bash
+  bun run test -- test/commands/list.test.ts test/commands/info.test.ts test/compatibility/v1-baseline.test.ts
+  bun run format:check
+  bun run lint
+  bun run typecheck
+  ```
+
+  Commit: `refactor(readonly): migrate list and info observations`

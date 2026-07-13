@@ -1,19 +1,33 @@
-# Task 5 Brief: Migrate Cargo And Deno Adapters
+### Task 5: Migrate inspect and resolve without v1 drift (OpenSpec 5.4)
 
-## Objective
+**Files:**
+- Modify: `src/commands/inspect.ts`
+- Modify: `src/commands/resolve.ts`
+- Modify: `test/commands/inspect.test.ts`
+- Modify: `test/commands/resolve.test.ts`
+- Modify: `test/compatibility/v1-baseline.test.ts`
 
-Migrate Cargo and Deno to typed adapters while preserving Cargo argument ordering/forced reinstall and Deno global-install arguments/executable-name uninstall semantics. Route both maintained `ManagedInstaller` entries through typed compatibility projections.
+**Interfaces:**
+- Consumes: resolved agent observation and v1 projection.
+- Produces: unchanged inspect capabilities/inspection fields and resolve success/guidance/error contracts.
 
-## Boundary
+- [ ] **Step 1: Add failing route and compatibility tests**
 
-- Reuse the typed system-package adapter and shared legacy-operation helper.
-- Cargo target arguments follow the crate name; update inserts `--force` before configured arguments.
-- Deno install arguments precede the package reference; update adds `--force`; uninstall uses `binaryName` when bound.
-- Default presence remains indeterminate rather than fabricated.
-- Do not touch pip/uv/mise, capabilities, catalog, commands, or state.
+  Cover installed managed, installed untracked, absent, ghost, conflicting/indeterminate, alias, unknown, and install-guidance cases. Lock `AGENT_NOT_FOUND`, `AGENT_NOT_INSTALLED`, docs refs, suggested ensure command, launch argv, source label, install source, and capabilities.
 
-## Completion
+- [ ] **Step 2: Route inspect/resolve through observation**
 
-- Add failing provider and compatibility tests first.
-- Run Cargo/Deno conformance, existing low-level tests, package-manager/update compatibility, and full gates.
-- Mark only OpenSpec `4.5`, keep `4.2` unchecked, report, and checkpoint commit.
+  A ghost or inconclusive internal state must not be reported installed solely from persisted state. Preserve existing install guidance and strict structured fields.
+
+- [ ] **Step 3: Run focused and protocol gates**
+
+  Run:
+
+  ```bash
+  bun run test -- test/commands/inspect.test.ts test/commands/resolve.test.ts test/compatibility/v1-baseline.test.ts
+  bun run format:check
+  bun run lint
+  bun run typecheck
+  ```
+
+  Commit: `refactor(readonly): migrate inspect and resolve observations`

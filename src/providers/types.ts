@@ -29,8 +29,14 @@ export interface ProviderTarget {
 }
 
 export interface ProviderOperationContext {
+  readonly registerCleanup?: (cleanup: ProviderResourceCleanup) => () => void
   readonly signal: AbortSignal
   readonly timeoutMs?: number
+}
+
+export interface ProviderResourceCleanup {
+  cleanup(): Promise<void> | void
+  force?(): Promise<void> | void
 }
 
 export type RegistryPackageUpdateStrategy = 'latest-major' | 'respect-semver'

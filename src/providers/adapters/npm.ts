@@ -33,13 +33,14 @@ const commands: RegistryPackageCommandBuilders = {
 }
 
 const defaultDependencies: NpmProviderDependencies = {
-  getInstalledVersion: packageName => npmPm.getInstalledVersion(packageName),
+  contextualPackageObservation: true,
+  getInstalledVersion: (packageName, context) => npmPm.getInstalledVersion(packageName, context),
   install: (packageName, distTag, registry) =>
     distTag === undefined && registry === undefined
       ? npmPm.install(packageName)
       : npmPm.install(packageName, distTag, registry),
-  isAvailable: () => detectUtils.isNpmAvailable(),
-  probePackagePresence: packageName => npmPm.probePackagePresence(packageName),
+  isAvailable: context => detectUtils.isNpmAvailable(context),
+  probePackagePresence: (packageName, context) => npmPm.probePackagePresence(packageName, context),
   resolveLatestVersion: (packageName, distTag, registry) =>
     versionUtils.getLatestVersion(packageName, distTag, { registry }),
   uninstall: packageName => npmPm.uninstall(packageName),

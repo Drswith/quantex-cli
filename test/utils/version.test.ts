@@ -176,6 +176,24 @@ describe('compareVersions', () => {
 })
 
 describe('getLatestVersion', () => {
+  it('cancels an unresponsive cache-miss network request with the operation signal', async () => {
+    const { getLatestVersion } = await import('../../src/utils/version')
+    const controller = new AbortController()
+    mockFetch.mockImplementation(
+      (_url, init: RequestInit) =>
+        new Promise((_resolve, reject) => {
+          init.signal?.addEventListener('abort', () => reject(new Error('aborted')), { once: true })
+        }),
+    )
+    const pending = getLatestVersion('unresponsive-package', 'latest', {
+      context: { signal: controller.signal },
+    })
+
+    controller.abort('test cancellation')
+
+    await expect(pending).rejects.toMatchObject({ kind: 'cancelled', reason: 'test cancellation' })
+  })
+
   it('returns version from npm registry on success', async () => {
     const { getLatestVersion } = await import('../../src/utils/version')
     mockFetch.mockResolvedValue(new Response(JSON.stringify({ version: '2.0.0' }), { status: 200 }))

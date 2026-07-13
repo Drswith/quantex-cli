@@ -1,20 +1,27 @@
+import type { ProviderOperationContext } from '../providers'
 import type { SelfInspection, SelfInstallFacts, SelfUpdateResult, SelfUpdateTarget, SelfUpgradePlan } from './types'
 import { join } from 'node:path'
 import process from 'node:process'
 import { loadConfig } from '../config'
 import { BUILD_PACKAGE_NAME } from '../generated/build-meta'
+import { isProcessInterruptionError } from '../utils/child-process'
 import { OFFICIAL_NPM_REGISTRY } from '../utils/registry'
 import { compareVersions, getInstalledVersion, getLatestVersion, isVersionNewer } from '../utils/version'
 import { resolveSelfInstallFacts } from './facts'
 import { resolveManagedSelfUpdateRegistry } from './registry'
 import { fetchBinaryReleaseManifest, resolveBinaryReleaseAsset } from './release'
 
-export async function resolveSelfUpdateTarget(facts: SelfInstallFacts): Promise<SelfUpdateTarget> {
+export async function resolveSelfUpdateTarget(
+  facts: SelfInstallFacts,
+  context?: ProviderOperationContext,
+): Promise<SelfUpdateTarget> {
   const config = await loadConfig()
 
   if (facts.installSource === 'binary') {
     try {
-      const manifest = await fetchBinaryReleaseManifest(facts.updateChannel)
+      const manifest = context
+        ? await fetchBinaryReleaseManifest(facts.updateChannel, context)
+        : await fetchBinaryReleaseManifest(facts.updateChannel)
       const asset = resolveBinaryReleaseAsset(manifest, facts.executablePath)
 
       if (!asset) {
@@ -33,7 +40,8 @@ export async function resolveSelfUpdateTarget(facts: SelfInstallFacts): Promise<
         binaryAsset: asset,
         targetVersion: manifest.version,
       }
-    } catch {
+    } catch (error) {
+      if (isProcessInterruptionError(error)) throw error
       return {
         resolutionError: {
           kind: 'network',
@@ -45,6 +53,7 @@ export async function resolveSelfUpdateTarget(facts: SelfInstallFacts): Promise<
 
   const packageTag = facts.updateChannel === 'beta' ? 'beta' : 'latest'
   const upstreamLatestVersion = await getLatestVersion(BUILD_PACKAGE_NAME, packageTag, {
+    ...(context ? { context } : {}),
     registry: OFFICIAL_NPM_REGISTRY,
   })
 
@@ -56,6 +65,7 @@ export async function resolveSelfUpdateTarget(facts: SelfInstallFacts): Promise<
       managedRegistryIsOverride: managedRegistry?.isOverride ?? false,
       packageTag,
       targetVersion: await getLatestVersion(BUILD_PACKAGE_NAME, packageTag, {
+        ...(context ? { context } : {}),
         registry: managedRegistry?.registry,
       }),
       upstreamLatestVersion,
@@ -71,12 +81,13 @@ export async function resolveSelfUpdateTarget(facts: SelfInstallFacts): Promise<
 }
 
 export async function planSelfUpgrade(options?: {
+  context?: ProviderOperationContext
   facts?: SelfInstallFacts
   target?: SelfUpdateTarget
   updateChannel?: SelfInstallFacts['updateChannel']
 }): Promise<SelfUpgradePlan> {
   const facts = options?.facts ?? (await resolveSelfInstallFacts({ updateChannel: options?.updateChannel }))
-  const target = options?.target ?? (await resolveSelfUpdateTarget(facts))
+  const target = options?.target ?? (await resolveSelfUpdateTarget(facts, options?.context))
   const updateAvailable = target.targetVersion ? isVersionNewer(target.targetVersion, facts.currentVersion) : false
 
   return {

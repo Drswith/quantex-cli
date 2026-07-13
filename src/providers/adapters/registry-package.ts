@@ -12,15 +12,24 @@ import type {
   RegistryPackageUpdateStrategy,
 } from '../types'
 import { normalizeRegistryUrl } from '../../utils/registry'
-import { interruptedOutcome, isInterruptedOperation, runPendingOperation } from './legacy-operation'
+import {
+  interruptedOutcome,
+  isInterruptedOperation,
+  runContextualOperation,
+  runPendingOperation,
+} from './legacy-operation'
 
 export type RegistryPackagePresence = 'absent' | 'present' | 'unknown'
 
 export interface RegistryPackageAdapterDependencies {
-  readonly getInstalledVersion: (packageName: string) => Promise<string | undefined>
+  readonly getInstalledVersion: (packageName: string, context?: ProviderOperationContext) => Promise<string | undefined>
   readonly install: (packageName: string, distTag?: string, registry?: string) => Promise<boolean>
-  readonly isAvailable: () => Promise<boolean>
-  readonly probePackagePresence: (packageName: string) => Promise<RegistryPackagePresence>
+  readonly isAvailable: (context?: ProviderOperationContext) => Promise<boolean>
+  readonly probePackagePresence: (
+    packageName: string,
+    context?: ProviderOperationContext,
+  ) => Promise<RegistryPackagePresence>
+  readonly contextualPackageObservation?: boolean
   readonly resolveLatestVersion: (
     packageName: string,
     distTag: string,
@@ -67,8 +76,8 @@ export function createRegistryPackageAdapter<Id extends Extract<ProviderId, 'bun
   const providerEvidence = evidence('provider', config.id)
 
   const observe = async (request: ProviderTargetRequest) => {
-    const presence = await runPendingOperation(request.context, () =>
-      dependencies.probePackagePresence(request.target.id),
+    const presence = await runPackageObservation(request.context, dependencies.contextualPackageObservation, () =>
+      dependencies.probePackagePresence(request.target.id, request.context),
     )
     if (isInterruptedOperation(presence)) return interruptedOutcome(presence)
 
@@ -89,8 +98,10 @@ export function createRegistryPackageAdapter<Id extends Extract<ProviderId, 'bun
       })
     }
 
-    const installedVersion = await runPendingOperation(request.context, () =>
-      dependencies.getInstalledVersion(request.target.id),
+    const installedVersion = await runPackageObservation(
+      request.context,
+      dependencies.contextualPackageObservation,
+      () => dependencies.getInstalledVersion(request.target.id, request.context),
     )
     if (isInterruptedOperation(installedVersion)) return interruptedOutcome(installedVersion)
 
@@ -110,7 +121,9 @@ export function createRegistryPackageAdapter<Id extends Extract<ProviderId, 'bun
 
   return {
     availability: async context => {
-      const available = await runPendingOperation(context, () => dependencies.isAvailable())
+      const available = await runPackageObservation(context, dependencies.contextualPackageObservation, () =>
+        dependencies.isAvailable(context),
+      )
       if (isInterruptedOperation(available)) return interruptedOutcome(available)
 
       if (available.kind === 'rejected' || !available.value) {
@@ -181,6 +194,14 @@ export function createRegistryPackageAdapter<Id extends Extract<ProviderId, 'bun
       })
     },
   }
+}
+
+function runPackageObservation<T>(
+  context: ProviderOperationContext,
+  contextual: boolean | undefined,
+  invoke: () => Promise<T>,
+): Promise<import('./legacy-operation').PendingOperation<T>> {
+  return contextual ? runContextualOperation(context, invoke) : runPendingOperation(context, invoke)
 }
 
 async function updateMany<Id extends Extract<ProviderId, 'bun' | 'npm'>>(

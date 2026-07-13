@@ -1,7 +1,9 @@
+import type { ProviderOperationContext } from '../providers'
 import { mkdir, readFile, writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
 import { getCliContext, recordCliFreshness } from '../cli-context'
 import { getConfigDir, loadConfig } from '../config'
+import { ProcessInterruptionError } from './child-process'
 
 interface CachedResponseEntry {
   body: string
@@ -14,8 +16,35 @@ interface CachedResponseStore {
   entries: Record<string, CachedResponseEntry>
 }
 
-export async function fetchJsonWithCache<T>(url: string, cacheKey: string): Promise<T | undefined> {
-  const body = await fetchTextWithCache(url, cacheKey, 'json')
+interface NetworkOperationOptions {
+  context?: ProviderOperationContext
+  signal?: AbortSignal
+}
+
+interface FetchedTextResponse {
+  body?: string
+  etag?: string
+  ok: boolean
+  status: number
+  valid: boolean
+}
+
+class NetworkAttemptTimeoutError extends Error {
+  readonly timeoutMs: number
+
+  constructor(timeoutMs: number) {
+    super(`Network attempt timed out after ${timeoutMs}ms.`)
+    this.name = 'NetworkAttemptTimeoutError'
+    this.timeoutMs = timeoutMs
+  }
+}
+
+export async function fetchJsonWithCache<T>(
+  url: string,
+  cacheKey: string,
+  options: NetworkOperationOptions = {},
+): Promise<T | undefined> {
+  const body = await fetchTextWithCache(url, cacheKey, 'json', options)
   if (!body) return undefined
 
   try {
@@ -29,93 +58,278 @@ export async function fetchTextWithCache(
   url: string,
   cacheKey: string,
   mode: 'json' | 'text' = 'text',
+  options: NetworkOperationOptions = {},
 ): Promise<string | undefined> {
+  const signal = options.context?.signal ?? options.signal
+  throwIfAborted(signal)
   const config = await loadConfig()
+  throwIfAborted(signal)
   const ttlMs = config.versionCacheTtlHours * 60 * 60 * 1000
   const cacheMode = getCliContext().cacheMode
   const cache = cacheMode === 'no-cache' ? { entries: {} } : await loadResponseCache()
+  throwIfAborted(signal)
   const cachedEntry = cache.entries[cacheKey]
   const now = Date.now()
 
   if (cacheMode === 'default' && cachedEntry && cachedEntry.expiresAt > now) {
+    throwIfAborted(signal)
     recordCachedEntryFreshness(cachedEntry, ttlMs)
     return cachedEntry.body
   }
 
-  const response = await fetchWithRetries(url, {
+  const response = await fetchTextWithRetries(url, {
+    context: options.context,
     headers: cacheMode !== 'no-cache' && cachedEntry?.etag ? { 'If-None-Match': cachedEntry.etag } : undefined,
+    mode,
     retries: config.networkRetries,
+    signal,
     timeoutMs: config.networkTimeoutMs,
   })
+  throwIfAborted(signal)
 
   if (!response) {
-    if (cachedEntry) recordCachedEntryFreshness(cachedEntry, ttlMs)
+    if (cachedEntry) {
+      throwIfAborted(signal)
+      recordCachedEntryFreshness(cachedEntry, ttlMs)
+    }
     return cachedEntry?.body
   }
 
   if (response.status === 304 && cachedEntry) {
+    throwIfAborted(signal)
     cache.entries[cacheKey] = {
       ...cachedEntry,
       expiresAt: now + ttlMs,
       fetchedAt: now,
     }
-    if (cacheMode !== 'no-cache') await saveResponseCache(cache)
+    if (cacheMode !== 'no-cache') {
+      throwIfAborted(signal)
+      await saveResponseCache(cache)
+    }
+    throwIfAborted(signal)
     recordNetworkFreshness(now, now + ttlMs)
     return cachedEntry.body
   }
 
   if (!response.ok) {
-    if (cachedEntry) recordCachedEntryFreshness(cachedEntry, ttlMs)
+    if (cachedEntry) {
+      throwIfAborted(signal)
+      recordCachedEntryFreshness(cachedEntry, ttlMs)
+    }
     return cachedEntry?.body
   }
 
-  const body = await response.text()
-
-  if (mode === 'json') {
-    try {
-      JSON.parse(body)
-    } catch {
-      if (cachedEntry) recordCachedEntryFreshness(cachedEntry, ttlMs)
-      return cachedEntry?.body
+  if (!response.valid || response.body === undefined) {
+    if (cachedEntry) {
+      throwIfAborted(signal)
+      recordCachedEntryFreshness(cachedEntry, ttlMs)
     }
+    return cachedEntry?.body
   }
 
+  throwIfAborted(signal)
   const entry = {
-    body,
-    etag: response.headers.get('etag') ?? undefined,
+    body: response.body,
+    etag: response.etag,
     expiresAt: now + ttlMs,
     fetchedAt: now,
   }
   if (cacheMode !== 'no-cache') {
     cache.entries[cacheKey] = entry
+    throwIfAborted(signal)
     await saveResponseCache(cache)
   }
+  throwIfAborted(signal)
   recordNetworkFreshness(now, now + ttlMs)
 
-  return body
+  return response.body
 }
 
-async function fetchWithRetries(
+async function fetchTextWithRetries(
   url: string,
-  options: { headers?: Record<string, string>; retries: number; timeoutMs: number },
-): Promise<Response | undefined> {
+  options: {
+    context?: ProviderOperationContext
+    headers?: Record<string, string>
+    mode: 'json' | 'text'
+    retries: number
+    signal?: AbortSignal
+    timeoutMs: number
+  },
+): Promise<FetchedTextResponse | undefined> {
+  const invocationDeadline =
+    options.context?.timeoutMs === undefined ? undefined : Date.now() + options.context.timeoutMs
   for (let attempt = 0; attempt <= options.retries; attempt++) {
-    const controller = new AbortController()
-    const timeout = setTimeout(() => controller.abort(), options.timeoutMs)
-
     try {
-      return await fetch(url, {
-        headers: options.headers,
-        signal: controller.signal,
-      })
-    } catch {
+      return await fetchTextAttempt(url, { ...options, invocationDeadline })
+    } catch (error) {
+      if (error instanceof ProcessInterruptionError) throw error
       if (attempt === options.retries) return undefined
-    } finally {
-      clearTimeout(timeout)
     }
   }
 
   return undefined
+}
+
+async function fetchTextAttempt(
+  url: string,
+  options: {
+    context?: ProviderOperationContext
+    headers?: Record<string, string>
+    invocationDeadline?: number
+    mode: 'json' | 'text'
+    signal?: AbortSignal
+    timeoutMs: number
+  },
+): Promise<FetchedTextResponse> {
+  const controller = new AbortController()
+  let reader: { cancel(reason?: unknown): Promise<void> } | undefined
+  let response: Response | undefined
+  let interruption: NetworkAttemptTimeoutError | ProcessInterruptionError | undefined
+  let rejectInterruption!: (error: NetworkAttemptTimeoutError | ProcessInterruptionError) => void
+  let cancellation: Promise<void> | undefined
+  const interrupted = new Promise<never>((_resolve, reject) => (rejectInterruption = reject))
+  const cancelResponse = (): Promise<void> =>
+    (cancellation ??= settleBounded(
+      Promise.resolve()
+        .then(async () => {
+          if (reader) await reader.cancel(interruption)
+          else if (response?.body && !response.body.locked) await response.body.cancel(interruption)
+          return undefined
+        })
+        .then(() => undefined)
+        .catch(() => undefined),
+      250,
+    ))
+  const interrupt = (kind: 'cancelled' | 'invocation-timeout' | 'network-timeout'): Promise<void> => {
+    const nextInterruption =
+      kind === 'cancelled'
+        ? cancelledError(options.signal)
+        : kind === 'invocation-timeout'
+          ? new ProcessInterruptionError({
+              kind: 'timed-out',
+              timeoutMs: options.context?.timeoutMs ?? 0,
+            })
+          : new NetworkAttemptTimeoutError(options.timeoutMs)
+    const firstInterruption = interruption === undefined
+    if (
+      firstInterruption ||
+      (interruption instanceof NetworkAttemptTimeoutError && nextInterruption instanceof ProcessInterruptionError)
+    )
+      interruption = nextInterruption
+    if (firstInterruption) {
+      controller.abort(interruption)
+      void cancelResponse().finally(() => rejectInterruption(interruption!))
+    }
+    return cancelResponse()
+  }
+  const abort = () => void interrupt('cancelled')
+  options.signal?.addEventListener('abort', abort, { once: true })
+  const unregisterCleanup = options.context?.registerCleanup?.({
+    cleanup: () => interrupt('cancelled'),
+    force: cancelResponse,
+  })
+  const networkDeadline = Date.now() + options.timeoutMs
+  const timeout = setTimeout(() => void interrupt('network-timeout'), options.timeoutMs)
+  const invocationTimeout =
+    options.invocationDeadline === undefined
+      ? undefined
+      : setTimeout(() => void interrupt('invocation-timeout'), Math.max(0, options.invocationDeadline - Date.now()))
+  const ensureActive = async (): Promise<void> => {
+    if (interruption) throw interruption
+    if (options.signal?.aborted) await interrupt('cancelled')
+    else if (options.invocationDeadline !== undefined && Date.now() >= options.invocationDeadline)
+      await interrupt('invocation-timeout')
+    else if (Date.now() >= networkDeadline) await interrupt('network-timeout')
+    if (interruption) throw interruption
+  }
+
+  try {
+    if (options.signal?.aborted) await interrupt('cancelled')
+    const consume = (async (): Promise<FetchedTextResponse> => {
+      response = await fetch(url, { headers: options.headers, signal: controller.signal })
+      await ensureActive()
+      const status = response.status
+      const etag = response.headers?.get?.('etag') ?? undefined
+      if (!response.ok) {
+        await cancelResponse()
+        return { etag, ok: false, status, valid: true }
+      }
+      const body = await readResponseBody(response, value => (reader = value))
+      await ensureActive()
+      let valid = true
+      if (options.mode === 'json') {
+        try {
+          JSON.parse(body)
+        } catch {
+          valid = false
+        }
+      }
+      await ensureActive()
+      return { body, etag, ok: true, status, valid }
+    })()
+    try {
+      return await Promise.race([consume, interrupted])
+    } catch (error) {
+      if (interruption) {
+        await cancelResponse()
+        throw interruption
+      }
+      throw error
+    }
+  } finally {
+    clearTimeout(timeout)
+    if (invocationTimeout) clearTimeout(invocationTimeout)
+    options.signal?.removeEventListener('abort', abort)
+    unregisterCleanup?.()
+  }
+}
+
+async function readResponseBody(
+  response: Response,
+  setReader: (reader: { cancel(reason?: unknown): Promise<void> }) => void,
+): Promise<string> {
+  if (!response.body) return ''
+  const reader = response.body.getReader()
+  setReader(reader)
+  const decoder = new TextDecoder()
+  let body = ''
+  while (true) {
+    const chunk = await reader.read()
+    if (chunk.done) break
+    body += decoder.decode(chunk.value, { stream: true })
+  }
+  return body + decoder.decode()
+}
+
+async function settleBounded(work: Promise<void>, timeoutMs: number): Promise<void> {
+  let timeout: ReturnType<typeof setTimeout> | undefined
+  try {
+    await Promise.race([
+      work,
+      new Promise<void>(resolve => {
+        timeout = setTimeout(resolve, timeoutMs)
+      }),
+    ])
+  } finally {
+    if (timeout) clearTimeout(timeout)
+  }
+}
+
+function throwIfAborted(signal?: AbortSignal): void {
+  if (signal?.aborted) throw cancelledError(signal)
+}
+
+function cancelledError(signal?: AbortSignal): ProcessInterruptionError {
+  if (signal?.reason instanceof ProcessInterruptionError) return signal.reason
+  const reason =
+    typeof signal?.reason === 'string'
+      ? signal.reason
+      : signal?.reason instanceof Error
+        ? signal.reason.message
+        : signal?.reason === undefined
+          ? undefined
+          : String(signal.reason)
+  return new ProcessInterruptionError({ kind: 'cancelled', reason })
 }
 
 async function loadResponseCache(): Promise<CachedResponseStore> {

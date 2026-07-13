@@ -2,20 +2,12 @@ import type { CommandResult } from '../output/types'
 import process from 'node:process'
 import { getAllAgents } from '../agents'
 import { createSuccessResult, emitCommandResult } from '../output'
-import { inspectSelf } from '../self'
+import { createCliOperationContext } from '../runtime/cli-operation-context'
+import { inspectSelfReadOnly } from '../self'
+import { getCommandCapabilitySnapshot, projectCommandCapabilitiesToV1Features } from '../services/command-capabilities'
+import { observeProviderSnapshot, projectProviderSnapshotToV1Installers } from '../services/provider-observations'
 import { pc } from '../utils/color'
-import {
-  getPlatform,
-  isBrewAvailable,
-  isBunAvailable,
-  isCargoAvailable,
-  isDenoAvailable,
-  isMiseAvailable,
-  isNpmAvailable,
-  isPipAvailable,
-  isUvAvailable,
-  isWingetAvailable,
-} from '../utils/detect'
+import { getPlatform } from '../utils/detect'
 
 interface CapabilitiesData {
   agents: string[]
@@ -80,88 +72,37 @@ interface CapabilitiesData {
 }
 
 export async function capabilitiesCommand(): Promise<CommandResult<CapabilitiesData>> {
-  const [
-    bunAvailable,
-    npmAvailable,
-    brewAvailable,
-    cargoAvailable,
-    denoAvailable,
-    miseAvailable,
-    pipAvailable,
-    uvAvailable,
-    wingetAvailable,
-    selfInspection,
-  ] = await Promise.all([
-    isBunAvailable(),
-    isNpmAvailable(),
-    isBrewAvailable(),
-    isCargoAvailable(),
-    isDenoAvailable(),
-    isMiseAvailable(),
-    isPipAvailable(),
-    isUvAvailable(),
-    isWingetAvailable(),
-    inspectSelf(),
-  ])
+  const operation = createCliOperationContext()
+  let providerSnapshot: Awaited<ReturnType<typeof observeProviderSnapshot>>
+  let selfInspection: Awaited<ReturnType<typeof inspectSelfReadOnly>>
+  try {
+    ;[providerSnapshot, selfInspection] = await operation.run(() =>
+      Promise.all([
+        observeProviderSnapshot({ context: operation.context }),
+        inspectSelfReadOnly({ context: operation.context }),
+      ]),
+    )
+  } finally {
+    operation.dispose()
+  }
+  const installers = projectProviderSnapshotToV1Installers(providerSnapshot, entry => {
+    const available = entry.availability.kind === 'success'
+    return {
+      available,
+      reason: available ? undefined : getUnavailableReason(entry.id),
+    }
+  })
+  const features = projectCommandCapabilitiesToV1Features(getCommandCapabilitySnapshot(), {
+    canAutoUpdateSelf: selfInspection.canAutoUpdate,
+  })
 
   return emitCommandResult(
     createSuccessResult<CapabilitiesData>({
       action: 'capabilities',
       data: {
         agents: getAllAgents().map(agent => agent.name),
-        features: {
-          assumeYes: true,
-          cacheBypass: true,
-          cacheRefresh: true,
-          channels: ['stable', 'beta'],
-          colorModes: ['auto', 'always', 'never'],
-          dryRun: true,
-          execInstallPolicies: ['never', 'if-missing', 'always'],
-          freshnessMetadata: true,
-          idempotencyKey: true,
-          logLevels: ['silent', 'error', 'warn', 'info', 'debug'],
-          quietLogs: true,
-          selfUpgrade: selfInspection.canAutoUpdate,
-          timeout: true,
-        },
-        installers: {
-          brew: {
-            available: brewAvailable,
-            reason: brewAvailable ? undefined : getUnavailableReason('brew'),
-          },
-          bun: {
-            available: bunAvailable,
-            reason: bunAvailable ? undefined : getUnavailableReason('bun'),
-          },
-          cargo: {
-            available: cargoAvailable,
-            reason: cargoAvailable ? undefined : getUnavailableReason('cargo'),
-          },
-          deno: {
-            available: denoAvailable,
-            reason: denoAvailable ? undefined : getUnavailableReason('deno'),
-          },
-          mise: {
-            available: miseAvailable,
-            reason: miseAvailable ? undefined : getUnavailableReason('mise'),
-          },
-          npm: {
-            available: npmAvailable,
-            reason: npmAvailable ? undefined : getUnavailableReason('npm'),
-          },
-          pip: {
-            available: pipAvailable,
-            reason: pipAvailable ? undefined : getUnavailableReason('pip'),
-          },
-          uv: {
-            available: uvAvailable,
-            reason: uvAvailable ? undefined : getUnavailableReason('uv'),
-          },
-          winget: {
-            available: wingetAvailable,
-            reason: wingetAvailable ? undefined : getUnavailableReason('winget'),
-          },
-        },
+        features,
+        installers,
         outputModes: ['human', 'json', 'ndjson'],
         platform: {
           arch: process.arch,
