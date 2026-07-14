@@ -1,7 +1,7 @@
 import type { SelfUpgradePlan } from '../../src/self'
 import { afterAll, afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { resetCliContext, setCliContext } from '../../src/cli-context'
-import { upgradeCommand } from '../../src/commands/upgrade'
+import { resolveUpgradeChannelOption, upgradeCommand } from '../../src/commands/upgrade'
 import * as selfModule from '../../src/self'
 
 const planSelfUpgradeSpy = vi.spyOn(selfModule, 'planSelfUpgrade')
@@ -283,6 +283,22 @@ describe('upgradeCommand', () => {
     expect(upgradeSelfSpy).not.toHaveBeenCalled()
     expect(stdoutWriteSpy).toHaveBeenCalledWith(expect.stringContaining('Update available'))
     expect(stdoutWriteSpy).toHaveBeenCalledWith(expect.stringContaining('(beta)'))
+  })
+
+  it('forwards explicit --channel stable into self-upgrade planning', async () => {
+    planSelfUpgradeSpy.mockResolvedValue(createPlan({ updateChannel: 'stable' }, 'up-to-date'))
+
+    await expect(upgradeCommand({ channel: 'stable' })).resolves.toMatchObject({ ok: true })
+
+    expect(planSelfUpgradeSpy).toHaveBeenCalledWith({ updateChannel: 'stable' })
+    expect(upgradeSelfSpy).not.toHaveBeenCalled()
+  })
+
+  it('resolves only valid upgrade channel option values', () => {
+    expect(resolveUpgradeChannelOption('stable')).toBe('stable')
+    expect(resolveUpgradeChannelOption('beta')).toBe('beta')
+    expect(resolveUpgradeChannelOption(undefined)).toBeUndefined()
+    expect(resolveUpgradeChannelOption('nightly')).toBeUndefined()
   })
 
   it('treats a lower latest version as up to date in --check mode', async () => {

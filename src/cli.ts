@@ -226,12 +226,12 @@ program
   .option('--channel <channel>', 'Update channel: stable or beta')
   .option('--check', 'Only check whether an update is available')
   .action(async (options: { channel?: string; check?: boolean }) => {
-    const { upgradeCommand } = await import('./commands/upgrade')
+    const { resolveUpgradeChannelOption, upgradeCommand } = await import('./commands/upgrade')
     process.exitCode = await executeCliCommand({
       action: 'upgrade',
       run: () =>
         upgradeCommand({
-          channel: options.channel === 'beta' ? 'beta' : undefined,
+          channel: resolveUpgradeChannelOption(options.channel),
           check: options.check ?? false,
         }),
       target: { kind: 'self', name: 'quantex' },
