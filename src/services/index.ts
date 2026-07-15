@@ -15,3 +15,4 @@ export {
 } from './lifecycle-execution-production'
 export { getSingleAgentUpdateStatus, planAgentUpdates } from './update'
 export type { ManagedUpdateBucket, PendingAgentUpdate, PlannedAgentUpdates, SingleAgentUpdateStatus } from './update'
+export { createProductionSelfUpgradeInvocation, type ProductionSelfUpgradeInvocation } from './self-upgrade-production'

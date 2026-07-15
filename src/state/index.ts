@@ -123,6 +123,12 @@ export async function setSelfInstallSource(installSource: SelfInstallSource): Pr
   })
 }
 
+export async function removeSelfInstallSource(): Promise<void> {
+  await mutateState(state => {
+    delete state.self.installSource
+  })
+}
+
 export async function setSelfUpdateNoticeState(updateNoticeVersion: string, updateNoticeAt: string): Promise<void> {
   await mutateState(state => {
     state.self.updateNoticeVersion = updateNoticeVersion

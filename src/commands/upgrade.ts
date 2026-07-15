@@ -2,12 +2,9 @@ import type { CommandResult } from '../output/types'
 import type { CommandWarning } from '../output/types'
 import type { SelfInspection, SelfUpdateChannel } from '../self'
 import { createErrorResult, createSuccessResult, emitCommandResult } from '../output'
-import {
-  buildSelfInspectionFromPlan,
-  getSelfUpgradeRecoveryHintForInspection,
-  planSelfUpgrade,
-  upgradeSelf,
-} from '../self'
+import { buildSelfInspectionFromPlan, getSelfUpgradeRecoveryHintForInspection } from '../self'
+import { createProductionSelfUpgradeInvocation } from '../services/self-upgrade-production'
+import { ProcessInterruptionError } from '../utils/child-process'
 import { pc } from '../utils/color'
 import { isDryRunEnabled, printError, printInfo, printWarn } from '../utils/user-output'
 import { compareVersions } from '../utils/version'
@@ -25,9 +22,16 @@ interface UpgradeCommandData {
 export async function upgradeCommand(
   options: { channel?: SelfUpdateChannel; check?: boolean } = {},
 ): Promise<CommandResult<UpgradeCommandData>> {
-  const plan = await planSelfUpgrade({ updateChannel: options.channel })
-  const inspection = buildSelfInspectionFromPlan(plan)
   const dryRun = isDryRunEnabled()
+  const invocation = createProductionSelfUpgradeInvocation()
+  const outcome = await invocation
+    .run({ check: options.check ?? false, dryRun, updateChannel: options.channel })
+    .finally(() => invocation.dispose())
+  if (outcome.kind === 'interrupted')
+    throw new ProcessInterruptionError({ kind: 'cancelled', reason: outcome.error.message })
+
+  const plan = outcome.plan
+  const inspection = buildSelfInspectionFromPlan(plan)
   const registryWarnings = getManagedRegistryWarnings(inspection)
   const staleLatestWarning = getStaleLatestWarning(inspection)
 
@@ -140,7 +144,8 @@ export async function upgradeCommand(
     )
   }
 
-  const result = await upgradeSelf(plan)
+  if (outcome.kind !== 'executed') throw new Error('Self-upgrade execution did not produce a result.')
+  const result = outcome.result
   if (result.success) {
     return emitCommandResult(
       createSuccessResult<UpgradeCommandData>({

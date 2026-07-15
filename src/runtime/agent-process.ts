@@ -17,7 +17,7 @@ export interface AgentProcessPortDependencies {
   readonly platform: NodeJS.Platform
   readonly spawn: (argv: readonly string[], options: AgentProcessSpawnOptions) => SpawnedProcessHandle
   readonly terminate: (handle: SpawnedProcessHandle) => Promise<void>
-  readonly writeStderr: (value: string) => void
+  readonly writeStderr?: (value: string) => void
 }
 
 const defaultDependencies: AgentProcessPortDependencies = {
@@ -102,8 +102,10 @@ function complete(
   request: ProcessRequest,
   dependencies: AgentProcessPortDependencies,
 ): RuntimeOutcome<ProcessResult> {
-  if (request.stdio?.[1] === 'pipe' && result.stdout) dependencies.writeStderr(result.stdout)
-  if (request.stdio?.[2] === 'pipe' && result.stderr) dependencies.writeStderr(result.stderr)
+  if (request.forwardPipedOutput !== false) {
+    if (request.stdio?.[1] === 'pipe' && result.stdout) dependencies.writeStderr?.(result.stdout)
+    if (request.stdio?.[2] === 'pipe' && result.stderr) dependencies.writeStderr?.(result.stderr)
+  }
   const encoder = new TextEncoder()
   return {
     kind: 'success',

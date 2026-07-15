@@ -1,12 +1,20 @@
+import type { NetworkPort, ProcessPort } from '../runtime'
 import type { SelfUpdateResult, SelfUpgradeErrorKind } from './types'
 import { Buffer } from 'node:buffer'
 import { createHash } from 'node:crypto'
 import { chmod, mkdtemp, rename, rm, stat, writeFile } from 'node:fs/promises'
 import { basename, dirname, join, win32 } from 'node:path'
 import process from 'node:process'
-import { readProcessOutput, spawnCommand } from '../utils/child-process'
+import { ProcessInterruptionError, readProcessOutput, spawnCommand } from '../utils/child-process'
 
 type BinaryUpgradeResult = Omit<SelfUpdateResult, 'installSource'>
+
+export interface StandaloneBinaryRuntimeOptions {
+  readonly networkPort?: NetworkPort
+  readonly processPort?: ProcessPort
+  readonly signal: AbortSignal
+  readonly timeoutMs?: number
+}
 
 export async function upgradeStandaloneBinary(
   downloadUrl: string,
@@ -14,26 +22,25 @@ export async function upgradeStandaloneBinary(
   expectedChecksum: string,
   expectedVersion?: string,
   windowsPeerExecutablePath: string | undefined = getWindowsStandaloneBinaryPeerPath(executablePath),
+  runtime?: StandaloneBinaryRuntimeOptions,
 ): Promise<BinaryUpgradeResult> {
-  let response: Response
-
-  try {
-    response = await fetch(downloadUrl)
-  } catch (error) {
-    return createBinaryFailure('network', `Failed to download ${downloadUrl}.`, error)
-  }
-
-  if (!response.ok) {
-    return createBinaryFailure('network', `Failed to download ${downloadUrl}: HTTP ${response.status}.`)
-  }
+  const networkPort = runtime?.networkPort
+  const downloaded =
+    networkPort && runtime
+      ? await downloadBinaryWithPort(downloadUrl, { ...runtime, networkPort })
+      : await downloadBinaryWithFetch(downloadUrl)
+  if (downloaded.kind === 'failure') return downloaded.result
+  const binary = downloaded.binary
+  throwIfBinaryUpgradeCancelled(runtime)
 
   const tempDir = await mkdtemp(join(dirname(executablePath), '.quantex-upgrade-'))
   const tempPath = join(tempDir, basename(executablePath))
   const backupPath = `${executablePath}.bak`
   let rollbackAvailable = false
+  let windowsReplacementScheduled = false
 
   try {
-    const binary = Buffer.from(await response.arrayBuffer())
+    throwIfBinaryUpgradeCancelled(runtime)
     const executableMode = await resolveExecutableMode(executablePath)
     const actualChecksum = getSha256(binary)
 
@@ -45,9 +52,10 @@ export async function upgradeStandaloneBinary(
     }
 
     await writeFile(tempPath, binary)
+    throwIfBinaryUpgradeCancelled(runtime)
 
-    if (process.platform === 'win32')
-      return scheduleWindowsBinaryReplacement(
+    if (process.platform === 'win32') {
+      const result = scheduleWindowsBinaryReplacement(
         tempPath,
         executablePath,
         backupPath,
@@ -55,15 +63,19 @@ export async function upgradeStandaloneBinary(
         expectedVersion,
         windowsPeerExecutablePath,
       )
+      windowsReplacementScheduled = result.success
+      return result
+    }
 
     await chmod(tempPath, executableMode)
+    throwIfBinaryUpgradeCancelled(runtime)
     await rm(backupPath, { force: true })
     await rename(executablePath, backupPath)
     rollbackAvailable = true
 
     await rename(tempPath, executablePath)
 
-    const verifyResult = await verifyStandaloneBinary(executablePath, expectedVersion)
+    const verifyResult = await verifyStandaloneBinary(executablePath, expectedVersion, runtime)
 
     if (!verifyResult.success) {
       await restoreStandaloneBinary(backupPath, executablePath)
@@ -89,10 +101,68 @@ export async function upgradeStandaloneBinary(
       rollbackAvailable = false
     }
 
+    if (error instanceof ProcessInterruptionError) throw error
+
     return createBinaryFailure(resolveBinaryErrorKind(error), 'Failed to replace the current Quantex binary.', error)
   } finally {
-    if (process.platform !== 'win32') await rm(tempDir, { recursive: true, force: true })
+    if (process.platform !== 'win32' || !windowsReplacementScheduled)
+      await rm(tempDir, { recursive: true, force: true })
   }
+}
+
+function throwIfBinaryUpgradeCancelled(runtime: StandaloneBinaryRuntimeOptions | undefined): void {
+  if (!runtime?.signal.aborted) return
+  throw new ProcessInterruptionError({
+    kind: 'cancelled',
+    reason:
+      runtime.signal.reason instanceof Error ? runtime.signal.reason.message : String(runtime.signal.reason ?? ''),
+  })
+}
+
+type BinaryDownloadResult =
+  | { readonly binary: Buffer; readonly kind: 'success' }
+  | { readonly kind: 'failure'; readonly result: BinaryUpgradeResult }
+
+async function downloadBinaryWithFetch(downloadUrl: string): Promise<BinaryDownloadResult> {
+  let response: Response
+  try {
+    response = await fetch(downloadUrl)
+  } catch (error) {
+    return { kind: 'failure', result: createBinaryFailure('network', `Failed to download ${downloadUrl}.`, error) }
+  }
+  if (!response.ok)
+    return {
+      kind: 'failure',
+      result: createBinaryFailure('network', `Failed to download ${downloadUrl}: HTTP ${response.status}.`),
+    }
+  return { binary: Buffer.from(await response.arrayBuffer()), kind: 'success' }
+}
+
+async function downloadBinaryWithPort(
+  downloadUrl: string,
+  runtime: StandaloneBinaryRuntimeOptions & { readonly networkPort: NetworkPort },
+): Promise<BinaryDownloadResult> {
+  const outcome = await runtime.networkPort.request({
+    signal: runtime.signal,
+    timeoutMs: runtime.timeoutMs,
+    url: downloadUrl,
+  })
+  if (outcome.kind === 'failure') {
+    if (outcome.error.kind === 'cancelled')
+      throw new ProcessInterruptionError({ kind: 'cancelled', reason: outcome.error.message })
+    if (outcome.error.kind === 'timed-out')
+      throw new ProcessInterruptionError({ kind: 'timed-out', timeoutMs: runtime.timeoutMs ?? 0 })
+    return {
+      kind: 'failure',
+      result: createBinaryFailure('network', `Failed to download ${downloadUrl}.`, outcome.error),
+    }
+  }
+  if (outcome.value.status < 200 || outcome.value.status >= 300)
+    return {
+      kind: 'failure',
+      result: createBinaryFailure('network', `Failed to download ${downloadUrl}: HTTP ${outcome.value.status}.`),
+    }
+  return { binary: Buffer.from(outcome.value.body), kind: 'success' }
 }
 
 export function getWindowsStandaloneBinaryPeerPath(executablePath: string): string | undefined {
@@ -257,10 +327,46 @@ async function restoreStandaloneBinary(backupPath: string, executablePath: strin
   await rename(backupPath, executablePath)
 }
 
-async function verifyStandaloneBinary(executablePath: string, expectedVersion?: string): Promise<BinaryUpgradeResult> {
+async function verifyStandaloneBinary(
+  executablePath: string,
+  expectedVersion?: string,
+  runtime?: StandaloneBinaryRuntimeOptions,
+): Promise<BinaryUpgradeResult> {
   if (!expectedVersion) return { success: true }
 
   try {
+    if (runtime?.processPort) {
+      const outcome = await runtime.processPort.run({
+        argv: [executablePath, '--version'],
+        signal: runtime.signal,
+        stdio: ['ignore', 'pipe', 'ignore'],
+        timeoutMs: runtime.timeoutMs,
+      })
+      if (outcome.kind === 'failure') {
+        if (outcome.error.kind === 'cancelled')
+          throw new ProcessInterruptionError({ kind: 'cancelled', reason: outcome.error.message })
+        if (outcome.error.kind === 'timed-out')
+          throw new ProcessInterruptionError({ kind: 'timed-out', timeoutMs: runtime.timeoutMs ?? 0 })
+        return createBinaryFailure(
+          'verify',
+          'Failed to execute the upgraded Quantex binary for verification.',
+          outcome.error,
+        )
+      }
+      const stdout = outcome.value.stdout ? new TextDecoder().decode(outcome.value.stdout) : ''
+      if (outcome.value.exitCode !== 0)
+        return createBinaryFailure(
+          'verify',
+          `The upgraded Quantex binary exited with code ${outcome.value.exitCode} during verification.`,
+        )
+      if (!stdout.includes(expectedVersion))
+        return createBinaryFailure(
+          'verify',
+          'The upgraded Quantex binary reported an unexpected version during verification.',
+        )
+      return { success: true }
+    }
+
     const proc = spawnCommand([executablePath, '--version'], {
       stdio: ['ignore', 'pipe', 'ignore'] as const,
     })
@@ -284,6 +390,7 @@ async function verifyStandaloneBinary(executablePath: string, expectedVersion?: 
       success: true,
     }
   } catch (error) {
+    if (error instanceof ProcessInterruptionError) throw error
     return createBinaryFailure('verify', 'Failed to execute the upgraded Quantex binary for verification.', error)
   }
 }

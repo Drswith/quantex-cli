@@ -1,4 +1,5 @@
 import type { ProviderOperationContext } from '../providers'
+import type { NetworkPort } from '../runtime/ports'
 import { mkdir, readFile, writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
 import { getCliContext, recordCliFreshness } from '../cli-context'
@@ -18,6 +19,7 @@ interface CachedResponseStore {
 
 interface NetworkOperationOptions {
   context?: ProviderOperationContext
+  networkPort?: NetworkPort
   signal?: AbortSignal
 }
 
@@ -81,6 +83,7 @@ export async function fetchTextWithCache(
     context: options.context,
     headers: cacheMode !== 'no-cache' && cachedEntry?.etag ? { 'If-None-Match': cachedEntry.etag } : undefined,
     mode,
+    networkPort: options.networkPort,
     retries: config.networkRetries,
     signal,
     timeoutMs: config.networkTimeoutMs,
@@ -151,6 +154,7 @@ async function fetchTextWithRetries(
     context?: ProviderOperationContext
     headers?: Record<string, string>
     mode: 'json' | 'text'
+    networkPort?: NetworkPort
     retries: number
     signal?: AbortSignal
     timeoutMs: number
@@ -177,10 +181,14 @@ async function fetchTextAttempt(
     headers?: Record<string, string>
     invocationDeadline?: number
     mode: 'json' | 'text'
+    networkPort?: NetworkPort
     signal?: AbortSignal
     timeoutMs: number
   },
 ): Promise<FetchedTextResponse> {
+  const networkPort = options.networkPort
+  if (networkPort) return fetchTextAttemptWithPort(url, { ...options, networkPort })
+
   const controller = new AbortController()
   let reader: { cancel(reason?: unknown): Promise<void> } | undefined
   let response: Response | undefined
@@ -281,6 +289,56 @@ async function fetchTextAttempt(
     if (invocationTimeout) clearTimeout(invocationTimeout)
     options.signal?.removeEventListener('abort', abort)
     unregisterCleanup?.()
+  }
+}
+
+async function fetchTextAttemptWithPort(
+  url: string,
+  options: {
+    context?: ProviderOperationContext
+    headers?: Record<string, string>
+    invocationDeadline?: number
+    mode: 'json' | 'text'
+    networkPort: NetworkPort
+    signal?: AbortSignal
+    timeoutMs: number
+  },
+): Promise<FetchedTextResponse> {
+  if (options.signal?.aborted) throw cancelledError(options.signal)
+  const now = Date.now()
+  if (options.invocationDeadline !== undefined && options.invocationDeadline <= now)
+    throw new ProcessInterruptionError({ kind: 'timed-out', timeoutMs: options.context?.timeoutMs ?? 0 })
+  const timeoutMs =
+    options.invocationDeadline === undefined
+      ? options.timeoutMs
+      : Math.max(1, Math.min(options.timeoutMs, options.invocationDeadline - now))
+  const signal = options.signal ?? new AbortController().signal
+  const outcome = await options.networkPort.request({ headers: options.headers, signal, timeoutMs, url })
+  if (outcome.kind === 'failure') {
+    if (options.signal?.aborted || outcome.error.kind === 'cancelled') throw cancelledError(options.signal)
+    if (outcome.error.kind === 'timed-out') {
+      if (options.invocationDeadline !== undefined && Date.now() >= options.invocationDeadline)
+        throw new ProcessInterruptionError({ kind: 'timed-out', timeoutMs: options.context?.timeoutMs ?? 0 })
+      throw new NetworkAttemptTimeoutError(options.timeoutMs)
+    }
+    throw new Error(outcome.error.message)
+  }
+
+  const body = new TextDecoder().decode(outcome.value.body)
+  let valid = true
+  if (options.mode === 'json' && outcome.value.status >= 200 && outcome.value.status < 300) {
+    try {
+      JSON.parse(body)
+    } catch {
+      valid = false
+    }
+  }
+  return {
+    body: outcome.value.status >= 200 && outcome.value.status < 300 ? body : undefined,
+    etag: outcome.value.headers.etag,
+    ok: outcome.value.status >= 200 && outcome.value.status < 300,
+    status: outcome.value.status,
+    valid,
   }
 }
 
