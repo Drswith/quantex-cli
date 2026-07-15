@@ -1,0 +1,312 @@
+{
+  "commands": [
+    {
+      "args": [
+        "capabilities"
+      ],
+      "exitCode": 0,
+      "goldens": {
+        "human": "d9c5b774f09ad11adf5d0e9ce62b21aa40b2bb2de9d800f7d8110222b5b668fb",
+        "json": "f108ef561bdf444897aa6ce8f2053bd77913f29bae3e2e498e167b4f12092df2",
+        "ndjson": "fb0454ab8ec927255488aa5d0886784ce7ee382d180729a6f4ff84c4e7741509"
+      },
+      "name": "capabilities",
+      "ok": true,
+      "target": {
+        "kind": "system",
+        "name": "capabilities"
+      }
+    },
+    {
+      "args": [
+        "commands"
+      ],
+      "exitCode": 0,
+      "goldens": {
+        "human": "47e9b0bf27b3738528a0fe2c7e5961f4f691420721f3ce014c8b95b0e3562b05",
+        "json": "9af88b958e00e69f827204b36327668b0f8418089a2b72ad83b7e250e8181a31",
+        "ndjson": "f596f54ab37f7a138fed828b1aedfd962fb7c6f3d98c9ad0c57f3ae8b34ff1ed"
+      },
+      "name": "commands",
+      "ok": true,
+      "target": {
+        "kind": "system",
+        "name": "commands"
+      }
+    },
+    {
+      "args": [
+        "config",
+        "get",
+        "selfUpdateChannel"
+      ],
+      "exitCode": 0,
+      "goldens": {
+        "human": "f379ccb92b9116442dc65bdc35648a85d3786b34779db7f704a901fa07b00cb6",
+        "json": "3c2698ee71ff67c11b66953445b40dd90f6237c512fdaf90b44025b6ccfa8a90",
+        "ndjson": "863a26a6e64743392caeb7b575df227890a90c802201727a0f0fc52af1b4d331"
+      },
+      "name": "config",
+      "ok": true,
+      "target": {
+        "kind": "config",
+        "name": "selfUpdateChannel"
+      }
+    },
+    {
+      "args": [
+        "doctor"
+      ],
+      "exitCode": 0,
+      "goldens": {
+        "human": "c435d7f9c4a5eb32248fa517ef8660ac5a913b9f6357925a1501f6a839983855",
+        "json": "97ce206df1609d75f2c1dd88b7d7e0ba274b34764e39029f364cd1fe07c8a38c",
+        "ndjson": "c02c67ed2761800593e6a115479aa3f10bd5f73679e77a5d5d64fad8a6b547f2"
+      },
+      "name": "doctor",
+      "ok": true,
+      "target": {
+        "kind": "system",
+        "name": "doctor"
+      }
+    },
+    {
+      "args": [
+        "exec",
+        "unknown-agent"
+      ],
+      "errorCode": "AGENT_NOT_FOUND",
+      "exitCode": 3,
+      "name": "exec",
+      "ok": false,
+      "target": {
+        "kind": "agent",
+        "name": "unknown-agent"
+      },
+      "goldens": {
+        "human": "7c4fc4ae2a4129e972470ee2aee3f5bd3a08fcfd16f3382524a16c63aec14594",
+        "json": "fedfa0784ad39a2004ac33eddf5f2d9d14902897cee57d46a4d698cfba536b2f",
+        "ndjson": "47fb05d5151b87c46a9041b1b41c5518a63d2f6921bee3f19ee592caa0179657"
+      }
+    },
+    {
+      "args": [
+        "--dry-run",
+        "ensure",
+        "codex"
+      ],
+      "exitCode": 0,
+      "name": "ensure",
+      "ok": true,
+      "target": {
+        "kind": "agent",
+        "name": "codex"
+      },
+      "goldens": {
+        "human": "62a6524fdd1ff1382d4bbe5b3b5f4e3daa57da0a9356eacff21cebd3a229e608",
+        "json": "29087f55b9b765dff8536e5adb895b0f9c285bb82298caf76d24c4de2e60eb55",
+        "ndjson": "4d5c4bba77dbe463dca7fe58e5b0b88de053259d812fbce56a932c7fcc6c5bc8"
+      }
+    },
+    {
+      "args": [
+        "info",
+        "codex"
+      ],
+      "exitCode": 0,
+      "name": "info",
+      "ok": true,
+      "target": {
+        "kind": "agent",
+        "name": "codex"
+      },
+      "goldens": {
+        "human": "41a6412a31f3690b4d0d16de1b7c6076a18af34c684d8089907b65d2b64ed0ce",
+        "json": "f5a1fee6dba3274676eaf8b94ca7efa3c59cb30415c120c4f007e14ed1a12e56",
+        "ndjson": "e41e28983250ce96a1c9ca0c22904ca510ad5e483c6873565601b4bfe5d571e2"
+      }
+    },
+    {
+      "args": [
+        "inspect",
+        "codex"
+      ],
+      "exitCode": 0,
+      "name": "inspect",
+      "ok": true,
+      "target": {
+        "kind": "agent",
+        "name": "codex"
+      },
+      "goldens": {
+        "human": "7f1724ab5a1356baf249dbe6e425f5d8a319ea651299c089d1578fb02981fc0c",
+        "json": "dabee33df8d245a4fb0eba2e8f9f706e46a447c30d13bfbe21788d43ff8332de",
+        "ndjson": "b82197ea330052a5e202b8cbdabb50c6a4f7bf7562de6dd6c3f063c3122c2e31"
+      }
+    },
+    {
+      "args": [
+        "--dry-run",
+        "install",
+        "codex"
+      ],
+      "exitCode": 0,
+      "name": "install",
+      "ok": true,
+      "target": {
+        "kind": "agent",
+        "name": "codex"
+      },
+      "goldens": {
+        "human": "62a6524fdd1ff1382d4bbe5b3b5f4e3daa57da0a9356eacff21cebd3a229e608",
+        "json": "76c9b2655b0e24f0eb418123c4aa07e1318fdc5154a3df8861f723b26f1e676e",
+        "ndjson": "fb9197a7b67310c6e971fcef7c724fe2cac7fcecbaa2975baf3d9f642131f9b7"
+      }
+    },
+    {
+      "args": [
+        "list"
+      ],
+      "exitCode": 0,
+      "name": "list",
+      "ok": true,
+      "target": {
+        "kind": "system",
+        "name": "agents"
+      },
+      "goldens": {
+        "human": "7266a2a787f65c81f9327e032d54531bdbd3cb564fb9aeef7d1c2307ca926cda",
+        "json": "9c6b17a1114796536f084106ca7f7bca3e9495f66e2e087a8cf4f642af3fb64b",
+        "ndjson": "ed7d1beae589fa715e3581b29fd4191bcf33ae20cf8a5688f6b4d34fb9e17f93"
+      }
+    },
+    {
+      "args": [
+        "resolve",
+        "codex"
+      ],
+      "errorCode": "AGENT_NOT_INSTALLED",
+      "exitCode": 4,
+      "name": "resolve",
+      "ok": false,
+      "target": {
+        "kind": "agent",
+        "name": "codex"
+      },
+      "goldens": {
+        "human": "79a8d4085a7329a0ef145db7d97fdecb773415637d1ba44a96947fc3cb5757c2",
+        "json": "0d7ea597c3ab15fb162d7ffb6905da3b2e8b7efecc5c41a9b2dbaca4dab81a9f",
+        "ndjson": "1b11cc384845c76ab76d814ea6b61206e8bfbf1aa116a042f1dcc7e58b7866bb"
+      }
+    },
+    {
+      "args": [
+        "schema",
+        "commands"
+      ],
+      "exitCode": 0,
+      "name": "schema",
+      "ok": true,
+      "target": {
+        "kind": "system",
+        "name": "schema"
+      },
+      "goldens": {
+        "human": "065a41501a9fb9c0426cd8bb6f01ef90f63a0bbaf11a711282eb86aebf3faeb7",
+        "json": "f3c26f82c741b09006111119115bd465d8e80dca529be014452ef7271baff9e0",
+        "ndjson": "2c5e36df0c37996af70f835420f543001dc20a87dd5e08c9c833312d786464ac"
+      }
+    },
+    {
+      "args": [
+        "update",
+        "unknown-agent"
+      ],
+      "errorCode": "AGENT_NOT_FOUND",
+      "exitCode": 3,
+      "name": "update",
+      "ok": false,
+      "target": {
+        "kind": "agent",
+        "name": "unknown-agent"
+      },
+      "goldens": {
+        "human": "7c4fc4ae2a4129e972470ee2aee3f5bd3a08fcfd16f3382524a16c63aec14594",
+        "json": "4fb2d8e9fee2c96db6e7ef236dea1b3d41fd93c5c4b2d51543061d848641a37e",
+        "ndjson": "7bb0a0f5f825b592c6cb0d3ace8afb4b9e395b45fb7d29e48f700a3def00fde4"
+      }
+    },
+    {
+      "args": [
+        "uninstall",
+        "unknown-agent"
+      ],
+      "errorCode": "AGENT_NOT_FOUND",
+      "exitCode": 3,
+      "name": "uninstall",
+      "ok": false,
+      "target": {
+        "kind": "agent",
+        "name": "unknown-agent"
+      },
+      "goldens": {
+        "human": "7c4fc4ae2a4129e972470ee2aee3f5bd3a08fcfd16f3382524a16c63aec14594",
+        "json": "b49eb5bc181e721a8b6f4fad40fde62d0567d33a24bd5d002792412d44730f24",
+        "ndjson": "36ab0ac9569d2834b0bf191f88e772ced9e275a499265dd44f9fdf4035483a4f"
+      }
+    },
+    {
+      "args": [
+        "upgrade",
+        "--channel",
+        "invalid"
+      ],
+      "errorCode": "MANUAL_ACTION_REQUIRED",
+      "exitCode": 8,
+      "name": "upgrade",
+      "ok": false,
+      "target": {
+        "kind": "self",
+        "name": "quantex"
+      },
+      "goldens": {
+        "human": "a7a6aa6eb59455686ca6e5d4f50f317ed0cdea39788b5e95383f5fdd47d00f3a",
+        "json": "72a82584cc4cd378f1ae4e604bc590096551a3d9b36090233d2d0f25ed6b8cdb",
+        "ndjson": "1fda1be9f9c0df8b295586bd179b2939b05f59d1343118967d8cc0df242110ea"
+      }
+    }
+  ],
+  "aliases": [
+    {
+      "args": [
+        "i",
+        "unknown-agent"
+      ],
+      "canonicalName": "install",
+      "golden": "3fc569918ede64df74ca76ce2d41c82b0f000972248f489dd743fb1ee3f02024"
+    },
+    {
+      "args": [
+        "ls"
+      ],
+      "canonicalName": "list",
+      "golden": "9c6b17a1114796536f084106ca7f7bca3e9495f66e2e087a8cf4f642af3fb64b"
+    },
+    {
+      "args": [
+        "u",
+        "unknown-agent"
+      ],
+      "canonicalName": "update",
+      "golden": "4fb2d8e9fee2c96db6e7ef236dea1b3d41fd93c5c4b2d51543061d848641a37e"
+    },
+    {
+      "args": [
+        "rm",
+        "unknown-agent"
+      ],
+      "canonicalName": "uninstall",
+      "golden": "b49eb5bc181e721a8b6f4fad40fde62d0567d33a24bd5d002792412d44730f24"
+    }
+  ]
+}

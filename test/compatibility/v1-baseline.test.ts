@@ -36,6 +36,12 @@ interface PackageManifest {
   name: string
 }
 
+interface AliasPackageContract {
+  aliasPackage: string
+  binaryNames: string[]
+  primaryPackage: string
+}
+
 let tempHome = ''
 
 beforeEach(async () => {
@@ -72,6 +78,17 @@ describe('v1 compatibility baseline', () => {
     } finally {
       logSpy.mockRestore()
     }
+  })
+
+  it('records the separately maintained alias-package boundary without taking over its publishing', async () => {
+    const alias = await readFixture<AliasPackageContract>('alias-package.json')
+    const packageJson = await readPackageManifest()
+
+    expect(alias).toEqual({
+      aliasPackage: 'quantex',
+      binaryNames: Object.keys(packageJson.bin).sort(),
+      primaryPackage: packageJson.name,
+    })
   })
 
   it('locks the maintained root-package runtime exports', async () => {
