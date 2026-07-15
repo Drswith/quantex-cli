@@ -17,13 +17,13 @@
 
 ## 3. Command Contract Registry
 
-- [ ] 3.1 Define the authoritative command-contract registry with names, aliases, arguments, options, effects, result/event schemas, presenters, and handlers.
-- [ ] 3.2 Generate Commander registration and global-option handling from the registry while preserving current accepted command lines.
+- [x] 3.1 Define the authoritative command-contract registry with names, aliases, arguments, options, effects, result/event schemas, presenters, and handlers.
+- [x] 3.2 Generate Commander registration and global-option handling from the registry while preserving current accepted command lines.
 - [x] 3.3 Generate `commands --json` from the registry and remove the independent command catalog.
-- [ ] 3.4 Generate `schema --json` from the registry, add the six currently missing stable command schemas, and preserve existing v1 schema shapes.
-- [ ] 3.5 Replace shortcut global-option parsing duplication with registry-driven normalization while preserving transparent shortcut execution.
-- [ ] 3.6 Add registry validation for duplicate names/aliases, unresolved handlers, inconsistent options, missing schemas, and effect mismatches.
-- [ ] 3.7 Route human, JSON v1, and NDJSON v1 output through explicit presenters over one canonical result/event model.
+- [x] 3.4 Generate `schema --json` from the registry, add the six currently missing stable command schemas, and preserve existing v1 schema shapes.
+- [x] 3.5 Replace shortcut global-option parsing duplication with registry-driven normalization while preserving transparent shortcut execution.
+- [x] 3.6 Add registry validation for duplicate names/aliases, unresolved handlers, inconsistent options, missing schemas, and effect mismatches.
+- [x] 3.7 Route human, JSON v1, and NDJSON v1 output through explicit presenters over one canonical result/event model.
 
 ## 4. Provider and Catalog Contracts
 

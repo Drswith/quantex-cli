@@ -1,2 +1,17 @@
-export { getCommandContracts, toV1CommandDescriptor, validateCommandContractRegistry } from './registry'
-export type { CommandContract, CommandEffect, StableCommandName, V1CommandDescriptor } from './registry'
+export {
+  getCommandContracts,
+  getGlobalOptionDefinitions,
+  normalizeCommanderGlobalOptions,
+  toV1CommandDescriptor,
+  validateCommandContractRegistry,
+} from './registry'
+export type {
+  CommandArgumentDefinition,
+  CommandContract,
+  CommandEffect,
+  CommandOptionDefinition,
+  GlobalOptionDefinition,
+  GlobalOptionId,
+  StableCommandName,
+  V1CommandDescriptor,
+} from './registry'

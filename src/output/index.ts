@@ -1,5 +1,10 @@
 import type { CommandError, CommandEvent, CommandResult, CommandTarget, CommandWarning, HumanRenderer } from './types'
 import { getCliContext } from '../cli-context'
+import {
+  getCommandPresentationRoute,
+  presentCommandEvent,
+  presentCommandResult,
+} from '../command-contract/presentation'
 import { getSelfVersion } from '../self'
 
 const SCHEMA_VERSION = '1'
@@ -43,10 +48,14 @@ export function emitCommandResult<T>(
   const context = getCliContext()
   if (context.cancelled && !behavior.force) return result
 
-  if (context.outputMode === 'json') console.log(JSON.stringify(result, null, 2))
-  else if (context.outputMode === 'ndjson')
-    emitNdjsonEvent<CommandResult<T>>({ action: result.action, data: result, target: result.target, type: 'result' })
-  else renderHuman(result)
+  presentCommandResult(
+    getCommandPresentationRoute(result.action),
+    context.outputMode,
+    result,
+    renderHuman,
+    serialized => console.log(serialized),
+    event => emitNdjsonEvent(event),
+  )
 
   return result
 }
@@ -64,9 +73,9 @@ export function emitCommandEvent<T>(
 ): CommandEvent<T> | undefined {
   const context = getCliContext()
   if (context.cancelled && !behavior.force) return undefined
-  if (context.outputMode !== 'ndjson') return undefined
-
-  return emitNdjsonEvent(options)
+  return presentCommandEvent(getCommandPresentationRoute(options.action), context.outputMode, options, event =>
+    emitNdjsonEvent(event),
+  )
 }
 
 function createCommandResult<T>(options: CreateResultOptions<T>): CommandResult<T> {
@@ -116,6 +125,10 @@ function createCommandEvent<T>(options: EmitCommandEventOptions<T>): CommandEven
 
 function emitNdjsonEvent<T>(options: EmitCommandEventOptions<T>): CommandEvent<T> {
   const event = createCommandEvent(options)
-  console.log(JSON.stringify(event))
+  emitSerializedNdjsonEvent(event)
   return event
+}
+
+function emitSerializedNdjsonEvent(event: CommandEvent): void {
+  console.log(JSON.stringify(event))
 }

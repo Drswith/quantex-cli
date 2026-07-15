@@ -1,17 +1,18 @@
-# Self-Upgrade Integration Milestone Progress
+# Command Contract Registry Milestone Progress
 
-Base: `origin/codex/redesign-lifecycle-integration@09fe7b1a57dd0482b91ee1a6d24f314e5b8bad56`
+Base: `origin/codex/redesign-lifecycle-integration@504d069f7058a47bc01136a88d02e45a680405a4`
 
-Plan: `docs/superpowers/plans/2026-07-15-self-upgrade-integration-milestone.md`
+Plan: `docs/superpowers/plans/2026-07-15-command-contract-registry-milestone.md`
 
 | Task | State | Checkpoint | Evidence |
 | --- | --- | --- | --- |
-| 1. Cache-only passive metadata | complete | task-1 commit | typed source/channel metadata; passive cache-only projection; 107 focused compatibility/network/self tests plus static/OpenSpec gates pass |
-| 2. Invocation-scoped self-upgrade service | complete | task-2 commit | per-invocation application/composition, shared cache/lock/signal/timeout, v1 presenter retained; 81 focused tests and static/OpenSpec gates pass |
-| 3. Managed process/network ports | complete | managed-process + network commits | child `ProcessPort`, exact Bun/npm argv/verification, fetch `NetworkPort`, and injected registry/release resolution pass 120 focused tests plus static/OpenSpec gates |
-| 4. Binary/Windows runtime ports | complete | binary-port + persistence/fault commits | standalone download/verification use shared network/process ports; install-source evidence uses shared persistence; cancellation/timeout retain typed interruption; atomic rollback and Windows quoting/peer/delayed-swap coverage pass 94 focused self/state tests plus static/OpenSpec gates |
-| 5. Release validation and PR delivery | in progress | PR #460 initial head | 1544/1544 full tests, static/OpenSpec/memory gates, build, five binaries, package, artifacts, release smoke, isolated Bun-managed self-upgrade, and initial remote lint/Ubuntu/Windows/macOS/Modal sandbox all pass; both independent reviews have no remaining Critical/Important; tasks 9.1-9.5 are complete at 53/74, while normalized-head CI, merge, and integration verification remain pending |
+| 1. Complete registry contract | complete | task-1 commit | typed command arguments/options/global options/effects/schema/handler/presenter metadata; 29 focused tests and static gates pass |
+| 2. Generated Commander registration | complete | task-2 commit | registry-generated root options/commands/aliases/arguments/local options and lazy handler catalog; 1553/1553 tests plus real alias/global-option probes pass |
+| 3. Generated discovery/schema | complete | task-3 commit | all 15 schema documents attach to command contracts; discovery flags derive from typed options and schema/discovery parity is runtime-verified; 50 focused tests pass |
+| 4. Shortcut global normalization | complete | task-4 commit | shortcut parser consumes the same 13 global option definitions as Commander; exhaustive option, passthrough, structured-mode, execution, and v1 tests pass |
+| 5. Explicit presenter routing | complete | task-5 + review-fix commits | registry-backed routes select human/JSON v1/NDJSON v1 projections for final and started/progress/cancelled events; 1564/1564 tests pass |
+| 6. Validation, review, and PR | in progress | review complete | full static/OpenSpec/memory/build gates pass; two independent re-reviews report no Critical/Important; OpenSpec is 59/74; normalized PR to integration remains |
 
-Baseline: lint, format check, and typecheck pass on integration tip `09fe7b1`. The initial full suite reported 1491/1494 with three concurrent signal/timing failures; an immediate focused rerun of the affected files passed 53/53, so recurrence must be classified with systematic debugging rather than silently accepted. CodeGraph is initialized with 460 files, 4023 nodes, and 10466 edges.
+Baseline: integration tip `504d069`; OpenSpec `redesign-lifecycle-engine` remains active and is now 59/74. CodeGraph is initialized with 476 files, 4,231 nodes, and 11,129 edges.
 
-Recovery rule: resume the first row that is not `complete`; inspect its tests, `git log`, `git status`, and CodeGraph pending-sync banner before editing. Commit every reviewed task, preserve the granular head on `refs/quantex/recovery/redesign-self-upgrade-granular`, and normalize only immediately before a PR to `codex/redesign-lifecycle-integration`.
+Recovery rule: resume the first row that is not `complete`; inspect its tests, `git log`, `git status`, granular recovery ref, OpenSpec status, and CodeGraph pending-sync banner before editing. Commit every reviewed task, preserve the granular head at `refs/quantex/recovery/redesign-command-contract-registry-granular`, and normalize only immediately before a PR to `codex/redesign-lifecycle-integration`.
