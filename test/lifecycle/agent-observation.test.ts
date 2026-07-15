@@ -142,6 +142,32 @@ const scenarios: readonly Scenario[] = [
     state: legacyState,
   },
   {
+    executable: { path: '/bin/test-bin', present: true, version: '1.2.3' },
+    expected: {
+      binding: { providerId: 'bun', target: { id: 'test-pkg', kind: 'package' } },
+      capabilities: ['availability', 'observe', 'update'],
+      drift: 'conflicting-source',
+      kind: 'present',
+      path: '/bin/test-bin',
+      providerId: 'bun',
+      version: '1.2.3',
+    },
+    name: 'reports conflicting provider and executable versions against recorded ownership',
+    outcomes: {
+      bun: {
+        kind: 'success',
+        value: {
+          executablePath: '/bin/test-bin',
+          kind: 'present',
+          target: { id: 'test-pkg', kind: 'package' },
+          version: '1.2.4',
+        },
+      },
+    },
+    receipt,
+    state: legacyState,
+  },
+  {
     executable: { path: '/bin/test-bin', present: true },
     expected: { drift: 'indeterminate', kind: 'indeterminate', path: '/bin/test-bin' },
     name: 'fails closed when persisted receipt binding cannot be resolved',

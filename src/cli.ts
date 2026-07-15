@@ -5,9 +5,19 @@ import { program } from 'commander'
 import process from 'node:process'
 import { getAgentByNameOrAlias } from './agents'
 import { resetCliContext, resolveCliContext, setCliContext } from './cli-context'
-import { executeCommandWithRuntime } from './command-runtime'
+import {
+  executeCommandWithRuntime,
+  type CommandIdempotencyPolicy,
+  type CommandIdempotencyPolicyFactory,
+} from './command-runtime'
 import { runCommand } from './commands/run'
 import { getExitCodeForResult } from './errors'
+import {
+  createAgentAbsenceIdempotencyPolicy,
+  createAgentBatchPresenceIdempotencyPolicy,
+  createAgentPresenceIdempotencyPolicy,
+  normalizeAgentPresenceTargets,
+} from './idempotency/lifecycle-policy'
 import { getSelfVersion } from './self'
 import { pc } from './utils/color'
 
@@ -109,13 +119,17 @@ program
   .description('安装指定 agent')
   .action(async (agents: string[]) => {
     const { installCommand } = await import('./commands/install')
-    const isSingleAgent = agents.length === 1
+    const normalizedAgents = normalizeAgentPresenceTargets(agents)
+    const isSingleAgent = normalizedAgents.length === 1
     process.exitCode = await executeCliCommand({
       action: 'install',
-      run: () => installCommand(agents),
+      ...(isSingleAgent
+        ? { idempotencyPolicy: () => createAgentPresenceIdempotencyPolicy('install', normalizedAgents[0]!) }
+        : { idempotencyPolicy: () => createAgentBatchPresenceIdempotencyPolicy(normalizedAgents) }),
+      run: () => installCommand(normalizedAgents),
       target: isSingleAgent
-        ? { kind: 'agent', name: agents[0] }
-        : { kind: 'agent', name: [...agents].sort().join(',') },
+        ? { kind: 'agent', name: normalizedAgents[0] }
+        : { kind: 'agent', name: normalizedAgents.join(',') },
     })
   })
 
@@ -126,6 +140,7 @@ program
     const { ensureCommand } = await import('./commands/ensure')
     process.exitCode = await executeCliCommand({
       action: 'ensure',
+      idempotencyPolicy: () => createAgentPresenceIdempotencyPolicy('ensure', agent),
       run: () => ensureCommand(agent),
       target: { kind: 'agent', name: agent },
     })
@@ -159,12 +174,18 @@ program
   .alias('u')
   .description('更新指定 agent')
   .action(async (agent: string | undefined, options: { all?: boolean }) => {
-    const { updateCommand } = await import('./commands/update')
-    process.exitCode = await executeCliCommand({
-      action: 'update',
-      run: () => updateCommand(agent, options.all ?? false),
-      target: { kind: 'agent', name: agent },
-    })
+    const { createUpdateCommandInvocation } = await import('./commands/update')
+    const invocation = createUpdateCommandInvocation(agent, options.all ?? false)
+    try {
+      process.exitCode = await executeCliCommand({
+        action: 'update',
+        ...(invocation.idempotencyPolicy ? { idempotencyPolicy: invocation.idempotencyPolicy } : {}),
+        run: invocation.run,
+        target: { kind: 'agent', name: agent },
+      })
+    } finally {
+      invocation.dispose()
+    }
   })
 
 program
@@ -175,6 +196,7 @@ program
     const { uninstallCommand } = await import('./commands/uninstall')
     process.exitCode = await executeCliCommand({
       action: 'uninstall',
+      idempotencyPolicy: () => createAgentAbsenceIdempotencyPolicy(agent),
       run: () => uninstallCommand(agent),
       target: { kind: 'agent', name: agent },
     })
@@ -476,6 +498,7 @@ function resolveShortcutInvocation(argv: string[], knownCommandNames: Set<string
 
 async function executeCliCommand<T>(options: {
   action: string
+  idempotencyPolicy?: CommandIdempotencyPolicy<T> | CommandIdempotencyPolicyFactory<T>
   run: () => Promise<CommandResult<T>>
   target?: CommandTarget
 }): Promise<number> {

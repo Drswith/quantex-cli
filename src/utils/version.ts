@@ -30,8 +30,9 @@ export function compareVersions(left: string, right: string): number | undefined
   if (!leftVersion || !rightVersion) return undefined
 
   for (let index = 0; index < 3; index += 1) {
-    const difference = leftVersion.core[index]! - rightVersion.core[index]!
-    if (difference !== 0) return difference > 0 ? 1 : -1
+    const leftPart = leftVersion.core[index]!
+    const rightPart = rightVersion.core[index]!
+    if (leftPart !== rightPart) return leftPart > rightPart ? 1 : -1
   }
 
   return comparePrerelease(leftVersion.prerelease, rightVersion.prerelease)
@@ -127,7 +128,7 @@ function cancelledError(signal: AbortSignal): ProcessInterruptionError {
 }
 
 interface ParsedVersion {
-  core: [number, number, number]
+  core: [bigint, bigint, bigint]
   prerelease: string[]
 }
 
@@ -136,7 +137,7 @@ function parseVersion(value: string): ParsedVersion | undefined {
   if (!match) return undefined
 
   return {
-    core: [Number(match[1]), Number(match[2]), Number(match[3])],
+    core: [BigInt(match[1]), BigInt(match[2]), BigInt(match[3])],
     prerelease: match[4] ? match[4].split('.') : [],
   }
 }
@@ -159,7 +160,12 @@ function comparePrerelease(left: string[], right: string[]): number {
     const leftNumeric = /^\d+$/.test(leftPart)
     const rightNumeric = /^\d+$/.test(rightPart)
 
-    if (leftNumeric && rightNumeric) return Number(leftPart) > Number(rightPart) ? 1 : -1
+    if (leftNumeric && rightNumeric) {
+      const leftNumber = BigInt(leftPart)
+      const rightNumber = BigInt(rightPart)
+      if (leftNumber === rightNumber) continue
+      return leftNumber > rightNumber ? 1 : -1
+    }
     if (leftNumeric) return -1
     if (rightNumeric) return 1
 

@@ -1,71 +1,55 @@
-import type { IdempotencyRecord } from './idempotency'
+import type { VersionedIdempotencyLoadResult } from './idempotency'
+import type { CanonicalMutationRequest, CanonicalValue } from './idempotency/canonical'
+import type { IdempotencyPostcondition, IdempotencyReceiptEvidence } from './idempotency/schema'
 import type { CommandResult, CommandTarget } from './output/types'
-
-function idempotencyTargetsMatch(stored?: CommandTarget, requested?: CommandTarget): boolean {
-  if (stored === undefined && requested === undefined) return true
-  if (stored === undefined || requested === undefined) return false
-  if (stored.kind !== requested.kind) return false
-  if (stored.kind === 'agent' && (!stored.name || !requested.name)) return false
-  return stored.name === requested.name
-}
 
 function isDryRunIdempotencyResult(result: CommandResult): boolean {
   return result.warnings.some(warning => warning.code === 'DRY_RUN')
 }
-
-const agentPresenceRequiredActions = new Set(['install', 'ensure', 'update'])
-const agentAbsenceRequiredActions = new Set(['uninstall'])
-
-function getIdempotencyAgentNames(target?: CommandTarget): string[] | undefined {
-  if (target?.kind !== 'agent' || !target.name) return undefined
-
-  return target.name
-    .split(',')
-    .map(name => name.trim())
-    .filter(Boolean)
-}
-
-async function isStoredIdempotencyResultStillValid(record: IdempotencyRecord): Promise<boolean> {
-  if (!record.result.ok) return true
-
-  const agentNames = getIdempotencyAgentNames(record.target)
-  if (!agentNames || agentNames.length === 0) return true
-
-  if (agentPresenceRequiredActions.has(record.action)) {
-    for (const agentName of agentNames) {
-      const resolved = await resolveAgentInspection(agentName)
-      if (!resolved?.inspection.inPath) return false
-    }
-
-    return true
-  }
-
-  if (agentAbsenceRequiredActions.has(record.action)) {
-    for (const agentName of agentNames) {
-      const resolved = await resolveAgentInspection(agentName)
-      if (resolved?.inspection.inPath) return false
-    }
-
-    return true
-  }
-
-  return true
-}
 import process from 'node:process'
 import { cancelCliContextOperations, getCliContext } from './cli-context'
-import { loadIdempotencyRecord, saveIdempotencyRecord } from './idempotency'
+import { loadVersionedIdempotencyRecord, saveVersionedIdempotencyRecord } from './idempotency'
+import { fingerprintCanonicalValue } from './idempotency/canonical'
+import { evaluateReplay, type ReplayLiveEvidence, type ReplayLiveValidation } from './idempotency/replay'
 import { createErrorResult, emitCommandEvent, emitCommandResult } from './output'
 import { maybeRenderSelfUpdateNotice } from './self/update-notice'
-import { resolveAgentInspection } from './services/agents'
 import { getStateFilePath, StateFileError } from './state'
 import { isProcessInterruptionError } from './utils/child-process'
 import { pc } from './utils/color'
 import { createStateReadError } from './utils/lifecycle-errors'
 
-interface ExecuteCommandOptions<T> {
+export interface CommandIdempotencyPolicy<T> {
+  readonly captureEvidence: (
+    result: CommandResult<T>,
+  ) =>
+    | Promise<
+        { readonly postcondition: IdempotencyPostcondition; readonly receipt: IdempotencyReceiptEvidence } | undefined
+      >
+    | { readonly postcondition: IdempotencyPostcondition; readonly receipt: IdempotencyReceiptEvidence }
+    | undefined
+  readonly request: CanonicalMutationRequest
+  readonly resolvedPlan: Readonly<Record<string, CanonicalValue>>
+  readonly validateLive: (evidence: ReplayLiveEvidence) => Promise<ReplayLiveValidation> | ReplayLiveValidation
+}
+
+export type CommandIdempotencyPolicyFactory<T> = () =>
+  | Promise<CommandIdempotencyPolicy<T>>
+  | CommandIdempotencyPolicy<T>
+
+export interface ExecuteCommandOptions<T> {
   action: string
+  idempotencyPolicy?: CommandIdempotencyPolicy<T> | CommandIdempotencyPolicyFactory<T>
   run: () => Promise<CommandResult<T>>
   target?: CommandTarget
+}
+
+type ResolvedExecuteCommandOptions<T> = Omit<ExecuteCommandOptions<T>, 'idempotencyPolicy'> & {
+  idempotencyPolicy?: CommandIdempotencyPolicy<T>
+}
+
+interface PreparedIdempotency<T> {
+  readonly policy?: CommandIdempotencyPolicy<T>
+  readonly replayedResult?: CommandResult<T>
 }
 
 export async function executeCommandWithRuntime<T>(options: ExecuteCommandOptions<T>): Promise<CommandResult<T>> {
@@ -79,48 +63,129 @@ export async function executeCommandWithRuntime<T>(options: ExecuteCommandOption
 }
 
 async function executeCommandWithRuntimeInternal<T>(options: ExecuteCommandOptions<T>): Promise<CommandResult<T>> {
-  const replayedResult = await replayIdempotentResult<T>(options.action, options.target)
-  if (replayedResult) return replayedResult
+  return withSignalCancellation(options, () => executeCommandWithinDeadline(options))
+}
 
+async function executeCommandWithinDeadline<T>(options: ExecuteCommandOptions<T>): Promise<CommandResult<T>> {
   const timeoutMs = getCliContext().timeoutMs
+  const deadline = { expired: false }
+  let replayed = false
+  let resolvedOptions: ResolvedExecuteCommandOptions<T> | undefined
+  const runPrimaryWork = async (): Promise<CommandResult<T>> => {
+    const prepared = await prepareIdempotency(options, () => deadline.expired)
+    if (deadline.expired && timeoutMs !== undefined) return createTimeoutCancellationResult(options, timeoutMs)
+    if (prepared.replayedResult) {
+      replayed = true
+      return prepared.replayedResult
+    }
 
-  if (timeoutMs === undefined)
-    return withSignalCancellation(options, () =>
-      options.run().then(result => finalizeSuccessfulRun(options.action, options.target, result)),
-    )
+    resolvedOptions = {
+      action: options.action,
+      ...(prepared.policy ? { idempotencyPolicy: prepared.policy } : {}),
+      run: options.run,
+      ...(options.target ? { target: options.target } : {}),
+    }
+    if (getCliContext().cancelled) return createInterruptedPrimaryResult(options)
+    return options.run()
+  }
 
+  const result =
+    timeoutMs === undefined
+      ? await runPrimaryWork()
+      : await executePrimaryWorkWithTimeout(options, runPrimaryWork, timeoutMs, deadline)
+
+  if (replayed || !resolvedOptions) return result
+  return finalizeSuccessfulRun(resolvedOptions, result)
+}
+
+async function executePrimaryWorkWithTimeout<T>(
+  options: ExecuteCommandOptions<T>,
+  run: () => Promise<CommandResult<T>>,
+  timeoutMs: number,
+  deadline: { expired: boolean },
+): Promise<CommandResult<T>> {
   let timeoutId: ReturnType<typeof setTimeout> | undefined
 
   try {
     const timeoutPromise = new Promise<CommandResult<T>>(resolve => {
       timeoutId = setTimeout(() => {
+        deadline.expired = true
         resolve(createTimeoutCancellationResult(options, timeoutMs))
       }, timeoutMs)
     })
 
-    // Race only the primary command work against the deadline. Post-run steps (idempotency
-    // persistence and passive self-update notice) must not consume the timeout budget.
-    return await withSignalCancellation(options, async () => {
-      const runPromise = runUntilTimeoutCancellation(options.run, () => timeoutPromise)
-      let result = await Promise.race([runPromise, timeoutPromise])
+    const runPromise = runUntilTimeoutCancellation(run, () => timeoutPromise)
+    let result = await Promise.race([runPromise, timeoutPromise])
 
-      if (!result.ok && result.error?.code === 'TIMEOUT') {
-        const lateResult = await waitForLateTerminalCompletion(runPromise, timeoutMs)
-        result =
-          lateResult && lateResult.error?.code !== 'TIMEOUT'
-            ? lateResult
-            : await emitTimeoutCancellation(options, timeoutMs)
-      }
+    if (!result.ok && result.error?.code === 'TIMEOUT') {
+      const lateResult = await waitForLateTerminalCompletion(runPromise, timeoutMs)
+      result =
+        lateResult && lateResult.error?.code !== 'TIMEOUT'
+          ? lateResult
+          : await emitTimeoutCancellation(options, timeoutMs)
+    }
 
-      if (timeoutId !== undefined) {
-        clearTimeout(timeoutId)
-        timeoutId = undefined
-      }
-      return finalizeSuccessfulRun(options.action, options.target, result)
-    })
+    if (timeoutId !== undefined) {
+      clearTimeout(timeoutId)
+      timeoutId = undefined
+    }
+    return result
   } finally {
     if (timeoutId) clearTimeout(timeoutId)
   }
+}
+
+async function prepareIdempotency<T>(
+  options: ExecuteCommandOptions<T>,
+  isDeadlineExpired: () => boolean = () => false,
+): Promise<PreparedIdempotency<T>> {
+  const context = getCliContext()
+  if (!context.idempotencyKey || context.dryRun || !isMutationAction(options.action)) return {}
+
+  if (!options.idempotencyPolicy) return {}
+
+  const loaded = await loadVersionedIdempotencyRecord(context.idempotencyKey)
+  if (context.cancelled || isDeadlineExpired()) return {}
+  if (loaded.kind === 'invalid') {
+    return {
+      replayedResult: emitCommandResult(
+        createPolicyInvalidEvidenceResult(options, context.idempotencyKey, loaded.reason),
+        renderTimeoutHuman,
+        { force: true },
+      ),
+    }
+  }
+
+  const policy =
+    typeof options.idempotencyPolicy === 'function' ? await options.idempotencyPolicy() : options.idempotencyPolicy
+  if (context.cancelled || isDeadlineExpired()) return {}
+
+  const decision = await evaluateReplay({
+    loaded,
+    request: policy.request,
+    resolvedPlan: policy.resolvedPlan,
+    validateLive: policy.validateLive,
+  })
+  if (context.cancelled || isDeadlineExpired()) return {}
+
+  if (decision.kind === 'reconcile') return { policy }
+  if (decision.kind === 'reject') {
+    return {
+      replayedResult: emitPolicyRejection(options, context.idempotencyKey, decision, loaded),
+    }
+  }
+
+  const replayedResult = withFreshReplayMetadata(decision.result) as CommandResult<T>
+  emitCommandResult(replayedResult, renderTimeoutHuman, { force: true })
+  return { replayedResult }
+}
+
+function createInterruptedPrimaryResult<T>(options: ExecuteCommandOptions<T>): CommandResult<T> {
+  return createErrorResult<T>({
+    action: options.action,
+    error: { code: 'CANCELLED', message: 'Command was cancelled before execution could start.' },
+    target: options.target,
+  })
 }
 
 async function resolveStateReadError<T>(
@@ -141,15 +206,16 @@ function renderStateReadHuman(result: Pick<CommandResult, 'error'>): void {
 }
 
 async function finalizeSuccessfulRun<T>(
-  action: string,
-  target: CommandTarget | undefined,
+  options: ResolvedExecuteCommandOptions<T>,
   result: CommandResult<T>,
 ): Promise<CommandResult<T>> {
-  const storedResult = await storeIdempotentResult(action, target, result)
+  if (getCliContext().cancelled) return result
+
+  const storedResult = await storeIdempotentResult(options, result)
 
   try {
     await maybeRenderSelfUpdateNotice({
-      action,
+      action: options.action,
       ok: storedResult.ok,
     })
   } catch {
@@ -163,63 +229,147 @@ function renderTimeoutHuman(result: Pick<CommandResult, 'error'>): void {
   if (result.error) console.error(pc.red(result.error.message))
 }
 
-async function replayIdempotentResult<T>(
-  action: string,
-  target?: CommandTarget,
-): Promise<CommandResult<T> | undefined> {
+async function storeIdempotentResult<T>(
+  options: ResolvedExecuteCommandOptions<T>,
+  result: CommandResult<T>,
+): Promise<CommandResult<T>> {
   const context = getCliContext()
-  if (!context.idempotencyKey) return undefined
+  if (
+    !context.idempotencyKey ||
+    !isMutationAction(options.action) ||
+    !result.ok ||
+    context.dryRun ||
+    isDryRunIdempotencyResult(result)
+  )
+    return result
 
-  const record = await loadIdempotencyRecord(context.idempotencyKey)
-  if (!record) return undefined
+  if (!options.idempotencyPolicy) return result
 
-  if (record.action !== action) {
+  const captured = await options.idempotencyPolicy.captureEvidence(result)
+  if (!captured) return result
+  const loaded = await loadVersionedIdempotencyRecord(context.idempotencyKey)
+  const replacementRejection = rejectUnsafeReplacement(options, context.idempotencyKey, loaded)
+  if (replacementRejection) return replacementRejection
+
+  await saveVersionedIdempotencyRecord(context.idempotencyKey, {
+    postcondition: fingerprinted(captured.postcondition),
+    receipt: fingerprinted(captured.receipt),
+    request: fingerprinted(options.idempotencyPolicy.request),
+    resolvedPlan: fingerprinted(options.idempotencyPolicy.resolvedPlan),
+    result,
+  })
+
+  return result
+}
+
+function rejectUnsafeReplacement<T>(
+  options: ResolvedExecuteCommandOptions<T>,
+  idempotencyKey: string,
+  loaded: VersionedIdempotencyLoadResult,
+): CommandResult<T> | undefined {
+  if (!options.idempotencyPolicy) return undefined
+  const requestedRequestFingerprint = fingerprintCanonicalValue(options.idempotencyPolicy.request)
+
+  if (loaded.kind === 'invalid') {
     return emitCommandResult(
-      createErrorResult<T>({
-        action,
-        error: {
-          code: 'INVALID_ARGUMENT',
-          details: {
-            existingAction: record.action,
-            idempotencyKey: context.idempotencyKey,
-          },
-          message: `Idempotency key ${context.idempotencyKey} was already used for ${record.action}.`,
+      createPolicyInvalidEvidenceResult(options, idempotencyKey, loaded.reason),
+      renderTimeoutHuman,
+      { force: true },
+    )
+  }
+  if (loaded.kind !== 'valid' || loaded.record.request.fingerprint === requestedRequestFingerprint) return undefined
+
+  return emitCommandResult(
+    createErrorResult<T>({
+      action: options.action,
+      error: {
+        code: 'INVALID_ARGUMENT',
+        details: {
+          conflict: 'concurrent-request-mismatch',
+          existingAction: loaded.record.request.payload.action,
+          idempotencyKey,
         },
-        target,
-      }),
+        message: `Idempotency key ${idempotencyKey} changed while the command was running; replay evidence was not overwritten.`,
+      },
+      target: options.target,
+    }),
+    renderTimeoutHuman,
+    { force: true },
+  )
+}
+
+function emitPolicyRejection<T>(
+  options: ExecuteCommandOptions<T>,
+  idempotencyKey: string,
+  decision: Extract<Awaited<ReturnType<typeof evaluateReplay>>, { kind: 'reject' }>,
+  loaded: VersionedIdempotencyLoadResult,
+): CommandResult<T> {
+  if (decision.reason === 'invalid-evidence') {
+    return emitCommandResult(
+      createPolicyInvalidEvidenceResult(options, idempotencyKey, decision.invalidReason),
       renderTimeoutHuman,
       { force: true },
     )
   }
 
-  if (!idempotencyTargetsMatch(record.target, target)) return undefined
-  if (isDryRunIdempotencyResult(record.result)) return undefined
-  if (!(await isStoredIdempotencyResultStillValid(record))) return undefined
+  return emitCommandResult(
+    createErrorResult<T>({
+      action: options.action,
+      error: {
+        code: 'INVALID_ARGUMENT',
+        details: {
+          existingAction: loaded.kind === 'valid' ? loaded.record.request.payload.action : undefined,
+          idempotencyKey,
+          reason: 'request-mismatch',
+        },
+        message: `Idempotency key ${idempotencyKey} was already used for a different canonical request.`,
+      },
+      target: options.target,
+    }),
+    renderTimeoutHuman,
+    { force: true },
+  )
+}
 
-  const replayedResult = {
-    ...record.result,
+function createPolicyInvalidEvidenceResult<T>(
+  options: ExecuteCommandOptions<T>,
+  idempotencyKey: string,
+  invalidReason: Extract<VersionedIdempotencyLoadResult, { kind: 'invalid' }>['reason'],
+): CommandResult<T> {
+  return createErrorResult<T>({
+    action: options.action,
+    error: {
+      code: 'INVALID_ARGUMENT',
+      details: {
+        idempotencyKey,
+        invalidReason,
+        reason: 'invalid-evidence',
+      },
+      message: `Idempotency key ${idempotencyKey} contains invalid replay evidence (${invalidReason}).`,
+    },
+    target: options.target,
+  })
+}
+
+function withFreshReplayMetadata(result: CommandResult): CommandResult {
+  const context = getCliContext()
+  return {
+    ...result,
     meta: {
-      ...record.result.meta,
+      ...result.meta,
       mode: context.outputMode,
       runId: context.runId,
       timestamp: new Date().toISOString(),
     },
-  } as CommandResult<T>
-
-  emitCommandResult(replayedResult, renderTimeoutHuman, { force: true })
-  return replayedResult
+  }
 }
 
-async function storeIdempotentResult<T>(
-  action: string,
-  target: CommandTarget | undefined,
-  result: CommandResult<T>,
-): Promise<CommandResult<T>> {
-  const context = getCliContext()
-  if (context.idempotencyKey && result.ok && !context.dryRun && !isDryRunIdempotencyResult(result))
-    await saveIdempotencyRecord(context.idempotencyKey, { action, result, target })
+function fingerprinted<T>(payload: T) {
+  return { fingerprint: fingerprintCanonicalValue(payload), payload }
+}
 
-  return result
+function isMutationAction(action: string): boolean {
+  return action === 'ensure' || action === 'install' || action === 'uninstall' || action === 'update'
 }
 
 async function withSignalCancellation<T>(

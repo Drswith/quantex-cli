@@ -111,27 +111,32 @@ export function observeRegisteredAgents(): Promise<ResolvedAgentObservation[]> {
   return withProductionObservationService(service => service.observeRegisteredAgents())
 }
 
-async function withProductionObservationService<T>(
-  observe: (service: LifecycleObservationService) => Promise<T>,
-): Promise<T> {
-  const operation = createCliOperationContext()
-  const service = createLifecycleObservationService({
+export function createProductionLifecycleObservationService(
+  context: ProviderOperationContext,
+): LifecycleObservationService {
+  return createLifecycleObservationService({
     clock: () => new Date().toISOString(),
     getAllAgents: agentRegistry.getAllAgents,
     getAgentByNameOrAlias: agentRegistry.getAgentByNameOrAlias,
-    getLatestVersion: (agent, installedState, methods) =>
-      resolveLatestVersion(agent, installedState, methods, operation.context),
+    getLatestVersion: (agent, installedState, methods) => resolveLatestVersion(agent, installedState, methods, context),
     getOrderedInstallMethods,
     getPlatform,
-    getResolvedBinaryPath: binaryPath => getResolvedBinaryPath(binaryPath, operation.context),
-    inspectExecutable: (agent, installedState) => inspectExecutable(agent, installedState, operation.context),
+    getResolvedBinaryPath: binaryPath => getResolvedBinaryPath(binaryPath, context),
+    inspectExecutable: (agent, installedState) => inspectExecutable(agent, installedState, context),
     observeAgentLifecycle,
     providerRegistry: firstPartyProviderRegistry,
     readInstalledState: getInstalledAgentState,
     readReceipt: getLifecycleReceipt,
-    signal: operation.context.signal,
-    timeoutMs: operation.context.timeoutMs,
+    signal: context.signal,
+    timeoutMs: context.timeoutMs,
   })
+}
+
+async function withProductionObservationService<T>(
+  observe: (service: LifecycleObservationService) => Promise<T>,
+): Promise<T> {
+  const operation = createCliOperationContext()
+  const service = createProductionLifecycleObservationService(operation.context)
 
   try {
     return await operation.run(() => observe(service))

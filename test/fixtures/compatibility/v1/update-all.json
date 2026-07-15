@@ -1,0 +1,35 @@
+{
+  "exitCode": 0,
+  "stderr": [],
+  "stdout": [
+    {
+      "action": "update",
+      "data": {
+        "results": [
+          {
+            "displayName": "Test Agent",
+            "installedVersion": "1.9.0",
+            "latestVersion": "1.10.0",
+            "name": "test-agent",
+            "status": "updated",
+            "strategy": "managed/bun"
+          }
+        ],
+        "scope": "all"
+      },
+      "error": null,
+      "meta": {
+        "mode": "json",
+        "runId": "<run-id>",
+        "schemaVersion": "1",
+        "timestamp": "<timestamp>",
+        "version": "<version>"
+      },
+      "ok": true,
+      "target": {
+        "kind": "agent"
+      },
+      "warnings": []
+    }
+  ]
+}

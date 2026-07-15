@@ -2,6 +2,7 @@ import type { AgentDefinition, Platform } from '../agents'
 import type { ProviderOperation, ProviderOutcome, ProviderObservation, ProviderRegistry } from '../providers'
 import type { InstalledAgentState } from '../state'
 import type { LifecycleObservation, LifecycleReceipt } from './model'
+import { compareVersions } from '../utils/version'
 import {
   type LifecycleProviderBinding,
   observeLifecycleProvider,
@@ -44,6 +45,7 @@ export interface AgentLifecycleObservationResult {
   readonly installedState?: InstalledAgentState
   readonly observation: LifecycleObservation
   readonly pathExecutable: AgentExecutableObservation
+  readonly persistedBinding?: LifecycleProviderBinding
   readonly providerOutcome?: ProviderOutcome<ProviderObservation>
   readonly receipt?: LifecycleReceipt
 }
@@ -62,7 +64,8 @@ export async function observeAgentLifecycle(
   const catalogMethods = catalogEvidence.bindings
   const stateBinding = installedState ? resolveStateProviderBinding(agent, installedState) : undefined
   const receiptBinding = receipt ? resolveReceiptProviderBinding(receipt) : undefined
-  const base = { catalogMethods, executable, installedState, pathExecutable: executable, receipt }
+  const persistedBinding = receiptBinding ?? stateBinding
+  const base = { catalogMethods, executable, installedState, pathExecutable: executable, persistedBinding, receipt }
 
   if ((installedState && !stateBinding) || (receipt && !receiptBinding)) {
     return {
@@ -95,7 +98,7 @@ export async function observeAgentLifecycle(
     }
   }
 
-  const recordedBinding = receiptBinding ?? stateBinding
+  const recordedBinding = persistedBinding
   if (recordedBinding) {
     const providerOutcome = await observeProvider(recordedBinding, ports)
     const capabilities = ports.providerRegistry.getCapabilities(recordedBinding.providerId)
@@ -141,6 +144,7 @@ export async function observeAgentLifecycle(
         providerObservation.executablePath !== undefined &&
         executable.path !== undefined &&
         providerObservation.executablePath !== executable.path) ||
+      (providerObservation.kind === 'present' && versionsConflict(providerObservation.version, executable.version)) ||
       (receipt?.executablePath !== undefined &&
         executable.path !== undefined &&
         receipt.executablePath !== executable.path) ||
@@ -235,7 +239,8 @@ export async function observeAgentLifecycle(
       !executable.present ||
       (providerObservation.executablePath !== undefined &&
         executable.path !== undefined &&
-        providerObservation.executablePath !== executable.path)
+        providerObservation.executablePath !== executable.path) ||
+      versionsConflict(providerObservation.version, executable.version)
     return {
       ...base,
       binding,
@@ -326,6 +331,12 @@ function mergeExecutableObservation(
     present: true,
     version: executable.version ?? providerObservation.version,
   }
+}
+
+function versionsConflict(left: string | undefined, right: string | undefined): boolean {
+  if (left === undefined || right === undefined) return false
+  const order = compareVersions(left, right)
+  return order === undefined ? left !== right : order !== 0
 }
 
 function executableIdentityConflicts(
