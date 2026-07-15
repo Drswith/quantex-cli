@@ -146,6 +146,13 @@ describe('getInstalledVersion', () => {
 })
 
 describe('compareVersions', () => {
+  it('orders multi-digit semantic components numerically', async () => {
+    const { compareVersions } = await import('../../src/utils/version')
+
+    expect(compareVersions('2.10.0', '2.9.0')).toBe(1)
+    expect(compareVersions('1.9.0', '1.10.0')).toBe(-1)
+  })
+
   it('orders newer patch versions higher', async () => {
     const { compareVersions, isVersionNewer } = await import('../../src/utils/version')
 
@@ -166,6 +173,20 @@ describe('compareVersions', () => {
 
     expect(compareVersions('1.0.0', '1.0.0-beta.1')).toBe(1)
     expect(compareVersions('1.0.0-beta.2', '1.0.0-beta.1')).toBe(1)
+  })
+
+  it('orders numeric prerelease identifiers numerically', async () => {
+    const { compareVersions } = await import('../../src/utils/version')
+
+    expect(compareVersions('1.0.0-beta.11', '1.0.0-beta.2')).toBe(1)
+    expect(compareVersions('1.0.0-beta.2', '1.0.0-beta.11')).toBe(-1)
+  })
+
+  it('orders semantic integers beyond the safe JavaScript number range without precision loss', async () => {
+    const { compareVersions } = await import('../../src/utils/version')
+
+    expect(compareVersions('9007199254740993.0.0', '9007199254740992.0.0')).toBe(1)
+    expect(compareVersions('1.0.0-beta.9007199254740993', '1.0.0-beta.9007199254740992')).toBe(1)
   })
 
   it('returns undefined for unparsable versions', async () => {

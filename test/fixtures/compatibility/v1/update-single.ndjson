@@ -1,0 +1,93 @@
+{
+  "exitCode": 0,
+  "stderr": [],
+  "stdout": [
+    {
+      "action": "update",
+      "data": {
+        "agent": "test-agent",
+        "scope": "single"
+      },
+      "meta": {
+        "mode": "ndjson",
+        "runId": "<run-id>",
+        "schemaVersion": "1",
+        "timestamp": "<timestamp>",
+        "version": "<version>"
+      },
+      "target": {
+        "kind": "agent",
+        "name": "test-agent"
+      },
+      "type": "started"
+    },
+    {
+      "action": "update",
+      "data": {
+        "displayName": "Test Agent",
+        "installedVersion": "1.9.0",
+        "latestVersion": "1.10.0",
+        "name": "test-agent",
+        "status": "updated",
+        "strategy": "managed/bun"
+      },
+      "meta": {
+        "mode": "ndjson",
+        "runId": "<run-id>",
+        "schemaVersion": "1",
+        "timestamp": "<timestamp>",
+        "version": "<version>"
+      },
+      "target": {
+        "kind": "agent",
+        "name": "test-agent"
+      },
+      "type": "progress"
+    },
+    {
+      "action": "update",
+      "data": {
+        "action": "update",
+        "data": {
+          "results": [
+            {
+              "displayName": "Test Agent",
+              "installedVersion": "1.9.0",
+              "latestVersion": "1.10.0",
+              "name": "test-agent",
+              "status": "updated",
+              "strategy": "managed/bun"
+            }
+          ],
+          "scope": "single"
+        },
+        "error": null,
+        "meta": {
+          "mode": "ndjson",
+          "runId": "<run-id>",
+          "schemaVersion": "1",
+          "timestamp": "<timestamp>",
+          "version": "<version>"
+        },
+        "ok": true,
+        "target": {
+          "kind": "agent",
+          "name": "test-agent"
+        },
+        "warnings": []
+      },
+      "meta": {
+        "mode": "ndjson",
+        "runId": "<run-id>",
+        "schemaVersion": "1",
+        "timestamp": "<timestamp>",
+        "version": "<version>"
+      },
+      "target": {
+        "kind": "agent",
+        "name": "test-agent"
+      },
+      "type": "result"
+    }
+  ]
+}

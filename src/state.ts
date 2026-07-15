@@ -1,6 +1,7 @@
 export {
   getInstalledAgentState,
   getLifecycleReceipt,
+  lifecycleReceiptStore,
   getSelfState,
   getStateFilePath,
   getStateLockPath,

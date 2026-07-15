@@ -1,8 +1,8 @@
 import type { AgentInspection } from '../inspection'
 import type { ManagedInstallType } from '../package-manager'
 import { resolveAgentUpdateProvider } from '../agent-update'
+import { planLifecycleUpdate } from '../lifecycle/update-planner'
 import { getManagedInstallTypes } from '../package-manager/capabilities'
-import { canAutoUpdateAgent } from '../utils/install'
 
 export interface UpdatePlanEntry {
   inspection: AgentInspection
@@ -46,12 +46,13 @@ export function createUpdatePlan(
       continue
     }
 
-    if (shouldSkipUnknownManualUpdate(inspection)) {
+    const decision = getInspectionUpdateDecision(inspection)
+    if (decision === 'indeterminate' || decision === 'manual-required' || decision === 'blocked-source') {
       skippedManualCheck.push(inspection)
       continue
     }
 
-    if (!isInspectionUpdateAvailable(inspection)) {
+    if (decision !== 'upgrade') {
       upToDate.push(inspection)
       continue
     }
@@ -99,14 +100,30 @@ export function createUpdatePlan(
 export function isInspectionUpdateAvailable(
   inspection: Pick<AgentInspection, 'installedVersion' | 'latestVersion'>,
 ): boolean {
-  if (inspection.installedVersion && inspection.latestVersion)
-    return inspection.installedVersion !== inspection.latestVersion
-
-  return true
+  return getInspectionUpdateDecision(inspection) === 'upgrade'
 }
 
-function shouldSkipUnknownManualUpdate(
-  inspection: Pick<AgentInspection, 'agent' | 'installedState' | 'latestVersion'>,
-): boolean {
-  return !inspection.latestVersion && !canAutoUpdateAgent(inspection.agent, inspection.installedState)
+function getInspectionUpdateDecision(inspection: Pick<AgentInspection, 'installedVersion' | 'latestVersion'>) {
+  return planLifecycleUpdate({
+    intent: {
+      kind: 'update',
+      targetId: 'compatibility-update',
+      targetVersion: inspection.latestVersion,
+    },
+    observation: {
+      drift: { kind: 'none' },
+      kind: 'present',
+      providerId: 'compatibility',
+      providerTargetId: 'compatibility-update',
+      providerTargetKind: 'package',
+      targetId: 'compatibility-update',
+      version: inspection.installedVersion,
+    },
+    provider: {
+      capabilities: ['observe', 'update', 'verify'],
+      providerId: 'compatibility',
+      targetId: 'compatibility-update',
+      targetKind: 'package',
+    },
+  }).decision
 }

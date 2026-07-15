@@ -150,6 +150,8 @@ export interface LifecycleReceipt {
   readonly version?: string
 }
 
+export const LIFECYCLE_RECEIPT_SCHEMA_VERSION = 1
+
 export type LifecycleOutcome<T> =
   | { readonly kind: 'success'; readonly value: T }
   | {

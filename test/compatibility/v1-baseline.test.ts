@@ -3,6 +3,7 @@ import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import * as agents from '../../src/agents'
 import { setCliContext } from '../../src/cli-context'
 import { executeCommandWithRuntime } from '../../src/command-runtime'
 import { commandsCommand } from '../../src/commands/commands'
@@ -10,10 +11,17 @@ import { infoCommand } from '../../src/commands/info'
 import { inspectCommand } from '../../src/commands/inspect'
 import { listCommand } from '../../src/commands/list'
 import { resolveCommand } from '../../src/commands/resolve'
+import { updateCommand } from '../../src/commands/update'
 import { cliErrorCodes, getExitCodeForResult } from '../../src/errors'
+import * as packageManager from '../../src/package-manager'
+import * as bunPackageManager from '../../src/package-manager/bun'
 import * as legacyAgentsService from '../../src/services/agents'
 import * as lifecycleObservations from '../../src/services/lifecycle-observations'
+import * as lifecycleUpdateProduction from '../../src/services/lifecycle-updates-production'
+import * as stateStore from '../../src/state'
 import { loadState, StateFileError } from '../../src/state'
+import * as detect from '../../src/utils/detect'
+import * as version from '../../src/utils/version'
 
 interface CompatibilitySurface {
   binaryNames: string[]
@@ -282,7 +290,143 @@ describe('v1 compatibility baseline', () => {
       restoreInspectResolveRouteSpies(spies)
     }
   })
+
+  it.each([
+    ['single', 'json', 'update-single.json'],
+    ['all', 'json', 'update-all.json'],
+    ['single', 'ndjson', 'update-single.ndjson'],
+    ['all', 'ndjson', 'update-all.ndjson'],
+  ] as const)('locks %s-agent update %s output, exit code, and stream routing', async (scope, mode, fixture) => {
+    const expected = await readFixture<UpdateCompatibilityFixture>(fixture)
+    const actual = await captureUpdateCompatibility(scope, mode)
+
+    expect(actual).toEqual(expected)
+  })
+
+  it('normalizes only volatile meta.version fields in update fixtures', () => {
+    const actual = normalizeUpdateCompatibility({
+      exitCode: 0,
+      stderr: [],
+      stdout: [
+        {
+          data: { version: '2.0.0' },
+          meta: { version: '0.30.0' },
+        },
+      ],
+    })
+
+    expect(actual.stdout).toEqual([
+      {
+        data: { version: '2.0.0' },
+        meta: { version: '<version>' },
+      },
+    ])
+  })
 })
+
+interface UpdateCompatibilityFixture {
+  exitCode: number
+  stderr: string[]
+  stdout: unknown[]
+}
+
+async function captureUpdateCompatibility(
+  scope: 'all' | 'single',
+  mode: 'json' | 'ndjson',
+): Promise<UpdateCompatibilityFixture> {
+  const batchRootSpy = scope === 'all' ? vi.spyOn(lifecycleUpdateProduction, requireLifecycleBatchRoot()) : undefined
+  const agent = v1UpdateAgent()
+  const installedVersionSpy = vi.spyOn(version, 'getInstalledVersion')
+  installedVersionSpy.mockResolvedValueOnce('1.9.0').mockResolvedValue('1.10.0')
+  const spies = [
+    vi.spyOn(agents, 'getAgentByNameOrAlias').mockReturnValue(agent),
+    vi.spyOn(agents, 'getAllAgents').mockReturnValue([agent]),
+    vi.spyOn(detect, 'isBinaryInPath').mockResolvedValue(true),
+    installedVersionSpy,
+    vi.spyOn(version, 'getLatestVersion').mockResolvedValue('1.10.0'),
+    vi.spyOn(stateStore, 'getInstalledAgentState').mockResolvedValue({
+      agentName: agent.name,
+      installType: 'bun',
+      packageName: 'test-pkg',
+    }),
+    vi.spyOn(packageManager, 'getManagedInstalledPackageVersion').mockResolvedValue('1.9.0'),
+    vi.spyOn(packageManager, 'updateAgentsByType').mockImplementation(async () => {
+      if (scope === 'all') throw new Error('legacy update batch must not run')
+      return true
+    }),
+    vi.spyOn(bunPackageManager, 'getInstalledVersion').mockResolvedValueOnce('1.9.0').mockResolvedValue('1.10.0'),
+    vi.spyOn(bunPackageManager, 'probePackagePresence').mockResolvedValue('present'),
+    vi.spyOn(bunPackageManager, 'update').mockResolvedValue(true),
+  ]
+  const stdout: unknown[] = []
+  const stderr: string[] = []
+  const logSpy = vi.spyOn(console, 'log').mockImplementation(value => stdout.push(JSON.parse(String(value))))
+  const errorSpy = vi.spyOn(console, 'error').mockImplementation(value => stderr.push(String(value)))
+  const stderrWriteSpy = vi.spyOn(process.stderr, 'write').mockImplementation(value => {
+    stderr.push(String(value))
+    return true
+  })
+
+  try {
+    setCliContext({
+      interactive: false,
+      outputMode: mode,
+      runId: `v1-update-${scope}-${mode}`,
+    })
+    const result = await updateCommand(scope === 'single' ? agent.name : undefined, scope === 'all')
+
+    if (scope === 'all') expect(batchRootSpy).toHaveBeenCalledOnce()
+
+    return normalizeUpdateCompatibility({
+      exitCode: getExitCodeForResult(result),
+      stderr,
+      stdout,
+    })
+  } finally {
+    logSpy.mockRestore()
+    errorSpy.mockRestore()
+    stderrWriteSpy.mockRestore()
+    batchRootSpy?.mockRestore()
+    for (const spy of spies) spy.mockRestore()
+  }
+}
+
+function requireLifecycleBatchRoot(): 'runLifecycleUpdateBatch' {
+  expect(lifecycleUpdateProduction).toHaveProperty('runLifecycleUpdateBatch')
+  if (!('runLifecycleUpdateBatch' in lifecycleUpdateProduction)) {
+    throw new Error('Expected lifecycle update production module to export runLifecycleUpdateBatch')
+  }
+  return 'runLifecycleUpdateBatch'
+}
+
+function normalizeUpdateCompatibility(fixture: UpdateCompatibilityFixture): UpdateCompatibilityFixture {
+  return JSON.parse(
+    JSON.stringify(fixture, (key, value) => {
+      if (key === 'runId') return '<run-id>'
+      if (key === 'timestamp') return '<timestamp>'
+      if (key === 'meta' && value && typeof value === 'object' && typeof value.version === 'string') {
+        return { ...value, version: '<version>' }
+      }
+      return value
+    }),
+  ) as UpdateCompatibilityFixture
+}
+
+function v1UpdateAgent() {
+  return {
+    binaryName: 'test-bin',
+    displayName: 'Test Agent',
+    homepage: 'https://example.com',
+    lookupAliases: ['ta'],
+    name: 'test-agent',
+    packages: { npm: 'test-pkg' },
+    platforms: {
+      linux: [{ packageName: 'test-pkg', type: 'bun' as const }],
+      macos: [{ packageName: 'test-pkg', type: 'bun' as const }],
+      windows: [{ packageName: 'test-pkg', type: 'bun' as const }],
+    },
+  }
+}
 
 function installInspectResolveRouteSpies(
   ...observations: Array<Awaited<ReturnType<typeof lifecycleObservations.resolveAgentObservation>>>

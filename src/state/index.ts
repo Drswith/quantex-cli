@@ -94,6 +94,12 @@ export async function removeLifecycleReceipt(targetId: string): Promise<void> {
   }
 }
 
+export const lifecycleReceiptStore = Object.freeze({
+  read: getLifecycleReceipt,
+  remove: removeLifecycleReceipt,
+  write: setLifecycleReceipt,
+})
+
 export async function setInstalledAgentState(agentState: InstalledAgentState): Promise<void> {
   await mutateState(state => {
     state.installedAgents[agentState.agentName] = agentState

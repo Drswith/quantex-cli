@@ -11,12 +11,21 @@ export type {
   LifecycleObservation,
   LifecycleOutcome,
   LifecyclePlan,
+  LifecyclePlanningProvider,
   LifecyclePostcondition,
   LifecycleReceipt,
   LifecycleStep,
   LifecycleVerification,
   ProviderCapability,
 } from './model'
+export { LIFECYCLE_RECEIPT_SCHEMA_VERSION } from './model'
+export {
+  type LifecycleUpdateDecision,
+  type LifecycleUpdatePlanningInput,
+  type LifecycleUpdatePlanningResult,
+  planLifecycleUpdate,
+  projectLifecycleProviderCapabilities,
+} from './update-planner'
 export {
   type AgentExecutableObservation,
   type AgentLifecycleObservationPorts,
