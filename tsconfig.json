@@ -13,5 +13,6 @@
     "verbatimModuleSyntax": true,
     "skipDefaultLibCheck": true,
     "skipLibCheck": true
-  }
+  },
+  "exclude": ["test/fixtures/compatibility/v1/downstream/consumer.ts"]
 }

@@ -1,9 +1,9 @@
 ## 1. Compatibility Baseline
 
-- [ ] 1.1 Capture v0.29-compatible golden fixtures for representative human, JSON, and NDJSON results across every stable command family.
+- [x] 1.1 Capture v0.29-compatible golden fixtures for representative human, JSON, and NDJSON results across every stable command family.
 - [x] 1.2 Add contract tests that prove every registered stable command appears exactly once in command discovery and has a resolvable schema reference.
 - [x] 1.3 Add failing planner tests for stale lower targets, semantic prerelease ordering, unknown versions, and explicit no-downgrade behavior.
-- [ ] 1.4 Add failing tests that prove ordinary command finalization cannot perform a self-update network request and cached notices remain cache-only.
+- [x] 1.4 Add failing tests that prove ordinary command finalization cannot perform a self-update network request and cached notices remain cache-only.
 - [x] 1.5 Capture valid, corrupt, ghost, and untracked v1 state fixtures plus the maintained root-package export surface.
 - [x] 1.6 Document which fixtures are hard compatibility contracts and which human-output details are intentionally non-contractual.
 
@@ -89,9 +89,9 @@
 
 ## 10. Compatibility Facade and Legacy Removal
 
-- [ ] 10.1 Route all maintained root-package exports through a compatibility facade and add downstream compilation/runtime fixtures.
-- [ ] 10.2 Verify the `quantex` alias package and both `qtx`/`quantex` binaries continue to expose equivalent entry points.
-- [ ] 10.3 Run the complete v1 protocol, stream, exit-code, config, state, and root-export compatibility suite against the new default routes.
+- [x] 10.1 Route all maintained root-package exports through a compatibility facade and add downstream compilation/runtime fixtures.
+- [x] 10.2 Verify the `quantex` alias package and both `qtx`/`quantex` binaries continue to expose equivalent entry points.
+- [x] 10.3 Run the complete v1 protocol, stream, exit-code, config, state, and root-export compatibility suite against the new default routes.
 - [ ] 10.4 Update product documentation and generated command/catalog references only after the new default behavior is verified.
 - [ ] 10.5 Remove legacy command-specific lifecycle implementations only after every default route uses the new engine and rollback criteria are satisfied.
 - [ ] 10.6 Keep any future root-export removal outside this change and require a separately approved deprecation proposal.
