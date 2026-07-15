@@ -265,7 +265,13 @@ describe('upgradeCommand', () => {
 
     await expect(upgradeCommand()).resolves.toMatchObject({ ok: true })
 
-    expect(upgradeSelfSpy).toHaveBeenCalledWith(plan)
+    expect(upgradeSelfSpy).toHaveBeenCalledWith(
+      plan,
+      expect.objectContaining({
+        lockPort: expect.objectContaining({ acquire: expect.any(Function) }),
+        signal: expect.any(AbortSignal),
+      }),
+    )
     expect(stdoutWriteSpy).toHaveBeenCalledWith(expect.stringContaining('Upgrading Quantex CLI'))
     expect(stdoutWriteSpy).toHaveBeenCalledWith(expect.stringContaining('upgraded successfully'))
   })

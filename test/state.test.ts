@@ -9,6 +9,7 @@ import {
   getStateFilePath,
   getStateLockPath,
   loadState,
+  removeSelfInstallSource,
   removeLifecycleReceipt,
   saveState,
   setLifecycleReceipt,
@@ -183,6 +184,10 @@ describe('state helpers', () => {
 
     const writtenState = JSON.parse(readFileSync(getStateFilePath(), 'utf8'))
     expect(writtenState.self?.installSource).toBe('binary')
+
+    await removeSelfInstallSource()
+
+    expect(await getSelfState()).toEqual({})
   })
 
   it('persists self update notice throttle metadata', async () => {

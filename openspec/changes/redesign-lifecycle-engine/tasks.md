@@ -81,11 +81,11 @@
 
 ## 9. Self-Upgrade Integration
 
-- [ ] 9.1 Adapt self-upgrade to shared invocation, process, network, lock, cache, persistence, result, and presentation ports without importing agent lifecycle domain types.
-- [ ] 9.2 Make passive self-update notices consume valid cached metadata only and keep fresh checks limited to explicitly declared commands.
-- [ ] 9.3 Preserve Bun/npm registry resolution, managed-install verification, binary checksum, replacement, rollback, and recovery behavior.
-- [ ] 9.4 Preserve Windows peer entry point and delayed replacement semantics with fault-injection coverage.
-- [ ] 9.5 Run build, binary, release artifact, and release smoke verification for the migrated self-upgrade path.
+- [x] 9.1 Adapt self-upgrade to shared invocation, process, network, lock, cache, persistence, result, and presentation ports without importing agent lifecycle domain types.
+- [x] 9.2 Make passive self-update notices consume valid cached metadata only and keep fresh checks limited to explicitly declared commands.
+- [x] 9.3 Preserve Bun/npm registry resolution, managed-install verification, binary checksum, replacement, rollback, and recovery behavior.
+- [x] 9.4 Preserve Windows peer entry point and delayed replacement semantics with fault-injection coverage.
+- [x] 9.5 Run build, binary, release artifact, and release smoke verification for the migrated self-upgrade path.
 
 ## 10. Compatibility Facade and Legacy Removal
 

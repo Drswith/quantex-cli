@@ -33,6 +33,7 @@ export interface ProcessRequest {
   readonly argv: readonly string[]
   readonly cwd?: string
   readonly env?: Readonly<Record<string, string | undefined>>
+  readonly forwardPipedOutput?: boolean
   readonly signal: AbortSignal
   readonly stdio?: readonly [ProcessStdio, ProcessStdio, ProcessStdio]
   readonly timeoutMs?: number

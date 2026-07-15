@@ -1,37 +1,56 @@
+import type { CachePort } from '../runtime'
+import type { SelfInstallFacts } from './types'
 import { getCliContext } from '../cli-context'
+import { createVersionCachePort } from '../runtime'
 import { getSelfState } from '../state'
 import { pc } from '../utils/color'
 import { printInfo } from '../utils/user-output'
 import { isVersionNewer } from '../utils/version'
-import { inspectSelfReadOnly } from './index'
+import { resolveSelfInstallFactsReadOnly } from './facts'
+import { readSelfUpdateMetadata } from './update-metadata'
 
 const UPDATE_NOTICE_THROTTLE_MS = 24 * 60 * 60 * 1000
 const SELF_UPGRADE_NOTICE_SKIPPED_ACTIONS = new Set(['doctor', 'upgrade'])
 
-export async function maybeRenderSelfUpdateNotice(options: { action: string; ok: boolean }): Promise<void> {
+interface SelfUpdateNoticeDependencies {
+  readonly cache: CachePort
+  readonly getSelfState: typeof getSelfState
+  readonly now: () => number
+  readonly resolveFacts: () => Promise<SelfInstallFacts>
+}
+
+export async function maybeRenderSelfUpdateNotice(
+  options: { action: string; ok: boolean },
+  dependencies: SelfUpdateNoticeDependencies = {
+    cache: createVersionCachePort(),
+    getSelfState,
+    now: Date.now,
+    resolveFacts: resolveSelfInstallFactsReadOnly,
+  },
+): Promise<void> {
   if (!options.ok || SELF_UPGRADE_NOTICE_SKIPPED_ACTIONS.has(options.action)) return
 
   const context = getCliContext()
   if (context.outputMode !== 'human' || context.quiet) return
 
-  const inspection = await inspectSelfReadOnly()
-  if (!inspection.latestVersion || !isVersionNewer(inspection.latestVersion, inspection.currentVersion)) return
+  const facts = await dependencies.resolveFacts()
+  const now = dependencies.now()
+  const metadata = await readSelfUpdateMetadata({
+    cache: dependencies.cache,
+    facts,
+    nowMs: now,
+    signal: new AbortController().signal,
+  })
+  if (!metadata || !isVersionNewer(metadata.targetVersion, facts.currentVersion)) return
 
-  const selfState = await getSelfState()
-  const now = Date.now()
+  const selfState = await dependencies.getSelfState()
 
-  if (
-    shouldSuppressUpdateNotice(selfState.updateNoticeVersion, selfState.updateNoticeAt, inspection.latestVersion, now)
-  )
+  if (shouldSuppressUpdateNotice(selfState.updateNoticeVersion, selfState.updateNoticeAt, metadata.targetVersion, now))
     return
 
-  const nextStep = inspection.canAutoUpdate
-    ? 'Run `quantex upgrade`.'
-    : 'Run `quantex doctor` for source-specific update steps.'
+  const nextStep = 'Run `quantex upgrade`.'
   printInfo(
-    pc.yellow(
-      `Quantex CLI ${inspection.latestVersion} is available (current ${inspection.currentVersion}). ${nextStep}`,
-    ),
+    pc.yellow(`Quantex CLI ${metadata.targetVersion} is available (current ${facts.currentVersion}). ${nextStep}`),
   )
 }
 

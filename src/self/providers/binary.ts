@@ -1,5 +1,5 @@
 import type { SelfInspection, SelfUpdateResult, SelfUpgradePlan } from '../types'
-import type { SelfUpgradeProvider } from './types'
+import type { SelfUpgradeProvider, SelfUpgradeProviderExecutionContext } from './types'
 import { getWindowsStandaloneBinaryPeerPath, upgradeStandaloneBinary } from '../binary'
 import { getBinaryReleaseDownloadUrl } from '../release'
 
@@ -27,7 +27,7 @@ export const binarySelfUpgradeProvider: SelfUpgradeProvider = {
 
     return `download and replace the binary from ${downloadUrl}`
   },
-  async upgrade(plan: SelfUpgradePlan): Promise<SelfUpdateResult> {
+  async upgrade(plan: SelfUpgradePlan, context?: SelfUpgradeProviderExecutionContext): Promise<SelfUpdateResult> {
     const asset = plan.target.binaryAsset
 
     if (!asset) {
@@ -41,13 +41,28 @@ export const binarySelfUpgradeProvider: SelfUpgradeProvider = {
       }
     }
 
-    const result = await upgradeStandaloneBinary(
-      asset.downloadUrl,
-      plan.facts.executablePath,
-      asset.checksum,
-      plan.target.targetVersion ?? 'latest',
-      getWindowsStandaloneBinaryPeerPath(plan.facts.executablePath),
-    )
+    const peerPath = getWindowsStandaloneBinaryPeerPath(plan.facts.executablePath)
+    const result = context
+      ? await upgradeStandaloneBinary(
+          asset.downloadUrl,
+          plan.facts.executablePath,
+          asset.checksum,
+          plan.target.targetVersion ?? 'latest',
+          peerPath,
+          {
+            networkPort: context.network,
+            processPort: context.process,
+            signal: context.signal,
+            timeoutMs: context.timeoutMs,
+          },
+        )
+      : await upgradeStandaloneBinary(
+          asset.downloadUrl,
+          plan.facts.executablePath,
+          asset.checksum,
+          plan.target.targetVersion ?? 'latest',
+          peerPath,
+        )
 
     const enrichedResult =
       !result.success && result.error
