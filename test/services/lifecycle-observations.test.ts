@@ -118,6 +118,22 @@ describe('lifecycle observation application service', () => {
     expect(result?.resolvedBinaryPath).toBe('/path/alpha-bin')
   })
 
+  it('can skip remote latest-version resolution for execution preflight', async () => {
+    const getLatestVersion = vi.fn(async () => '2.0.0')
+    const service = createLifecycleObservationService(
+      ports({
+        getAgentByNameOrAlias: () => firstAgent,
+        getLatestVersion,
+      }),
+      { resolveLatestVersion: false },
+    )
+
+    const result = await service.resolveAgentObservation('alpha')
+
+    expect(result?.latestVersion).toBeUndefined()
+    expect(getLatestVersion).not.toHaveBeenCalled()
+  })
+
   it('exposes production entry points without routing through legacy inspection', async () => {
     expect(typeof createProductionLifecycleObservationService).toBe('function')
     expect(typeof resolveAgentObservation).toBe('function')
@@ -128,7 +144,7 @@ describe('lifecycle observation application service', () => {
 })
 
 describe('legacy mutation and execution boundary', () => {
-  it('keeps legacy exports and callers on services/agents', async () => {
+  it('keeps remaining legacy mutation callers on services/agents', async () => {
     const agentsSource = await source('src/services/agents.ts')
     expect(agentsSource).toContain('export async function resolveAgentInspection')
     expect(agentsSource).toContain('export async function inspectRegisteredAgents')
@@ -137,7 +153,6 @@ describe('legacy mutation and execution boundary', () => {
     const expectedRoutes = {
       'src/commands/ensure.ts': { exports: ['resolveAgent', 'resolveAgentInspection'], route: '../services/agents' },
       'src/commands/install.ts': { exports: ['resolveAgent', 'resolveAgentInspection'], route: '../services/agents' },
-      'src/commands/run.ts': { exports: ['resolveAgentInspection'], route: '../services/agents' },
       'src/commands/update.ts': { exports: ['resolveAgent'], route: '../services/agents' },
       'src/services/update.ts': { exports: ['inspectRegisteredAgents'], route: './agents' },
     }
@@ -148,6 +163,15 @@ describe('legacy mutation and execution boundary', () => {
       expect(contents).not.toContain('lifecycle-observations')
       for (const exportName of expected.exports) expect(contents).toContain(exportName)
     }
+  })
+
+  it('routes execution through the lifecycle application service', async () => {
+    const runSource = await source('src/commands/run.ts')
+
+    expect(runSource).toContain("from '../services'")
+    expect(runSource).toContain('createProductionLifecycleExecutionService')
+    expect(runSource).not.toContain('resolveAgentInspection')
+    expect(runSource).not.toContain('lifecycle-observations')
   })
 
   it('keeps the new application boundary read-only and presenter-independent', async () => {

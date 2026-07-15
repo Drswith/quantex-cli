@@ -56,8 +56,13 @@ export interface LifecycleObservationService {
   resolveAgentObservation(agentName: string): Promise<ResolvedAgentObservation | undefined>
 }
 
+export interface LifecycleObservationServiceOptions {
+  readonly resolveLatestVersion?: boolean
+}
+
 export function createLifecycleObservationService(
   ports: LifecycleObservationServicePorts,
+  options: LifecycleObservationServiceOptions = {},
 ): LifecycleObservationService {
   async function observe(agent: AgentDefinition): Promise<ResolvedAgentObservation> {
     let installedStatePromise: Promise<InstalledAgentState | undefined> | undefined
@@ -79,7 +84,9 @@ export function createLifecycleObservationService(
       }),
     ])
     const [latestVersion, resolvedBinaryPath] = await Promise.all([
-      ports.getLatestVersion(agent, result.installedState, methods),
+      options.resolveLatestVersion === false
+        ? Promise.resolve(undefined)
+        : ports.getLatestVersion(agent, result.installedState, methods),
       ports.getResolvedBinaryPath(result.pathExecutable.path),
     ])
 
@@ -113,23 +120,28 @@ export function observeRegisteredAgents(): Promise<ResolvedAgentObservation[]> {
 
 export function createProductionLifecycleObservationService(
   context: ProviderOperationContext,
+  options: LifecycleObservationServiceOptions = {},
 ): LifecycleObservationService {
-  return createLifecycleObservationService({
-    clock: () => new Date().toISOString(),
-    getAllAgents: agentRegistry.getAllAgents,
-    getAgentByNameOrAlias: agentRegistry.getAgentByNameOrAlias,
-    getLatestVersion: (agent, installedState, methods) => resolveLatestVersion(agent, installedState, methods, context),
-    getOrderedInstallMethods,
-    getPlatform,
-    getResolvedBinaryPath: binaryPath => getResolvedBinaryPath(binaryPath, context),
-    inspectExecutable: (agent, installedState) => inspectExecutable(agent, installedState, context),
-    observeAgentLifecycle,
-    providerRegistry: firstPartyProviderRegistry,
-    readInstalledState: getInstalledAgentState,
-    readReceipt: getLifecycleReceipt,
-    signal: context.signal,
-    timeoutMs: context.timeoutMs,
-  })
+  return createLifecycleObservationService(
+    {
+      clock: () => new Date().toISOString(),
+      getAllAgents: agentRegistry.getAllAgents,
+      getAgentByNameOrAlias: agentRegistry.getAgentByNameOrAlias,
+      getLatestVersion: (agent, installedState, methods) =>
+        resolveLatestVersion(agent, installedState, methods, context),
+      getOrderedInstallMethods,
+      getPlatform,
+      getResolvedBinaryPath: binaryPath => getResolvedBinaryPath(binaryPath, context),
+      inspectExecutable: (agent, installedState) => inspectExecutable(agent, installedState, context),
+      observeAgentLifecycle,
+      providerRegistry: firstPartyProviderRegistry,
+      readInstalledState: getInstalledAgentState,
+      readReceipt: getLifecycleReceipt,
+      signal: context.signal,
+      timeoutMs: context.timeoutMs,
+    },
+    options,
+  )
 }
 
 async function withProductionObservationService<T>(

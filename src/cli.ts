@@ -11,6 +11,7 @@ import {
   type CommandIdempotencyPolicyFactory,
 } from './command-runtime'
 import { runCommand } from './commands/run'
+import { resolveShortcutInvocation } from './commands/shortcut'
 import { getExitCodeForResult } from './errors'
 import {
   createAgentAbsenceIdempotencyPolicy,
@@ -281,7 +282,9 @@ const knownCommands = new Set([
   '-v',
 ])
 
-const shortcutInvocation = resolveShortcutInvocation(process.argv.slice(2), knownCommands)
+const shortcutInvocation = resolveShortcutInvocation(process.argv.slice(2), knownCommands, {
+  agentFriendly: process.stdin.isTTY === false || process.stdout.isTTY === false,
+})
 
 if (shortcutInvocation?.error) {
   console.log(pc.red(shortcutInvocation.error))
@@ -326,174 +329,11 @@ if (shortcutInvocation) {
 
 program.parse()
 
-interface ShortcutInvocation {
-  agentArgs: string[]
-  agentName: string
-  color?: string
-  dryRun?: boolean
-  error?: string
-  idempotencyKey?: string
-  logLevel?: string
-  noCache?: boolean
-  nonInteractive?: boolean
-  quiet?: boolean
-  refresh?: boolean
-  runId?: string
-  timeout?: string
-  yes?: boolean
-}
-
 function extractExecPassthroughArgs(command: { args: string[]; processedArgs: string[] }): string[] {
   const rawArgs = command.processedArgs.at(-1)
   if (Array.isArray(rawArgs)) return rawArgs
 
   return command.args.slice(1)
-}
-
-function resolveShortcutInvocation(argv: string[], knownCommandNames: Set<string>): ShortcutInvocation | undefined {
-  const autoAgentFriendly = process.stdin.isTTY === false || process.stdout.isTTY === false
-  let color: string | undefined
-  let dryRun = false
-  let index = 0
-  let idempotencyKey: string | undefined
-  let jsonOutputRequested = false
-  let logLevel: string | undefined
-  let noCache = false
-  let nonInteractive = false
-  let outputMode: string | undefined
-  let quiet = false
-  let refresh = false
-  let runId: string | undefined
-  let timeout: string | undefined
-  let yes = false
-
-  while (index < argv.length) {
-    const arg = argv[index]
-
-    if (arg === '--json') {
-      jsonOutputRequested = true
-      index += 1
-      continue
-    }
-
-    if (arg === '--output') {
-      const value = argv[index + 1]
-      if (!value) return { agentArgs: [], agentName: '', error: '--output requires a value' }
-      outputMode = value
-      index += 2
-      continue
-    }
-
-    if (arg === '--non-interactive') {
-      nonInteractive = true
-      index += 1
-      continue
-    }
-
-    if (arg === '--yes') {
-      yes = true
-      index += 1
-      continue
-    }
-
-    if (arg === '--quiet') {
-      quiet = true
-      index += 1
-      continue
-    }
-
-    if (arg === '--color') {
-      const value = argv[index + 1]
-      if (!value) return { agentArgs: [], agentName: '', error: '--color requires a value' }
-      color = value
-      index += 2
-      continue
-    }
-
-    if (arg === '--log-level') {
-      const value = argv[index + 1]
-      if (!value) return { agentArgs: [], agentName: '', error: '--log-level requires a value' }
-      logLevel = value
-      index += 2
-      continue
-    }
-
-    if (arg === '--dry-run') {
-      dryRun = true
-      index += 1
-      continue
-    }
-
-    if (arg === '--refresh') {
-      refresh = true
-      index += 1
-      continue
-    }
-
-    if (arg === '--no-cache') {
-      noCache = true
-      index += 1
-      continue
-    }
-
-    if (arg === '--idempotency-key') {
-      const value = argv[index + 1]
-      if (!value) return { agentArgs: [], agentName: '', error: '--idempotency-key requires a value' }
-      idempotencyKey = value
-      index += 2
-      continue
-    }
-
-    if (arg === '--run-id') {
-      const value = argv[index + 1]
-      if (!value) return { agentArgs: [], agentName: '', error: '--run-id requires a value' }
-      runId = value
-      index += 2
-      continue
-    }
-
-    if (arg === '--timeout') {
-      const value = argv[index + 1]
-      if (!value) return { agentArgs: [], agentName: '', error: '--timeout requires a value' }
-      timeout = value
-      index += 2
-      continue
-    }
-
-    if (arg.startsWith('-')) return undefined
-
-    if (knownCommandNames.has(arg)) return undefined
-
-    if (
-      jsonOutputRequested ||
-      outputMode === 'json' ||
-      outputMode === 'ndjson' ||
-      (autoAgentFriendly && outputMode !== 'human')
-    )
-      return {
-        agentArgs: [],
-        agentName: '',
-        error: 'Structured output is not supported for shortcut agent execution yet. Use a management command instead.',
-      }
-
-    return {
-      agentArgs: argv.slice(index + 1),
-      agentName: arg,
-      color,
-      dryRun,
-      idempotencyKey,
-      logLevel,
-      noCache,
-      nonInteractive,
-      quiet,
-      refresh,
-      runId,
-      timeout,
-      yes,
-    }
-  }
-
-  return undefined
 }
 
 async function executeCliCommand<T>(options: {

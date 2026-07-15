@@ -74,10 +74,10 @@
 
 ## 8. Agent Execution Migration
 
-- [ ] 8.1 Migrate explicit `exec` preflight and install policies to the new observer/planner/application boundary.
-- [ ] 8.2 Migrate shortcut launch to the same execution use case without duplicating lifecycle or option parsing.
-- [ ] 8.3 Preserve inherited stdin/stdout/stderr, child exit codes, interaction guidance, timeout, and process-tree cancellation.
-- [ ] 8.4 Run execution and managed-installer cancellation tests on Unix and Windows-capable CI/sandbox paths.
+- [x] 8.1 Migrate explicit `exec` preflight and install policies to the new observer/planner/application boundary.
+- [x] 8.2 Migrate shortcut launch to the same execution use case without duplicating lifecycle or option parsing.
+- [x] 8.3 Preserve inherited stdin/stdout/stderr, child exit codes, interaction guidance, timeout, and process-tree cancellation.
+- [x] 8.4 Run execution and managed-installer cancellation tests on Unix and Windows-capable CI/sandbox paths.
 
 ## 9. Self-Upgrade Integration
 

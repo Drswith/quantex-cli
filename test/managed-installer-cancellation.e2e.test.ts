@@ -38,12 +38,23 @@ describe('managed installer cancellation e2e', () => {
 
       const state = await readJsonFile(join(homeDir, '.quantex', 'state.json'))
       expect(state?.installedAgents?.['cargo-cancel-smoke-agent']).toBeUndefined()
+      expect(state?.lifecycleReceipts?.['cargo-cancel-smoke-agent']).toBeUndefined()
 
       const log = await readFile(fakeCargoLog, 'utf8')
       expect(log).toContain('cargo --version')
       expect(log).toContain('cargo install cargo-cancel-smoke-agent')
       expect(log).not.toContain('fake cargo completed without cancellation')
       if (process.platform !== 'win32') expect(log).toContain('fake cargo received SIGTERM')
+
+      const installerPid = Number(log.match(/fake cargo pid (\d+)/)?.[1])
+      expect(Number.isInteger(installerPid)).toBe(true)
+      await expectProcessToExit(installerPid)
+
+      const stateAfterCancellation = await readFileIfPresent(join(homeDir, '.quantex', 'state.json'))
+      const logAfterCancellation = await readFile(fakeCargoLog, 'utf8')
+      await new Promise(resolve => setTimeout(resolve, 100))
+      expect(await readFileIfPresent(join(homeDir, '.quantex', 'state.json'))).toEqual(stateAfterCancellation)
+      expect(await readFile(fakeCargoLog, 'utf8')).toBe(logAfterCancellation)
     } finally {
       await rm(sandboxRoot, { force: true, recursive: true })
     }
@@ -59,6 +70,7 @@ async function installFakeCargo(fakeBinDir: string, logPath: string): Promise<vo
     'const logPath = process.env.QTX_FAKE_CARGO_LOG',
     'if (!logPath) throw new Error("QTX_FAKE_CARGO_LOG is required")',
     'const log = message => appendFileSync(logPath, `${message}\\n`)',
+    'log(`fake cargo pid ${process.pid}`)',
     'log(`cargo ${args.join(" ")}`)',
     'if (args[0] === "--version") {',
     '  console.log("cargo 1.88.0")',
@@ -130,5 +142,31 @@ async function readJsonFile(path: string): Promise<any | undefined> {
     return JSON.parse(await readFile(path, 'utf8'))
   } catch {
     return undefined
+  }
+}
+
+async function readFileIfPresent(path: string): Promise<Uint8Array | undefined> {
+  try {
+    return await readFile(path)
+  } catch {
+    return undefined
+  }
+}
+
+async function expectProcessToExit(pid: number): Promise<void> {
+  const deadline = Date.now() + 2_000
+  while (Date.now() < deadline) {
+    if (!isProcessAlive(pid)) return
+    await new Promise(resolve => setTimeout(resolve, 25))
+  }
+  expect(isProcessAlive(pid), `installer process ${pid} should have exited`).toBe(false)
+}
+
+function isProcessAlive(pid: number): boolean {
+  try {
+    process.kill(pid, 0)
+    return true
+  } catch (error) {
+    return (error as NodeJS.ErrnoException).code !== 'ESRCH'
   }
 }
