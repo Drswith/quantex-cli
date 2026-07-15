@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest'
+import { getGlobalOptionDefinitions } from '../../src/command-contract'
 import { resolveShortcutInvocation } from '../../src/commands/shortcut'
 
 const knownCommands = new Set(['install', 'exec', 'help', '--help', '--version', '-v'])
@@ -63,6 +64,21 @@ describe('resolveShortcutInvocation', () => {
       timeout: '5s',
       yes: true,
     })
+  })
+
+  it('recognizes every global option declared by the command registry', () => {
+    for (const option of getGlobalOptionDefinitions()) {
+      const flag = option.flags.match(/--[a-z][a-z-]*/)?.[0]
+      expect(flag).toBeDefined()
+      const value = option.id === 'output' ? 'human' : option.value === 'string' ? 'value' : undefined
+      const invocation = resolveShortcutInvocation(
+        [flag!, ...(value ? [value] : []), 'codex'],
+        knownCommands,
+        options(),
+      )
+
+      expect(invocation, option.id).toBeDefined()
+    }
   })
 
   it('recognizes no-cache independently of refresh', () => {
