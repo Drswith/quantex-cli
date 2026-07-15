@@ -1,6 +1,7 @@
 import type { AgentDefinition } from '../agents'
 import type { CommandError, CommandResult, CommandWarning } from '../output/types'
 import { getCliContext } from '../cli-context'
+import { normalizeAgentPresenceTargets } from '../idempotency/lifecycle-policy'
 import {
   type AgentInstallationExecutionValue,
   type AgentInstallationRoute,
@@ -77,7 +78,7 @@ export async function installCommand(
 export async function installCommand(
   agentNames: string | string[],
 ): Promise<CommandResult<InstallBatchCommandData | InstallCommandData>> {
-  const requestedAgents = Array.isArray(agentNames) ? agentNames : [agentNames]
+  const requestedAgents = normalizeAgentPresenceTargets(Array.isArray(agentNames) ? agentNames : [agentNames])
 
   if (requestedAgents.length <= 1) {
     const singleResult = await performSingleInstall(requestedAgents[0]!, { emitStartedEvent: true })

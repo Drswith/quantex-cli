@@ -2,7 +2,7 @@
 
 - [ ] 1.1 Capture v0.29-compatible golden fixtures for representative human, JSON, and NDJSON results across every stable command family.
 - [x] 1.2 Add contract tests that prove every registered stable command appears exactly once in command discovery and has a resolvable schema reference.
-- [ ] 1.3 Add failing planner tests for stale lower targets, semantic prerelease ordering, unknown versions, and explicit no-downgrade behavior.
+- [x] 1.3 Add failing planner tests for stale lower targets, semantic prerelease ordering, unknown versions, and explicit no-downgrade behavior.
 - [ ] 1.4 Add failing tests that prove ordinary command finalization cannot perform a self-update network request and cached notices remain cache-only.
 - [x] 1.5 Capture valid, corrupt, ghost, and untracked v1 state fixtures plus the maintained root-package export surface.
 - [x] 1.6 Document which fixtures are hard compatibility contracts and which human-output details are intentionally non-contractual.
@@ -65,12 +65,12 @@
 
 ## 7. Update and Idempotency Migration
 
-- [ ] 7.1 Implement normalized semantic version comparison, prerelease ordering, indeterminate-version handling, and explicit no-downgrade planning.
-- [ ] 7.2 Migrate single-agent update to source-aware provider plans and verified live postconditions.
-- [ ] 7.3 Migrate `update --all` to deterministic target-plan composition with typed partial success and cancellation semantics.
-- [ ] 7.4 Add schema-versioned idempotency records with canonical request, resolved-plan, receipt, postcondition, and expiry fingerprints.
-- [ ] 7.5 Implement command-specific replay validators and stable request-mismatch handling without overwriting existing records.
-- [ ] 7.6 Add idempotency tests for target-option changes, reordered equivalent inputs, latest-target changes, batch targets, drift, dry run, failure, and expiry.
+- [x] 7.1 Implement normalized semantic version comparison, prerelease ordering, indeterminate-version handling, and explicit no-downgrade planning.
+- [x] 7.2 Migrate single-agent update to source-aware provider plans and verified live postconditions.
+- [x] 7.3 Migrate `update --all` to deterministic target-plan composition with typed partial success and cancellation semantics.
+- [x] 7.4 Add schema-versioned idempotency records with canonical request, resolved-plan, receipt, postcondition, and expiry fingerprints.
+- [x] 7.5 Implement command-specific replay validators and stable request-mismatch handling without overwriting existing records.
+- [x] 7.6 Add idempotency tests for target-option changes, reordered equivalent inputs, latest-target changes, batch targets, drift, dry run, failure, and expiry.
 
 ## 8. Agent Execution Migration
 

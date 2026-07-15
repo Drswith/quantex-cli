@@ -1,43 +1,60 @@
-### Task 1: Build the live agent lifecycle observer (OpenSpec 5.1)
+### Task 1: Pure Semantic Update Planning
 
 **Files:**
-- Create: `src/lifecycle/agent-observation.ts`
-- Create: `test/lifecycle/agent-observation.test.ts`
-- Modify: `src/lifecycle/model.ts`
+- Create: `src/lifecycle/update-planner.ts`
 - Modify: `src/lifecycle/index.ts`
-- Modify: `src/lifecycle/provider-evidence.ts`
+- Modify: `src/planning/updates.ts`
+- Test: `test/lifecycle/update-planner.test.ts`
+- Test: `test/utils/version.test.ts`
+- Modify: `test/compatibility/v1-baseline.test.ts`
+- Create: `test/fixtures/compatibility/v1/update-single.json`
+- Create: `test/fixtures/compatibility/v1/update-all.json`
+- Create: `test/fixtures/compatibility/v1/update-single.ndjson`
+- Create: `test/fixtures/compatibility/v1/update-all.ndjson`
 
 **Interfaces:**
-- Consumes: `AgentDefinition`, `InstalledAgentState`, `LifecycleReceipt`, `ProviderRegistry`, `resolveStateProviderBinding`, `resolveReceiptProviderBinding`, `observeLifecycleProvider`.
-- Produces: `observeAgentLifecycle(agent, ports): Promise<AgentLifecycleObservationResult>` where the result contains the domain `LifecycleObservation`, exact provider binding/capabilities when resolvable, executable/version facts, installed-state provenance, receipt, and normalized catalog methods.
+- Consumes: `compareVersions(candidate: string, current: string): number | undefined`, `LifecycleObservation`, `LifecyclePlanningProvider`, and provider capability snapshots.
+- Produces: `planLifecycleUpdate(input: LifecycleUpdatePlanningInput): LifecycleUpdatePlanningResult` with decisions `upgrade`, `up-to-date`, `blocked-downgrade`, `indeterminate`, `manual-required`, and `blocked-source`.
+- Produces deterministic `LifecyclePlan` steps whose update effect targets the reconciled provider binding and whose version postcondition names the resolved semantic target.
 
-- [ ] **Step 1: Write table-driven failing observation tests**
+- [ ] **Step 1: Capture update v1 goldens from the untouched base**
 
-  Cover: absent/no evidence, live untracked executable, verified tracked state+receipt, legacy tracked state without receipt, conclusive ghost, state/receipt provider conflict, provider-present/PATH-absent conflict, provider-absent/PATH-present conflict, unsupported binding, and indeterminate provider outcome. For agents without state or receipt, explicitly cover one candidate provider present, multiple candidate providers present, and candidate probe failure while PATH is present. Assert provider id, target id/kind, capabilities, drift kind, version/path, and that no state mutator is called.
-
-- [ ] **Step 2: Verify the tests fail for the missing observer**
-
-  Run: `bun run test -- test/lifecycle/agent-observation.test.ts`
-
-  Expected: FAIL because `observeAgentLifecycle` is not defined.
-
-- [ ] **Step 3: Implement minimal injected observation ports**
-
-  Define ports for clock, executable/path/version inspection, installed-state/receipt reads, provider registry, and provider observation. Use exact state/receipt bindings; compare provider id, target id, target kind, and executable identity. When no persisted binding exists, observe every catalog candidate: exactly one live candidate may establish provider ownership, multiple live candidates classify as `conflicting-source`, and any unresolved candidate probe that prevents a conclusive decision classifies as `indeterminate`. PATH presence alone never establishes provider ownership. Preserve typed provider outcomes rather than branching on messages.
-
-- [ ] **Step 4: Make drift classification explicit and exhaustive**
-
-  Use only `none`, `untracked`, `recorded-absent`, `conflicting-source`, and `indeterminate`. A present executable is not proof of provider ownership; a receipt is provenance, not live proof.
-
-- [ ] **Step 5: Run the focused gate and checkpoint**
-
-  Run:
+  From milestone base `d2d2275`, capture deterministic single-agent and `--all` JSON plus NDJSON started/progress/result output into the four named fixtures. Lock field names, requiredness, error codes, exit codes, and stdout/stderr routing. Normalize only run ID, timestamp, version, and documented host-dependent values. Commit these expected fixtures before changing update production behavior; never regenerate expected values from the new implementation merely to make tests pass.
 
   ```bash
-  bun run test -- test/lifecycle/agent-observation.test.ts test/lifecycle/provider-evidence.test.ts test/state.test.ts
-  bun run format:check
-  bun run lint
-  bun run typecheck
+  git add test/compatibility/v1-baseline.test.ts test/fixtures/compatibility/v1/update-single.json test/fixtures/compatibility/v1/update-all.json test/fixtures/compatibility/v1/update-single.ndjson test/fixtures/compatibility/v1/update-all.ndjson
+  git commit -m "test(update): capture v1 compatibility goldens"
   ```
 
-  Commit: `feat(lifecycle): observe live agent evidence`
+- [ ] **Step 2: Add failing semantic decision tables**
+
+  Cover `2.10.0 -> 2.9.0`, `1.9.0 -> 1.10.0`, release versus prerelease, prerelease identifier ordering, equal versions, missing versions, unparseable versions, conflicting source, missing update capability, and repeated planning equality. Assert that downgrade/indeterminate/manual decisions contain no mutation steps.
+
+- [ ] **Step 3: Run the planner and version tests to verify RED**
+
+  Run: `bun run test -- test/lifecycle/update-planner.test.ts test/utils/version.test.ts`
+
+  Expected: FAIL because `planLifecycleUpdate` and the complete decision model do not exist; the existing inequality planner also classifies older targets as updates.
+
+- [ ] **Step 4: Implement the minimal pure planner**
+
+  Normalize the input into one reconciled provider binding, use `compareVersions` exactly once for order, and build an `update-<targetId>` operation step only for a newer semantic target with required `update`, observation, and verification capabilities. Keep all I/O out of this module.
+
+- [ ] **Step 5: Adapt legacy update availability projection**
+
+  Replace raw `installedVersion !== latestVersion` in `src/planning/updates.ts` with a compatibility projection over the semantic decision so existing callers stop treating stale lower or indeterminate targets as automatic updates.
+
+- [ ] **Step 6: Verify GREEN and regression scope**
+
+  Run: `bun run test -- test/lifecycle/update-planner.test.ts test/utils/version.test.ts test/commands/update.test.ts test/agent-update.test.ts`
+
+  Expected: PASS with no v1 fixture changes.
+
+- [ ] **Step 7: Review and checkpoint**
+
+  Request an independent spec/code review for OpenSpec 1.3 and 7.1, fix all Critical/Important findings, then commit:
+
+  ```bash
+  git add src/lifecycle/update-planner.ts src/lifecycle/index.ts src/planning/updates.ts test/lifecycle/update-planner.test.ts test/utils/version.test.ts
+  git commit -m "refactor(update): add semantic lifecycle planning"
+  ```

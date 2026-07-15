@@ -56,16 +56,6 @@ export async function planAgentUpdates(): Promise<PlannedAgentUpdates> {
   })
 }
 
-export async function planSingleAgentUpdate(
-  agent: AgentDefinition,
-): Promise<{ inspection: AgentInspection; plan: PlannedAgentUpdates }> {
-  const inspection = await inspectionService.inspectAgent(agent)
-  return {
-    inspection,
-    plan: buildPlannedAgentUpdates([inspection]),
-  }
-}
-
 function buildPlannedAgentUpdates(
   inspections: AgentInspection[],
   options: {

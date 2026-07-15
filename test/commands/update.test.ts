@@ -1,10 +1,15 @@
+import type { AgentDefinition } from '../../src/agents'
 import type { ManagedInstallType } from '../../src/package-manager'
+import type { ProviderId } from '../../src/providers'
+import type { RunSingleAgentLifecycleUpdateOutcome } from '../../src/services/lifecycle-updates-production'
+import type { InstalledAgentState } from '../../src/state'
 import { afterAll, afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import * as agents from '../../src/agents'
 import { cancelCliContextOperations, resetCliContext, setCliContext } from '../../src/cli-context'
 import { executeCommandWithRuntime } from '../../src/command-runtime'
-import { updateCommand } from '../../src/commands/update'
+import { createUpdateCommandInvocation, updateCommand } from '../../src/commands/update'
 import * as pm from '../../src/package-manager'
+import * as lifecycleUpdateProduction from '../../src/services/lifecycle-updates-production'
 import * as state from '../../src/state'
 import * as detect from '../../src/utils/detect'
 import { ResourceLockError } from '../../src/utils/lock'
@@ -19,6 +24,8 @@ const binaryInPathSpy = vi.spyOn(detect, 'isBinaryInPath')
 const installedVerSpy = vi.spyOn(version, 'getInstalledVersion')
 const latestVerSpy = vi.spyOn(version, 'getLatestVersion')
 const installedStateSpy = vi.spyOn(state, 'getInstalledAgentState')
+const runSingleAgentLifecycleUpdate = lifecycleUpdateProduction.runSingleAgentLifecycleUpdate
+const lifecycleUpdateSpy = vi.spyOn(lifecycleUpdateProduction, 'runSingleAgentLifecycleUpdate')
 
 afterAll(() => {
   agentSpy.mockRestore()
@@ -30,6 +37,7 @@ afterAll(() => {
   installedVerSpy.mockRestore()
   latestVerSpy.mockRestore()
   installedStateSpy.mockRestore()
+  lifecycleUpdateSpy.mockRestore()
 })
 
 const testAgent = {
@@ -64,6 +72,7 @@ describe('updateCommand', () => {
     installedVerSpy.mockClear()
     latestVerSpy.mockClear()
     installedStateSpy.mockClear()
+    lifecycleUpdateSpy.mockReset().mockImplementation(runSingleAgentLifecycleUpdate)
   })
 
   afterEach(() => {
@@ -83,6 +92,7 @@ describe('updateCommand', () => {
     binaryInPathSpy.mockResolvedValue(true)
     installedVerSpy.mockResolvedValue('1.0.0')
     latestVerSpy.mockResolvedValue('1.0.0')
+    mockSingleLifecycleOutcome({ decision: 'up-to-date', installedVersion: '1.0.0', latestVersion: '1.0.0' })
     await updateCommand('test-agent', false)
     expect(stdoutWriteSpy).toHaveBeenCalledWith(expect.stringContaining('up to date'))
     expect(updateSpy).not.toHaveBeenCalled()
@@ -96,10 +106,14 @@ describe('updateCommand', () => {
     installedStateSpy.mockResolvedValue(undefined)
     updateAgentsByTypeSpy.mockResolvedValue(true)
     updateSpy.mockResolvedValue({ success: true })
+    mockSingleLifecycleOutcome({
+      decision: 'upgrade',
+      installedVersion: '1.0.0',
+      kind: 'updated',
+      latestVersion: '2.0.0',
+    })
     await updateCommand('test-agent', false)
-    expect(updateAgentsByTypeSpy).toHaveBeenCalledWith('bun', [
-      { packageName: 'test-pkg', packageTargetKind: undefined },
-    ])
+    expect(updateAgentsByTypeSpy).not.toHaveBeenCalled()
     expect(updateSpy).not.toHaveBeenCalled()
     expect(stdoutWriteSpy).toHaveBeenCalledWith(
       expect.stringContaining('Updating Test Agent via managed/bun... (1.0.0 -> 2.0.0)'),
@@ -107,7 +121,116 @@ describe('updateCommand', () => {
     expect(stdoutWriteSpy).toHaveBeenCalledWith(expect.stringContaining('updated successfully'))
   })
 
-  it('updates pip-managed agents via updateAgentsByType when versions differ', async () => {
+  it('shares one prepared lifecycle invocation between the single update policy and command run', async () => {
+    agentSpy.mockReturnValue(testAgent)
+    const target = createBatchCommandTarget('test-agent', 'updated', 'upgrade', testAgent)
+    const outcome = target.result.execution as RunSingleAgentLifecycleUpdateOutcome
+    const lifecycleInvocation = {
+      dispose: vi.fn(),
+      getOutcome: vi.fn(() => outcome),
+      observe: vi.fn(async () => (outcome.kind === 'updated' ? outcome.after : undefined)),
+      prepare: vi.fn(async () => target.target.outcome),
+      run: vi.fn(async () => outcome),
+    }
+    const createInvocationSpy = vi
+      .spyOn(lifecycleUpdateProduction, 'createSingleAgentLifecycleUpdateInvocation')
+      .mockReturnValue(lifecycleInvocation as never)
+
+    try {
+      const invocation = createUpdateCommandInvocation('ta', false)
+      const policy = await invocation.idempotencyPolicy?.()
+      const result = await invocation.run()
+      invocation.dispose()
+
+      expect(policy?.request).toEqual({
+        action: 'update',
+        options: { requestedVersion: 'latest', scope: 'single' },
+        targets: ['test-agent'],
+      })
+      expect(createInvocationSpy).toHaveBeenCalledWith('ta')
+      expect(lifecycleInvocation.prepare).toHaveBeenCalledOnce()
+      expect(lifecycleInvocation.run).toHaveBeenCalledOnce()
+      expect(lifecycleInvocation.dispose).toHaveBeenCalledOnce()
+      expect(lifecycleUpdateSpy).not.toHaveBeenCalled()
+      expect(result.ok).toBe(true)
+    } finally {
+      createInvocationSpy.mockRestore()
+    }
+  })
+
+  it('maps provider success with a stale postcondition to UPDATE_FAILED', async () => {
+    agentSpy.mockReturnValue(testAgent)
+    lifecycleUpdateSpy.mockResolvedValue({
+      kind: 'verification-failed',
+      plan: {
+        before: {
+          agent: testAgent,
+          binding: { providerId: 'bun', target: { id: 'test-pkg', kind: 'package' } },
+          capabilities: ['observe', 'resolve-latest-version', 'update', 'verify'],
+          executable: { present: true, version: '1.0.0' },
+          installedState: { agentName: 'test-agent', installType: 'bun', packageName: 'test-pkg' },
+          methods: [{ type: 'bun' }],
+          observation: {
+            drift: { kind: 'none' },
+            kind: 'present',
+            providerId: 'bun',
+            providerTargetId: 'test-pkg',
+            providerTargetKind: 'package',
+            targetId: 'test-agent',
+            version: '1.0.0',
+          },
+        },
+        binding: { providerId: 'bun', target: { id: 'test-pkg', kind: 'package' } },
+        plannedTargetVersion: '2.0.0',
+        planning: {
+          decision: 'upgrade',
+          plan: {
+            id: 'update-test-agent',
+            intent: { kind: 'update', targetId: 'test-agent', targetVersion: '2.0.0' },
+            kind: 'lifecycle-plan',
+            observation: {
+              drift: { kind: 'none' },
+              kind: 'present',
+              providerId: 'bun',
+              providerTargetId: 'test-pkg',
+              providerTargetKind: 'package',
+              targetId: 'test-agent',
+              version: '1.0.0',
+            },
+            steps: [],
+          },
+        },
+      },
+      providerOutcome: {
+        kind: 'success',
+        value: { evidence: [], target: { id: 'test-pkg', kind: 'package' } },
+      },
+      verification: {
+        kind: 'unsatisfied',
+        observation: {
+          drift: { kind: 'none' },
+          kind: 'present',
+          providerId: 'bun',
+          providerTargetId: 'test-pkg',
+          providerTargetKind: 'package',
+          targetId: 'test-agent',
+          version: '1.0.0',
+        },
+        postcondition: { expectedVersion: '2.0.0', kind: 'version-satisfies', targetId: 'test-pkg' },
+        reason: 'Observed version 1.0.0 does not satisfy target 2.0.0.',
+      },
+    })
+
+    const result = await updateCommand('test-agent', false)
+
+    expect(result.ok).toBe(false)
+    expect(result.error?.code).toBe('UPDATE_FAILED')
+    expect(result.data?.results).toEqual([
+      expect.objectContaining({ installedVersion: '1.0.0', latestVersion: '2.0.0', status: 'failed' }),
+    ])
+  })
+
+  it('does not automatically update pip-managed agents without a target version', async () => {
     const pipAgent = {
       ...testAgent,
       name: 'pip-agent',
@@ -124,7 +247,7 @@ describe('updateCommand', () => {
     agentSpy.mockReturnValue(pipAgent)
     binaryInPathSpy.mockResolvedValue(true)
     installedVerSpy.mockResolvedValue('1.0.0')
-    latestVerSpy.mockResolvedValue('2.0.0')
+    latestVerSpy.mockResolvedValue(undefined)
     installedStateSpy.mockResolvedValue({
       agentName: 'pip-agent',
       installType: 'pip',
@@ -132,18 +255,14 @@ describe('updateCommand', () => {
     })
     updateAgentsByTypeSpy.mockResolvedValue(true)
     updateSpy.mockResolvedValue({ success: true })
+    mockSingleLifecycleOutcome({ decision: 'manual-required', installedVersion: '1.0.0' })
     await updateCommand('pip-agent', false)
-    expect(updateAgentsByTypeSpy).toHaveBeenCalledWith('pip', [
-      { packageName: 'pip-pkg', packageTargetKind: undefined },
-    ])
+    expect(updateAgentsByTypeSpy).not.toHaveBeenCalled()
     expect(updateSpy).not.toHaveBeenCalled()
-    expect(stdoutWriteSpy).toHaveBeenCalledWith(
-      expect.stringContaining('Updating Pip Agent via managed/pip... (1.0.0 -> latest)'),
-    )
-    expect(stdoutWriteSpy).toHaveBeenCalledWith(expect.stringContaining('updated successfully'))
+    expect(stdoutWriteSpy).toHaveBeenCalledWith(expect.stringContaining('Pip Agent: manual action required.'))
   })
 
-  it('updates uv-managed agents via updateAgentsByType with package args when versions differ', async () => {
+  it('does not automatically update uv-managed agents without a target version', async () => {
     const uvAgent = {
       ...testAgent,
       name: 'uv-agent',
@@ -160,7 +279,7 @@ describe('updateCommand', () => {
     agentSpy.mockReturnValue(uvAgent)
     binaryInPathSpy.mockResolvedValue(true)
     installedVerSpy.mockResolvedValue('1.0.0')
-    latestVerSpy.mockResolvedValue('2.0.0')
+    latestVerSpy.mockResolvedValue(undefined)
     installedStateSpy.mockResolvedValue({
       agentName: 'uv-agent',
       installType: 'uv',
@@ -169,18 +288,14 @@ describe('updateCommand', () => {
     })
     updateAgentsByTypeSpy.mockResolvedValue(true)
     updateSpy.mockResolvedValue({ success: true })
+    mockSingleLifecycleOutcome({ decision: 'manual-required', installedVersion: '1.0.0', providerId: 'uv' })
     await updateCommand('uv-agent', false)
-    expect(updateAgentsByTypeSpy).toHaveBeenCalledWith('uv', [
-      { packageInstallArgs: ['--python', '3.12'], packageName: 'uv-pkg', packageTargetKind: undefined },
-    ])
+    expect(updateAgentsByTypeSpy).not.toHaveBeenCalled()
     expect(updateSpy).not.toHaveBeenCalled()
-    expect(stdoutWriteSpy).toHaveBeenCalledWith(
-      expect.stringContaining('Updating Uv Agent via managed/uv... (1.0.0 -> latest)'),
-    )
-    expect(stdoutWriteSpy).toHaveBeenCalledWith(expect.stringContaining('updated successfully'))
+    expect(stdoutWriteSpy).toHaveBeenCalledWith(expect.stringContaining('Uv Agent: manual action required.'))
   })
 
-  it('updates deno-managed agents via updateAgentsByType with executable name and package args', async () => {
+  it('does not automatically update deno-managed agents without a target version', async () => {
     const denoAgent = {
       ...testAgent,
       name: 'deno-agent',
@@ -197,7 +312,7 @@ describe('updateCommand', () => {
     agentSpy.mockReturnValue(denoAgent)
     binaryInPathSpy.mockResolvedValue(true)
     installedVerSpy.mockResolvedValue('1.0.0')
-    latestVerSpy.mockResolvedValue('2.0.0')
+    latestVerSpy.mockResolvedValue(undefined)
     installedStateSpy.mockResolvedValue({
       agentName: 'deno-agent',
       binaryName: 'deno-bin',
@@ -207,20 +322,11 @@ describe('updateCommand', () => {
     })
     updateAgentsByTypeSpy.mockResolvedValue(true)
     updateSpy.mockResolvedValue({ success: true })
+    mockSingleLifecycleOutcome({ decision: 'manual-required', installedVersion: '1.0.0', providerId: 'deno' })
     await updateCommand('deno-agent', false)
-    expect(updateAgentsByTypeSpy).toHaveBeenCalledWith('deno', [
-      {
-        binaryName: 'deno-bin',
-        packageInstallArgs: ['--allow-net'],
-        packageName: 'jsr:@scope/deno-agent',
-        packageTargetKind: undefined,
-      },
-    ])
+    expect(updateAgentsByTypeSpy).not.toHaveBeenCalled()
     expect(updateSpy).not.toHaveBeenCalled()
-    expect(stdoutWriteSpy).toHaveBeenCalledWith(
-      expect.stringContaining('Updating Deno Agent via managed/deno... (1.0.0 -> latest)'),
-    )
-    expect(stdoutWriteSpy).toHaveBeenCalledWith(expect.stringContaining('updated successfully'))
+    expect(stdoutWriteSpy).toHaveBeenCalledWith(expect.stringContaining('Deno Agent: manual action required.'))
   })
 
   it('does not update tracked script installs through a candidate pip method', async () => {
@@ -254,6 +360,7 @@ describe('updateCommand', () => {
     })
     updateAgentsByTypeSpy.mockResolvedValue(true)
     updateSpy.mockResolvedValue({ success: true })
+    mockSingleLifecycleOutcome({ decision: 'manual-required', installedVersion: '1.0.0', providerId: 'script' })
 
     await updateCommand('script-pip-agent', false)
 
@@ -264,367 +371,395 @@ describe('updateCommand', () => {
     expect(output).toContain('manually managed install source')
   })
 
-  it('batches known package-manager updates for --all', async () => {
-    const agent2 = {
-      ...testAgent,
-      name: 'agent2',
-      binaryName: 'bin2',
-      packages: { npm: 'pkg2' },
-      displayName: 'Agent 2',
-    }
-    allAgentsSpy.mockReturnValue([testAgent, agent2])
-    binaryInPathSpy.mockResolvedValue(true)
-    installedVerSpy.mockResolvedValue('1.0.0')
-    latestVerSpy.mockResolvedValue('2.0.0')
-    installedStateSpy.mockImplementation(async (name: string) => {
-      if (name === 'test-agent') {
-        return {
-          agentName: 'test-agent',
-          installType: 'bun',
-          packageName: 'test-pkg',
-          command: 'bun add -g test-pkg',
-        }
-      }
+  it('routes update --all through the lifecycle batch root without legacy package-manager batching', async () => {
+    const batchRoot = requireLifecycleBatchRoot()
+    const batchSpy = vi.spyOn(lifecycleUpdateProduction, batchRoot).mockResolvedValue({
+      cancellationRemainder: [],
+      kind: 'lifecycle-update-batch-outcome',
+      plan: {
+        id: 'empty',
+        kind: 'lifecycle-update-batch-plan',
+        providerBuckets: [],
+        resolvedPlanId: 'empty',
+        targets: [],
+      },
+      results: [],
+      success: true,
+    } as never)
 
-      return undefined
-    })
-    updateAgentsByTypeSpy.mockResolvedValue(true)
-    updateSpy.mockResolvedValue({ success: true })
-    await updateCommand(undefined, true)
-    expect(updateAgentsByTypeSpy).toHaveBeenCalledWith('bun', [
-      { packageName: 'test-pkg', packageTargetKind: undefined },
-    ])
-    expect(updateSpy).not.toHaveBeenCalled()
-    const output = stdoutWriteSpy.mock.calls.map((c: any[]) => c[0]).join('\n')
-    expect(output).toContain('Updating Test Agent via managed/bun... (1.0.0 -> 2.0.0)')
-    expect(output).toContain('Agent 2: manual action required.')
-    expect(output).toContain('detected in PATH but not tracked as a Quantex-managed install')
-    expect(output).toContain('Summary: updated 1, manual 1')
+    try {
+      const result = await updateCommand(undefined, true)
+
+      expect(result.ok).toBe(true)
+      expect(batchSpy).toHaveBeenCalledOnce()
+      expect(lifecycleUpdateSpy).not.toHaveBeenCalled()
+      expect(updateAgentsByTypeSpy).not.toHaveBeenCalled()
+      expect(updateSpy).not.toHaveBeenCalled()
+    } finally {
+      batchSpy.mockRestore()
+    }
   })
 
-  it('stops batch update when the cli context is cancelled', async () => {
-    const agent2 = {
-      ...testAgent,
-      name: 'agent2',
-      binaryName: 'bin2',
-      packages: { npm: 'pkg2' },
-      displayName: 'Agent 2',
+  it('shares one prepared batch invocation between the update-all policy and command run', async () => {
+    mockBatchCommandAgents(['alpha', 'beta'])
+    const alpha = createBatchCommandTarget('alpha', 'updated')
+    const beta = createBatchCommandTarget('beta', 'updated')
+    const plan = createBatchCommandPlan([alpha.target, beta.target])
+    const outcome = {
+      cancellationRemainder: [],
+      kind: 'lifecycle-update-batch-outcome' as const,
+      plan,
+      results: [alpha.result, beta.result],
+      success: true,
     }
+    const lifecycleInvocation = {
+      dispose: vi.fn(),
+      getOutcome: vi.fn(() => outcome),
+      observe: vi.fn(),
+      prepare: vi.fn(async () => plan),
+      run: vi.fn(async () => outcome),
+    }
+    const createInvocationSpy = vi
+      .spyOn(lifecycleUpdateProduction, 'createLifecycleUpdateBatchInvocation')
+      .mockReturnValue(lifecycleInvocation as never)
 
-    allAgentsSpy.mockReturnValue([testAgent, agent2])
-    binaryInPathSpy.mockResolvedValue(true)
-    installedVerSpy.mockResolvedValue('1.0.0')
-    latestVerSpy.mockResolvedValue('2.0.0')
-    installedStateSpy.mockImplementation(async (name: string) => {
-      if (name === 'test-agent') {
-        return {
-          agentName: 'test-agent',
-          installType: 'bun',
-          packageName: 'test-pkg',
+    try {
+      const invocation = createUpdateCommandInvocation(undefined, true)
+      const policy = await invocation.idempotencyPolicy?.()
+      const result = await invocation.run()
+      invocation.dispose()
+
+      expect(policy?.request).toEqual({
+        action: 'update',
+        options: { requestedVersion: 'latest', scope: 'all' },
+        targets: ['alpha', 'beta'],
+      })
+      expect(lifecycleInvocation.prepare).toHaveBeenCalledOnce()
+      expect(lifecycleInvocation.run).toHaveBeenCalledOnce()
+      expect(lifecycleInvocation.dispose).toHaveBeenCalledOnce()
+      expect(result.ok).toBe(true)
+    } finally {
+      createInvocationSpy.mockRestore()
+    }
+  })
+
+  it('projects mixed batch outcomes and progress events in canonical target order', async () => {
+    setCliContext({ interactive: false, outputMode: 'ndjson', runId: 'batch-canonical-run' })
+    mockBatchCommandAgents(['alpha', 'beta', 'gamma', 'zeta'])
+    const alpha = createBatchCommandTarget('alpha', 'updated')
+    const beta = createBatchCommandPlanningFailure('beta')
+    const gamma = createBatchCommandTarget('gamma', 'not-executed', 'manual-required')
+    const zeta = createBatchCommandTarget('zeta', 'locked')
+    const batchRoot = requireLifecycleBatchRoot()
+    const batchSpy = vi.spyOn(lifecycleUpdateProduction, batchRoot).mockResolvedValue({
+      cancellationRemainder: [],
+      kind: 'lifecycle-update-batch-outcome',
+      plan: createBatchCommandPlan([alpha.target, beta.target, gamma.target, zeta.target]),
+      results: [alpha.result, beta.result, gamma.result, zeta.result],
+      success: false,
+    } as never)
+
+    try {
+      const result = await updateCommand(undefined, true)
+      const events = logSpy.mock.calls.map((call: unknown[]) => JSON.parse(String(call[0]))) as Array<{
+        data: { name: string }
+        type?: string
+      }>
+      const progress = events.filter(event => event.type === 'progress')
+
+      expect(result.ok).toBe(false)
+      expect(result.error?.code).toBe('UPDATE_FAILED')
+      expect(result.data?.results.map(item => [item.name, item.status])).toEqual([
+        ['alpha', 'updated'],
+        ['beta', 'failed'],
+        ['gamma', 'manual-required'],
+        ['zeta', 'locked'],
+      ])
+      expect(result.data?.results.at(-1)).toMatchObject({ resource: '/locks/zeta' })
+      expect(progress.map(event => event.data.name)).toEqual(['alpha', 'beta', 'gamma', 'zeta'])
+      expect(updateAgentsByTypeSpy).not.toHaveBeenCalled()
+      expect(updateSpy).not.toHaveBeenCalled()
+    } finally {
+      batchSpy.mockRestore()
+    }
+  })
+
+  it.each(['human', 'json', 'ndjson'] as const)(
+    'projects a blocked untracked PATH install as manual-required in %s mode',
+    async outputMode => {
+      setCliContext({ interactive: false, outputMode, runId: `batch-untracked-${outputMode}` })
+      mockBatchCommandAgents(['alpha'])
+      const alpha = createBatchCommandUntrackedTarget('alpha')
+      const batchRoot = requireLifecycleBatchRoot()
+      const batchSpy = vi.spyOn(lifecycleUpdateProduction, batchRoot).mockResolvedValue({
+        cancellationRemainder: [],
+        kind: 'lifecycle-update-batch-outcome',
+        plan: createBatchCommandPlan([alpha.target]),
+        results: [alpha.result],
+        success: false,
+      } as never)
+
+      try {
+        const result = await updateCommand(undefined, true)
+
+        expect(result.ok).toBe(true)
+        expect(result.data?.results).toEqual([
+          expect.objectContaining({
+            message: expect.stringContaining('detected in PATH but not tracked'),
+            name: 'alpha',
+            status: 'manual-required',
+          }),
+        ])
+        if (outputMode === 'human') {
+          const output = stdoutWriteSpy.mock.calls.map((call: unknown[]) => String(call[0])).join('\n')
+          expect(output).toContain('ALPHA: manual action required.')
+          expect(output).toContain('quantex inspect alpha --json')
+        } else {
+          const output = logSpy.mock.calls.map((call: unknown[]) => String(call[0])).join('\n')
+          expect(output).toContain('manual-required')
+          expect(output).toContain('detected in PATH but not tracked')
         }
+      } finally {
+        batchSpy.mockRestore()
       }
+    },
+  )
 
-      if (name === 'agent2') {
-        return {
-          agentName: 'agent2',
-          installType: 'bun',
-          packageName: 'pkg2',
+  it.each(['human', 'json', 'ndjson'] as const)(
+    'projects a typed manual planning block as manual-required in %s mode',
+    async outputMode => {
+      setCliContext({ interactive: false, outputMode, runId: `batch-manual-block-${outputMode}` })
+      const manual = createBatchCommandManualBlockedTarget('manual-agent')
+      agentSpy.mockImplementation(input => (input === manual.agent.name ? manual.agent : undefined))
+      const batchRoot = requireLifecycleBatchRoot()
+      const batchSpy = vi.spyOn(lifecycleUpdateProduction, batchRoot).mockResolvedValue({
+        cancellationRemainder: [],
+        kind: 'lifecycle-update-batch-outcome',
+        plan: createBatchCommandPlan([manual.target]),
+        results: [manual.result],
+        success: false,
+      } as never)
+
+      try {
+        const result = await updateCommand(undefined, true)
+
+        expect(result.ok).toBe(true)
+        expect(result.error).toBeNull()
+        expect(result.data?.results).toEqual([
+          expect.objectContaining({
+            message: expect.stringContaining('manually managed install source'),
+            name: manual.agent.name,
+            status: 'manual-required',
+          }),
+        ])
+        if (outputMode === 'human') {
+          const output = stdoutWriteSpy.mock.calls.map((call: unknown[]) => String(call[0])).join('\n')
+          expect(output).toContain(`${manual.agent.displayName}: manual action required.`)
+          expect(output).toContain('manually managed install source')
+        } else {
+          const output = logSpy.mock.calls.map((call: unknown[]) => String(call[0])).join('\n')
+          expect(output).toContain('manual-required')
+          expect(output).toContain('manually managed install source')
         }
+      } finally {
+        batchSpy.mockRestore()
       }
+    },
+  )
 
-      return undefined
-    })
-    updateAgentsByTypeSpy.mockResolvedValue(false)
-    updateSpy.mockImplementation(async agent => {
-      if (agent.name === 'test-agent') {
-        await cancelCliContextOperations()
-        return { success: true }
-      }
+  it.each([
+    {
+      agent: {
+        ...testAgent,
+        binaryName: 'manual-bin',
+        displayName: 'Manual Agent',
+        name: 'manual-agent',
+        packages: undefined,
+        platforms: {
+          linux: [{ command: 'curl https://example.com/install | bash', type: 'script' as const }],
+          macos: [{ command: 'curl https://example.com/install | bash', type: 'script' as const }],
+          windows: [{ command: 'irm https://example.com/install | iex', type: 'script' as const }],
+        },
+      },
+      installedState: undefined,
+      label: 'package-less manual target',
+    },
+    {
+      agent: {
+        ...testAgent,
+        binaryName: 'tracked-script-bin',
+        displayName: 'Tracked Script Agent',
+        name: 'tracked-script-agent',
+        platforms: {
+          linux: [{ command: 'curl https://example.com/install | bash', type: 'script' as const }],
+          macos: [{ command: 'curl https://example.com/install | bash', type: 'script' as const }],
+          windows: [{ command: 'irm https://example.com/install | iex', type: 'script' as const }],
+        },
+      },
+      installedState: {
+        agentName: 'tracked-script-agent',
+        command: 'curl https://example.com/install | bash',
+        installType: 'script' as const,
+      },
+      label: 'tracked script without a target version',
+    },
+  ])('keeps $label manual with actionable human guidance', async ({ agent, installedState }) => {
+    agentSpy.mockImplementation(input => (input === agent.name ? agent : undefined))
+    const manual = createBatchCommandTarget(agent.name, 'not-executed', 'manual-required', agent, installedState)
+    const batchRoot = requireLifecycleBatchRoot()
+    const batchSpy = vi.spyOn(lifecycleUpdateProduction, batchRoot).mockResolvedValue({
+      cancellationRemainder: [],
+      kind: 'lifecycle-update-batch-outcome',
+      plan: createBatchCommandPlan([manual.target]),
+      results: [manual.result],
+      success: true,
+    } as never)
 
-      return { success: true }
-    })
+    try {
+      const result = await updateCommand(undefined, true)
+      const output = stdoutWriteSpy.mock.calls.map((call: unknown[]) => String(call[0])).join('\n')
 
-    const result = await updateCommand(undefined, true)
+      expect(result.ok).toBe(true)
+      expect(result.data?.results[0]).toMatchObject({ name: agent.name, status: 'manual-required' })
+      expect(output).toContain(`${agent.displayName}: manual action required.`)
+      expect(output).toContain('manually managed install source')
+    } finally {
+      batchSpy.mockRestore()
+    }
+  })
 
-    expect(result.ok).toBe(false)
-    expect(result.error?.code).toBe('CANCELLED')
-    expect(updateSpy).toHaveBeenCalledTimes(1)
-    expect(updateSpy).toHaveBeenCalledWith(
-      testAgent,
-      expect.objectContaining({
-        agentName: 'test-agent',
-        installType: 'bun',
-      }),
-    )
+  it.each([
+    {
+      agent: {
+        ...testAgent,
+        binaryName: 'self-update-bin',
+        displayName: 'Self Update Agent',
+        name: 'self-update-agent',
+        packages: undefined,
+        selfUpdate: { command: ['self-update-bin', 'update'] },
+      },
+      expectedHint: 'Try running self-update-bin update directly.',
+      label: 'self-update direct command',
+    },
+    {
+      agent: {
+        ...testAgent,
+        binaryName: 'manual-failure-bin',
+        displayName: 'Manual Failure Agent',
+        homepage: 'https://example.com/manual-failure',
+        name: 'manual-failure-agent',
+        packages: undefined,
+      },
+      expectedHint: 'Check https://example.com/manual-failure for the recommended update path.',
+      label: 'manual homepage',
+    },
+  ])('uses the observed source for a $label failure hint', async ({ agent, expectedHint }) => {
+    agentSpy.mockImplementation(input => (input === agent.name ? agent : undefined))
+    const failed = createBatchCommandProviderFailure(agent)
+    const batchRoot = requireLifecycleBatchRoot()
+    const batchSpy = vi.spyOn(lifecycleUpdateProduction, batchRoot).mockResolvedValue({
+      cancellationRemainder: [],
+      kind: 'lifecycle-update-batch-outcome',
+      plan: createBatchCommandPlan([failed.target]),
+      results: [failed.result],
+      success: false,
+    } as never)
+
+    try {
+      const result = await updateCommand(undefined, true)
+      const output = stdoutWriteSpy.mock.calls.map((call: unknown[]) => String(call[0])).join('\n')
+
+      expect(result.ok).toBe(false)
+      expect(result.data?.results[0]?.hint).toBe(expectedHint)
+      expect(output).toContain(expectedHint)
+    } finally {
+      batchSpy.mockRestore()
+    }
+  })
+
+  it('keeps completed batch results and projects unstarted targets after cancellation', async () => {
+    mockBatchCommandAgents(['alpha', 'beta', 'gamma'])
+    const alpha = createBatchCommandTarget('alpha', 'updated')
+    const beta = createBatchCommandTarget('beta', 'not-executed')
+    const gamma = createBatchCommandTarget('gamma', 'not-executed')
+    const batchRoot = requireLifecycleBatchRoot()
+    const batchSpy = vi.spyOn(lifecycleUpdateProduction, batchRoot).mockResolvedValue({
+      cancellationRemainder: [
+        {
+          agentName: beta.target.agentName,
+          id: beta.target.id,
+          planning: beta.target.outcome,
+          reason: 'cancelled-after-alpha',
+        },
+        {
+          agentName: gamma.target.agentName,
+          id: gamma.target.id,
+          planning: gamma.target.outcome,
+          reason: 'cancelled-after-alpha',
+        },
+      ],
+      kind: 'lifecycle-update-batch-outcome',
+      plan: createBatchCommandPlan([alpha.target, beta.target, gamma.target]),
+      results: [alpha.result],
+      success: false,
+    } as never)
+
+    try {
+      const result = await updateCommand(undefined, true)
+
+      expect(result.ok).toBe(false)
+      expect(result.error?.code).toBe('CANCELLED')
+      expect(result.data?.results.map(item => [item.name, item.status])).toEqual([
+        ['alpha', 'updated'],
+        ['beta', 'failed'],
+        ['gamma', 'failed'],
+      ])
+      expect(result.data?.results.slice(1).every(item => item.message === 'cancelled-after-alpha')).toBe(true)
+    } finally {
+      batchSpy.mockRestore()
+    }
   })
 
   it('does not report overall success for update --all after timeout cancellation', async () => {
-    const agent2 = {
-      ...testAgent,
-      name: 'agent2',
-      binaryName: 'bin2',
-      packages: { npm: 'pkg2' },
-      displayName: 'Agent 2',
-    }
-
     setCliContext({
       interactive: false,
       outputMode: 'json',
       runId: 'batch-update-timeout-run',
       timeoutMs: 50,
     })
-    allAgentsSpy.mockReturnValue([testAgent, agent2])
-    binaryInPathSpy.mockResolvedValue(true)
-    installedVerSpy.mockResolvedValue('1.0.0')
-    latestVerSpy.mockResolvedValue('2.0.0')
-    installedStateSpy.mockImplementation(async (name: string) => {
-      if (name === 'test-agent') {
-        return {
-          agentName: 'test-agent',
-          installType: 'bun',
-          packageName: 'test-pkg',
-        }
-      }
-
-      if (name === 'agent2') {
-        return {
-          agentName: 'agent2',
-          installType: 'bun',
-          packageName: 'pkg2',
-        }
-      }
-
-      return undefined
-    })
-    updateAgentsByTypeSpy.mockResolvedValue(false)
-    updateSpy.mockImplementation(async agent => {
-      if (agent.name === 'test-agent') {
-        await new Promise(resolve => setTimeout(resolve, 200))
-        return { success: true }
-      }
-
-      return { success: true }
+    const batchRoot = requireLifecycleBatchRoot()
+    const batchSpy = vi.spyOn(lifecycleUpdateProduction, batchRoot).mockImplementation(async () => {
+      await new Promise(resolve => setTimeout(resolve, 200))
+      return {
+        cancellationRemainder: [],
+        kind: 'lifecycle-update-batch-outcome',
+        plan: createBatchCommandPlan([]),
+        results: [],
+        success: true,
+      } as never
     })
 
-    const runtimeResult = await executeCommandWithRuntime({
-      action: 'update',
-      run: () => updateCommand(undefined, true),
-      target: {
-        kind: 'agent',
-      },
-    })
+    try {
+      const runtimeResult = await executeCommandWithRuntime({
+        action: 'update',
+        run: () => updateCommand(undefined, true),
+        target: {
+          kind: 'agent',
+        },
+      })
 
-    await new Promise(resolve => setTimeout(resolve, 300))
+      await new Promise(resolve => setTimeout(resolve, 250))
 
-    expect(runtimeResult.ok).toBe(false)
-    expect(['CANCELLED', 'TIMEOUT']).toContain(runtimeResult.error?.code)
-    expect(updateSpy).toHaveBeenCalledTimes(1)
-    expect(updateSpy).toHaveBeenCalledWith(
-      testAgent,
-      expect.objectContaining({
-        agentName: 'test-agent',
-        installType: 'bun',
-      }),
-    )
-  })
-
-  it('falls back from failed grouped updates without concurrent lifecycle lock contention', async () => {
-    const agent2 = {
-      ...testAgent,
-      name: 'agent2',
-      binaryName: 'bin2',
-      packages: { npm: 'pkg2' },
-      displayName: 'Agent 2',
+      expect(runtimeResult.ok).toBe(false)
+      expect(['CANCELLED', 'TIMEOUT']).toContain(runtimeResult.error?.code)
+      expect(batchSpy).toHaveBeenCalledOnce()
+      expect(updateAgentsByTypeSpy).not.toHaveBeenCalled()
+      expect(updateSpy).not.toHaveBeenCalled()
+    } finally {
+      batchSpy.mockRestore()
     }
-    allAgentsSpy.mockReturnValue([testAgent, agent2])
-    binaryInPathSpy.mockResolvedValue(true)
-    installedVerSpy.mockResolvedValue('1.0.0')
-    latestVerSpy.mockResolvedValue('2.0.0')
-    installedStateSpy.mockImplementation(async (name: string) => {
-      if (name === 'test-agent') {
-        return {
-          agentName: 'test-agent',
-          installType: 'bun',
-          packageName: 'test-pkg',
-        }
-      }
-
-      if (name === 'agent2') {
-        return {
-          agentName: 'agent2',
-          installType: 'bun',
-          packageName: 'pkg2',
-        }
-      }
-
-      return undefined
-    })
-    updateAgentsByTypeSpy.mockResolvedValue(false)
-    let activeUpdates = 0
-    let maxActiveUpdates = 0
-    updateSpy.mockImplementation(async () => {
-      activeUpdates += 1
-      maxActiveUpdates = Math.max(maxActiveUpdates, activeUpdates)
-      await Promise.resolve()
-      activeUpdates -= 1
-      return { success: true }
-    })
-
-    const result = await updateCommand(undefined, true)
-
-    expect(result.ok).toBe(true)
-    expect(updateAgentsByTypeSpy).toHaveBeenCalledWith('bun', [
-      { packageName: 'test-pkg', packageTargetKind: undefined },
-      { packageName: 'pkg2', packageTargetKind: undefined },
-    ])
-    expect(updateSpy).toHaveBeenCalledTimes(2)
-    expect(maxActiveUpdates).toBe(1)
-
-    const output = stdoutWriteSpy.mock.calls.map((c: any[]) => c[0]).join('\n')
-    expect(output).toContain('Test Agent updated successfully')
-    expect(output).toContain('Agent 2 updated successfully')
-    expect(output).toContain('Summary: updated 2')
-    expect(output).not.toContain('locked')
   })
-
-  it('does not report package-less entries as updated in mixed managed batches', async () => {
-    const brokenAgent = {
-      ...testAgent,
-      name: 'broken-agent',
-      binaryName: 'broken-bin',
-      displayName: 'Broken Agent',
-      packages: undefined,
-    }
-    allAgentsSpy.mockReturnValue([testAgent, brokenAgent])
-    binaryInPathSpy.mockResolvedValue(true)
-    installedVerSpy.mockResolvedValue('1.0.0')
-    latestVerSpy.mockResolvedValue('2.0.0')
-    installedStateSpy.mockImplementation(async (name: string) => {
-      if (name === 'test-agent') {
-        return {
-          agentName: 'test-agent',
-          installType: 'bun',
-          packageName: 'test-pkg',
-        }
-      }
-
-      if (name === 'broken-agent') {
-        return {
-          agentName: 'broken-agent',
-          installType: 'bun',
-        }
-      }
-
-      return undefined
-    })
-    updateAgentsByTypeSpy.mockResolvedValue(true)
-    updateSpy.mockResolvedValue({ success: false })
-
-    const result = await updateCommand(undefined, true)
-
-    expect(result.ok).toBe(false)
-    expect(updateAgentsByTypeSpy).toHaveBeenCalledWith('bun', [
-      { packageName: 'test-pkg', packageTargetKind: undefined },
-    ])
-    expect(updateSpy).toHaveBeenCalledWith(
-      brokenAgent,
-      expect.objectContaining({
-        agentName: 'broken-agent',
-        installType: 'bun',
-      }),
-    )
-
-    const output = stdoutWriteSpy.mock.calls.map((c: any[]) => c[0]).join('\n')
-    expect(output).toContain('Test Agent updated successfully')
-    expect(output).toContain('Failed to update Broken Agent.')
-    expect(output).toContain('Summary: updated 1, failed 1')
-  })
-
-  it('reports tracked Bun agents as up to date when installed package versions match latest', async () => {
-    const piAgent = {
-      ...testAgent,
-      name: 'pi',
-      binaryName: 'pi',
-      packages: { npm: '@mariozechner/pi-coding-agent' },
-      displayName: 'Pi',
-    }
-
-    allAgentsSpy.mockReturnValue([testAgent, piAgent])
-    binaryInPathSpy.mockResolvedValue(true)
-    installedVerSpy.mockResolvedValue(undefined)
-    latestVerSpy.mockImplementation(async (packageName: string) => {
-      if (packageName === 'test-pkg') return '1.0.43'
-      if (packageName === '@mariozechner/pi-coding-agent') return '0.73.1'
-      return undefined
-    })
-    installedStateSpy.mockImplementation(async (name: string) => {
-      if (name === 'test-agent') {
-        return {
-          agentName: 'test-agent',
-          installType: 'bun',
-          packageName: 'test-pkg',
-        }
-      }
-
-      if (name === 'pi') {
-        return {
-          agentName: 'pi',
-          installType: 'bun',
-          packageName: '@mariozechner/pi-coding-agent',
-        }
-      }
-
-      return undefined
-    })
-    managedInstalledVersionSpy.mockImplementation(async (_type: ManagedInstallType, packageName: string) =>
-      packageName === 'test-pkg' ? '1.0.43' : packageName === '@mariozechner/pi-coding-agent' ? '0.73.1' : undefined,
-    )
-
-    await updateCommand(undefined, true)
-
-    expect(updateAgentsByTypeSpy).not.toHaveBeenCalled()
-    expect(updateSpy).not.toHaveBeenCalled()
-    expect(installedVerSpy).not.toHaveBeenCalled()
-
-    const output = stdoutWriteSpy.mock.calls.map((c: any[]) => c[0]).join('\n')
-    expect(output).toContain('Test Agent is up to date (1.0.43)')
-    expect(output).toContain('Pi is up to date (0.73.1)')
-    expect(output).toContain('Summary: up to date 2')
-  })
-
-  it('skips detected PATH installs without auto-update support for --all', async () => {
-    const manualAgent = {
-      ...testAgent,
-      name: 'manual-agent',
-      binaryName: 'manual-bin',
-      displayName: 'Manual Agent',
-      packages: undefined,
-      platforms: {
-        linux: [{ type: 'script' as const, command: 'curl https://example.com/install | bash' }],
-        macos: [{ type: 'script' as const, command: 'curl https://example.com/install | bash' }],
-        windows: [{ type: 'script' as const, command: 'irm https://example.com/install | iex' }],
-      },
-    }
-
-    allAgentsSpy.mockReturnValue([manualAgent])
-    binaryInPathSpy.mockResolvedValue(true)
-    installedVerSpy.mockResolvedValue('1.0.0')
-    latestVerSpy.mockResolvedValue(undefined)
-    installedStateSpy.mockResolvedValue(undefined)
-
-    await updateCommand(undefined, true)
-
-    expect(updateAgentsByTypeSpy).not.toHaveBeenCalled()
-    expect(updateSpy).not.toHaveBeenCalled()
-
-    const output = stdoutWriteSpy.mock.calls.map((c: any[]) => c[0]).join('\n')
-    expect(output).toContain('Manual Agent: manual action required.')
-    expect(output).toContain('detected in PATH but not tracked as a Quantex-managed install')
-    expect(output).not.toContain('Updating Manual Agent')
-    expect(output).not.toContain('Failed to update Manual Agent')
-  })
-
-  it('skips detected PATH installs with self-update support for --all when they are untracked', async () => {
+  it('does not infer self-update satisfaction without a target version', async () => {
     const selfUpdatingAgent = {
       ...testAgent,
       name: 'self-updating-agent',
@@ -641,104 +776,26 @@ describe('updateCommand', () => {
       },
     }
 
-    allAgentsSpy.mockReturnValue([selfUpdatingAgent])
+    agentSpy.mockReturnValue(selfUpdatingAgent)
     binaryInPathSpy.mockResolvedValue(true)
     installedVerSpy.mockResolvedValue('1.0.0')
     latestVerSpy.mockResolvedValue(undefined)
-    installedStateSpy.mockResolvedValue(undefined)
+    installedStateSpy.mockResolvedValue({
+      agentName: 'self-updating-agent',
+      installType: 'script',
+      command: 'curl https://example.com/install | bash',
+    })
     updateSpy.mockResolvedValue({ success: true })
+    mockSingleLifecycleOutcome({ decision: 'manual-required', installedVersion: '1.0.0', providerId: 'script' })
 
-    await updateCommand(undefined, true)
-
-    expect(updateSpy).not.toHaveBeenCalled()
-    expect(updateAgentsByTypeSpy).not.toHaveBeenCalled()
+    await updateCommand('self-updating-agent', false)
 
     const output = stdoutWriteSpy.mock.calls.map((c: any[]) => c[0]).join('\n')
     expect(output).toContain('Self Updating Agent: manual action required.')
-    expect(output).toContain('detected in PATH but not tracked as a Quantex-managed install')
-    expect(output).toContain('quantex inspect self-updating-agent --json')
-  })
-
-  it('includes tracked script installs in update --all via self-update', async () => {
-    const selfUpdatingAgent = {
-      ...testAgent,
-      name: 'self-updating-agent',
-      binaryName: 'self-updating-bin',
-      displayName: 'Self Updating Agent',
-      packages: undefined,
-      selfUpdate: {
-        command: ['self-updating-bin', 'update'],
-      },
-      platforms: {
-        linux: [{ type: 'script' as const, command: 'curl https://example.com/install | bash' }],
-        macos: [{ type: 'script' as const, command: 'curl https://example.com/install | bash' }],
-        windows: [{ type: 'script' as const, command: 'irm https://example.com/install | iex' }],
-      },
-    }
-
-    allAgentsSpy.mockReturnValue([selfUpdatingAgent])
-    binaryInPathSpy.mockResolvedValue(true)
-    installedVerSpy.mockResolvedValueOnce('1.0.0').mockResolvedValueOnce('2.0.0')
-    latestVerSpy.mockResolvedValue(undefined)
-    installedStateSpy.mockResolvedValue({
-      agentName: 'self-updating-agent',
-      installType: 'script',
-      command: 'curl https://example.com/install | bash',
-    })
-    updateSpy.mockResolvedValue({ success: true })
-
-    await updateCommand(undefined, true)
-
-    expect(updateAgentsByTypeSpy).not.toHaveBeenCalled()
-    expect(updateSpy).toHaveBeenCalledWith(
-      selfUpdatingAgent,
-      expect.objectContaining({
-        command: 'curl https://example.com/install | bash',
-        installType: 'script',
-      }),
-    )
-
-    const output = stdoutWriteSpy.mock.calls.map((c: any[]) => c[0]).join('\n')
-    expect(output).toContain('Updating Self Updating Agent via self-update... (1.0.0 -> 2.0.0)')
-    expect(output).toContain('Self Updating Agent updated successfully')
-  })
-
-  it('reports self-update as up to date when the version does not change', async () => {
-    const selfUpdatingAgent = {
-      ...testAgent,
-      name: 'self-updating-agent',
-      binaryName: 'self-updating-bin',
-      displayName: 'Self Updating Agent',
-      packages: undefined,
-      selfUpdate: {
-        command: ['self-updating-bin', 'update'],
-      },
-      platforms: {
-        linux: [{ type: 'script' as const, command: 'curl https://example.com/install | bash' }],
-        macos: [{ type: 'script' as const, command: 'curl https://example.com/install | bash' }],
-        windows: [{ type: 'script' as const, command: 'irm https://example.com/install | iex' }],
-      },
-    }
-
-    agentSpy.mockReturnValue(selfUpdatingAgent)
-    binaryInPathSpy.mockResolvedValue(true)
-    installedVerSpy.mockResolvedValueOnce('1.0.0').mockResolvedValueOnce('1.0.0')
-    latestVerSpy.mockResolvedValue(undefined)
-    installedStateSpy.mockResolvedValue({
-      agentName: 'self-updating-agent',
-      installType: 'script',
-      command: 'curl https://example.com/install | bash',
-    })
-    updateSpy.mockResolvedValue({ success: true })
-
-    await updateCommand('self-updating-agent', false)
-
-    const output = stdoutWriteSpy.mock.calls.map((c: any[]) => c[0]).join('\n')
-    expect(output).toContain('Self Updating Agent is up to date (1.0.0)')
     expect(output).not.toContain('Self Updating Agent updated successfully')
   })
 
-  it('still allows explicit single-agent updates for untracked PATH installs with self-update support', async () => {
+  it('keeps explicit untracked self-updates manual without a target version', async () => {
     const selfUpdatingAgent = {
       ...testAgent,
       name: 'self-updating-agent',
@@ -757,20 +814,21 @@ describe('updateCommand', () => {
 
     agentSpy.mockReturnValue(selfUpdatingAgent)
     binaryInPathSpy.mockResolvedValue(true)
-    installedVerSpy.mockResolvedValueOnce('1.0.0').mockResolvedValueOnce('2.0.0')
+    installedVerSpy.mockResolvedValue('1.0.0')
     latestVerSpy.mockResolvedValue(undefined)
     installedStateSpy.mockResolvedValue(undefined)
     updateSpy.mockResolvedValue({ success: true })
+    mockSingleLifecycleOutcome({ decision: 'manual-required', installedVersion: '1.0.0', providerId: 'script' })
 
     await updateCommand('self-updating-agent', false)
 
-    expect(updateSpy).toHaveBeenCalledWith(selfUpdatingAgent, undefined)
+    expect(updateSpy).not.toHaveBeenCalled()
     const output = stdoutWriteSpy.mock.calls.map((c: any[]) => c[0]).join('\n')
-    expect(output).toContain('Updating Self Updating Agent via self-update... (1.0.0 -> 2.0.0)')
-    expect(output).toContain('Self Updating Agent updated successfully')
+    expect(output).toContain('Self Updating Agent: manual action required.')
+    expect(output).not.toContain('Self Updating Agent updated successfully')
   })
 
-  it('shows a self-update recovery hint when self-update fails', async () => {
+  it('does not invoke self-update failure paths without a target version', async () => {
     const selfUpdatingAgent = {
       ...testAgent,
       name: 'self-updating-agent',
@@ -794,39 +852,26 @@ describe('updateCommand', () => {
     latestVerSpy.mockResolvedValue(undefined)
     installedStateSpy.mockResolvedValue(undefined)
     updateSpy.mockResolvedValue({ success: false })
+    mockSingleLifecycleOutcome({ decision: 'manual-required', installedVersion: '1.0.0', providerId: 'script' })
 
     await updateCommand('self-updating-agent', false)
 
     const output = stdoutWriteSpy.mock.calls.map((c: any[]) => c[0]).join('\n')
-    expect(output).toContain('Failed to update Self Updating Agent.')
-    expect(output).toContain('Next step: Try running self-updating-bin update directly.')
+    expect(updateSpy).not.toHaveBeenCalled()
+    expect(output).toContain('Self Updating Agent: manual action required.')
+    expect(output).not.toContain('Failed to update Self Updating Agent.')
   })
 
   it('returns a stable conflict when another lifecycle operation already holds the lock', async () => {
-    const selfUpdatingAgent = {
-      ...testAgent,
-      name: 'self-updating-agent',
-      binaryName: 'self-updating-bin',
-      displayName: 'Self Updating Agent',
-      packages: undefined,
-      selfUpdate: {
-        command: ['self-updating-bin', 'update'],
-      },
-      platforms: {
-        linux: [{ type: 'script' as const, command: 'curl https://example.com/install | bash' }],
-        macos: [{ type: 'script' as const, command: 'curl https://example.com/install | bash' }],
-        windows: [{ type: 'script' as const, command: 'irm https://example.com/install | iex' }],
-      },
-    }
-
-    agentSpy.mockReturnValue(selfUpdatingAgent)
+    agentSpy.mockReturnValue(testAgent)
     binaryInPathSpy.mockResolvedValue(true)
     installedVerSpy.mockResolvedValue('1.0.0')
-    latestVerSpy.mockResolvedValue(undefined)
+    latestVerSpy.mockResolvedValue('2.0.0')
     installedStateSpy.mockResolvedValue(undefined)
-    updateSpy.mockRejectedValue(new ResourceLockError('agent lifecycle', '/tmp/agent-lifecycle.lock'))
+    updateAgentsByTypeSpy.mockRejectedValue(new ResourceLockError('agent lifecycle', '/tmp/agent-lifecycle.lock'))
+    lifecycleUpdateSpy.mockRejectedValue(new ResourceLockError('agent lifecycle', '/tmp/agent-lifecycle.lock'))
 
-    const result = await updateCommand('self-updating-agent', false)
+    const result = await updateCommand('test-agent', false)
 
     expect(result.error?.code).toBe('RESOURCE_LOCKED')
     expect(stdoutWriteSpy).toHaveBeenCalledWith(expect.stringContaining('agent lifecycle lock'))
@@ -844,6 +889,12 @@ describe('updateCommand', () => {
     installedVerSpy.mockResolvedValue('1.0.0')
     latestVerSpy.mockResolvedValue('2.0.0')
     installedStateSpy.mockResolvedValue(undefined)
+    mockSingleLifecycleOutcome({
+      decision: 'upgrade',
+      installedVersion: '1.0.0',
+      kind: 'dry-run',
+      latestVersion: '2.0.0',
+    })
 
     const result = await updateCommand('test-agent', false)
 
@@ -870,6 +921,12 @@ describe('updateCommand', () => {
     latestVerSpy.mockResolvedValue('2.0.0')
     installedStateSpy.mockResolvedValue(undefined)
     updateAgentsByTypeSpy.mockResolvedValue(true)
+    mockSingleLifecycleOutcome({
+      decision: 'upgrade',
+      installedVersion: '1.0.0',
+      kind: 'updated',
+      latestVersion: '2.0.0',
+    })
 
     await updateCommand('test-agent', false)
 
@@ -885,3 +942,306 @@ describe('updateCommand', () => {
     expect(resultEvent.meta.runId).toBe('update-run-id')
   })
 })
+
+function mockSingleLifecycleOutcome(options: {
+  decision: 'manual-required' | 'up-to-date' | 'upgrade'
+  installedVersion: string
+  kind?: 'dry-run' | 'not-executed' | 'updated'
+  latestVersion?: string
+  providerId?: ProviderId
+}): void {
+  const providerId = options.providerId ?? 'bun'
+  const target = { id: 'test-pkg', kind: 'package' as const }
+  const observation = {
+    drift: { kind: 'none' as const },
+    kind: 'present' as const,
+    providerId,
+    providerTargetId: target.id,
+    providerTargetKind: target.kind,
+    targetId: 'test-agent',
+    version: options.installedVersion,
+  }
+  const before = {
+    agent: testAgent,
+    binding: { providerId, target },
+    capabilities: ['observe', 'resolve-latest-version', 'update', 'verify'] as const,
+    executable: { present: true, version: options.installedVersion },
+    installedState: { agentName: 'test-agent', installType: providerId, packageName: target.id },
+    methods: [],
+    observation,
+  }
+  const plan = {
+    before,
+    binding: { providerId, target },
+    plannedTargetVersion: options.latestVersion ?? options.installedVersion,
+    planning: {
+      decision: options.decision,
+      plan: {
+        id: 'update-test-agent',
+        intent: {
+          kind: 'update' as const,
+          targetId: 'test-agent',
+          targetVersion: options.latestVersion ?? options.installedVersion,
+        },
+        kind: 'lifecycle-plan' as const,
+        observation,
+        steps: [],
+      },
+    },
+  }
+  const kind = options.kind ?? 'not-executed'
+  let outcome: RunSingleAgentLifecycleUpdateOutcome
+  if (kind === 'updated') {
+    const afterObservation = { ...observation, version: options.latestVersion }
+    outcome = {
+      after: {
+        ...before,
+        executable: { present: true, version: options.latestVersion },
+        observation: afterObservation,
+      },
+      kind,
+      plan,
+      providerOutcome: { kind: 'success', value: { evidence: [], target } },
+      receipt: {
+        kind: 'lifecycle-receipt',
+        providerId,
+        providerTargetId: target.id,
+        providerTargetKind: target.kind,
+        schemaVersion: 1,
+        targetId: 'test-agent',
+        verifiedAt: '2026-07-13T04:00:00.000Z',
+        version: options.latestVersion,
+      },
+      verification: {
+        kind: 'satisfied',
+        observation: afterObservation,
+        postcondition: {
+          expectedVersion: options.latestVersion!,
+          kind: 'version-satisfies',
+          targetId: target.id,
+        },
+      },
+    }
+  } else {
+    outcome = { kind, plan }
+  }
+  lifecycleUpdateSpy.mockResolvedValue(outcome)
+}
+
+function requireLifecycleBatchRoot(): 'runLifecycleUpdateBatch' {
+  expect(lifecycleUpdateProduction).toHaveProperty('runLifecycleUpdateBatch')
+  if (!('runLifecycleUpdateBatch' in lifecycleUpdateProduction)) {
+    throw new Error('Expected lifecycle update production module to export runLifecycleUpdateBatch')
+  }
+  return 'runLifecycleUpdateBatch'
+}
+
+function mockBatchCommandAgents(names: readonly string[]): void {
+  const definitions = names.map(name => ({
+    ...testAgent,
+    binaryName: `${name}-bin`,
+    displayName: name.toUpperCase(),
+    name,
+  }))
+  agentSpy.mockImplementation(input => definitions.find(agent => agent.name === input))
+}
+
+function createBatchCommandTarget(
+  name: string,
+  executionKind: 'locked' | 'not-executed' | 'updated',
+  decision: 'manual-required' | 'up-to-date' | 'upgrade' = 'upgrade',
+  agentOverride?: AgentDefinition,
+  installedStateOverride?: InstalledAgentState,
+) {
+  const agent = agentOverride ?? { ...testAgent, binaryName: `${name}-bin`, displayName: name.toUpperCase(), name }
+  const target = { binaryName: agent.binaryName, id: `@scope/${name}`, kind: 'package' as const }
+  const observation = {
+    drift: { kind: 'none' as const },
+    kind: 'present' as const,
+    providerId: 'npm' as const,
+    providerTargetId: target.id,
+    providerTargetKind: target.kind,
+    targetId: name,
+    version: '1.0.0',
+  }
+  const before = {
+    agent,
+    binding: { providerId: 'npm' as const, target },
+    capabilities: ['observe', 'resolve-latest-version', 'update', 'verify'] as const,
+    executable: { present: true, version: '1.0.0' },
+    installedState: installedStateOverride,
+    methods: [{ packageName: target.id, type: 'npm' as const }],
+    observation,
+    persistedBinding: { providerId: 'npm' as const, target },
+  }
+  const planned = {
+    before,
+    binding: { providerId: 'npm' as const, target },
+    plannedTargetVersion: '2.0.0',
+    planning: {
+      decision,
+      plan: {
+        id: `update-${name}`,
+        intent: { kind: 'update' as const, targetId: name, targetVersion: '2.0.0' },
+        kind: 'lifecycle-plan' as const,
+        observation,
+        steps: [],
+      },
+    },
+  }
+  const planning = { kind: 'planned' as const, planned }
+  const batchTarget = { agentName: name, id: `target-${name}`, outcome: planning }
+  const execution =
+    executionKind === 'locked'
+      ? { kind: 'locked' as const, plan: planned, reason: `${name} locked`, resource: `/locks/${name}` }
+      : executionKind === 'not-executed'
+        ? { kind: 'not-executed' as const, plan: planned }
+        : {
+            after: { ...before, executable: { present: true, version: '2.0.0' } },
+            kind: 'updated' as const,
+            plan: planned,
+            providerOutcome: { kind: 'success' as const, value: { evidence: [], target } },
+            receipt: {
+              kind: 'lifecycle-receipt' as const,
+              providerId: 'npm' as const,
+              providerTargetId: target.id,
+              providerTargetKind: target.kind,
+              schemaVersion: 1 as const,
+              targetId: name,
+              verifiedAt: '2026-07-13T04:00:00.000Z',
+              version: '2.0.0',
+            },
+            verification: {
+              kind: 'satisfied' as const,
+              observation: { ...observation, version: '2.0.0' },
+              postcondition: { expectedVersion: '2.0.0', kind: 'version-satisfies' as const, targetId: target.id },
+            },
+          }
+  return {
+    result: { agentName: name, execution, id: batchTarget.id, planning },
+    target: batchTarget,
+  }
+}
+
+function createBatchCommandUntrackedTarget(name: string) {
+  const agent = { ...testAgent, binaryName: `${name}-bin`, displayName: name.toUpperCase(), name }
+  const before = {
+    agent,
+    capabilities: ['observe'] as const,
+    executable: { present: true, version: '1.0.0' },
+    methods: [],
+    observation: {
+      drift: {
+        kind: 'untracked' as const,
+        reason: `${name} is on PATH without a lifecycle receipt or managed state.`,
+      },
+      kind: 'present' as const,
+      targetId: name,
+      version: '1.0.0',
+    },
+  }
+  const planning = {
+    before,
+    category: 'untracked' as const,
+    kind: 'blocked' as const,
+    reason: `Cannot infer the update source for ${name}.`,
+  }
+  const target = { agentName: name, id: `target-${name}`, outcome: planning }
+  return { result: { agentName: name, id: target.id, planning }, target }
+}
+
+function createBatchCommandManualBlockedTarget(name: string) {
+  const agent = {
+    ...testAgent,
+    binaryName: `${name}-bin`,
+    displayName: 'Manual Agent',
+    name,
+    packages: undefined,
+    platforms: {
+      linux: [{ command: 'curl https://example.com/install | bash', type: 'script' as const }],
+      macos: [{ command: 'curl https://example.com/install | bash', type: 'script' as const }],
+      windows: [{ command: 'irm https://example.com/install | iex', type: 'script' as const }],
+    },
+  }
+  const providerTarget = {
+    binaryName: agent.binaryName,
+    effect: { command: 'curl https://example.com/install | bash', kind: 'shell-script' as const },
+    id: `script:${name}`,
+    kind: 'script' as const,
+  }
+  const before = {
+    agent,
+    binding: { providerId: 'script' as const, target: providerTarget },
+    capabilities: ['availability', 'observe', 'install'] as const,
+    executable: { present: true, version: '1.0.0' },
+    installedState: {
+      agentName: name,
+      command: 'curl https://example.com/install | bash',
+      installType: 'script' as const,
+    },
+    methods: [{ command: 'curl https://example.com/install | bash', type: 'script' as const }],
+    observation: {
+      drift: { kind: 'none' as const },
+      kind: 'present' as const,
+      providerId: 'script' as const,
+      providerTargetId: providerTarget.id,
+      providerTargetKind: providerTarget.kind,
+      targetId: name,
+      version: '1.0.0',
+    },
+    persistedBinding: { providerId: 'script' as const, target: providerTarget },
+  }
+  const planning = {
+    before,
+    category: 'manual-required' as const,
+    kind: 'blocked' as const,
+    reason: 'Provider script cannot resolve an update target version.',
+  }
+  const target = { agentName: name, id: `target-${name}`, outcome: planning }
+  return { agent, result: { agentName: name, id: target.id, planning }, target }
+}
+
+function createBatchCommandProviderFailure(agent: AgentDefinition) {
+  const before = {
+    agent,
+    capabilities: ['observe'] as const,
+    executable: { present: true, version: '1.0.0' },
+    methods: [{ command: `curl https://example.com/${agent.name} | bash`, type: 'script' as const }],
+    observation: {
+      drift: { kind: 'none' as const },
+      kind: 'present' as const,
+      targetId: agent.name,
+      version: '1.0.0',
+    },
+  }
+  const planning = {
+    before,
+    kind: 'provider-failed' as const,
+    providerOutcome: { kind: 'failed' as const, reason: `${agent.name} observation failed`, retryable: true },
+  }
+  const target = { agentName: agent.name, id: `target-${agent.name}`, outcome: planning }
+  return { result: { agentName: agent.name, id: target.id, planning }, target }
+}
+
+function createBatchCommandPlanningFailure(name: string) {
+  const planned = createBatchCommandTarget(name, 'not-executed')
+  const before = planned.target.outcome.planned.before
+  const planning = {
+    before,
+    category: 'unsafe-source' as const,
+    kind: 'blocked' as const,
+    reason: `${name} live source evidence is unsafe`,
+  }
+  const target = { agentName: name, id: `target-${name}`, outcome: planning }
+  return { result: { agentName: name, id: target.id, planning }, target }
+}
+
+function createBatchCommandPlan(targets: readonly unknown[]) {
+  return {
+    id: 'batch-plan',
+    kind: 'lifecycle-update-batch-plan' as const,
+    providerBuckets: [],
+    resolvedPlanId: 'batch-plan',
+    targets,
+  }
+}

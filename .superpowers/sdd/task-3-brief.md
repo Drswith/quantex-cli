@@ -1,39 +1,46 @@
-### Task 3: Add the read-only application and v1 projection boundary
+### Task 3: Deterministic `update --all` Composition
 
 **Files:**
-- Create: `src/services/lifecycle-observations.ts`
-- Create: `src/compatibility/agent-inspection.ts`
-- Create: `test/services/lifecycle-observations.test.ts`
-- Create: `test/compatibility/agent-inspection.test.ts`
-- Modify: `src/services/agents.ts`
+- Modify: `src/services/lifecycle-updates.ts`
+- Modify: `src/commands/update.ts`
+- Modify: `src/services/update.ts`
+- Test: `test/services/lifecycle-updates.test.ts`
+- Test: `test/commands/update.test.ts`
 
 **Interfaces:**
-- Consumes: agent registry, live observer, current catalog method formatting inputs, and existing `AgentInspection` semantics.
-- Produces: `resolveAgentObservation(name)` and `observeRegisteredAgents()` plus `projectObservationToV1Inspection(result): AgentInspection`.
+- Consumes: the single-target planning/execution API from Task 2.
+- Produces: `planRegisteredAgentUpdates(ports): Promise<LifecycleUpdateBatchPlan>` with targets sorted by canonical agent name and stable provider buckets.
+- Produces: `executeLifecycleUpdateBatch(plan, ports): Promise<LifecycleUpdateBatchOutcome>` with ordered per-target typed results, partial-success state, and explicit cancellation remainder.
 
-The existing `inspectRegisteredAgents` and `resolveAgentInspection` exports remain on the legacy implementation for mutation and execution consumers. Add an import/route boundary test that fails if this milestone rewires ensure/install/run/update or removes those exports; only the six read-only commands consume the new service.
+- [ ] **Step 1: Add failing deterministic batch tables**
 
-- [ ] **Step 1: Add failing service tests for aliases, ordering, and unknown agents**
+  Build the same catalog in different input orders and assert identical target order, plan IDs, provider buckets, public result order, and fingerprints. Add mixed updated/up-to-date/manual/failed/locked results and cancellation before and during a bucket.
 
-  Assert canonical registry order, alias resolution, one observation per agent, no provider/state mutation, and unchanged legacy service exports for non-read-only callers.
+- [ ] **Step 2: Run focused tests to verify RED**
 
-- [ ] **Step 2: Add failing compatibility projection tests**
+  Run: `bun run test -- test/services/lifecycle-updates.test.ts test/commands/update.test.ts`
 
-  Lock current meanings of `inPath`, `binaryPath`, `resolvedBinaryPath`, `installedVersion`, `latestVersion`, `lifecycle`, `sourceLabel`, and `updateLabel` across tracked, untracked, ghost, conflicting, and indeterminate internal observations.
+  Expected: FAIL because current ordering follows discovery/bucket control flow and does not expose a typed batch plan.
 
-- [ ] **Step 3: Implement the application service and one-way compatibility adapter**
+- [ ] **Step 3: Implement stable plan composition**
 
-  Domain/application code must not import output envelopes or presenters. The compatibility adapter may reuse current label helpers but must omit new drift/capability fields from v1 objects.
+  Observe and plan all registered targets before mutation, sort by canonical name, group only compatible provider update operations, and retain per-target verification requirements. A provider `updateMany` optimization may execute a stable bucket, but every target still receives its own fresh verification and receipt decision.
 
-- [ ] **Step 4: Run focused tests and checkpoint**
+- [ ] **Step 4: Implement typed partial execution and cancellation**
 
-  Run:
+  Stop scheduling new targets after cancellation, preserve completed target outcomes, mark the command non-success when failures/locks/cancellation occur, and do not collapse partial results to a boolean. Preserve provider-specific manual hints.
+
+- [ ] **Step 5: Verify GREEN and v1 batch mapping**
+
+  Run: `bun run test -- test/services/lifecycle-updates.test.ts test/commands/update.test.ts test/command-runtime.test.ts`
+
+  Expected: PASS with the existing `results`/`scope` v1 shape and deterministic event/result order.
+
+- [ ] **Step 6: Review and checkpoint**
+
+  Request an independent batch/cancellation review, then commit:
 
   ```bash
-  bun run test -- test/services/lifecycle-observations.test.ts test/compatibility/agent-inspection.test.ts test/commands/list.test.ts test/commands/info.test.ts
-  bun run format:check
-  bun run lint
-  bun run typecheck
+  git add src/services/lifecycle-updates.ts src/services/update.ts src/commands/update.ts test/services/lifecycle-updates.test.ts test/commands/update.test.ts
+  git commit -m "refactor(update): compose deterministic batch plans"
   ```
-
-  Commit: `feat(observation): add read-only application boundary`

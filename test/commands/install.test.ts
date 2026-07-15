@@ -378,13 +378,36 @@ describe('installCommand', () => {
     const result = await installCommand(['test-agent', 'another-agent'])
 
     expect(result.ok).toBe(true)
-    expect(installSpy).toHaveBeenNthCalledWith(1, testAgent)
-    expect(installSpy).toHaveBeenNthCalledWith(2, anotherAgent)
+    expect(installSpy).toHaveBeenNthCalledWith(1, anotherAgent)
+    expect(installSpy).toHaveBeenNthCalledWith(2, testAgent)
 
     const output = stdoutWriteSpy.mock.calls.map((call: any[]) => call[0]).join('\n')
     expect(output).toContain('Test Agent installed successfully')
     expect(output).toContain('Another Agent installed successfully')
     expect(output).toContain('Summary: installed 2')
+  })
+
+  it('normalizes aliases, removes duplicates, and executes batch targets in canonical order', async () => {
+    agentSpy.mockImplementation((name: string) => {
+      if (name === 'test-agent' || name === 'ta') return testAgent
+      if (name === 'another-agent' || name === 'aa') return anotherAgent
+      return undefined
+    })
+    mockMissingThenVerified(binaryInPathSpy, 2)
+    installSpy.mockImplementation(async agent => successfulInstall(agent))
+
+    const result = await installCommand(['ta', 'another-agent', 'test-agent', 'aa'])
+
+    expect(installSpy).toHaveBeenCalledTimes(2)
+    expect(installSpy).toHaveBeenNthCalledWith(1, anotherAgent)
+    expect(installSpy).toHaveBeenNthCalledWith(2, testAgent)
+    expect(result.data).toMatchObject({
+      results: [
+        { agent: { name: 'another-agent' }, input: 'another-agent' },
+        { agent: { name: 'test-agent' }, input: 'test-agent' },
+      ],
+      scope: 'batch',
+    })
   })
 
   it('continues after a batch failure and returns aggregated json output', async () => {
@@ -445,9 +468,9 @@ describe('installCommand', () => {
     expect(startedEvent.type).toBe('started')
     expect(startedEvent.data.scope).toBe('batch')
     expect(firstProgressEvent.type).toBe('progress')
-    expect(firstProgressEvent.data.agent.name).toBe('test-agent')
+    expect(firstProgressEvent.data.agent.name).toBe('another-agent')
     expect(secondProgressEvent.type).toBe('progress')
-    expect(secondProgressEvent.data.agent.name).toBe('another-agent')
+    expect(secondProgressEvent.data.agent.name).toBe('test-agent')
     expect(resultEvent.type).toBe('result')
     expect(resultEvent.data.data.scope).toBe('batch')
     expect(resultEvent.meta.runId).toBe('batch-ndjson-run-id')
@@ -466,7 +489,7 @@ describe('installCommand', () => {
     })
     binaryInPathSpy.mockResolvedValue(false)
     installSpy.mockImplementation(async agent => {
-      if (agent.name === 'test-agent') {
+      if (agent.name === 'another-agent') {
         await cancelCliContextOperations()
         return { success: false }
       }
@@ -477,7 +500,7 @@ describe('installCommand', () => {
     await installCommand(['test-agent', 'another-agent'])
 
     expect(installSpy).toHaveBeenCalledTimes(1)
-    expect(installSpy).toHaveBeenCalledWith(testAgent)
+    expect(installSpy).toHaveBeenCalledWith(anotherAgent)
   })
 
   it('does not report overall success for batch install after cancellation', async () => {
@@ -493,14 +516,14 @@ describe('installCommand', () => {
     })
     binaryInPathSpy.mockResolvedValue(false)
     installSpy.mockImplementation(async agent => {
-      if (agent.name === 'test-agent') {
+      if (agent.name === 'another-agent') {
         await cancelCliContextOperations()
         return {
           success: true,
           installedState: {
-            agentName: 'test-agent',
+            agentName: 'another-agent',
             installType: 'bun',
-            packageName: 'test-pkg',
+            packageName: 'another-pkg',
           },
         }
       }
@@ -513,7 +536,7 @@ describe('installCommand', () => {
     expect(result.ok).toBe(false)
     expect(result.error?.code).toBe('CANCELLED')
     expect(installSpy).toHaveBeenCalledTimes(1)
-    expect(installSpy).toHaveBeenCalledWith(testAgent)
+    expect(installSpy).toHaveBeenCalledWith(anotherAgent)
   })
 
   it('does not install remaining batch agents after timeout cancellation', async () => {
@@ -539,7 +562,7 @@ describe('installCommand', () => {
       releaseInstall = resolve
     })
     installSpy.mockImplementation(async agent => {
-      if (agent.name === 'test-agent') {
+      if (agent.name === 'another-agent') {
         markInstallStarted()
         await installRelease
         return { success: false }
@@ -567,7 +590,7 @@ describe('installCommand', () => {
 
     expect(runtimeResult.error?.code).toBe('TIMEOUT')
     expect(installSpy).toHaveBeenCalledTimes(1)
-    expect(installSpy).toHaveBeenCalledWith(testAgent)
+    expect(installSpy).toHaveBeenCalledWith(anotherAgent)
   })
 
   it('does not report overall success for batch install after timeout cancellation', async () => {
@@ -593,15 +616,15 @@ describe('installCommand', () => {
     })
     let lateCommand!: ReturnType<typeof installCommand>
     installSpy.mockImplementation(async agent => {
-      if (agent.name === 'test-agent') {
+      if (agent.name === 'another-agent') {
         markInstallStarted()
         await installRelease
         return {
           success: true,
           installedState: {
-            agentName: 'test-agent',
+            agentName: 'another-agent',
             installType: 'bun',
-            packageName: 'test-pkg',
+            packageName: 'another-pkg',
           },
         }
       }
@@ -629,7 +652,7 @@ describe('installCommand', () => {
     expect(runtimeResult.ok).toBe(false)
     expect(['CANCELLED', 'TIMEOUT']).toContain(runtimeResult.error?.code)
     expect(installSpy).toHaveBeenCalledTimes(1)
-    expect(installSpy).toHaveBeenCalledWith(testAgent)
+    expect(installSpy).toHaveBeenCalledWith(anotherAgent)
   })
 })
 

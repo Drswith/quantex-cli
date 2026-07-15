@@ -6,6 +6,7 @@ import { describe, expect, it, vi } from 'vitest'
 import * as legacyAgentsService from '../../src/services/agents'
 import {
   createLifecycleObservationService,
+  createProductionLifecycleObservationService,
   observeRegisteredAgents,
   resolveAgentObservation,
 } from '../../src/services/lifecycle-observations'
@@ -118,6 +119,7 @@ describe('lifecycle observation application service', () => {
   })
 
   it('exposes production entry points without routing through legacy inspection', async () => {
+    expect(typeof createProductionLifecycleObservationService).toBe('function')
     expect(typeof resolveAgentObservation).toBe('function')
     expect(typeof observeRegisteredAgents).toBe('function')
     expect(legacyAgentsService.resolveAgentInspection).toBeTypeOf('function')
