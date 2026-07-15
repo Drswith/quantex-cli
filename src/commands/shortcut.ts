@@ -1,3 +1,6 @@
+import type { GlobalOptionId } from '../command-contract'
+import { getGlobalOptionDefinitions } from '../command-contract'
+
 export interface ShortcutInvocation {
   agentArgs: string[]
   agentName: string
@@ -19,123 +22,41 @@ export interface ResolveShortcutInvocationOptions {
   readonly agentFriendly: boolean
 }
 
+type ParsedGlobalOptions = Partial<Record<GlobalOptionId, boolean | string>>
+
+const globalOptionsByFlag = new Map(
+  getGlobalOptionDefinitions().map(option => [getLongOptionFlag(option.flags), option]),
+)
+
 export function resolveShortcutInvocation(
   argv: string[],
   knownCommandNames: Set<string>,
   options: ResolveShortcutInvocationOptions,
 ): ShortcutInvocation | undefined {
-  let color: string | undefined
-  let dryRun = false
+  const parsed: ParsedGlobalOptions = {}
   let index = 0
-  let idempotencyKey: string | undefined
-  let jsonOutputRequested = false
-  let logLevel: string | undefined
-  let noCache = false
-  let nonInteractive = false
-  let outputMode: string | undefined
-  let quiet = false
-  let refresh = false
-  let runId: string | undefined
-  let timeout: string | undefined
-  let yes = false
 
   while (index < argv.length) {
-    const arg = argv[index]
-
-    if (arg === '--json') {
-      jsonOutputRequested = true
-      index += 1
-      continue
-    }
-
-    if (arg === '--output') {
-      const value = argv[index + 1]
-      if (!value) return missingValue(arg)
-      outputMode = value
-      index += 2
-      continue
-    }
-
-    if (arg === '--non-interactive') {
-      nonInteractive = true
-      index += 1
-      continue
-    }
-
-    if (arg === '--yes') {
-      yes = true
-      index += 1
-      continue
-    }
-
-    if (arg === '--quiet') {
-      quiet = true
-      index += 1
-      continue
-    }
-
-    if (arg === '--color') {
-      const value = argv[index + 1]
-      if (!value) return missingValue(arg)
-      color = value
-      index += 2
-      continue
-    }
-
-    if (arg === '--log-level') {
-      const value = argv[index + 1]
-      if (!value) return missingValue(arg)
-      logLevel = value
-      index += 2
-      continue
-    }
-
-    if (arg === '--dry-run') {
-      dryRun = true
-      index += 1
-      continue
-    }
-
-    if (arg === '--refresh') {
-      refresh = true
-      index += 1
-      continue
-    }
-
-    if (arg === '--no-cache') {
-      noCache = true
-      index += 1
-      continue
-    }
-
-    if (arg === '--idempotency-key') {
-      const value = argv[index + 1]
-      if (!value) return missingValue(arg)
-      idempotencyKey = value
-      index += 2
-      continue
-    }
-
-    if (arg === '--run-id') {
-      const value = argv[index + 1]
-      if (!value) return missingValue(arg)
-      runId = value
-      index += 2
-      continue
-    }
-
-    if (arg === '--timeout') {
-      const value = argv[index + 1]
-      if (!value) return missingValue(arg)
-      timeout = value
-      index += 2
+    const arg = argv[index]!
+    const option = globalOptionsByFlag.get(arg)
+    if (option) {
+      if (option.value === 'string') {
+        const value = argv[index + 1]
+        if (!value) return missingValue(arg)
+        parsed[option.id] = value
+        index += 2
+      } else {
+        parsed[option.id] = true
+        index += 1
+      }
       continue
     }
 
     if (arg.startsWith('-') || knownCommandNames.has(arg)) return undefined
 
+    const outputMode = asString(parsed.output)
     if (
-      jsonOutputRequested ||
+      parsed.json === true ||
       outputMode === 'json' ||
       outputMode === 'ndjson' ||
       (options.agentFriendly && outputMode !== 'human')
@@ -150,21 +71,35 @@ export function resolveShortcutInvocation(
     return {
       agentArgs: argv.slice(index + 1),
       agentName: arg,
-      color,
-      dryRun,
-      idempotencyKey,
-      logLevel,
-      noCache,
-      nonInteractive,
-      quiet,
-      refresh,
-      runId,
-      timeout,
-      yes,
+      color: asString(parsed.color),
+      dryRun: asBoolean(parsed.dryRun),
+      idempotencyKey: asString(parsed.idempotencyKey),
+      logLevel: asString(parsed.logLevel),
+      noCache: asBoolean(parsed.noCache),
+      nonInteractive: asBoolean(parsed.nonInteractive),
+      quiet: asBoolean(parsed.quiet),
+      refresh: asBoolean(parsed.refresh),
+      runId: asString(parsed.runId),
+      timeout: asString(parsed.timeout),
+      yes: asBoolean(parsed.yes),
     }
   }
 
   return undefined
+}
+
+function getLongOptionFlag(flags: string): string {
+  const match = flags.match(/--[a-z][a-z-]*/)
+  if (!match) throw new Error(`Global option requires a long flag: ${flags}`)
+  return match[0]
+}
+
+function asBoolean(value: boolean | string | undefined): boolean {
+  return value === true
+}
+
+function asString(value: boolean | string | undefined): string | undefined {
+  return typeof value === 'string' ? value : undefined
 }
 
 function missingValue(option: string): ShortcutInvocation {
