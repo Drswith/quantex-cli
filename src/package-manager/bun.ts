@@ -114,16 +114,31 @@ export function parseGlobalPackageVersion(output: string, packageName: string): 
 }
 
 async function runGlobalBunCommandWithTrust(command: string[], packageNames: string[]): Promise<boolean> {
+  const uniquePackageNames = [...new Set(packageNames)]
+  const shouldRollbackOnTrustFailure = command[1] === 'add'
+  const preAddPresence = shouldRollbackOnTrustFailure ? await readPreAddPackagePresence(uniquePackageNames) : undefined
+
   const exitCode = await waitForSpawnedCommand(spawnWithQuantexStdio(command))
 
   if (exitCode !== 0) return false
 
-  const trusted = await trustBlockedGlobalPackages(packageNames)
-  if (!trusted && command[1] === 'add') {
-    await rollbackGlobalBunPackages(packageNames)
+  const trusted = await trustBlockedGlobalPackages(uniquePackageNames)
+  if (!trusted && shouldRollbackOnTrustFailure && preAddPresence) {
+    const packagesToRollback = uniquePackageNames.filter(packageName => preAddPresence.get(packageName) === 'absent')
+    await rollbackGlobalBunPackages(packagesToRollback)
   }
 
   return trusted
+}
+
+async function readPreAddPackagePresence(packageNames: string[]): Promise<Map<string, PackagePresenceProbe>> {
+  const presenceByPackage = new Map<string, PackagePresenceProbe>()
+
+  for (const packageName of packageNames) {
+    presenceByPackage.set(packageName, await probePackagePresence(packageName))
+  }
+
+  return presenceByPackage
 }
 
 async function rollbackGlobalBunPackages(packageNames: string[]): Promise<void> {
