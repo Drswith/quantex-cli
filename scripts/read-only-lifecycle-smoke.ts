@@ -21,7 +21,7 @@ const MODES = ['human', 'json'] as const
 const AGENT_COMMANDS = new Set(['info', 'inspect', 'resolve'])
 const COMMAND_TIMEOUT_MS = 30_000
 const COMMAND_TIMEOUT_GRACE_MS = 1_000
-const PASSIVE_NOTICE_MARKER =
+const LEGACY_PASSIVE_NOTICE_MARKER =
   'Quantex CLI 99.0.0 is available (current 0.29.0). Run `quantex doctor` for source-specific update steps.'
 
 type SmokeCommand = (typeof COMMANDS)[number]
@@ -567,6 +567,10 @@ function pickObservation(value: Record<string, any>, includeUpdateLabel: boolean
 
 function normalizeHumanEvidence(command: SmokeCommand, fixture: SmokeFixture, stdout: string): string[] {
   const normalized = stdout.replace(/\s+/g, ' ').trim()
+  assert(
+    !normalized.includes(LEGACY_PASSIVE_NOTICE_MARKER),
+    `${fixture}/human/${command}: ordinary command emitted the legacy implicit self-update notice.`,
+  )
   const markers = READ_ONLY_LIFECYCLE_BASELINE[fixture].commands[command].human
   for (const marker of markers) {
     assert(normalized.includes(marker), `${fixture}/human/${command}: missing compatibility marker "${marker}".`)
@@ -654,7 +658,7 @@ function fixtureBaseline(
   return {
     commands: {
       capabilities: {
-        human: ['Quantex Capabilities', 'Installers:', 'Features:', 'codex', PASSIVE_NOTICE_MARKER],
+        human: ['Quantex Capabilities', 'Installers:', 'Features:', 'codex'],
         json: {
           agentMarker: true,
           featureKeys: [...FEATURE_KEYS].sort(),
@@ -677,19 +681,14 @@ function fixtureBaseline(
           selfKeys: ['canAutoUpdate', 'currentVersion', 'installSource', 'latestVersion', 'outdated'],
         },
       },
-      info: { human: ['Codex CLI', ...installedHuman, PASSIVE_NOTICE_MARKER], json: observations.info },
-      inspect: { human: ['Codex CLI', ...inspectHuman, PASSIVE_NOTICE_MARKER], json: observations.inspect },
+      info: { human: ['Codex CLI', ...installedHuman], json: observations.info },
+      inspect: { human: ['Codex CLI', ...inspectHuman], json: observations.inspect },
       list: {
-        human: [
-          'AI Agents:',
-          'Codex CLI',
-          installed ? 'Codex CLI installed' : 'Codex CLI not installed',
-          PASSIVE_NOTICE_MARKER,
-        ],
+        human: ['AI Agents:', 'Codex CLI', installed ? 'Codex CLI installed' : 'Codex CLI not installed'],
         json: observations.list,
       },
       resolve: {
-        human: installed ? [...resolveHuman, PASSIVE_NOTICE_MARKER] : resolveHuman,
+        human: resolveHuman,
         json: observations.resolve,
       },
     },

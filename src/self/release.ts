@@ -1,4 +1,5 @@
 import type { ProviderOperationContext } from '../providers'
+import type { NetworkPort } from '../runtime/ports'
 import type { SelfUpdateChannel } from './types'
 import { basename } from 'node:path'
 import process from 'node:process'
@@ -93,10 +94,12 @@ export async function fetchBinaryReleaseChecksum(assetName: string): Promise<str
 export async function fetchBinaryReleaseManifest(
   channel: SelfUpdateChannel,
   context?: ProviderOperationContext,
+  networkPort?: NetworkPort,
 ): Promise<BinaryReleaseManifest> {
-  const manifestUrl = await resolveBinaryReleaseManifestUrl(channel, context)
+  const manifestUrl = await resolveBinaryReleaseManifestUrl(channel, context, networkPort)
   const manifest = await fetchJsonWithCache<BinaryReleaseManifest>(manifestUrl, `self:manifest:${channel}`, {
     context,
+    networkPort,
   })
 
   if (!manifest) throw new Error('Failed to download release manifest.')
@@ -107,12 +110,13 @@ export async function fetchBinaryReleaseManifest(
 export async function resolveBinaryReleaseManifestUrl(
   channel: SelfUpdateChannel,
   context?: ProviderOperationContext,
+  networkPort?: NetworkPort,
 ): Promise<string> {
   if (!BUILD_REPOSITORY_URL) throw new Error('No repository URL is configured for Quantex releases.')
 
   if (channel === 'stable') return `${BUILD_REPOSITORY_URL}/releases/latest/download/manifest.json`
 
-  const release = await fetchGitHubReleaseSummary(channel, context)
+  const release = await fetchGitHubReleaseSummary(channel, context, networkPort)
   const manifestAsset = release.assets.find(asset => asset.name === 'manifest.json')
 
   if (!manifestAsset?.browser_download_url)
@@ -124,6 +128,7 @@ export async function resolveBinaryReleaseManifestUrl(
 export async function fetchGitHubReleaseSummary(
   channel: SelfUpdateChannel,
   context?: ProviderOperationContext,
+  networkPort?: NetworkPort,
 ): Promise<GitHubReleaseSummary> {
   const repositorySlug = getRepositorySlug()
 
@@ -132,7 +137,7 @@ export async function fetchGitHubReleaseSummary(
   const releases = await fetchJsonWithCache<GitHubReleaseSummary[]>(
     `https://api.github.com/repos/${repositorySlug}/releases?per_page=20`,
     'self:github-releases',
-    { context },
+    { context, networkPort },
   )
 
   if (!releases) throw new Error('Failed to query GitHub releases.')

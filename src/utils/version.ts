@@ -1,5 +1,6 @@
 import type { AgentVersionProbe } from '../agents'
 import type { ProviderOperationContext } from '../providers'
+import type { NetworkPort } from '../runtime/ports'
 import { realpath } from 'node:fs/promises'
 import process from 'node:process'
 import {
@@ -66,14 +67,14 @@ export async function getInstalledVersion(
 export async function getLatestVersion(
   packageName: string,
   distTag: string = 'latest',
-  options: { context?: ProviderOperationContext; registry?: string } = {},
+  options: { context?: ProviderOperationContext; networkPort?: NetworkPort; registry?: string } = {},
 ): Promise<string | undefined> {
   try {
     const registry = normalizeRegistryUrl(options.registry) ?? OFFICIAL_NPM_REGISTRY
     const data = await fetchJsonWithCache<{ version: string }>(
       buildRegistryPackageVersionUrl(packageName, distTag, registry),
       `npm:${registry}:${packageName}:${distTag}`,
-      { context: options.context },
+      { context: options.context, networkPort: options.networkPort },
     )
     if (options.context?.signal.aborted) throw cancelledError(options.context.signal)
     return data?.version

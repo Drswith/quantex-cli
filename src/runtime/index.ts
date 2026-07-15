@@ -1,4 +1,7 @@
 export * from './agent-process'
 export * from './cli-operation-context'
+export * from './child-process'
+export * from './fetch-network'
 export * from './invocation-context'
 export * from './ports'
+export * from './version-cache'

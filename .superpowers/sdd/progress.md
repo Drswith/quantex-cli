@@ -1,17 +1,17 @@
-# Agent Execution Milestone Progress
+# Self-Upgrade Integration Milestone Progress
 
-Base: `origin/codex/redesign-lifecycle-integration@9213bd92cc555e2625067625cc05b2cce994f09d`
+Base: `origin/codex/redesign-lifecycle-integration@09fe7b1a57dd0482b91ee1a6d24f314e5b8bad56`
 
-Plan: `docs/superpowers/plans/2026-07-15-agent-execution-milestone.md`
+Plan: `docs/superpowers/plans/2026-07-15-self-upgrade-integration-milestone.md`
 
 | Task | State | Checkpoint | Evidence |
 | --- | --- | --- | --- |
-| 1. Pure execution preflight planning | complete | `b642ee5` | 15/15 decision-table tests; lint, format, typecheck pass |
-| 2. Observation-driven execution service | complete | `f4e20ef` | 18 service tests plus 15 planner tests; no launch before fresh verified observation |
-| 3. Production process port and unified surface | complete | task-3 commit | explicit exec and shortcut share the lifecycle execution service; 48 focused tests plus full static validation pass |
-| 4. Cross-platform execution verification | complete | PR #459 first head | 1494/1494 local tests, managed/deno/uv container, macOS/Ubuntu/Windows CI, and trusted sandbox pass; independent review approved |
-| 5. PR delivery to integration | in progress | PR #459 | OpenSpec 48/74 update and refreshed CI/governance/final rebase CAS pending |
+| 1. Cache-only passive metadata | complete | task-1 commit | typed source/channel metadata; passive cache-only projection; 107 focused compatibility/network/self tests plus static/OpenSpec gates pass |
+| 2. Invocation-scoped self-upgrade service | complete | task-2 commit | per-invocation application/composition, shared cache/lock/signal/timeout, v1 presenter retained; 81 focused tests and static/OpenSpec gates pass |
+| 3. Managed process/network ports | complete | managed-process + network commits | child `ProcessPort`, exact Bun/npm argv/verification, fetch `NetworkPort`, and injected registry/release resolution pass 120 focused tests plus static/OpenSpec gates |
+| 4. Binary/Windows runtime ports | complete | binary-port + persistence/fault commits | standalone download/verification use shared network/process ports; install-source evidence uses shared persistence; cancellation/timeout retain typed interruption; atomic rollback and Windows quoting/peer/delayed-swap coverage pass 94 focused self/state tests plus static/OpenSpec gates |
+| 5. Release validation and PR delivery | in progress | PR #460 initial head | 1544/1544 full tests, static/OpenSpec/memory gates, build, five binaries, package, artifacts, release smoke, isolated Bun-managed self-upgrade, and initial remote lint/Ubuntu/Windows/macOS/Modal sandbox all pass; both independent reviews have no remaining Critical/Important; tasks 9.1-9.5 are complete at 53/74, while normalized-head CI, merge, and integration verification remain pending |
 
-Baseline: lint, format, typecheck, and 329/329 suites with 1434/1434 tests pass on integration tip `9213bd9`. CodeGraph initialized with 450 files, 3923 nodes, and 10203 edges.
+Baseline: lint, format check, and typecheck pass on integration tip `09fe7b1`. The initial full suite reported 1491/1494 with three concurrent signal/timing failures; an immediate focused rerun of the affected files passed 53/53, so recurrence must be classified with systematic debugging rather than silently accepted. CodeGraph is initialized with 460 files, 4023 nodes, and 10466 edges.
 
-Recovery rule: resume the first row that is not `complete`; inspect its tests, `git log`, `git status`, and CodeGraph pending-sync banner before editing. Commit each reviewed task, preserve the granular head on `refs/quantex/recovery/redesign-agent-execution-granular`, and normalize only after the refreshed integration-base gate.
+Recovery rule: resume the first row that is not `complete`; inspect its tests, `git log`, `git status`, and CodeGraph pending-sync banner before editing. Commit every reviewed task, preserve the granular head on `refs/quantex/recovery/redesign-self-upgrade-granular`, and normalize only immediately before a PR to `codex/redesign-lifecycle-integration`.

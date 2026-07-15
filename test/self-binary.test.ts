@@ -1,7 +1,8 @@
+import type { NetworkPort } from '../src/runtime'
 import { Buffer } from 'node:buffer'
 import { createHash } from 'node:crypto'
 import { existsSync } from 'node:fs'
-import { chmod, mkdtemp, readFile, rm, stat, writeFile } from 'node:fs/promises'
+import { chmod, mkdir, mkdtemp, readFile, readdir, rm, stat, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import process from 'node:process'
@@ -65,6 +66,75 @@ describe('upgradeStandaloneBinary', () => {
         stdio: ['ignore', 'ignore', 'ignore'],
         windowsHide: true,
       })
+    } finally {
+      await rm(tempRoot, { recursive: true, force: true })
+    }
+  })
+
+  it('escapes apostrophes in Windows delayed replacement paths', async () => {
+    const tempRoot = await mkdtemp(join(tmpdir(), 'quantex-binary-win-escape-'))
+    const escapedDirectory = join(tempRoot, "release's bin")
+    const executablePath = join(escapedDirectory, 'qtx.exe')
+    const mockSpawn = vi.fn().mockReturnValue({
+      exitCode: 0,
+      exited: Promise.resolve(0),
+      unref: vi.fn(),
+    })
+
+    Bun.spawn = mockSpawn as typeof Bun.spawn
+    Object.defineProperty(process, 'platform', { value: 'win32' })
+    await mkdir(escapedDirectory)
+    await writeFile(executablePath, 'old-binary', 'utf8')
+    globalThis.fetch = vi
+      .fn()
+      .mockResolvedValue(new Response(Buffer.from('new-binary'), { status: 200 })) as unknown as typeof fetch
+    const checksum = createHash('sha256').update('new-binary').digest('hex')
+
+    try {
+      expect(await upgradeStandaloneBinary('https://example.com/qtx.exe', executablePath, checksum)).toEqual({
+        success: true,
+      })
+
+      const [command] = mockSpawn.mock.calls[0] as [string[], Record<string, unknown>]
+      const script = command[command.length - 1] as string
+      expect(script).toContain("release''s bin")
+      expect(script).not.toContain("$targetPath = '" + executablePath + "'")
+    } finally {
+      await rm(tempRoot, { recursive: true, force: true })
+    }
+  })
+
+  it('does not schedule Windows replacement after post-download cancellation', async () => {
+    const tempRoot = await mkdtemp(join(tmpdir(), 'quantex-binary-win-cancel-'))
+    const executablePath = join(tempRoot, 'qtx.exe')
+    const controller = new AbortController()
+    const mockSpawn = vi.fn()
+    const binary = new TextEncoder().encode('new-binary')
+    const networkPort: NetworkPort = {
+      request: async () => {
+        controller.abort('cancel after download')
+        return { kind: 'success', value: { body: binary, headers: {}, status: 200 } }
+      },
+    }
+
+    Bun.spawn = mockSpawn as typeof Bun.spawn
+    Object.defineProperty(process, 'platform', { value: 'win32' })
+    await writeFile(executablePath, 'old-binary', 'utf8')
+
+    try {
+      await expect(
+        upgradeStandaloneBinary(
+          'https://example.com/qtx.exe',
+          executablePath,
+          createHash('sha256').update(binary).digest('hex'),
+          '1.2.3',
+          undefined,
+          { networkPort, signal: controller.signal },
+        ),
+      ).rejects.toMatchObject({ kind: 'cancelled' })
+      expect(mockSpawn).not.toHaveBeenCalled()
+      expect(await readFile(executablePath, 'utf8')).toBe('old-binary')
+      expect(await readdir(tempRoot)).toEqual(['qtx.exe'])
     } finally {
       await rm(tempRoot, { recursive: true, force: true })
     }

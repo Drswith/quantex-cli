@@ -1,6 +1,8 @@
 import type { ProviderOperationContext } from '../providers'
+import type { LockPort, NetworkPort, ProcessPort, ProcessStdio, RuntimeOutcome } from '../runtime'
 import type { SelfInspection, SelfInstallSource, SelfUpdateChannel, SelfUpdateResult, SelfUpgradePlan } from './types'
 import process from 'node:process'
+import { ProcessInterruptionError } from '../utils/child-process'
 import { resolveSelfInstallFactsReadOnly } from './facts'
 import { acquireSelfUpgradeLock } from './lock'
 import {
@@ -24,26 +26,94 @@ export async function inspectSelfReadOnly(options?: {
   return buildSelfInspectionFromPlan(await planSelfUpgrade({ context: options?.context, facts }))
 }
 
-export async function upgradeSelf(planOrInspection?: SelfInspection | SelfUpgradePlan): Promise<SelfUpdateResult> {
-  const resolvedPlan = await coerceSelfUpgradePlan(planOrInspection)
-  const releaseLock = await acquireSelfUpgradeLock()
+export interface SelfUpgradeExecutionOptions {
+  readonly lockPort?: LockPort
+  readonly networkPort?: NetworkPort
+  readonly processPort?: ProcessPort
+  readonly signal?: AbortSignal
+  readonly stdio?: readonly [ProcessStdio, ProcessStdio, ProcessStdio]
+  readonly timeoutMs?: number
+}
 
-  if (!releaseLock) {
+export async function upgradeSelf(
+  planOrInspection?: SelfInspection | SelfUpgradePlan,
+  options: SelfUpgradeExecutionOptions = {},
+): Promise<SelfUpdateResult> {
+  const resolvedPlan = await coerceSelfUpgradePlan(planOrInspection)
+  const lease = options.lockPort
+    ? await options.lockPort.acquire({
+        resource: 'self upgrade',
+        scope: ['self-upgrade'],
+        signal: options.signal ?? new AbortController().signal,
+        timeoutMs: options.timeoutMs,
+      })
+    : await acquireLegacySelfUpgradeLease()
+
+  if (lease.kind === 'failure') {
+    if (lease.error.kind === 'cancelled') throw new ProcessInterruptionError({ kind: 'cancelled' })
+    if (lease.error.kind === 'timed-out')
+      throw new ProcessInterruptionError({ kind: 'timed-out', timeoutMs: options.timeoutMs ?? 0 })
     return {
       error: {
-        kind: 'locked',
-        message: 'Another qtx upgrade is already running.',
+        kind: lease.error.kind === 'conflict' ? 'locked' : 'unknown',
+        message: lease.error.message,
       },
       installSource: resolvedPlan.facts.installSource,
       success: false,
     }
   }
 
+  let result: SelfUpdateResult
   try {
-    const result = await getSelfUpgradeProvider(resolvedPlan).upgrade(resolvedPlan)
-    return verifySelfUpgradeResult(resolvedPlan, result)
-  } finally {
-    await releaseLock()
+    const useRuntimePorts = options.networkPort !== undefined || options.processPort !== undefined
+    const signal = options.signal ?? new AbortController().signal
+    const providerResult = await getSelfUpgradeProvider(resolvedPlan).upgrade(
+      resolvedPlan,
+      useRuntimePorts
+        ? {
+            network: options.networkPort,
+            process: options.processPort,
+            signal,
+            stdio: options.stdio,
+            timeoutMs: options.timeoutMs,
+          }
+        : undefined,
+    )
+    result = await verifySelfUpgradeResult(
+      resolvedPlan,
+      providerResult,
+      options.processPort ? { process: options.processPort, signal, timeoutMs: options.timeoutMs } : undefined,
+    )
+  } catch (error) {
+    const release = await lease.value.release()
+    if (release.kind === 'failure')
+      throw new Error(`Self-upgrade failed and its lock could not be released: ${release.error.message}`, {
+        cause: error,
+      })
+    throw error
+  }
+
+  const release = await lease.value.release()
+  if (release.kind === 'failure') throw new Error(release.error.message)
+  return result
+}
+
+async function acquireLegacySelfUpgradeLease(): Promise<RuntimeOutcome<{ release(): Promise<RuntimeOutcome<void>> }>> {
+  const release = await acquireSelfUpgradeLock()
+  if (!release)
+    return {
+      error: { kind: 'conflict', message: 'Another qtx upgrade is already running.' },
+      kind: 'failure',
+    }
+
+  return {
+    kind: 'success',
+    value: {
+      async release() {
+        await release()
+        return { kind: 'success', value: undefined }
+      },
+    },
   }
 }
 
@@ -72,7 +142,8 @@ async function coerceSelfUpgradePlan(planOrInspection?: SelfInspection | SelfUpg
   return buildPlanFromInspection(planOrInspection)
 }
 
-export { acquireSelfUpgradeLock, getSelfUpgradeLockPath } from './lock'
+export { acquireSelfUpgradeLock, createSelfUpgradeLockPort, getSelfUpgradeLockPath } from './lock'
+export { createSelfInstallSourcePersistencePort } from './state-persistence'
 export {
   canAutoUpdateSelf,
   detectSelfInstallSource,

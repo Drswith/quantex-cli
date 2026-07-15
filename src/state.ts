@@ -8,6 +8,7 @@ export {
   loadState,
   removeInstalledAgentState,
   removeLifecycleReceipt,
+  removeSelfInstallSource,
   saveState,
   setInstalledAgentState,
   setLifecycleReceipt,
