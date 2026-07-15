@@ -4,6 +4,12 @@ export {
   reconcileAgentInstallation,
   type ReconcileAgentInstallationInput,
 } from './agent-installation'
+export {
+  type AgentExecutionInstallPolicy,
+  type AgentExecutionPreflightInput,
+  type AgentExecutionPreflightPlan,
+  planAgentExecutionPreflight,
+} from './agent-execution'
 export type {
   LifecycleDrift,
   LifecycleEffect,

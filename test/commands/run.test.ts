@@ -1,62 +1,13 @@
-import { afterAll, afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import * as agents from '../../src/agents'
-import { setCliContext, getCliContext } from '../../src/cli-context'
-import { runCommand } from '../../src/commands/run'
-import * as pm from '../../src/package-manager'
-import * as detect from '../../src/utils/detect'
+import type { AgentExecutionOutcome, LifecycleExecutionObservedAgent } from '../../src/services'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { setCliContext } from '../../src/cli-context'
+import { runCommand, type RunCommandDependencies } from '../../src/commands/run'
 
 const mockPrompts = vi.fn()
 
 vi.mock('prompts', () => ({
-  default: (...args: any[]) => mockPrompts(...args),
+  default: (...args: unknown[]) => mockPrompts(...args),
 }))
-
-const agentSpy = vi.spyOn(agents, 'getAgentByNameOrAlias')
-const installSpy = vi.spyOn(pm, 'installAgent')
-const binaryInPathSpy = vi.spyOn(detect, 'isBinaryInPath')
-
-const mockSpawn = vi.fn()
-const mockFetch = vi.fn()
-let originalSpawn: typeof Bun.spawn
-const originalFetch = globalThis.fetch
-
-const testAgent = {
-  name: 'test-agent',
-  lookupAliases: ['ta'],
-  displayName: 'Test Agent',
-  homepage: 'https://example.com',
-  packages: { npm: 'test-pkg' },
-  binaryName: 'test-bin',
-  platforms: {
-    linux: [{ type: 'bun' as const }],
-    macos: [{ type: 'bun' as const }],
-    windows: [{ type: 'bun' as const }],
-  },
-}
-
-beforeEach(() => {
-  originalSpawn = Bun.spawn
-  Bun.spawn = mockSpawn as any
-  globalThis.fetch = mockFetch as any
-  agentSpy.mockClear()
-  installSpy.mockClear()
-  binaryInPathSpy.mockClear()
-  mockPrompts.mockClear()
-  mockSpawn.mockClear()
-  mockFetch.mockClear()
-  mockFetch.mockResolvedValue(new Response(JSON.stringify({ version: '1.0.0' }), { status: 200 }))
-})
-
-afterEach(() => {
-  Bun.spawn = originalSpawn
-  globalThis.fetch = originalFetch
-})
-
-afterAll(() => {
-  agentSpy.mockRestore()
-  installSpy.mockRestore()
-  binaryInPathSpy.mockRestore()
-})
 
 describe('runCommand', () => {
   let logSpy: ReturnType<typeof vi.spyOn>
@@ -65,386 +16,251 @@ describe('runCommand', () => {
   beforeEach(() => {
     logSpy = vi.spyOn(console, 'log').mockImplementation(() => {})
     stdoutWriteSpy = vi.spyOn(process.stdout, 'write').mockReturnValue(true)
+    mockPrompts.mockReset()
   })
 
   afterEach(() => {
     logSpy.mockRestore()
     stdoutWriteSpy.mockRestore()
-    vi.useRealTimers()
   })
 
-  it('shows error for unknown agent', async () => {
-    agentSpy.mockReturnValue(undefined)
-    const code = await runCommand('unknown', [])
-    expect(code).toBe(3)
+  it('shows an error for an unknown agent and disposes the execution service', async () => {
+    const fixture = executionFixture({ kind: 'not-found' })
+
+    await expect(runCommand('unknown', [], {}, fixture.dependencies)).resolves.toBe(3)
     expect(stdoutWriteSpy).toHaveBeenCalledWith(expect.stringContaining('Unknown agent'))
+    expect(fixture.service.dispose).toHaveBeenCalledOnce()
   })
 
-  it('runs agent directly if installed, returns exit code', async () => {
-    agentSpy.mockReturnValue(testAgent)
-    binaryInPathSpy.mockResolvedValue(true)
-    mockSpawn.mockReturnValue({ exited: Promise.resolve(), exitCode: 0 })
-    const code = await runCommand('test-agent', ['--help'])
-    expect(code).toBe(0)
-    expect(mockSpawn).toHaveBeenCalledWith(['test-bin', '--help'], expect.any(Object))
+  it('passes the exact request to the service and preserves the agent exit code', async () => {
+    const fixture = executionFixture({ exitCode: 42, kind: 'exited', observed })
+
+    await expect(runCommand('test-agent', ['--help'], { install: 'never' }, fixture.dependencies)).resolves.toBe(42)
+    expect(fixture.service.execute).toHaveBeenCalledWith({
+      agentName: 'test-agent',
+      args: ['--help'],
+      installPolicy: 'never',
+    })
   })
 
-  it('prompts for install when not installed, then runs if confirmed', async () => {
+  it('prompts through the production-service confirmation port', async () => {
     mockPrompts.mockResolvedValue({ install: true })
-    agentSpy.mockReturnValue(testAgent)
-    binaryInPathSpy.mockResolvedValue(false)
-    installSpy.mockResolvedValue({ success: true })
-    mockSpawn.mockReturnValue({ exited: Promise.resolve(), exitCode: 0 })
-    const code = await runCommand('test-agent', [])
-    expect(code).toBe(0)
-    expect(installSpy).toHaveBeenCalledWith(testAgent)
+    const fixture = executionFixture(async options => {
+      expect(await options.confirmInstall(observed)).toBe(true)
+      return { exitCode: 0, kind: 'exited', observed }
+    })
+
+    await expect(runCommand('test-agent', [], {}, fixture.dependencies)).resolves.toBe(0)
+    expect(mockPrompts).toHaveBeenCalledWith(expect.objectContaining({ type: 'confirm' }))
   })
 
-  it('returns 1 when user cancels install', async () => {
-    mockPrompts.mockResolvedValue({ install: false })
-    agentSpy.mockReturnValue(testAgent)
-    binaryInPathSpy.mockResolvedValue(false)
-    const code = await runCommand('test-agent', [])
-    expect(code).toBe(1)
+  it('does not prompt when assume-yes confirms installation', async () => {
+    const fixture = executionFixture(async options => {
+      expect(await options.confirmInstall(observed)).toBe(true)
+      return { exitCode: 0, kind: 'exited', observed }
+    })
+
+    await expect(runCommand('test-agent', [], { assumeYes: true }, fixture.dependencies)).resolves.toBe(0)
+    expect(mockPrompts).not.toHaveBeenCalled()
+  })
+
+  it('reports a declined installation', async () => {
+    const fixture = executionFixture({ kind: 'install-declined', observed })
+
+    await expect(runCommand('test-agent', [], {}, fixture.dependencies)).resolves.toBe(1)
     expect(stdoutWriteSpy).toHaveBeenCalledWith(expect.stringContaining('cancelled'))
   })
 
-  it('returns 1 when install fails', async () => {
-    mockPrompts.mockResolvedValue({ install: true })
-    agentSpy.mockReturnValue(testAgent)
-    binaryInPathSpy.mockResolvedValue(false)
-    installSpy.mockResolvedValue({ success: false })
-    const code = await runCommand('test-agent', [])
-    expect(code).toBe(1)
+  it('reports a failed installation without leaking service internals', async () => {
+    const fixture = executionFixture({ kind: 'install-failed', observed, reason: 'provider failed' })
+
+    await expect(runCommand('test-agent', [], {}, fixture.dependencies)).resolves.toBe(1)
     expect(stdoutWriteSpy).toHaveBeenCalledWith(expect.stringContaining('Failed to install'))
   })
 
-  it('returns 1 when spawn fails', async () => {
-    agentSpy.mockReturnValue(testAgent)
-    binaryInPathSpy.mockResolvedValue(true)
-    mockSpawn.mockImplementation(() => {
-      throw new Error('spawn error')
-    })
-    const code = await runCommand('test-agent', [])
-    expect(code).toBe(1)
-    expect(stdoutWriteSpy).toHaveBeenCalledWith(expect.stringContaining('Failed to launch'))
+  it('reports launch failures', async () => {
+    const fixture = executionFixture({ kind: 'launch-failed', observed, reason: 'spawn error' })
+
+    await expect(runCommand('test-agent', [], {}, fixture.dependencies)).resolves.toBe(1)
+    expect(stdoutWriteSpy).toHaveBeenCalledWith(expect.stringContaining('Failed to launch Test Agent: spawn error'))
   })
 
-  it('does not prompt in non-interactive mode when install is required', async () => {
-    agentSpy.mockReturnValue(testAgent)
-    binaryInPathSpy.mockResolvedValue(false)
+  it('does not prompt when non-interactive execution requires interaction', async () => {
+    const fixture = executionFixture({ kind: 'interaction-required', observed })
 
-    const code = await runCommand('test-agent', [], { nonInteractive: true })
-
-    expect(code).toBe(7)
+    await expect(runCommand('test-agent', [], { nonInteractive: true }, fixture.dependencies)).resolves.toBe(7)
     expect(mockPrompts).not.toHaveBeenCalled()
     expect(stdoutWriteSpy).toHaveBeenCalledWith(expect.stringContaining('interactive installation is disabled'))
   })
 
-  it('emits structured rerun guidance when non-interactive mode blocks install prompting', async () => {
-    setCliContext({
-      interactive: false,
-      outputMode: 'json',
-      runId: 'exec-interaction-run-id',
-    })
-    agentSpy.mockReturnValue(testAgent)
-    binaryInPathSpy.mockResolvedValue(false)
+  it('emits structured rerun guidance for interaction-required outcomes', async () => {
+    setJsonContext('exec-interaction-run-id')
+    const fixture = executionFixture({ kind: 'interaction-required', observed })
 
-    const code = await runCommand('test-agent', ['--help'], { nonInteractive: true })
-
-    expect(code).toBe(7)
-    const payload = JSON.parse(logSpy.mock.calls[0][0])
-    expect(payload.action).toBe('exec')
+    await expect(runCommand('test-agent', ['--help'], { nonInteractive: true }, fixture.dependencies)).resolves.toBe(7)
+    const payload = JSON.parse(String(logSpy.mock.calls[0]?.[0]))
     expect(payload.error.code).toBe('INTERACTION_REQUIRED')
-    expect(payload.data.execution.installGuidance.suggestedAction).toBe('rerun-with-install-policy')
     expect(payload.data.execution.installGuidance.suggestedExecCommand).toBe(
       'quantex exec test-agent --install if-missing -- --help',
     )
   })
 
-  it('returns agent-not-installed when install policy is never', async () => {
-    agentSpy.mockReturnValue(testAgent)
-    binaryInPathSpy.mockResolvedValue(false)
+  it('reports a forbidden missing installation without prompting', async () => {
+    const fixture = executionFixture({ kind: 'not-installed', observed })
 
-    const code = await runCommand('test-agent', [], { install: 'never' })
-
-    expect(code).toBe(4)
+    await expect(runCommand('test-agent', [], { install: 'never' }, fixture.dependencies)).resolves.toBe(4)
     expect(mockPrompts).not.toHaveBeenCalled()
-    expect(installSpy).not.toHaveBeenCalled()
     expect(stdoutWriteSpy).toHaveBeenCalledWith(expect.stringContaining('is not installed'))
   })
 
-  it('emits structured install guidance when install policy is never in json mode', async () => {
-    setCliContext({
-      interactive: false,
-      outputMode: 'json',
-      runId: 'exec-missing-run-id',
-    })
-    agentSpy.mockReturnValue(testAgent)
-    binaryInPathSpy.mockResolvedValue(false)
+  it('emits structured installation guidance for not-installed outcomes', async () => {
+    setJsonContext('exec-missing-run-id')
+    const fixture = executionFixture({ kind: 'not-installed', observed })
 
-    const code = await runCommand('test-agent', ['--help'], { install: 'never' })
-
-    expect(code).toBe(4)
-    const payload = JSON.parse(logSpy.mock.calls[0][0])
-    expect(payload.ok).toBe(false)
-    expect(payload.action).toBe('exec')
+    await expect(runCommand('test-agent', ['--help'], { install: 'never' }, fixture.dependencies)).resolves.toBe(4)
+    const payload = JSON.parse(String(logSpy.mock.calls[0]?.[0]))
     expect(payload.error.code).toBe('AGENT_NOT_INSTALLED')
     expect(payload.data.execution.installGuidance.suggestedEnsureCommand).toBe('quantex ensure test-agent')
-    expect(payload.data.execution.installGuidance.suggestedExecCommand).toBe(
-      'quantex exec test-agent --install if-missing -- --help',
+  })
+
+  it('passes automatic installation policy without prompting', async () => {
+    const fixture = executionFixture({ exitCode: 0, kind: 'exited', observed })
+
+    await expect(
+      runCommand('test-agent', ['--help'], { install: 'if-missing', nonInteractive: true }, fixture.dependencies),
+    ).resolves.toBe(0)
+    expect(fixture.service.execute).toHaveBeenCalledWith(expect.objectContaining({ installPolicy: 'if-missing' }))
+    expect(mockPrompts).not.toHaveBeenCalled()
+  })
+
+  it('renders the installation-start event supplied to the service', async () => {
+    const fixture = executionFixture(async options => {
+      await options.onInstallStart?.(observed)
+      return { exitCode: 0, kind: 'exited', observed }
+    })
+
+    await expect(runCommand('test-agent', [], {}, fixture.dependencies)).resolves.toBe(0)
+    expect(stdoutWriteSpy).toHaveBeenCalledWith(expect.stringContaining('Installing Test Agent'))
+  })
+
+  it('returns dry-run success without presenting the installation event as real work', async () => {
+    const fixture = executionFixture({
+      argv: ['test-bin', '--help'],
+      kind: 'dry-run',
+      observed,
+      wouldInstall: true,
+    })
+
+    await expect(
+      runCommand('test-agent', ['--help'], { dryRun: true, install: 'if-missing' }, fixture.dependencies),
+    ).resolves.toBe(0)
+    expect(stdoutWriteSpy).toHaveBeenCalledWith(expect.stringContaining('would install Test Agent'))
+    expect(stdoutWriteSpy).toHaveBeenCalledWith(expect.stringContaining('would run test-bin --help'))
+  })
+
+  it('emits a structured dry-run result', async () => {
+    setJsonContext('exec-dry-run-id')
+    const fixture = executionFixture({ argv: ['test-bin'], kind: 'dry-run', observed, wouldInstall: false })
+
+    await expect(runCommand('test-agent', [], { dryRun: true }, fixture.dependencies)).resolves.toBe(0)
+    const payload = JSON.parse(String(logSpy.mock.calls[0]?.[0]))
+    expect(payload.ok).toBe(true)
+    expect(payload.data.execution).toMatchObject({ installed: true, launched: false })
+  })
+
+  it('distinguishes an installation timeout in the compatibility message', async () => {
+    const fixture = executionFixture({ kind: 'timed-out', observed, phase: 'install', timeoutMs: 25 })
+
+    await expect(runCommand('test-agent', [], {}, fixture.dependencies)).resolves.toBe(10)
+    expect(stdoutWriteSpy).toHaveBeenCalledWith(expect.stringContaining('Installing Test Agent timed out after 25ms'))
+  })
+
+  it('distinguishes a launch timeout in the compatibility message', async () => {
+    const fixture = executionFixture({ kind: 'timed-out', observed, phase: 'launch', timeoutMs: 25 })
+
+    await expect(runCommand('test-agent', [], {}, fixture.dependencies)).resolves.toBe(10)
+    expect(stdoutWriteSpy).toHaveBeenCalledWith(expect.stringContaining('Test Agent timed out after 25ms'))
+  })
+
+  it('preserves structured state-read errors from lifecycle observation', async () => {
+    setJsonContext('exec-state-error-id')
+    const fixture = executionFixture({
+      error: {
+        code: 'STATE_READ_ERROR',
+        details: { stateFilePath: '/tmp/state.json' },
+        kind: 'invalid-data',
+        message: 'State is corrupt.',
+      },
+      kind: 'observation-failed',
+    })
+
+    await expect(runCommand('test-agent', [], {}, fixture.dependencies)).resolves.toBe(12)
+    const payload = JSON.parse(String(logSpy.mock.calls[0]?.[0]))
+    expect(payload.error).toMatchObject({
+      code: 'STATE_READ_ERROR',
+      details: { stateFilePath: '/tmp/state.json' },
+    })
+  })
+
+  it('cancels active operations on SIGTERM and reports the cancellation signal', async () => {
+    let finish: ((outcome: AgentExecutionOutcome) => void) | undefined
+    const fixture = executionFixture(
+      () =>
+        new Promise<AgentExecutionOutcome>(resolve => {
+          finish = resolve
+        }),
     )
-  })
+    const execution = runCommand('test-agent', [], {}, fixture.dependencies)
+    await vi.waitFor(() => expect(fixture.service.execute).toHaveBeenCalledOnce())
 
-  it('installs automatically when install policy is if-missing', async () => {
-    agentSpy.mockReturnValue(testAgent)
-    binaryInPathSpy.mockResolvedValue(false)
-    installSpy.mockResolvedValue({ success: true })
-    mockSpawn.mockReturnValue({ exited: Promise.resolve(), exitCode: 0 })
-
-    const code = await runCommand('test-agent', ['--help'], { install: 'if-missing', nonInteractive: true })
-
-    expect(code).toBe(0)
-    expect(mockPrompts).not.toHaveBeenCalled()
-    expect(installSpy).toHaveBeenCalledWith(testAgent)
-    expect(mockSpawn).toHaveBeenCalledWith(['test-bin', '--help'], expect.any(Object))
-  })
-
-  it('accepts the install prompt automatically when assumeYes is enabled', async () => {
-    agentSpy.mockReturnValue(testAgent)
-    binaryInPathSpy.mockResolvedValue(false)
-    installSpy.mockResolvedValue({ success: true })
-    mockSpawn.mockReturnValue({ exited: Promise.resolve(), exitCode: 0 })
-
-    const code = await runCommand('test-agent', ['--help'], { assumeYes: true })
-
-    expect(code).toBe(0)
-    expect(mockPrompts).not.toHaveBeenCalled()
-    expect(installSpy).toHaveBeenCalledWith(testAgent)
-  })
-
-  it('returns a dry-run success without installing or spawning', async () => {
-    setCliContext({
-      dryRun: true,
-      interactive: false,
-      outputMode: 'human',
-      runId: 'dry-run-id',
-    })
-    agentSpy.mockReturnValue(testAgent)
-    binaryInPathSpy.mockResolvedValue(false)
-
-    const code = await runCommand('test-agent', ['--help'], {
-      dryRun: true,
-      install: 'if-missing',
-      nonInteractive: true,
-    })
-
-    expect(code).toBe(0)
-    expect(mockPrompts).not.toHaveBeenCalled()
-    expect(installSpy).not.toHaveBeenCalled()
-    expect(mockSpawn).not.toHaveBeenCalled()
-  })
-
-  it('returns timeout when install exceeds the configured limit', async () => {
-    setCliContext({
-      interactive: false,
-      outputMode: 'human',
-      runId: 'run-install-timeout-id',
-      timeoutMs: 1,
-    })
-    agentSpy.mockReturnValue(testAgent)
-    binaryInPathSpy.mockResolvedValue(false)
-    installSpy.mockImplementation(() => new Promise(() => {}))
-
-    const code = await runCommand('test-agent', ['--help'], {
-      install: 'if-missing',
-      nonInteractive: true,
-    })
-
-    expect(code).toBe(10)
-    expect(stdoutWriteSpy).toHaveBeenCalledWith(expect.stringContaining('timed out'))
-    expect(mockSpawn).not.toHaveBeenCalled()
-  })
-
-  it('returns success when install completes successfully after the timeout deadline fires', async () => {
-    setCliContext({
-      interactive: false,
-      outputMode: 'human',
-      runId: 'run-install-late-success-id',
-      timeoutMs: 20,
-    })
-    agentSpy.mockReturnValue(testAgent)
-    binaryInPathSpy.mockResolvedValue(false)
-    installSpy.mockImplementation(async () => {
-      await new Promise(resolve => setTimeout(resolve, 30))
-      if (getCliContext().cancelled) return { success: false }
-      return { success: true }
-    })
-    mockSpawn.mockReturnValue({ exited: Promise.resolve(), exitCode: 0 })
-
-    const code = await runCommand('test-agent', ['--help'], {
-      install: 'if-missing',
-      nonInteractive: true,
-    })
-
-    expect(code).toBe(0)
-    expect(mockSpawn).toHaveBeenCalledWith(['test-bin', '--help'], expect.any(Object))
-  })
-
-  it('returns install failure when install fails after the timeout deadline fires', async () => {
-    setCliContext({
-      interactive: false,
-      outputMode: 'human',
-      runId: 'run-install-late-failure-id',
-      timeoutMs: 20,
-    })
-    agentSpy.mockReturnValue(testAgent)
-    binaryInPathSpy.mockResolvedValue(false)
-    installSpy.mockImplementation(async () => {
-      await new Promise(resolve => setTimeout(resolve, 30))
-      return { success: false }
-    })
-
-    const code = await runCommand('test-agent', ['--help'], {
-      install: 'if-missing',
-      nonInteractive: true,
-    })
-
-    expect(code).toBe(1)
-    expect(stdoutWriteSpy).toHaveBeenCalledWith(expect.stringContaining('Failed to install'))
-    expect(mockSpawn).not.toHaveBeenCalled()
-  })
-
-  it('returns timeout when the spawned agent exceeds the configured limit', async () => {
-    let resolveExited: (() => void) | undefined
-    const proc: any = {
-      exitCode: null,
-      exited: new Promise<void>(resolve => {
-        resolveExited = resolve
-      }),
-      kill: vi.fn(() => {
-        proc.exitCode = 143
-        resolveExited?.()
-      }),
-    }
-
-    setCliContext({
-      interactive: false,
-      outputMode: 'human',
-      runId: 'run-timeout-id',
-      timeoutMs: 1,
-    })
-    agentSpy.mockReturnValue(testAgent)
-    binaryInPathSpy.mockResolvedValue(true)
-    mockSpawn.mockImplementation((command: string[]) => {
-      if (command[1] === '--help') return proc
-
-      if (command[1] === '--version') {
-        return {
-          exitCode: 0,
-          exited: Promise.resolve(),
-          stderr: '',
-          stdout: 'test-bin 1.0.0\n',
-        }
-      }
-
-      return {
-        exitCode: 0,
-        exited: Promise.resolve(),
-        stderr: '',
-        stdout: '/tmp/test-bin\n',
-      }
-    })
-
-    const code = await runCommand('test-agent', ['--help'])
-
-    expect(code).toBe(10)
-    expect(proc.kill).toHaveBeenCalledWith('SIGTERM')
-    expect(stdoutWriteSpy).toHaveBeenCalledWith(expect.stringContaining('timed out'))
-  })
-
-  it('returns agent exit code when spawn completes successfully after the timeout deadline fires', async () => {
-    const proc: any = {
-      exitCode: null,
-      exited: new Promise<number>(resolve => {
-        setTimeout(() => {
-          proc.exitCode = 0
-          resolve(0)
-        }, 30)
-      }),
-      kill: vi.fn(),
-    }
-
-    setCliContext({
-      interactive: false,
-      outputMode: 'human',
-      runId: 'run-spawn-late-success-id',
-      timeoutMs: 20,
-    })
-    agentSpy.mockReturnValue(testAgent)
-    binaryInPathSpy.mockResolvedValue(true)
-    mockSpawn.mockImplementation((command: string[]) => {
-      if (command[1] === '--help') return proc
-
-      return {
-        exitCode: 0,
-        exited: Promise.resolve(0),
-        stderr: '',
-        stdout: '/tmp/test-bin\n',
-      }
-    })
-
-    const code = await runCommand('test-agent', ['--help'])
-
-    expect(code).toBe(0)
-    expect(proc.kill).not.toHaveBeenCalled()
-  })
-
-  it('returns cancelled when the spawned agent receives a termination signal', async () => {
-    let resolveExited: (() => void) | undefined
-    const proc: any = {
-      exitCode: null,
-      exited: new Promise<void>(resolve => {
-        resolveExited = resolve
-      }),
-      kill: vi.fn(() => {
-        proc.exitCode = 143
-        resolveExited?.()
-      }),
-    }
-
-    agentSpy.mockReturnValue(testAgent)
-    binaryInPathSpy.mockResolvedValue(true)
-    mockSpawn.mockImplementation((command: string[]) => {
-      if (command[1] === '--help') return proc
-
-      if (command[1] === '--version') {
-        return {
-          exitCode: 0,
-          exited: Promise.resolve(),
-          stderr: '',
-          stdout: 'test-bin 1.0.0\n',
-        }
-      }
-
-      return {
-        exitCode: 0,
-        exited: Promise.resolve(),
-        stderr: '',
-        stdout: '/tmp/test-bin\n',
-      }
-    })
-
-    const execution = runCommand('test-agent', ['--help'])
-    await vi.waitFor(() => {
-      expect(mockSpawn).toHaveBeenCalledWith(['test-bin', '--help'], expect.any(Object))
-    })
     process.emit('SIGTERM')
+    await vi.waitFor(() => expect(fixture.dependencies.cancelOperations).toHaveBeenCalledOnce())
+    finish?.({ kind: 'cancelled', observed, phase: 'launch' })
 
-    const code = await execution
-
-    expect(code).toBe(11)
-    expect(proc.kill).toHaveBeenCalledWith('SIGTERM')
+    await expect(execution).resolves.toBe(11)
     expect(stdoutWriteSpy).toHaveBeenCalledWith(expect.stringContaining('cancelled by SIGTERM'))
   })
 })
+
+type ExecutionFactoryOptions = Parameters<RunCommandDependencies['createExecutionService']>[0]
+
+function executionFixture(
+  result:
+    | AgentExecutionOutcome
+    | ((options: ExecutionFactoryOptions) => AgentExecutionOutcome | Promise<AgentExecutionOutcome>),
+) {
+  let options: ExecutionFactoryOptions
+  const service = {
+    dispose: vi.fn(),
+    execute: vi.fn(async () => (typeof result === 'function' ? await result(options) : result)),
+  }
+  const dependencies: RunCommandDependencies = {
+    cancelOperations: vi.fn(async () => undefined),
+    createExecutionService: vi.fn(received => {
+      options = received
+      return service
+    }),
+  }
+  return { dependencies, service }
+}
+
+function setJsonContext(runId: string): void {
+  setCliContext({ interactive: false, outputMode: 'json', runId })
+}
+
+const observed: LifecycleExecutionObservedAgent = {
+  agent: {
+    binaryName: 'test-bin',
+    displayName: 'Test Agent',
+    name: 'test-agent',
+  },
+  executable: { path: '/tmp/test-bin', present: true, version: '1.0.0' },
+  methods: [{ packageName: 'test-pkg', type: 'npm' }],
+  observation: {
+    drift: { kind: 'none' },
+    executablePath: '/tmp/test-bin',
+    kind: 'present',
+    targetId: 'test-agent',
+    version: '1.0.0',
+  },
+}

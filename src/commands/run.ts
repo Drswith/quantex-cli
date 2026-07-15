@@ -1,19 +1,16 @@
 import type { AgentDefinition, InstallMethod } from '../agents/types'
-import type { SpawnHandle } from '../utils/child-process'
+import type { CliErrorCode } from '../errors'
+import type { RuntimeFailure } from '../runtime'
+import type { AgentExecutionOutcome } from '../services'
 import type { ExecInstallPolicy } from './exec'
 import process from 'node:process'
 import prompts from 'prompts'
-import { cancelCliContextOperations, clearCliContextCancelled, getCliContext } from '../cli-context'
-import { getExitCodeForError } from '../errors'
+import { cancelCliContextOperations, getCliContext } from '../cli-context'
+import { cliErrorCodes, getExitCodeForError } from '../errors'
 import { createErrorResult, createSuccessResult, emitCommandResult } from '../output'
-import { installAgent } from '../package-manager'
-import { resolveAgentInspection } from '../services/agents'
-import { getStateFilePath, StateFileError } from '../state'
-import { spawnWithQuantexStdio, waitForSpawnedCommand } from '../utils/child-process'
+import { createProductionLifecycleExecutionService } from '../services'
 import { pc } from '../utils/color'
 import { formatInstallMethodCommand, formatInstallMethodLabel } from '../utils/install'
-import { createStateReadError } from '../utils/lifecycle-errors'
-import { isResourceLockError } from '../utils/lock'
 import {
   isAssumeYesEnabled,
   isDryRunEnabled,
@@ -49,160 +46,193 @@ interface ExecPreflightData {
   }
 }
 
+export interface RunCommandOptions {
+  readonly assumeYes?: boolean
+  readonly dryRun?: boolean
+  readonly install?: ExecInstallPolicy | 'prompt'
+  readonly nonInteractive?: boolean
+}
+
+export interface RunCommandDependencies {
+  readonly cancelOperations: typeof cancelCliContextOperations
+  readonly createExecutionService: typeof createProductionLifecycleExecutionService
+}
+
+const defaultDependencies: RunCommandDependencies = {
+  cancelOperations: cancelCliContextOperations,
+  createExecutionService: createProductionLifecycleExecutionService,
+}
+
 export async function runCommand(
   agentName: string,
   args: string[],
-  options: {
-    assumeYes?: boolean
-    dryRun?: boolean
-    install?: ExecInstallPolicy | 'prompt'
-    nonInteractive?: boolean
-  } = {},
+  options: RunCommandOptions = {},
+  dependencies: RunCommandDependencies = defaultDependencies,
 ): Promise<number> {
-  let resolved
-  try {
-    resolved = await resolveAgentInspection(agentName)
-  } catch (error) {
-    if (error instanceof StateFileError) {
-      emitStateReadError(agentName, error)
-      return getExitCodeForError('STATE_READ_ERROR')
-    }
+  const context = getCliContext()
+  const interactive = options.nonInteractive ? false : context.interactive
+  const assumeYes = options.assumeYes ?? isAssumeYesEnabled()
+  const dryRun = options.dryRun ?? isDryRunEnabled()
+  const installPolicy = options.install ?? 'prompt'
+  let cancellationSignal: NodeJS.Signals | undefined
 
-    throw error
+  const service = dependencies.createExecutionService({
+    confirmInstall: async observed => {
+      if (assumeYes) return true
+      const response = await prompts({
+        initial: true,
+        message: `${observed.agent.displayName} is not installed. Would you like to install it?`,
+        name: 'install',
+        type: 'confirm',
+      })
+      return Boolean(response.install)
+    },
+    dryRun,
+    interactive,
+    onInstallStart: observed => {
+      printInfo(pc.cyan(`Installing ${observed.agent.displayName}...`))
+    },
+    outputMode: context.outputMode,
+    timeoutMs: context.timeoutMs,
+  })
+
+  const handleSignal = (signal: NodeJS.Signals): void => {
+    cancellationSignal ??= signal
+    void dependencies.cancelOperations()
   }
+  const sigintHandler = (): void => handleSignal('SIGINT')
+  const sigtermHandler = (): void => handleSignal('SIGTERM')
+  process.once('SIGINT', sigintHandler)
+  process.once('SIGTERM', sigtermHandler)
 
-  if (!resolved) {
+  try {
+    const outcome = await service.execute({ agentName, args, installPolicy })
+    return presentExecutionOutcome(outcome, {
+      agentName,
+      args,
+      cancellationSignal,
+      installPolicy,
+      interactive,
+    })
+  } finally {
+    process.off('SIGINT', sigintHandler)
+    process.off('SIGTERM', sigtermHandler)
+    service.dispose()
+  }
+}
+
+interface ExecutionPresentationContext {
+  readonly agentName: string
+  readonly args: string[]
+  readonly cancellationSignal?: NodeJS.Signals
+  readonly installPolicy: ExecInstallPolicy | 'prompt'
+  readonly interactive: boolean
+}
+
+function presentExecutionOutcome(outcome: AgentExecutionOutcome, context: ExecutionPresentationContext): number {
+  if (outcome.kind === 'not-found') {
     emitExecPreflightError({
-      agent: {
-        name: agentName,
-      },
+      agent: { name: context.agentName },
       errorCode: 'AGENT_NOT_FOUND',
-      errorMessage: `Unknown agent: ${agentName}`,
-      execution: {
-        args,
-        installPolicy: options.install ?? 'prompt',
-        installed: false,
-        interactive: false,
-        launched: false,
-      },
+      errorMessage: `Unknown agent: ${context.agentName}`,
+      execution: executionData(context, false),
     })
     return getExitCodeForError('AGENT_NOT_FOUND')
   }
 
-  const { agent, inspection } = resolved
-  const interactive = options.nonInteractive ? false : getCliContext().interactive
-  const assumeYes = options.assumeYes ?? isAssumeYesEnabled()
-  const dryRun = options.dryRun ?? isDryRunEnabled()
-  const installPolicy = options.install ?? 'prompt'
-
-  if (!inspection.inPath) {
-    if (installPolicy === 'never') {
-      emitExecPreflightError({
-        agent: {
-          binaryName: agent.binaryName,
-          displayName: agent.displayName,
-          name: agent.name,
-        },
-        errorCode: 'AGENT_NOT_INSTALLED',
-        errorMessage: `${agent.displayName} is not installed.`,
-        execution: {
-          args,
-          installGuidance: createExecInstallGuidance(agent, inspection.methods, args),
-          installPolicy,
-          installed: false,
-          interactive,
-          launched: false,
-        },
-      })
-      return getExitCodeForError('AGENT_NOT_INSTALLED')
-    }
-
-    if (installPolicy === 'if-missing' || installPolicy === 'always') {
-      if (dryRun) {
-        writeDirectOutput(pc.cyan(`Dry run: would install ${agent.displayName}.`))
-      } else {
-        printInfo(pc.cyan(`Installing ${agent.displayName}...`))
-      }
-      const installResult = await runInstallForRunWithTimeout(agent, dryRun)
-      if (installResult === 'timeout') return getExitCodeForError('TIMEOUT')
-      if (!installResult.success) {
-        printError(pc.red(`Failed to install ${agent.displayName}.`))
-        return 1
-      }
-    } else if (!interactive) {
-      emitExecPreflightError({
-        agent: {
-          binaryName: agent.binaryName,
-          displayName: agent.displayName,
-          name: agent.name,
-        },
-        errorCode: 'INTERACTION_REQUIRED',
-        errorMessage: `${agent.displayName} is not installed and interactive installation is disabled.`,
-        execution: {
-          args,
-          installGuidance: createExecInstallGuidance(agent, inspection.methods, args),
-          installPolicy,
-          installed: false,
-          interactive,
-          launched: false,
-        },
-      })
-      return getExitCodeForError('INTERACTION_REQUIRED')
-    } else {
-      const response =
-        assumeYes || dryRun
-          ? { install: true }
-          : await prompts({
-              type: 'confirm',
-              name: 'install',
-              message: `${agent.displayName} is not installed. Would you like to install it?`,
-              initial: true,
-            })
-
-      if (!response.install) {
-        printWarn(pc.yellow('Installation cancelled.'))
-        return 1
-      }
-
-      if (dryRun) {
-        writeDirectOutput(pc.cyan(`Dry run: would install ${agent.displayName}.`))
-      } else {
-        printInfo(pc.cyan(`Installing ${agent.displayName}...`))
-      }
-      const installResult = await runInstallForRunWithTimeout(agent, dryRun)
-      if (installResult === 'timeout') return getExitCodeForError('TIMEOUT')
-      if (!installResult.success) {
-        printError(pc.red(`Failed to install ${agent.displayName}.`))
-        return 1
-      }
-    }
+  if (outcome.kind === 'observation-failed') {
+    return emitExecRuntimeError(context.agentName, outcome.error)
   }
 
-  if (dryRun) {
-    emitExecDryRun({
-      agent: {
-        binaryName: agent.binaryName,
-        displayName: agent.displayName,
-        name: agent.name,
-      },
+  const { observed } = outcome
+  const agent = observed.agent
+  if (outcome.kind === 'not-installed' || outcome.kind === 'interaction-required') {
+    const interactionRequired = outcome.kind === 'interaction-required'
+    emitExecPreflightError({
+      agent,
+      errorCode: interactionRequired ? 'INTERACTION_REQUIRED' : 'AGENT_NOT_INSTALLED',
+      errorMessage: interactionRequired
+        ? `${agent.displayName} is not installed and interactive installation is disabled.`
+        : `${agent.displayName} is not installed.`,
       execution: {
-        args,
-        installPolicy,
-        installed: true,
-        interactive,
-        launched: false,
+        ...executionData(context, false),
+        installGuidance: createExecInstallGuidance(agent, observed.methods, context.args),
       },
-      message: `Dry run: would run ${[agent.binaryName, ...args].join(' ')}`,
     })
-    return 0
+    return getExitCodeForError(interactionRequired ? 'INTERACTION_REQUIRED' : 'AGENT_NOT_INSTALLED')
   }
 
-  try {
-    return await runSpawnedAgentProcess(spawnWithQuantexStdio([agent.binaryName, ...args]), agent.displayName)
-  } catch (e) {
-    printError(pc.red(`Failed to launch ${agent.displayName}: ${e instanceof Error ? e.message : String(e)}`))
-    return 1
+  switch (outcome.kind) {
+    case 'install-declined':
+      printWarn(pc.yellow('Installation cancelled.'))
+      return 1
+    case 'install-failed':
+      printError(pc.red(`Failed to install ${agent.displayName}.`))
+      return getExitCodeForError('INSTALL_FAILED')
+    case 'dry-run':
+      if (outcome.wouldInstall) writeDirectOutput(pc.cyan(`Dry run: would install ${agent.displayName}.`))
+      emitExecDryRun({
+        agent,
+        execution: executionData(context, true),
+        message: `Dry run: would run ${outcome.argv.join(' ')}`,
+      })
+      return 0
+    case 'launch-failed':
+      printError(pc.red(`Failed to launch ${agent.displayName}: ${outcome.reason}`))
+      return 1
+    case 'cancelled':
+      printError(
+        pc.red(
+          context.cancellationSignal
+            ? `${agent.displayName} was cancelled by ${context.cancellationSignal}.`
+            : `${agent.displayName} was cancelled.`,
+        ),
+      )
+      return getExitCodeForError('CANCELLED')
+    case 'timed-out':
+      printError(
+        pc.red(
+          outcome.phase === 'install'
+            ? `Installing ${agent.displayName} timed out after ${outcome.timeoutMs}ms.`
+            : `${agent.displayName} timed out after ${outcome.timeoutMs}ms.`,
+        ),
+      )
+      return getExitCodeForError('TIMEOUT')
+    case 'exited':
+      return outcome.exitCode
   }
+}
+
+function executionData(context: ExecutionPresentationContext, installed: boolean): ExecPreflightData['execution'] {
+  return {
+    args: context.args,
+    installPolicy: context.installPolicy,
+    installed,
+    interactive: context.interactive,
+    launched: false,
+  }
+}
+
+function emitExecRuntimeError(agentName: string, error: RuntimeFailure): number {
+  const code = isCliErrorCode(error.code) ? error.code : 'INSTALL_FAILED'
+  const context = getCliContext()
+  if (context.outputMode === 'human') {
+    printError(pc.red(error.message))
+  } else {
+    emitCommandResult(
+      createErrorResult({
+        action: 'exec',
+        error: { code, details: error.details, message: error.message },
+        target: { kind: 'agent', name: agentName },
+      }),
+      () => {},
+    )
+  }
+  return getExitCodeForError(code)
+}
+
+function isCliErrorCode(value: string | undefined): value is CliErrorCode {
+  return value !== undefined && (cliErrorCodes as readonly string[]).includes(value)
 }
 
 function createExecInstallGuidance(
@@ -212,7 +242,7 @@ function createExecInstallGuidance(
     name: string
     packages?: AgentDefinition['packages']
   },
-  methods: InstallMethod[],
+  methods: readonly InstallMethod[],
   args: string[],
 ): ExecPreflightData['execution']['installGuidance'] {
   const installMethods = methods
@@ -230,27 +260,6 @@ function createExecInstallGuidance(
     suggestedEnsureCommand: `quantex ensure ${agent.name}`,
     suggestedExecCommand: ['quantex', 'exec', agent.name, '--install', 'if-missing', '--', ...args].join(' '),
   }
-}
-
-function emitStateReadError(agentName: string, error: StateFileError): void {
-  const stateError = createStateReadError(error, getStateFilePath(), {
-    kind: 'agent',
-    name: agentName,
-  })
-  const context = getCliContext()
-
-  if (context.outputMode === 'human') {
-    printError(pc.red(stateError.error.message))
-    return
-  }
-
-  emitCommandResult(
-    createErrorResult<ExecPreflightData>({
-      action: 'exec',
-      ...stateError,
-    }),
-    () => {},
-  )
 }
 
 function emitExecPreflightError(input: {
@@ -273,19 +282,13 @@ function emitExecPreflightError(input: {
   emitCommandResult(
     createErrorResult<ExecPreflightData>({
       action: 'exec',
-      data: {
-        agent: input.agent,
-        execution: input.execution,
-      },
+      data: { agent: input.agent, execution: input.execution },
       error: {
         code: input.errorCode,
         details: input.execution.installGuidance,
         message: input.errorMessage,
       },
-      target: {
-        kind: 'agent',
-        name: input.agent.name,
-      },
+      target: { kind: 'agent', name: input.agent.name },
     }),
     () => {},
   )
@@ -305,177 +308,9 @@ function emitExecDryRun(input: {
   emitCommandResult(
     createSuccessResult<ExecPreflightData>({
       action: 'exec',
-      data: {
-        agent: input.agent,
-        execution: input.execution,
-      },
-      target: {
-        kind: 'agent',
-        name: input.agent.name,
-      },
+      data: { agent: input.agent, execution: input.execution },
+      target: { kind: 'agent', name: input.agent.name },
     }),
     () => {},
   )
-}
-
-type InstallForRunResult = Awaited<ReturnType<typeof tryInstallForRun>>
-
-async function runInstallForRunWithTimeout(
-  agent: { displayName: string } & Parameters<typeof installAgent>[0],
-  dryRun: boolean = isDryRunEnabled(),
-): Promise<InstallForRunResult | 'timeout'> {
-  const { timeoutMs } = getCliContext()
-  if (timeoutMs === undefined) return tryInstallForRun(agent, dryRun)
-
-  let timeoutId: ReturnType<typeof setTimeout> | undefined
-  const installPromise = tryInstallForRun(agent, dryRun)
-
-  try {
-    const timeoutPromise = new Promise<'timeout'>(resolve => {
-      timeoutId = setTimeout(() => {
-        resolve('timeout')
-      }, timeoutMs)
-    })
-
-    const result = await Promise.race([installPromise, timeoutPromise])
-    if (result === 'timeout') {
-      const lateResult = await waitForLateInstallResult(installPromise, timeoutMs)
-      if (lateResult?.success) {
-        clearCliContextCancelled()
-        return lateResult
-      }
-      if (lateResult) return lateResult
-
-      await cancelCliContextOperations()
-      printError(pc.red(`Installing ${agent.displayName} timed out after ${timeoutMs}ms.`))
-      return 'timeout'
-    }
-
-    if (getCliContext().cancelled && result.success) clearCliContextCancelled()
-    return result
-  } finally {
-    if (timeoutId) clearTimeout(timeoutId)
-  }
-}
-
-async function waitForLateInstallResult(
-  installPromise: Promise<InstallForRunResult>,
-  timeoutMs: number,
-): Promise<InstallForRunResult | undefined> {
-  const graceMs = Math.min(timeoutMs, 250)
-  return await Promise.race([
-    installPromise,
-    new Promise<undefined>(resolve => {
-      setTimeout(() => resolve(undefined), graceMs)
-    }),
-  ])
-}
-
-async function tryInstallForRun(
-  agent: { displayName: string } & Parameters<typeof installAgent>[0],
-  dryRun: boolean = isDryRunEnabled(),
-): Promise<Awaited<ReturnType<typeof installAgent>>> {
-  if (dryRun) return { success: true }
-
-  try {
-    return await installAgent(agent)
-  } catch (error) {
-    if (isResourceLockError(error)) {
-      printError(pc.red(error.message))
-      return { success: false }
-    }
-
-    printError(
-      pc.red(`Failed to install ${agent.displayName}: ${error instanceof Error ? error.message : String(error)}`),
-    )
-    return { success: false }
-  }
-}
-
-async function runSpawnedAgentProcess(handle: SpawnHandle, displayName: string): Promise<number> {
-  const { timeoutMs } = getCliContext()
-  let cancellationCodePromise: Promise<number> | undefined
-  let cleanup: (() => void) | undefined
-  let timeoutId: ReturnType<typeof setTimeout> | undefined
-
-  try {
-    const signalPromise = new Promise<number>(resolve => {
-      const handleSignal = (signal: NodeJS.Signals): void => {
-        cancellationCodePromise ??= (async () => {
-          await cancelCliContextOperations()
-          printError(pc.red(`${displayName} was cancelled by ${signal}.`))
-          return getExitCodeForError('CANCELLED')
-        })()
-        void cancellationCodePromise.then(resolve)
-      }
-
-      const sigintHandler = (): void => handleSignal('SIGINT')
-      const sigtermHandler = (): void => handleSignal('SIGTERM')
-      process.once('SIGINT', sigintHandler)
-      process.once('SIGTERM', sigtermHandler)
-      cleanup = (): void => {
-        process.off('SIGINT', sigintHandler)
-        process.off('SIGTERM', sigtermHandler)
-      }
-    })
-
-    const spawnPromise = waitForSpawnedAgentCommand(handle, () => cancellationCodePromise)
-
-    if (timeoutMs === undefined) {
-      return await Promise.race([spawnPromise, signalPromise])
-    }
-
-    const timeoutPromise = new Promise<'timeout'>(resolve => {
-      timeoutId = setTimeout(() => {
-        resolve('timeout')
-      }, timeoutMs)
-    })
-
-    const result = await Promise.race([spawnPromise, signalPromise, timeoutPromise])
-    if (result === 'timeout') {
-      const lateCode = await waitForLateSpawnResult(spawnPromise, timeoutMs)
-      if (lateCode !== undefined) {
-        clearCliContextCancelled()
-        return lateCode
-      }
-
-      cancellationCodePromise ??= (async () => {
-        await cancelCliContextOperations()
-        printError(pc.red(`${displayName} timed out after ${timeoutMs}ms.`))
-        return getExitCodeForError('TIMEOUT')
-      })()
-      return await cancellationCodePromise
-    }
-
-    return result
-  } finally {
-    if (timeoutId) clearTimeout(timeoutId)
-    cleanup?.()
-  }
-}
-
-async function waitForLateSpawnResult(spawnPromise: Promise<number>, timeoutMs: number): Promise<number | undefined> {
-  const graceMs = Math.min(timeoutMs, 250)
-  return await Promise.race([
-    spawnPromise,
-    new Promise<undefined>(resolve => {
-      setTimeout(() => resolve(undefined), graceMs)
-    }),
-  ])
-}
-
-async function waitForSpawnedAgentCommand(
-  handle: SpawnHandle,
-  getCancellationCode: () => Promise<number> | undefined,
-): Promise<number> {
-  try {
-    const code = await waitForSpawnedCommand(handle)
-    const cancellationCode = getCancellationCode()
-    if (getCliContext().cancelled && cancellationCode) return cancellationCode
-    return code
-  } catch (error) {
-    const cancellationCode = getCancellationCode()
-    if (getCliContext().cancelled && cancellationCode) return cancellationCode
-    throw error
-  }
 }

@@ -4,6 +4,7 @@ import { join } from 'node:path'
 import process from 'node:process'
 import { loadConfig } from '../src/config'
 import { resolveManagedSelfUpdateRegistry } from '../src/self'
+import { getStateFilePath } from '../src/state'
 import {
   buildSelfManagedRegistryMetadata,
   parsePackedTarballName,
@@ -113,6 +114,35 @@ async function smokeManagedAgentLifecycle(agent: string): Promise<void> {
 
   console.log(`[${agent}] exec dry run`)
   await runText(`exec ${agent} dry run`, [...cli, '--dry-run', 'exec', agent, '--', '--version'])
+
+  const stateBeforeExecution = await readFile(getStateFilePath())
+
+  console.log(`[${agent}] explicit exec`)
+  const explicitExecution = await runText(`exec ${agent}`, [...cli, 'exec', agent, '--', '--version'])
+  if (!explicitExecution.stderr.trim()) {
+    throw new Error(`${agent} structured exec should forward child version output to stderr`)
+  }
+
+  console.log(`[${agent}] shortcut exec`)
+  const shortcutExecution = await runText(`shortcut ${agent}`, [
+    'bun',
+    'run',
+    'src/cli.ts',
+    '--output',
+    'human',
+    '--non-interactive',
+    '--yes',
+    '--color',
+    'never',
+    agent,
+    '--version',
+  ])
+  if (!shortcutExecution.stdout.trim()) {
+    throw new Error(`${agent} shortcut should inherit child version output on stdout`)
+  }
+
+  const stateAfterExecution = await readFile(getStateFilePath())
+  assertBytesEqual(stateAfterExecution, stateBeforeExecution, `${agent} explicit and shortcut execution`)
 
   console.log(`[${agent}] update`)
   const update = await runJson(`update ${agent}`, [...cli, 'update', agent])
@@ -932,6 +962,13 @@ async function assertFileExists(path: string, message: string, debugRoot: string
 async function dumpDirectoryTree(root: string): Promise<void> {
   const output = await runCommand('debug self-managed sandbox tree', ['find', root, '-maxdepth', '5', '-print'])
   process.stderr.write(`[self-managed sandbox tree]\n${output.stdout}`)
+}
+
+function assertBytesEqual(actual: Uint8Array, expected: Uint8Array, label: string): void {
+  if (actual.byteLength !== expected.byteLength) throw new Error(`State file size changed during ${label}.`)
+  for (let index = 0; index < actual.byteLength; index += 1) {
+    if (actual[index] !== expected[index]) throw new Error(`State file bytes changed during ${label}.`)
+  }
 }
 
 async function resolveSelfManagedDependencyRegistry(): Promise<string> {
