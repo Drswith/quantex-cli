@@ -1,18 +1,17 @@
-# Update and Idempotency Milestone Progress
+# Agent Execution Milestone Progress
 
-Base: `origin/codex/redesign-lifecycle-integration@d2d2275fbc631962414ebfccabfc30746ba1a727`
+Base: `origin/codex/redesign-lifecycle-integration@9213bd92cc555e2625067625cc05b2cce994f09d`
 
-Plan: `docs/superpowers/plans/2026-07-13-update-idempotency-milestone.md`
+Plan: `docs/superpowers/plans/2026-07-15-agent-execution-milestone.md`
 
 | Task | State | Checkpoint | Evidence |
 | --- | --- | --- | --- |
-| 1. Pure semantic update planning | complete | `54c456b`, `41ce213`, `ba36b88`, `bd33df7` | v1 goldens preserved; controller gate 103/103; final spec and quality review clean |
-| 2. Verified single-agent update service | complete | `76fd58e`..`c9a6389` | controller gate 56/56; final spec and quality review clean; known unrelated flakes pass exact isolation |
-| 3. Deterministic update-all composition | complete | `acd7659`..`3d17be0` | controller gate 117/117; v1 goldens unchanged; final spec and quality review clean |
-| 4. Versioned idempotency records | complete | `997b882`..`7301343` | controller gate 68/68; legacy runtime 21/21; canonical/schema/storage durability reviews clean |
-| 5. Command-specific replay validation | complete | `24934f6`..`2d05fad` (5A), `cb9274b`..`9b66549` (5B), `181f3e4`..`73d9acc` (5C single), `adfda05`..`9c83c75` (5C batch install), `e9c1628`..`099dcc4` (single update), `5ceee0a`..`d04aef0` (batch update), `4a739e8`..`b88bdae` (legacy removal and deterministic gates) | all command policies and legacy runtime removal approved; focused matrix 258/258 and full suite 1430/1430 pass |
-| 6. Contract and delivery closure | in progress | `bd1917d` | OpenSpec 44/74; full local gate 1434/1434, Docker managed/deno/uv smoke, and whole-branch re-review pass; Modal is unavailable locally, so base normalization, PR delivery, and trusted remote sandbox remain |
+| 1. Pure execution preflight planning | complete | `b642ee5` | 15/15 decision-table tests; lint, format, typecheck pass |
+| 2. Observation-driven execution service | complete | `f4e20ef` | 18 service tests plus 15 planner tests; no launch before fresh verified observation |
+| 3. Production process port and unified surface | complete | task-3 commit | explicit exec and shortcut share the lifecycle execution service; 48 focused tests plus full static validation pass |
+| 4. Cross-platform execution verification | complete | PR #459 first head | 1494/1494 local tests, managed/deno/uv container, macOS/Ubuntu/Windows CI, and trusted sandbox pass; independent review approved |
+| 5. PR delivery to integration | in progress | PR #459 | OpenSpec 48/74 update and refreshed CI/governance/final rebase CAS pending |
 
-Plan review: Ready Yes; no remaining Critical or Important findings.
+Baseline: lint, format, typecheck, and 329/329 suites with 1434/1434 tests pass on integration tip `9213bd9`. CodeGraph initialized with 450 files, 3923 nodes, and 10203 edges.
 
-Recovery rule: resume the first row that is not `complete`; inspect its brief/report, `git log`, and `git status` before dispatching work. Preserve granular commits on a recovery ref and normalize only after the refreshed integration-base gate.
+Recovery rule: resume the first row that is not `complete`; inspect its tests, `git log`, `git status`, and CodeGraph pending-sync banner before editing. Commit each reviewed task, preserve the granular head on `refs/quantex/recovery/redesign-agent-execution-granular`, and normalize only after the refreshed integration-base gate.
