@@ -36,6 +36,7 @@ describe('maybeRenderSelfUpdateNotice', () => {
 
   afterEach(() => {
     stdoutWriteSpy.mockRestore()
+    vi.unstubAllGlobals()
   })
 
   it('suppresses passive notices when cached latest version is lower than current', async () => {
@@ -53,6 +54,8 @@ describe('maybeRenderSelfUpdateNotice', () => {
 
   it('renders the exact cached latest-version notice without fresh inspection or persistence', async () => {
     const cache = createMetadataCache('0.16.0')
+    const fetchSpy = vi.fn(() => Promise.reject(new Error('passive notice must not use the network')))
+    vi.stubGlobal('fetch', fetchSpy)
 
     await maybeRenderSelfUpdateNotice(
       { action: 'list', ok: true },
@@ -65,6 +68,7 @@ describe('maybeRenderSelfUpdateNotice', () => {
     )
     expect(inspectSelfSpy).not.toHaveBeenCalled()
     expect(setSelfUpdateNoticeStateSpy).not.toHaveBeenCalled()
+    expect(fetchSpy).not.toHaveBeenCalled()
   })
 
   it('stays silent on cache miss without attempting a fresh inspection', async () => {

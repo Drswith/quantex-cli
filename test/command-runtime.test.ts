@@ -45,6 +45,7 @@ describe('executeCommandWithRuntime', () => {
   afterEach(() => {
     logSpy.mockRestore()
     inspectSelfSpy.mockReset()
+    vi.unstubAllGlobals()
     vi.useRealTimers()
     if (originalHome === undefined) delete process.env.HOME
     else process.env.HOME = originalHome
@@ -1612,6 +1613,31 @@ describe('executeCommandWithRuntime', () => {
     expect(result.ok).toBe(true)
     expect(noticeSpy).toHaveBeenCalledWith({ action: 'list', ok: true })
     noticeSpy.mockRestore()
+  })
+
+  it('never performs a self-update network request while finalizing an ordinary command', async () => {
+    const fetchSpy = vi.fn(() => Promise.reject(new Error('ordinary finalization must not use the network')))
+    vi.stubGlobal('fetch', fetchSpy)
+    setCliContext({
+      colorMode: 'never',
+      interactive: true,
+      outputMode: 'human',
+      runId: 'cache-only-finalization',
+    })
+
+    const result = await executeCommandWithRuntime({
+      action: 'list',
+      run: async () =>
+        createSuccessResult({
+          action: 'list',
+          data: { agents: [] },
+          target: { kind: 'system', name: 'agents' },
+        }),
+      target: { kind: 'system', name: 'agents' },
+    })
+
+    expect(result.ok).toBe(true)
+    expect(fetchSpy).not.toHaveBeenCalled()
   })
 
   it('suppresses the passive notice in structured output modes', async () => {
