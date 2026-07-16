@@ -56,10 +56,6 @@ Use explicit closure language when handing work between agents, reviewers, and a
 
 Agents should not summarize a task as simply "done" when the current state is only local implementation or PR delivery. If the next step belongs to CI, reviewer approval, release automation, or agent-driven OpenSpec archive closure, name that owner explicitly.
 
-## Long-lived integration delivery
-
-When a large compatibility-preserving redesign needs staged review without exposing partial internals to the release line, follow [Lifecycle Integration Delivery](./runbooks/lifecycle-integration-delivery.md). The temporary integration branch is a protected aggregation target, not a release channel. Every milestone keeps an independent plan, commit, PR, validation, review, and OpenSpec task update; final promotion and post-promotion archive closure remain separate operations.
-
 ## Pull request body preflight
 
 PR descriptions are part of the delivery contract, not a best-effort summary. Before creating or editing a PR body, agents should:

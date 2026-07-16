@@ -59,26 +59,15 @@ describe('pr governance release intent', () => {
     expect(prTemplate).toContain('queued for agent-driven archive closure')
   })
 
-  it('documents lifecycle integration setup, runtime, promotion, and teardown', () => {
-    expect(existsSync(integrationRunbookPath)).toBe(true)
-    if (!existsSync(integrationRunbookPath)) return
-
-    const runbook = readFileSync(integrationRunbookPath, 'utf8')
-
-    expect(runbook).toContain('codex/redesign-lifecycle-integration')
-    expect(runbook).toContain('main -> integration')
-    expect(runbook).toContain('integration -> main')
-    expect(runbook).toContain('74/74')
-    expect(runbook).toContain('sandbox-tests')
-    expect(runbook).toContain('must not publish')
-    expect(runbook).toContain('Post-promotion teardown')
+  it('removes temporary lifecycle integration runtime guidance after promotion', () => {
+    expect(existsSync(integrationRunbookPath)).toBe(false)
+    expect(runtimeSkill).not.toContain('docs/runbooks/lifecycle-integration-delivery.md')
+    expect(collaborationGuide).not.toContain('Lifecycle Integration Delivery')
   })
 
-  it('keeps umbrella changes active across milestone merges', () => {
-    expect(runtimeSkill).toContain('docs/runbooks/lifecycle-integration-delivery.md')
-    expect(runtimeSkill).toContain('milestone merge is not archive eligibility')
+  it('keeps generic umbrella archive timing after temporary runtime removal', () => {
+    expect(runtimeSkill).toContain('active umbrella change')
     expect(openspecReadme).toContain('milestone merge is not archive eligibility')
-    expect(collaborationGuide).toContain('Lifecycle Integration Delivery')
     expect(prTemplate).toContain('active across milestone merges by design')
   })
 

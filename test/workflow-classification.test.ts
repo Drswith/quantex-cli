@@ -76,25 +76,19 @@ describe('workflow classification integration', () => {
     expect(extractEventBlock(workflow, eventName)).not.toMatch(/^(?:permissions|jobs):/m)
   })
 
-  it('targets the integration branch only for CI pull requests', () => {
-    expect(extractYamlList(extractEventBlock(ciWorkflow, 'pull_request'), 'branches')).toEqual([
-      'main',
-      'beta',
-      integrationBranch,
-    ])
+  it('restores steady-state CI branch targets after integration teardown', () => {
+    expect(extractYamlList(extractEventBlock(ciWorkflow, 'pull_request'), 'branches')).toEqual(['main', 'beta'])
     expect(extractYamlList(extractEventBlock(ciWorkflow, 'push'), 'branches')).toEqual(['main', 'beta'])
+    expect(ciWorkflow).not.toContain(integrationBranch)
   })
 
-  it('targets the integration branch only for Sandbox Tests pull requests', () => {
-    expect(extractYamlList(extractEventBlock(sandboxWorkflow, 'pull_request'), 'branches')).toEqual([
-      'main',
-      'beta',
-      integrationBranch,
-    ])
+  it('restores steady-state Sandbox Tests branch targets after integration teardown', () => {
+    expect(extractYamlList(extractEventBlock(sandboxWorkflow, 'pull_request'), 'branches')).toEqual(['main', 'beta'])
     expect(extractYamlList(extractEventBlock(sandboxWorkflow, 'push'), 'branches')).toEqual(['main', 'beta'])
+    expect(sandboxWorkflow).not.toContain(integrationBranch)
   })
 
-  it('preserves the six live integration merge-gate contexts', () => {
+  it('preserves the six live merge-gate contexts', () => {
     const ciJobIds = extractTopLevelJobIds(ciWorkflow)
     const sandboxJobIds = extractTopLevelJobIds(sandboxWorkflow)
     const governanceJobIds = extractTopLevelJobIds(prGovernanceWorkflow)

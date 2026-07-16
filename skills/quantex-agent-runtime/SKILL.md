@@ -74,7 +74,7 @@ For implementation:
 3. Mark task checkboxes only after the corresponding work is done.
 4. Update specs, ADRs, runbooks, or session docs when implementation changes durable knowledge.
 
-For a long-lived umbrella change using the temporary lifecycle integration topology, follow `docs/runbooks/lifecycle-integration-delivery.md`. A milestone merge is not archive eligibility: update genuine task progress and report merge closure, but keep the umbrella change active until its completion, promotion, spec-sync, and archive conditions are satisfied.
+For an active umbrella change, a milestone merge is not archive eligibility: update genuine task progress and report merge closure, but keep the umbrella change active until its completion, promotion, spec-sync, and archive conditions are satisfied.
 
 ## Validation Routing
 
@@ -138,7 +138,7 @@ After an OpenSpec-backed implementation PR merges and the change is genuinely co
 
 Do not rely on repository automation to create archive PRs.
 
-If an implementation PR is only one milestone of an active umbrella change, do not start archive closure. Report that archive closure remains pending by design and continue from the protected integration target described in the lifecycle integration runbook.
+If an implementation PR is only one milestone of an active umbrella change, do not start archive closure. Report that archive closure remains pending by design and resume from the protected target recorded by the active OpenSpec change.
 
 ## Script Boundary
 

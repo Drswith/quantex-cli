@@ -196,7 +196,7 @@ This OpenSpec change is the umbrella contract for the redesign, but delivery is 
 
 Implementation planning must produce dependency-ordered milestone plans rather than one giant patch. The first implementation plan covers the compatibility baseline and foundation only; later command-family migrations receive their own plan and review checkpoint. No milestone may combine unrelated product expansion with engine migration.
 
-While the active delivery change `support-integration-branch-delivery` exists, every redesign milestone follows `docs/runbooks/lifecycle-integration-delivery.md`: branch from the latest protected `codex/redesign-lifecycle-integration`, deliver one independently planned and reviewed commit through a pull request to that branch, and keep both changes active. The complete integration branch is promoted to `main` only after the unchanged 74-task denominator is genuinely complete and the final compatibility and release-readiness gates pass. Actual current-spec synchronization and archive execution remain post-promotion work owned by the delivery change.
+The temporary lifecycle integration delivery phase has completed: the accepted redesign was promoted to `main` and released. No further redesign milestone targets the retired integration topology. Current-spec synchronization and archive execution remain post-promotion work owned by `support-integration-branch-delivery` tasks 5.4–5.6, and both changes remain active until those closure gates pass.
 
 ## Target Boundaries
 
