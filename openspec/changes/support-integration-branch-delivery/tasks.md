@@ -32,11 +32,11 @@
 - [x] 4.2 Perform a final verified same-repository main sync, refresh both remote refs, prove through expected-tree and content-comparison evidence that integration includes the latest `main` content alongside only the accepted redesign delta, and confirm no lifecycle milestone pull request remains open.
 - [x] 4.3 Review the complete integration-to-`main` comparison for only accepted redesign work, validate the PR body, and open the exact same-repository final-promotion pull request.
 - [x] 4.4 After every required `main` context succeeds, atomically persist the approved final-promotion tips and expected tree under the worktree Git metadata path, reload and revalidate them after a final fetch, stop on drift, use rebase merge or squash only as the fallback, then reload the ledger and refresh `main` to verify its tree matches the expected promotion result and contains all approved integration content without requiring source ancestry or a two-parent commit.
-- [ ] 4.5 Let normal post-merge `main` release automation classify the promoted product delta and report promotion, release, and still-pending archive closure separately.
+- [x] 4.5 Let normal post-merge `main` release automation classify the promoted product delta and report promotion, release, and still-pending archive closure separately.
 
 ## 5. Post-Promotion Teardown
 
-- [ ] 5.1 Add or update focused steady-state tests, then prepare a process-only cleanup that removes the integration pull-request target from CI and Sandbox Tests, temporary multi-commit policy exceptions, and temporary runtime/runbook instructions while retaining release rejection for unknown branches.
+- [x] 5.1 Add or update focused steady-state tests, then prepare a process-only cleanup that removes the integration pull-request target from CI and Sandbox Tests, temporary multi-commit policy exceptions, and temporary runtime/runbook instructions while retaining release rejection for unknown branches.
 - [ ] 5.2 Run the focused tests, full test suite, lint, format check, typecheck, OpenSpec validation, and memory check; validate the cleanup PR body and merge the cleanup to `main` without treating it as a release.
 - [ ] 5.3 Remove the temporary integration ruleset, delete `codex/redesign-lifecycle-integration`, and verify both are absent from live repository state after recovery use is no longer required.
 - [ ] 5.4 Synchronize the accepted final deltas from `redesign-lifecycle-engine` and `support-integration-branch-delivery` into current specs, retaining only durable conditional and closure rules.

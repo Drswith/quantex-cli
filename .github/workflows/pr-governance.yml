@@ -101,9 +101,6 @@ jobs:
 
       - name: Validate PR merge commit policy
         env:
-          PR_BASE_BRANCH: ${{ github.event.pull_request.base.ref }}
           PR_COMMITS_JSON: ${{ steps.commits.outputs.commits_json }}
-          PR_HEAD_BRANCH: ${{ github.event.pull_request.head.ref }}
           PR_IS_VALIDATED_RELEASE_PR: ${{ steps.release-pr.outputs.validated == 'true' }}
-          PR_SAME_REPOSITORY: ${{ github.event.pull_request.head.repo.full_name == github.repository }}
         run: bun run scripts/pr-merge-commit-policy.ts

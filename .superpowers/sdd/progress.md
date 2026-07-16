@@ -1,16 +1,15 @@
-# Windows Promotion Release Recovery Progress
+# Lifecycle Integration Teardown Progress
 
-Base: `origin/main@cf7555a2be8f1094a19d5a340a2b0f56ac033a97`
+Base: `origin/main@fedea8d8b1efe65b3481607256309d3a0af731dd`
 
-Plan: `docs/superpowers/plans/2026-07-16-windows-promotion-release-recovery.md`
+Plan: `docs/superpowers/plans/2026-07-16-lifecycle-integration-teardown.md`
 
 | Task | State | Checkpoint | Evidence |
 | --- | --- | --- | --- |
-| 1. Correct deterministic platform assumptions | complete | local recovery checkpoint | PATHEXT-aware Bun resolution; Windows extensionless and `.cmd`/`.bat` shims use argv-preserving `cross-spawn`; `doctor` reuses its invocation context; provider fixtures are serial, low-CPU, self-expiring, and failure-cleaned; read-only signal permits one bounded tree; managed-installer E2E unconditionally force-kills its outer process group; all targeted process suites pass and end with zero fixture Bun processes |
-| 2. Diagnose compatibility delta | complete | Windows dispatch checkpoint | runs 29483186421/29483475676/29483786949 exposed host/golden deltas; run 29485082876 proved direct Bun spawn could not launch `.cmd`; compiled run 29485866079 exited code 5 under multiplied Bun runtimes; local interruption later exposed #464's overwritten PID log and missing runner-crash containment, accounting for 68 orphaned/high-CPU fixture processes across interrupted runs |
-| 3. Validate before PR | in progress | validation checkpoint | exact-SHA run 29489832910 exposed missing `cross-spawn` mocks; run 29490764322 passed lint/Ubuntu/macOS, then Windows job 87596096051 exposed the remaining Bun-style argv/completion versus Node `ChildProcess` mock-shape delta. A shared adapter now covers both launch contracts; the network-timeout compatibility test uses an isolated PATH instead of real runner tools; the Windows root-export import has an explicit 15-second budget. Independent review Go; lint/format/typecheck, OpenSpec 16/16, and memory green; affected tests passed 13 files/154 tests with 1 Windows-only skip; full `maxWorkers=2` suite passed 129 files/1584 tests with 1 platform skip; live checks observed at most three Bun processes and zero leftovers; one updated exact-SHA branch dispatch remains before PR |
-| 4. Deliver recovery to main | in progress | delivery checkpoint | amend/push the final single commit, require the updated exact-SHA dispatch on Windows/Ubuntu/macOS/lint, create a Ready main PR, pass required contexts/governance, manually rebase-first merge, then observe green main CI and Release |
+| 1. Complete release closure | complete | release checkpoint | Recovery PR #470 and release PR #471 were manually rebase-merged; main CI runs 29492269104 and 29492768675 passed all platforms; Release run 29492987375 published GitHub Release and npm `quantex-cli@0.29.1` with `latest` pointing to 0.29.1 |
+| 2. Add steady-state regressions | complete | red/green checkpoint | Focused tests first failed on six temporary integration behaviors, then passed 3 files/30 tests after the cleanup implementation |
+| 3. Implement process-only cleanup | complete | local cleanup checkpoint | CI and Sandbox PR targets restored to `main`/`beta`; temporary multi-commit exceptions and topology inputs removed; runtime/collaboration guidance returned to steady state; temporary runbook removed; support tasks 4.5 and 5.1 recorded complete |
+| 4. Validate and deliver cleanup | in progress | cleanup PR checkpoint | Static validation is green; full `--maxWorkers=2` suite passed 129 files/1577 tests with one skip and left zero Bun processes; independent review findings were incorporated; commit, push, Ready PR, required checks, and manual rebase-first merge remain |
+| 5. Perform external teardown and archive closure | pending | post-merge checkpoint | After task 5.2 is earned by the cleanup merge, remove the live ruleset/ref under 5.3, synchronize current specs under 5.4, and complete archive/readiness verification under 5.5–5.6 |
 
-Baseline: #468 rebase-merged successfully and ledger content verification passed, earning support 4.4. The post-merge main Windows suite failed before Release, so 4.5 and teardown/archive tasks remain pending.
-
-Recovery rule: resume the first incomplete row after refreshing main CI, Release runs, the recovery branch dispatch, OpenSpec counters, CodeGraph, and git state. Remote Windows evidence drives corrections; retry only interrupted network operations.
+Recovery rule: resume the first incomplete row only after refreshing `main`, active OpenSpec counters, PR/check state, and git state. Never repeat the completed release recovery; retry only interrupted network operations.
