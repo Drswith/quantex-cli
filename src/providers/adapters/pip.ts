@@ -4,13 +4,18 @@ import * as detectUtils from '../../utils/detect'
 import { createSystemPackageAdapter } from './system-package'
 
 const defaultDependencies: SystemPackageAdapterDependencies = {
+  contextualMutation: true,
   contextualObservation: true,
-  install: target => pipPm.install(target.id),
+  install: (target, context) => pipPm.installOutcome(target.id, context),
   isAvailable: context => detectUtils.isPipAvailable(context),
   probePackagePresence: async () => 'unknown',
-  uninstall: target => pipPm.uninstall(target.id),
-  update: target => pipPm.update(target.id),
-  updateMany: targets => pipPm.updateMany(targets.map(target => ({ packageName: target.id }))),
+  uninstall: (target, context) => pipPm.uninstallOutcome(target.id, context),
+  update: (target, context) => pipPm.updateOutcome(target.id, context),
+  updateMany: (targets, context) =>
+    pipPm.updateManyOutcome(
+      targets.map(target => ({ packageName: target.id })),
+      context,
+    ),
 }
 
 export function createPipProviderAdapter(dependencies: SystemPackageAdapterDependencies = defaultDependencies) {

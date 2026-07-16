@@ -1,31 +1,37 @@
 import type { AgentDefinition } from '../../src/agents'
+import type { InstalledAgentState } from '../../src/state'
 import process from 'node:process'
 import { afterAll, afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import * as agents from '../../src/agents'
-import { cancelCliContextOperations, setCliContext } from '../../src/cli-context'
+import { cancelCliContextOperations, resetCliContext, setCliContext } from '../../src/cli-context'
 import { executeCommandWithRuntime } from '../../src/command-runtime'
 import { installCommand } from '../../src/commands/install'
 import * as providerEvidence from '../../src/lifecycle/provider-evidence'
 import * as pm from '../../src/package-manager'
+import * as lifecycleObservations from '../../src/services/lifecycle-observations'
 import * as state from '../../src/state'
 import * as detect from '../../src/utils/detect'
 import { ResourceLockError } from '../../src/utils/lock'
 
+const typedMutationSpies: Array<{ mockRestore(): void }> = []
 const agentSpy = vi.spyOn(agents, 'getAgentByNameOrAlias')
-const installSpy = vi.spyOn(pm, 'installAgent')
-const reinstallSpy = vi.spyOn(pm, 'reinstallInstalledAgent')
+const installSpy = adaptLegacyMutationSpy(vi.spyOn(pm, 'installAgentOutcome'))
+const reinstallSpy = adaptLegacyMutationSpy(vi.spyOn(pm, 'reinstallInstalledAgentOutcome'))
+const rollbackInstallSpy = vi.spyOn(pm, 'rollbackInstalledAgentInstallation')
 const trackSpy = vi.spyOn(pm, 'trackInstalledAgent')
 const lifecycleLockSpy = vi.spyOn(pm, 'withAgentLifecycleLock')
 const binaryInPathSpy = vi.spyOn(detect, 'isBinaryInPath')
 const installedStateSpy = vi.spyOn(state, 'getInstalledAgentState')
 const removeInstalledStateSpy = vi.spyOn(state, 'removeInstalledAgentState')
-const setReceiptSpy = vi.spyOn(state, 'setLifecycleReceipt')
+const setReceiptSpy = vi.spyOn(state, 'setAgentLifecycleEvidence')
 const observeProviderSpy = vi.spyOn(providerEvidence, 'observeLifecycleProvider')
+const resolveObservationSpy = vi.spyOn(lifecycleObservations, 'resolveAgentObservation')
 
 afterAll(() => {
   agentSpy.mockRestore()
   installSpy.mockRestore()
   reinstallSpy.mockRestore()
+  rollbackInstallSpy.mockRestore()
   trackSpy.mockRestore()
   lifecycleLockSpy.mockRestore()
   binaryInPathSpy.mockRestore()
@@ -33,6 +39,8 @@ afterAll(() => {
   removeInstalledStateSpy.mockRestore()
   setReceiptSpy.mockRestore()
   observeProviderSpy.mockRestore()
+  resolveObservationSpy.mockRestore()
+  for (const spy of typedMutationSpies) spy.mockRestore()
 })
 
 const testAgent = {
@@ -88,7 +96,12 @@ describe('installCommand', () => {
     agentSpy.mockClear()
     installSpy.mockClear()
     reinstallSpy.mockReset()
-    reinstallSpy.mockImplementation(async (_agent, installedState) => ({ installedState, success: true }))
+    reinstallSpy.mockImplementation(async (_agent: AgentDefinition, installedState: InstalledAgentState) => ({
+      installedState,
+      success: true,
+    }))
+    rollbackInstallSpy.mockReset()
+    rollbackInstallSpy.mockResolvedValue()
     trackSpy.mockClear()
     lifecycleLockSpy.mockReset()
     lifecycleLockSpy.mockImplementation(async run => run())
@@ -109,9 +122,11 @@ describe('installCommand', () => {
       },
     }))
     installedStateSpy.mockResolvedValue(undefined)
+    resolveObservationSpy.mockImplementation(resolveObservedAgent)
   })
 
   afterEach(() => {
+    resetCliContext()
     logSpy.mockRestore()
     stdoutWriteSpy.mockRestore()
   })
@@ -142,20 +157,15 @@ describe('installCommand', () => {
   it('tracks an existing script install when the source is unambiguous', async () => {
     agentSpy.mockReturnValue(scriptOnlyAgent)
     binaryInPathSpy.mockResolvedValue(true)
-    trackSpy.mockResolvedValue({
-      agentName: 'script-agent',
-      installType: 'script',
-      command: expectedScriptInstallCommand,
-    })
-
     await installCommand('script-agent')
 
-    expect(trackSpy).toHaveBeenCalledWith(
-      scriptOnlyAgent,
+    expect(trackSpy).not.toHaveBeenCalled()
+    expect(setReceiptSpy).toHaveBeenCalledWith(
       expect.objectContaining({
         command: expectedScriptInstallCommand,
-        type: 'script',
+        installType: 'script',
       }),
+      expect.objectContaining({ targetId: 'script-agent' }),
     )
     expect(installSpy).not.toHaveBeenCalled()
     expect(stdoutWriteSpy).toHaveBeenCalledWith(expect.stringContaining('Quantex is now tracking the existing install'))
@@ -177,7 +187,7 @@ describe('installCommand', () => {
     mockMissingThenVerified(binaryInPathSpy)
     installSpy.mockResolvedValue(successfulInstall(testAgent))
     await installCommand('test-agent')
-    expect(installSpy).toHaveBeenCalledWith(testAgent)
+    expect(installSpy).toHaveBeenCalledWith(testAgent, [expect.objectContaining({ type: 'bun' })])
     expect(stdoutWriteSpy).toHaveBeenCalledWith(expect.stringContaining('installed successfully'))
   })
 
@@ -197,6 +207,7 @@ describe('installCommand', () => {
 
     expect(result.ok).toBe(true)
     expect(setReceiptSpy).toHaveBeenCalledWith(
+      expect.objectContaining({ agentName: 'test-agent', installType: 'bun' }),
       expect.objectContaining({
         providerId: 'bun',
         providerTargetId: 'test-pkg',
@@ -226,6 +237,10 @@ describe('installCommand', () => {
     })
     expect(setReceiptSpy).not.toHaveBeenCalled()
     expect(removeInstalledStateSpy).not.toHaveBeenCalled()
+    expect(rollbackInstallSpy).toHaveBeenCalledWith(
+      testAgent,
+      expect.objectContaining({ agentName: 'test-agent', installType: 'bun' }),
+    )
   })
 
   it('reinstalls a tracked ghost instead of treating stale state as satisfied', async () => {
@@ -262,6 +277,29 @@ describe('installCommand', () => {
     installSpy.mockResolvedValue({ success: false })
     await installCommand('test-agent')
     expect(stdoutWriteSpy).toHaveBeenCalledWith(expect.stringContaining('Failed to install'))
+  })
+
+  it('does not execute when lifecycle planning is blocked by indeterminate evidence', async () => {
+    agentSpy.mockReturnValue(testAgent)
+    resolveObservationSpy.mockResolvedValue({
+      agent: testAgent,
+      capabilities: [],
+      catalogMethods: [],
+      executable: { present: false },
+      methods: [{ type: 'bun' }],
+      observation: {
+        drift: { kind: 'indeterminate', reason: 'provider-probe-failed' },
+        kind: 'indeterminate',
+        reason: 'provider-probe-failed',
+        targetId: 'test-agent',
+      },
+      pathExecutable: { present: false },
+    })
+
+    const result = await installCommand('test-agent')
+
+    expect(result.ok).toBe(false)
+    expect(installSpy).not.toHaveBeenCalled()
   })
 
   it('returns a stable conflict when another lifecycle operation already holds the lock', async () => {
@@ -373,13 +411,13 @@ describe('installCommand', () => {
       return undefined
     })
     mockMissingThenVerified(binaryInPathSpy, 2)
-    installSpy.mockImplementation(async agent => successfulInstall(agent))
+    installSpy.mockImplementation(async (agent: AgentDefinition) => successfulInstall(agent))
 
     const result = await installCommand(['test-agent', 'another-agent'])
 
     expect(result.ok).toBe(true)
-    expect(installSpy).toHaveBeenNthCalledWith(1, anotherAgent)
-    expect(installSpy).toHaveBeenNthCalledWith(2, testAgent)
+    expect(installSpy).toHaveBeenNthCalledWith(1, anotherAgent, expect.any(Array))
+    expect(installSpy).toHaveBeenNthCalledWith(2, testAgent, expect.any(Array))
 
     const output = stdoutWriteSpy.mock.calls.map((call: any[]) => call[0]).join('\n')
     expect(output).toContain('Test Agent installed successfully')
@@ -394,13 +432,13 @@ describe('installCommand', () => {
       return undefined
     })
     mockMissingThenVerified(binaryInPathSpy, 2)
-    installSpy.mockImplementation(async agent => successfulInstall(agent))
+    installSpy.mockImplementation(async (agent: AgentDefinition) => successfulInstall(agent))
 
     const result = await installCommand(['ta', 'another-agent', 'test-agent', 'aa'])
 
     expect(installSpy).toHaveBeenCalledTimes(2)
-    expect(installSpy).toHaveBeenNthCalledWith(1, anotherAgent)
-    expect(installSpy).toHaveBeenNthCalledWith(2, testAgent)
+    expect(installSpy).toHaveBeenNthCalledWith(1, anotherAgent, expect.any(Array))
+    expect(installSpy).toHaveBeenNthCalledWith(2, testAgent, expect.any(Array))
     expect(result.data).toMatchObject({
       results: [
         { agent: { name: 'another-agent' }, input: 'another-agent' },
@@ -456,7 +494,7 @@ describe('installCommand', () => {
       return undefined
     })
     mockMissingThenVerified(binaryInPathSpy, 2)
-    installSpy.mockImplementation(async agent => successfulInstall(agent))
+    installSpy.mockImplementation(async (agent: AgentDefinition) => successfulInstall(agent))
 
     await installCommand(['test-agent', 'another-agent'])
 
@@ -488,7 +526,7 @@ describe('installCommand', () => {
       return undefined
     })
     binaryInPathSpy.mockResolvedValue(false)
-    installSpy.mockImplementation(async agent => {
+    installSpy.mockImplementation(async (agent: AgentDefinition) => {
       if (agent.name === 'another-agent') {
         await cancelCliContextOperations()
         return { success: false }
@@ -500,7 +538,7 @@ describe('installCommand', () => {
     await installCommand(['test-agent', 'another-agent'])
 
     expect(installSpy).toHaveBeenCalledTimes(1)
-    expect(installSpy).toHaveBeenCalledWith(anotherAgent)
+    expect(installSpy).toHaveBeenCalledWith(anotherAgent, expect.any(Array))
   })
 
   it('does not report overall success for batch install after cancellation', async () => {
@@ -515,7 +553,7 @@ describe('installCommand', () => {
       return undefined
     })
     binaryInPathSpy.mockResolvedValue(false)
-    installSpy.mockImplementation(async agent => {
+    installSpy.mockImplementation(async (agent: AgentDefinition) => {
       if (agent.name === 'another-agent') {
         await cancelCliContextOperations()
         return {
@@ -536,7 +574,7 @@ describe('installCommand', () => {
     expect(result.ok).toBe(false)
     expect(result.error?.code).toBe('CANCELLED')
     expect(installSpy).toHaveBeenCalledTimes(1)
-    expect(installSpy).toHaveBeenCalledWith(anotherAgent)
+    expect(installSpy).toHaveBeenCalledWith(anotherAgent, expect.any(Array))
   })
 
   it('does not install remaining batch agents after timeout cancellation', async () => {
@@ -561,7 +599,7 @@ describe('installCommand', () => {
     const installRelease = new Promise<void>(resolve => {
       releaseInstall = resolve
     })
-    installSpy.mockImplementation(async agent => {
+    installSpy.mockImplementation(async (agent: AgentDefinition) => {
       if (agent.name === 'another-agent') {
         markInstallStarted()
         await installRelease
@@ -590,7 +628,7 @@ describe('installCommand', () => {
 
     expect(runtimeResult.error?.code).toBe('TIMEOUT')
     expect(installSpy).toHaveBeenCalledTimes(1)
-    expect(installSpy).toHaveBeenCalledWith(anotherAgent)
+    expect(installSpy).toHaveBeenCalledWith(anotherAgent, expect.any(Array))
   })
 
   it('does not report overall success for batch install after timeout cancellation', async () => {
@@ -615,7 +653,7 @@ describe('installCommand', () => {
       releaseInstall = resolve
     })
     let lateCommand!: ReturnType<typeof installCommand>
-    installSpy.mockImplementation(async agent => {
+    installSpy.mockImplementation(async (agent: AgentDefinition) => {
       if (agent.name === 'another-agent') {
         markInstallStarted()
         await installRelease
@@ -652,9 +690,40 @@ describe('installCommand', () => {
     expect(runtimeResult.ok).toBe(false)
     expect(['CANCELLED', 'TIMEOUT']).toContain(runtimeResult.error?.code)
     expect(installSpy).toHaveBeenCalledTimes(1)
-    expect(installSpy).toHaveBeenCalledWith(anotherAgent)
+    expect(installSpy).toHaveBeenCalledWith(anotherAgent, expect.any(Array))
   })
 })
+
+async function resolveObservedAgent(agentName: string) {
+  const agent = agents.getAgentByNameOrAlias(agentName)
+  if (!agent) return undefined
+  const [inPath, installedState] = await Promise.all([
+    detect.isBinaryInPath(agent.binaryName),
+    state.getInstalledAgentState(agent.name),
+  ])
+  const platform = process.platform === 'win32' ? 'windows' : process.platform === 'darwin' ? 'macos' : 'linux'
+  const methods = agent.platforms[platform] ?? []
+  return {
+    agent,
+    capabilities: [],
+    catalogMethods: [],
+    executable: inPath ? { present: true as const } : { present: false as const },
+    installedState,
+    methods,
+    observation: inPath
+      ? {
+          drift: { kind: installedState ? ('none' as const) : ('untracked' as const) },
+          kind: 'present' as const,
+          targetId: agent.name,
+        }
+      : {
+          drift: { kind: installedState ? ('recorded-absent' as const) : ('none' as const) },
+          kind: 'absent' as const,
+          targetId: agent.name,
+        },
+    pathExecutable: inPath ? { present: true as const } : { present: false as const },
+  }
+}
 
 function successfulInstall(agent: AgentDefinition) {
   return {
@@ -671,4 +740,18 @@ function mockMissingThenVerified(spy: typeof binaryInPathSpy, count = 1): void {
   for (let index = 0; index < count; index += 1) {
     spy.mockResolvedValueOnce(false).mockResolvedValueOnce(true)
   }
+}
+
+function adaptLegacyMutationSpy(spy: any): any {
+  const compatibilitySpy = vi.fn()
+  spy.mockImplementation(async (...args: any[]) => toTypedMutationOutcome(await compatibilitySpy(...args)))
+  typedMutationSpies.push(spy)
+  return compatibilitySpy
+}
+
+function toTypedMutationOutcome(value: any): any {
+  if (value?.kind) return value
+  return value?.success
+    ? { kind: 'success', value: { installedState: value.installedState } }
+    : { kind: 'failed', reason: 'operation-failed', retryable: false }
 }

@@ -1,28 +1,35 @@
+import type { AgentDefinition } from '../../src/agents'
+import type { InstalledAgentState } from '../../src/state'
 import process from 'node:process'
 import { afterAll, afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import * as agents from '../../src/agents'
-import { setCliContext } from '../../src/cli-context'
+import { resetCliContext, setCliContext } from '../../src/cli-context'
 import { ensureCommand } from '../../src/commands/ensure'
 import * as providerEvidence from '../../src/lifecycle/provider-evidence'
 import * as pm from '../../src/package-manager'
+import * as lifecycleObservations from '../../src/services/lifecycle-observations'
 import * as state from '../../src/state'
 import * as detect from '../../src/utils/detect'
 
+const typedMutationSpies: Array<{ mockRestore(): void }> = []
 const agentSpy = vi.spyOn(agents, 'getAgentByNameOrAlias')
-const installSpy = vi.spyOn(pm, 'installAgent')
-const reinstallSpy = vi.spyOn(pm, 'reinstallInstalledAgent')
+const installSpy = adaptLegacyMutationSpy(vi.spyOn(pm, 'installAgentOutcome'))
+const reinstallSpy = adaptLegacyMutationSpy(vi.spyOn(pm, 'reinstallInstalledAgentOutcome'))
+const rollbackInstallSpy = vi.spyOn(pm, 'rollbackInstalledAgentInstallation')
 const trackSpy = vi.spyOn(pm, 'trackInstalledAgent')
 const lifecycleLockSpy = vi.spyOn(pm, 'withAgentLifecycleLock')
 const binaryInPathSpy = vi.spyOn(detect, 'isBinaryInPath')
 const installedStateSpy = vi.spyOn(state, 'getInstalledAgentState')
 const removeInstalledStateSpy = vi.spyOn(state, 'removeInstalledAgentState')
-const setReceiptSpy = vi.spyOn(state, 'setLifecycleReceipt')
+const setReceiptSpy = vi.spyOn(state, 'setAgentLifecycleEvidence')
 const observeProviderSpy = vi.spyOn(providerEvidence, 'observeLifecycleProvider')
+const resolveObservationSpy = vi.spyOn(lifecycleObservations, 'resolveAgentObservation')
 
 afterAll(() => {
   agentSpy.mockRestore()
   installSpy.mockRestore()
   reinstallSpy.mockRestore()
+  rollbackInstallSpy.mockRestore()
   trackSpy.mockRestore()
   lifecycleLockSpy.mockRestore()
   binaryInPathSpy.mockRestore()
@@ -30,6 +37,8 @@ afterAll(() => {
   removeInstalledStateSpy.mockRestore()
   setReceiptSpy.mockRestore()
   observeProviderSpy.mockRestore()
+  resolveObservationSpy.mockRestore()
+  for (const spy of typedMutationSpies) spy.mockRestore()
 })
 
 const testAgent = {
@@ -77,7 +86,12 @@ describe('ensureCommand', () => {
     agentSpy.mockClear()
     installSpy.mockClear()
     reinstallSpy.mockReset()
-    reinstallSpy.mockImplementation(async (_agent, installedState) => ({ installedState, success: true }))
+    reinstallSpy.mockImplementation(async (_agent: AgentDefinition, installedState: InstalledAgentState) => ({
+      installedState,
+      success: true,
+    }))
+    rollbackInstallSpy.mockReset()
+    rollbackInstallSpy.mockResolvedValue()
     trackSpy.mockClear()
     lifecycleLockSpy.mockReset()
     lifecycleLockSpy.mockImplementation(async run => run())
@@ -98,9 +112,11 @@ describe('ensureCommand', () => {
       },
     }))
     installedStateSpy.mockResolvedValue(undefined)
+    resolveObservationSpy.mockImplementation(resolveObservedAgent)
   })
 
   afterEach(() => {
+    resetCliContext()
     logSpy.mockRestore()
     stdoutWriteSpy.mockRestore()
   })
@@ -167,20 +183,15 @@ describe('ensureCommand', () => {
   it('tracks an existing script install when ensure can identify the source safely', async () => {
     agentSpy.mockReturnValue(scriptOnlyAgent)
     binaryInPathSpy.mockResolvedValue(true)
-    trackSpy.mockResolvedValue({
-      agentName: 'script-agent',
-      installType: 'script',
-      command: expectedScriptInstallCommand,
-    })
-
     await ensureCommand('script-agent')
 
-    expect(trackSpy).toHaveBeenCalledWith(
-      scriptOnlyAgent,
+    expect(trackSpy).not.toHaveBeenCalled()
+    expect(setReceiptSpy).toHaveBeenCalledWith(
       expect.objectContaining({
         command: expectedScriptInstallCommand,
-        type: 'script',
+        installType: 'script',
       }),
+      expect.objectContaining({ targetId: 'script-agent' }),
     )
     expect(installSpy).not.toHaveBeenCalled()
     expect(stdoutWriteSpy).toHaveBeenCalledWith(expect.stringContaining('Quantex is now tracking the existing install'))
@@ -211,8 +222,9 @@ describe('ensureCommand', () => {
 
     await ensureCommand('test-agent')
 
-    expect(installSpy).toHaveBeenCalledWith(testAgent)
+    expect(installSpy).toHaveBeenCalledWith(testAgent, [expect.objectContaining({ type: 'bun' })])
     expect(setReceiptSpy).toHaveBeenCalledWith(
+      expect.objectContaining({ agentName: 'test-agent', installType: 'bun' }),
       expect.objectContaining({
         kind: 'lifecycle-receipt',
         providerId: 'bun',
@@ -326,6 +338,10 @@ describe('ensureCommand', () => {
       details: { lifecycle: 'state-write-failed' },
     })
     expect(removeInstalledStateSpy).not.toHaveBeenCalled()
+    expect(rollbackInstallSpy).toHaveBeenCalledWith(
+      testAgent,
+      expect.objectContaining({ agentName: 'test-agent', installType: 'bun' }),
+    )
   })
 
   it('does not treat PATH presence as exact script provider evidence', async () => {
@@ -412,6 +428,51 @@ describe('ensureCommand', () => {
     expect(installSpy).not.toHaveBeenCalled()
   })
 })
+
+async function resolveObservedAgent(agentName: string) {
+  const agent = agents.getAgentByNameOrAlias(agentName)
+  if (!agent) return undefined
+  const [inPath, installedState] = await Promise.all([
+    detect.isBinaryInPath(agent.binaryName),
+    state.getInstalledAgentState(agent.name),
+  ])
+  const platform = process.platform === 'win32' ? 'windows' : process.platform === 'darwin' ? 'macos' : 'linux'
+  const methods = agent.platforms[platform] ?? []
+  return {
+    agent,
+    capabilities: [],
+    catalogMethods: [],
+    executable: inPath ? { present: true as const } : { present: false as const },
+    installedState,
+    methods,
+    observation: inPath
+      ? {
+          drift: { kind: installedState ? ('none' as const) : ('untracked' as const) },
+          kind: 'present' as const,
+          targetId: agent.name,
+        }
+      : {
+          drift: { kind: installedState ? ('recorded-absent' as const) : ('none' as const) },
+          kind: 'absent' as const,
+          targetId: agent.name,
+        },
+    pathExecutable: inPath ? { present: true as const } : { present: false as const },
+  }
+}
+
+function adaptLegacyMutationSpy(spy: any): any {
+  const compatibilitySpy = vi.fn()
+  spy.mockImplementation(async (...args: any[]) => toTypedMutationOutcome(await compatibilitySpy(...args)))
+  typedMutationSpies.push(spy)
+  return compatibilitySpy
+}
+
+function toTypedMutationOutcome(value: any): any {
+  if (value?.kind) return value
+  return value?.success
+    ? { kind: 'success', value: { installedState: value.installedState } }
+    : { kind: 'failed', reason: 'operation-failed', retryable: false }
+}
 
 const managedInstalledState = {
   agentName: 'test-agent',

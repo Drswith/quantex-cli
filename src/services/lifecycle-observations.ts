@@ -9,6 +9,7 @@ import type { ProviderOperationContext, ProviderRegistry } from '../providers'
 import type { InstalledAgentState } from '../state'
 import * as agentRegistry from '../agents'
 import { observeAgentLifecycle } from '../lifecycle'
+import { resolveInstallMethodProviderBinding } from '../lifecycle/provider-evidence'
 import { getOrderedInstallMethods } from '../package-manager'
 import { firstPartyProviderRegistry } from '../providers'
 import { createCliOperationContext } from '../runtime/cli-operation-context'
@@ -70,19 +71,18 @@ export function createLifecycleObservationService(
       installedStatePromise ??= ports.readInstalledState(agent.name)
       return installedStatePromise
     }
-    const [methods, result] = await Promise.all([
-      ports.getOrderedInstallMethods(agent),
-      ports.observeAgentLifecycle(agent, {
-        clock: ports.clock,
-        inspectExecutable: async () => ports.inspectExecutable(agent, await readInstalledState()),
-        platform: ports.getPlatform(),
-        providerRegistry: ports.providerRegistry,
-        readInstalledState,
-        readReceipt: ports.readReceipt,
-        signal: ports.signal,
-        timeoutMs: ports.timeoutMs,
-      }),
-    ])
+    const methods = await ports.getOrderedInstallMethods(agent)
+    const result = await ports.observeAgentLifecycle(agent, {
+      clock: ports.clock,
+      inspectExecutable: async () => ports.inspectExecutable(agent, await readInstalledState()),
+      platform: ports.getPlatform(),
+      preferredCatalogBinding: methods[0] ? resolveInstallMethodProviderBinding(agent, methods[0]) : undefined,
+      providerRegistry: ports.providerRegistry,
+      readInstalledState,
+      readReceipt: ports.readReceipt,
+      signal: ports.signal,
+      timeoutMs: ports.timeoutMs,
+    })
     const [latestVersion, resolvedBinaryPath] = await Promise.all([
       options.resolveLatestVersion === false
         ? Promise.resolve(undefined)

@@ -93,15 +93,67 @@ export async function waitForSpawnedCommand(handle: SpawnHandle): Promise<number
   }
 }
 
-export function spawnCommand(command: SpawnCommand, options: SpawnOptions = {}): SpawnedProcessHandle {
-  const bunSpawn = options.detached ? undefined : getBunSpawn()
-  if (bunSpawn) return spawnWithBun(command, options, bunSpawn)
+export async function waitForSpawnedCommandWithContext(
+  handle: SpawnHandle,
+  context: ProviderOperationContext,
+): Promise<number> {
+  let cleanupPromise: Promise<void> | undefined
+  const cleanup = (): Promise<void> => (cleanupPromise ??= terminateProcessTree(handle.proc, context.timeoutMs))
+  const unregisterCleanup = context.registerCleanup?.({
+    cleanup,
+    force: () => forceTerminateProcessTree(handle.proc),
+  })
+  if (context.signal.aborted) {
+    await cleanup()
+    handle.cleanup()
+    unregisterCleanup?.()
+    throw new ProcessInterruptionError({ kind: 'cancelled', reason: abortReason(context.signal) })
+  }
 
+  let timeout: ReturnType<typeof setTimeout> | undefined
+  let cancel!: () => void
+  let interrupt!: (kind: 'cancelled' | 'timed-out') => void
+  let interrupted = false
+  const interruption = new Promise<never>((_resolve, reject) => {
+    interrupt = kind => {
+      if (interrupted) return
+      interrupted = true
+      void cleanup().then(() =>
+        reject(
+          kind === 'timed-out'
+            ? new ProcessInterruptionError({ kind, timeoutMs: context.timeoutMs! })
+            : new ProcessInterruptionError({ kind, reason: abortReason(context.signal) }),
+        ),
+      )
+    }
+    cancel = () => interrupt('cancelled')
+    context.signal.addEventListener('abort', cancel, { once: true })
+    if (context.timeoutMs !== undefined) timeout = setTimeout(() => interrupt('timed-out'), context.timeoutMs)
+  })
+
+  try {
+    const completed = Promise.all([handle.proc.exited, handle.outputDrained]).then(([exitCode]) =>
+      interrupted ? interruption : exitCode,
+    )
+    return await Promise.race([completed, interruption])
+  } finally {
+    if (timeout) clearTimeout(timeout)
+    context.signal.removeEventListener('abort', cancel)
+    unregisterCleanup?.()
+    handle.cleanup()
+  }
+}
+
+export function spawnCommand(command: SpawnCommand, options: SpawnOptions = {}): SpawnedProcessHandle {
   const [requestedFile, ...args] = command
   const file = requestedFile ? resolveDetachedExecutable(requestedFile, options) : undefined
   if (!file) {
     throw new Error('spawnCommand requires a non-empty command array.')
   }
+
+  const bunSpawn = options.detached ? undefined : getBunSpawn()
+  if (bunSpawn) return spawnWithBun([file, ...args], { ...options, env: options.env ?? process.env }, bunSpawn)
+
   const child = spawn(file, args, {
     ...options,
     env: options.env ?? process.env,

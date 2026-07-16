@@ -78,6 +78,25 @@ export async function setLifecycleReceipt(receipt: LifecycleReceipt): Promise<vo
   }
 }
 
+export async function setAgentLifecycleEvidence(
+  installedState: InstalledAgentState,
+  receipt: LifecycleReceipt,
+): Promise<void> {
+  const release = await acquireResourceLock({
+    resource: 'state',
+    scope: ['state'],
+  })
+
+  try {
+    await createStateStore().setAgentLifecycleEvidence(installedState, receipt)
+  } catch (error) {
+    if (error instanceof StateFileError) throw error
+    throw new StateFileError('Failed to write Quantex state file.', { cause: error })
+  } finally {
+    await release()
+  }
+}
+
 export async function removeLifecycleReceipt(targetId: string): Promise<void> {
   const release = await acquireResourceLock({
     resource: 'state',

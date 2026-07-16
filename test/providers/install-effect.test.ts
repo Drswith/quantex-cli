@@ -4,6 +4,18 @@ import { createInstallEffectProviderAdapter, getEffectCommand } from '../../src/
 
 const context: ProviderOperationContext = { signal: new AbortController().signal, timeoutMs: 5_000 }
 
+function mutation(success = true) {
+  return vi.fn(async () =>
+    success
+      ? ({ kind: 'success', value: undefined } as const)
+      : ({ kind: 'failed', reason: '', retryable: false } as const),
+  )
+}
+
+function pendingMutation() {
+  return vi.fn(() => new Promise<never>(() => {}))
+}
+
 function target(kind: 'binary' | 'script', effect: ProviderExecutionEffect): ProviderTarget {
   return { binaryName: 'example', effect, id: 'example-agent', kind }
 }
@@ -18,7 +30,7 @@ describe('script and standalone-binary provider effects', () => {
   })
 
   it('executes argv effects directly without shell projection', async () => {
-    const execute = vi.fn(async () => true)
+    const execute = mutation()
     const adapter = createInstallEffectProviderAdapter('binary', { execute })
     const effect = { command: ['installer', '--target', 'example'], kind: 'executable' } as const
     const requestedTarget = target('binary', effect)
@@ -33,11 +45,11 @@ describe('script and standalone-binary provider effects', () => {
         target: requestedTarget,
       },
     })
-    expect(execute).toHaveBeenCalledWith(effect)
+    expect(execute).toHaveBeenCalledWith(effect, context)
   })
 
   it('exposes install but not update or uninstall capabilities', () => {
-    const adapter = createInstallEffectProviderAdapter('script', { execute: vi.fn(async () => true) })
+    const adapter = createInstallEffectProviderAdapter('script', { execute: mutation() })
 
     expect(adapter.install).toBeTypeOf('function')
     expect(adapter.update).toBeUndefined()
@@ -46,7 +58,7 @@ describe('script and standalone-binary provider effects', () => {
   })
 
   it('rejects an absent explicit effect with a typed non-retryable failure', async () => {
-    const adapter = createInstallEffectProviderAdapter('script', { execute: vi.fn(async () => true) })
+    const adapter = createInstallEffectProviderAdapter('script', { execute: mutation() })
     const requestedTarget: ProviderTarget = { id: 'example-agent', kind: 'script' }
 
     expect(await adapter.install?.({ context, target: requestedTarget })).toEqual({
@@ -60,7 +72,7 @@ describe('script and standalone-binary provider effects', () => {
   it('observes the exact declared executable for install-effect targets', async () => {
     const isExecutablePresent = vi.fn(async (binaryName: string) => binaryName === 'example')
     const adapter = createInstallEffectProviderAdapter('script', {
-      execute: vi.fn(async () => true),
+      execute: mutation(),
       isExecutablePresent,
     })
     const requestedTarget = target('script', {
@@ -83,11 +95,11 @@ describe('script and standalone-binary provider effects', () => {
     const effect = { command: 'curl -fsSL https://example.com/install.sh | sh', kind: 'shell-script' } as const
     const requestedTarget = target('script', effect)
     const failed = createInstallEffectProviderAdapter('script', {
-      execute: vi.fn(async () => false),
+      execute: mutation(false),
       isExecutablePresent: vi.fn(async () => false),
     })
     const pending = createInstallEffectProviderAdapter('script', {
-      execute: vi.fn(() => new Promise<boolean>(() => {})),
+      execute: pendingMutation(),
     })
     const cancelledController = new AbortController()
     cancelledController.abort('cancelled fixture')

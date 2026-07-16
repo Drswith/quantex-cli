@@ -5,18 +5,30 @@ import { createCargoProviderAdapter } from '../../src/providers/adapters/cargo'
 import { createDenoProviderAdapter } from '../../src/providers/adapters/deno'
 import { describeProviderConformance } from './conformance'
 
+function mutation(success = true) {
+  return vi.fn(async () =>
+    success
+      ? ({ kind: 'success', value: undefined } as const)
+      : ({ kind: 'failed', reason: '', retryable: false } as const),
+  )
+}
+
+function pendingMutation() {
+  return vi.fn(() => new Promise<never>(() => {}))
+}
+
 const context: ProviderOperationContext = { signal: new AbortController().signal, timeoutMs: 5_000 }
 
 function dependencies(overrides: Partial<SystemPackageAdapterDependencies> = {}): SystemPackageAdapterDependencies {
   return {
-    install: vi.fn(async () => true),
+    install: mutation(),
     isAvailable: vi.fn(async () => true),
     probePackagePresence: vi.fn(async target =>
       target.id.endsWith('-absent') ? 'absent' : target.id.endsWith('-unknown') ? 'unknown' : 'present',
     ),
-    uninstall: vi.fn(async () => true),
-    update: vi.fn(async () => true),
-    updateMany: vi.fn(async () => true),
+    uninstall: mutation(),
+    update: mutation(),
+    updateMany: mutation(),
     ...overrides,
   }
 }
@@ -31,9 +43,9 @@ function conformance(
   describeProviderConformance(`${id} provider`, () => {
     const adapter = createAdapter(
       dependencies({
-        install: vi.fn(async () => false),
+        install: mutation(false),
         isAvailable: vi.fn(async () => false),
-        update: vi.fn(() => new Promise<boolean>(() => {})),
+        update: pendingMutation(),
       }),
     )
     const presentEvidence = { kind: 'package', value: `${id}:${target.id}:present` } as const
@@ -123,8 +135,8 @@ describe('Cargo and Deno provider semantics', () => {
         ],
       },
     })
-    expect(deps.install).toHaveBeenCalledWith(cargoTarget)
-    expect(deps.update).toHaveBeenCalledWith(cargoTarget)
+    expect(deps.install).toHaveBeenCalledWith(cargoTarget, context)
+    expect(deps.update).toHaveBeenCalledWith(cargoTarget, context)
   })
 
   it('preserves Deno argument ordering and executable-name uninstall', async () => {
@@ -149,6 +161,6 @@ describe('Cargo and Deno provider semantics', () => {
         ],
       },
     })
-    expect(deps.uninstall).toHaveBeenCalledWith(denoTarget)
+    expect(deps.uninstall).toHaveBeenCalledWith(denoTarget, context)
   })
 })

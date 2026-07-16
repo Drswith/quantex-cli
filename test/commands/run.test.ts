@@ -252,7 +252,9 @@ const observed: LifecycleExecutionObservedAgent = {
   agent: {
     binaryName: 'test-bin',
     displayName: 'Test Agent',
+    homepage: 'https://example.com',
     name: 'test-agent',
+    platforms: {},
   },
   executable: { path: '/tmp/test-bin', present: true, version: '1.0.0' },
   methods: [{ packageName: 'test-pkg', type: 'npm' }],

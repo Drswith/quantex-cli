@@ -1,33 +1,32 @@
 import type { ProviderOperationContext } from '../providers'
 import type { RegistryUpdateStrategy } from './bun'
+import type { PackageMutationOutcome } from './mutation-outcome'
 import {
   readProcessOutput,
   readProcessOutputWithContext,
   isProcessInterruptionError,
   spawnCommand,
-  spawnWithQuantexStdio,
-  waitForSpawnedCommand,
 } from '../utils/child-process'
 import { normalizeRegistryUrl } from '../utils/registry'
+import { projectLegacyPackageMutation, runPackageMutationOutcome } from './mutation-outcome'
 
 export async function install(packageName: string, distTag?: string, registry?: string): Promise<boolean> {
-  try {
-    const targetPackage = distTag ? `${packageName}@${distTag}` : packageName
-    const resolvedRegistry = normalizeRegistryUrl(registry)
-    return (
-      (await waitForSpawnedCommand(
-        spawnWithQuantexStdio([
-          'npm',
-          'install',
-          '-g',
-          targetPackage,
-          ...(resolvedRegistry ? ['--registry', resolvedRegistry] : []),
-        ]),
-      )) === 0
-    )
-  } catch {
-    return false
-  }
+  return projectLegacyPackageMutation(context => installOutcome(packageName, distTag, registry, context))
+}
+
+export function installOutcome(
+  packageName: string,
+  distTag: string | undefined,
+  registry: string | undefined,
+  context: ProviderOperationContext,
+): Promise<PackageMutationOutcome> {
+  const targetPackage = distTag ? `${packageName}@${distTag}` : packageName
+  const resolvedRegistry = normalizeRegistryUrl(registry)
+  return runPackageMutationOutcome(
+    ['npm', 'install', '-g', targetPackage, ...(resolvedRegistry ? ['--registry', resolvedRegistry] : [])],
+    context,
+    'npm install failed',
+  )
 }
 
 export async function update(
@@ -36,55 +35,63 @@ export async function update(
   distTag: string = 'latest',
   registry?: string,
 ): Promise<boolean> {
-  try {
-    const resolvedRegistry = normalizeRegistryUrl(registry)
-    return (
-      (await waitForSpawnedCommand(
-        spawnWithQuantexStdio(
-          strategy === 'latest-major'
-            ? [
-                'npm',
-                'install',
-                '-g',
-                `${packageName}@${distTag}`,
-                ...(resolvedRegistry ? ['--registry', resolvedRegistry] : []),
-              ]
-            : ['npm', 'update', '-g', packageName, ...(resolvedRegistry ? ['--registry', resolvedRegistry] : [])],
-        ),
-      )) === 0
-    )
-  } catch {
-    return false
-  }
+  return projectLegacyPackageMutation(context => updateOutcome(packageName, strategy, distTag, registry, context))
+}
+
+export function updateOutcome(
+  packageName: string,
+  strategy: RegistryUpdateStrategy,
+  distTag: string,
+  registry: string | undefined,
+  context: ProviderOperationContext,
+): Promise<PackageMutationOutcome> {
+  const resolvedRegistry = normalizeRegistryUrl(registry)
+  return runPackageMutationOutcome(
+    strategy === 'latest-major'
+      ? [
+          'npm',
+          'install',
+          '-g',
+          `${packageName}@${distTag}`,
+          ...(resolvedRegistry ? ['--registry', resolvedRegistry] : []),
+        ]
+      : ['npm', 'update', '-g', packageName, ...(resolvedRegistry ? ['--registry', resolvedRegistry] : [])],
+    context,
+    'npm update failed',
+  )
 }
 
 export async function updateMany(
   packageNames: string[],
   strategy: RegistryUpdateStrategy = 'latest-major',
 ): Promise<boolean> {
-  if (packageNames.length === 0) return true
+  return projectLegacyPackageMutation(context => updateManyOutcome(packageNames, strategy, context))
+}
 
-  try {
-    return (
-      (await waitForSpawnedCommand(
-        spawnWithQuantexStdio(
-          strategy === 'latest-major'
-            ? ['npm', 'install', '-g', ...packageNames.map(packageName => `${packageName}@latest`)]
-            : ['npm', 'update', '-g', ...packageNames],
-        ),
-      )) === 0
-    )
-  } catch {
-    return false
-  }
+export function updateManyOutcome(
+  packageNames: string[],
+  strategy: RegistryUpdateStrategy,
+  context: ProviderOperationContext,
+): Promise<PackageMutationOutcome> {
+  if (packageNames.length === 0) return Promise.resolve({ kind: 'success', value: undefined })
+  return runPackageMutationOutcome(
+    strategy === 'latest-major'
+      ? ['npm', 'install', '-g', ...packageNames.map(packageName => `${packageName}@latest`)]
+      : ['npm', 'update', '-g', ...packageNames],
+    context,
+    'npm batch update failed',
+  )
 }
 
 export async function uninstall(packageName: string): Promise<boolean> {
-  try {
-    return (await waitForSpawnedCommand(spawnWithQuantexStdio(['npm', 'uninstall', '-g', packageName]))) === 0
-  } catch {
-    return false
-  }
+  return projectLegacyPackageMutation(context => uninstallOutcome(packageName, context))
+}
+
+export function uninstallOutcome(
+  packageName: string,
+  context: ProviderOperationContext,
+): Promise<PackageMutationOutcome> {
+  return runPackageMutationOutcome(['npm', 'uninstall', '-g', packageName], context, 'npm uninstall failed')
 }
 
 export type PackagePresenceProbe = 'present' | 'absent' | 'unknown'

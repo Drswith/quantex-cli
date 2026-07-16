@@ -1,45 +1,73 @@
 import type { ProviderOperationContext } from '../providers'
+import type { PackageMutationOutcome } from './mutation-outcome'
 import process from 'node:process'
 import {
   readProcessOutput,
   readProcessOutputWithContext,
   isProcessInterruptionError,
   spawnCommand,
-  spawnWithQuantexStdio,
-  waitForSpawnedCommand,
 } from '../utils/child-process'
+import { projectLegacyPackageMutation, runPackageMutationOutcome, runPackageMutationSequence } from './mutation-outcome'
 
 async function runMiseUseCommand(packageName: string, force = false): Promise<boolean> {
-  try {
-    const args = ['mise', 'use', '--global', ...(force ? ['--force'] : []), packageName]
-    return (await waitForSpawnedCommand(spawnWithQuantexStdio(args))) === 0
-  } catch {
-    return false
-  }
+  return projectLegacyPackageMutation(context => runMiseUseCommandOutcome(packageName, force, context))
+}
+
+function runMiseUseCommandOutcome(
+  packageName: string,
+  force: boolean,
+  context: ProviderOperationContext,
+): Promise<PackageMutationOutcome> {
+  return runPackageMutationOutcome(
+    ['mise', 'use', '--global', ...(force ? ['--force'] : []), packageName],
+    context,
+    `mise ${force ? 'update' : 'install'} failed`,
+  )
 }
 
 export async function install(packageName: string): Promise<boolean> {
   return runMiseUseCommand(packageName)
 }
 
+export function installOutcome(
+  packageName: string,
+  context: ProviderOperationContext,
+): Promise<PackageMutationOutcome> {
+  return runMiseUseCommandOutcome(packageName, false, context)
+}
+
 export async function update(packageName: string): Promise<boolean> {
   return runMiseUseCommand(packageName, true)
 }
 
-export async function updateMany(packages: Array<{ packageName: string }>): Promise<boolean> {
-  for (const pkg of packages) {
-    if (!(await update(pkg.packageName))) return false
-  }
+export function updateOutcome(packageName: string, context: ProviderOperationContext): Promise<PackageMutationOutcome> {
+  return runMiseUseCommandOutcome(packageName, true, context)
+}
 
-  return true
+export async function updateMany(packages: Array<{ packageName: string }>): Promise<boolean> {
+  return projectLegacyPackageMutation(context => updateManyOutcome(packages, context))
+}
+
+export function updateManyOutcome(
+  packages: Array<{ packageName: string }>,
+  context: ProviderOperationContext,
+): Promise<PackageMutationOutcome> {
+  return runPackageMutationSequence(
+    packages.map(pkg => ['mise', 'use', '--global', '--force', pkg.packageName]),
+    context,
+    'mise update failed',
+  )
 }
 
 export async function uninstall(packageName: string): Promise<boolean> {
-  try {
-    return (await waitForSpawnedCommand(spawnWithQuantexStdio(['mise', 'unuse', '--global', packageName]))) === 0
-  } catch {
-    return false
-  }
+  return projectLegacyPackageMutation(context => uninstallOutcome(packageName, context))
+}
+
+export function uninstallOutcome(
+  packageName: string,
+  context: ProviderOperationContext,
+): Promise<PackageMutationOutcome> {
+  return runPackageMutationOutcome(['mise', 'unuse', '--global', packageName], context, 'mise uninstall failed')
 }
 
 export type PackagePresenceProbe = 'present' | 'absent' | 'unknown'

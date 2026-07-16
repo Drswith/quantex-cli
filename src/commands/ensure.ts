@@ -8,7 +8,8 @@ import {
 } from '../lifecycle'
 import { createErrorResult, createSuccessResult, emitCommandEvent, emitCommandResult } from '../output'
 import { withAgentLifecycleLock } from '../package-manager'
-import { resolveAgent, resolveAgentInspection } from '../services/agents'
+import { resolveAgent } from '../services/agents'
+import { resolveAgentObservation } from '../services/lifecycle-observations'
 import { pc } from '../utils/color'
 import { getAdoptableExistingInstallMethod } from '../utils/install'
 import { createResourceLockedError } from '../utils/lifecycle-errors'
@@ -49,7 +50,7 @@ export async function ensureCommand(agentName: string): Promise<CommandResult<En
 }
 
 async function ensureCommandLocked(agentName: string): Promise<CommandResult<EnsureCommandData>> {
-  const resolved = await resolveAgentInspection(agentName)
+  const resolved = await resolveAgentObservation(agentName)
   if (!resolved) {
     return emitCommandResult(
       createErrorResult<EnsureCommandData>({
@@ -70,23 +71,24 @@ async function ensureCommandLocked(agentName: string): Promise<CommandResult<Ens
     )
   }
 
-  const { agent, inspection } = resolved
+  const { agent } = resolved
+  const inPath = resolved.pathExecutable.present
+  const installedState = resolved.installedState
   const adoptableMethod =
-    inspection.inPath && !inspection.installedState
-      ? getAdoptableExistingInstallMethod(inspection.methods, inspection.resolvedBinaryPath ?? inspection.binaryPath)
+    inPath && !installedState
+      ? getAdoptableExistingInstallMethod(resolved.methods, resolved.resolvedBinaryPath ?? resolved.pathExecutable.path)
       : undefined
 
-  if (inspection.inPath && !inspection.installedState && !adoptableMethod) {
+  if (inPath && !installedState && !adoptableMethod) {
     return emitCommandResult(createUnmanagedEnsureResult(agent), renderEnsureHuman)
   }
 
-  const route: AgentInstallationRoute =
-    inspection.installedState && inspection.inPath ? 'satisfied' : adoptableMethod ? 'adopt' : 'install'
+  const route: AgentInstallationRoute = installedState && inPath ? 'satisfied' : adoptableMethod ? 'adopt' : 'install'
   if (isDryRunEnabled()) {
     return emitCommandResult(
       route === 'satisfied'
         ? createAlreadyInstalledEnsureResult(agent)
-        : createDryRunEnsureResult(agent, route === 'adopt', Boolean(inspection.installedState)),
+        : createDryRunEnsureResult(agent, route === 'adopt', Boolean(installedState)),
       renderEnsureHuman,
     )
   }
@@ -97,7 +99,7 @@ async function ensureCommandLocked(agentName: string): Promise<CommandResult<Ens
     const result = await reconcileAgentInstallation({
       adoptableMethod,
       agent,
-      inspection,
+      observation: { inPath, installedState, lifecycle: resolved.observation, methods: resolved.methods },
       operation: 'ensure',
       route,
     })
@@ -111,7 +113,7 @@ async function ensureCommandLocked(agentName: string): Promise<CommandResult<Ens
           data: {
             agent: { displayName: agent.displayName, name: agent.name },
             changed: false,
-            installed: inspection.inPath,
+            installed: inPath,
           },
           ...createResourceLockedError(error, { kind: 'agent', name: agent.name }),
         }),

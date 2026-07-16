@@ -9,7 +9,7 @@ import {
 } from '../lifecycle'
 import { waitForUninstallAbsence } from '../lifecycle/uninstall-postcondition'
 import { createErrorResult, createSuccessResult, emitCommandResult } from '../output'
-import { uninstallInstalledAgent, withAgentLifecycleLock } from '../package-manager'
+import { uninstallInstalledAgentOutcome, withAgentLifecycleLock } from '../package-manager'
 import { resolveAgent } from '../services/agents'
 import {
   getInstalledAgentState,
@@ -153,9 +153,9 @@ export async function uninstallCommand(agentName: string): Promise<CommandResult
         })
       }
 
-      const success = await uninstallInstalledAgent(agent, installedState)
+      const uninstallOutcome = await uninstallInstalledAgentOutcome(agent, installedState)
 
-      if (success && installedState) {
+      if (uninstallOutcome.kind === 'success') {
         const postconditionSatisfied = await waitForUninstallAbsence(
           async () => {
             const providerAfter = await observeBoundProvider(binding)

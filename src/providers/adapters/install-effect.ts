@@ -6,25 +6,28 @@ import type {
   ProviderOperationContext,
   ProviderOutcome,
 } from '../types'
-import { runBinaryInstall } from '../../package-manager/binary'
-import { spawnWithQuantexStdio, waitForSpawnedCommand } from '../../utils/child-process'
+import { runPackageMutationOutcome } from '../../package-manager/mutation-outcome'
 import { getPlatform, isBinaryInPath } from '../../utils/detect'
-import { interruptedOutcome, isInterruptedOperation, runPendingOperation } from './legacy-operation'
+import {
+  interruptedOutcome,
+  isInterruptedOperation,
+  runContextualOperation,
+  runPendingOperation,
+} from './pending-operation'
 
 export interface InstallEffectAdapterDependencies {
-  readonly execute: (effect: ProviderExecutionEffect) => Promise<boolean>
+  readonly contextualExecution?: boolean
+  readonly execute: (
+    effect: ProviderExecutionEffect,
+    context: ProviderOperationContext,
+  ) => Promise<ProviderOutcome<void>>
   readonly isExecutablePresent: (binaryName: string) => Promise<boolean>
 }
 
 const defaultDependencies: InstallEffectAdapterDependencies = {
-  execute: async effect => {
-    if (effect.kind === 'shell-script') return runBinaryInstall(effect.command)
-    try {
-      return (await waitForSpawnedCommand(spawnWithQuantexStdio([...effect.command]))) === 0
-    } catch {
-      return false
-    }
-  },
+  contextualExecution: true,
+  execute: (effect, context) =>
+    runPackageMutationOutcome(getEffectCommand(effect, getPlatform()), context, 'install effect failed'),
   isExecutablePresent: isBinaryInPath,
 }
 
@@ -32,7 +35,11 @@ export function createInstallEffectProviderAdapter<Id extends 'binary' | 'script
   id: Id,
   overrides: Partial<InstallEffectAdapterDependencies> = {},
 ): ProviderAdapter & { readonly id: Id } {
-  const dependencies = { ...defaultDependencies, ...overrides }
+  const dependencies = {
+    ...defaultDependencies,
+    ...overrides,
+    contextualExecution: overrides.execute ? (overrides.contextualExecution ?? false) : true,
+  }
   return {
     availability: async context => availableShell(context),
     id,
@@ -47,18 +54,30 @@ export function createInstallEffectProviderAdapter<Id extends 'binary' | 'script
         }
       }
 
-      const operation = await runPendingOperation(request.context, () => dependencies.execute(effect))
+      const operation = await runEffectOperation(request.context, dependencies.contextualExecution, () =>
+        dependencies.execute(effect, request.context),
+      )
       if (isInterruptedOperation(operation)) return interruptedOutcome(operation)
       const command = getEffectCommand(effect, getPlatform())
       const evidence = effectEvidence(id, command)
-      if (operation.kind === 'rejected' || !operation.value) {
+      if (operation.kind === 'rejected') {
         return {
           command,
           evidence,
           kind: 'failed',
-          reason: `${id} install failed for ${request.target.id}${operation.kind === 'rejected' ? `: ${operation.reason}` : ''}`,
+          reason: `${id} install failed for ${request.target.id}: ${operation.reason}`,
           remediation: 'Review the installer output and upstream installation instructions.',
           retryable: false,
+        }
+      }
+      const outcome = operation.value
+      if (outcome.kind !== 'success') {
+        if (outcome.kind !== 'failed') return outcome
+        return {
+          ...outcome,
+          command: outcome.command ?? command,
+          evidence: outcome.evidence ?? evidence,
+          remediation: outcome.remediation ?? 'Review the installer output and upstream installation instructions.',
         }
       }
 
@@ -92,6 +111,14 @@ export function createInstallEffectProviderAdapter<Id extends 'binary' | 'script
       }
     },
   }
+}
+
+function runEffectOperation<T>(
+  context: ProviderOperationContext,
+  contextual: boolean | undefined,
+  invoke: () => Promise<T>,
+): Promise<import('./pending-operation').PendingOperation<T>> {
+  return contextual ? runContextualOperation(context, invoke) : runPendingOperation(context, invoke)
 }
 
 export function getEffectCommand(effect: ProviderExecutionEffect, platform: Platform): readonly string[] {

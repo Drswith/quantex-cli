@@ -1,7 +1,42 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
-const mockSpawn = vi.fn()
+const { mockSpawn, mutationRun } = vi.hoisted(() => ({ mockSpawn: vi.fn(), mutationRun: vi.fn() }))
 let originalSpawn: typeof Bun.spawn
+
+vi.mock('../../src/utils/child-process', async importOriginal => {
+  const actual = await importOriginal<typeof import('../../src/utils/child-process')>()
+  return {
+    ...actual,
+    spawnCommand: (command: readonly string[], options: unknown) => {
+      const proc = mockSpawn(command, options)
+      return {
+        ...proc,
+        exited: Promise.resolve(proc.exitCode),
+        kill: () => true,
+        unref: () => undefined,
+      }
+    },
+  }
+})
+
+vi.mock('../../src/package-manager/mutation-outcome', async importOriginal => {
+  const actual = await importOriginal<typeof import('../../src/package-manager/mutation-outcome')>()
+  return {
+    ...actual,
+    runPackageMutationOutcome: mutationRun,
+    runPackageMutationSequence: async (
+      commands: readonly (readonly string[])[],
+      context: unknown,
+      description: string,
+    ) => {
+      for (const command of commands) {
+        const outcome = await mutationRun(command, context, description)
+        if (outcome.kind !== 'success') return outcome
+      }
+      return { kind: 'success', value: undefined }
+    },
+  }
+})
 
 function createProc(exitCode: number, stdout = '', stderr = '') {
   return {
@@ -15,12 +50,22 @@ function createProc(exitCode: number, stdout = '', stderr = '') {
 beforeEach(() => {
   originalSpawn = Bun.spawn
   Bun.spawn = mockSpawn as any
+  mutationRun.mockImplementation(runMutation)
 })
 
 afterEach(() => {
   Bun.spawn = originalSpawn
-  mockSpawn.mockClear()
+  mockSpawn.mockReset()
+  mutationRun.mockReset()
 })
+
+async function runMutation(command: readonly string[], _context: unknown, description: string) {
+  const proc = mockSpawn(command, { detached: process.platform !== 'win32' })
+  await proc.exited
+  return proc.exitCode === 0
+    ? { kind: 'success', value: undefined }
+    : { command, exitCode: proc.exitCode, kind: 'failed', reason: description, retryable: false }
+}
 
 describe('bun install', () => {
   it('returns true on success', async () => {

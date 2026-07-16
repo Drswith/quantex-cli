@@ -218,7 +218,9 @@ function observed(present: boolean): LifecycleExecutionObservedAgent {
     agent: {
       binaryName: 'test-bin',
       displayName: 'Test Agent',
+      homepage: 'https://example.com',
       name: 'test-agent',
+      platforms: {},
     },
     executable: present ? { path: '/tmp/test-bin', present: true, version: '1.0.0' } : { present: false },
     methods: [{ packageName: 'test-package', type: 'npm' }],

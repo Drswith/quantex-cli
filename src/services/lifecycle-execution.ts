@@ -1,5 +1,6 @@
-import type { InstallMethod } from '../agents'
+import type { AgentDefinition, InstallMethod } from '../agents'
 import type { OutputMode, ProcessPort, RuntimeFailure, RuntimeOutcome } from '../runtime'
+import type { InstalledAgentState } from '../state'
 import {
   type AgentExecutableObservation,
   type AgentExecutionInstallPolicy,
@@ -9,12 +10,9 @@ import {
 } from '../lifecycle'
 
 export interface LifecycleExecutionObservedAgent {
-  readonly agent: {
-    readonly binaryName: string
-    readonly displayName: string
-    readonly name: string
-  }
+  readonly agent: AgentDefinition
   readonly executable: AgentExecutableObservation
+  readonly installedState?: InstalledAgentState
   readonly methods: readonly InstallMethod[]
   readonly observation: LifecycleObservation
 }
@@ -22,7 +20,7 @@ export interface LifecycleExecutionObservedAgent {
 export interface LifecycleExecutionServicePorts {
   readonly confirmInstall: (observed: LifecycleExecutionObservedAgent) => Promise<boolean>
   readonly dryRun: boolean
-  readonly install: (agentName: string) => Promise<LifecycleOutcome<void>>
+  readonly install: (observed: LifecycleExecutionObservedAgent) => Promise<LifecycleOutcome<void>>
   readonly interactive: boolean
   readonly observe: (agentName: string) => Promise<RuntimeOutcome<LifecycleExecutionObservedAgent | undefined>>
   readonly onInstallStart?: (observed: LifecycleExecutionObservedAgent) => Promise<void> | void
@@ -107,7 +105,7 @@ export async function executeAgentLifecycle(
 
   if (planned.decision === 'install-and-launch' || planned.decision === 'prompt-install') {
     await ports.onInstallStart?.(observed)
-    const installed = await ports.install(observed.agent.name)
+    const installed = await ports.install(observed)
     const installationFailure = mapInstallationFailure(installed, observed)
     if (installationFailure) return installationFailure
 

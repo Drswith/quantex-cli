@@ -95,17 +95,24 @@ export function resolveCatalogProviderBindings(
   return resolveCatalogProviderEvidence(agent, platform).bindings
 }
 
+export function resolveInstallMethodProviderBinding(
+  agent: AgentDefinition,
+  method: InstallMethod,
+): LifecycleProviderBinding | undefined {
+  return resolveStateProviderBinding(agent, {
+    agentName: agent.name,
+    ...(method.binaryName ? { binaryName: method.binaryName } : {}),
+    ...(method.command ? { command: method.command } : {}),
+    installType: method.type,
+    ...(method.packageInstallArgs ? { packageInstallArgs: method.packageInstallArgs } : {}),
+    ...(method.packageName ? { packageName: method.packageName } : {}),
+    ...(method.packageTargetKind ? { packageTargetKind: method.packageTargetKind } : {}),
+  })
+}
+
 export function resolveCatalogProviderEvidence(agent: AgentDefinition, platform: Platform): CatalogProviderEvidence {
   const resolved = (agent.platforms[platform] ?? []).map(method => ({
-    binding: resolveStateProviderBinding(agent, {
-      agentName: agent.name,
-      ...(method.binaryName ? { binaryName: method.binaryName } : {}),
-      ...(method.command ? { command: method.command } : {}),
-      installType: method.type,
-      ...(method.packageInstallArgs ? { packageInstallArgs: method.packageInstallArgs } : {}),
-      ...(method.packageName ? { packageName: method.packageName } : {}),
-      ...(method.packageTargetKind ? { packageTargetKind: method.packageTargetKind } : {}),
-    }),
+    binding: resolveInstallMethodProviderBinding(agent, method),
     method,
   }))
   const bindings = resolved

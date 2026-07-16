@@ -9,7 +9,7 @@ import * as detect from '../../src/utils/detect'
 import { ResourceLockError } from '../../src/utils/lock'
 
 const agentSpy = vi.spyOn(agents, 'getAgentByNameOrAlias')
-const uninstallSpy = vi.spyOn(pm, 'uninstallInstalledAgent')
+const uninstallSpy = adaptLegacyUninstallSpy(vi.spyOn(pm, 'uninstallInstalledAgentOutcome'))
 const lifecycleLockSpy = vi.spyOn(pm, 'withAgentLifecycleLock')
 const installedStateSpy = vi.spyOn(state, 'getInstalledAgentState')
 const getReceiptSpy = vi.spyOn(state, 'getLifecycleReceipt')
@@ -31,6 +31,20 @@ afterAll(() => {
   binaryInPathSpy.mockRestore()
   observeProviderSpy.mockRestore()
 })
+
+function adaptLegacyUninstallSpy(spy: any): any {
+  const mockResolvedValue = spy.mockResolvedValue.bind(spy)
+  const mockImplementation = spy.mockImplementation.bind(spy)
+  spy.mockResolvedValue = (value: any) => mockResolvedValue(toTypedUninstallOutcome(value))
+  spy.mockImplementation = (implementation: (...args: any[]) => Promise<any>) =>
+    mockImplementation(async (...args: any[]) => toTypedUninstallOutcome(await implementation(...args)))
+  return spy
+}
+
+function toTypedUninstallOutcome(value: any): any {
+  if (value?.kind) return value
+  return value ? { kind: 'success', value: {} } : { kind: 'failed', reason: 'uninstall-failed', retryable: false }
+}
 
 const testAgent = {
   name: 'test-agent',
@@ -236,7 +250,7 @@ describe('uninstallCommand', () => {
         kind: 'success',
         value: { kind: 'absent', target: binding.target },
       }))
-    uninstallSpy.mockImplementation(async (_agent, installedState) => {
+    uninstallSpy.mockImplementation(async (_agent: AgentDefinition, installedState: InstalledAgentState) => {
       expect(insideLifecycleLock).toBe(true)
       expect(installedState).toEqual(managedInstalledState)
       return true
@@ -450,3 +464,5 @@ const managedReceipt = {
   targetId: 'test-agent',
   verifiedAt: '2026-07-12T03:00:00.000Z',
 }
+import type { AgentDefinition } from '../../src/agents'
+import type { InstalledAgentState } from '../../src/state'

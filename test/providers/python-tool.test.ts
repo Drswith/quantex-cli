@@ -6,19 +6,31 @@ import { createPipProviderAdapter } from '../../src/providers/adapters/pip'
 import { createUvProviderAdapter } from '../../src/providers/adapters/uv'
 import { describeProviderConformance } from './conformance'
 
+function mutation(success = true) {
+  return vi.fn(async () =>
+    success
+      ? ({ kind: 'success', value: undefined } as const)
+      : ({ kind: 'failed', reason: '', retryable: false } as const),
+  )
+}
+
+function pendingMutation() {
+  return vi.fn(() => new Promise<never>(() => {}))
+}
+
 const context: ProviderOperationContext = { signal: new AbortController().signal, timeoutMs: 5_000 }
 
 function dependencies(overrides: Partial<SystemPackageAdapterDependencies> = {}): SystemPackageAdapterDependencies {
   return {
     getInstalledVersion: vi.fn(async () => '1.2.3'),
-    install: vi.fn(async () => true),
+    install: mutation(),
     isAvailable: vi.fn(async () => true),
     probePackagePresence: vi.fn(async target =>
       target.id.endsWith('-absent') ? 'absent' : target.id.endsWith('-unknown') ? 'unknown' : 'present',
     ),
-    uninstall: vi.fn(async () => true),
-    update: vi.fn(async () => true),
-    updateMany: vi.fn(async () => true),
+    uninstall: mutation(),
+    update: mutation(),
+    updateMany: mutation(),
     ...overrides,
   }
 }
@@ -34,9 +46,9 @@ function conformance(
   describeProviderConformance(`${id} provider`, () => {
     const adapter = createAdapter(
       dependencies({
-        install: vi.fn(async () => false),
+        install: mutation(false),
         isAvailable: vi.fn(async () => false),
-        update: vi.fn(() => new Promise<boolean>(() => {})),
+        update: pendingMutation(),
       }),
     )
     const presentEvidence = { kind: 'package', value: `${id}:${target.id}:present` } as const
@@ -119,8 +131,8 @@ describe('pip, uv, and mise provider semantics', () => {
         ],
       },
     })
-    expect(deps.install).toHaveBeenCalledWith(uvTarget)
-    expect(deps.update).toHaveBeenCalledWith(uvTarget)
+    expect(deps.install).toHaveBeenCalledWith(uvTarget, context)
+    expect(deps.update).toHaveBeenCalledWith(uvTarget, context)
   })
 
   it('projects provider-specific installed versions into typed observations', async () => {

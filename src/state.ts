@@ -11,6 +11,7 @@ export {
   removeSelfInstallSource,
   saveState,
   setInstalledAgentState,
+  setAgentLifecycleEvidence,
   setLifecycleReceipt,
   setSelfInstallSource,
   setSelfUpdateNoticeState,

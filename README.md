@@ -32,6 +32,12 @@ Quantex is a `human-friendly + agent-friendly` lifecycle CLI for AI coding assis
 - Supports managed agent installs through available Bun, npm, Homebrew, Cargo, Deno, mise, pip, uv, and winget providers.
 - Supports Quantex self-upgrade across Bun, npm, and standalone binary installs.
 
+## Lifecycle and compatibility guarantees
+
+Default agent lifecycle commands reconcile live executable, provider, saved-state, and receipt evidence before they mutate anything. Install, ensure, update, uninstall, and execution preflight use typed provider outcomes and verify their postconditions before recording new lifecycle evidence.
+
+The internal engine can evolve without changing the maintained v1 command syntax, JSON/NDJSON envelopes, exit meanings, state/config projection, `qtx`/`quantex` binaries, or root-package exports. Any future removal of a maintained root export requires a separate deprecation proposal; it is not part of the lifecycle-engine redesign.
+
 ## Agent Quick Start
 
 If you are using a coding agent with Quantex, start by installing the repo-provided user-facing Quantex CLI skill:

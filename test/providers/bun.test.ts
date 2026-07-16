@@ -24,10 +24,22 @@ const indeterminateEvidence = {
 const failedCommand = ['bun', 'add', '-g', target.id] as const
 const failedCommandEvidence = { kind: 'command', value: failedCommand.join(' ') } as const
 
+function mutation(success = true) {
+  return vi.fn(async () =>
+    success
+      ? ({ kind: 'success', value: undefined } as const)
+      : ({ kind: 'failed', reason: '', retryable: false } as const),
+  )
+}
+
+function pendingMutation() {
+  return vi.fn(() => new Promise<never>(() => {}))
+}
+
 function createDependencies(overrides: Partial<BunProviderDependencies> = {}): BunProviderDependencies {
   return {
     getInstalledVersion: vi.fn(async packageName => (packageName.includes('absent') ? undefined : '1.2.3')),
-    install: vi.fn(async () => true),
+    install: mutation(),
     isAvailable: vi.fn(async () => true),
     probePackagePresence: vi.fn(async packageName => {
       if (packageName.includes('absent')) return 'absent'
@@ -35,16 +47,16 @@ function createDependencies(overrides: Partial<BunProviderDependencies> = {}): B
       return 'present'
     }),
     resolveLatestVersion: vi.fn(async () => '2.0.0'),
-    uninstall: vi.fn(async () => true),
-    update: vi.fn(async () => true),
-    updateMany: vi.fn(async () => true),
+    uninstall: mutation(),
+    update: mutation(),
+    updateMany: mutation(),
     ...overrides,
   }
 }
 
 describeProviderConformance('Bun provider', () => {
   const dependencies = createDependencies({
-    install: vi.fn(async () => false),
+    install: mutation(false),
     isAvailable: vi.fn(async () => false),
     resolveLatestVersion: vi.fn(() => new Promise<undefined>(() => {})),
   })
@@ -114,7 +126,7 @@ describe('Bun provider adapter', () => {
         target,
       },
     })
-    expect(dependencies.install).toHaveBeenCalledWith(target.id, 'next', registry)
+    expect(dependencies.install).toHaveBeenCalledWith(target.id, 'next', registry, context)
 
     expect(
       await adapter.update?.({
@@ -132,7 +144,7 @@ describe('Bun provider adapter', () => {
         target,
       },
     })
-    expect(dependencies.update).toHaveBeenCalledWith(target.id, 'respect-semver', 'beta', registry)
+    expect(dependencies.update).toHaveBeenCalledWith(target.id, 'respect-semver', 'beta', registry, context)
 
     expect(
       await adapter.updateMany?.({
@@ -159,7 +171,7 @@ describe('Bun provider adapter', () => {
         },
       ],
     })
-    expect(dependencies.updateMany).toHaveBeenCalledWith([target.id, secondTarget.id], 'latest-major')
+    expect(dependencies.updateMany).toHaveBeenCalledWith([target.id, secondTarget.id], 'latest-major', context)
 
     expect(await adapter.uninstall?.({ context, target })).toEqual({
       kind: 'success',
@@ -168,7 +180,7 @@ describe('Bun provider adapter', () => {
         target,
       },
     })
-    expect(dependencies.uninstall).toHaveBeenCalledWith(target.id)
+    expect(dependencies.uninstall).toHaveBeenCalledWith(target.id, context)
   })
 
   it('preserves dist-tag and normalized registry inputs while resolving the latest version', async () => {
@@ -197,7 +209,7 @@ describe('Bun provider adapter', () => {
         target,
       },
     })
-    expect(dependencies.install).toHaveBeenCalledWith(target.id, 'latest', undefined)
+    expect(dependencies.install).toHaveBeenCalledWith(target.id, 'latest', undefined, context)
   })
 
   it('derives unsatisfied and indeterminate verification from fresh observations', async () => {
@@ -223,7 +235,7 @@ describe('Bun provider adapter', () => {
   })
 
   it('returns the exact timeout without waiting for a never-settling dependency', async () => {
-    const install = vi.fn(() => new Promise<boolean>(() => {}))
+    const install = pendingMutation()
     const adapter = createBunProviderAdapter(createDependencies({ install }))
 
     expect(
@@ -236,7 +248,7 @@ describe('Bun provider adapter', () => {
   })
 
   it('does not invoke a dependency when the request signal is already aborted', async () => {
-    const install = vi.fn(async () => true)
+    const install = mutation()
     const adapter = createBunProviderAdapter(createDependencies({ install }))
     const controller = new AbortController()
     controller.abort('user request')

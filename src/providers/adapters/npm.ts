@@ -33,22 +33,18 @@ const commands: RegistryPackageCommandBuilders = {
 }
 
 const defaultDependencies: NpmProviderDependencies = {
+  contextualMutation: true,
   contextualPackageObservation: true,
   getInstalledVersion: (packageName, context) => npmPm.getInstalledVersion(packageName, context),
-  install: (packageName, distTag, registry) =>
-    distTag === undefined && registry === undefined
-      ? npmPm.install(packageName)
-      : npmPm.install(packageName, distTag, registry),
+  install: (packageName, distTag, registry, context) => npmPm.installOutcome(packageName, distTag, registry, context),
   isAvailable: context => detectUtils.isNpmAvailable(context),
   probePackagePresence: (packageName, context) => npmPm.probePackagePresence(packageName, context),
   resolveLatestVersion: (packageName, distTag, registry) =>
     versionUtils.getLatestVersion(packageName, distTag, { registry }),
-  uninstall: packageName => npmPm.uninstall(packageName),
-  update: (packageName, strategy, distTag, registry) =>
-    distTag === 'latest' && registry === undefined
-      ? npmPm.update(packageName, strategy)
-      : npmPm.update(packageName, strategy, distTag, registry),
-  updateMany: (packageNames, strategy) => npmPm.updateMany(packageNames, strategy),
+  uninstall: (packageName, context) => npmPm.uninstallOutcome(packageName, context),
+  update: (packageName, strategy, distTag, registry, context) =>
+    npmPm.updateOutcome(packageName, strategy, distTag, registry, context),
+  updateMany: (packageNames, strategy, context) => npmPm.updateManyOutcome(packageNames, strategy, context),
 }
 
 export function createNpmProviderAdapter(dependencies: NpmProviderDependencies = defaultDependencies) {
