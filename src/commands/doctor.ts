@@ -77,7 +77,7 @@ export async function doctorCommand(): Promise<CommandResult<DoctorData>> {
       Promise.all([
         observeProviderSnapshot({ context: operation.context }),
         inspectSelfReadOnly({ context: operation.context }),
-        observeRegisteredAgents(),
+        observeRegisteredAgents(operation.context),
       ]),
     )
   } finally {

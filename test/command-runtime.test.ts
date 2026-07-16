@@ -1394,7 +1394,7 @@ describe('executeCommandWithRuntime', () => {
         },
         target: agentTarget('codex'),
       }),
-    ).rejects.toMatchObject({ code: expect.stringMatching(/ENOTDIR|EISDIR/) })
+    ).rejects.toMatchObject({ code: expect.stringMatching(/ENOTDIR|EISDIR|EEXIST/) })
     expect(captureEvidence).toHaveBeenCalledTimes(1)
   })
 

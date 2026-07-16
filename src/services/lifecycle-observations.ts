@@ -110,11 +110,16 @@ export function createLifecycleObservationService(
   }
 }
 
-export function resolveAgentObservation(agentName: string): Promise<ResolvedAgentObservation | undefined> {
+export function resolveAgentObservation(
+  agentName: string,
+  context?: ProviderOperationContext,
+): Promise<ResolvedAgentObservation | undefined> {
+  if (context) return createProductionLifecycleObservationService(context).resolveAgentObservation(agentName)
   return withProductionObservationService(service => service.resolveAgentObservation(agentName))
 }
 
-export function observeRegisteredAgents(): Promise<ResolvedAgentObservation[]> {
+export function observeRegisteredAgents(context?: ProviderOperationContext): Promise<ResolvedAgentObservation[]> {
+  if (context) return createProductionLifecycleObservationService(context).observeRegisteredAgents()
   return withProductionObservationService(service => service.observeRegisteredAgents())
 }
 

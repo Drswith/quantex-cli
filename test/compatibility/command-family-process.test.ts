@@ -99,6 +99,29 @@ describe('v1 command-family process compatibility', () => {
 
     await persistUpdatedGoldens()
   }, 30_000)
+
+  it('normalizes host-derived managed-installer diagnostics', () => {
+    const stableIssue =
+      '  - Quantex CLI cannot auto-update from install source "source". Reinstall via bun, npm, or the standalone binary if you want `quantex upgrade` support.'
+    const availabilityIssue =
+      '  - No managed installer found. Install bun, npm, brew, cargo, deno, mise, pip, uv, or winget before relying on managed lifecycle operations.'
+
+    expect(normalizeOutput(`Issues:\n${availabilityIssue}\n${stableIssue}\n`, 'human')).toBe(
+      normalizeOutput(`Issues:\n${stableIssue}\n`, 'human'),
+    )
+    expect(
+      normalizeOutput(
+        JSON.stringify({ data: { issues: [{ code: 'NO_MANAGED_INSTALLER' }, { code: 'STABLE_ISSUE' }] } }),
+        'json',
+      ),
+    ).toBe(normalizeOutput(JSON.stringify({ data: { issues: [{ code: 'STABLE_ISSUE' }] } }), 'json'))
+
+    const stableMethod = '    + [managed/mise] mise use --global npm:@openai/codex'
+    const platformMethod = '    + [managed/brew (codex)] brew install codex'
+    expect(normalizeOutput(`Install Methods:\n${stableMethod}\n${platformMethod}\n`, 'human')).toBe(
+      normalizeOutput(`Install Methods:\n${stableMethod}\n`, 'human'),
+    )
+  })
 })
 
 async function runCli(
@@ -132,9 +155,10 @@ async function runCli(
 }
 
 function expectGolden(label: string, stdout: string, mode: OutputMode, expected: string): string {
-  const actual = createHash('sha256').update(normalizeOutput(stdout, mode)).digest('hex')
+  const normalized = normalizeOutput(stdout, mode)
+  const actual = createHash('sha256').update(normalized).digest('hex')
   if (process.env.UPDATE_V1_COMMAND_GOLDENS === '1') return actual
-  expect(actual, `${label} normalized golden`).toBe(expected)
+  expect(actual, `${label} normalized golden\n${normalized}`).toBe(expected)
   return expected
 }
 
@@ -150,7 +174,9 @@ function normalizeOutput(stdout: string, mode: OutputMode): string {
       .replace(/\bv?\d+\.\d+\.\d+(?:[-+][0-9A-Za-z.-]+)?\b/gu, '<version>')
       .replace(/^(\s*(?:bun|npm|brew|cargo|deno|mise|pip|uv|winget):\s*).*$/gimu, '$1<availability>')
       .replace(/^.*\[managed\/(?:brew|winget)[^\]]*\].*$/gimu, '')
+      .replace(/^[ \t]*- No managed installer found\..*(?:\n|$)/gimu, '')
       .replace(/\n{3,}/gu, '\n\n')
+      .trimEnd()
   }
 
   if (mode === 'json') return JSON.stringify(normalizeJson(JSON.parse(normalizedLines) as unknown))
@@ -170,7 +196,14 @@ function normalizeJson(value: unknown, key?: string): unknown {
               typeof item === 'object' &&
               !['brew', 'winget'].includes(String((item as { type?: unknown }).type)),
           )
-        : value
+        : key === 'issues'
+          ? value.filter(
+              item =>
+                !item ||
+                typeof item !== 'object' ||
+                String((item as { code?: unknown }).code) !== 'NO_MANAGED_INSTALLER',
+            )
+          : value
     return items.map(item => normalizeJson(item))
   }
   if (value && typeof value === 'object') {

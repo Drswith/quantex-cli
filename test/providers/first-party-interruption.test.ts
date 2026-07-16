@@ -5,6 +5,7 @@ import { tmpdir } from 'node:os'
 import { delimiter, join } from 'node:path'
 import process from 'node:process'
 import { afterEach, describe, expect, it } from 'vitest'
+import { resolveExecutableFromPath } from '../../scripts/resolve-executable'
 import { firstPartyProviderRegistry } from '../../src/providers'
 
 const availabilityProviders = [
@@ -28,6 +29,7 @@ const observationProviders = [
 
 const roots: string[] = []
 const originalPath = process.env.PATH
+const providerTimeoutMs = 10_000
 
 afterEach(async () => {
   process.env.PATH = originalPath
@@ -35,101 +37,81 @@ afterEach(async () => {
 }, 15_000)
 
 describe('first-party provider interruption', () => {
-  it('preserves typed timeouts and joins all availability process trees', async () => {
-    const fixture = await createProviderFixtures(
-      availabilityProviders.map(([id, executable]) => ({ executable, id, mode: 'hang' as const })),
-    )
-
-    const outcomes = await Promise.all(
-      availabilityProviders.map(([id]) =>
-        firstPartyProviderRegistry.get(id)!.availability({
+  it('preserves typed timeouts and joins every availability process tree', async () => {
+    for (const [id, executable] of availabilityProviders)
+      await withProviderFixtures([{ executable, id, mode: 'hang' }], async fixture => {
+        const pending = firstPartyProviderRegistry.get(id)!.availability({
           signal: new AbortController().signal,
-          timeoutMs: 10_000,
-        }),
-      ),
-    )
+          timeoutMs: providerTimeoutMs,
+        })
+        await fixture.waitForAllTrees()
+        await expect(pending).resolves.toEqual({ kind: 'timed-out', timeoutMs: providerTimeoutMs })
+        await expectAllTreesStopped(fixture)
+      })
+  }, 120_000)
 
-    expect(outcomes).toEqual(availabilityProviders.map(() => ({ kind: 'timed-out', timeoutMs: 10_000 })))
-    await expectAllTreesStopped(fixture)
-  }, 30_000)
+  it('preserves typed cancellation and joins every availability process tree', async () => {
+    for (const [id, executable] of availabilityProviders)
+      await withProviderFixtures([{ executable, id, mode: 'hang' }], async fixture => {
+        const controller = new AbortController()
+        const pending = firstPartyProviderRegistry.get(id)!.availability({ signal: controller.signal })
+        await fixture.waitForAllTrees()
+        controller.abort('test cancellation')
 
-  it('preserves typed cancellation and joins all availability process trees', async () => {
-    const fixture = await createProviderFixtures(
-      availabilityProviders.map(([id, executable]) => ({ executable, id, mode: 'hang' as const })),
-    )
-    const controllers = availabilityProviders.map(() => new AbortController())
-    const pending = availabilityProviders.map(([id], index) =>
-      firstPartyProviderRegistry.get(id)!.availability({ signal: controllers[index]!.signal }),
-    )
-    await fixture.waitForAllTrees()
-    controllers.forEach(controller => controller.abort('test cancellation'))
+        await expect(pending).resolves.toEqual({ kind: 'cancelled', reason: 'test cancellation' })
+        await expectAllTreesStopped(fixture)
+      })
+  }, 45_000)
 
-    expect(await Promise.all(pending)).toEqual(
-      availabilityProviders.map(() => ({ kind: 'cancelled', reason: 'test cancellation' })),
-    )
-    await expectAllTreesStopped(fixture)
-  }, 15_000)
+  it.skipIf(process.platform === 'win32')(
+    'kills descendants that outlive a process-group leader after cancellation',
+    async () => {
+      await withProviderFixtures(
+        [{ executable: 'bun', id: 'bun', mode: 'parent-exits-child-hangs' }],
+        async fixture => {
+          const controller = new AbortController()
+          const pending = firstPartyProviderRegistry.get('bun')!.availability({ signal: controller.signal })
+          await fixture.waitForAllTrees()
+          controller.abort('test cancellation')
 
-  it('kills descendants that outlive a process-group leader after cancellation', async () => {
-    const fixture = await createProviderFixtures([{ executable: 'bun', id: 'bun', mode: 'parent-exits-child-hangs' }])
-    const controller = new AbortController()
-    const pending = firstPartyProviderRegistry.get('bun')!.availability({ signal: controller.signal })
-    await fixture.waitForAllTrees()
-    controller.abort('test cancellation')
-
-    await expect(pending).resolves.toEqual({ kind: 'cancelled', reason: 'test cancellation' })
-    await expectAllTreesStopped(fixture)
-  }, 15_000)
+          await expect(pending).resolves.toEqual({ kind: 'cancelled', reason: 'test cancellation' })
+          await expectAllTreesStopped(fixture)
+        },
+      )
+    },
+    15_000,
+  )
 
   it('preserves typed timeouts through npm, Bun, mise, and uv presence/version probes', async () => {
-    const fixture = await createProviderFixtures(
-      observationProviders.map(([id, executable, firstOutput]) => ({
-        executable,
-        firstOutput,
-        id,
-        mode: 'version-then-hang' as const,
-      })),
-    )
     const target: ProviderTarget = { id: 'demo', kind: 'package' }
-
-    const outcomes = await Promise.all(
-      observationProviders.map(([id]) =>
-        firstPartyProviderRegistry.get(id)!.observe!({
-          context: { signal: new AbortController().signal, timeoutMs: 10_000 },
+    for (const [id, executable, firstOutput] of observationProviders)
+      await withProviderFixtures([{ executable, firstOutput, id, mode: 'version-then-hang' }], async fixture => {
+        const pending = firstPartyProviderRegistry.get(id)!.observe!({
+          context: { signal: new AbortController().signal, timeoutMs: providerTimeoutMs },
           target: id === 'mise' || id === 'uv' ? { ...target, kind: 'tool' } : target,
-        }),
-      ),
-    )
-
-    expect(outcomes).toEqual(observationProviders.map(() => ({ kind: 'timed-out', timeoutMs: 10_000 })))
-    await expectAllTreesStopped(fixture)
-  }, 30_000)
+        })
+        await fixture.waitForAllTrees()
+        await expect(pending).resolves.toEqual({ kind: 'timed-out', timeoutMs: providerTimeoutMs })
+        await expectAllTreesStopped(fixture)
+      })
+  }, 60_000)
 
   it('preserves typed cancellation through npm, Bun, mise, and uv presence/version probes', async () => {
-    const fixture = await createProviderFixtures(
-      observationProviders.map(([id, executable, firstOutput]) => ({
-        executable,
-        firstOutput,
-        id,
-        mode: 'version-then-hang' as const,
-      })),
-    )
-    const controllers = observationProviders.map(() => new AbortController())
     const target: ProviderTarget = { id: 'demo', kind: 'package' }
-    const pending = observationProviders.map(([id], index) =>
-      firstPartyProviderRegistry.get(id)!.observe!({
-        context: { signal: controllers[index]!.signal },
-        target: id === 'mise' || id === 'uv' ? { ...target, kind: 'tool' } : target,
-      }),
-    )
-    await fixture.waitForAllTrees()
-    controllers.forEach(controller => controller.abort('test cancellation'))
+    for (const [id, executable, firstOutput] of observationProviders)
+      await withProviderFixtures([{ executable, firstOutput, id, mode: 'version-then-hang' }], async fixture => {
+        const controller = new AbortController()
+        const pending = firstPartyProviderRegistry.get(id)!.observe!({
+          context: { signal: controller.signal },
+          target: id === 'mise' || id === 'uv' ? { ...target, kind: 'tool' } : target,
+        })
+        await fixture.waitForAllTrees()
+        controller.abort('test cancellation')
 
-    expect(await Promise.all(pending)).toEqual(
-      observationProviders.map(() => ({ kind: 'cancelled', reason: 'test cancellation' })),
-    )
-    await expectAllTreesStopped(fixture)
-  }, 20_000)
+        await expect(pending).resolves.toEqual({ kind: 'cancelled', reason: 'test cancellation' })
+        await expectAllTreesStopped(fixture)
+      })
+  }, 30_000)
 })
 
 interface FixtureInput {
@@ -139,21 +121,38 @@ interface FixtureInput {
   mode: 'hang' | 'parent-exits-child-hangs' | 'version-then-hang'
 }
 
+interface ProviderFixture {
+  pidLogs: string[]
+  waitForAllTrees: () => Promise<void>
+}
+
+async function withProviderFixtures<T>(inputs: FixtureInput[], run: (fixture: ProviderFixture) => Promise<T>) {
+  const fixture = await createProviderFixtures(inputs)
+  try {
+    return await run(fixture)
+  } finally {
+    await killFixtureProcesses(fixture)
+  }
+}
+
 async function createProviderFixtures(inputs: FixtureInput[]) {
   const root = await mkdtemp(join(tmpdir(), 'quantex-first-party-interruption-'))
   roots.push(root)
-  const bun = resolveExecutable('bun')
+  const bun = resolveExecutableFromPath('bun', { path: originalPath ?? '' })
   const pidLogs: string[] = []
 
   for (const input of inputs) {
     const pidLog = join(root, `${input.id}.pids`)
     const countFile = join(root, `${input.id}.count`)
+    const executablePath = join(root, process.platform === 'win32' ? `${input.executable}.cmd` : input.executable)
+    const scriptPath = process.platform === 'win32' ? join(root, `${input.id}.fixture.ts`) : executablePath
     pidLogs.push(pidLog)
     await writeFile(
-      join(root, input.executable),
-      `#!${bun}\nconst mode = ${JSON.stringify(input.mode)}\nconst countFile = ${JSON.stringify(countFile)}\nlet count = 0\ntry { count = Number(await Bun.file(countFile).text()) } catch {}\nawait Bun.write(countFile, String(count + 1))\nif (mode === 'version-then-hang' && count === 0) { console.log(${JSON.stringify(input.firstOutput ?? '')}); process.exit(0) }\nprocess.on('SIGTERM', () => { if (mode === 'parent-exits-child-hangs') process.exit(0) })\nprocess.on('SIGINT', () => undefined)\nconst child = Bun.spawn([process.execPath, '-e', "process.on('SIGTERM', () => undefined); process.on('SIGINT', () => undefined); await new Promise(() => undefined)"], { stdin: 'ignore', stdout: 'ignore', stderr: 'ignore' })\nawait Bun.write(${JSON.stringify(pidLog)}, \`\${process.pid} \${child.pid}\\n\`)\nawait child.exited\n`,
+      scriptPath,
+      `${process.platform === 'win32' ? '' : `#!${bun}\n`}const mode = ${JSON.stringify(input.mode)}\nconst countFile = ${JSON.stringify(countFile)}\nlet count = 0\ntry { count = Number(await Bun.file(countFile).text()) } catch {}\nawait Bun.write(countFile, String(count + 1))\nif (mode === 'version-then-hang' && count === 0) { console.log(${JSON.stringify(input.firstOutput ?? '')}); process.exit(0) }\nsetTimeout(() => process.exit(124), 15_000)\nprocess.on('SIGTERM', () => { if (mode === 'parent-exits-child-hangs') process.exit(0) })\nprocess.on('SIGINT', () => undefined)\nconst child = Bun.spawn([process.execPath, '-e', "process.on('SIGTERM', () => undefined); process.on('SIGINT', () => undefined); await Bun.sleep(15_000)"], { stdin: 'ignore', stdout: 'ignore', stderr: 'ignore' })\nawait Bun.write(${JSON.stringify(pidLog)}, \`\${process.pid} \${child.pid}\\n\`)\nawait child.exited\n`,
     )
-    await chmod(join(root, input.executable), 0o755)
+    if (process.platform === 'win32') await writeFile(executablePath, `@"${bun}" "${scriptPath}" %*\r\n`)
+    else await chmod(executablePath, 0o755)
   }
 
   process.env.PATH = `${root}${delimiter}${originalPath ?? ''}`
@@ -161,6 +160,20 @@ async function createProviderFixtures(inputs: FixtureInput[]) {
     pidLogs,
     waitForAllTrees: () => waitForFiles(pidLogs, 10_000),
   }
+}
+
+async function killFixtureProcesses(fixture: ProviderFixture): Promise<void> {
+  const existingLogs = fixture.pidLogs.filter(existsSync)
+  const pids = (await Promise.all(existingLogs.map(readPids))).flat()
+  for (const pid of new Set(pids)) {
+    if (!isProcessAlive(pid)) continue
+    try {
+      process.kill(pid, 'SIGKILL')
+    } catch {
+      // The fixture process may have exited between the liveness check and kill.
+    }
+  }
+  await waitForProcessesStopped(pids, 1_000)
 }
 
 async function expectAllTreesStopped(fixture: { pidLogs: string[] }): Promise<void> {
@@ -186,14 +199,6 @@ async function waitForFiles(paths: string[], timeoutMs: number): Promise<void> {
 
 async function readPids(path: string): Promise<number[]> {
   return (await readFile(path, 'utf8')).trim().split(/\s+/).map(Number).filter(Number.isFinite)
-}
-
-function resolveExecutable(name: string): string {
-  for (const directory of (originalPath ?? '').split(delimiter)) {
-    const candidate = join(directory, name)
-    if (existsSync(candidate)) return candidate
-  }
-  throw new Error(`Unable to find ${name}.`)
 }
 
 function isProcessAlive(pid: number): boolean {

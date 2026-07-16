@@ -1,9 +1,14 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { parseMiseInstalledVersion } from '../../src/package-manager/mise'
 
-const mockSpawn = vi.fn()
+const mockSpawn = vi.hoisted(() => vi.fn())
 const mutationRun = vi.hoisted(() => vi.fn())
 let originalSpawn: typeof Bun.spawn
+
+vi.mock('cross-spawn', async () => {
+  const { createCrossSpawnMock } = await import('../helpers/cross-spawn-mock')
+  return { default: createCrossSpawnMock(mockSpawn) }
+})
 
 vi.mock('../../src/package-manager/mutation-outcome', async importOriginal => {
   const actual = await importOriginal<typeof import('../../src/package-manager/mutation-outcome')>()

@@ -7,21 +7,22 @@ import { delimiter, dirname, join } from 'node:path'
 import process from 'node:process'
 import { fileURLToPath } from 'node:url'
 import { describe, expect, it } from 'vitest'
-import { readProcessOutputWithContext, spawnCommand } from '../src/utils/child-process'
+import { forceTerminateProcessTree, readProcessOutputWithContext, spawnCommand } from '../src/utils/child-process'
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..')
 const CLI_PATH = join(ROOT, 'src', 'cli.ts')
 
 describe('read-only lifecycle provider timeout', { timeout: 20_000 }, () => {
-  it.each([{ assertTree: false, timeoutMs: 100 }])(
-    'returns TIMEOUT for $timeoutMs ms and terminates the npm tree when observable',
-    async ({ assertTree, timeoutMs }) => {
+  it.each([{ timeoutMs: 100 }])(
+    'returns TIMEOUT for $timeoutMs ms even when the fixture starts too late to observe',
+    async ({ timeoutMs }) => {
       if (process.platform === 'win32') return
 
       const root = await mkdtemp(join(tmpdir(), 'quantex-readonly-timeout-'))
       const home = join(root, 'home')
       const bin = join(root, 'bin')
       const pidLog = join(root, 'npm-pids.log')
+      const fixturePids: number[] = []
       const bun = resolveExecutable('bun')
       await mkdir(join(home, '.quantex'), { recursive: true })
       await mkdir(bin, { recursive: true })
@@ -99,16 +100,11 @@ describe('read-only lifecycle provider timeout', { timeout: 20_000 }, () => {
           ok: false,
         })
         expect(exitCode).toBe(10)
-        expect(Date.now() - startedAt).toBeLessThan(assertTree ? 5_000 : 3_000)
-
-        if (assertTree) {
-          const pids = (await readFile(pidLog, 'utf8')).trim().split(/\s+/).map(Number).filter(Number.isFinite)
-          expect(pids.length).toBeGreaterThan(1)
-          await new Promise(resolve => setTimeout(resolve, 100))
-          expect(pids.filter(isProcessAlive)).toEqual([])
-        }
+        expect(Date.now() - startedAt).toBeLessThan(3_000)
       } finally {
         if (child.pid && isProcessAlive(child.pid)) process.kill(-child.pid, 'SIGKILL')
+        if (existsSync(pidLog)) fixturePids.push(...(await readShellFixturePids(pidLog)))
+        await killFixtureProcesses(fixturePids)
         await rm(root, { force: true, recursive: true })
       }
     },
@@ -120,9 +116,10 @@ describe('read-only lifecycle provider timeout', { timeout: 20_000 }, () => {
     const root = await mkdtemp(join(tmpdir(), 'quantex-provider-tree-'))
     const npm = join(root, 'npm')
     const pidLog = join(root, 'pids.log')
+    const fixturePids: number[] = []
     await writeFile(
       npm,
-      `#!${resolveExecutable('bun')}\nprocess.on('SIGTERM', () => undefined)\nconst child = Bun.spawn([process.execPath, '-e', "process.on('SIGTERM', () => undefined); await new Promise(() => undefined)"], { stdin: 'ignore', stdout: 'ignore', stderr: 'ignore' })\nawait Bun.write(${JSON.stringify(pidLog)}, \`\${process.pid} \${child.pid}\\n\`)\nawait child.exited\n`,
+      `#!${resolveExecutable('bun')}\nsetTimeout(() => process.exit(124), 15_000)\nprocess.on('SIGTERM', () => undefined)\nconst child = Bun.spawn([process.execPath, '-e', "process.on('SIGTERM', () => undefined); await Bun.sleep(15_000)"], { stdin: 'ignore', stdout: 'ignore', stderr: 'ignore' })\nawait Bun.write(${JSON.stringify(pidLog)}, \`\${process.pid} \${child.pid}\\n\`)\nawait child.exited\n`,
     )
     await chmod(npm, 0o755)
     const proc = spawnCommand([npm, 'list', '-g', '@github/copilot', '--depth=0', '--json'], {
@@ -138,11 +135,14 @@ describe('read-only lifecycle provider timeout', { timeout: 20_000 }, () => {
           timeoutMs: 100,
         }),
       ).rejects.toMatchObject({ kind: 'timed-out', timeoutMs: 100 })
-      const pids = (await readFile(pidLog, 'utf8')).trim().split(/\s+/).map(Number).filter(Number.isFinite)
-      expect(pids.length).toBe(2)
-      await waitForProcessesStopped(pids, 1_000)
-      expect(pids.filter(isProcessAlive)).toEqual([])
+      fixturePids.push(...(await readPids(pidLog)))
+      expect(fixturePids.length).toBe(2)
+      await waitForProcessesStopped(fixturePids, 1_000)
+      expect(fixturePids.filter(isProcessAlive)).toEqual([])
     } finally {
+      await forceTerminateProcessTree(proc)
+      if (fixturePids.length === 0 && existsSync(pidLog)) fixturePids.push(...(await readPids(pidLog)))
+      await killFixtureProcesses(fixturePids)
       await rm(root, { force: true, recursive: true })
     }
   }, 20_000)
@@ -195,6 +195,33 @@ async function waitForFile(path: string, timeoutMs: number): Promise<void> {
     await new Promise(resolve => setTimeout(resolve, 5))
   }
   throw new Error(`Timed out waiting for ${path}.`)
+}
+
+async function readPids(path: string): Promise<number[]> {
+  return (await readFile(path, 'utf8')).trim().split(/\s+/).map(Number).filter(Number.isFinite)
+}
+
+async function readShellFixturePids(path: string): Promise<number[]> {
+  return (await readFile(path, 'utf8')).split('\n').flatMap(line => {
+    const match = /^(\d+) (\d+)$/.exec(line.trim())
+    return match ? [Number(match[1]), Number(match[2])] : []
+  })
+}
+
+async function killFixtureProcesses(pids: number[]): Promise<void> {
+  for (const pid of new Set(pids)) {
+    try {
+      process.kill(-pid, 'SIGKILL')
+    } catch {
+      // Only process-group leaders have a matching negative PID.
+    }
+    try {
+      process.kill(pid, 'SIGKILL')
+    } catch {
+      // The fixture may already have exited through the production cleanup path.
+    }
+  }
+  await waitForProcessesStopped(pids, 1_000)
 }
 
 interface JsonDocument extends Partial<CommandResult> {

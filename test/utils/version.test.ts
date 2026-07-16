@@ -5,13 +5,18 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { getCliContext, setCliContext } from '../../src/cli-context'
 import * as config from '../../src/config'
 
-const mockSpawn = vi.fn()
+const mockSpawn = vi.hoisted(() => vi.fn())
 let originalSpawn: typeof Bun.spawn
 const originalFetch = globalThis.fetch
 const mockFetch = vi.fn()
 const getConfigDirSpy = vi.spyOn(config, 'getConfigDir')
 const loadConfigSpy = vi.spyOn(config, 'loadConfig')
 const tempConfigDir = join(tmpdir(), `quantex-version-cache-${Date.now()}`)
+
+vi.mock('cross-spawn', async () => {
+  const { createCrossSpawnMock } = await import('../helpers/cross-spawn-mock')
+  return { default: createCrossSpawnMock(mockSpawn) }
+})
 
 beforeEach(() => {
   originalSpawn = Bun.spawn

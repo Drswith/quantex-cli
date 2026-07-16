@@ -1,6 +1,6 @@
 import { existsSync, mkdirSync, readFileSync, readdirSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
-import { join } from 'node:path'
+import { basename, join } from 'node:path'
 import { afterEach, describe, expect, it } from 'vitest'
 import {
   getIdempotencyDir,
@@ -282,7 +282,7 @@ describe('idempotency storage', () => {
       expect(readFileSync(getIdempotencyFilePath('serialized-key'), 'utf8')).toBe(
         `${JSON.stringify(loaded.record, null, 2)}\n`,
       )
-      expect(readdirSync(getIdempotencyDir())).toEqual([getIdempotencyFilePath('serialized-key').split('/').at(-1)])
+      expect(readdirSync(getIdempotencyDir())).toEqual([basename(getIdempotencyFilePath('serialized-key'))])
     })
 
     it('serializes equivalent evidence identically regardless of object insertion order', async () => {
@@ -314,7 +314,7 @@ describe('idempotency storage', () => {
       await expect(
         saveVersionedIdempotencyRecord('blocked-key', versionedRecordInput(), { now: () => createdAt }),
       ).rejects.toThrow()
-      expect(readdirSync(getIdempotencyDir())).toEqual([finalPath.split('/').at(-1)])
+      expect(readdirSync(getIdempotencyDir())).toEqual([basename(finalPath)])
     })
 
     it('cleans up a partially written temporary file when writing fails', async () => {

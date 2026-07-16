@@ -12,11 +12,13 @@ import * as config from '../src/config'
 const originalFetch = globalThis.fetch
 const getConfigDirSpy = vi.spyOn(config, 'getConfigDir')
 const loadConfigSpy = vi.spyOn(config, 'loadConfig')
+const originalPath = process.env.PATH
 let root: string
 let cancelledBodies = 0
 
 beforeAll(async () => {
   root = await mkdtemp(join(tmpdir(), 'quantex-network-timeout-compat-'))
+  process.env.PATH = root
   getConfigDirSpy.mockReturnValue(root)
   loadConfigSpy.mockResolvedValue({
     defaultPackageManager: 'bun',
@@ -45,6 +47,7 @@ beforeAll(async () => {
 })
 
 afterAll(async () => {
+  process.env.PATH = originalPath
   globalThis.fetch = originalFetch
   getConfigDirSpy.mockRestore()
   loadConfigSpy.mockRestore()

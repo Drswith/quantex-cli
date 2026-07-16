@@ -1,7 +1,12 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
-const mockSpawn = vi.fn()
+const mockSpawn = vi.hoisted(() => vi.fn())
 let originalSpawn: typeof Bun.spawn
+
+vi.mock('cross-spawn', async () => {
+  const { createCrossSpawnMock } = await import('../helpers/cross-spawn-mock')
+  return { default: createCrossSpawnMock(mockSpawn) }
+})
 
 beforeEach(() => {
   originalSpawn = Bun.spawn

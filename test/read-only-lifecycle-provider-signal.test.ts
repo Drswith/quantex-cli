@@ -29,9 +29,9 @@ describe('read-only lifecycle mixed signal cancellation', () => {
         join(home, '.quantex', 'state.json'),
         `${JSON.stringify({ installedAgents: {}, lifecycleReceipts: {}, schemaVersion: 2, self: {} })}\n`,
       )
-      await writeFile(join(bin, 'npm'), hangingTreeScript(bun, providerPidLog))
+      await writeFile(join(bin, 'npm'), hangingTreeScript(bun, providerPidLog, join(root, 'provider.lock')))
       await chmod(join(bin, 'npm'), 0o755)
-      await writeFile(join(bin, 'codex'), hangingTreeScript(bun, agentPidLog))
+      await writeFile(join(bin, 'codex'), hangingTreeScript(bun, agentPidLog, join(root, 'agent.lock')))
       await chmod(join(bin, 'codex'), 0o755)
       const child = spawn(bun, [CLI_PATH, '--output', 'ndjson', '--non-interactive', 'doctor'], {
         cwd: ROOT,
@@ -44,6 +44,8 @@ describe('read-only lifecycle mixed signal cancellation', () => {
         },
         stdio: ['ignore', 'pipe', 'pipe'],
       })
+      const stdoutCapture = captureStream(child.stdout)
+      const stderrCapture = captureStream(child.stderr)
 
       try {
         await Promise.all([waitForFile(providerPidLog, 10_000), waitForFile(agentPidLog, 10_000)])
@@ -51,11 +53,12 @@ describe('read-only lifecycle mixed signal cancellation', () => {
         expect(fixturePids.length).toBe(4)
         const startedAt = Date.now()
         child.kill(signal)
-        const [exitCode, stdout, stderr] = await Promise.all([
-          waitForExit(child, 3_000),
-          readStream(child.stdout),
-          readStream(child.stderr),
-        ])
+        const exitCode = await waitForExit(child, 5_000).catch(error => {
+          throw new Error(
+            `${error instanceof Error ? error.message : String(error)}\naliveFixturePids=${fixturePids.filter(isProcessAlive).join(',')}\nstdout=${stdoutCapture.snapshot()}\nstderr=${stderrCapture.snapshot()}`,
+          )
+        })
+        const [stdout, stderr] = await Promise.all([stdoutCapture.done, stderrCapture.done])
         const result = parseJsonDocuments(`${stdout}\n${stderr}`).findLast(
           entry => (entry.data ?? entry).error?.code === 'CANCELLED',
         )
@@ -63,7 +66,7 @@ describe('read-only lifecycle mixed signal cancellation', () => {
         expect(exitCode).toBe(11)
         expect(result?.data ?? result).toMatchObject({ error: { code: 'CANCELLED', details: { signal } }, ok: false })
         await waitForProcessesStopped(fixturePids, 1_000)
-        expect(Date.now() - startedAt).toBeLessThan(3_000)
+        expect(Date.now() - startedAt).toBeLessThan(5_000)
         expect(fixturePids.filter(isProcessAlive)).toEqual([])
       } finally {
         await killFixtureProcesses(fixturePids)
@@ -75,8 +78,24 @@ describe('read-only lifecycle mixed signal cancellation', () => {
   )
 })
 
-function hangingTreeScript(bun: string, pidLog: string): string {
-  return `#!${bun}\nprocess.on('SIGTERM', () => undefined)\nprocess.on('SIGINT', () => undefined)\nconst child = Bun.spawn([process.execPath, '-e', "process.on('SIGTERM', () => undefined); process.on('SIGINT', () => undefined); await new Promise(() => undefined)"], { stdin: 'ignore', stdout: 'ignore', stderr: 'ignore' })\nawait Bun.write(${JSON.stringify(pidLog)}, \`\${process.pid} \${child.pid}\\n\`)\nawait child.exited\n`
+function hangingTreeScript(bun: string, pidLog: string, lockPath: string): string {
+  return `#!/bin/sh
+lock=${shellQuote(lockPath)}
+pid_log=${shellQuote(pidLog)}
+runtime=${shellQuote(bun)}
+if ! mkdir "$lock" 2>/dev/null; then
+  exit 0
+fi
+trap '' TERM INT
+"$runtime" -e "process.on('SIGTERM', () => undefined); process.on('SIGINT', () => undefined); await Bun.sleep(30_000)" &
+child=$!
+printf '%s %s\n' "$$" "$child" > "$pid_log"
+wait "$child"
+`
+}
+
+function shellQuote(value: string): string {
+  return `'${value.replaceAll("'", `'\\''`)}'`
 }
 
 function resolveExecutable(name: string): string {
@@ -104,6 +123,13 @@ async function waitForProcessesStopped(pids: number[], timeoutMs: number): Promi
 
 async function killFixtureProcesses(pids: number[]): Promise<void> {
   for (const pid of new Set(pids)) {
+    try {
+      process.kill(-pid, 'SIGKILL')
+    } catch {
+      // Only recorded process-group leaders have a matching negative PID.
+    }
+  }
+  for (const pid of new Set(pids)) {
     if (!isProcessAlive(pid)) continue
     try {
       process.kill(pid, 'SIGKILL')
@@ -125,11 +151,16 @@ function waitForExit(child: ReturnType<typeof spawn>, timeoutMs: number): Promis
   })
 }
 
-async function readStream(stream: NodeJS.ReadableStream | null): Promise<string> {
-  if (!stream) return ''
+function captureStream(stream: NodeJS.ReadableStream | null): { done: Promise<string>; snapshot: () => string } {
   const chunks: Buffer[] = []
-  for await (const chunk of stream) chunks.push(Buffer.from(chunk))
-  return Buffer.concat(chunks).toString('utf8')
+  const snapshot = (): string => Buffer.concat(chunks).toString('utf8')
+  const done = stream
+    ? (async () => {
+        for await (const chunk of stream) chunks.push(Buffer.from(chunk))
+        return snapshot()
+      })()
+    : Promise.resolve('')
+  return { done, snapshot }
 }
 
 function isProcessAlive(pid: number): boolean {

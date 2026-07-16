@@ -5,6 +5,7 @@ import { delimiter, join } from 'node:path'
 import process from 'node:process'
 import { text as readText } from 'node:stream/consumers'
 import { describe, expect, it } from 'vitest'
+import { terminateWindowsProcessTree } from '../src/utils/child-process'
 
 interface CommandOutput {
   durationMs: number
@@ -83,7 +84,7 @@ async function installFakeCargo(fakeBinDir: string, logPath: string): Promise<vo
     '}',
     'process.on("SIGTERM", () => complete("fake cargo received SIGTERM"))',
     'process.on("SIGINT", () => complete("fake cargo received SIGINT"))',
-    'setTimeout(() => complete("fake cargo completed without cancellation"), 120_000)',
+    'setTimeout(() => complete("fake cargo completed without cancellation"), 30_000)',
   ].join('\n')
 
   if (process.platform === 'win32') {
@@ -101,6 +102,7 @@ async function runCommand(command: string[], env: Record<string, string>): Promi
   const startedAt = Date.now()
   const [file, ...args] = command
   const proc = spawn(file!, args, {
+    detached: process.platform !== 'win32',
     env: {
       ...process.env,
       ...env,
@@ -111,6 +113,7 @@ async function runCommand(command: string[], env: Record<string, string>): Promi
   const timeout = setTimeout(() => {
     proc.kill('SIGTERM')
   }, 45_000)
+  const forceTimeout = setTimeout(() => void forceKillTestProcessTree(proc), 46_000)
 
   try {
     const [stdout, stderr, exitCode] = await Promise.all([
@@ -127,6 +130,25 @@ async function runCommand(command: string[], env: Record<string, string>): Promi
     }
   } finally {
     clearTimeout(timeout)
+    clearTimeout(forceTimeout)
+    await forceKillTestProcessTree(proc)
+  }
+}
+
+async function forceKillTestProcessTree(proc: ReturnType<typeof spawn>): Promise<void> {
+  if (!proc.pid) return
+  if (process.platform === 'win32') await terminateWindowsProcessTree(proc.pid)
+  else {
+    try {
+      process.kill(-proc.pid, 'SIGKILL')
+    } catch {
+      // Fall through to the direct child kill when the process group already exited.
+    }
+  }
+  try {
+    proc.kill('SIGKILL')
+  } catch {
+    // The child may have exited between the liveness check and forced cleanup.
   }
 }
 
