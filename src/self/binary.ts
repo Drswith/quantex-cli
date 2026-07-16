@@ -4,6 +4,7 @@ import { createHash } from 'node:crypto'
 import { chmod, mkdtemp, rename, rm, stat, writeFile } from 'node:fs/promises'
 import { basename, dirname, join, win32 } from 'node:path'
 import process from 'node:process'
+import { getCliContext, registerCliCancellationHandler } from '../cli-context'
 import { readProcessOutput, spawnCommand } from '../utils/child-process'
 
 type BinaryUpgradeResult = Omit<SelfUpdateResult, 'installSource'>
@@ -15,17 +16,8 @@ export async function upgradeStandaloneBinary(
   expectedVersion?: string,
   windowsPeerExecutablePath: string | undefined = getWindowsStandaloneBinaryPeerPath(executablePath),
 ): Promise<BinaryUpgradeResult> {
-  let response: Response
-
-  try {
-    response = await fetch(downloadUrl)
-  } catch (error) {
-    return createBinaryFailure('network', `Failed to download ${downloadUrl}.`, error)
-  }
-
-  if (!response.ok) {
-    return createBinaryFailure('network', `Failed to download ${downloadUrl}: HTTP ${response.status}.`)
-  }
+  const download = await downloadReleaseBinary(downloadUrl)
+  if (!download.ok) return download.failure
 
   const tempDir = await mkdtemp(join(dirname(executablePath), '.quantex-upgrade-'))
   const tempPath = join(tempDir, basename(executablePath))
@@ -33,7 +25,7 @@ export async function upgradeStandaloneBinary(
   let rollbackAvailable = false
 
   try {
-    const binary = Buffer.from(await response.arrayBuffer())
+    const binary = download.binary
     const executableMode = await resolveExecutableMode(executablePath)
     const actualChecksum = getSha256(binary)
 
@@ -103,6 +95,49 @@ export function getWindowsStandaloneBinaryPeerPath(executablePath: string): stri
   if (executableName === 'quantex.exe') return win32.join(win32.dirname(executablePath), 'qtx.exe')
 
   return undefined
+}
+
+async function downloadReleaseBinary(
+  downloadUrl: string,
+): Promise<{ ok: true; binary: Buffer } | { ok: false; failure: BinaryUpgradeResult }> {
+  const controller = new AbortController()
+  if (getCliContext().cancelled) controller.abort()
+
+  const unregister = registerCliCancellationHandler(() => controller.abort())
+
+  try {
+    let response: Response
+
+    try {
+      response = await fetch(downloadUrl, { signal: controller.signal })
+    } catch (error) {
+      return {
+        failure: createBinaryFailure('network', `Failed to download ${downloadUrl}.`, error),
+        ok: false,
+      }
+    }
+
+    if (!response.ok) {
+      return {
+        failure: createBinaryFailure('network', `Failed to download ${downloadUrl}: HTTP ${response.status}.`),
+        ok: false,
+      }
+    }
+
+    try {
+      return {
+        binary: Buffer.from(await response.arrayBuffer()),
+        ok: true,
+      }
+    } catch (error) {
+      return {
+        failure: createBinaryFailure('network', `Failed to download ${downloadUrl}.`, error),
+        ok: false,
+      }
+    }
+  } finally {
+    unregister()
+  }
 }
 
 async function resolveExecutableMode(executablePath: string): Promise<number> {

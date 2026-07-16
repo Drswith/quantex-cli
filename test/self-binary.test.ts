@@ -6,6 +6,7 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import process from 'node:process'
 import { afterEach, describe, expect, it, vi } from 'vitest'
+import { cancelCliContextOperations, resolveCliContext, setCliContext } from '../src/cli-context'
 import { getWindowsStandaloneBinaryPeerPath, upgradeStandaloneBinary } from '../src/self/binary'
 
 const originalFetch = globalThis.fetch
@@ -292,6 +293,42 @@ describe('upgradeStandaloneBinary', () => {
 
     expect(result.success).toBe(false)
     expect(result.error?.kind).toBe('network')
+  })
+
+  it('aborts an in-flight download when CLI cancellation handlers run', async () => {
+    setCliContext(resolveCliContext({ nonInteractive: true, output: 'json' }))
+
+    let observedSignal: AbortSignal | undefined
+    globalThis.fetch = vi.fn().mockImplementation((_url: string, init?: RequestInit) => {
+      observedSignal = init?.signal ?? undefined
+      return new Promise((_resolve, reject) => {
+        const signal = init?.signal ?? undefined
+        if (!signal) return
+
+        if (signal.aborted) {
+          reject(new DOMException('The operation was aborted.', 'AbortError'))
+          return
+        }
+
+        signal.addEventListener(
+          'abort',
+          () => {
+            reject(new DOMException('The operation was aborted.', 'AbortError'))
+          },
+          { once: true },
+        )
+      })
+    }) as unknown as typeof fetch
+
+    const upgradePromise = upgradeStandaloneBinary('https://example.com/qtx', '/tmp/qtx', 'abc')
+    await Promise.resolve()
+    expect(observedSignal).toBeDefined()
+    await cancelCliContextOperations()
+
+    const result = await upgradePromise
+    expect(result.success).toBe(false)
+    expect(result.error?.kind).toBe('network')
+    expect(observedSignal?.aborted).toBe(true)
   })
 
   it('returns a checksum error and does not replace the executable when the checksum mismatches', async () => {
