@@ -156,6 +156,39 @@ describe('context-aware process observations', () => {
     expect(signals).toEqual(['SIGTERM', 'SIGKILL'])
   })
 
+  it('kills a POSIX process group after its leader exits during the grace period', async () => {
+    if (process.platform === 'win32') return
+    let resolveExit!: (code: number) => void
+    const processKillSpy = vi.spyOn(process, 'kill').mockImplementation(((pid, signal) => {
+      if (pid === -42 && signal === 'SIGTERM') resolveExit(0)
+      return true
+    }) as typeof process.kill)
+    const proc = {
+      exitCode: null,
+      exited: new Promise<number>(resolve => {
+        resolveExit = resolve
+      }),
+      kill: vi.fn(),
+      pid: 42,
+      stderr: null,
+      stdout: null,
+      unref: () => undefined,
+    }
+
+    try {
+      await expect(
+        readProcessOutputWithContext(proc, {
+          signal: new AbortController().signal,
+          timeoutMs: 5,
+        }),
+      ).rejects.toMatchObject({ kind: 'timed-out', timeoutMs: 5 })
+      expect(processKillSpy).toHaveBeenNthCalledWith(1, -42, 'SIGTERM')
+      expect(processKillSpy).toHaveBeenNthCalledWith(2, -42, 'SIGKILL')
+    } finally {
+      processKillSpy.mockRestore()
+    }
+  })
+
   it('uses taskkill tree force flags for Windows cleanup', async () => {
     const calls: unknown[][] = []
     const spawnProcess = ((...args: unknown[]) => {
