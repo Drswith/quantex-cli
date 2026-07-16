@@ -98,9 +98,9 @@
 
 ## 11. Validation and Delivery Closure
 
-- [ ] 11.1 Run `bun run lint`, `bun run format:check`, and `bun run typecheck` after every implementation milestone.
-- [ ] 11.2 Run `bun run test` plus relevant container/sandbox suites after every migrated command family.
-- [ ] 11.3 Run `bun run openspec:validate` and `bun run memory:check` after spec, ADR, or product-documentation changes.
-- [ ] 11.4 Run `bun run build`, `bun run build:bin`, `bun run package:check`, and `bun run release:artifacts` before the final implementation PR is declared ready.
-- [ ] 11.5 Validate every PR body through `bun run pr:body:check` and report implementation, repository, PR, merge, release, and archive closure separately.
-- [ ] 11.6 Before final promotion, verify all implementation PRs are merged and record a ready-to-run post-promotion follow-up for current-spec synchronization and OpenSpec archive closure; completing this readiness task earns its existing implementation credit, while actual spec synchronization and archive execution occur only after `codex/redesign-lifecycle-integration` merges to `main`.
+- [x] 11.1 Run `bun run lint`, `bun run format:check`, and `bun run typecheck` after every implementation milestone.
+- [x] 11.2 Run `bun run test` plus relevant container/sandbox suites after every migrated command family.
+- [x] 11.3 Run `bun run openspec:validate` and `bun run memory:check` after spec, ADR, or product-documentation changes.
+- [x] 11.4 Run `bun run build`, `bun run build:bin`, `bun run package:check`, and `bun run release:artifacts` before the final implementation PR is declared ready.
+- [x] 11.5 Validate every PR body through `bun run pr:body:check` and report implementation, repository, PR, merge, release, and archive closure separately.
+- [x] 11.6 Before final promotion, verify all implementation PRs are merged and record a ready-to-run post-promotion follow-up for current-spec synchronization and OpenSpec archive closure; completing this readiness task earns its existing implementation credit, while actual spec synchronization and archive execution occur only after `codex/redesign-lifecycle-integration` merges to `main`.
