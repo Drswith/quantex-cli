@@ -113,3 +113,26 @@ The stable Release workflow SHALL treat `1.0.0` as a burned stable release versi
 - **AND** the proposed version is `1.0.0`
 - **THEN** Release PR validation MUST reject the PR before automerge
 - **AND** a future 1.0 graduation MUST choose a different publishable stable version
+
+### Requirement: Release targets MUST use the protected-branch allowlist
+
+Every automatic, manual, and Release PR entry point MUST accept only the protected release branches `main` and `beta`. An unknown branch MUST be rejected before release-target resolution, npm tag or channel derivation, Release PR creation or validation, and artifact publication.
+
+#### Scenario: Automatic release observes an unknown branch
+
+- **GIVEN** merge-gating CI succeeds for a branch other than `main` or `beta`
+- **WHEN** the Release workflow evaluates the completed run
+- **THEN** it MUST reject the branch before release-target resolution
+- **AND** it MUST NOT create a Release PR, derive an npm channel, or publish artifacts
+
+#### Scenario: Manual release receives an unknown target
+
+- **WHEN** a maintainer supplies a manual release target other than `main` or `beta`
+- **THEN** the workflow MUST reject the target before resolving release state
+- **AND** it MUST NOT treat the target as a stable or prerelease channel
+
+#### Scenario: Release PR targets an unknown base
+
+- **WHEN** release automation or Release PR validation observes a proposed base other than `main` or `beta`
+- **THEN** it MUST refuse to create, update, validate, or automerge that Release PR
+- **AND** no npm tag, publishing channel, GitHub Release, or release artifact may be derived from that base

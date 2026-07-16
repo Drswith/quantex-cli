@@ -130,3 +130,20 @@ Agents and contributors SHALL run the local PR body governance command before cr
 - **WHEN** local preflight is skipped
 - **THEN** GitHub Actions PR Governance MUST still evaluate the same PR body policy and fail the pull request before merge
 
+### Requirement: Pull request delivery MUST prefer linear history
+
+For ordinary repository pull requests, maintainers and agents MUST select rebase merge first and MAY use squash merge only when rebase is unavailable or unsafe. They MUST NOT select a merge commit or enable automatic merge merely to bypass explicit merge-time verification.
+
+#### Scenario: A ready pull request can be rebased safely
+
+- **GIVEN** the approved pull request head is unchanged and every required check passes
+- **WHEN** the pull request is merged
+- **THEN** the operator MUST prefer rebase merge
+- **AND** the resulting protected-branch history remains linear
+
+#### Scenario: Rebase merge is unavailable or unsafe
+
+- **GIVEN** every required check passes but GitHub or the approved content topology cannot safely use rebase merge
+- **WHEN** the operator selects a fallback
+- **THEN** squash merge MAY be used after the fallback reason is recorded
+- **AND** a merge commit MUST NOT be selected automatically
