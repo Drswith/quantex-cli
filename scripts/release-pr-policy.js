@@ -4,6 +4,8 @@ import process from 'node:process'
 const stableTitlePattern = /^chore: release (\d+\.\d+\.\d+)$/
 const betaTitlePattern = /^chore: release (\d+\.\d+\.\d+-beta(?:\.\d+)?)$/
 const generatedMarker = 'This PR was generated with [Release Please]'
+const finalZeroMajorVersion = '0.29.1'
+const firstPostRedesignVersion = '1.1.0'
 const burnedStableReleaseVersions = new Set(['1.0.0'])
 
 const allowedFiles = new Set([
@@ -65,6 +67,18 @@ export function validateReleasePrPolicy(input) {
         ].join(' '),
       )
     }
+
+    if (baseBranch === 'main' && isLaterZeroMajorRelease(proposedVersion, baseVersion)) {
+      issues.push(
+        `Release PR version "${proposedVersion}" is not allowed because ${finalZeroMajorVersion} is the final stable 0.x release.`,
+      )
+    }
+
+    if (baseBranch === 'main' && isUnapprovedStableGraduation(proposedVersion, baseVersion)) {
+      issues.push(
+        `Release PR version "${proposedVersion}" is not allowed from "${baseVersion}"; the only allowed stable graduation is "${finalZeroMajorVersion}" to "${firstPostRedesignVersion}".`,
+      )
+    }
   }
 
   if (versionMatch && baseBranch === 'main') {
@@ -77,6 +91,30 @@ export function validateReleasePrPolicy(input) {
   }
 
   return issues
+}
+
+export function isLaterZeroMajorRelease(proposedRaw, baseRaw) {
+  const proposed = parseReleaseVersion(proposedRaw)
+  const base = parseReleaseVersion(baseRaw)
+
+  return (
+    baseRaw === finalZeroMajorVersion &&
+    base.prerelease === null &&
+    proposed.prerelease === null &&
+    proposed.major === 0 &&
+    compareReleaseVersions(proposedRaw, baseRaw) > 0
+  )
+}
+
+export function isUnapprovedStableGraduation(proposedRaw, baseRaw) {
+  const proposed = parseReleaseVersion(proposedRaw)
+  const base = parseReleaseVersion(baseRaw)
+
+  if (base.prerelease !== null || proposed.prerelease !== null || base.major !== 0 || proposed.major < 1) {
+    return false
+  }
+
+  return !(baseRaw === finalZeroMajorVersion && proposedRaw === firstPostRedesignVersion)
 }
 
 export function isAccidentalPreMajorGraduation(proposedRaw, baseRaw) {

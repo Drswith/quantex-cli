@@ -31,6 +31,7 @@ jobs:
           ref: ${{ github.event.pull_request.base.sha }}
 
       - name: Validate Release PR scope
+        id: validate-release-pr
         uses: actions/github-script@v7
         with:
           script: |
@@ -72,9 +73,17 @@ jobs:
 
             if (issues.length > 0) {
               core.setFailed(issues.join('\n'))
+              return
             }
 
+            const manualMergeRequired =
+              baseBranch === 'main' &&
+              basePackageJson.version === '0.29.1' &&
+              title === 'chore: release 1.1.0'
+            core.setOutput('manual_merge_required', manualMergeRequired ? 'true' : 'false')
+
       - name: Create release bot token
+        if: steps.validate-release-pr.outputs.manual_merge_required != 'true'
         id: release-bot-token
         uses: actions/create-github-app-token@v3
         with:
@@ -82,6 +91,7 @@ jobs:
           private-key: ${{ secrets.RELEASE_APP_PRIVATE_KEY }}
 
       - name: Enable Release PR auto-merge
+        if: steps.validate-release-pr.outputs.manual_merge_required != 'true'
         env:
           GH_TOKEN: ${{ steps.release-bot-token.outputs.token }}
           PR_URL: ${{ github.event.pull_request.html_url }}

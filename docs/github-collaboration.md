@@ -121,6 +121,10 @@ Release PR creation relies on merged commit metadata. In practice that means:
 - `BREAKING CHANGE:` or `!` produces a major release
 - `docs:`, `test:`, `ci:`, and `chore:` do not create a release unless the commit metadata is explicitly changed to do so later
 
+The stable 0.x line is closed at `0.29.1`. The first post-redesign stable release is exactly `1.1.0`; burned `1.0.0`, later 0.x releases, and other pre-major graduation targets are rejected. The one-time graduation commit carries `Release-As: 1.1.0`, allowing release-please to generate the ordinary trusted Release PR without a permanent override or manual edits to version-controlled release outputs. After `1.1.0`, normal SemVer planning applies.
+
+Ordinary Release PR automation may request auto-merge, but the exact `main@0.29.1 -> chore: release 1.1.0` graduation PR MUST skip release-bot token creation and auto-merge enablement. Required checks must finish before an operator locks the reviewed head and manually selects rebase merge first, with squash as the only documented fallback.
+
 For PRs that only touch workflow, documentation, project-memory, or release-please configuration files, use `ci:`, `chore:`, or `docs:` titles. PR Governance blocks release-worthy metadata for those scopes so release-process changes do not accidentally create stable product Release PRs.
 
 Protected-branch release automation now keys off successful push-side CI completion rather than racing the raw `push` event. A failed `main` or `beta` CI run therefore blocks automated Release PR creation and publication until the branch is green again.
