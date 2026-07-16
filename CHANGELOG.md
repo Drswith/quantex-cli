@@ -2,6 +2,14 @@
 
 This changelog is maintained by release-please Release PRs.
 
+## [0.29.1](https://github.com/Drswith/quantex-cli/compare/v0.29.0...v0.29.1) (2026-07-16)
+
+
+### Bug Fixes
+
+* **process:** clean up orphaned lifecycle test trees ([44f8477](https://github.com/Drswith/quantex-cli/commit/44f84771c51029a48e9a58513cdecf25e89d9404))
+* **windows:** stabilize promotion validation ([05a1f63](https://github.com/Drswith/quantex-cli/commit/05a1f63e15cc41a6925f29410e5281d0987728c3))
+
 ## [0.29.0](https://github.com/Drswith/quantex-cli/compare/v0.28.1...v0.29.0) (2026-07-09)
 
 
