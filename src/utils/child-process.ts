@@ -1,4 +1,5 @@
 import type { ProviderOperationContext } from '../providers'
+import crossSpawn from 'cross-spawn'
 import { spawn, type ChildProcess, type SpawnOptions as NodeSpawnOptions } from 'node:child_process'
 import { accessSync, constants } from 'node:fs'
 import { delimiter, join } from 'node:path'
@@ -8,7 +9,7 @@ import { getCliContext, registerCliCancellationHandler } from '../cli-context'
 
 export type SpawnCommand = readonly string[]
 type SpawnStdio = 'ignore' | 'inherit' | 'pipe'
-type SpawnOptions = Omit<NodeSpawnOptions, 'stdio'> & {
+type SpawnOptions = Omit<NodeSpawnOptions, 'shell' | 'stdio'> & {
   stdio?: [SpawnStdio, SpawnStdio, SpawnStdio]
 }
 
@@ -151,13 +152,13 @@ export function spawnCommand(command: SpawnCommand, options: SpawnOptions = {}):
     throw new Error('spawnCommand requires a non-empty command array.')
   }
 
-  const bunSpawn = options.detached ? undefined : getBunSpawn()
+  const useCrossSpawn = shouldUseCrossSpawnOnWindows(file)
+  const bunSpawn = options.detached || useCrossSpawn ? undefined : getBunSpawn()
   if (bunSpawn) return spawnWithBun([file, ...args], { ...options, env: options.env ?? process.env }, bunSpawn)
 
-  const child = spawn(file, args, {
+  const child = (useCrossSpawn ? crossSpawn : spawn)(file, args, {
     ...options,
     env: options.env ?? process.env,
-    shell: options.shell ?? shouldUseShellOnWindows(file),
   })
 
   return {
@@ -287,8 +288,9 @@ async function readStreamText(stream: unknown): Promise<string> {
   return readText(stream as NodeJS.ReadableStream)
 }
 
-function shouldUseShellOnWindows(file: string): boolean {
-  if (process.platform !== 'win32') return false
+export function shouldUseCrossSpawnOnWindows(file: string, platform: NodeJS.Platform = process.platform): boolean {
+  if (platform !== 'win32') return false
+  if (/\.(?:bat|cmd)$/i.test(file)) return true
   if (file.includes('/') || file.includes('\\')) return false
   return !/\.[a-z0-9]+$/i.test(file)
 }

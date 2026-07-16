@@ -1,12 +1,12 @@
 import type { CommandResult } from '../src/output/types'
 import { spawn } from 'node:child_process'
-import { existsSync } from 'node:fs'
 import { mkdir, mkdtemp, readdir, readFile, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { delimiter, dirname, join, relative } from 'node:path'
 import process from 'node:process'
 import { fileURLToPath } from 'node:url'
 import { describe, expect, it } from 'vitest'
+import { resolveExecutableFromPath } from '../scripts/resolve-executable'
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..')
 const CLI_PATH = join(ROOT, 'src', 'cli.ts')
@@ -17,7 +17,7 @@ describe('read-only network request timeout', () => {
     const home = join(root, 'home')
     const configDir = join(home, '.quantex')
     const preload = join(root, 'headerless-fetch.mjs')
-    const bun = resolveExecutable('bun')
+    const bun = resolveExecutableFromPath('bun')
     await mkdir(configDir, { recursive: true })
     await writeFile(
       join(configDir, 'state.json'),
@@ -66,14 +66,6 @@ describe('read-only network request timeout', () => {
     }
   }, 10_000)
 })
-
-function resolveExecutable(name: string): string {
-  for (const directory of (process.env.PATH ?? '').split(delimiter)) {
-    const candidate = join(directory, name)
-    if (existsSync(candidate)) return candidate
-  }
-  throw new Error(`Unable to find ${name}.`)
-}
 
 function waitForExit(child: ReturnType<typeof spawn>, timeoutMs: number): Promise<number> {
   return new Promise((resolve, reject) => {

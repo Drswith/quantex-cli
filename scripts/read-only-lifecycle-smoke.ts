@@ -3,11 +3,12 @@ import { spawn } from 'node:child_process'
 import { existsSync } from 'node:fs'
 import { chmod, mkdir, mkdtemp, readFile, readdir, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
-import { delimiter, dirname, join } from 'node:path'
+import { dirname, join } from 'node:path'
 import process from 'node:process'
 import { fileURLToPath } from 'node:url'
 import { parseStateDocument } from '../src/state/schema'
 import { assertReadOnlyCommand } from './read-only-spawn-guard'
+import { resolveExecutableFromPath } from './resolve-executable'
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..')
 const CLI_PATH = join(ROOT, 'src', 'cli.ts')
@@ -427,15 +428,6 @@ export function waitForChildExit(
     child.once('error', onError)
     child.once('close', onClose)
   })
-}
-
-function resolveExecutableFromPath(command: string): string {
-  for (const directory of (process.env.PATH ?? '').split(delimiter)) {
-    const candidate = join(directory, command)
-    if (existsSync(candidate)) return candidate
-  }
-
-  throw new Error(`Unable to resolve ${command} from the smoke harness PATH.`)
 }
 
 function assertCommandOutput(

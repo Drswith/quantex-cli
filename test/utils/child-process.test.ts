@@ -1,16 +1,68 @@
 import { EventEmitter } from 'node:events'
+import { existsSync } from 'node:fs'
+import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises'
+import { tmpdir } from 'node:os'
+import { join } from 'node:path'
 import process from 'node:process'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { cancelCliContextOperations, setCliContext } from '../../src/cli-context'
 import {
   readProcessOutputWithContext,
+  readProcessOutput,
+  shouldUseCrossSpawnOnWindows,
+  spawnCommand,
   spawnWithQuantexStdio,
   terminateWindowsProcessTree,
   waitForSpawnedCommand,
 } from '../../src/utils/child-process'
 
 const mockSpawn = vi.fn()
+const crossSpawnOverride = vi.hoisted(() => vi.fn())
 let originalSpawn: typeof Bun.spawn
+
+vi.mock('cross-spawn', async importOriginal => {
+  const actual = await importOriginal<unknown>()
+  const actualSpawn = (actual as { default: typeof import('cross-spawn') }).default
+  const { createCrossSpawnMock } = await import('../helpers/cross-spawn-mock')
+  const adaptedOverride = createCrossSpawnMock(crossSpawnOverride)
+  return {
+    default: (...args: Parameters<typeof actualSpawn>) =>
+      crossSpawnOverride.getMockImplementation() ? adaptedOverride(...args) : actualSpawn(...args),
+  }
+})
+
+describe('Windows shim selection', () => {
+  it('routes extensionless PATH commands and explicit command shims through cross-spawn', () => {
+    expect(shouldUseCrossSpawnOnWindows('npm', 'win32')).toBe(true)
+    expect(shouldUseCrossSpawnOnWindows('npm.cmd', 'win32')).toBe(true)
+    expect(shouldUseCrossSpawnOnWindows('C:\\tools\\npm.cmd', 'win32')).toBe(true)
+    expect(shouldUseCrossSpawnOnWindows('npm.exe', 'win32')).toBe(false)
+    expect(shouldUseCrossSpawnOnWindows('npm', 'linux')).toBe(false)
+  })
+
+  it.skipIf(process.platform !== 'win32')('preserves metacharacter arguments without executing them', async () => {
+    const root = await mkdtemp(join(tmpdir(), 'quantex-windows-shim-'))
+    const capture = join(root, 'capture.cjs')
+    const shim = join(root, 'capture.cmd')
+    const output = join(root, 'args.json')
+    const injected = join(root, 'injected.txt')
+    const args = ['with space', '&', '|', '>', '^', '(value)', '"quoted"', `& echo injected > "${injected}"`]
+    try {
+      await writeFile(
+        capture,
+        `require('node:fs').writeFileSync(${JSON.stringify(output)}, JSON.stringify(process.argv.slice(2)))\n`,
+      )
+      await writeFile(shim, '@echo off\r\nnode "%~dp0capture.cjs" %*\r\n')
+      const result = await readProcessOutput(spawnCommand([shim, ...args], { stdio: ['ignore', 'pipe', 'pipe'] }))
+
+      expect(result.exitCode).toBe(0)
+      expect(JSON.parse(await readFile(output, 'utf8'))).toEqual(args)
+      expect(existsSync(injected)).toBe(false)
+    } finally {
+      await rm(root, { force: true, recursive: true })
+    }
+  })
+})
 
 describe('spawnWithQuantexStdio', () => {
   let stderrWriteSpy: ReturnType<typeof vi.spyOn>
@@ -18,6 +70,7 @@ describe('spawnWithQuantexStdio', () => {
   beforeEach(() => {
     originalSpawn = Bun.spawn
     Bun.spawn = mockSpawn as any
+    crossSpawnOverride.mockImplementation(mockSpawn)
     stderrWriteSpy = vi.spyOn(process.stderr, 'write').mockReturnValue(true)
   })
 
@@ -25,6 +78,7 @@ describe('spawnWithQuantexStdio', () => {
     Bun.spawn = originalSpawn
     stderrWriteSpy.mockRestore()
     mockSpawn.mockReset()
+    crossSpawnOverride.mockReset()
   })
 
   it('inherits stdio in human mode', async () => {

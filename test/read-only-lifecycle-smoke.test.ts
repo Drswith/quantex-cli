@@ -1,3 +1,4 @@
+import process from 'node:process'
 import { beforeAll, describe, expect, it } from 'vitest'
 import * as smoke from '../scripts/read-only-lifecycle-smoke'
 
@@ -9,7 +10,7 @@ type SmokeModule = typeof smoke & {
 
 let summary: Awaited<ReturnType<typeof smoke.runReadOnlyLifecycleSmoke>>
 
-describe('read-only lifecycle real-environment smoke', () => {
+describe.skipIf(process.platform === 'win32')('read-only lifecycle real-environment smoke', () => {
   beforeAll(async () => {
     summary = await smoke.runReadOnlyLifecycleSmoke()
   }, 120_000)

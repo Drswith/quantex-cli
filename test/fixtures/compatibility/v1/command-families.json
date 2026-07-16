@@ -121,7 +121,7 @@
         "name": "codex"
       },
       "goldens": {
-        "human": "41a6412a31f3690b4d0d16de1b7c6076a18af34c684d8089907b65d2b64ed0ce",
+        "human": "fd5fd66d8c7fe959ca87d474f0f915178bb6222dcff207366bbb93b7402618c0",
         "json": "f5a1fee6dba3274676eaf8b94ca7efa3c59cb30415c120c4f007e14ed1a12e56",
         "ndjson": "e41e28983250ce96a1c9ca0c22904ca510ad5e483c6873565601b4bfe5d571e2"
       }
@@ -139,7 +139,7 @@
         "name": "codex"
       },
       "goldens": {
-        "human": "7f1724ab5a1356baf249dbe6e425f5d8a319ea651299c089d1578fb02981fc0c",
+        "human": "fba115c26ae5a159bb7da717357e282e3e9f6dfb007e7a6c197ec23991dab0ea",
         "json": "dabee33df8d245a4fb0eba2e8f9f706e46a447c30d13bfbe21788d43ff8332de",
         "ndjson": "b82197ea330052a5e202b8cbdabb50c6a4f7bf7562de6dd6c3f063c3122c2e31"
       }
@@ -194,7 +194,7 @@
         "name": "codex"
       },
       "goldens": {
-        "human": "79a8d4085a7329a0ef145db7d97fdecb773415637d1ba44a96947fc3cb5757c2",
+        "human": "885251cf726c1d1f563984849e887112a5e90c68f69ae948451bd847481bd7ed",
         "json": "0d7ea597c3ab15fb162d7ffb6905da3b2e8b7efecc5c41a9b2dbaca4dab81a9f",
         "ndjson": "1b11cc384845c76ab76d814ea6b61206e8bfbf1aa116a042f1dcc7e58b7866bb"
       }

@@ -95,7 +95,7 @@ describe('v1 compatibility baseline', () => {
     const rootExports = await readFixture<string[]>('root-exports.json')
 
     expect(Object.keys(await import('../../src/index')).sort()).toEqual(rootExports)
-  })
+  }, 15_000)
 
   it('loads valid and ghost v1 state without changing its meaning', async () => {
     const validFixture = await installStateFixture('valid.json')

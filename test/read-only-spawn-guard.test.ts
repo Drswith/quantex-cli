@@ -1,15 +1,15 @@
 import { spawnSync } from 'node:child_process'
-import { existsSync } from 'node:fs'
 import { chmod, mkdtemp, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
-import { delimiter, dirname, join } from 'node:path'
+import { dirname, join } from 'node:path'
 import process from 'node:process'
 import { fileURLToPath } from 'node:url'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
+import { resolveExecutableFromPath } from '../scripts/resolve-executable'
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..')
 const GUARD_PATH = join(ROOT, 'scripts', 'read-only-spawn-guard.ts')
-const BUN_PATH = resolveExecutable('bun')
+const BUN_PATH = resolveExecutableFromPath('bun')
 const SAFE_COMMANDS = ['bash', 'brew', 'bun', 'cargo', 'curl', 'deno', 'mise', 'npm', 'pip', 'sh', 'uv', 'winget']
 
 let sentinelDir: string
@@ -17,9 +17,9 @@ let sentinelDir: string
 beforeAll(async () => {
   sentinelDir = await mkdtemp(join(tmpdir(), 'quantex-readonly-guard-'))
   for (const command of SAFE_COMMANDS) {
-    const path = join(sentinelDir, command)
-    await writeFile(path, '#!/bin/sh\nexit 0\n')
-    await chmod(path, 0o755)
+    const path = join(sentinelDir, process.platform === 'win32' ? `${command}.cmd` : command)
+    await writeFile(path, process.platform === 'win32' ? '@exit /b 0\r\n' : '#!/bin/sh\nexit 0\n')
+    if (process.platform !== 'win32') await chmod(path, 0o755)
   }
 })
 
@@ -71,6 +71,7 @@ function runProbe(command: string[]): { status: number; stderr: string } {
   const result = spawnSync(BUN_PATH, ['--preload', GUARD_PATH, '-e', script], {
     cwd: ROOT,
     env: {
+      ...process.env,
       HOME: sentinelDir,
       PATH: sentinelDir,
       QUANTEX_READ_ONLY_GUARD: '1',
@@ -82,12 +83,4 @@ function runProbe(command: string[]): { status: number; stderr: string } {
     status: result.status ?? 1,
     stderr: result.stderr,
   }
-}
-
-function resolveExecutable(command: string): string {
-  for (const directory of (process.env.PATH ?? '').split(delimiter)) {
-    const candidate = join(directory, command)
-    if (existsSync(candidate)) return candidate
-  }
-  throw new Error(`Unable to resolve ${command}.`)
 }
