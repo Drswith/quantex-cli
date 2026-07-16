@@ -2,6 +2,17 @@
 
 This changelog is maintained by release-please Release PRs.
 
+## [1.1.0](https://github.com/Drswith/quantex-cli/compare/v0.29.1...v1.1.0) (2026-07-16)
+
+
+### ⚠ BREAKING CHANGES
+
+* **release:** graduate post-redesign line
+
+### Features
+
+* **release:** graduate post-redesign line ([3b65af0](https://github.com/Drswith/quantex-cli/commit/3b65af03987ea16b02036912c9444e5314c211ba))
+
 ## [0.29.1](https://github.com/Drswith/quantex-cli/compare/v0.29.0...v0.29.1) (2026-07-16)
 
 
