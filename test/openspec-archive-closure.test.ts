@@ -1,5 +1,10 @@
 import { describe, expect, it } from 'vitest'
-import { createArchivePrBody } from '../scripts/openspec-archive-closure'
+import {
+  assertOpenSpecArchiveReady,
+  assertOpenSpecTasksComplete,
+  createArchivePrBody,
+  parseOpenSpecApplyInstructions,
+} from '../scripts/openspec-archive-closure'
 import { validatePrBodyPolicy } from '../scripts/pr-body-policy'
 
 describe('OpenSpec archive closure helper', () => {
@@ -15,5 +20,93 @@ describe('OpenSpec archive closure helper', () => {
         title: 'docs(openspec): archive completed changes',
       }),
     ).toEqual([])
+  })
+
+  it('accepts archive closure only when every task is complete', () => {
+    expect(() =>
+      assertOpenSpecTasksComplete('completed-change', {
+        complete: 30,
+        remaining: 0,
+        total: 30,
+      }),
+    ).not.toThrow()
+  })
+
+  it('rejects artifact-complete changes whose task list is incomplete', () => {
+    expect(() =>
+      assertOpenSpecTasksComplete('incomplete-change', {
+        complete: 15,
+        remaining: 15,
+        total: 30,
+      }),
+    ).toThrow(
+      'OpenSpec change "incomplete-change" has incomplete tasks (15/30, 15 remaining). Complete its task list before archiving.',
+    )
+  })
+
+  it('rejects inconsistent progress that reports no remaining tasks before the total is complete', () => {
+    expect(() =>
+      assertOpenSpecTasksComplete('inconsistent-change', {
+        complete: 15,
+        remaining: 0,
+        total: 30,
+      }),
+    ).toThrow('OpenSpec change "inconsistent-change" has incomplete tasks (15/30, 0 remaining).')
+  })
+
+  it('preflights archive readiness through apply instructions and accepts complete task progress', () => {
+    const calls: Array<{ args: string[]; command: string; options?: { capture?: boolean } }> = []
+
+    expect(() =>
+      assertOpenSpecArchiveReady('completed-change', (command, args, options) => {
+        calls.push({ args, command, options })
+        return `$ openspec instructions --json apply --change completed-change
+{
+  "changeName": "completed-change",
+  "progress": { "total": 30, "complete": 30, "remaining": 0 }
+}`
+      }),
+    ).not.toThrow()
+
+    expect(calls).toEqual([
+      {
+        args: ['run', 'openspec:instructions', '--', 'apply', '--change', 'completed-change'],
+        command: 'bun',
+        options: { capture: true },
+      },
+    ])
+  })
+
+  it('rejects incomplete task progress returned by apply instructions', () => {
+    expect(() =>
+      assertOpenSpecArchiveReady('incomplete-change', () =>
+        JSON.stringify({
+          changeName: 'incomplete-change',
+          progress: { complete: 15, remaining: 15, total: 30 },
+        }),
+      ),
+    ).toThrow('OpenSpec change "incomplete-change" has incomplete tasks (15/30, 15 remaining).')
+  })
+
+  it('rejects apply instructions with missing task progress', () => {
+    expect(() =>
+      parseOpenSpecApplyInstructions(
+        JSON.stringify({ changeName: 'malformed-change', isComplete: true }),
+        'malformed-change',
+      ),
+    ).toThrow('OpenSpec apply instructions for "malformed-change" have invalid task progress.')
+  })
+
+  it('rejects task progress returned for a different change', () => {
+    expect(() =>
+      assertOpenSpecArchiveReady('incomplete-change', () =>
+        JSON.stringify({
+          changeName: 'completed-change',
+          progress: { complete: 30, remaining: 0, total: 30 },
+        }),
+      ),
+    ).toThrow(
+      'OpenSpec apply instructions change mismatch: requested "incomplete-change", received "completed-change".',
+    )
   })
 })

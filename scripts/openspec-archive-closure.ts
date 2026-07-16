@@ -12,9 +12,15 @@ interface ArchiveClosureOptions {
   title: string
 }
 
-interface OpenSpecStatus {
+export interface OpenSpecApplyInstructions {
   changeName: string
-  isComplete: boolean
+  progress: OpenSpecTaskProgress
+}
+
+export interface OpenSpecTaskProgress {
+  complete: number
+  remaining: number
+  total: number
 }
 
 const rootDir = resolve(dirname(fileURLToPath(import.meta.url)), '..')
@@ -84,12 +90,7 @@ async function runArchiveClosure(options: ArchiveClosureOptions): Promise<void> 
   }
 
   for (const changeId of options.changeIds) {
-    const status = readOpenSpecStatus(changeId)
-    if (!status.isComplete) {
-      throw new Error(
-        `OpenSpec change "${status.changeName}" is not complete. Complete its task list before archiving.`,
-      )
-    }
+    assertOpenSpecArchiveReady(changeId)
   }
 
   for (const changeId of options.changeIds) {
@@ -119,16 +120,50 @@ async function runArchiveClosure(options: ArchiveClosureOptions): Promise<void> 
   }
 }
 
-function readOpenSpecStatus(changeId: string): OpenSpecStatus {
-  const result = runChecked('bun', ['run', 'openspec:status', '--', '--change', changeId], { capture: true })
-  const jsonStart = result.indexOf('{')
-  const jsonEnd = result.lastIndexOf('}')
+export function assertOpenSpecTasksComplete(changeName: string, progress: OpenSpecTaskProgress): void {
+  const isComplete = progress.total > 0 && progress.complete === progress.total && progress.remaining === 0
+
+  if (!isComplete) {
+    throw new Error(
+      `OpenSpec change "${changeName}" has incomplete tasks (${progress.complete}/${progress.total}, ${progress.remaining} remaining). Complete its task list before archiving.`,
+    )
+  }
+}
+
+type CommandRunner = (command: string, args: string[], options?: { capture?: boolean }) => string
+
+export function assertOpenSpecArchiveReady(changeId: string, run: CommandRunner = runChecked): void {
+  const result = run('bun', ['run', 'openspec:instructions', '--', 'apply', '--change', changeId], { capture: true })
+  const instructions = parseOpenSpecApplyInstructions(result, changeId)
+  assertOpenSpecTasksComplete(instructions.changeName, instructions.progress)
+}
+
+export function parseOpenSpecApplyInstructions(output: string, changeId: string): OpenSpecApplyInstructions {
+  const jsonStart = output.indexOf('{')
+  const jsonEnd = output.lastIndexOf('}')
 
   if (jsonStart === -1 || jsonEnd === -1 || jsonEnd < jsonStart) {
-    throw new Error(`Could not parse OpenSpec status for "${changeId}".`)
+    throw new Error(`Could not parse OpenSpec apply instructions for "${changeId}".`)
   }
 
-  return JSON.parse(result.slice(jsonStart, jsonEnd + 1)) as OpenSpecStatus
+  const instructions = JSON.parse(output.slice(jsonStart, jsonEnd + 1)) as OpenSpecApplyInstructions
+
+  if (
+    typeof instructions.changeName !== 'string' ||
+    typeof instructions.progress?.complete !== 'number' ||
+    typeof instructions.progress?.remaining !== 'number' ||
+    typeof instructions.progress?.total !== 'number'
+  ) {
+    throw new Error(`OpenSpec apply instructions for "${changeId}" have invalid task progress.`)
+  }
+
+  if (instructions.changeName !== changeId) {
+    throw new Error(
+      `OpenSpec apply instructions change mismatch: requested "${changeId}", received "${instructions.changeName}".`,
+    )
+  }
+
+  return instructions
 }
 
 function archiveChange(changeId: string, applySpecs: boolean): void {
