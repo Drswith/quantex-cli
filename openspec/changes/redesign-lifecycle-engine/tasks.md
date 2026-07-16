@@ -12,7 +12,7 @@
 - [x] 2.1 Introduce per-invocation runtime context ports for clock, cancellation, timeout, process, filesystem, network, locks, cache, and persistence.
 - [x] 2.2 Define typed lifecycle intent, observation, drift, plan, step, postcondition, verification, receipt, and outcome models without CLI dependencies.
 - [x] 2.3 Implement pure plan validation for ordered steps, declared effects, required provider capabilities, postconditions, and compensation metadata.
-- [ ] 2.4 Replace internal boolean operation results with typed outcomes while preserving v1 error and exit mapping at the compatibility boundary.
+- [x] 2.4 Replace internal boolean operation results with typed outcomes while preserving v1 error and exit mapping at the compatibility boundary.
 - [x] 2.5 Add unit tests proving concurrent in-process invocations cannot share cancellation, cache, dry-run, quiet, or output state.
 
 ## 3. Command Contract Registry
@@ -92,9 +92,9 @@
 - [x] 10.1 Route all maintained root-package exports through a compatibility facade and add downstream compilation/runtime fixtures.
 - [x] 10.2 Verify the `quantex` alias package and both `qtx`/`quantex` binaries continue to expose equivalent entry points.
 - [x] 10.3 Run the complete v1 protocol, stream, exit-code, config, state, and root-export compatibility suite against the new default routes.
-- [ ] 10.4 Update product documentation and generated command/catalog references only after the new default behavior is verified.
-- [ ] 10.5 Remove legacy command-specific lifecycle implementations only after every default route uses the new engine and rollback criteria are satisfied.
-- [ ] 10.6 Keep any future root-export removal outside this change and require a separately approved deprecation proposal.
+- [x] 10.4 Update product documentation and generated command/catalog references only after the new default behavior is verified.
+- [x] 10.5 Remove legacy command-specific lifecycle implementations only after every default route uses the new engine and rollback criteria are satisfied.
+- [x] 10.6 Keep any future root-export removal outside this change and require a separately approved deprecation proposal.
 
 ## 11. Validation and Delivery Closure
 

@@ -21,26 +21,36 @@ interface Scenario {
   }
   readonly executable?: { readonly path?: string; readonly present: boolean; readonly version?: string }
   readonly name: string
-  readonly outcomes?: Partial<Record<'bun' | 'cargo' | 'npm', ObservationOutcome>>
+  readonly outcomes?: Partial<Record<'bun' | 'cargo' | 'npm' | 'script', ObservationOutcome>>
   readonly receipt?: LifecycleReceipt
-  readonly rejectingProviders?: readonly ('bun' | 'cargo' | 'npm')[]
+  readonly rejectingProviders?: readonly ('bun' | 'cargo' | 'npm' | 'script')[]
   readonly state?: InstalledAgentState
 }
 
-const absent = (providerId: 'bun' | 'cargo' | 'npm'): ObservationOutcome => ({
+const absent = (providerId: 'bun' | 'cargo' | 'npm' | 'script'): ObservationOutcome => ({
   kind: 'success',
   value: {
     kind: 'absent',
-    target: { id: providerId === 'cargo' ? 'test-cargo' : 'test-pkg', kind: 'package' },
+    target:
+      providerId === 'cargo'
+        ? { id: 'test-cargo', kind: 'package' }
+        : providerId === 'script'
+          ? { id: 'install-script', kind: 'script' }
+          : { id: 'test-pkg', kind: 'package' },
   },
 })
 
-const present = (providerId: 'bun' | 'cargo' | 'npm', path = '/bin/test-bin'): ObservationOutcome => ({
+const present = (providerId: 'bun' | 'cargo' | 'npm' | 'script', path = '/bin/test-bin'): ObservationOutcome => ({
   kind: 'success',
   value: {
     executablePath: path,
     kind: 'present',
-    target: { id: providerId === 'cargo' ? 'test-cargo' : 'test-pkg', kind: 'package' },
+    target:
+      providerId === 'cargo'
+        ? { id: 'test-cargo', kind: 'package' }
+        : providerId === 'script'
+          ? { id: 'install-script', kind: 'script' }
+          : { id: 'test-pkg', kind: 'package' },
     version: providerId === 'bun' ? '1.2.3' : '2.0.0',
   },
 })
@@ -123,6 +133,87 @@ const scenarios: readonly Scenario[] = [
         reason: 'probe failed',
         retryable: true,
       },
+    },
+  },
+  {
+    expected: { drift: 'none', kind: 'absent', providerOutcomeKind: 'success' },
+    name: 'allows install through a conclusively absent provider when an alternative probe is unresolved',
+    outcomes: {
+      npm: {
+        kind: 'indeterminate',
+        reason: 'npm package presence is unavailable',
+      },
+    },
+  },
+  {
+    expected: { drift: 'indeterminate', kind: 'indeterminate', providerOutcomeKind: 'indeterminate' },
+    name: 'does not use absence from an alternative provider when the preferred provider is unresolved',
+    outcomes: {
+      bun: { kind: 'indeterminate', reason: 'bun package presence is unavailable' },
+      npm: absent('npm'),
+    },
+  },
+  {
+    expected: { drift: 'indeterminate', kind: 'indeterminate', providerOutcomeKind: 'cancelled' },
+    name: 'keeps candidate cancellation ahead of conclusive absence from another provider',
+    outcomes: { npm: { kind: 'cancelled', reason: 'test cancellation' } },
+  },
+  {
+    expected: {
+      binding: { providerId: 'bun', target: { id: 'test-pkg', kind: 'package' } },
+      capabilities: ['availability', 'observe', 'update'],
+      drift: 'conflicting-source',
+      kind: 'present',
+      path: '/bin/test-bin',
+      providerId: 'bun',
+      providerOutcomeKind: 'success',
+      version: '1.2.3',
+    },
+    name: 'does not let absent or unresolved alternatives hide a live provider',
+    outcomes: {
+      bun: present('bun'),
+      npm: { kind: 'indeterminate', reason: 'npm package presence is unavailable' },
+    },
+  },
+  {
+    executable: { path: '/bin/test-bin', present: true, version: '1.2.3' },
+    expected: {
+      binding: { providerId: 'bun', target: { id: 'test-pkg', kind: 'package' } },
+      capabilities: ['availability', 'observe', 'update'],
+      drift: 'untracked',
+      kind: 'present',
+      path: '/bin/test-bin',
+      providerId: 'bun',
+      providerOutcomeKind: 'success',
+      version: '1.2.3',
+    },
+    name: 'keeps exact managed ownership authoritative over executable-only and unresolved alternatives',
+    outcomes: {
+      bun: present('bun'),
+      npm: { kind: 'indeterminate', reason: 'npm package presence is unavailable' },
+      script: present('script'),
+    },
+  },
+  {
+    executable: { path: '/tmp/quantex-home/.bun/bin/test-bin', present: true },
+    expected: {
+      drift: 'indeterminate',
+      kind: 'indeterminate',
+      path: '/tmp/quantex-home/.bun/bin/test-bin',
+      providerOutcomeKind: 'indeterminate',
+    },
+    name: 'does not let executable-only evidence bypass an unresolved exact provider on a managed path',
+    outcomes: {
+      bun: { kind: 'indeterminate', reason: 'bun package presence is unavailable' },
+      script: present('script', '/tmp/quantex-home/.bun/bin/test-bin'),
+    },
+  },
+  {
+    expected: { drift: 'indeterminate', kind: 'indeterminate', providerOutcomeKind: 'indeterminate' },
+    name: 'does not install when weak live evidence appears after the initial PATH observation',
+    outcomes: {
+      npm: { kind: 'indeterminate', reason: 'npm package presence is unavailable' },
+      script: present('script'),
     },
   },
   {
@@ -344,6 +435,7 @@ describe('observeAgentLifecycle', () => {
         inspectExecutable: vi.fn(async () => scenario.executable ?? { present: false }),
         mutateState,
         platform: 'linux',
+        preferredCatalogBinding: { providerId: 'bun', target: { id: 'test-pkg', kind: 'package' } },
         providerRegistry: registry,
         readInstalledState,
         readReceipt,
@@ -376,6 +468,10 @@ describe('observeAgentLifecycle', () => {
         { providerId: 'bun', target: { id: 'test-pkg', kind: 'package' } },
         { providerId: 'npm', target: { id: 'test-pkg', kind: 'package' } },
         { providerId: 'cargo', target: { id: 'test-cargo', kind: 'package' } },
+        {
+          providerId: 'script',
+          target: { binaryName: 'test-bin', id: 'install-script', kind: 'script' },
+        },
       ])
       expect(readInstalledState).toHaveBeenCalledWith('test-agent')
       expect(readReceipt).toHaveBeenCalledWith('test-agent')
@@ -411,7 +507,7 @@ function createRegistry(
   outcomes: Scenario['outcomes'] = {},
   rejectingProviders: Scenario['rejectingProviders'] = [],
 ): ProviderRegistry {
-  const adapters = (['bun', 'npm', 'cargo'] as const).map(providerId => {
+  const adapters = (['bun', 'npm', 'cargo', 'script'] as const).map(providerId => {
     const adapter: ProviderAdapter = {
       availability: async () => ({ kind: 'success', value: { executable: providerId } }),
       id: providerId,
@@ -449,6 +545,7 @@ const agent: AgentDefinition = {
       { packageName: 'test-pkg', type: 'bun' },
       { packageName: 'test-pkg', type: 'npm' },
       { packageName: 'test-cargo', type: 'cargo' },
+      { command: 'install-script', type: 'script' },
     ],
   },
 }

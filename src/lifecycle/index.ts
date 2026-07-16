@@ -1,5 +1,6 @@
 export {
   type AgentInstallationExecutionValue,
+  type AgentInstallationObservation,
   type AgentInstallationRoute,
   reconcileAgentInstallation,
   type ReconcileAgentInstallationInput,
@@ -62,11 +63,3 @@ export {
   reconcileVerifiedMutation,
   type VerifiedMutation,
 } from './reconcile'
-export {
-  compareShadowMutationDecision,
-  type ShadowLifecycleMutationInput,
-  type ShadowLifecycleMutationResult,
-  type ShadowMutationDecisionComparison,
-  type ShadowMutationDecisionInput,
-  shadowPlanLifecycleMutation,
-} from './shadow-planning'

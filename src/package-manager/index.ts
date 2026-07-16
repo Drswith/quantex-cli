@@ -1,11 +1,14 @@
 import type { AgentDefinition, InstallMethod, ManagedInstallType } from '../agents/types'
 import type { NpmBunUpdateStrategy } from '../config'
+import type { LifecycleOutcome } from '../lifecycle/model'
+import type { ProviderOperationContext } from '../providers'
 import type { InstalledAgentState } from '../state'
-import type { ManagedInstallerUpdateOptions, ManagedPackageSpec } from './installers'
+import type { ManagedInstallerUpdateOptions, ManagedMutationOutcome, ManagedPackageSpec } from './installers'
 import { AsyncLocalStorage } from 'node:async_hooks'
 import { getCliContext } from '../cli-context'
 import { loadConfig } from '../config'
 import { binaryProviderAdapter, scriptProviderAdapter } from '../providers/adapters/install-effect'
+import { createCliOperationContext } from '../runtime/cli-operation-context'
 import { getInstalledAgentState, removeInstalledAgentState, setInstalledAgentState } from '../state'
 import { getPlatform } from '../utils/detect'
 import {
@@ -16,7 +19,7 @@ import {
 } from '../utils/install'
 import { withResourceLock } from '../utils/lock'
 import { runBinaryInstall } from './binary'
-import { getManagedInstaller } from './installers'
+import { getTypedManagedInstaller } from './installers'
 
 export type { ManagedInstallType } from '../agents/types'
 export type { ManagedPackageSpec } from './installers'
@@ -25,6 +28,12 @@ export interface AgentOperationResult {
   success: boolean
   installedState?: InstalledAgentState
 }
+
+export interface AgentMutationValue {
+  readonly installedState?: InstalledAgentState
+}
+
+export type AgentMutationOutcome = LifecycleOutcome<AgentMutationValue>
 
 const lifecycleLock = {
   resource: 'agent lifecycle',
@@ -71,20 +80,46 @@ async function executeManagedMethod(
   packageTargetKind: InstalledAgentState['packageTargetKind'],
   action: 'install' | 'update' | 'uninstall',
   updateStrategy?: NpmBunUpdateStrategy,
-): Promise<boolean> {
-  const installer = getManagedInstaller(type)
-  if (!(await installer.isAvailable())) return false
+  context?: ProviderOperationContext,
+): Promise<ManagedMutationOutcome> {
+  if (!context) {
+    const operation = createCliOperationContext()
+    try {
+      return await executeManagedMethod(
+        type,
+        packageName,
+        binaryName,
+        packageInstallArgs,
+        packageTargetKind,
+        action,
+        updateStrategy,
+        operation.context,
+      )
+    } finally {
+      operation.dispose()
+    }
+  }
 
-  if (action === 'install') return installer.install(packageName, packageTargetKind, packageInstallArgs)
+  const installer = getTypedManagedInstaller(type)
+  if (!(await installer.isAvailable(context))) {
+    return { kind: 'unavailable', reason: `${type} executable is unavailable`, retryable: false }
+  }
+
+  if (action === 'install') return installer.install(packageName, packageTargetKind, packageInstallArgs, context)
 
   if (action === 'update')
-    return installer.update(packageName, packageTargetKind, {
-      binaryName,
-      npmBunUpdateStrategy: updateStrategy,
-      packageInstallArgs,
-    })
+    return installer.update(
+      packageName,
+      packageTargetKind,
+      {
+        binaryName,
+        npmBunUpdateStrategy: updateStrategy,
+        packageInstallArgs,
+      },
+      context,
+    )
 
-  return installer.uninstall(packageName, packageTargetKind, { binaryName })
+  return installer.uninstall(packageName, packageTargetKind, { binaryName }, context)
 }
 
 async function executeMethod(
@@ -92,10 +127,12 @@ async function executeMethod(
   method: InstallMethod,
   action: 'install' | 'update',
   updateStrategy?: NpmBunUpdateStrategy,
-): Promise<boolean> {
+): Promise<ManagedMutationOutcome> {
   if (isManagedInstallType(method.type)) {
     const packageName = getManagedPackageName(agent, method)
-    if (!packageName) return false
+    if (!packageName) {
+      return { kind: 'failed', reason: `package target is missing for ${agent.name}`, retryable: false }
+    }
 
     return executeManagedMethod(
       method.type,
@@ -108,20 +145,28 @@ async function executeMethod(
     )
   }
 
-  if (action === 'update' && !canUpdateInstallType(method.type)) return false
+  if (action === 'update' && !canUpdateInstallType(method.type)) {
+    return { kind: 'unsupported', operation: 'update' }
+  }
 
-  if (!method.command) return false
+  if (!method.command)
+    return { kind: 'failed', reason: `install effect is missing for ${agent.name}`, retryable: false }
   const adapter = method.type === 'script' ? scriptProviderAdapter : binaryProviderAdapter
-  const outcome = await adapter.install?.({
-    context: { signal: new AbortController().signal },
-    target: {
-      binaryName: method.binaryName ?? agent.binaryName,
-      effect: { command: method.command, kind: 'shell-script' },
-      id: agent.name,
-      kind: method.type,
-    },
-  })
-  return outcome?.kind === 'success'
+  const operation = createCliOperationContext()
+  try {
+    const outcome = await adapter.install?.({
+      context: operation.context,
+      target: {
+        binaryName: method.binaryName ?? agent.binaryName,
+        effect: { command: method.command, kind: 'shell-script' },
+        id: agent.name,
+        kind: method.type,
+      },
+    })
+    return outcome ?? { kind: 'unsupported', operation: action }
+  } finally {
+    operation.dispose()
+  }
 }
 
 function resolveManagedPackageName(
@@ -141,10 +186,12 @@ async function executeInstalledState(
     agent?: Pick<AgentDefinition, 'packages'>
     updateStrategy?: NpmBunUpdateStrategy
   },
-): Promise<boolean> {
+): Promise<ManagedMutationOutcome> {
   if (isManagedInstallType(state.installType)) {
     const packageName = resolveManagedPackageName(state, options?.agent)
-    if (!packageName) return false
+    if (!packageName) {
+      return { kind: 'failed', reason: `package target is missing for ${state.agentName}`, retryable: false }
+    }
 
     return executeManagedMethod(
       state.installType,
@@ -157,9 +204,11 @@ async function executeInstalledState(
     )
   }
 
-  if (action !== 'install' || !state.command) return false
+  if (action !== 'install' || !state.command) return { kind: 'unsupported', operation: action }
 
-  return runBinaryInstall(state.command)
+  return (await runBinaryInstall(state.command))
+    ? { kind: 'success', value: undefined }
+    : { kind: 'failed', reason: `${action} command failed for ${state.agentName}`, retryable: false }
 }
 
 async function rollbackManagedInstall(agent: AgentDefinition, method: InstallMethod): Promise<void> {
@@ -175,6 +224,8 @@ async function rollbackManagedInstall(agent: AgentDefinition, method: InstallMet
     method.packageInstallArgs,
     method.packageTargetKind,
     'uninstall',
+    undefined,
+    createCompensationContext(),
   )
 }
 
@@ -190,7 +241,7 @@ async function executeAgentUpdateCommand(agent: AgentDefinition): Promise<boolea
   return false
 }
 
-function buildInstalledState(agent: AgentDefinition, method: InstallMethod): InstalledAgentState {
+export function buildInstalledAgentState(agent: AgentDefinition, method: InstallMethod): InstalledAgentState {
   const installedState: InstalledAgentState = {
     agentName: agent.name,
     installType: method.type,
@@ -212,7 +263,7 @@ async function persistInstalledStateIfNotCancelled(
 ): Promise<InstalledAgentState | null> {
   if (getCliContext().cancelled) return null
 
-  const installedState = buildInstalledState(agent, method)
+  const installedState = buildInstalledAgentState(agent, method)
   if (getCliContext().cancelled) return null
 
   await setInstalledAgentState(installedState)
@@ -231,52 +282,71 @@ export async function trackInstalledAgent(
   return withAgentLifecycleLock(async () => persistInstalledStateIfNotCancelled(agent, method))
 }
 
-export async function installAgent(agent: AgentDefinition): Promise<AgentOperationResult> {
+export async function installAgentOutcome(
+  agent: AgentDefinition,
+  selectedMethods?: readonly InstallMethod[],
+): Promise<AgentMutationOutcome> {
   return withAgentLifecycleLock(async () => {
-    const methods = await getOrderedInstallMethods(agent)
+    const methods = selectedMethods ? [...selectedMethods] : await getOrderedInstallMethods(agent)
+    let lastFailure: AgentMutationOutcome | undefined
 
     for (const method of methods) {
       if (getCliContext().cancelled) {
-        return { success: false }
+        return { kind: 'cancelled', reason: 'install-cancelled' }
       }
 
-      if (await executeMethod(agent, method, 'install')) {
+      const execution = await executeMethod(agent, method, 'install')
+      if (execution.kind === 'success') {
         if (getCliContext().cancelled) {
           await rollbackManagedInstall(agent, method)
-          return { success: false }
+          return { kind: 'cancelled', reason: 'install-cancelled' }
         }
 
-        try {
-          const installedState = await persistInstalledStateIfNotCancelled(agent, method)
-          if (!installedState) {
-            await rollbackManagedInstall(agent, method)
-            return { success: false }
-          }
-
-          return {
-            success: true,
-            installedState,
-          }
-        } catch (error) {
-          await rollbackManagedInstall(agent, method)
-          throw error
-        }
+        return { kind: 'success', value: { installedState: buildInstalledAgentState(agent, method) } }
       }
+
+      const typedFailure = projectManagedMutationOutcome(execution)
+      if (typedFailure.kind === 'cancelled' || typedFailure.kind === 'timed-out') return typedFailure
+      lastFailure = typedFailure
 
       if (getCliContext().cancelled) {
         await rollbackManagedInstall(agent, method)
-        return { success: false }
+        return { kind: 'cancelled', reason: 'install-cancelled' }
       }
     }
 
-    return { success: false }
+    return lastFailure ?? { kind: 'failed', reason: 'install-failed', retryable: false }
   })
 }
 
-export async function updateAgent(
+export async function installAgent(agent: AgentDefinition): Promise<AgentOperationResult> {
+  return withAgentLifecycleLock(async () => {
+    const outcome = await installAgentOutcome(agent)
+    if (outcome.kind !== 'success' || !outcome.value.installedState) return projectAgentMutationOutcome(outcome)
+
+    try {
+      if (getCliContext().cancelled) {
+        await rollbackInstalledAgentInstallation(agent, outcome.value.installedState)
+        return { success: false }
+      }
+      await setInstalledAgentState(outcome.value.installedState)
+      if (getCliContext().cancelled) {
+        await removeInstalledAgentState(agent.name)
+        await rollbackInstalledAgentInstallation(agent, outcome.value.installedState)
+        return { success: false }
+      }
+      return projectAgentMutationOutcome(outcome)
+    } catch (error) {
+      await rollbackInstalledAgentInstallation(agent, outcome.value.installedState)
+      throw error
+    }
+  })
+}
+
+export async function updateAgentOutcome(
   agent: AgentDefinition,
   preferredState?: InstalledAgentState,
-): Promise<AgentOperationResult> {
+): Promise<AgentMutationOutcome> {
   return withAgentLifecycleLock(async () => {
     const { npmBunUpdateStrategy } = await getManagedUpdateOptions()
     const methods = await getOrderedInstallMethods(agent)
@@ -286,34 +356,35 @@ export async function updateAgent(
         ? resolveManagedPackageName(preferredState, agent)
         : undefined
 
-    if (
-      preferredState &&
-      (await executeInstalledState(preferredState, 'update', {
-        agent,
-        updateStrategy: npmBunUpdateStrategy,
-      }))
-    ) {
-      if (getCliContext().cancelled) return { success: false }
+    const preferredExecution = preferredState
+      ? await executeInstalledState(preferredState, 'update', {
+          agent,
+          updateStrategy: npmBunUpdateStrategy,
+        })
+      : undefined
+    if (preferredState && preferredExecution?.kind === 'success') {
+      if (getCliContext().cancelled) return { kind: 'cancelled', reason: 'update-cancelled' }
 
       await setInstalledAgentState(preferredState)
-      if (getCliContext().cancelled) return { success: false }
+      if (getCliContext().cancelled) return { kind: 'cancelled', reason: 'update-cancelled' }
 
-      return {
-        success: true,
-        installedState: preferredState,
-      }
+      return { kind: 'success', value: { installedState: preferredState } }
+    }
+    if (preferredExecution?.kind === 'cancelled' || preferredExecution?.kind === 'timed-out') {
+      return projectManagedMutationOutcome(preferredExecution)
     }
 
     if (!preferredState) {
       for (const method of methods) {
-        if (await executeMethod(agent, method, 'update', npmBunUpdateStrategy)) {
+        const execution = await executeMethod(agent, method, 'update', npmBunUpdateStrategy)
+        if (execution.kind === 'success') {
           const installedState = await persistInstalledStateIfNotCancelled(agent, method)
-          if (!installedState) return { success: false }
+          if (!installedState) return { kind: 'cancelled', reason: 'update-cancelled' }
 
-          return {
-            success: true,
-            installedState,
-          }
+          return { kind: 'success', value: { installedState } }
+        }
+        if (execution.kind === 'cancelled' || execution.kind === 'timed-out') {
+          return projectManagedMutationOutcome(execution)
         }
       }
     }
@@ -322,11 +393,18 @@ export async function updateAgent(
       (!preferredState || !isManagedInstallType(preferredState.installType) || recordedManagedPackageName) &&
       (await executeAgentUpdateCommand(agent))
     ) {
-      return { success: true }
+      return { kind: 'success', value: {} }
     }
 
-    return { success: false }
+    return { kind: 'failed', reason: 'update-failed', retryable: false }
   })
+}
+
+export async function updateAgent(
+  agent: AgentDefinition,
+  preferredState?: InstalledAgentState,
+): Promise<AgentOperationResult> {
+  return projectAgentMutationOutcome(await updateAgentOutcome(agent, preferredState))
 }
 
 export async function updateAgentsByType(type: ManagedInstallType, packages: ManagedPackageSpec[]): Promise<boolean> {
@@ -345,9 +423,9 @@ export async function updateAgentsByType(type: ManagedInstallType, packages: Man
       return false
     }
 
-    const installer = getManagedInstaller(type)
+    const installer = getTypedManagedInstaller(type)
     if (!(await installer.isAvailable())) return false
-    return installer.updateMany(uniquePackages, await getManagedUpdateOptions())
+    return (await installer.updateMany(uniquePackages, await getManagedUpdateOptions())).kind === 'success'
   })
 }
 
@@ -356,7 +434,7 @@ export async function getManagedInstalledPackageVersion(
   packageName: string,
   packageTargetKind?: InstalledAgentState['packageTargetKind'],
 ): Promise<string | undefined> {
-  const installer = getManagedInstaller(type)
+  const installer = getTypedManagedInstaller(type)
   if (!installer.getInstalledVersion) return undefined
   if (!(await installer.isAvailable())) return undefined
 
@@ -369,7 +447,7 @@ async function isManagedPackageAbsent(
 ): Promise<boolean> {
   if (!isManagedInstallType(state.installType)) return false
 
-  const installer = getManagedInstaller(state.installType)
+  const installer = getTypedManagedInstaller(state.installType)
   if (!installer.getInstalledVersion) return false
   if (!(await installer.isAvailable())) return false
 
@@ -386,43 +464,116 @@ async function isManagedPackageAbsent(
 }
 
 export async function uninstallAgent(agent: AgentDefinition): Promise<boolean> {
-  return withAgentLifecycleLock(async () => {
+  const outcome = await withAgentLifecycleLock(async (): Promise<AgentMutationOutcome> => {
     const installedState = await getInstalledAgentState(agent.name)
-    if (!installedState) return false
+    if (!installedState) return { kind: 'failed', reason: 'installed-state-missing', retryable: false }
 
-    return uninstallInstalledAgent(agent, installedState)
+    return uninstallInstalledAgentOutcome(agent, installedState)
   })
+  return outcome.kind === 'success'
+}
+
+export async function uninstallInstalledAgentOutcome(
+  agent: AgentDefinition,
+  installedState: InstalledAgentState,
+): Promise<AgentMutationOutcome> {
+  if (!canUninstallInstallType(installedState.installType)) {
+    await removeInstalledAgentState(agent.name)
+    return { kind: 'success', value: { installedState } }
+  }
+
+  const execution = await executeInstalledState(installedState, 'uninstall', { agent })
+  if (execution.kind === 'success') {
+    await removeInstalledAgentState(agent.name)
+    return { kind: 'success', value: { installedState } }
+  }
+
+  if (await isManagedPackageAbsent(installedState, agent)) {
+    await removeInstalledAgentState(agent.name)
+    return { kind: 'success', value: { installedState } }
+  }
+
+  return projectManagedMutationOutcome(execution)
 }
 
 export async function uninstallInstalledAgent(
   agent: AgentDefinition,
   installedState: InstalledAgentState,
 ): Promise<boolean> {
-  if (!canUninstallInstallType(installedState.installType)) {
-    await removeInstalledAgentState(agent.name)
-    return true
-  }
+  return (await uninstallInstalledAgentOutcome(agent, installedState)).kind === 'success'
+}
 
-  const success = await executeInstalledState(installedState, 'uninstall', { agent })
-  if (success) {
-    await removeInstalledAgentState(agent.name)
-    return true
-  }
-
-  if (await isManagedPackageAbsent(installedState, agent)) {
-    await removeInstalledAgentState(agent.name)
-    return true
-  }
-
-  return false
+export async function reinstallInstalledAgentOutcome(
+  agent: AgentDefinition,
+  installedState: InstalledAgentState,
+): Promise<AgentMutationOutcome> {
+  const execution = await executeInstalledState(installedState, 'install', { agent })
+  if (execution.kind !== 'success') return projectManagedMutationOutcome(execution)
+  return { kind: 'success', value: { installedState } }
 }
 
 export async function reinstallInstalledAgent(
   agent: AgentDefinition,
   installedState: InstalledAgentState,
 ): Promise<AgentOperationResult> {
-  const success = await executeInstalledState(installedState, 'install', { agent })
-  if (!success) return { success: false }
-  await setInstalledAgentState(installedState)
-  return { installedState, success: true }
+  const outcome = await reinstallInstalledAgentOutcome(agent, installedState)
+  if (outcome.kind === 'success') await setInstalledAgentState(installedState)
+  return projectAgentMutationOutcome(outcome)
+}
+
+export async function rollbackInstalledAgentInstallation(
+  agent: AgentDefinition,
+  installedState: InstalledAgentState,
+): Promise<void> {
+  if (!canUninstallInstallType(installedState.installType)) return
+  if (!isManagedInstallType(installedState.installType)) return
+  const packageName = resolveManagedPackageName(installedState, agent)
+  if (!packageName) return
+  await executeManagedMethod(
+    installedState.installType,
+    packageName,
+    installedState.binaryName,
+    installedState.packageInstallArgs,
+    installedState.packageTargetKind,
+    'uninstall',
+    undefined,
+    createCompensationContext(),
+  )
+}
+
+function createCompensationContext(): ProviderOperationContext {
+  const timeoutMs = getCliContext().timeoutMs
+  return {
+    signal: new AbortController().signal,
+    timeoutMs: timeoutMs === undefined ? 5_000 : Math.max(10, Math.min(timeoutMs, 5_000)),
+  }
+}
+
+function projectAgentMutationOutcome(outcome: AgentMutationOutcome): AgentOperationResult {
+  if (outcome.kind !== 'success') return { success: false }
+  return outcome.value.installedState
+    ? { installedState: outcome.value.installedState, success: true }
+    : { success: true }
+}
+
+function projectManagedMutationOutcome(outcome: ManagedMutationOutcome): AgentMutationOutcome {
+  switch (outcome.kind) {
+    case 'success':
+      return { kind: 'success', value: {} }
+    case 'cancelled':
+      return outcome
+    case 'timed-out':
+      return outcome
+    case 'failed':
+      return {
+        kind: 'failed',
+        reason: outcome.reason,
+        retryable: outcome.retryable,
+      }
+    case 'unsupported':
+      return { capability: `provider-${outcome.operation}`, kind: 'unsupported', reason: outcome.reason }
+    case 'unavailable':
+    case 'indeterminate':
+      return { kind: 'indeterminate', reason: outcome.reason }
+  }
 }

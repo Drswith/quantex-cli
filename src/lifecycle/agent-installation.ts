@@ -1,10 +1,16 @@
 import type { AgentDefinition, InstallMethod } from '../agents'
-import type { AgentInspection } from '../inspection'
 import type { InstalledAgentState } from '../state'
 import type { LifecycleObservation, LifecycleOutcome, LifecyclePostcondition } from './model'
 import { getCliContext } from '../cli-context'
-import { installAgent, reinstallInstalledAgent, trackInstalledAgent, withAgentLifecycleLock } from '../package-manager'
-import { setLifecycleReceipt } from '../state'
+import {
+  buildInstalledAgentState,
+  installAgentOutcome,
+  reinstallInstalledAgentOutcome,
+  rollbackInstalledAgentInstallation,
+  withAgentLifecycleLock,
+} from '../package-manager'
+import { createCliOperationContext } from '../runtime/cli-operation-context'
+import { setAgentLifecycleEvidence } from '../state'
 import { isBinaryInPath } from '../utils/detect'
 import { planLifecycleMutation } from './mutation-planner'
 import { observeLifecycleProvider, resolveStateProviderBinding } from './provider-evidence'
@@ -16,10 +22,17 @@ export interface AgentInstallationExecutionValue {
   readonly installedState: InstalledAgentState
 }
 
+export interface AgentInstallationObservation {
+  readonly inPath: boolean
+  readonly installedState?: InstalledAgentState
+  readonly lifecycle: LifecycleObservation
+  readonly methods: readonly InstallMethod[]
+}
+
 export interface ReconcileAgentInstallationInput {
   readonly adoptableMethod?: InstallMethod
   readonly agent: AgentDefinition
-  readonly inspection: AgentInspection
+  readonly observation: AgentInstallationObservation
   readonly operation: 'ensure' | 'install'
   readonly route: AgentInstallationRoute
 }
@@ -27,26 +40,26 @@ export interface ReconcileAgentInstallationInput {
 export function reconcileAgentInstallation(
   input: ReconcileAgentInstallationInput,
 ): Promise<LifecycleOutcome<VerifiedMutation<AgentInstallationExecutionValue>>> {
-  const { adoptableMethod, agent, inspection, operation, route } = input
-  const source = inspection.installedState ?? adoptableMethod ?? inspection.methods[0]
+  const { adoptableMethod, agent, observation, operation, route } = input
+  const installMethod = observation.installedState ? undefined : observation.methods[0]
+  const source = observation.installedState ?? adoptableMethod ?? installMethod
+  const planningObservation = createInstallationObservation(observation.lifecycle, agent, adoptableMethod)
   const planned = planLifecycleMutation({
     intent: { kind: operation, targetId: agent.name },
-    observation: createInstallationObservation(agent, inspection.inPath, inspection.installedState, adoptableMethod),
+    observation: planningObservation,
     providerId: getProviderId(source),
     providerTargetId: getProviderTargetId(agent, source),
   })
 
+  if (planned.decision !== route) {
+    return Promise.resolve({ kind: 'indeterminate', reason: `planned-${planned.decision}-cannot-execute-${route}` })
+  }
+
   return withAgentLifecycleLock(async () => {
-    if (route === 'install' && inspection.installedState && !inspection.inPath) {
-      const binding = resolveStateProviderBinding(agent, inspection.installedState)
+    if (route === 'install' && observation.installedState && !observation.inPath) {
+      const binding = resolveStateProviderBinding(agent, observation.installedState)
       if (!binding) return { kind: 'indeterminate', reason: 'tracked-provider-binding-unresolved' }
-      const context = getCliContext()
-      const controller = new AbortController()
-      if (context.cancelled) controller.abort('cli-cancelled')
-      const provider = await observeLifecycleProvider(binding, {
-        signal: controller.signal,
-        timeoutMs: context.timeoutMs,
-      })
+      const provider = await withLifecycleProviderContext(context => observeLifecycleProvider(binding, context))
       if (provider.kind !== 'success' || provider.value.kind !== 'absent') {
         return { kind: 'indeterminate', reason: 'tracked-provider-not-conclusively-absent' }
       }
@@ -56,7 +69,7 @@ export function reconcileAgentInstallation(
       createReceipt: (verification, execution) => {
         const binding = resolveStateProviderBinding(agent, execution.value.installedState)
         if (!binding) throw new Error(`Cannot resolve provider binding for ${agent.name}.`)
-        const observation = verification.observation.kind === 'present' ? verification.observation : undefined
+        const verifiedObservation = verification.observation.kind === 'present' ? verification.observation : undefined
         return {
           ...(binding.target.binaryName ? { executableName: binding.target.binaryName } : {}),
           kind: 'lifecycle-receipt',
@@ -66,13 +79,18 @@ export function reconcileAgentInstallation(
           schemaVersion: 1,
           targetId: agent.name,
           verifiedAt: new Date().toISOString(),
-          ...(observation?.executablePath ? { executablePath: observation.executablePath } : {}),
-          ...(observation?.version ? { version: observation.version } : {}),
+          ...(verifiedObservation?.executablePath ? { executablePath: verifiedObservation.executablePath } : {}),
+          ...(verifiedObservation?.version ? { version: verifiedObservation.version } : {}),
         }
       },
-      execute: async () => executeInstallationRoute(agent, route, inspection.installedState, adoptableMethod),
+      compensate: execution =>
+        route === 'install'
+          ? rollbackInstalledAgentInstallation(agent, execution.value.installedState)
+          : Promise.resolve(),
+      execute: async () =>
+        executeInstallationRoute(agent, route, observation.installedState, adoptableMethod, installMethod),
       plan: planned.plan,
-      recordReceipt: setLifecycleReceipt,
+      recordReceipt: (receipt, execution) => setAgentLifecycleEvidence(execution.value.installedState, receipt),
       verify: async execution =>
         verifyInstallationPostcondition(
           agent,
@@ -89,34 +107,40 @@ async function executeInstallationRoute(
   route: AgentInstallationRoute,
   installedState: InstalledAgentState | undefined,
   adoptableMethod: InstallMethod | undefined,
+  installMethod: InstallMethod | undefined,
 ) {
   if (route === 'satisfied' && installedState) {
     return { kind: 'success' as const, value: { changed: false, value: { installedState } } }
   }
   if (route === 'adopt' && adoptableMethod) {
-    const tracked = await trackInstalledAgent(agent, adoptableMethod)
-    return tracked
-      ? { kind: 'success' as const, value: { changed: true, value: { installedState: tracked } } }
-      : { kind: 'cancelled' as const, reason: 'tracking-cancelled' }
+    if (getCliContext().cancelled) return { kind: 'cancelled' as const, reason: 'tracking-cancelled' }
+    return {
+      kind: 'success' as const,
+      value: { changed: true, value: { installedState: buildInstalledAgentState(agent, adoptableMethod) } },
+    }
   }
 
   if (route === 'install' && installedState) {
-    const reinstalled = await reinstallInstalledAgent(agent, installedState)
-    return reinstalled.success && reinstalled.installedState
+    const reinstalled = await reinstallInstalledAgentOutcome(agent, installedState)
+    return reinstalled.kind === 'success' && reinstalled.value.installedState
       ? {
           kind: 'success' as const,
-          value: { changed: true, value: { installedState: reinstalled.installedState } },
+          value: { changed: true, value: { installedState: reinstalled.value.installedState } },
         }
-      : { kind: 'failed' as const, reason: 'install-failed', retryable: false }
+      : reinstalled.kind === 'success'
+        ? { kind: 'failed' as const, reason: 'installed-state-missing', retryable: false }
+        : reinstalled
   }
 
-  const installed = await installAgent(agent)
-  if (!installed.success || !installed.installedState) {
-    return { kind: 'failed' as const, reason: 'install-failed', retryable: false }
+  if (!installMethod) return { kind: 'indeterminate' as const, reason: 'install-method-unresolved' }
+  const installed = await installAgentOutcome(agent, [installMethod])
+  if (installed.kind !== 'success') return installed
+  if (!installed.value.installedState) {
+    return { kind: 'failed' as const, reason: 'installed-state-missing', retryable: false }
   }
   return {
     kind: 'success' as const,
-    value: { changed: true, value: { installedState: installed.installedState } },
+    value: { changed: true, value: { installedState: installed.value.installedState } },
   }
 }
 
@@ -139,16 +163,9 @@ async function verifyInstallationPostcondition(
     } as const
   }
 
-  const cliContext = getCliContext()
-  const controller = new AbortController()
-  if (cliContext.cancelled) controller.abort('cli-cancelled')
-  const [binaryPresent, providerOutcome] = await Promise.all([
-    isBinaryInPath(agent.binaryName),
-    observeLifecycleProvider(binding, {
-      signal: controller.signal,
-      timeoutMs: cliContext.timeoutMs,
-    }),
-  ])
+  const [binaryPresent, providerOutcome] = await withLifecycleProviderContext(context =>
+    Promise.all([isBinaryInPath(agent.binaryName, context), observeLifecycleProvider(binding, context)]),
+  )
   const providerPresent = providerOutcome.kind === 'success' && providerOutcome.value.kind === 'present'
   const providerObservation = providerOutcome.kind === 'success' ? providerOutcome.value : undefined
   const observation: LifecycleObservation =
@@ -176,26 +193,27 @@ async function verifyInstallationPostcondition(
       } as const)
 }
 
+async function withLifecycleProviderContext<T>(
+  invoke: (context: import('../providers').ProviderOperationContext) => Promise<T>,
+): Promise<T> {
+  const operation = createCliOperationContext()
+  try {
+    return await invoke(operation.context)
+  } finally {
+    operation.dispose()
+  }
+}
+
 function createInstallationObservation(
+  observation: LifecycleObservation,
   agent: AgentDefinition,
-  inPath: boolean,
-  installedState: InstalledAgentState | undefined,
   adoptableMethod: InstallMethod | undefined,
 ): LifecycleObservation {
-  if (!inPath) {
-    return {
-      drift: installedState ? { kind: 'recorded-absent' } : { kind: 'none' },
-      kind: 'absent',
-      targetId: agent.name,
-    }
-  }
-
+  if (observation.kind !== 'present' || !adoptableMethod) return observation
   return {
-    drift: installedState ? { kind: 'none' } : { kind: 'untracked' },
-    kind: 'present',
-    providerId: getProviderId(installedState ?? adoptableMethod),
-    providerTargetId: getProviderTargetId(agent, installedState ?? adoptableMethod),
-    targetId: agent.name,
+    ...observation,
+    providerId: getProviderId(adoptableMethod),
+    providerTargetId: getProviderTargetId(agent, adoptableMethod),
   }
 }
 

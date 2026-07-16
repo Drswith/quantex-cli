@@ -12,7 +12,7 @@ export function resolveAgent(agentName: string): AgentDefinition | undefined {
   return agentRegistry.getAgentByNameOrAlias(agentName)
 }
 
-// Mutation and execution consumers intentionally remain on the legacy inspection implementation.
+// Retained for the v1 root compatibility facade; default command routes use lifecycle observations.
 export async function resolveAgentInspection(agentName: string): Promise<ResolvedAgentInspection | undefined> {
   const agent = resolveAgent(agentName)
   if (!agent) return undefined

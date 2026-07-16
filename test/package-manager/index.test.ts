@@ -1,7 +1,7 @@
 import { existsSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
-import { afterAll, beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterAll, afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { markCliContextCancelled, resetCliContext, setCliContext } from '../../src/cli-context'
 import * as config from '../../src/config'
 import * as binaryPm from '../../src/package-manager/binary'
@@ -10,47 +10,92 @@ import * as cargoPm from '../../src/package-manager/cargo'
 import * as denoPm from '../../src/package-manager/deno'
 import {
   installAgent,
+  installAgentOutcome,
   trackInstalledAgent,
   uninstallAgent,
   updateAgent,
   updateAgentsByType,
 } from '../../src/package-manager/index'
 import * as misePm from '../../src/package-manager/mise'
+import * as mutationOutcome from '../../src/package-manager/mutation-outcome'
 import * as npmPm from '../../src/package-manager/npm'
 import * as uvPm from '../../src/package-manager/uv'
 import { StateFileError } from '../../src/state'
 import * as state from '../../src/state'
 import * as detectUtils from '../../src/utils/detect'
 
-const bunInstallSpy = vi.spyOn(bunPm, 'install')
-const bunUpdateSpy = vi.spyOn(bunPm, 'update')
-const bunUpdateManySpy = vi.spyOn(bunPm, 'updateMany')
-const bunUninstallSpy = vi.spyOn(bunPm, 'uninstall')
+const mutationSuccess = { kind: 'success', value: undefined } as const
+const mutationFailure = { kind: 'failed', reason: 'test mutation failed', retryable: false } as const
+const typedMutationSpies: Array<{ mockRestore(): void }> = []
+
+function projectMutationSpy(spy: unknown, projectArguments: (args: unknown[]) => unknown[] = withoutMutationContext) {
+  const typedSpy = spy as {
+    mockImplementation(implementation: (...args: unknown[]) => Promise<unknown>): void
+    mockRestore(): void
+  }
+  const compatibilitySpy = vi.fn()
+  typedSpy.mockImplementation(async (...args: unknown[]) => {
+    const result = await compatibilitySpy(...projectArguments(args))
+    return result === false ? mutationFailure : mutationSuccess
+  })
+  typedMutationSpies.push(typedSpy)
+  return compatibilitySpy
+}
+
+function withoutMutationContext(args: unknown[]): unknown[] {
+  return trimTrailingUndefined(args.slice(0, -1))
+}
+
+function withoutMutationContextPreservingUndefined(args: unknown[]): unknown[] {
+  return args.slice(0, -1)
+}
+
+function registryUpdateArguments(args: unknown[]): unknown[] {
+  const [packageName, strategy, distTag, registry] = args
+  return distTag === 'latest' && registry === undefined
+    ? [packageName, strategy]
+    : trimTrailingUndefined([packageName, strategy, distTag, registry])
+}
+
+function trimTrailingUndefined(args: unknown[]): unknown[] {
+  const trimmed = [...args]
+  while (trimmed.at(-1) === undefined) trimmed.pop()
+  return trimmed
+}
+
+const bunInstallSpy = projectMutationSpy(vi.spyOn(bunPm, 'installOutcome'))
+const bunUpdateSpy = projectMutationSpy(vi.spyOn(bunPm, 'updateOutcome'), registryUpdateArguments)
+const bunUpdateManySpy = projectMutationSpy(vi.spyOn(bunPm, 'updateManyOutcome'))
+const bunUninstallSpy = projectMutationSpy(vi.spyOn(bunPm, 'uninstallOutcome'))
 const bunGetInstalledVersionSpy = vi.spyOn(bunPm, 'getInstalledVersion')
 const bunProbePackagePresenceSpy = vi.spyOn(bunPm, 'probePackagePresence')
-const cargoInstallSpy = vi.spyOn(cargoPm, 'install')
-const cargoUpdateSpy = vi.spyOn(cargoPm, 'update')
-const cargoUpdateManySpy = vi.spyOn(cargoPm, 'updateMany')
-const cargoUninstallSpy = vi.spyOn(cargoPm, 'uninstall')
-const denoInstallSpy = vi.spyOn(denoPm, 'install')
-const denoUpdateSpy = vi.spyOn(denoPm, 'update')
-const denoUpdateManySpy = vi.spyOn(denoPm, 'updateMany')
-const denoUninstallSpy = vi.spyOn(denoPm, 'uninstall')
-const miseInstallSpy = vi.spyOn(misePm, 'install')
-const miseUpdateSpy = vi.spyOn(misePm, 'update')
-const miseUpdateManySpy = vi.spyOn(misePm, 'updateMany')
-const miseUninstallSpy = vi.spyOn(misePm, 'uninstall')
+const cargoInstallSpy = projectMutationSpy(
+  vi.spyOn(cargoPm, 'installOutcome'),
+  withoutMutationContextPreservingUndefined,
+)
+const cargoUpdateSpy = projectMutationSpy(vi.spyOn(cargoPm, 'updateOutcome'), withoutMutationContextPreservingUndefined)
+const cargoUpdateManySpy = projectMutationSpy(vi.spyOn(cargoPm, 'updateManyOutcome'))
+const cargoUninstallSpy = projectMutationSpy(vi.spyOn(cargoPm, 'uninstallOutcome'))
+const denoInstallSpy = projectMutationSpy(vi.spyOn(denoPm, 'installOutcome'), withoutMutationContextPreservingUndefined)
+const denoUpdateSpy = projectMutationSpy(vi.spyOn(denoPm, 'updateOutcome'), withoutMutationContextPreservingUndefined)
+const denoUpdateManySpy = projectMutationSpy(vi.spyOn(denoPm, 'updateManyOutcome'))
+const denoUninstallSpy = projectMutationSpy(vi.spyOn(denoPm, 'uninstallOutcome'))
+const miseInstallSpy = projectMutationSpy(vi.spyOn(misePm, 'installOutcome'))
+const miseUpdateSpy = projectMutationSpy(vi.spyOn(misePm, 'updateOutcome'))
+const miseUpdateManySpy = projectMutationSpy(vi.spyOn(misePm, 'updateManyOutcome'))
+const miseUninstallSpy = projectMutationSpy(vi.spyOn(misePm, 'uninstallOutcome'))
 const miseProbePackagePresenceSpy = vi.spyOn(misePm, 'probePackagePresence')
-const npmInstallSpy = vi.spyOn(npmPm, 'install')
-const npmUpdateSpy = vi.spyOn(npmPm, 'update')
-const npmUpdateManySpy = vi.spyOn(npmPm, 'updateMany')
-const npmUninstallSpy = vi.spyOn(npmPm, 'uninstall')
+const npmInstallSpy = projectMutationSpy(vi.spyOn(npmPm, 'installOutcome'))
+const npmUpdateSpy = projectMutationSpy(vi.spyOn(npmPm, 'updateOutcome'), registryUpdateArguments)
+const npmUpdateManySpy = projectMutationSpy(vi.spyOn(npmPm, 'updateManyOutcome'))
+const npmUninstallSpy = projectMutationSpy(vi.spyOn(npmPm, 'uninstallOutcome'))
 const npmProbePackagePresenceSpy = vi.spyOn(npmPm, 'probePackagePresence')
-const uvInstallSpy = vi.spyOn(uvPm, 'install')
-const uvUpdateSpy = vi.spyOn(uvPm, 'update')
-const uvUpdateManySpy = vi.spyOn(uvPm, 'updateMany')
-const uvUninstallSpy = vi.spyOn(uvPm, 'uninstall')
+const uvInstallSpy = projectMutationSpy(vi.spyOn(uvPm, 'installOutcome'), withoutMutationContextPreservingUndefined)
+const uvUpdateSpy = projectMutationSpy(vi.spyOn(uvPm, 'updateOutcome'), withoutMutationContextPreservingUndefined)
+const uvUpdateManySpy = projectMutationSpy(vi.spyOn(uvPm, 'updateManyOutcome'))
+const uvUninstallSpy = projectMutationSpy(vi.spyOn(uvPm, 'uninstallOutcome'))
 const uvProbePackagePresenceSpy = vi.spyOn(uvPm, 'probePackagePresence')
+const commandMutationSpy = vi.spyOn(mutationOutcome, 'runPackageMutationOutcome').mockResolvedValue(mutationSuccess)
 const binarySpy = vi.spyOn(binaryPm, 'runBinaryInstall')
 const loadConfigSpy = vi.spyOn(config, 'loadConfig')
 const getPlatformSpy = vi.spyOn(detectUtils, 'getPlatform')
@@ -108,6 +153,7 @@ beforeEach(() => {
   uvUpdateManySpy.mockClear()
   uvUninstallSpy.mockClear()
   uvProbePackagePresenceSpy.mockClear()
+  commandMutationSpy.mockClear()
   binarySpy.mockClear()
   loadConfigSpy.mockClear()
   getPlatformSpy.mockClear()
@@ -138,6 +184,8 @@ beforeEach(() => {
   if (existsSync(tempDir)) rmSync(tempDir, { force: true, recursive: true })
 })
 
+afterEach(() => resetCliContext())
+
 afterAll(() => {
   bunInstallSpy.mockRestore()
   bunUpdateSpy.mockRestore()
@@ -165,6 +213,7 @@ afterAll(() => {
   uvUpdateSpy.mockRestore()
   uvUpdateManySpy.mockRestore()
   uvUninstallSpy.mockRestore()
+  commandMutationSpy.mockRestore()
   binarySpy.mockRestore()
   loadConfigSpy.mockRestore()
   getPlatformSpy.mockRestore()
@@ -178,9 +227,37 @@ afterAll(() => {
   setInstalledAgentStateSpy.mockRestore()
   removeInstalledAgentStateSpy.mockRestore()
   getConfigDirSpy.mockRestore()
+  for (const spy of typedMutationSpies) spy.mockRestore()
 })
 
 describe('installAgent', () => {
+  it('returns a discriminated internal outcome before the v1 compatibility projection', async () => {
+    isBunSpy.mockResolvedValue(true)
+    bunInstallSpy.mockResolvedValue(true)
+    setInstalledAgentStateSpy.mockResolvedValue()
+
+    await expect(installAgentOutcome(testAgent)).resolves.toEqual({
+      kind: 'success',
+      value: {
+        installedState: {
+          agentName: 'test-agent',
+          installType: 'bun',
+          packageName: 'test-pkg',
+        },
+      },
+    })
+    expect(setInstalledAgentStateSpy).not.toHaveBeenCalled()
+  })
+
+  it('distinguishes cancellation from provider failure internally', async () => {
+    setCliContext({ cancelled: true, interactive: false, outputMode: 'human', runId: 'typed-cancelled-install' })
+
+    await expect(installAgentOutcome(testAgent)).resolves.toEqual({
+      kind: 'cancelled',
+      reason: 'install-cancelled',
+    })
+  })
+
   it('tries methods by definition order, returns true on first success', async () => {
     isBunSpy.mockResolvedValue(true)
     bunInstallSpy.mockResolvedValue(true)
@@ -193,6 +270,9 @@ describe('installAgent', () => {
         packageName: 'test-pkg',
       },
     })
+    expect(setInstalledAgentStateSpy).toHaveBeenCalledWith(
+      expect.objectContaining({ agentName: 'test-agent', installType: 'bun' }),
+    )
     expect(bunInstallSpy).toHaveBeenCalledWith('test-pkg')
     expect(npmInstallSpy).not.toHaveBeenCalled()
   })
@@ -458,7 +538,7 @@ describe('installAgent', () => {
       },
     }
 
-    binarySpy.mockResolvedValue(true)
+    commandMutationSpy.mockResolvedValue(mutationSuccess)
     setInstalledAgentStateSpy.mockResolvedValue()
 
     expect(await installAgent(scriptAgent)).toMatchObject({
@@ -469,7 +549,11 @@ describe('installAgent', () => {
         installType: 'script',
       },
     })
-    expect(binarySpy).toHaveBeenCalledWith('curl https://example.com/install | bash')
+    expect(commandMutationSpy).toHaveBeenCalledWith(
+      ['sh', '-c', 'curl https://example.com/install | bash'],
+      expect.any(Object),
+      'install effect failed',
+    )
   })
 
   it('prefers mise when defaultPackageManager is mise and the agent exposes mise', async () => {

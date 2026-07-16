@@ -17,13 +17,19 @@ import {
   isInterruptedOperation,
   runContextualOperation,
   runPendingOperation,
-} from './legacy-operation'
+} from './pending-operation'
 
 export type RegistryPackagePresence = 'absent' | 'present' | 'unknown'
 
 export interface RegistryPackageAdapterDependencies {
+  readonly contextualMutation?: boolean
   readonly getInstalledVersion: (packageName: string, context?: ProviderOperationContext) => Promise<string | undefined>
-  readonly install: (packageName: string, distTag?: string, registry?: string) => Promise<boolean>
+  readonly install: (
+    packageName: string,
+    distTag: string | undefined,
+    registry: string | undefined,
+    context: ProviderOperationContext,
+  ) => Promise<ProviderOutcome<void>>
   readonly isAvailable: (context?: ProviderOperationContext) => Promise<boolean>
   readonly probePackagePresence: (
     packageName: string,
@@ -35,14 +41,19 @@ export interface RegistryPackageAdapterDependencies {
     distTag: string,
     registry?: string,
   ) => Promise<string | undefined>
-  readonly uninstall: (packageName: string) => Promise<boolean>
+  readonly uninstall: (packageName: string, context: ProviderOperationContext) => Promise<ProviderOutcome<void>>
   readonly update: (
     packageName: string,
     strategy: RegistryPackageUpdateStrategy,
     distTag: string,
-    registry?: string,
-  ) => Promise<boolean>
-  readonly updateMany: (packageNames: string[], strategy: RegistryPackageUpdateStrategy) => Promise<boolean>
+    registry: string | undefined,
+    context: ProviderOperationContext,
+  ) => Promise<ProviderOutcome<void>>
+  readonly updateMany: (
+    packageNames: string[],
+    strategy: RegistryPackageUpdateStrategy,
+    context: ProviderOperationContext,
+  ) => Promise<ProviderOutcome<void>>
 }
 
 export interface RegistryPackageCommandBuilders {
@@ -136,8 +147,8 @@ export function createRegistryPackageAdapter<Id extends Extract<ProviderId, 'bun
     install: request => {
       const options = resolveOptions(request.options)
       const command = config.commands.install(request.target, options)
-      return mutate(config, request.context, request.target, command, () =>
-        dependencies.install(request.target.id, request.options?.distTag, options.registry),
+      return mutate(config, request.context, request.target, command, dependencies.contextualMutation, () =>
+        dependencies.install(request.target.id, request.options?.distTag, options.registry, request.context),
       )
     },
     observe,
@@ -166,13 +177,21 @@ export function createRegistryPackageAdapter<Id extends Extract<ProviderId, 'bun
     },
     uninstall: request => {
       const command = config.commands.uninstall(request.target)
-      return mutate(config, request.context, request.target, command, () => dependencies.uninstall(request.target.id))
+      return mutate(config, request.context, request.target, command, dependencies.contextualMutation, () =>
+        dependencies.uninstall(request.target.id, request.context),
+      )
     },
     update: request => {
       const options = resolveOptions(request.options)
       const command = config.commands.update(request.target, options)
-      return mutate(config, request.context, request.target, command, () =>
-        dependencies.update(request.target.id, options.updateStrategy, options.distTag, options.registry),
+      return mutate(config, request.context, request.target, command, dependencies.contextualMutation, () =>
+        dependencies.update(
+          request.target.id,
+          options.updateStrategy,
+          options.distTag,
+          options.registry,
+          request.context,
+        ),
       )
     },
     updateMany: request => updateMany(config, dependencies, request),
@@ -200,7 +219,15 @@ function runPackageObservation<T>(
   context: ProviderOperationContext,
   contextual: boolean | undefined,
   invoke: () => Promise<T>,
-): Promise<import('./legacy-operation').PendingOperation<T>> {
+): Promise<import('./pending-operation').PendingOperation<T>> {
+  return contextual ? runContextualOperation(context, invoke) : runPendingOperation(context, invoke)
+}
+
+function runMutationOperation<T>(
+  context: ProviderOperationContext,
+  contextual: boolean | undefined,
+  invoke: () => Promise<T>,
+): Promise<import('./pending-operation').PendingOperation<T>> {
   return contextual ? runContextualOperation(context, invoke) : runPendingOperation(context, invoke)
 }
 
@@ -212,23 +239,20 @@ async function updateMany<Id extends Extract<ProviderId, 'bun' | 'npm'>>(
   const options = resolveOptions(request.options)
   const command = config.commands.updateMany(request.targets, options)
   const commandEvidence = [evidence('provider', config.id), evidence('command', command.join(' '))]
-  const operation = await runPendingOperation(request.context, () =>
+  const operation = await runMutationOperation(request.context, dependencies.contextualMutation, () =>
     dependencies.updateMany(
       request.targets.map(target => target.id),
       options.updateStrategy,
+      request.context,
     ),
   )
   if (isInterruptedOperation(operation)) return interruptedOutcome(operation)
 
-  if (operation.kind === 'rejected' || !operation.value) {
-    return failure(
-      config,
-      command,
-      commandEvidence,
-      'update-many',
-      undefined,
-      operation.kind === 'rejected' ? operation.reason : undefined,
-    )
+  if (operation.kind === 'rejected') {
+    return failure(config, command, commandEvidence, 'update-many', undefined, operation.reason)
+  }
+  if (operation.value.kind !== 'success') {
+    return enrichMutationOutcome(operation.value, config, command, commandEvidence, 'update-many')
   }
 
   return success(request.targets.map(target => ({ evidence: commandEvidence, target })))
@@ -239,24 +263,48 @@ async function mutate<Id extends Extract<ProviderId, 'bun' | 'npm'>>(
   context: ProviderOperationContext,
   target: ProviderTarget,
   command: readonly string[],
-  invoke: () => Promise<boolean>,
+  contextual: boolean | undefined,
+  invoke: () => Promise<ProviderOutcome<void>>,
 ): Promise<ProviderOutcome<ProviderMutationEvidence>> {
-  const operation = await runPendingOperation(context, invoke)
+  const operation = await runMutationOperation(context, contextual, invoke)
   if (isInterruptedOperation(operation)) return interruptedOutcome(operation)
 
   const mutationEvidence = [evidence('provider', config.id), evidence('command', command.join(' '))]
-  if (operation.kind === 'rejected' || !operation.value) {
-    return failure(
+  if (operation.kind === 'rejected') {
+    return failure(config, command, mutationEvidence, command[1] ?? 'operation', target.id, operation.reason)
+  }
+  if (operation.value.kind !== 'success') {
+    return enrichMutationOutcome(
+      operation.value,
       config,
       command,
       mutationEvidence,
       command[1] ?? 'operation',
       target.id,
-      operation.kind === 'rejected' ? operation.reason : undefined,
     )
   }
 
   return success({ evidence: mutationEvidence, target })
+}
+
+function enrichMutationOutcome(
+  outcome: Exclude<ProviderOutcome<void>, { readonly kind: 'success' }>,
+  config: RegistryPackageAdapterConfig<'bun' | 'npm'>,
+  command: readonly string[],
+  mutationEvidence: readonly ProviderEvidence[],
+  operation: string,
+  targetId?: string,
+): ProviderOutcome<never> {
+  if (outcome.kind !== 'failed') return outcome
+  const fallback = failure(config, command, mutationEvidence, operation, targetId)
+  return {
+    ...fallback,
+    ...outcome,
+    command: outcome.command ?? command,
+    evidence: outcome.evidence ?? mutationEvidence,
+    reason: outcome.reason.trim() ? outcome.reason : fallback.reason,
+    remediation: outcome.remediation ?? fallback.remediation,
+  }
 }
 
 function failure<Id extends Extract<ProviderId, 'bun' | 'npm'>>(
@@ -266,7 +314,7 @@ function failure<Id extends Extract<ProviderId, 'bun' | 'npm'>>(
   operation: string,
   targetId?: string,
   cause?: string,
-): ProviderOutcome<never> {
+): Extract<ProviderOutcome<never>, { readonly kind: 'failed' }> {
   const normalizedOperation = operation === 'add' ? 'install' : operation === 'remove' ? 'uninstall' : operation
   return {
     command,

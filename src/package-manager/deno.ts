@@ -1,4 +1,6 @@
-import { spawnWithQuantexStdio, waitForSpawnedCommand } from '../utils/child-process'
+import type { ProviderOperationContext } from '../providers'
+import type { PackageMutationOutcome } from './mutation-outcome'
+import { projectLegacyPackageMutation, runPackageMutationOutcome, runPackageMutationSequence } from './mutation-outcome'
 
 async function runDenoInstallCommand(
   packageName: string,
@@ -7,19 +9,33 @@ async function runDenoInstallCommand(
     force?: boolean
   } = {},
 ): Promise<boolean> {
+  return projectLegacyPackageMutation(context =>
+    runDenoInstallCommandOutcome(packageName, packageInstallArgs, options, context),
+  )
+}
+
+function runDenoInstallCommandOutcome(
+  packageName: string,
+  packageInstallArgs: string[],
+  options: { force?: boolean },
+  context: ProviderOperationContext,
+): Promise<PackageMutationOutcome> {
   const args = ['deno', 'install', '--global']
   if (options.force) args.push('--force')
   args.push(...packageInstallArgs, packageName)
-
-  try {
-    return (await waitForSpawnedCommand(spawnWithQuantexStdio(args))) === 0
-  } catch {
-    return false
-  }
+  return runPackageMutationOutcome(args, context, `deno ${options.force ? 'update' : 'install'} failed`)
 }
 
 export async function install(packageName: string, packageInstallArgs?: string[]): Promise<boolean> {
   return runDenoInstallCommand(packageName, packageInstallArgs)
+}
+
+export function installOutcome(
+  packageName: string,
+  packageInstallArgs: string[] | undefined,
+  context: ProviderOperationContext,
+): Promise<PackageMutationOutcome> {
+  return runDenoInstallCommandOutcome(packageName, packageInstallArgs ?? [], {}, context)
 }
 
 export async function update(packageName: string, packageInstallArgs?: string[]): Promise<boolean> {
@@ -28,20 +44,38 @@ export async function update(packageName: string, packageInstallArgs?: string[])
   })
 }
 
+export function updateOutcome(
+  packageName: string,
+  packageInstallArgs: string[] | undefined,
+  context: ProviderOperationContext,
+): Promise<PackageMutationOutcome> {
+  return runDenoInstallCommandOutcome(packageName, packageInstallArgs ?? [], { force: true }, context)
+}
+
 export async function updateMany(
   packages: Array<{ packageInstallArgs?: string[]; packageName: string }>,
 ): Promise<boolean> {
-  for (const pkg of packages) {
-    if (!(await update(pkg.packageName, pkg.packageInstallArgs))) return false
-  }
+  return projectLegacyPackageMutation(context => updateManyOutcome(packages, context))
+}
 
-  return true
+export function updateManyOutcome(
+  packages: Array<{ packageInstallArgs?: string[]; packageName: string }>,
+  context: ProviderOperationContext,
+): Promise<PackageMutationOutcome> {
+  return runPackageMutationSequence(
+    packages.map(pkg => ['deno', 'install', '--global', '--force', ...(pkg.packageInstallArgs ?? []), pkg.packageName]),
+    context,
+    'deno update failed',
+  )
 }
 
 export async function uninstall(binaryName: string): Promise<boolean> {
-  try {
-    return (await waitForSpawnedCommand(spawnWithQuantexStdio(['deno', 'uninstall', '--global', binaryName]))) === 0
-  } catch {
-    return false
-  }
+  return projectLegacyPackageMutation(context => uninstallOutcome(binaryName, context))
+}
+
+export function uninstallOutcome(
+  binaryName: string,
+  context: ProviderOperationContext,
+): Promise<PackageMutationOutcome> {
+  return runPackageMutationOutcome(['deno', 'uninstall', '--global', binaryName], context, 'deno uninstall failed')
 }

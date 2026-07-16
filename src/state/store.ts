@@ -1,5 +1,5 @@
 import type { LifecycleReceipt } from '../lifecycle/model'
-import type { QuantexState, VersionedQuantexState } from './schema'
+import type { InstalledAgentState, QuantexState, VersionedQuantexState } from './schema'
 import {
   createEmptyStateDocument,
   normalizeLifecycleReceipt,
@@ -159,13 +159,40 @@ export class LifecycleStateStore {
   async setReceipt(receipt: LifecycleReceipt): Promise<void> {
     const normalized = normalizeLifecycleReceipt(receipt.targetId, receipt)
     const document = await this.loadDocument()
-    await this.persistence.save({
+    const next = {
       ...document,
       lifecycleReceipts: {
         ...document.lifecycleReceipts,
         [normalized.targetId]: normalized,
       },
-    })
+    }
+    const validated = parseStateDocument(next)
+    if (validated.source !== 'current')
+      throw new Error('Verified lifecycle evidence must use the current state schema.')
+    await this.persistence.save(validated.document)
+  }
+
+  async setAgentLifecycleEvidence(installedState: InstalledAgentState, receipt: LifecycleReceipt): Promise<void> {
+    const normalized = normalizeLifecycleReceipt(receipt.targetId, receipt)
+    if (installedState.agentName !== normalized.targetId) {
+      throw new Error('Installed agent state and lifecycle receipt must target the same agent.')
+    }
+    const document = await this.loadDocument()
+    const next = {
+      ...document,
+      installedAgents: {
+        ...document.installedAgents,
+        [installedState.agentName]: installedState,
+      },
+      lifecycleReceipts: {
+        ...document.lifecycleReceipts,
+        [normalized.targetId]: normalized,
+      },
+    }
+    const validated = parseStateDocument(next)
+    if (validated.source !== 'current')
+      throw new Error('Verified lifecycle evidence must use the current state schema.')
+    await this.persistence.save(validated.document)
   }
 
   async removeReceipt(targetId: string): Promise<void> {

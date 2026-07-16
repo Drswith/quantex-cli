@@ -34,22 +34,18 @@ const commands: RegistryPackageCommandBuilders = {
 }
 
 const defaultDependencies: BunProviderDependencies = {
+  contextualMutation: true,
   contextualPackageObservation: true,
   getInstalledVersion: (packageName, context) => bunPm.getInstalledVersion(packageName, context),
-  install: (packageName, distTag, registry) =>
-    distTag === undefined && registry === undefined
-      ? bunPm.install(packageName)
-      : bunPm.install(packageName, distTag, registry),
+  install: (packageName, distTag, registry, context) => bunPm.installOutcome(packageName, distTag, registry, context),
   isAvailable: context => detectUtils.isBunAvailable(context),
   probePackagePresence: (packageName, context) => bunPm.probePackagePresence(packageName, undefined, context),
   resolveLatestVersion: (packageName, distTag, registry) =>
     versionUtils.getLatestVersion(packageName, distTag, { registry }),
-  uninstall: packageName => bunPm.uninstall(packageName),
-  update: (packageName, strategy, distTag, registry) =>
-    distTag === 'latest' && registry === undefined
-      ? bunPm.update(packageName, strategy)
-      : bunPm.update(packageName, strategy, distTag, registry),
-  updateMany: (packageNames, strategy) => bunPm.updateMany(packageNames, strategy),
+  uninstall: (packageName, context) => bunPm.uninstallOutcome(packageName, context),
+  update: (packageName, strategy, distTag, registry, context) =>
+    bunPm.updateOutcome(packageName, strategy, distTag, registry, context),
+  updateMany: (packageNames, strategy, context) => bunPm.updateManyOutcome(packageNames, strategy, context),
 }
 
 export function createBunProviderAdapter(dependencies: BunProviderDependencies = defaultDependencies) {

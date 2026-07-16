@@ -1,54 +1,87 @@
 import type { ProviderOperationContext } from '../providers'
+import type { PackageMutationOutcome } from './mutation-outcome'
 import process from 'node:process'
 import {
   readProcessOutput,
   readProcessOutputWithContext,
   isProcessInterruptionError,
   spawnCommand,
-  spawnWithQuantexStdio,
-  waitForSpawnedCommand,
 } from '../utils/child-process'
+import { projectLegacyPackageMutation, runPackageMutationOutcome, runPackageMutationSequence } from './mutation-outcome'
 
 async function runUvToolCommand(
   action: 'install' | 'upgrade',
   packageName: string,
   packageInstallArgs: string[] = [],
 ): Promise<boolean> {
-  try {
-    return (
-      (await waitForSpawnedCommand(
-        spawnWithQuantexStdio(['uv', 'tool', action, packageName, ...packageInstallArgs]),
-      )) === 0
-    )
-  } catch {
-    return false
-  }
+  return projectLegacyPackageMutation(context =>
+    runUvToolCommandOutcome(action, packageName, packageInstallArgs, context),
+  )
+}
+
+function runUvToolCommandOutcome(
+  action: 'install' | 'upgrade',
+  packageName: string,
+  packageInstallArgs: string[],
+  context: ProviderOperationContext,
+): Promise<PackageMutationOutcome> {
+  return runPackageMutationOutcome(
+    ['uv', 'tool', action, packageName, ...packageInstallArgs],
+    context,
+    `uv ${action} failed`,
+  )
 }
 
 export async function install(packageName: string, packageInstallArgs?: string[]): Promise<boolean> {
   return runUvToolCommand('install', packageName, packageInstallArgs)
 }
 
+export function installOutcome(
+  packageName: string,
+  packageInstallArgs: string[] | undefined,
+  context: ProviderOperationContext,
+): Promise<PackageMutationOutcome> {
+  return runUvToolCommandOutcome('install', packageName, packageInstallArgs ?? [], context)
+}
+
 export async function update(packageName: string, packageInstallArgs?: string[]): Promise<boolean> {
   return runUvToolCommand('upgrade', packageName, packageInstallArgs)
+}
+
+export function updateOutcome(
+  packageName: string,
+  packageInstallArgs: string[] | undefined,
+  context: ProviderOperationContext,
+): Promise<PackageMutationOutcome> {
+  return runUvToolCommandOutcome('upgrade', packageName, packageInstallArgs ?? [], context)
 }
 
 export async function updateMany(
   packages: Array<{ packageInstallArgs?: string[]; packageName: string }>,
 ): Promise<boolean> {
-  for (const pkg of packages) {
-    if (!(await update(pkg.packageName, pkg.packageInstallArgs))) return false
-  }
+  return projectLegacyPackageMutation(context => updateManyOutcome(packages, context))
+}
 
-  return true
+export function updateManyOutcome(
+  packages: Array<{ packageInstallArgs?: string[]; packageName: string }>,
+  context: ProviderOperationContext,
+): Promise<PackageMutationOutcome> {
+  return runPackageMutationSequence(
+    packages.map(pkg => ['uv', 'tool', 'upgrade', pkg.packageName, ...(pkg.packageInstallArgs ?? [])]),
+    context,
+    'uv update failed',
+  )
 }
 
 export async function uninstall(packageName: string): Promise<boolean> {
-  try {
-    return (await waitForSpawnedCommand(spawnWithQuantexStdio(['uv', 'tool', 'uninstall', packageName]))) === 0
-  } catch {
-    return false
-  }
+  return projectLegacyPackageMutation(context => uninstallOutcome(packageName, context))
+}
+
+export function uninstallOutcome(
+  packageName: string,
+  context: ProviderOperationContext,
+): Promise<PackageMutationOutcome> {
+  return runPackageMutationOutcome(['uv', 'tool', 'uninstall', packageName], context, 'uv uninstall failed')
 }
 
 export type PackagePresenceProbe = 'present' | 'absent' | 'unknown'

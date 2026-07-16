@@ -22,6 +22,7 @@ export interface AgentLifecycleObservationPorts {
   readonly clock: () => string
   readonly inspectExecutable: (agent: AgentDefinition) => Promise<AgentExecutableObservation>
   readonly platform: Platform
+  readonly preferredCatalogBinding?: LifecycleProviderBinding
   readonly providerRegistry: ProviderRegistry
   readonly readInstalledState: (agentName: string) => Promise<InstalledAgentState | undefined>
   readonly readReceipt: (agentName: string) => Promise<LifecycleReceipt | undefined>
@@ -196,7 +197,20 @@ export async function observeAgentLifecycle(
       outcome: { kind: 'success'; value: Extract<ProviderObservation, { kind: 'present' }> }
     } => candidate.outcome.kind === 'success' && candidate.outcome.value.kind === 'present',
   )
-  if (liveCandidates.length > 1) {
+  const exactProviderCandidates = candidateOutcomes.filter(
+    candidate => candidate.binding.providerId !== 'binary' && candidate.binding.providerId !== 'script',
+  )
+  const exactOwnershipCandidates = exactProviderCandidates.filter(
+    (
+      candidate,
+    ): candidate is typeof candidate & {
+      outcome: { kind: 'success'; value: Extract<ProviderObservation, { kind: 'present' }> }
+    } => candidate.outcome.kind === 'success' && candidate.outcome.value.kind === 'present',
+  )
+  const exactProviderUnresolved = exactProviderCandidates.some(candidate => candidate.outcome.kind !== 'success')
+  const authoritativeLiveCandidates =
+    exactOwnershipCandidates.length > 0 ? exactOwnershipCandidates : exactProviderUnresolved ? [] : liveCandidates
+  if (authoritativeLiveCandidates.length > 1) {
     return {
       ...base,
       capabilities: [],
@@ -221,16 +235,19 @@ export async function observeAgentLifecycle(
   }
 
   const unresolvedOutcome = candidateOutcomes.map(candidate => candidate.outcome).find(isNonSuccessProviderOutcome)
-  if (unresolvedOutcome) {
+  const interruptedOutcome = candidateOutcomes
+    .map(candidate => candidate.outcome)
+    .find(outcome => outcome.kind === 'cancelled' || outcome.kind === 'timed-out')
+  if (interruptedOutcome) {
     return {
       ...base,
       capabilities: [],
-      observation: indeterminateObservation(agent, observedAt, providerOutcomeReason(unresolvedOutcome)),
-      providerOutcome: unresolvedOutcome,
+      observation: indeterminateObservation(agent, observedAt, providerOutcomeReason(interruptedOutcome)),
+      providerOutcome: interruptedOutcome,
     }
   }
 
-  const liveCandidate = liveCandidates[0]
+  const liveCandidate = authoritativeLiveCandidates[0]
   if (liveCandidate) {
     const binding = liveCandidate.binding
     const providerObservation = liveCandidate.outcome.value
@@ -256,6 +273,33 @@ export async function observeAgentLifecycle(
         binding,
       ),
       providerOutcome: liveCandidate.outcome,
+    }
+  }
+
+  const preferredCatalogBinding = ports.preferredCatalogBinding
+  const absentCandidate = preferredCatalogBinding
+    ? candidateOutcomes.find(
+        candidate =>
+          providerBindingsEqual(candidate.binding, preferredCatalogBinding, agent.binaryName) &&
+          candidate.outcome.kind === 'success' &&
+          candidate.outcome.value.kind === 'absent',
+      )
+    : undefined
+  if (!executable.present && liveCandidates.length === 0 && unresolvedOutcome && absentCandidate) {
+    return {
+      ...base,
+      capabilities: [],
+      observation: { drift: { kind: 'none' }, kind: 'absent', observedAt, targetId: agent.name },
+      providerOutcome: absentCandidate.outcome,
+    }
+  }
+
+  if (unresolvedOutcome) {
+    return {
+      ...base,
+      capabilities: [],
+      observation: indeterminateObservation(agent, observedAt, providerOutcomeReason(unresolvedOutcome)),
+      providerOutcome: unresolvedOutcome,
     }
   }
 

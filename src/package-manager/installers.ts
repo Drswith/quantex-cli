@@ -3,6 +3,7 @@ import type { NpmBunUpdateStrategy } from '../config'
 import type {
   ProviderAdapter,
   ProviderOperationContext,
+  ProviderOutcome,
   ProviderTarget,
   RegistryPackageOperationOptions,
 } from '../providers'
@@ -15,6 +16,7 @@ import { npmProviderAdapter } from '../providers/adapters/npm'
 import { pipProviderAdapter } from '../providers/adapters/pip'
 import { uvProviderAdapter } from '../providers/adapters/uv'
 import { wingetProviderAdapter } from '../providers/adapters/winget'
+import { createCliOperationContext } from '../runtime/cli-operation-context'
 import * as bunPm from './bun'
 import * as misePm from './mise'
 import * as npmPm from './npm'
@@ -34,6 +36,7 @@ export interface ManagedInstallerUpdateOptions {
 }
 
 export type ManagedPackagePresenceProbe = 'present' | 'absent' | 'unknown'
+export type ManagedMutationOutcome = ProviderOutcome<unknown>
 
 export interface ManagedInstaller {
   type: ManagedInstallType
@@ -61,6 +64,36 @@ export interface ManagedInstaller {
   updateMany: (packages: ManagedPackageSpec[], options?: ManagedInstallerUpdateOptions) => Promise<boolean>
 }
 
+export interface TypedManagedInstaller extends Omit<
+  ManagedInstaller,
+  'install' | 'isAvailable' | 'uninstall' | 'update' | 'updateMany'
+> {
+  isAvailable: (context?: ProviderOperationContext) => Promise<boolean>
+  install: (
+    packageName: string,
+    packageTargetKind?: PackageTargetKind,
+    packageInstallArgs?: string[],
+    context?: ProviderOperationContext,
+  ) => Promise<ManagedMutationOutcome>
+  uninstall: (
+    packageName: string,
+    packageTargetKind?: PackageTargetKind,
+    options?: ManagedInstallerUpdateOptions,
+    context?: ProviderOperationContext,
+  ) => Promise<ManagedMutationOutcome>
+  update: (
+    packageName: string,
+    packageTargetKind?: PackageTargetKind,
+    options?: ManagedInstallerUpdateOptions,
+    context?: ProviderOperationContext,
+  ) => Promise<ManagedMutationOutcome>
+  updateMany: (
+    packages: ManagedPackageSpec[],
+    options?: ManagedInstallerUpdateOptions,
+    context?: ProviderOperationContext,
+  ) => Promise<ManagedMutationOutcome>
+}
+
 interface RegistryManagedInstallerProbes {
   readonly getInstalledVersion: (packageName: string) => Promise<string | undefined>
   readonly probePackagePresence: (packageName: string) => Promise<ManagedPackagePresenceProbe>
@@ -70,55 +103,74 @@ function createRegistryManagedInstaller(
   type: Extract<ManagedInstallType, 'bun' | 'npm'>,
   adapter: ProviderAdapter,
   probes: RegistryManagedInstallerProbes,
-): ManagedInstaller {
+): TypedManagedInstaller {
   return {
     type,
     getInstalledVersion: packageName => probes.getInstalledVersion(packageName),
     probePackagePresence: packageName => probes.probePackagePresence(packageName),
-    isAvailable: async () => (await adapter.availability(createProviderContext())).kind === 'success',
-    install: async (packageName, packageTargetKind, packageInstallArgs) => {
-      if (!adapter.install) return false
-      const outcome = await adapter.install({
-        context: createProviderContext(),
-        target: createProviderTarget(packageName, packageTargetKind, undefined, packageInstallArgs),
-      })
-      return outcome.kind === 'success'
+    isAvailable: context =>
+      withProviderContext(context, async resolved => (await adapter.availability(resolved)).kind === 'success'),
+    install: async (packageName, packageTargetKind, packageInstallArgs, context) => {
+      if (!adapter.install) return unsupported('install')
+      return withProviderContext(context, resolved =>
+        adapter.install!({
+          context: resolved,
+          target: createProviderTarget(packageName, packageTargetKind, undefined, packageInstallArgs),
+        }),
+      )
     },
-    uninstall: async (packageName, packageTargetKind, options) => {
-      if (!adapter.uninstall) return false
-      const outcome = await adapter.uninstall({
-        context: createProviderContext(),
-        target: createProviderTarget(packageName, packageTargetKind, options?.binaryName),
-      })
-      return outcome.kind === 'success'
+    uninstall: async (packageName, packageTargetKind, options, context) => {
+      if (!adapter.uninstall) return unsupported('uninstall')
+      return withProviderContext(context, resolved =>
+        adapter.uninstall!({
+          context: resolved,
+          target: createProviderTarget(packageName, packageTargetKind, options?.binaryName),
+        }),
+      )
     },
-    update: async (packageName, packageTargetKind, options) => {
-      if (!adapter.update) return false
+    update: async (packageName, packageTargetKind, options, context) => {
+      if (!adapter.update) return unsupported('update')
       const operationOptions = createRegistryOperationOptions(options)
-      const outcome = await adapter.update({
-        context: createProviderContext(),
-        ...(operationOptions ? { options: operationOptions } : {}),
-        target: createProviderTarget(packageName, packageTargetKind, options?.binaryName, options?.packageInstallArgs),
-      })
-      return outcome.kind === 'success'
+      return withProviderContext(context, resolved =>
+        adapter.update!({
+          context: resolved,
+          ...(operationOptions ? { options: operationOptions } : {}),
+          target: createProviderTarget(
+            packageName,
+            packageTargetKind,
+            options?.binaryName,
+            options?.packageInstallArgs,
+          ),
+        }),
+      )
     },
-    updateMany: async (packages, options) => {
-      if (!adapter.updateMany) return false
+    updateMany: async (packages, options, context) => {
+      if (!adapter.updateMany) return unsupported('update-many')
       const operationOptions = createRegistryOperationOptions(options)
-      const outcome = await adapter.updateMany({
-        context: createProviderContext(),
-        ...(operationOptions ? { options: operationOptions } : {}),
-        targets: packages.map(pkg =>
-          createProviderTarget(pkg.packageName, pkg.packageTargetKind, pkg.binaryName, pkg.packageInstallArgs),
-        ),
-      })
-      return outcome.kind === 'success'
+      return withProviderContext(context, resolved =>
+        adapter.updateMany!({
+          context: resolved,
+          ...(operationOptions ? { options: operationOptions } : {}),
+          targets: packages.map(pkg =>
+            createProviderTarget(pkg.packageName, pkg.packageTargetKind, pkg.binaryName, pkg.packageInstallArgs),
+          ),
+        }),
+      )
     },
   }
 }
 
-function createProviderContext(): ProviderOperationContext {
-  return { signal: new AbortController().signal }
+async function withProviderContext<T>(
+  context: ProviderOperationContext | undefined,
+  invoke: (context: ProviderOperationContext) => Promise<T>,
+): Promise<T> {
+  if (context) return invoke(context)
+  const operation = createCliOperationContext()
+  try {
+    return await invoke(operation.context)
+  } finally {
+    operation.dispose()
+  }
 }
 
 function createProviderTarget(
@@ -145,8 +197,8 @@ function createSystemManagedInstaller(
   type: Extract<ManagedInstallType, 'brew' | 'cargo' | 'deno' | 'mise' | 'pip' | 'uv' | 'winget'>,
   adapter: ProviderAdapter,
   resolveKind: (packageTargetKind?: PackageTargetKind) => ProviderTarget['kind'],
-  compatibility: Pick<ManagedInstaller, 'getInstalledVersion' | 'probePackagePresence'> = {},
-): ManagedInstaller {
+  compatibility: Pick<TypedManagedInstaller, 'getInstalledVersion' | 'probePackagePresence'> = {},
+): TypedManagedInstaller {
   const target = (
     packageName: string,
     packageTargetKind?: PackageTargetKind,
@@ -162,57 +214,47 @@ function createSystemManagedInstaller(
   return {
     ...compatibility,
     type,
-    isAvailable: async () => (await adapter.availability(createProviderContext())).kind === 'success',
-    install: async (packageName, packageTargetKind, packageInstallArgs) => {
-      if (!adapter.install) return false
-      return (
-        (
-          await adapter.install({
-            context: createProviderContext(),
-            target: target(packageName, packageTargetKind, packageInstallArgs),
-          })
-        ).kind === 'success'
+    isAvailable: context =>
+      withProviderContext(context, async resolved => (await adapter.availability(resolved)).kind === 'success'),
+    install: async (packageName, packageTargetKind, packageInstallArgs, context) => {
+      if (!adapter.install) return unsupported('install')
+      return withProviderContext(context, resolved =>
+        adapter.install!({ context: resolved, target: target(packageName, packageTargetKind, packageInstallArgs) }),
       )
     },
-    uninstall: async (packageName, packageTargetKind, options) => {
-      if (!adapter.uninstall) return false
-      return (
-        (
-          await adapter.uninstall({
-            context: createProviderContext(),
-            target: target(packageName, packageTargetKind, undefined, options?.binaryName),
-          })
-        ).kind === 'success'
+    uninstall: async (packageName, packageTargetKind, options, context) => {
+      if (!adapter.uninstall) return unsupported('uninstall')
+      return withProviderContext(context, resolved =>
+        adapter.uninstall!({
+          context: resolved,
+          target: target(packageName, packageTargetKind, undefined, options?.binaryName),
+        }),
       )
     },
-    update: async (packageName, packageTargetKind, options) => {
-      if (!adapter.update) return false
-      return (
-        (
-          await adapter.update({
-            context: createProviderContext(),
-            target: target(packageName, packageTargetKind, options?.packageInstallArgs, options?.binaryName),
-          })
-        ).kind === 'success'
+    update: async (packageName, packageTargetKind, options, context) => {
+      if (!adapter.update) return unsupported('update')
+      return withProviderContext(context, resolved =>
+        adapter.update!({
+          context: resolved,
+          target: target(packageName, packageTargetKind, options?.packageInstallArgs, options?.binaryName),
+        }),
       )
     },
-    updateMany: async packages => {
-      if (!adapter.updateMany) return false
-      return (
-        (
-          await adapter.updateMany({
-            context: createProviderContext(),
-            targets: packages.map(pkg =>
-              target(pkg.packageName, pkg.packageTargetKind, pkg.packageInstallArgs, pkg.binaryName),
-            ),
-          })
-        ).kind === 'success'
+    updateMany: async (packages, _options, context) => {
+      if (!adapter.updateMany) return unsupported('update-many')
+      return withProviderContext(context, resolved =>
+        adapter.updateMany!({
+          context: resolved,
+          targets: packages.map(pkg =>
+            target(pkg.packageName, pkg.packageTargetKind, pkg.packageInstallArgs, pkg.binaryName),
+          ),
+        }),
       )
     },
   }
 }
 
-const managedInstallers: Record<ManagedInstallType, ManagedInstaller> = {
+const typedManagedInstallers: Record<ManagedInstallType, TypedManagedInstaller> = {
   brew: createSystemManagedInstaller('brew', brewProviderAdapter, kind => (kind === 'cask' ? 'cask' : 'formula')),
   bun: createRegistryManagedInstaller('bun', bunProviderAdapter, {
     getInstalledVersion: packageName => bunPm.getInstalledVersion(packageName),
@@ -236,6 +278,31 @@ const managedInstallers: Record<ManagedInstallType, ManagedInstaller> = {
   winget: createSystemManagedInstaller('winget', wingetProviderAdapter, () => 'id'),
 }
 
+const managedInstallers = Object.fromEntries(
+  Object.entries(typedManagedInstallers).map(([type, installer]) => [type, projectManagedInstaller(installer)]),
+) as Record<ManagedInstallType, ManagedInstaller>
+
 export function getManagedInstaller(type: ManagedInstallType): ManagedInstaller {
   return managedInstallers[type]
+}
+
+export function getTypedManagedInstaller(type: ManagedInstallType): TypedManagedInstaller {
+  return typedManagedInstallers[type]
+}
+
+function projectManagedInstaller(installer: TypedManagedInstaller): ManagedInstaller {
+  return {
+    getInstalledVersion: installer.getInstalledVersion,
+    install: async (...args) => (await installer.install(...args)).kind === 'success',
+    isAvailable: installer.isAvailable,
+    probePackagePresence: installer.probePackagePresence,
+    type: installer.type,
+    uninstall: async (...args) => (await installer.uninstall(...args)).kind === 'success',
+    update: async (...args) => (await installer.update(...args)).kind === 'success',
+    updateMany: async (...args) => (await installer.updateMany(...args)).kind === 'success',
+  }
+}
+
+function unsupported(operation: 'install' | 'uninstall' | 'update' | 'update-many'): ManagedMutationOutcome {
+  return { kind: 'unsupported', operation }
 }

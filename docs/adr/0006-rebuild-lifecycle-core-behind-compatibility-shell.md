@@ -27,7 +27,7 @@ The detailed contract and migration sequence live in the active `redesign-lifecy
 ## Consequences
 
 - Internal implementation can change substantially without making those boundaries public contracts.
-- Migration temporarily carries both legacy handlers and the new engine, increasing short-term code volume.
+- Incremental migration may temporarily carry migration-only handlers; they are removed only after every default route and the compatibility gates verify the replacement engine.
 - Compatibility must be tested as a first-class adapter rather than inferred from unchanged command names.
 - State receipts and typed provider outcomes make drift, partial failure, and recovery more explicit.
 - A future removal of root-package exports requires its own deprecation decision; it is not bundled into the engine rewrite.

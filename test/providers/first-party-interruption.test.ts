@@ -70,6 +70,17 @@ describe('first-party provider interruption', () => {
     await expectAllTreesStopped(fixture)
   }, 15_000)
 
+  it('kills descendants that outlive a process-group leader after cancellation', async () => {
+    const fixture = await createProviderFixtures([{ executable: 'bun', id: 'bun', mode: 'parent-exits-child-hangs' }])
+    const controller = new AbortController()
+    const pending = firstPartyProviderRegistry.get('bun')!.availability({ signal: controller.signal })
+    await fixture.waitForAllTrees()
+    controller.abort('test cancellation')
+
+    await expect(pending).resolves.toEqual({ kind: 'cancelled', reason: 'test cancellation' })
+    await expectAllTreesStopped(fixture)
+  }, 15_000)
+
   it('preserves typed timeouts through npm, Bun, mise, and uv presence/version probes', async () => {
     const fixture = await createProviderFixtures(
       observationProviders.map(([id, executable, firstOutput]) => ({
@@ -125,7 +136,7 @@ interface FixtureInput {
   executable: string
   firstOutput?: string
   id: ProviderId
-  mode: 'hang' | 'version-then-hang'
+  mode: 'hang' | 'parent-exits-child-hangs' | 'version-then-hang'
 }
 
 async function createProviderFixtures(inputs: FixtureInput[]) {
@@ -140,7 +151,7 @@ async function createProviderFixtures(inputs: FixtureInput[]) {
     pidLogs.push(pidLog)
     await writeFile(
       join(root, input.executable),
-      `#!${bun}\nconst mode = ${JSON.stringify(input.mode)}\nconst countFile = ${JSON.stringify(countFile)}\nlet count = 0\ntry { count = Number(await Bun.file(countFile).text()) } catch {}\nawait Bun.write(countFile, String(count + 1))\nif (mode === 'version-then-hang' && count === 0) { console.log(${JSON.stringify(input.firstOutput ?? '')}); process.exit(0) }\nprocess.on('SIGTERM', () => undefined)\nprocess.on('SIGINT', () => undefined)\nconst child = Bun.spawn([process.execPath, '-e', "process.on('SIGTERM', () => undefined); process.on('SIGINT', () => undefined); await new Promise(() => undefined)"], { stdin: 'ignore', stdout: 'ignore', stderr: 'ignore' })\nawait Bun.write(${JSON.stringify(pidLog)}, \`\${process.pid} \${child.pid}\\n\`)\nawait child.exited\n`,
+      `#!${bun}\nconst mode = ${JSON.stringify(input.mode)}\nconst countFile = ${JSON.stringify(countFile)}\nlet count = 0\ntry { count = Number(await Bun.file(countFile).text()) } catch {}\nawait Bun.write(countFile, String(count + 1))\nif (mode === 'version-then-hang' && count === 0) { console.log(${JSON.stringify(input.firstOutput ?? '')}); process.exit(0) }\nprocess.on('SIGTERM', () => { if (mode === 'parent-exits-child-hangs') process.exit(0) })\nprocess.on('SIGINT', () => undefined)\nconst child = Bun.spawn([process.execPath, '-e', "process.on('SIGTERM', () => undefined); process.on('SIGINT', () => undefined); await new Promise(() => undefined)"], { stdin: 'ignore', stdout: 'ignore', stderr: 'ignore' })\nawait Bun.write(${JSON.stringify(pidLog)}, \`\${process.pid} \${child.pid}\\n\`)\nawait child.exited\n`,
     )
     await chmod(join(root, input.executable), 0o755)
   }

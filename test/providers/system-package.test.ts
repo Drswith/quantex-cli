@@ -10,20 +10,32 @@ const context: ProviderOperationContext = {
   timeoutMs: 5_000,
 }
 
+function mutation(success = true) {
+  return vi.fn(async () =>
+    success
+      ? ({ kind: 'success', value: undefined } as const)
+      : ({ kind: 'failed', reason: '', retryable: false } as const),
+  )
+}
+
+function pendingMutation() {
+  return vi.fn(() => new Promise<never>(() => {}))
+}
+
 function createDependencies(
   overrides: Partial<SystemPackageAdapterDependencies> = {},
 ): SystemPackageAdapterDependencies {
   return {
-    install: vi.fn(async () => true),
+    install: mutation(),
     isAvailable: vi.fn(async () => true),
     probePackagePresence: vi.fn(async target => {
       if (target.id.endsWith('-absent')) return 'absent'
       if (target.id.endsWith('-unknown')) return 'unknown'
       return 'present'
     }),
-    uninstall: vi.fn(async () => true),
-    update: vi.fn(async () => true),
-    updateMany: vi.fn(async () => true),
+    uninstall: mutation(),
+    update: mutation(),
+    updateMany: mutation(),
     ...overrides,
   }
 }
@@ -36,9 +48,9 @@ function addConformanceCases(
 ): void {
   describeProviderConformance(`${name} provider`, () => {
     const dependencies = createDependencies({
-      install: vi.fn(async () => false),
+      install: mutation(false),
       isAvailable: vi.fn(async () => false),
-      update: vi.fn(() => new Promise<boolean>(() => {})),
+      update: pendingMutation(),
     })
     const adapter = createAdapter(dependencies)
     const presentEvidence = { kind: 'package', value: `${name}:${target.id}:present` } as const
@@ -122,7 +134,7 @@ describe('system package provider semantics', () => {
       },
     })
     expect(await adapter.updateMany?.({ context, targets: [brewTarget, cask] })).toMatchObject({ kind: 'success' })
-    expect(dependencies.updateMany).toHaveBeenCalledWith([brewTarget, cask])
+    expect(dependencies.updateMany).toHaveBeenCalledWith([brewTarget, cask], context)
   })
 
   it('preserves exact winget package IDs for every mutation', async () => {
@@ -147,7 +159,7 @@ describe('system package provider semantics', () => {
         ],
       },
     })
-    expect(dependencies.install).toHaveBeenCalledWith(wingetTarget)
-    expect(dependencies.uninstall).toHaveBeenCalledWith(wingetTarget)
+    expect(dependencies.install).toHaveBeenCalledWith(wingetTarget, context)
+    expect(dependencies.uninstall).toHaveBeenCalledWith(wingetTarget, context)
   })
 })
