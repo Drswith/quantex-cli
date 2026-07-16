@@ -6,4 +6,5 @@
 ## 2. Validation and delivery
 
 - [x] 2.1 Run OpenSpec and repository documentation validation, inspect the diff, and confirm the change remains non-release-worthy.
-- [ ] 2.2 Commit, push, and open a validated docs PR; after it merges, archive this change and verify the repository changelog and GitHub Release bodies remain aligned.
+- [x] 2.2 Commit, push, and open a validated docs PR after the published GitHub Release bodies are corrected.
+- [x] 2.3 After the implementation PR merges, verify the repository changelog and GitHub Release bodies remain aligned and prepare the agent-driven archive closure.
