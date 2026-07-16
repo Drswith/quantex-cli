@@ -8,11 +8,33 @@
       "include-v-in-tag": true,
       "include-v-in-release-name": true,
       "bump-minor-pre-major": false,
+      "changelog-types": [
+        {
+          "type": "feat",
+          "section": "Features",
+          "hidden": false
+        },
+        {
+          "type": "fix",
+          "section": "Bug Fixes",
+          "hidden": false
+        },
+        {
+          "type": "perf",
+          "section": "Performance Improvements",
+          "hidden": false
+        },
+        {
+          "type": "refactor",
+          "section": "Internal Improvements",
+          "hidden": false
+        }
+      ],
       "extra-files": [
         "src/generated/build-meta.ts"
       ],
       "pull-request-title-pattern": "chore: release ${version}",
-      "pull-request-header": "## Summary\n- materialize the next Quantex release version in source-controlled files\n- update the repository changelog for the pending release\n\n## Linked Artifacts\n- Release automation: release-please\n\n## Validation\n- CI must pass before merging this Release PR\n\n## Release Intent\n- Release: patch/minor/major - release-please generated version PR\n\n## Docs Updated\n- CHANGELOG.md\n- package.json\n- src/generated/build-meta.ts\n- .release-please-manifest.json\n\n## Scope Check\n- Release PR only; merge this PR to publish the prepared version\n\n## Closure Check\n- OpenSpec: release-workflow\n- Delivery state: Release PR pending merge and publication\n"
+      "pull-request-header": "## Summary\n- materialize the next Quantex release version in source-controlled files\n- update the repository changelog for the pending release\n\n## Linked Artifacts\n- Release automation: release-please\n\n## Validation\n- CI must pass before merging this Release PR\n\n## Release Intent\n- Release: patch/minor/major - release-please generated version PR\n\n## Release Summary\n- Not applicable - generated Release PR; source PR commit overrides provide release entries.\n\n## Docs Updated\n- CHANGELOG.md\n- package.json\n- src/generated/build-meta.ts\n- .release-please-manifest.json\n\n## Scope Check\n- Release PR only; merge this PR to publish the prepared version\n\n## Closure Check\n- OpenSpec: release-workflow\n- Delivery state: Release PR pending merge and publication\n"
     }
   }
 }

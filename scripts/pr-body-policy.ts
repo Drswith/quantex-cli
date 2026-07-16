@@ -15,6 +15,7 @@ export const requiredPrBodyHeadings = [
   '## Linked Artifacts',
   '## Validation',
   '## Release Intent',
+  '## Release Summary',
   '## Docs Updated',
   '## Scope Check',
   '## Closure Check',
@@ -43,10 +44,12 @@ export function validatePrBodyPolicy(input: PrBodyPolicyInput): string[] {
     )
   }
 
+  const releaseWorthyMetadata = hasReleaseWorthyMetadata(title, body)
+  if (!validatedReleasePr && releaseWorthyMetadata) issues.push(...validateReleaseSummary(body))
+
   if (!input.changedFiles || input.changedFiles.length === 0) return issues
 
   const classification = classifyChangedFiles(input.changedFiles)
-  const releaseWorthyMetadata = hasReleaseWorthyMetadata(title, body)
 
   if (classification.processOnly && releaseWorthyMetadata) {
     issues.push(
@@ -82,8 +85,36 @@ export function hasReleaseWorthyMetadata(title: string, body: string): boolean {
   return (
     /^(feat|fix|perf)(\(.+\))?!?:/.test(title) ||
     /^[a-z]+(\(.+\))?!:/.test(title) ||
-    /\nBREAKING CHANGE:/.test(`\n${body}`)
+    /\nBREAKING CHANGE:/.test(`\n${body}`) ||
+    hasReleaseAsFooter(body)
   )
+}
+
+function validateReleaseSummary(body: string): string[] {
+  const summary = extractSection(body, 'Release Summary')
+  const override = summary.match(/BEGIN_COMMIT_OVERRIDE\s*\n([\s\S]*?)\nEND_COMMIT_OVERRIDE/)
+
+  if (!override) {
+    return [
+      'Release-worthy source PRs must include a non-empty BEGIN_COMMIT_OVERRIDE / END_COMMIT_OVERRIDE block under "## Release Summary".',
+    ]
+  }
+
+  if (!/^[a-z]+(?:\([^\n)]+\))?!?:\s+\S/m.test(override[1])) {
+    return [
+      'Release Summary commit override must include a conventional-commit entry with a meaningful user-facing description.',
+    ]
+  }
+
+  if (hasReleaseAsFooter(body) && !hasReleaseAsFooter(summary)) {
+    return ['Release-As source PRs must declare the same non-empty Release-As footer under "## Release Summary".']
+  }
+
+  return []
+}
+
+function hasReleaseAsFooter(value: string): boolean {
+  return /^release-as:\s*\S+\s*$/im.test(value)
 }
 
 function hasMeaningfulNoReleaseReason(body: string): boolean {

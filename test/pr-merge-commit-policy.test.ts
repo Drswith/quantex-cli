@@ -117,10 +117,30 @@ describe('pr merge commit policy', () => {
     expect(issues).toContainEqual(expect.stringContaining('Co-authored-by:'))
   })
 
+  it('requires a Release-As source PR commit to carry the declared footer', () => {
+    const body = '## Release Summary\n\nRelease-As: 2.0.0'
+    const issues = validatePullRequestMergeCommitPolicy({ body, commits: [cleanCommits[0]!] })
+
+    expect(issues).toContainEqual(expect.stringContaining('no pull request commit carries the same Release-As footer'))
+  })
+
+  it('accepts a Release-As source PR when its commit carries the same footer', () => {
+    const body = '## Release Summary\n\nRelease-As: 2.0.0'
+    const commits = [
+      {
+        ...cleanCommits[0]!,
+        message: 'chore(release): graduate lifecycle engine\n\nRelease-As: 2.0.0',
+      },
+    ]
+
+    expect(validatePullRequestMergeCommitPolicy({ body, commits })).toEqual([])
+  })
+
   it('removes temporary topology inputs from the workflow policy step', () => {
     const policyStep = extractNamedStep(prGovernanceWorkflow, 'Validate PR merge commit policy')
 
     expect(policyStep).toContain('PR_COMMITS_JSON')
+    expect(policyStep).toContain('PR_BODY')
     expect(policyStep).toContain('PR_IS_VALIDATED_RELEASE_PR')
     expect(policyStep).not.toContain('PR_BASE_BRANCH')
     expect(policyStep).not.toContain('PR_HEAD_BRANCH')

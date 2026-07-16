@@ -36,8 +36,12 @@ describe('release target resolution', () => {
     expect(resolution.targetSha).toBe('graduation')
   })
 
-  it('does not mistake Release-As metadata on a chore commit for a release-worthy resolver input', () => {
-    expect(commit('chore(release): graduate post-redesign line\n\nRelease-As: 1.1.0').isReleaseWorthy).toBe(false)
+  it('recognizes Release-As metadata on a neutral commit as release-worthy resolver input', () => {
+    expect(commit('chore(release): graduate post-redesign line\n\nRelease-As: 2.0.0').isReleaseWorthy).toBe(true)
+  })
+
+  it('keeps neutral commits without Release-As out of release reconciliation', () => {
+    expect(commit('chore(release): prepare release governance').isReleaseWorthy).toBe(false)
   })
 
   it('publishes a pending untagged release commit before creating another release PR', () => {

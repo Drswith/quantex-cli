@@ -25,6 +25,12 @@ Describe the change and why it exists.
 - Release: minor - user-facing feature
 - Release: major - breaking change
 
+## Release Summary
+
+- Not applicable - this source PR does not produce a release entry.
+- For a release-worthy source PR, replace this with a non-empty release-please commit override written for users.
+- For a one-shot release, also declare the same `Release-As: <version>` footer that the merged commit carries.
+
 ## Docs Updated
 
 - [ ] Not needed

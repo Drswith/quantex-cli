@@ -20,6 +20,10 @@ Describe the change.
 
 - Release: not applicable - docs/process/test-only change
 
+## Release Summary
+
+- Not applicable - this change does not produce a release entry.
+
 ## Docs Updated
 
 - [x] \`openspec/...\`
@@ -51,7 +55,7 @@ describe('PR body policy', () => {
         title: 'docs: incomplete body',
       }),
     ).toEqual([
-      'PR body is missing required sections: ## Linked Artifacts, ## Validation, ## Release Intent, ## Docs Updated, ## Scope Check, ## Closure Check',
+      'PR body is missing required sections: ## Linked Artifacts, ## Validation, ## Release Intent, ## Release Summary, ## Docs Updated, ## Scope Check, ## Closure Check',
     ])
   })
 
@@ -119,5 +123,60 @@ describe('PR body policy', () => {
     })
 
     expect(issues.join('\n')).toContain('Product-impacting PRs must not silently skip release automation.')
+  })
+
+  it('requires a release-please commit override for release-worthy source PRs', () => {
+    const body = validBody.replace(
+      'Release: not applicable - docs/process/test-only change',
+      'Release: minor - user-facing lifecycle behavior',
+    )
+
+    const issues = validatePrBodyPolicy({
+      body,
+      changedFiles: ['src/cli.ts'],
+      title: 'feat: improve lifecycle reporting',
+    })
+
+    expect(issues.join('\n')).toContain('BEGIN_COMMIT_OVERRIDE')
+  })
+
+  it('accepts a user-facing commit override for release-worthy source PRs', () => {
+    const body = validBody
+      .replace(
+        'Release: not applicable - docs/process/test-only change',
+        'Release: minor - user-facing lifecycle behavior',
+      )
+      .replace(
+        '- Not applicable - this change does not produce a release entry.',
+        'BEGIN_COMMIT_OVERRIDE\nfeat: improve lifecycle reporting for managed agents\nEND_COMMIT_OVERRIDE',
+      )
+
+    expect(
+      validatePrBodyPolicy({
+        body,
+        changedFiles: ['src/cli.ts'],
+        title: 'feat: improve lifecycle reporting',
+      }),
+    ).toEqual([])
+  })
+
+  it('treats Release-As source metadata as release-worthy and requires it in the summary', () => {
+    const body = validBody
+      .replace(
+        'Release: not applicable - docs/process/test-only change',
+        'Release: major - planned protocol graduation',
+      )
+      .replace(
+        '- Not applicable - this change does not produce a release entry.',
+        'BEGIN_COMMIT_OVERRIDE\nrefactor: consolidate the lifecycle engine\nEND_COMMIT_OVERRIDE\n\nRelease-As: 2.0.0',
+      )
+
+    expect(
+      validatePrBodyPolicy({
+        body,
+        changedFiles: ['src/cli.ts'],
+        title: 'chore(release): graduate lifecycle engine',
+      }),
+    ).toEqual([])
   })
 })
