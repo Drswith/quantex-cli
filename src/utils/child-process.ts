@@ -278,13 +278,18 @@ export async function terminateProcessTree(proc: SpawnedProcessHandle, requested
 
   signalProcessTree(proc, 'SIGTERM')
 
-  const exited = proc.exited.then(() => true).catch(() => true)
   const graceMs = requestedGraceMs === undefined ? 2_000 : Math.max(10, Math.min(requestedGraceMs, 250))
-  const exitedDuringGrace = await Promise.race([
-    exited,
-    new Promise<false>(resolve => setTimeout(() => resolve(false), graceMs)),
-  ])
-  if (exitedDuringGrace) return
+  const hasPosixProcessGroup = process.platform !== 'win32' && proc.pid !== undefined
+  if (hasPosixProcessGroup) {
+    await new Promise(resolve => setTimeout(resolve, graceMs))
+  } else {
+    const exited = proc.exited.then(() => true).catch(() => true)
+    const exitedDuringGrace = await Promise.race([
+      exited,
+      new Promise<false>(resolve => setTimeout(() => resolve(false), graceMs)),
+    ])
+    if (exitedDuringGrace) return
+  }
 
   signalProcessTree(proc, 'SIGKILL')
   await runWithDeadline(
