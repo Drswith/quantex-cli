@@ -38,7 +38,7 @@ describe('managed installer typed provider compatibility', () => {
       }),
     ).toBe(true)
     expect(update).toHaveBeenCalledWith({
-      context: { signal: expect.any(AbortSignal) },
+      context: expect.objectContaining({ signal: expect.any(AbortSignal) }),
       options: { updateStrategy: 'respect-semver' },
       target: { id: '@example/npm-agent', kind: 'package' },
     })
@@ -54,7 +54,7 @@ describe('managed installer typed provider compatibility', () => {
 
     expect(await getManagedInstaller('bun').install('@example/bun-agent')).toBe(false)
     expect(install).toHaveBeenCalledWith({
-      context: { signal: expect.any(AbortSignal) },
+      context: expect.objectContaining({ signal: expect.any(AbortSignal) }),
       target: { id: '@example/bun-agent', kind: 'package' },
     })
   })
@@ -72,7 +72,7 @@ describe('managed installer typed provider compatibility', () => {
       ),
     ).toBe(true)
     expect(updateMany).toHaveBeenCalledWith({
-      context: { signal: expect.any(AbortSignal) },
+      context: expect.objectContaining({ signal: expect.any(AbortSignal) }),
       options: { updateStrategy: 'latest-major' },
       targets: [
         { id: '@example/one', kind: 'package' },
@@ -99,7 +99,7 @@ describe('managed installer typed provider compatibility', () => {
 
     expect(await getManagedInstaller('brew').install('example-cask', 'cask')).toBe(true)
     expect(install).toHaveBeenCalledWith({
-      context: { signal: expect.any(AbortSignal) },
+      context: expect.objectContaining({ signal: expect.any(AbortSignal) }),
       target: { id: 'example-cask', kind: 'cask' },
     })
   })
@@ -112,7 +112,7 @@ describe('managed installer typed provider compatibility', () => {
 
     expect(await getManagedInstaller('winget').update('Example.Package', 'id')).toBe(true)
     expect(update).toHaveBeenCalledWith({
-      context: { signal: expect.any(AbortSignal) },
+      context: expect.objectContaining({ signal: expect.any(AbortSignal) }),
       target: { id: 'Example.Package', kind: 'id' },
     })
   })
@@ -129,7 +129,7 @@ describe('managed installer typed provider compatibility', () => {
       }),
     ).toBe(true)
     expect(update).toHaveBeenCalledWith({
-      context: { signal: expect.any(AbortSignal) },
+      context: expect.objectContaining({ signal: expect.any(AbortSignal) }),
       target: { arguments: ['--locked'], id: 'some-crate', kind: 'package' },
     })
   })
@@ -146,7 +146,7 @@ describe('managed installer typed provider compatibility', () => {
       }),
     ).toBe(true)
     expect(uninstall).toHaveBeenCalledWith({
-      context: { signal: expect.any(AbortSignal) },
+      context: expect.objectContaining({ signal: expect.any(AbortSignal) }),
       target: { binaryName: 'tool-bin', id: 'jsr:@scope/tool', kind: 'tool' },
     })
   })
@@ -173,32 +173,32 @@ describe('managed installer typed provider compatibility', () => {
     ).toBe(true)
     expect(await getManagedInstaller('mise').update('npm:@openai/codex')).toBe(true)
     expect(pipInstall).toHaveBeenCalledWith({
-      context: { signal: expect.any(AbortSignal) },
+      context: expect.objectContaining({ signal: expect.any(AbortSignal) }),
       target: { id: 'example-pkg', kind: 'package' },
     })
     expect(uvUpdate).toHaveBeenCalledWith({
-      context: { signal: expect.any(AbortSignal) },
+      context: expect.objectContaining({ signal: expect.any(AbortSignal) }),
       target: { arguments: ['--python', '3.12'], id: 'example-tool', kind: 'tool' },
     })
     expect(miseUpdate).toHaveBeenCalledWith({
-      context: { signal: expect.any(AbortSignal) },
+      context: expect.objectContaining({ signal: expect.any(AbortSignal) }),
       target: { id: 'npm:@openai/codex', kind: 'tool' },
     })
   })
 
-  it('keeps default Homebrew and winget dependencies on the existing low-level modules', async () => {
-    const brewInstall = vi.spyOn(brewPm, 'install').mockResolvedValue(true)
-    const wingetUpdate = vi.spyOn(wingetPm, 'update').mockResolvedValue(true)
+  it('keeps default Homebrew and winget dependencies on typed low-level outcomes', async () => {
+    const brewInstall = vi.spyOn(brewPm, 'installOutcome').mockResolvedValue({ kind: 'success', value: undefined })
+    const wingetUpdate = vi.spyOn(wingetPm, 'updateOutcome').mockResolvedValue({ kind: 'success', value: undefined })
 
     expect(await getManagedInstaller('brew').install('example-cask', 'cask')).toBe(true)
     expect(await getManagedInstaller('winget').update('Example.Package', 'id')).toBe(true)
-    expect(brewInstall).toHaveBeenCalledWith('example-cask', 'cask')
-    expect(wingetUpdate).toHaveBeenCalledWith('Example.Package')
+    expect(brewInstall).toHaveBeenCalledWith('example-cask', 'cask', expect.any(Object))
+    expect(wingetUpdate).toHaveBeenCalledWith('Example.Package', expect.any(Object))
   })
 
-  it('keeps default Cargo and Deno dependencies on the existing low-level modules', async () => {
-    const cargoUpdate = vi.spyOn(cargoPm, 'update').mockResolvedValue(true)
-    const denoUninstall = vi.spyOn(denoPm, 'uninstall').mockResolvedValue(true)
+  it('keeps default Cargo and Deno dependencies on typed low-level outcomes', async () => {
+    const cargoUpdate = vi.spyOn(cargoPm, 'updateOutcome').mockResolvedValue({ kind: 'success', value: undefined })
+    const denoUninstall = vi.spyOn(denoPm, 'uninstallOutcome').mockResolvedValue({ kind: 'success', value: undefined })
 
     expect(
       await getManagedInstaller('cargo').update('some-crate', undefined, {
@@ -210,8 +210,8 @@ describe('managed installer typed provider compatibility', () => {
         binaryName: 'tool-bin',
       }),
     ).toBe(true)
-    expect(cargoUpdate).toHaveBeenCalledWith('some-crate', ['--locked'])
-    expect(denoUninstall).toHaveBeenCalledWith('tool-bin')
+    expect(cargoUpdate).toHaveBeenCalledWith('some-crate', ['--locked'], expect.any(Object))
+    expect(denoUninstall).toHaveBeenCalledWith('tool-bin', expect.any(Object))
   })
 
   it('keeps uv and mise presence/version probes as direct compatibility projections', async () => {

@@ -1,17 +1,47 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 const mockSpawn = vi.fn()
+const mutationRun = vi.hoisted(() => vi.fn())
 let originalSpawn: typeof Bun.spawn
+
+vi.mock('../../src/package-manager/mutation-outcome', async importOriginal => {
+  const actual = await importOriginal<typeof import('../../src/package-manager/mutation-outcome')>()
+  return {
+    ...actual,
+    runPackageMutationOutcome: mutationRun,
+    runPackageMutationSequence: async (
+      commands: readonly (readonly string[])[],
+      context: unknown,
+      description: string,
+    ) => {
+      for (const command of commands) {
+        const outcome = await mutationRun(command, context, description)
+        if (outcome.kind !== 'success') return outcome
+      }
+      return { kind: 'success', value: undefined }
+    },
+  }
+})
 
 beforeEach(() => {
   originalSpawn = Bun.spawn
   Bun.spawn = mockSpawn as any
+  mutationRun.mockImplementation(runMutation)
 })
 
 afterEach(() => {
   Bun.spawn = originalSpawn
   mockSpawn.mockClear()
+  mutationRun.mockClear()
 })
+
+async function runMutation(command: readonly string[], _context: unknown, description: string) {
+  const proc = mockSpawn(command, { detached: process.platform !== 'win32' })
+  await proc.exited
+  return proc.exitCode === 0
+    ? { kind: 'success', value: undefined }
+    : { command, exitCode: proc.exitCode, kind: 'failed', reason: description, retryable: false }
+}
 
 describe('npm install', () => {
   it('returns true on success', async () => {

@@ -1,4 +1,5 @@
-import type { ProviderOperationContext } from '../providers'
+import type { ProviderOperationContext, ProviderOutcome } from '../providers'
+import type { PackageMutationOutcome } from './mutation-outcome'
 import { readFile } from 'node:fs/promises'
 import { homedir } from 'node:os'
 import { join } from 'node:path'
@@ -8,24 +9,29 @@ import {
   readProcessOutputWithContext,
   isProcessInterruptionError,
   spawnCommand,
-  spawnWithQuantexStdio,
-  waitForSpawnedCommand,
 } from '../utils/child-process'
 import { normalizeRegistryUrl } from '../utils/registry'
+import { projectLegacyPackageMutation, runPackageMutationOutcome } from './mutation-outcome'
 
 export type RegistryUpdateStrategy = 'latest-major' | 'respect-semver'
 
 export async function install(packageName: string, distTag?: string, registry?: string): Promise<boolean> {
-  try {
-    const targetPackage = distTag ? `${packageName}@${distTag}` : packageName
-    const resolvedRegistry = normalizeRegistryUrl(registry)
-    return await runGlobalBunCommandWithTrust(
-      ['bun', 'add', '-g', ...(resolvedRegistry ? ['--registry', resolvedRegistry] : []), targetPackage],
-      [packageName],
-    )
-  } catch {
-    return false
-  }
+  return projectLegacyPackageMutation(context => installOutcome(packageName, distTag, registry, context))
+}
+
+export function installOutcome(
+  packageName: string,
+  distTag: string | undefined,
+  registry: string | undefined,
+  context: ProviderOperationContext,
+): Promise<PackageMutationOutcome> {
+  const targetPackage = distTag ? `${packageName}@${distTag}` : packageName
+  const resolvedRegistry = normalizeRegistryUrl(registry)
+  return runGlobalBunCommandWithTrustOutcome(
+    ['bun', 'add', '-g', ...(resolvedRegistry ? ['--registry', resolvedRegistry] : []), targetPackage],
+    [packageName],
+    context,
+  )
 }
 
 export async function update(
@@ -34,47 +40,61 @@ export async function update(
   distTag: string = 'latest',
   registry?: string,
 ): Promise<boolean> {
-  try {
-    const targetPackage = distTag === 'latest' ? packageName : `${packageName}@${distTag}`
-    const resolvedRegistry = normalizeRegistryUrl(registry)
-    return await runGlobalBunCommandWithTrust(
-      [
-        'bun',
-        'update',
-        '-g',
-        ...(strategy === 'latest-major' ? ['--latest'] : []),
-        ...(resolvedRegistry ? ['--registry', resolvedRegistry] : []),
-        targetPackage,
-      ],
-      [packageName],
-    )
-  } catch {
-    return false
-  }
+  return projectLegacyPackageMutation(context => updateOutcome(packageName, strategy, distTag, registry, context))
+}
+
+export function updateOutcome(
+  packageName: string,
+  strategy: RegistryUpdateStrategy,
+  distTag: string,
+  registry: string | undefined,
+  context: ProviderOperationContext,
+): Promise<PackageMutationOutcome> {
+  const targetPackage = distTag === 'latest' ? packageName : `${packageName}@${distTag}`
+  const resolvedRegistry = normalizeRegistryUrl(registry)
+  return runGlobalBunCommandWithTrustOutcome(
+    [
+      'bun',
+      'update',
+      '-g',
+      ...(strategy === 'latest-major' ? ['--latest'] : []),
+      ...(resolvedRegistry ? ['--registry', resolvedRegistry] : []),
+      targetPackage,
+    ],
+    [packageName],
+    context,
+  )
 }
 
 export async function updateMany(
   packageNames: string[],
   strategy: RegistryUpdateStrategy = 'latest-major',
 ): Promise<boolean> {
-  if (packageNames.length === 0) return true
+  return projectLegacyPackageMutation(context => updateManyOutcome(packageNames, strategy, context))
+}
 
-  try {
-    return await runGlobalBunCommandWithTrust(
-      ['bun', 'update', '-g', ...(strategy === 'latest-major' ? ['--latest'] : []), ...packageNames],
-      packageNames,
-    )
-  } catch {
-    return false
-  }
+export function updateManyOutcome(
+  packageNames: string[],
+  strategy: RegistryUpdateStrategy,
+  context: ProviderOperationContext,
+): Promise<PackageMutationOutcome> {
+  if (packageNames.length === 0) return Promise.resolve({ kind: 'success', value: undefined })
+  return runGlobalBunCommandWithTrustOutcome(
+    ['bun', 'update', '-g', ...(strategy === 'latest-major' ? ['--latest'] : []), ...packageNames],
+    packageNames,
+    context,
+  )
 }
 
 export async function uninstall(packageName: string): Promise<boolean> {
-  try {
-    return (await waitForSpawnedCommand(spawnWithQuantexStdio(['bun', 'remove', '-g', packageName]))) === 0
-  } catch {
-    return false
-  }
+  return projectLegacyPackageMutation(context => uninstallOutcome(packageName, context))
+}
+
+export function uninstallOutcome(
+  packageName: string,
+  context: ProviderOperationContext,
+): Promise<PackageMutationOutcome> {
+  return runPackageMutationOutcome(['bun', 'remove', '-g', packageName], context, 'bun uninstall failed')
 }
 
 export type PackagePresenceProbe = 'present' | 'absent' | 'unknown'
@@ -176,56 +196,77 @@ export function parseGlobalPackageVersion(output: string, packageName: string): 
   return undefined
 }
 
-async function runGlobalBunCommandWithTrust(command: string[], packageNames: string[]): Promise<boolean> {
-  const exitCode = await waitForSpawnedCommand(spawnWithQuantexStdio(command))
+async function runGlobalBunCommandWithTrustOutcome(
+  command: string[],
+  packageNames: string[],
+  context: ProviderOperationContext,
+): Promise<PackageMutationOutcome> {
+  const mutation = await runPackageMutationOutcome(command, context, 'bun mutation failed')
+  if (mutation.kind !== 'success') return mutation
 
-  if (exitCode !== 0) return false
-
-  const trusted = await trustBlockedGlobalPackages(packageNames)
-  if (!trusted && command[1] === 'add') {
-    await rollbackGlobalBunPackages(packageNames)
-  }
-
-  return trusted
+  const trust = await trustBlockedGlobalPackagesOutcome(packageNames, context)
+  if (trust.kind !== 'success' && command[1] === 'add') await rollbackGlobalBunPackages(packageNames, context)
+  return trust
 }
 
-async function rollbackGlobalBunPackages(packageNames: string[]): Promise<void> {
+async function rollbackGlobalBunPackages(packageNames: string[], context: ProviderOperationContext): Promise<void> {
   for (const packageName of new Set(packageNames)) {
-    try {
-      await waitForSpawnedCommand(spawnWithQuantexStdio(['bun', 'remove', '-g', packageName]))
-    } catch {
-      // Best-effort rollback so fallback install methods do not inherit duplicate Bun globals.
-    }
+    await runPackageMutationOutcome(['bun', 'remove', '-g', packageName], context, 'bun rollback failed').catch(
+      () => undefined,
+    )
   }
 }
 
-async function trustBlockedGlobalPackages(packageNames: string[]): Promise<boolean> {
+async function trustBlockedGlobalPackagesOutcome(
+  packageNames: string[],
+  context: ProviderOperationContext,
+): Promise<PackageMutationOutcome> {
   const requestedPackages = [...new Set(packageNames)]
-  if (requestedPackages.length === 0) return true
+  if (requestedPackages.length === 0) return { kind: 'success', value: undefined }
 
-  const output = await readGlobalUntrustedPackages()
-  if (output === undefined) return false
+  const output = await readGlobalUntrustedPackagesOutcome(context)
+  if (output.kind !== 'success') return output
 
-  const untrustedPackages = parseUntrustedPackages(output)
+  const untrustedPackages = parseUntrustedPackages(output.value)
   const blockedPackages = requestedPackages.filter(packageName => untrustedPackages.has(packageName))
 
-  if (blockedPackages.length === 0) return true
+  if (blockedPackages.length === 0) return { kind: 'success', value: undefined }
 
-  return (await waitForSpawnedCommand(spawnWithQuantexStdio(['bun', 'pm', '-g', 'trust', ...blockedPackages]))) === 0
+  return runPackageMutationOutcome(['bun', 'pm', '-g', 'trust', ...blockedPackages], context, 'bun trust failed')
 }
 
-async function readGlobalUntrustedPackages(): Promise<string | undefined> {
+async function readGlobalUntrustedPackagesOutcome(context: ProviderOperationContext): Promise<ProviderOutcome<string>> {
+  const command = ['bun', 'pm', '-g', 'untrusted']
   try {
-    const proc = spawnCommand(['bun', 'pm', '-g', 'untrusted'], {
+    const proc = spawnCommand(command, {
+      detached: process.platform !== 'win32',
       stdio: createPipedStdio(),
     })
-    const { exitCode, stdout } = await readProcessOutput(proc)
+    const { exitCode, stdout } = await readProcessOutputWithContext(proc, context)
 
-    if (exitCode !== 0) return undefined
+    if (exitCode !== 0) {
+      return {
+        command,
+        exitCode,
+        kind: 'failed',
+        reason: `bun trust inspection failed with exit code ${exitCode}`,
+        retryable: false,
+      }
+    }
 
-    return stdout
-  } catch {
-    return undefined
+    return { kind: 'success', value: stdout }
+  } catch (error) {
+    if (isProcessInterruptionError(error)) {
+      return error.kind === 'timed-out'
+        ? { kind: 'timed-out', timeoutMs: error.timeoutMs ?? context.timeoutMs ?? 0 }
+        : { kind: 'cancelled', ...(error.reason ? { reason: error.reason } : {}) }
+    }
+    return {
+      command,
+      kind: 'failed',
+      reason: error instanceof Error && error.message.trim() ? error.message : 'bun trust inspection failed',
+      retryable: false,
+    }
   }
 }
 

@@ -1,13 +1,11 @@
 import type { LifecycleOutcome } from '../lifecycle'
 import type { ProcessPort, RuntimeFailure, RuntimeOutcome } from '../runtime'
-import type { ResolvedAgentInspection } from './agents'
 import type { LifecycleObservationService, LifecycleObservationServiceOptions } from './lifecycle-observations'
 import { cancelCliContextOperations } from '../cli-context'
 import { reconcileAgentInstallation } from '../lifecycle'
 import { createAgentProcessPort, createCliOperationContext } from '../runtime'
 import { getStateFilePath, StateFileError } from '../state'
 import { isProcessInterruptionError } from '../utils/child-process'
-import { resolveAgentInspection } from './agents'
 import {
   type AgentExecutionOutcome,
   type ExecuteAgentLifecycleInput,
@@ -39,7 +37,6 @@ export interface ProductionLifecycleExecutionDependencies {
   readonly createOperationContext: () => ProductionOperationContext
   readonly createProcessPort: () => ProcessPort
   readonly reconcileAgentInstallation: typeof reconcileAgentInstallation
-  readonly resolveAgentInspection: (agentName: string) => Promise<ResolvedAgentInspection | undefined>
 }
 
 export interface ProductionLifecycleExecutionService {
@@ -53,7 +50,6 @@ const defaultDependencies: ProductionLifecycleExecutionDependencies = {
   createOperationContext: createCliOperationContext,
   createProcessPort: createAgentProcessPort,
   reconcileAgentInstallation,
-  resolveAgentInspection,
 }
 
 export function createProductionLifecycleExecutionService(
@@ -72,7 +68,7 @@ export function createProductionLifecycleExecutionService(
       executeAgentLifecycle(input, {
         confirmInstall: options.confirmInstall,
         dryRun: options.dryRun,
-        install: agentName => installAgent(agentName, options.timeoutMs, dependencies),
+        install: observed => installAgent(observed, options.timeoutMs, dependencies),
         interactive: options.interactive,
         observe: agentName => observeAgent(agentName, observationService),
         onInstallStart: options.onInstallStart,
@@ -96,6 +92,7 @@ async function observeAgent(
         ? {
             agent: resolved.agent,
             executable: resolved.pathExecutable,
+            installedState: resolved.installedState,
             methods: resolved.methods,
             observation: resolved.observation,
           }
@@ -107,18 +104,21 @@ async function observeAgent(
 }
 
 async function installAgent(
-  agentName: string,
+  observed: LifecycleExecutionObservedAgent,
   timeoutMs: number | undefined,
   dependencies: ProductionLifecycleExecutionDependencies,
 ): Promise<LifecycleOutcome<void>> {
   try {
-    const resolved = await dependencies.resolveAgentInspection(agentName)
-    if (!resolved) return { kind: 'indeterminate', reason: `Unknown agent: ${agentName}` }
-    if (resolved.inspection.inPath) return { kind: 'success', value: undefined }
+    if (observed.executable.present) return { kind: 'success', value: undefined }
 
     const reconciliation = dependencies.reconcileAgentInstallation({
-      agent: resolved.agent,
-      inspection: resolved.inspection,
+      agent: observed.agent,
+      observation: {
+        inPath: observed.executable.present,
+        installedState: observed.installedState,
+        lifecycle: observed.observation,
+        methods: observed.methods,
+      },
       operation: 'install',
       route: 'install',
     })

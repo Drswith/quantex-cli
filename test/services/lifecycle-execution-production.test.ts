@@ -32,7 +32,7 @@ describe('createProductionLifecycleExecutionService', () => {
     ).resolves.toMatchObject({ exitCode: 0, kind: 'exited' })
     expect(dependencies.reconcileAgentInstallation).toHaveBeenCalledWith({
       agent: testAgent,
-      inspection: expect.objectContaining({ inPath: false }),
+      observation: expect.objectContaining({ inPath: false }),
       operation: 'install',
       route: 'install',
     })
@@ -92,18 +92,6 @@ function fakeDependencies(observationService: LifecycleObservationService): Prod
           },
         }) as const,
     ) as unknown as ProductionLifecycleExecutionDependencies['reconcileAgentInstallation'],
-    resolveAgentInspection: vi.fn(
-      async () =>
-        ({
-          agent: testAgent,
-          inspection: {
-            agent: testAgent,
-            binaryPath: undefined,
-            inPath: false,
-            methods: [{ packageName: 'test-package', type: 'npm' as const }],
-          },
-        }) as never,
-    ) as unknown as ProductionLifecycleExecutionDependencies['resolveAgentInspection'],
   }
 }
 

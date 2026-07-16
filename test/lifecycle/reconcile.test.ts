@@ -23,7 +23,9 @@ describe('reconcileVerifiedMutation', () => {
         return { kind: 'success', value: { changed: true, value: 'installed' } }
       },
       plan: installPlan(),
-      recordReceipt: async () => {
+      recordReceipt: async (recordedReceipt, execution) => {
+        expect(recordedReceipt).toBe(receipt)
+        expect(execution).toEqual({ changed: true, value: 'installed' })
         calls.push('record')
       },
       verify: async () => {

@@ -18,7 +18,7 @@ export interface ReconcileVerifiedMutationInput<T> {
   ) => LifecycleReceipt
   readonly execute: () => Promise<LifecycleOutcome<MutationExecution<T>>>
   readonly plan: LifecyclePlan
-  readonly recordReceipt: (receipt: LifecycleReceipt) => Promise<void>
+  readonly recordReceipt: (receipt: LifecycleReceipt, execution: MutationExecution<T>) => Promise<void>
   readonly verify: (execution: MutationExecution<T>, plan: LifecyclePlan) => Promise<LifecycleVerification>
 }
 
@@ -44,7 +44,7 @@ export async function reconcileVerifiedMutation<T>(
 
   const receipt = input.createReceipt(verification, execution.value)
   try {
-    await input.recordReceipt(receipt)
+    await input.recordReceipt(receipt, execution.value)
   } catch {
     await compensateSafely(input, execution.value)
     return { kind: 'failed', reason: 'receipt-write-failed', retryable: true }

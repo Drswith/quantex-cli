@@ -5,14 +5,19 @@ import * as detectUtils from '../../utils/detect'
 import { createSystemPackageAdapter } from './system-package'
 
 const defaultDependencies: SystemPackageAdapterDependencies = {
+  contextualMutation: true,
   contextualObservation: true,
   getInstalledVersion: (target, context) => misePm.getInstalledVersion(target.id, context),
-  install: target => misePm.install(target.id),
+  install: (target, context) => misePm.installOutcome(target.id, context),
   isAvailable: context => detectUtils.isMiseAvailable(context),
   probePackagePresence: (target, context) => misePm.probePackagePresence(target.id, context),
-  uninstall: target => misePm.uninstall(target.id),
-  update: target => misePm.update(target.id),
-  updateMany: targets => misePm.updateMany(targets.map(target => ({ packageName: target.id }))),
+  uninstall: (target, context) => misePm.uninstallOutcome(target.id, context),
+  update: (target, context) => misePm.updateOutcome(target.id, context),
+  updateMany: (targets, context) =>
+    misePm.updateManyOutcome(
+      targets.map(target => ({ packageName: target.id })),
+      context,
+    ),
 }
 
 function useCommand(target: ProviderTarget, force = false): readonly string[] {

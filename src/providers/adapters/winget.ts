@@ -5,13 +5,18 @@ import * as detectUtils from '../../utils/detect'
 import { createSystemPackageAdapter } from './system-package'
 
 const defaultDependencies: SystemPackageAdapterDependencies = {
+  contextualMutation: true,
   contextualObservation: true,
-  install: target => wingetPm.install(target.id),
+  install: (target, context) => wingetPm.installOutcome(target.id, context),
   isAvailable: context => detectUtils.isWingetAvailable(context),
   probePackagePresence: async () => 'unknown',
-  uninstall: target => wingetPm.uninstall(target.id),
-  update: target => wingetPm.update(target.id),
-  updateMany: targets => wingetPm.updateMany(targets.map(target => ({ packageName: target.id }))),
+  uninstall: (target, context) => wingetPm.uninstallOutcome(target.id, context),
+  update: (target, context) => wingetPm.updateOutcome(target.id, context),
+  updateMany: (targets, context) =>
+    wingetPm.updateManyOutcome(
+      targets.map(target => ({ packageName: target.id })),
+      context,
+    ),
 }
 
 function command(action: 'install' | 'uninstall' | 'upgrade', target: ProviderTarget): readonly string[] {

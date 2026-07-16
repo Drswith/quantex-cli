@@ -143,16 +143,16 @@ describe('lifecycle observation application service', () => {
   })
 })
 
-describe('legacy mutation and execution boundary', () => {
-  it('keeps remaining legacy mutation callers on services/agents', async () => {
+describe('mutation and execution observation boundary', () => {
+  it('keeps legacy inspection as a compatibility export without default mutation callers', async () => {
     const agentsSource = await source('src/services/agents.ts')
     expect(agentsSource).toContain('export async function resolveAgentInspection')
     expect(agentsSource).toContain('export async function inspectRegisteredAgents')
     expect(agentsSource).not.toContain("from './lifecycle-observations'")
 
     const expectedRoutes = {
-      'src/commands/ensure.ts': { exports: ['resolveAgent', 'resolveAgentInspection'], route: '../services/agents' },
-      'src/commands/install.ts': { exports: ['resolveAgent', 'resolveAgentInspection'], route: '../services/agents' },
+      'src/commands/ensure.ts': { exports: ['resolveAgentObservation'], route: '../services/lifecycle-observations' },
+      'src/commands/install.ts': { exports: ['resolveAgentObservation'], route: '../services/lifecycle-observations' },
       'src/commands/update.ts': { exports: ['resolveAgent'], route: '../services/agents' },
       'src/services/update.ts': { exports: ['inspectRegisteredAgents'], route: './agents' },
     }
@@ -160,8 +160,38 @@ describe('legacy mutation and execution boundary', () => {
     for (const [path, expected] of Object.entries(expectedRoutes)) {
       const contents = await source(path)
       expect(contents).toContain(`from '${expected.route}'`)
-      expect(contents).not.toContain('lifecycle-observations')
       for (const exportName of expected.exports) expect(contents).toContain(exportName)
+    }
+
+    for (const path of [
+      'src/commands/ensure.ts',
+      'src/commands/install.ts',
+      'src/services/lifecycle-execution-production.ts',
+    ]) {
+      expect(await source(path)).not.toContain('resolveAgentInspection')
+    }
+
+    await expect(source('src/lifecycle/shadow-planning.ts')).rejects.toThrow()
+
+    for (const path of [
+      'src/providers/adapters/brew.ts',
+      'src/providers/adapters/bun.ts',
+      'src/providers/adapters/cargo.ts',
+      'src/providers/adapters/deno.ts',
+      'src/providers/adapters/install-effect.ts',
+      'src/providers/adapters/mise.ts',
+      'src/providers/adapters/npm.ts',
+      'src/providers/adapters/pip.ts',
+      'src/providers/adapters/registry-package.ts',
+      'src/providers/adapters/system-package.ts',
+      'src/providers/adapters/uv.ts',
+      'src/providers/adapters/winget.ts',
+    ]) {
+      const contents = await source(path)
+      expect(contents).not.toContain('legacy-operation')
+      expect(contents).not.toContain('projectBooleanMutation')
+      expect(contents).not.toContain('boolean-mutation')
+      expect(contents).not.toMatch(/readonly (?:install|uninstall|update|updateMany):[^\n]*Promise<boolean>/)
     }
   })
 

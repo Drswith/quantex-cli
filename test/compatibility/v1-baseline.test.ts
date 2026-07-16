@@ -359,6 +359,7 @@ async function captureUpdateCompatibility(
     vi.spyOn(agents, 'getAgentByNameOrAlias').mockReturnValue(agent),
     vi.spyOn(agents, 'getAllAgents').mockReturnValue([agent]),
     vi.spyOn(detect, 'isBinaryInPath').mockResolvedValue(true),
+    vi.spyOn(detect, 'isBunAvailable').mockResolvedValue(true),
     installedVersionSpy,
     vi.spyOn(version, 'getLatestVersion').mockResolvedValue('1.10.0'),
     vi.spyOn(stateStore, 'getInstalledAgentState').mockResolvedValue({
@@ -373,7 +374,7 @@ async function captureUpdateCompatibility(
     }),
     vi.spyOn(bunPackageManager, 'getInstalledVersion').mockResolvedValueOnce('1.9.0').mockResolvedValue('1.10.0'),
     vi.spyOn(bunPackageManager, 'probePackagePresence').mockResolvedValue('present'),
-    vi.spyOn(bunPackageManager, 'update').mockResolvedValue(true),
+    vi.spyOn(bunPackageManager, 'updateOutcome').mockResolvedValue({ kind: 'success', value: undefined }),
   ]
   const stdout: unknown[] = []
   const stderr: string[] = []

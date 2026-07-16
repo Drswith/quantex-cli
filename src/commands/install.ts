@@ -10,7 +10,8 @@ import {
 } from '../lifecycle'
 import { createErrorResult, createSuccessResult, emitCommandEvent, emitCommandResult } from '../output'
 import { withAgentLifecycleLock } from '../package-manager'
-import { resolveAgent, resolveAgentInspection } from '../services/agents'
+import { resolveAgent } from '../services/agents'
+import { resolveAgentObservation } from '../services/lifecycle-observations'
 import { pc } from '../utils/color'
 import { getAdoptableExistingInstallMethod } from '../utils/install'
 import { createResourceLockedError } from '../utils/lifecycle-errors'
@@ -201,7 +202,7 @@ async function performSingleInstallLocked(
     })
   }
 
-  const resolved = await resolveAgentInspection(agentName)
+  const resolved = await resolveAgentObservation(agentName)
   if (!resolved) {
     return createErrorResult<InstallCommandData>({
       action: 'install',
@@ -219,22 +220,23 @@ async function performSingleInstallLocked(
     })
   }
 
-  const { agent, inspection } = resolved
+  const { agent } = resolved
+  const inPath = resolved.pathExecutable.present
+  const installedState = resolved.installedState
   const adoptableMethod =
-    inspection.inPath && !inspection.installedState
-      ? getAdoptableExistingInstallMethod(inspection.methods, inspection.resolvedBinaryPath ?? inspection.binaryPath)
+    inPath && !installedState
+      ? getAdoptableExistingInstallMethod(resolved.methods, resolved.resolvedBinaryPath ?? resolved.pathExecutable.path)
       : undefined
 
-  if (inspection.inPath && !inspection.installedState && !adoptableMethod) {
+  if (inPath && !installedState && !adoptableMethod) {
     return createUnmanagedInstallResult(agent)
   }
 
-  const route: AgentInstallationRoute =
-    inspection.installedState && inspection.inPath ? 'satisfied' : adoptableMethod ? 'adopt' : 'install'
+  const route: AgentInstallationRoute = installedState && inPath ? 'satisfied' : adoptableMethod ? 'adopt' : 'install'
   if (isDryRunEnabled()) {
     return route === 'satisfied'
       ? createAlreadyInstalledResult(agent)
-      : createDryRunInstallResult(agent, route === 'adopt', Boolean(inspection.installedState))
+      : createDryRunInstallResult(agent, route === 'adopt', Boolean(installedState))
   }
 
   if (route !== 'satisfied') emitInstallStarted(agent, options.emitStartedEvent)
@@ -243,7 +245,7 @@ async function performSingleInstallLocked(
     const result = await reconcileAgentInstallation({
       adoptableMethod,
       agent,
-      inspection,
+      observation: { inPath, installedState, lifecycle: resolved.observation, methods: resolved.methods },
       operation: 'install',
       route,
     })
@@ -258,7 +260,7 @@ async function performSingleInstallLocked(
             name: agent.name,
           },
           changed: false,
-          installed: inspection.inPath,
+          installed: inPath,
         },
         ...createResourceLockedError(error, {
           kind: 'agent',

@@ -13,25 +13,38 @@ import {
   isInterruptedOperation,
   runContextualOperation,
   runPendingOperation,
-} from './legacy-operation'
+} from './pending-operation'
 
 export type SystemPackagePresence = 'absent' | 'present' | 'unknown'
 
 export interface SystemPackageAdapterDependencies {
+  readonly contextualMutation?: boolean
   readonly contextualObservation?: boolean
   readonly getInstalledVersion?: (
     target: ProviderTarget,
     context?: import('../types').ProviderOperationContext,
   ) => Promise<string | undefined>
-  readonly install: (target: ProviderTarget) => Promise<boolean>
+  readonly install: (
+    target: ProviderTarget,
+    context: import('../types').ProviderOperationContext,
+  ) => Promise<ProviderOutcome<void>>
   readonly isAvailable: (context?: import('../types').ProviderOperationContext) => Promise<boolean>
   readonly probePackagePresence: (
     target: ProviderTarget,
     context?: import('../types').ProviderOperationContext,
   ) => Promise<SystemPackagePresence>
-  readonly uninstall: (target: ProviderTarget) => Promise<boolean>
-  readonly update: (target: ProviderTarget) => Promise<boolean>
-  readonly updateMany: (targets: readonly ProviderTarget[]) => Promise<boolean>
+  readonly uninstall: (
+    target: ProviderTarget,
+    context: import('../types').ProviderOperationContext,
+  ) => Promise<ProviderOutcome<void>>
+  readonly update: (
+    target: ProviderTarget,
+    context: import('../types').ProviderOperationContext,
+  ) => Promise<ProviderOutcome<void>>
+  readonly updateMany: (
+    targets: readonly ProviderTarget[],
+    context: import('../types').ProviderOperationContext,
+  ) => Promise<ProviderOutcome<void>>
 }
 
 type SystemPackageProviderId = Extract<ProviderId, 'brew' | 'cargo' | 'deno' | 'mise' | 'pip' | 'uv' | 'winget'>
@@ -101,11 +114,33 @@ export function createSystemPackageAdapter<Id extends SystemPackageProviderId>(
     },
     id: config.id,
     install: request =>
-      mutate(config, request, 'install', config.commands.install(request.target), dependencies.install),
+      mutate(
+        config,
+        request,
+        'install',
+        config.commands.install(request.target),
+        dependencies.contextualMutation,
+        dependencies.install,
+      ),
     observe,
     uninstall: request =>
-      mutate(config, request, 'uninstall', config.commands.uninstall(request.target), dependencies.uninstall),
-    update: request => mutate(config, request, 'update', config.commands.update(request.target), dependencies.update),
+      mutate(
+        config,
+        request,
+        'uninstall',
+        config.commands.uninstall(request.target),
+        dependencies.contextualMutation,
+        dependencies.uninstall,
+      ),
+    update: request =>
+      mutate(
+        config,
+        request,
+        'update',
+        config.commands.update(request.target),
+        dependencies.contextualMutation,
+        dependencies.update,
+      ),
     updateMany: request => updateMany(config, dependencies, request),
     verify: async request => {
       const observation = await observe(request)
@@ -126,7 +161,15 @@ function runObservation<T>(
   context: import('../types').ProviderOperationContext,
   contextual: boolean | undefined,
   invoke: () => Promise<T>,
-): Promise<import('./legacy-operation').PendingOperation<T>> {
+): Promise<import('./pending-operation').PendingOperation<T>> {
+  return contextual ? runContextualOperation(context, invoke) : runPendingOperation(context, invoke)
+}
+
+function runMutationOperation<T>(
+  context: import('../types').ProviderOperationContext,
+  contextual: boolean | undefined,
+  invoke: () => Promise<T>,
+): Promise<import('./pending-operation').PendingOperation<T>> {
   return contextual ? runContextualOperation(context, invoke) : runPendingOperation(context, invoke)
 }
 
@@ -135,20 +178,22 @@ async function mutate<Id extends SystemPackageProviderId>(
   request: ProviderTargetRequest,
   operationName: 'install' | 'uninstall' | 'update',
   command: readonly string[],
-  invoke: (target: ProviderTarget) => Promise<boolean>,
+  contextual: boolean | undefined,
+  invoke: (
+    target: ProviderTarget,
+    context: import('../types').ProviderOperationContext,
+  ) => Promise<ProviderOutcome<void>>,
 ): Promise<ProviderOutcome<ProviderMutationEvidence>> {
-  const operation = await runPendingOperation(request.context, () => invoke(request.target))
+  const operation = await runMutationOperation(request.context, contextual, () =>
+    invoke(request.target, request.context),
+  )
   if (isInterruptedOperation(operation)) return interruptedOutcome(operation)
   const mutationEvidence = evidence(config.id, command)
-  if (operation.kind === 'rejected' || !operation.value) {
-    return failure(
-      config,
-      request.target.id,
-      operationName,
-      command,
-      mutationEvidence,
-      operation.kind === 'rejected' ? operation.reason : undefined,
-    )
+  if (operation.kind === 'rejected') {
+    return failure(config, request.target.id, operationName, command, mutationEvidence, operation.reason)
+  }
+  if (operation.value.kind !== 'success') {
+    return enrichMutationOutcome(operation.value, config, request.target.id, operationName, command, mutationEvidence)
   }
   return success({ evidence: mutationEvidence, target: request.target })
 }
@@ -159,20 +204,38 @@ async function updateMany<Id extends SystemPackageProviderId>(
   request: ProviderBatchUpdateRequest,
 ): Promise<ProviderOutcome<ProviderMutationEvidence[]>> {
   const command = config.commands.updateMany(request.targets)
-  const operation = await runPendingOperation(request.context, () => dependencies.updateMany(request.targets))
+  const operation = await runMutationOperation(request.context, dependencies.contextualMutation, () =>
+    dependencies.updateMany(request.targets, request.context),
+  )
   if (isInterruptedOperation(operation)) return interruptedOutcome(operation)
   const mutationEvidence = evidence(config.id, command)
-  if (operation.kind === 'rejected' || !operation.value) {
-    return failure(
-      config,
-      undefined,
-      'update',
-      command,
-      mutationEvidence,
-      operation.kind === 'rejected' ? operation.reason : undefined,
-    )
+  if (operation.kind === 'rejected') {
+    return failure(config, undefined, 'update', command, mutationEvidence, operation.reason)
+  }
+  if (operation.value.kind !== 'success') {
+    return enrichMutationOutcome(operation.value, config, undefined, 'update', command, mutationEvidence)
   }
   return success(request.targets.map(target => ({ evidence: mutationEvidence, target })))
+}
+
+function enrichMutationOutcome(
+  outcome: Exclude<ProviderOutcome<void>, { readonly kind: 'success' }>,
+  config: SystemPackageAdapterConfig<SystemPackageProviderId>,
+  targetId: string | undefined,
+  operation: 'install' | 'uninstall' | 'update',
+  command: readonly string[],
+  mutationEvidence: readonly ProviderEvidence[],
+): ProviderOutcome<never> {
+  if (outcome.kind !== 'failed') return outcome
+  const fallback = failure(config, targetId, operation, command, mutationEvidence)
+  return {
+    ...fallback,
+    ...outcome,
+    command: outcome.command ?? command,
+    evidence: outcome.evidence ?? mutationEvidence,
+    reason: outcome.reason.trim() ? outcome.reason : fallback.reason,
+    remediation: outcome.remediation ?? fallback.remediation,
+  }
 }
 
 function failure<Id extends SystemPackageProviderId>(
@@ -182,7 +245,7 @@ function failure<Id extends SystemPackageProviderId>(
   command: readonly string[],
   failureEvidence: readonly ProviderEvidence[],
   cause?: string,
-): ProviderOutcome<never> {
+): Extract<ProviderOutcome<never>, { readonly kind: 'failed' }> {
   return {
     command,
     evidence: failureEvidence,

@@ -5,18 +5,21 @@ import * as detectUtils from '../../utils/detect'
 import { createSystemPackageAdapter } from './system-package'
 
 const defaultDependencies: SystemPackageAdapterDependencies = {
+  contextualMutation: true,
   contextualObservation: true,
-  install: target => brewPm.install(target.id, target.kind === 'cask' ? 'cask' : 'package'),
+  install: (target, context) => brewPm.installOutcome(target.id, target.kind === 'cask' ? 'cask' : 'package', context),
   isAvailable: context => detectUtils.isBrewAvailable(context),
   probePackagePresence: async () => 'unknown',
-  uninstall: target => brewPm.uninstall(target.id, target.kind === 'cask' ? 'cask' : 'package'),
-  update: target => brewPm.update(target.id, target.kind === 'cask' ? 'cask' : 'package'),
-  updateMany: targets =>
-    brewPm.updateMany(
+  uninstall: (target, context) =>
+    brewPm.uninstallOutcome(target.id, target.kind === 'cask' ? 'cask' : 'package', context),
+  update: (target, context) => brewPm.updateOutcome(target.id, target.kind === 'cask' ? 'cask' : 'package', context),
+  updateMany: (targets, context) =>
+    brewPm.updateManyOutcome(
       targets.map(target => ({
         packageName: target.id,
         packageTargetKind: target.kind === 'cask' ? 'cask' : 'package',
       })),
+      context,
     ),
 }
 

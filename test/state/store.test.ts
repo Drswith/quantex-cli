@@ -71,6 +71,48 @@ describe('LifecycleStateStore', () => {
 
     expect(await store.getReceipt('codex')).toBeUndefined()
   })
+
+  it('atomically records installed state and verified lifecycle evidence', async () => {
+    const persistence = new MemoryPersistence(currentDocument())
+    const store = new LifecycleStateStore(persistence)
+
+    await store.setAgentLifecycleEvidence(
+      { agentName: 'claude', installType: 'npm', packageName: '@anthropic-ai/claude-code' },
+      {
+        kind: 'lifecycle-receipt',
+        providerId: 'npm',
+        providerTargetId: '@anthropic-ai/claude-code',
+        schemaVersion: LIFECYCLE_RECEIPT_SCHEMA_VERSION,
+        targetId: 'claude',
+        verifiedAt: '2026-07-15T00:00:00.000Z',
+      },
+    )
+
+    expect(persistence.saved).toHaveLength(1)
+    expect(persistence.saved[0]?.installedAgents.claude).toMatchObject({ installType: 'npm' })
+    expect(persistence.saved[0]?.lifecycleReceipts.claude).toMatchObject({ providerId: 'npm' })
+    expect(persistence.saved[0]?.lifecycleReceipts.codex).toBeDefined()
+  })
+
+  it('rejects mismatched installed state and receipt targets before saving', async () => {
+    const persistence = new MemoryPersistence(currentDocument())
+    const store = new LifecycleStateStore(persistence)
+
+    await expect(
+      store.setAgentLifecycleEvidence(
+        { agentName: 'claude', installType: 'npm' },
+        {
+          kind: 'lifecycle-receipt',
+          providerId: 'npm',
+          providerTargetId: '@openai/codex',
+          schemaVersion: LIFECYCLE_RECEIPT_SCHEMA_VERSION,
+          targetId: 'codex',
+          verifiedAt: '2026-07-15T00:00:00.000Z',
+        },
+      ),
+    ).rejects.toThrow('must target the same agent')
+    expect(persistence.saved).toHaveLength(0)
+  })
 })
 
 describe('FileStateDocumentPersistence', () => {

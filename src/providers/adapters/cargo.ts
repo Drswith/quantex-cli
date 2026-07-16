@@ -5,18 +5,22 @@ import * as detectUtils from '../../utils/detect'
 import { createSystemPackageAdapter } from './system-package'
 
 const defaultDependencies: SystemPackageAdapterDependencies = {
+  contextualMutation: true,
   contextualObservation: true,
-  install: target => cargoPm.install(target.id, target.arguments ? [...target.arguments] : undefined),
+  install: (target, context) =>
+    cargoPm.installOutcome(target.id, target.arguments ? [...target.arguments] : undefined, context),
   isAvailable: context => detectUtils.isCargoAvailable(context),
   probePackagePresence: async () => 'unknown',
-  uninstall: target => cargoPm.uninstall(target.id),
-  update: target => cargoPm.update(target.id, target.arguments ? [...target.arguments] : undefined),
-  updateMany: targets =>
-    cargoPm.updateMany(
+  uninstall: (target, context) => cargoPm.uninstallOutcome(target.id, context),
+  update: (target, context) =>
+    cargoPm.updateOutcome(target.id, target.arguments ? [...target.arguments] : undefined, context),
+  updateMany: (targets, context) =>
+    cargoPm.updateManyOutcome(
       targets.map(target => ({
         ...(target.arguments ? { packageInstallArgs: [...target.arguments] } : {}),
         packageName: target.id,
       })),
+      context,
     ),
 }
 

@@ -32,6 +32,12 @@ Quantex 是一个 `human-friendly + agent-friendly` 的 AI 编程助手 CLI life
 - 支持通过可用的 Bun、npm、Homebrew、Cargo、Deno、mise、pip、uv、winget provider 管理 agent 安装。
 - 支持 Quantex 自升级：Bun、npm、独立二进制安装来源都有对应升级路径。
 
+## 生命周期与兼容性保证
+
+默认的 agent 生命周期命令会先核对实时可执行文件、provider、已保存状态与 receipt 证据，再执行变更。安装、确保可用、更新、卸载和执行预检都使用 typed provider outcome，并在写入新的生命周期证据前验证实际后置条件。
+
+内部引擎可以继续演进，但不会改变当前维护的 v1 命令语法、JSON/NDJSON envelope、退出语义、state/config 投影、`qtx`/`quantex` 二进制入口或 root package exports。未来如需删除任何受维护的 root export，必须另行提出并批准 deprecation proposal；这不属于本次 lifecycle engine 重构。
+
 ## Agent 快速接入
 
 如果你正在让 coding agent 使用 Quantex，可以先安装仓库里的面向用户的 Quantex CLI skill：
