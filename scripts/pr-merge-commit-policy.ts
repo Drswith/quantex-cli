@@ -8,6 +8,7 @@ export interface PullRequestCommitMetadata {
 }
 
 export interface PullRequestMergeCommitPolicyInput {
+  body?: string
   commits: PullRequestCommitMetadata[]
   validatedReleasePr?: boolean
 }
@@ -19,6 +20,7 @@ const trustedReleaseBotNamePattern = /^quantex-cli-release-bot\[bot\]$/i
 
 export function validatePullRequestMergeCommitPolicy(input: PullRequestMergeCommitPolicyInput): string[] {
   const commits = input.commits
+  const releaseAsVersion = getReleaseAsVersion(input.body ?? '')
   const validatedReleasePr = input.validatedReleasePr === true
   const issues: string[] = []
 
@@ -41,6 +43,12 @@ export function validatePullRequestMergeCommitPolicy(input: PullRequestMergeComm
     for (const line of offendingLines) {
       issues.push(`Commit ${formatSha(commit.sha)} contains prohibited trailer: ${line}`)
     }
+  }
+
+  if (releaseAsVersion && !commits.some(commit => getReleaseAsVersion(commit.message) === releaseAsVersion)) {
+    issues.push(
+      `Release-As source PR declares ${releaseAsVersion}, but no pull request commit carries the same Release-As footer.`,
+    )
   }
 
   if (commits.length > 1) {
@@ -73,7 +81,7 @@ export function validatePullRequestMergeCommitPolicy(input: PullRequestMergeComm
 if (import.meta.main) {
   const commits = parseCommits(process.argv.slice(2), process.env.PR_COMMITS_JSON)
   const validatedReleasePr = parseBooleanFlag(process.env.PR_IS_VALIDATED_RELEASE_PR)
-  const policyInput = { commits, validatedReleasePr }
+  const policyInput = { body: process.env.PR_BODY, commits, validatedReleasePr }
   const issues = validatePullRequestMergeCommitPolicy(policyInput)
 
   if (issues.length > 0) {
@@ -146,4 +154,8 @@ function isTrustedReleaseBotAuthor(commit: PullRequestCommitMetadata): boolean {
 function parseBooleanFlag(rawValue: string | undefined): boolean {
   if (!rawValue) return false
   return ['1', 'true', 'yes'].includes(rawValue.trim().toLowerCase())
+}
+
+function getReleaseAsVersion(value: string): string | undefined {
+  return value.match(/^release-as:\s*(\S+)\s*$/im)?.[1]
 }

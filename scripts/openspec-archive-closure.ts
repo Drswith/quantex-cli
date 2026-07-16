@@ -53,6 +53,10 @@ Archive completed OpenSpec changes ${openSpecList} after their implementation PR
 
 - Release: not applicable - OpenSpec archive closure only
 
+## Release Summary
+
+- Not applicable - OpenSpec archive closure does not produce a release entry.
+
 ## Docs Updated
 
 - [ ] Not needed

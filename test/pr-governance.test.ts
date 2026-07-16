@@ -18,6 +18,11 @@ describe('pr governance release intent', () => {
     expect(prTemplate).toContain('## Release Intent')
   })
 
+  it('requires a release-summary section in PR bodies', () => {
+    expect(prBodyPolicyScript).toContain("'## Release Summary'")
+    expect(prTemplate).toContain('## Release Summary')
+  })
+
   it('guards product-impacting files from silently skipping release automation', () => {
     expect(prGovernanceWorkflow).toContain('bun run pr:body:check')
     expect(prGovernanceWorkflow).toContain('PR_BODY')
@@ -31,6 +36,7 @@ describe('pr governance release intent', () => {
       const config = JSON.parse(readFileSync(fileName, 'utf8')) as {
         packages: {
           '.': {
+            'changelog-types'?: Array<{ hidden?: boolean; section?: string; type?: string }>
             'pull-request-header': string
           }
         }
@@ -38,7 +44,13 @@ describe('pr governance release intent', () => {
       const header = config.packages['.']['pull-request-header']
 
       expect(header).toContain('## Release Intent')
+      expect(header).toContain('## Release Summary')
       expect(header).toContain('## Closure Check')
+      expect(config.packages['.']['changelog-types']).toContainEqual({
+        hidden: false,
+        section: 'Internal Improvements',
+        type: 'refactor',
+      })
     }
   })
 

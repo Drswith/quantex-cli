@@ -44,6 +44,7 @@ export interface SelectReleaseCandidateOptions {
 const releaseTagPattern = /^v\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?$/
 const releaseCommitPattern = /^chore: release (?<version>\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?)$/
 const releaseWorthyPattern = /^(feat|fix|perf)(\(.+\))?!?:/
+const releaseAsPattern = /^release-as:\s*\S+\s*$/im
 
 export function classifyCommitReleaseIntent(message: string): CommitReleaseIntent {
   const firstLine = message.split('\n')[0] ?? ''
@@ -52,7 +53,8 @@ export function classifyCommitReleaseIntent(message: string): CommitReleaseInten
   return {
     firstLine,
     isReleaseCommit: Boolean(releaseMatch),
-    isReleaseWorthy: releaseWorthyPattern.test(firstLine) || message.includes('\nBREAKING CHANGE:'),
+    isReleaseWorthy:
+      releaseWorthyPattern.test(firstLine) || message.includes('\nBREAKING CHANGE:') || releaseAsPattern.test(message),
     releaseVersion: releaseMatch?.groups?.version ?? null,
   }
 }

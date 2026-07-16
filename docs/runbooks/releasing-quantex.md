@@ -98,6 +98,16 @@ Release PR creation uses conventional commits:
 - `BREAKING CHANGE:` footer or `!` => major release
 - `docs:`, `test:`, `ci:`, `chore:` => no release unless the metadata is intentionally changed
 
+Release-worthy source PRs MUST also provide a `## Release Summary` section with a non-empty release-please commit override. Use the override to write the changelog entry for users, rather than echoing incidental implementation wording:
+
+```text
+BEGIN_COMMIT_OVERRIDE
+refactor: make agent lifecycle operations safer and easier to diagnose
+END_COMMIT_OVERRIDE
+```
+
+`refactor:` entries appear in the generated `Internal Improvements` section but do not independently trigger a version bump. When an exact one-shot version is needed, carry `Release-As: <version>` in the merged commit and repeat the same footer in the source PR's Release Summary. The protected-branch resolver recognizes that footer as a Release PR trigger, so do not add `!` or a false `BREAKING CHANGE` marker merely to start release automation.
+
 The stable 0.x line ends at `0.29.1`. The completed lifecycle redesign graduates through the exact transition `0.29.1 -> 1.1.0`; `1.0.0` remains burned and MUST NOT be reused. The graduation implementation commit uses release-please's one-shot `Release-As: 1.1.0` footer, after which normal 1.x SemVer planning resumes. Do not persist `release-as` in release-please configuration and do not manually edit the version manifest, package version, changelog, or generated build metadata to imitate the generated Release PR.
 
 Both the graduation implementation PR and the generated `chore: release 1.1.0` PR use the normal protected-branch checks. The Release PR workflow MUST identify that exact generated PR from base version `0.29.1` and skip token creation and auto-merge enablement, leaving the PR fail-closed for a locked-head manual rebase merge. Squash remains the fallback only when rebase is unavailable or unsafe.
