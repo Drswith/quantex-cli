@@ -7,9 +7,9 @@
 ## 2. Tests
 
 - [x] 2.1 Add regression coverage that CLI cancellation aborts an in-flight binary download fetch
-- [ ] 2.2 Keep existing checksum/Windows swap coverage green
+- [x] 2.2 Keep existing checksum/Windows swap coverage green
 
 ## 3. Validation
 
-- [ ] 3.1 Run `bun run lint`, `bun run format:check`, `bun run typecheck`, and `bun run test`
-- [ ] 3.2 Run `bun run openspec:validate`
+- [x] 3.1 Run `bun run lint`, `bun run format:check`, `bun run typecheck`, and `bun run test`
+- [x] 3.2 Run `bun run openspec:validate`
