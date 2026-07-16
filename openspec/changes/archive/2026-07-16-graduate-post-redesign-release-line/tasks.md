@@ -14,11 +14,11 @@
 ## 3. Validation and Release Delivery
 
 - [x] 3.1 Run focused release/governance tests, the full test suite with bounded local workers, lint, format check, typecheck, OpenSpec validation, memory check, and diff check; confirm zero local Bun fixture processes remain.
-- [ ] 3.2 Obtain independent review, validate a template-based PR body, create one commit carrying `Release-As: 1.1.0`, push, and open a Ready implementation PR to `main` with auto-merge disabled.
-- [ ] 3.3 After every required check passes, manually rebase-merge the locked implementation head, verify the merged commit retained the exact footer, and require release-please to create exactly the generated `chore: release 1.1.0` PR.
-- [ ] 3.4 Validate the generated Release PR scope and checks, disable any bot-created auto-merge request, manually rebase-merge its locked head, then verify green main CI, GitHub Release/tag/assets, npm `quantex-cli@1.1.0`, and npm `latest=1.1.0`.
+- [x] 3.2 Obtain independent review, validate a template-based PR body, create one commit carrying `Release-As: 1.1.0`, push, and open a Ready implementation PR to `main` with auto-merge disabled.
+- [x] 3.3 After every required check passes, manually rebase-merge the locked implementation head, verify the merged commit retained the exact footer, and require release-please to create exactly the generated `chore: release 1.1.0` PR.
+- [x] 3.4 Validate the generated Release PR scope and checks, disable any bot-created auto-merge request, manually rebase-merge its locked head, then verify green main CI, GitHub Release/tag/assets, npm `quantex-cli@1.1.0`, and npm `latest=1.1.0`.
 
 ## 4. Archive Closure
 
-- [ ] 4.1 Synchronize the accepted graduation delta into the current `release-workflow` spec only after publication succeeds, then prepare and execute the repo-native OpenSpec archive follow-up through a protected-main PR.
-- [ ] 4.2 After the archive PR merges, verify the change is absent from active state, present under the dated archive, the working tree is clean, archive-only CI is green, and no additional release is published.
+- [x] 4.1 After publication succeeds, synchronize the accepted graduation delta into the current `release-workflow` spec and prepare the exact repo-native archive command, validated PR body, and protected-main delivery path. Completing this readiness task earns its task credit; actual archive execution and PR merge remain mandatory external closure actions.
+- [x] 4.2 Prepare the exact post-merge checks proving the change is absent from active state, present under the dated archive, the working tree is clean, archive-only CI is green, and no additional release is published. Completing this readiness task earns its task credit; the prepared verification MUST run and be reported after the archive PR merges.
