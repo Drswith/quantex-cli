@@ -21,6 +21,7 @@ describe('read-only lifecycle mixed signal cancellation', () => {
       const bin = join(root, 'bin')
       const providerPidLog = join(root, 'provider.pids.log')
       const agentPidLog = join(root, 'agent.pids.log')
+      const fixturePids: number[] = []
       const bun = resolveExecutable('bun')
       await mkdir(join(home, '.quantex'), { recursive: true })
       await mkdir(bin, { recursive: true })
@@ -46,8 +47,8 @@ describe('read-only lifecycle mixed signal cancellation', () => {
 
       try {
         await Promise.all([waitForFile(providerPidLog, 10_000), waitForFile(agentPidLog, 10_000)])
-        const pids = [...(await readPids(providerPidLog)), ...(await readPids(agentPidLog))]
-        expect(pids.length).toBe(4)
+        fixturePids.push(...(await readPids(providerPidLog)), ...(await readPids(agentPidLog)))
+        expect(fixturePids.length).toBe(4)
         const startedAt = Date.now()
         child.kill(signal)
         const [exitCode, stdout, stderr] = await Promise.all([
@@ -61,10 +62,11 @@ describe('read-only lifecycle mixed signal cancellation', () => {
 
         expect(exitCode).toBe(11)
         expect(result?.data ?? result).toMatchObject({ error: { code: 'CANCELLED', details: { signal } }, ok: false })
-        await waitForProcessesStopped(pids, 1_000)
+        await waitForProcessesStopped(fixturePids, 1_000)
         expect(Date.now() - startedAt).toBeLessThan(3_000)
-        expect(pids.filter(isProcessAlive)).toEqual([])
+        expect(fixturePids.filter(isProcessAlive)).toEqual([])
       } finally {
+        await killFixtureProcesses(fixturePids)
         if (child.pid && isProcessAlive(child.pid)) child.kill('SIGKILL')
         await rm(root, { force: true, recursive: true })
       }
@@ -98,6 +100,18 @@ async function readPids(path: string): Promise<number[]> {
 async function waitForProcessesStopped(pids: number[], timeoutMs: number): Promise<void> {
   const deadline = Date.now() + timeoutMs
   while (pids.some(isProcessAlive) && Date.now() < deadline) await new Promise(resolve => setTimeout(resolve, 5))
+}
+
+async function killFixtureProcesses(pids: number[]): Promise<void> {
+  for (const pid of new Set(pids)) {
+    if (!isProcessAlive(pid)) continue
+    try {
+      process.kill(pid, 'SIGKILL')
+    } catch {
+      // The fixture process may have exited between the liveness check and kill.
+    }
+  }
+  await waitForProcessesStopped(pids, 1_000)
 }
 
 function waitForExit(child: ReturnType<typeof spawn>, timeoutMs: number): Promise<number> {
