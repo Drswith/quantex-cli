@@ -6,6 +6,8 @@ The delivery mechanism needs repository workflow support before lifecycle code c
 
 This design crosses GitHub Actions, PR governance, release routing, repository rulesets, runbook/runtime guidance, and OpenSpec closure. It does not change Quantex CLI behavior.
 
+The post-promotion task list also has a closure dependency cycle: the repository closure contract requires an active change's task list to be complete before archive execution, while task `5.5` currently describes the archive execution itself and task `5.6` describes verification after the archive PR merges. Their numbers, checkboxes, denominator, scope, and completion credit remain valid, but their completion criteria must represent ready-to-run archive execution and ready-to-run post-merge verification so the active change can honestly become complete before those external closure actions run. The repo-native archive wrapper must enforce that contract from `openspec:instructions -- apply` task progress, not the artifact-completeness field returned by `openspec:status`.
+
 Stakeholders are maintainers delivering lifecycle milestones, reviewers protecting `main`, release automation, and agents responsible for OpenSpec/archive closure.
 
 ## Goals / Non-Goals
@@ -18,6 +20,7 @@ Stakeholders are maintainers delivering lifecycle milestones, reviewers protecti
 - Preserve the repository's single-commit default and allow multi-commit history only for two exact, same-repository synchronization/promotion topologies.
 - Make setup, steady-state operation, final promotion, teardown, spec synchronization, and archive closure one explicit lifecycle.
 - Keep the redesign umbrella change independent and require genuine `74/74` completion before final promotion.
+- Keep archive execution and post-merge verification mandatory while making their pre-execution readiness criteria acyclic and recoverable.
 
 **Non-Goals:**
 
@@ -27,6 +30,7 @@ Stakeholders are maintainers delivering lifecycle milestones, reviewers protecti
 - Replacing the existing six contexts, weakening `main` protection, or adding integration `push` triggers to CI or Sandbox Tests.
 - Formatting golden fixtures that are deliberately excluded by `.oxfmtrc.json`, skipping hooks, or suppressing formatter/linter failures for supported staged files.
 - Renumbering `redesign-lifecycle-engine` tasks, changing its checkbox count or 74-task denominator, expanding its implementation scope, or awarding completion credit before the clarified criteria are met. Only task `11.6` wording may be clarified to separate post-promotion follow-up readiness from later execution.
+- Removing archive execution or post-merge verification from the delivery lifecycle. Clarified tasks `5.5` and `5.6` may earn their existing credit only when the exact owner, state checks, commands, validation, protected-branch delivery, and result-verification path are ready.
 
 ## Decisions
 
@@ -128,6 +132,8 @@ The final promotion is followed by an explicit teardown:
 
 Neither active change is archive-eligible before final promotion, workflow cleanup, ruleset/branch cleanup, and current-spec synchronization are complete. Release closure and archive closure are reported separately; a successful release does not archive either change automatically.
 
+Tasks `5.5` and `5.6` use the same readiness boundary as redesign task `11.6`. Task `5.5` completes only after current specs are already synchronized, both changes are otherwise complete, exact separately resumable archive commands and a validated protected-branch PR body are prepared, and the pre-archive validation is green. Task `5.6` completes only after the post-merge verification owner, commands, expected active/archive state, clean-tree check, and closure report are ready. Before each archive invocation, the plan and the repo-native wrapper independently require the exact task count to be complete (`74/74` and `30/30`, respectively). The archive commands then run, the archive PR merges, and the prepared verification is executed as external closure evidence; those actions remain mandatory even though they occur after the active change reaches `30/30`.
+
 Leaving dormant integration triggers and policy exceptions in place was rejected because the branch is intentionally temporary. Automatic bot-driven archive PRs were rejected because the repository requires agent-owned archive closure.
 
 ## Risks / Trade-offs
@@ -139,6 +145,8 @@ Leaving dormant integration triggers and policy exceptions in place was rejected
 - [Golden fixtures make pre-commit fail despite being deliberately ignored] -> Keep ignore boundaries intact and let oxfmt's all-ignored matched set succeed without suppressing checks on supported staged files.
 - [Partial redesign reaches `main`] -> Allow only process/bootstrap changes before the `74/74` gate and review the complete final comparison.
 - [Task `11.6` creates a promotion/archive dependency cycle] -> Clarify only its readiness semantics without renumbering, changing the denominator or scope, awarding early credit, or executing post-promotion work before promotion.
+- [Delivery tasks `5.5`/`5.6` create an archive-completion cycle] -> Preserve their identity and scope while requiring concrete execution/verification readiness before completion; run and report both external closure actions immediately afterward.
+- [Artifact completeness is mistaken for task completion] -> Read apply instructions and reject archive closure unless every task is complete and zero tasks remain.
 - [Two active changes are archived too early] -> Model milestone merge, final promotion, release, teardown, spec sync, and archive as distinct closure states.
 - [Synchronization or promotion creates abnormal graph history] -> Prefer rebase for every pull request, use squash only as the documented fallback, never let an agent or automation select a merge commit, and use content evidence because linear methods do not preserve source-tip ancestry.
 
@@ -163,7 +171,7 @@ Leaving dormant integration triggers and policy exceptions in place was rejected
 
 1. Confirm the other 73 redesign tasks and clarified `11.6` follow-up readiness produce genuine `74/74`, then verify full validation, final main sync, clean PR inventory, and the complete comparison; do not execute spec sync/archive yet.
 2. Merge the exact integration-to-`main` promotion pull request with rebase first or squash second, verify the refreshed `main` result tree and content equality, and let normal `main` release automation evaluate the promoted product delta.
-3. Merge the process-only workflow/policy cleanup, remove the temporary ruleset and branch, synchronize current specs, and archive both changes through an explicit follow-up.
+3. Merge the process-only workflow/policy cleanup, remove the temporary ruleset and branch, synchronize current specs, complete the clarified archive/verification readiness criteria, archive both changes through an explicit follow-up, and execute the prepared post-merge verification.
 
 Rollback before final promotion is to stop new milestone PRs, retain integration for diagnosis, and leave `main` unchanged. Rollback after promotion follows the normal protected-`main` revert/release process; the integration branch is retained until cleanup confirms it is no longer required for recovery.
 

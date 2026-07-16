@@ -1,18 +1,18 @@
-# Typed Outcomes and Legacy Core Removal Progress
+# Lifecycle Final Validation and Promotion Readiness Progress
 
-Base: `origin/codex/redesign-lifecycle-integration@05409ecfec3df9b2f708dd1482b5d77d72143ae6`
+Base: `origin/codex/redesign-lifecycle-integration@5ca76bd6964a69af5f5a5ff2a05eb44fb4d4d303`
 
-Plan: `docs/superpowers/plans/2026-07-15-legacy-core-removal-milestone.md`
+Plan: `docs/superpowers/plans/2026-07-16-lifecycle-final-validation-milestone.md`
 
 | Task | State | Checkpoint | Evidence |
 | --- | --- | --- | --- |
-| 1. Remaining legacy route inventory | complete | task-1 checkpoint | Structural tests identify retained compatibility wrappers, default observation imports, boolean provider bridges, and migration-only shadow planning |
-| 2. Typed internal mutation outcomes | complete | typed provider checkpoint | Lifecycle, typed managed installers, and provider mutation dependencies preserve discriminated outcomes; root v1/package-manager boolean APIs project explicitly at compatibility edges |
-| 3. Default observation/install migration | complete | task-3 checkpoint | Install, ensure, and execution preflight use lifecycle observations; reconciliation accepts a minimal domain snapshot; focused tests pass 86/86 |
-| 4. Unreachable legacy core removal | complete | legacy-core checkpoint | Zero-caller shadow planner is removed; default commands no longer consume legacy inspection; the generic pending-operation helper is no longer mislabeled as legacy; v1 facade exports remain |
-| 5. Verified docs and OpenSpec update | complete | docs/OpenSpec checkpoint | English and Chinese product guarantees reflect verified defaults; catalog/schema generators are clean after formatting; OpenSpec 2.4 and 10.4-10.6 are complete at 68/74 |
-| 6. Validation, reviews, and integration PR | in progress | local-review checkpoint | Full local gates and independent spec/quality re-reviews have no remaining Critical/Important findings; recovery commit, rebase normalization, ready integration PR, and remote checks remain |
+| 1. Entry topology and evidence matrix | complete | evidence checkpoint | #465 merged; no open integration PR; main/integration merge-tree equals integration; CodeGraph initialized; final-head gates and validated body evidence re-queried for 11 accepted PRs |
+| 2. Static, protocol, behavior, container, and sandbox gates | complete | behavior checkpoint | lint/format/typecheck/OpenSpec/memory green; initial aggregate run 1573/1573, final archive-guard regression rerun 1580/1580; CI `pi,opencode` Docker full scenarios green; #465 identical product tree Modal sandbox green; local Modal unavailable |
+| 3. Build and release-readiness gates | complete | distribution checkpoint | build, five binaries, package distribution, release artifacts, and macOS arm64 release smoke passed |
+| 4. Post-promotion follow-up readiness | complete | closure-readiness checkpoint | owner/order/commands recorded; current specs sync before archive; explicit 5.5/5.6 checkbox ordering; separate resumable archive and post-merge verification paths; true task-progress archive guard |
+| 5. Spec and quality review; OpenSpec 74/74 | complete | final review checkpoint | no Critical; all Important isolation/evidence/archive/parser/identity/recovery findings fixed; latest static gates and 1580/1580 tests green; redesign 74/74 active |
+| 6. Single-commit integration PR | in progress | delivery checkpoint | rebase, recovery refs, single-commit normalization, validated PR body, push, Ready PR, required checks, and review required |
 
-Baseline: integration tip `05409ec`; OpenSpec `redesign-lifecycle-engine` remains active at 68/74. CodeGraph is initialized and synchronized in this worktree with 487 files, 4,522 nodes, and 12,014 edges.
+Baseline: integration tip `5ca76bd`; OpenSpec `redesign-lifecycle-engine` is active at 74/74 after final evidence review. Main content is synchronized by tree equality, not by graph ancestry. This milestone changes no observable CLI/package behavior and must not trigger release or archive closure.
 
-Recovery rule: resume the first row that is not `complete`; inspect its tests, `git log`, `git status`, granular recovery ref, OpenSpec status, and CodeGraph pending-sync banner before editing. Commit every reviewed task, preserve the granular head at `refs/quantex/recovery/redesign-legacy-removal-granular`, and normalize only immediately before a PR to `codex/redesign-lifecycle-integration`.
+Recovery rule: resume the first row that is not `complete`; inspect its recorded evidence, `git status`, remote tips, OpenSpec count, CodeGraph pending-sync banner, and any interrupted Docker, Modal, or GitHub operation. Commit reviewed checkpoints before long external gates, rerun only interrupted commands, and repeat the full final matrix before PR delivery.

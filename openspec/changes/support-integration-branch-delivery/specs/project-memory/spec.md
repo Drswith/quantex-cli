@@ -62,3 +62,13 @@ Final promotion, product release, teardown, spec synchronization, and OpenSpec a
 - **WHEN** the agent-driven archive follow-up runs
 - **THEN** it MUST archive both `redesign-lifecycle-engine` and `support-integration-branch-delivery` through the repo-native protected-branch delivery path
 - **AND** it MUST validate and report the resulting OpenSpec state
+
+#### Scenario: Archive execution and verification readiness break the completion cycle
+
+- **GIVEN** the repository closure contract and archive wrapper require each active change's actual task progress to be complete before archive execution
+- **WHEN** delivery tasks `5.5` and `5.6` are prepared for closure
+- **THEN** task `5.5` MAY complete only after current specs are synchronized and the exact resumable archive commands, validated PR body, pre-archive validation, and protected-branch delivery path are ready
+- **AND** task `5.6` MAY complete only after the owner, commands, expected state checks, clean-tree verification, and closure report for post-archive-PR-merge verification are ready
+- **AND** both clarifications MUST preserve the task numbers, checkboxes, 30-task denominator, implementation scope, and completion credit
+- **AND** the archive wrapper MUST read apply-instruction task progress and reject any change unless `complete` equals `total` and `remaining` is zero
+- **AND** archive execution, archive PR merge, and prepared post-merge verification MUST still run and be reported as external closure actions rather than being claimed complete from readiness alone
