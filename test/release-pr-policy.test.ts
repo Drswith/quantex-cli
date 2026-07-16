@@ -82,15 +82,67 @@ describe('release PR policy', () => {
     expect(issues.join('\n')).toContain('version "1.0.0" is a burned stable release version')
   })
 
+  it('accepts the exact post-redesign graduation from 0.29.1 to 1.1.0', () => {
+    expect(
+      validateReleasePrPolicy({
+        baseBranch: 'main',
+        baseVersion: '0.29.1',
+        body: validBody,
+        changedFiles: validChangedFiles,
+        headBranch: 'release-please--branches--main--components--quantex-cli',
+        title: 'chore: release 1.1.0',
+      }),
+    ).toEqual([])
+  })
+
+  it.each(['0.29.2', '0.30.0'])('rejects later zero-major release %s after final baseline 0.29.1', proposed => {
+    const issues = validateReleasePrPolicy({
+      baseBranch: 'main',
+      baseVersion: '0.29.1',
+      body: validBody,
+      changedFiles: validChangedFiles,
+      headBranch: 'release-please--branches--main--components--quantex-cli',
+      title: `chore: release ${proposed}`,
+    })
+
+    expect(issues.join('\n')).toContain('0.29.1 is the final stable 0.x release')
+  })
+
+  it('rejects 1.1.0 graduation from the wrong zero-major base', () => {
+    const issues = validateReleasePrPolicy({
+      baseBranch: 'main',
+      baseVersion: '0.28.0',
+      body: validBody,
+      changedFiles: validChangedFiles,
+      headBranch: 'release-please--branches--main--components--quantex-cli',
+      title: 'chore: release 1.1.0',
+    })
+
+    expect(issues.join('\n')).toContain('only allowed stable graduation is "0.29.1" to "1.1.0"')
+  })
+
+  it('rejects a different 1.x graduation target from 0.29.1', () => {
+    const issues = validateReleasePrPolicy({
+      baseBranch: 'main',
+      baseVersion: '0.29.1',
+      body: validBody,
+      changedFiles: validChangedFiles,
+      headBranch: 'release-please--branches--main--components--quantex-cli',
+      title: 'chore: release 1.2.0',
+    })
+
+    expect(issues.join('\n')).toContain('only allowed stable graduation is "0.29.1" to "1.1.0"')
+  })
+
   it('allows post-1.0 stable releases to advance normally', () => {
     expect(
       validateReleasePrPolicy({
         baseBranch: 'main',
-        baseVersion: '1.0.0',
+        baseVersion: '1.1.0',
         body: validBody,
         changedFiles: validChangedFiles,
         headBranch: 'release-please--branches--main--components--quantex-cli',
-        title: 'chore: release 1.0.1',
+        title: 'chore: release 1.1.1',
       }),
     ).toEqual([])
   })

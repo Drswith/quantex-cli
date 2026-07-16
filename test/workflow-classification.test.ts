@@ -138,4 +138,16 @@ describe('workflow classification integration', () => {
     expect(releaseWorkflow).toContain('echo "npm_tag=beta"')
     expect(releaseWorkflow).toContain('echo "npm_tag=latest"')
   })
+
+  it('keeps the exact 1.1.0 graduation Release PR on manual rebase-first delivery', () => {
+    expect(releaseAutomergeWorkflow).toContain('id: validate-release-pr')
+    expect(releaseAutomergeWorkflow).toContain("basePackageJson.version === '0.29.1'")
+    expect(releaseAutomergeWorkflow).toContain("title === 'chore: release 1.1.0'")
+    expect(releaseAutomergeWorkflow).toContain(
+      "core.setOutput('manual_merge_required', manualMergeRequired ? 'true' : 'false')",
+    )
+    expect(
+      releaseAutomergeWorkflow.match(/if: steps\.validate-release-pr\.outputs\.manual_merge_required != 'true'/g),
+    ).toHaveLength(2)
+  })
 })

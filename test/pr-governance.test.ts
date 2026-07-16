@@ -42,16 +42,18 @@ describe('pr governance release intent', () => {
     }
   })
 
-  it('keeps stable release-please on the zero-major line for pre-1.0 breaking changes', () => {
+  it('keeps stable release-please graduated without a persistent release override', () => {
     const config = JSON.parse(readFileSync('release-please-config.json', 'utf8')) as {
       packages: {
         '.': {
           'bump-minor-pre-major'?: boolean
+          'release-as'?: string
         }
       }
     }
 
-    expect(config.packages['.']['bump-minor-pre-major']).toBe(true)
+    expect(config.packages['.']['bump-minor-pre-major']).toBe(false)
+    expect(config.packages['.']['release-as']).toBeUndefined()
   })
 
   it('keeps PR template compatible with agent-driven OpenSpec archive closure', () => {

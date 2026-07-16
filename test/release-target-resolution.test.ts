@@ -19,6 +19,27 @@ function run(databaseId: number, headSha: string, updatedAt: string): Successful
 }
 
 describe('release target resolution', () => {
+  it('recognizes the exact graduation commit subject as release-worthy while preserving Release-As metadata', () => {
+    const intent = commit('feat(release)!: graduate post-redesign line\n\nRelease-As: 1.1.0')
+    const resolution = selectReleaseCandidate({
+      commitsBySha: { graduation: intent },
+      publishedNpmVersions: new Set<string>(),
+      publishedReleaseShas: new Set<string>(),
+      publishedTags: new Set<string>(),
+      runs: [run(10, 'graduation', '2026-07-16T12:00:00Z')],
+    })
+
+    expect(intent.firstLine).toBe('feat(release)!: graduate post-redesign line')
+    expect(intent.isReleaseWorthy).toBe(true)
+    expect(intent.isReleaseCommit).toBe(false)
+    expect(resolution.mode).toBe('pr')
+    expect(resolution.targetSha).toBe('graduation')
+  })
+
+  it('does not mistake Release-As metadata on a chore commit for a release-worthy resolver input', () => {
+    expect(commit('chore(release): graduate post-redesign line\n\nRelease-As: 1.1.0').isReleaseWorthy).toBe(false)
+  })
+
   it('publishes a pending untagged release commit before creating another release PR', () => {
     const resolution = selectReleaseCandidate({
       commitsBySha: {
