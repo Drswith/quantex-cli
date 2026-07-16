@@ -4,6 +4,11 @@ This changelog is maintained by release-please Release PRs.
 
 ## [1.1.0](https://github.com/Drswith/quantex-cli/compare/v0.29.1...v1.1.0) (2026-07-16)
 
+### Release summary
+
+`v1.1.0` graduates Quantex onto its post-redesign release line. The generated breaking-change marker records that release-line transition; it does **not** intentionally remove the maintained v1 CLI commands and aliases, JSON/NDJSON envelopes and exit semantics, readable state/config projections, `qtx`/`quantex` binary entries, or maintained root-package exports.
+
+No migration is required for those maintained v1 surfaces. The underlying lifecycle-engine refactor was delivered in the `v0.29.0..v0.29.1` range; its implementation summary and compatibility boundary appear in the `v0.29.1` notes below.
 
 ### ⚠ BREAKING CHANGES
 
@@ -15,6 +20,19 @@ This changelog is maintained by release-please Release PRs.
 
 ## [0.29.1](https://github.com/Drswith/quantex-cli/compare/v0.29.0...v0.29.1) (2026-07-16)
 
+### Lifecycle-engine refactor
+
+This release completes the internal lifecycle-engine redesign delivered after `v0.29.0`:
+
+* lifecycle mutations now follow observation, planning, execution, postcondition verification, and receipt persistence stages;
+* provider capabilities and catalog installation data are typed, declarative adapters rather than duplicated command-specific metadata;
+* persisted state is versioned management evidence reconciled with the live environment, and idempotent replay requires the same request meaning plus a still-valid postcondition;
+* command registration, discovery, schemas, and presentation flow from a single command-contract registry; and
+* runtime dependencies use per-invocation context and ports, while Quantex self-upgrade remains a separate bounded context.
+
+### Compatibility
+
+The refactor preserves the maintained v1 external contract: stable command names and aliases, `qtx`/`quantex` entries, JSON/NDJSON envelopes, error and exit semantics, state/config projections, transparent agent process IO, and maintained root-package exports. Existing users do not need a migration for these surfaces.
 
 ### Bug Fixes
 
