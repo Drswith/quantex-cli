@@ -401,3 +401,50 @@ Quantex SHALL keep active agent-support Markdown surfaces and their top-level Gi
 - **THEN** the agent updates active docs and live tracking artifacts first
 - **AND** historical records remain point-in-time snapshots unless the task explicitly asks to correct historical data
 
+### Requirement: Umbrella changes MUST remain active across milestone delivery
+
+Quantex SHALL permit a large OpenSpec umbrella change to be delivered through multiple reviewed milestone pull requests without treating an intermediate merge as archive eligibility. Each milestone merge MUST report its own validation, PR, and merge closure while the umbrella change remains active until every contracted task and final delivery condition is genuinely complete.
+
+#### Scenario: One umbrella milestone merges
+
+- **GIVEN** an active umbrella change is delivered through multiple milestones
+- **WHEN** one milestone pull request merges to its protected target
+- **THEN** the milestone MUST report merge closure without reporting umbrella archive closure
+- **AND** the umbrella task counter MUST change only for work actually completed
+- **AND** the umbrella change MUST remain active until its final completion and promotion conditions pass
+
+### Requirement: Archive closure MUST follow implementation, promotion, teardown, and spec synchronization
+
+Implementation completion, final promotion, product release, temporary delivery teardown, current-spec synchronization, and OpenSpec archive closure SHALL be treated as separate lifecycle states. A completed change MUST NOT be archived until its implementation is present on the protected target, temporary delivery infrastructure is no longer required, and accepted durable deltas are synchronized into current specs.
+
+#### Scenario: A promoted umbrella change still has closure work
+
+- **GIVEN** an umbrella implementation has reached its protected target
+- **WHEN** release, temporary delivery cleanup, or current-spec synchronization remains pending
+- **THEN** promotion merge closure MUST be reported separately
+- **AND** the OpenSpec change MUST remain active until the pending closure work completes
+
+#### Scenario: Agent-driven archive follow-up runs
+
+- **GIVEN** implementation, required release handling, temporary delivery teardown, and current-spec synchronization are complete
+- **WHEN** the agent-driven archive follow-up runs
+- **THEN** it MUST archive the completed changes through the normal protected-branch delivery path
+- **AND** it MUST validate and report the resulting active/archive state after the archive PR merges
+
+### Requirement: Archive readiness MUST be based on actual task progress
+
+Repo-native archive guardrails MUST read OpenSpec apply-instruction task progress and reject archive execution unless `complete` equals `total` and `remaining` is zero. A readiness task MAY record exact resumable commands and post-merge verification before archive execution, but readiness MUST NOT be reported as the archive action or result itself.
+
+#### Scenario: Artifacts are complete but tasks remain
+
+- **GIVEN** an OpenSpec change has all proposal artifacts but one or more tasks remain incomplete
+- **WHEN** archive closure is requested
+- **THEN** the archive guardrail MUST reject the request
+- **AND** artifact completeness MUST NOT substitute for task completion
+
+#### Scenario: Archive execution was prepared but not merged
+
+- **GIVEN** exact archive commands, a validated PR body, and post-merge verification are ready
+- **WHEN** the archive PR has not yet merged
+- **THEN** the change MAY report archive readiness
+- **AND** it MUST NOT report archive closure until the prepared commands run, the PR merges, and the resulting state is verified

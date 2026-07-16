@@ -300,3 +300,21 @@ The repository's Codex environment cleanup SHALL remove transient scratch and pa
 - **THEN** git ignores those runtime files
 - **AND** they do not appear in the tracked review diff
 
+### Requirement: Formatter-ignored staged files MUST NOT block pre-commit
+
+When lint-staged selects files deliberately excluded by the repository formatter configuration, an oxfmt invocation whose entire matched set is ignored SHALL be a successful no-op. The repository MUST retain its ignore boundaries, continue formatting supported staged files, and continue running `oxlint --fix` after oxfmt for staged JavaScript and TypeScript. Real formatter or linter failures on supported files MUST remain commit-blocking.
+
+#### Scenario: A staged formatter group contains only ignored files
+
+- **GIVEN** every path selected for one lint-staged oxfmt invocation is excluded by `.oxfmtrc.json`
+- **WHEN** the pre-commit hook runs
+- **THEN** oxfmt MUST format zero files without failing solely because no supported target remains
+- **AND** the ignored file bytes MUST remain unchanged
+
+#### Scenario: A staged formatter group includes supported source
+
+- **GIVEN** lint-staged selects formatter-supported source in addition to any ignored files
+- **WHEN** the pre-commit hook runs
+- **THEN** supported files MUST still run through oxfmt
+- **AND** staged JavaScript and TypeScript MUST still run through `oxlint --fix` after formatting
+- **AND** any real formatter or linter failure MUST still abort the commit
