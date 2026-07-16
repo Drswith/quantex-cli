@@ -1,18 +1,16 @@
-# Lifecycle Final Validation and Promotion Readiness Progress
+# Lifecycle Final Promotion Readiness Progress
 
-Base: `origin/codex/redesign-lifecycle-integration@5ca76bd6964a69af5f5a5ff2a05eb44fb4d4d303`
+Base: `origin/codex/redesign-lifecycle-integration@1d183699e6703ed126e8a9434175889d3b805471`
 
-Plan: `docs/superpowers/plans/2026-07-16-lifecycle-final-validation-milestone.md`
+Plan: `docs/superpowers/plans/2026-07-16-lifecycle-final-promotion-readiness-milestone.md`
 
 | Task | State | Checkpoint | Evidence |
 | --- | --- | --- | --- |
-| 1. Entry topology and evidence matrix | complete | evidence checkpoint | #465 merged; no open integration PR; main/integration merge-tree equals integration; CodeGraph initialized; final-head gates and validated body evidence re-queried for 11 accepted PRs |
-| 2. Static, protocol, behavior, container, and sandbox gates | complete | behavior checkpoint | lint/format/typecheck/OpenSpec/memory green; initial aggregate run 1573/1573, final archive-guard regression rerun 1580/1580; CI `pi,opencode` Docker full scenarios green; #465 identical product tree Modal sandbox green; local Modal unavailable |
-| 3. Build and release-readiness gates | complete | distribution checkpoint | build, five binaries, package distribution, release artifacts, and macOS arm64 release smoke passed |
-| 4. Post-promotion follow-up readiness | complete | closure-readiness checkpoint | owner/order/commands recorded; current specs sync before archive; explicit 5.5/5.6 checkbox ordering; separate resumable archive and post-merge verification paths; true task-progress archive guard |
-| 5. Spec and quality review; OpenSpec 74/74 | complete | final review checkpoint | no Critical; all Important isolation/evidence/archive/parser/identity/recovery findings fixed; latest static gates and 1580/1580 tests green; redesign 74/74 active |
-| 6. Single-commit integration PR | in progress | delivery checkpoint | rebase, recovery refs, single-commit normalization, validated PR body, push, Ready PR, required checks, and review required |
+| 1. Review completed milestone runtime | complete | live-evidence checkpoint | all ordinary milestones are one-commit/six-context PRs; earned task progression reviewed; #447/#448 old contract and #449 prospective boundary recorded; Release runs empty; ruleset active; changes active |
+| 2. Prove final promotion eligibility | complete | content-readiness checkpoint | redesign 74/74 active; main `2ca25c3`; integration `1d18369`; merge-tree equals integration tree `4e065def`; 16 accepted commits/348 files reviewed; no open milestone/promotion PR |
+| 3. Validate process-only readiness diff | complete | validation checkpoint | locked install; lint/format/typecheck/OpenSpec 16/16/memory/diff green; redesign 74/74; support 21/30; Release PR/run empty; validated PR body |
+| 4. Independent review and integration PR | in progress | review checkpoint | both final reviews have no Critical/Important; one-commit normalization, push, Ready PR, six contexts, and manual rebase merge remain |
 
-Baseline: integration tip `5ca76bd`; OpenSpec `redesign-lifecycle-engine` is active at 74/74 after final evidence review. Main content is synchronized by tree equality, not by graph ancestry. This milestone changes no observable CLI/package behavior and must not trigger release or archive closure.
+Baseline: core redesign implementation and final validation are merged into integration. This milestone records only earned support tasks 3.1-4.2 and must not open the final promotion PR, trigger release, synchronize current specs, or archive either change.
 
-Recovery rule: resume the first row that is not `complete`; inspect its recorded evidence, `git status`, remote tips, OpenSpec count, CodeGraph pending-sync banner, and any interrupted Docker, Modal, or GitHub operation. Commit reviewed checkpoints before long external gates, rerun only interrupted commands, and repeat the full final matrix before PR delivery.
+Recovery rule: resume the first non-complete row after refreshing refs, PRs, Release runs, OpenSpec counters, CodeGraph, and git state. Recompute content evidence on any tip drift; retry only interrupted network operations when tips are stable.
