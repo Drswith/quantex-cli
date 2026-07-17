@@ -84,11 +84,17 @@ describe('managed installer typed provider compatibility', () => {
   it('keeps legacy presence and installed-version probes as direct compatibility projections', async () => {
     const npmVersion = vi.spyOn(npmPm, 'getInstalledVersion').mockResolvedValue('1.2.3')
     const bunPresence = vi.spyOn(bunPm, 'probePackagePresence').mockResolvedValue('absent')
+    const brewPresence = vi.spyOn(brewPm, 'probePackagePresence').mockResolvedValue('absent')
+    const brewVersion = vi.spyOn(brewPm, 'getInstalledVersion').mockResolvedValue('1.2.3')
 
     expect(await getManagedInstaller('npm').getInstalledVersion?.('@example/npm-agent')).toBe('1.2.3')
     expect(await getManagedInstaller('bun').probePackagePresence?.('@example/bun-agent')).toBe('absent')
+    expect(await getManagedInstaller('brew').probePackagePresence?.('example-formula', 'package')).toBe('absent')
+    expect(await getManagedInstaller('brew').getInstalledVersion?.('example-cask', 'cask')).toBe('1.2.3')
     expect(npmVersion).toHaveBeenCalledWith('@example/npm-agent')
     expect(bunPresence).toHaveBeenCalledWith('@example/bun-agent')
+    expect(brewPresence).toHaveBeenCalledWith('example-formula', 'package')
+    expect(brewVersion).toHaveBeenCalledWith('example-cask', 'cask')
   })
 
   it('binds Homebrew cask identity once when routing through the typed adapter', async () => {
