@@ -22,7 +22,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository validation logic
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           fetch-depth: 1
           # Use the base ref, not the PR head: pull_request_target runs with elevated
@@ -32,7 +32,7 @@ jobs:
 
       - name: Validate Release PR scope
         id: validate-release-pr
-        uses: actions/github-script@v7
+        uses: actions/github-script@v9
         with:
           script: |
             const { validateReleasePrPolicy } = await import(`${process.env.GITHUB_WORKSPACE}/scripts/release-pr-policy.js`)

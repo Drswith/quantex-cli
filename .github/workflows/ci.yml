@@ -32,14 +32,14 @@ jobs:
       run_test_matrix: ${{ steps.classify.outputs.run_test_matrix }}
       scope: ${{ steps.classify.outputs.scope }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: oven-sh/setup-bun@v2
         with:
           bun-version: 1.3.11
 
       - name: List changed files
         id: changed-files
-        uses: actions/github-script@v7
+        uses: actions/github-script@v9
         with:
           script: |
             async function listChangedFiles() {
@@ -95,14 +95,14 @@ jobs:
   lint:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: oven-sh/setup-bun@v2
         with:
           bun-version: 1.3.11
 
       - name: List commits for trailer policy
         id: commits
-        uses: actions/github-script@v7
+        uses: actions/github-script@v9
         with:
           script: |
             async function listCommits() {
@@ -145,7 +145,7 @@ jobs:
 
             core.setOutput('commits_json', JSON.stringify(await listCommits()))
 
-      - uses: actions/cache@v4
+      - uses: actions/cache@v6
         with:
           path: |
             .bun/install/cache
@@ -190,13 +190,13 @@ jobs:
           echo "Process-only change detected (${CHANGE_SCOPE}); running the minimal Ubuntu build guard while skipping the full test matrix."
 
       - if: ${{ needs.classify.outputs.run_test_matrix == 'true' || runner.os == 'Linux' }}
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
       - uses: oven-sh/setup-bun@v2
         if: ${{ needs.classify.outputs.run_test_matrix == 'true' || runner.os == 'Linux' }}
         with:
           bun-version: 1.3.11
 
-      - uses: actions/cache@v4
+      - uses: actions/cache@v6
         if: ${{ needs.classify.outputs.run_test_matrix == 'true' || runner.os == 'Linux' }}
         with:
           path: |
