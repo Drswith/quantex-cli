@@ -71,7 +71,7 @@ describe('managed self-upgrade process ports', () => {
     ])
   })
 
-  it('rolls back the Bun global package when trust fails', async () => {
+  it('preserves the Bun global Quantex package when trust fails after add', async () => {
     const run = vi
       .fn()
       .mockResolvedValueOnce(success({ exitCode: 0 }))
@@ -79,7 +79,6 @@ describe('managed self-upgrade process ports', () => {
         success({ exitCode: 0, stdout: new TextEncoder().encode('./node_modules/quantex-cli @0.29.0\n') }),
       )
       .mockResolvedValueOnce(success({ exitCode: 1 }))
-      .mockResolvedValueOnce(success({ exitCode: 0 }))
 
     await expect(
       bunSelfUpgradeProvider.upgrade(createPlan('bun'), {
@@ -88,11 +87,32 @@ describe('managed self-upgrade process ports', () => {
         stdio: ['inherit', 'inherit', 'inherit'],
       }),
     ).resolves.toMatchObject({ installSource: 'bun', success: false })
-    expect(run.mock.calls.at(-1)?.[0]).toMatchObject({
-      argv: ['bun', 'remove', '-g', 'quantex-cli'],
-      signal: expect.any(AbortSignal),
-    })
-    expect(run.mock.calls.at(-1)?.[0].signal.aborted).toBe(false)
+    expect(run.mock.calls.map(([request]) => request.argv)).toEqual([
+      ['bun', 'add', '-g', '--registry', 'https://registry.example', 'quantex-cli@beta'],
+      ['bun', 'pm', '-g', 'untrusted'],
+      ['bun', 'pm', '-g', 'trust', 'quantex-cli'],
+    ])
+    expect(run.mock.calls.some(([request]) => request.argv[1] === 'remove')).toBe(false)
+  })
+
+  it('preserves the Bun global Quantex package when untrusted probe fails after add', async () => {
+    const run = vi
+      .fn()
+      .mockResolvedValueOnce(success({ exitCode: 0 }))
+      .mockResolvedValueOnce(success({ exitCode: 1 }))
+
+    await expect(
+      bunSelfUpgradeProvider.upgrade(createPlan('bun'), {
+        process: { run },
+        signal: new AbortController().signal,
+        stdio: ['ignore', 'pipe', 'pipe'],
+      }),
+    ).resolves.toMatchObject({ installSource: 'bun', success: false })
+    expect(run.mock.calls.map(([request]) => request.argv)).toEqual([
+      ['bun', 'add', '-g', '--registry', 'https://registry.example', 'quantex-cli@beta'],
+      ['bun', 'pm', '-g', 'untrusted'],
+    ])
+    expect(run.mock.calls.some(([request]) => request.argv[1] === 'remove')).toBe(false)
   })
 
   it('maps a non-zero managed install exit to the existing provider failure', async () => {
