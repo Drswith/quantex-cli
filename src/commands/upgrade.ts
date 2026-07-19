@@ -19,6 +19,11 @@ interface UpgradeCommandData {
   status: 'check-unavailable' | 'manual-required' | 'up-to-date' | 'update-available' | 'updated'
 }
 
+export function resolveUpgradeChannelOption(channel?: string): SelfUpdateChannel | undefined {
+  if (channel === 'stable' || channel === 'beta') return channel
+  return undefined
+}
+
 export async function upgradeCommand(
   options: { channel?: SelfUpdateChannel; check?: boolean } = {},
 ): Promise<CommandResult<UpgradeCommandData>> {
