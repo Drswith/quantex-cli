@@ -17,6 +17,7 @@ import { pipProviderAdapter } from '../providers/adapters/pip'
 import { uvProviderAdapter } from '../providers/adapters/uv'
 import { wingetProviderAdapter } from '../providers/adapters/winget'
 import { createCliOperationContext } from '../runtime/cli-operation-context'
+import * as brewPm from './brew'
 import * as bunPm from './bun'
 import * as misePm from './mise'
 import * as npmPm from './npm'
@@ -255,7 +256,11 @@ function createSystemManagedInstaller(
 }
 
 const typedManagedInstallers: Record<ManagedInstallType, TypedManagedInstaller> = {
-  brew: createSystemManagedInstaller('brew', brewProviderAdapter, kind => (kind === 'cask' ? 'cask' : 'formula')),
+  brew: createSystemManagedInstaller('brew', brewProviderAdapter, kind => (kind === 'cask' ? 'cask' : 'formula'), {
+    getInstalledVersion: (packageName, packageTargetKind) => brewPm.getInstalledVersion(packageName, packageTargetKind),
+    probePackagePresence: (packageName, packageTargetKind) =>
+      brewPm.probePackagePresence(packageName, packageTargetKind),
+  }),
   bun: createRegistryManagedInstaller('bun', bunProviderAdapter, {
     getInstalledVersion: packageName => bunPm.getInstalledVersion(packageName),
     probePackagePresence: packageName => bunPm.probePackagePresence(packageName),

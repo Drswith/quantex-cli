@@ -167,12 +167,12 @@ const commandActionHandlers: Record<StableCommandName, CommandActionHandler> = {
   },
   upgrade: async (...args) => {
     const options = args[0] as { channel?: string; check?: boolean }
-    const { upgradeCommand } = await import('../commands/upgrade')
+    const { resolveUpgradeChannelOption, upgradeCommand } = await import('../commands/upgrade')
     await setCliExitCode({
       action: 'upgrade',
       run: () =>
         upgradeCommand({
-          channel: options.channel === 'beta' ? 'beta' : undefined,
+          channel: resolveUpgradeChannelOption(options.channel),
           check: options.check ?? false,
         }),
       target: { kind: 'self', name: 'quantex' },

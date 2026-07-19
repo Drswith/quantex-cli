@@ -201,12 +201,32 @@ async function runGlobalBunCommandWithTrustOutcome(
   packageNames: string[],
   context: ProviderOperationContext,
 ): Promise<PackageMutationOutcome> {
+  const uniquePackageNames = [...new Set(packageNames)]
+  const shouldRollbackOnTrustFailure = command[1] === 'add'
+  const preAddPresence = shouldRollbackOnTrustFailure
+    ? await readPreAddPackagePresence(uniquePackageNames, context)
+    : undefined
+
   const mutation = await runPackageMutationOutcome(command, context, 'bun mutation failed')
   if (mutation.kind !== 'success') return mutation
 
-  const trust = await trustBlockedGlobalPackagesOutcome(packageNames, context)
-  if (trust.kind !== 'success' && command[1] === 'add') await rollbackGlobalBunPackages(packageNames, context)
+  const trust = await trustBlockedGlobalPackagesOutcome(uniquePackageNames, context)
+  if (trust.kind !== 'success' && shouldRollbackOnTrustFailure && preAddPresence) {
+    const packagesToRollback = uniquePackageNames.filter(packageName => preAddPresence.get(packageName) === 'absent')
+    await rollbackGlobalBunPackages(packagesToRollback, context)
+  }
   return trust
+}
+
+async function readPreAddPackagePresence(
+  packageNames: string[],
+  context: ProviderOperationContext,
+): Promise<Map<string, PackagePresenceProbe>> {
+  const presenceByPackage = new Map<string, PackagePresenceProbe>()
+  for (const packageName of packageNames) {
+    presenceByPackage.set(packageName, await probePackagePresence(packageName, undefined, context))
+  }
+  return presenceByPackage
 }
 
 async function rollbackGlobalBunPackages(packageNames: string[], context: ProviderOperationContext): Promise<void> {

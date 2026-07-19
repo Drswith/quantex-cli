@@ -22,26 +22,15 @@ export async function runBunManagedSelfInstall(
 ): Promise<boolean> {
   if (!(await runManagedSelfInstall(argv, context))) return false
 
-  try {
-    const untrusted = await runManagedSelfProcess(['bun', 'pm', '-g', 'untrusted'], context, {
-      forwardPipedOutput: false,
-      stdio: ['ignore', 'pipe', 'pipe'],
-    })
-    if (!untrusted || untrusted.exitCode !== 0) {
-      await rollbackBunManagedSelfInstall(packageName, context)
-      return false
-    }
+  const untrusted = await runManagedSelfProcess(['bun', 'pm', '-g', 'untrusted'], context, {
+    forwardPipedOutput: false,
+    stdio: ['ignore', 'pipe', 'pipe'],
+  })
+  if (!untrusted || untrusted.exitCode !== 0) return false
 
-    const output = untrusted.stdout ? new TextDecoder().decode(untrusted.stdout) : ''
-    if (!parseUntrustedPackages(output).has(packageName)) return true
-    if (await runManagedSelfInstall(['bun', 'pm', '-g', 'trust', packageName], context)) return true
-
-    await rollbackBunManagedSelfInstall(packageName, context)
-    return false
-  } catch (error) {
-    await rollbackBunManagedSelfInstall(packageName, context)
-    throw error
-  }
+  const output = untrusted.stdout ? new TextDecoder().decode(untrusted.stdout) : ''
+  if (!parseUntrustedPackages(output).has(packageName)) return true
+  return runManagedSelfInstall(['bun', 'pm', '-g', 'trust', packageName], context)
 }
 
 async function runManagedSelfProcess(
@@ -66,18 +55,4 @@ async function runManagedSelfProcess(
   if (outcome.error.kind === 'timed-out')
     throw new ProcessInterruptionError({ kind: 'timed-out', timeoutMs: context.timeoutMs ?? 0 })
   return undefined
-}
-
-async function rollbackBunManagedSelfInstall(
-  packageName: string,
-  context: SelfUpgradeProviderExecutionContext,
-): Promise<void> {
-  try {
-    await runManagedSelfInstall(['bun', 'remove', '-g', packageName], {
-      ...context,
-      signal: new AbortController().signal,
-    })
-  } catch {
-    // Best-effort rollback remains independent of the cancelled mutation signal.
-  }
 }
