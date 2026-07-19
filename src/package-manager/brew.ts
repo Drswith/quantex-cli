@@ -1,10 +1,21 @@
 import type { PackageTargetKind } from '../agents/types'
 import type { ProviderOperationContext } from '../providers'
 import type { PackageMutationOutcome } from './mutation-outcome'
+import process from 'node:process'
+import {
+  isProcessInterruptionError,
+  readProcessOutput,
+  readProcessOutputWithContext,
+  spawnCommand,
+} from '../utils/child-process'
 import { projectLegacyPackageMutation, runPackageMutationOutcome, runPackageMutationSequence } from './mutation-outcome'
 
 function getTargetArgs(packageTargetKind?: PackageTargetKind): string[] {
   return packageTargetKind === 'cask' ? ['--cask'] : []
+}
+
+function getListTargetArgs(packageTargetKind?: PackageTargetKind): string[] {
+  return packageTargetKind === 'cask' ? ['--cask'] : ['--formula']
 }
 
 async function runBrewCommand(
@@ -79,4 +90,71 @@ export function uninstallOutcome(
   context: ProviderOperationContext,
 ): Promise<PackageMutationOutcome> {
   return runBrewCommandOutcome('uninstall', packageName, packageTargetKind, context)
+}
+
+export type PackagePresenceProbe = 'present' | 'absent' | 'unknown'
+
+async function readPackagePresence(
+  packageName: string,
+  packageTargetKind?: PackageTargetKind,
+  context?: ProviderOperationContext,
+): Promise<{ presence: PackagePresenceProbe; version?: string }> {
+  try {
+    const proc = spawnCommand(['brew', 'list', ...getListTargetArgs(packageTargetKind), '--versions', packageName], {
+      detached: context !== undefined && process.platform !== 'win32',
+      stdio: ['ignore', 'pipe', 'pipe'],
+    })
+    const { exitCode, stderr, stdout } = context
+      ? await readProcessOutputWithContext(proc, context)
+      : await readProcessOutput(proc)
+    const version = parseBrewInstalledVersion(stdout)
+
+    if (exitCode === 0) {
+      return version ? { presence: 'present', version } : { presence: 'present' }
+    }
+
+    if (exitCode === 1 && isBrewPackageMissingMessage(stderr)) {
+      return { presence: 'absent' }
+    }
+
+    return { presence: 'unknown' }
+  } catch (error) {
+    if (isProcessInterruptionError(error)) throw error
+    return { presence: 'unknown' }
+  }
+}
+
+export async function probePackagePresence(
+  packageName: string,
+  packageTargetKind?: PackageTargetKind,
+  context?: ProviderOperationContext,
+): Promise<PackagePresenceProbe> {
+  return (await readPackagePresence(packageName, packageTargetKind, context)).presence
+}
+
+export async function getInstalledVersion(
+  packageName: string,
+  packageTargetKind?: PackageTargetKind,
+  context?: ProviderOperationContext,
+): Promise<string | undefined> {
+  return (await readPackagePresence(packageName, packageTargetKind, context)).version
+}
+
+export function parseBrewInstalledVersion(output: string): string | undefined {
+  const line = output
+    .trim()
+    .split('\n')
+    .find(entry => entry.trim())
+  if (!line) return undefined
+
+  const parts = line.trim().split(/\s+/)
+  if (parts.length < 2) return undefined
+
+  const version = parts.at(-1)
+  return version && /^\d/.test(version) ? version : undefined
+}
+
+function isBrewPackageMissingMessage(stderr: string): boolean {
+  const normalized = stderr.toLowerCase()
+  return normalized.includes('no such keg') || normalized.includes('is not installed')
 }

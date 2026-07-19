@@ -247,6 +247,8 @@ describe('self helpers', () => {
       'a'.repeat(64),
     )
     expect(getSelfUpdateChannel(undefined, 'stable', { QUANTEX_UPDATE_CHANNEL: 'beta' })).toBe('beta')
+    expect(getSelfUpdateChannel('stable', 'beta', {})).toBe('stable')
+    expect(getSelfUpdateChannel('stable', 'beta', { QUANTEX_UPDATE_CHANNEL: 'beta' })).toBe('stable')
     expect(
       resolveBinaryReleaseAsset(
         {

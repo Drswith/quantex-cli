@@ -70,15 +70,22 @@ async function runMutation(command: readonly string[], _context: unknown, descri
 describe('bun install', () => {
   it('returns true on success', async () => {
     const { install } = await import('../../src/package-manager/bun')
-    mockSpawn.mockReturnValueOnce(createProc(0)).mockReturnValueOnce(createProc(0, ''))
+    mockSpawn
+      .mockReturnValueOnce(createProc(0, '', 'No package.json was found for directory'))
+      .mockReturnValueOnce(createProc(0))
+      .mockReturnValueOnce(createProc(0, ''))
     expect(await install('some-package')).toBe(true)
+    expect(mockSpawn).toHaveBeenCalledWith(['bun', 'pm', '-g', 'ls'], expect.any(Object))
     expect(mockSpawn).toHaveBeenCalledWith(['bun', 'add', '-g', 'some-package'], expect.any(Object))
     expect(mockSpawn).toHaveBeenCalledWith(['bun', 'pm', '-g', 'untrusted'], expect.any(Object))
   })
 
   it('supports explicit tags and registries', async () => {
     const { install } = await import('../../src/package-manager/bun')
-    mockSpawn.mockReturnValueOnce(createProc(0)).mockReturnValueOnce(createProc(0, ''))
+    mockSpawn
+      .mockReturnValueOnce(createProc(0, '', 'No package.json was found for directory'))
+      .mockReturnValueOnce(createProc(0))
+      .mockReturnValueOnce(createProc(0, ''))
     expect(await install('some-package', 'latest', 'https://registry.npmjs.org/')).toBe(true)
     expect(mockSpawn).toHaveBeenCalledWith(
       ['bun', 'add', '-g', '--registry', 'https://registry.npmjs.org', 'some-package@latest'],
@@ -94,23 +101,58 @@ describe('bun install', () => {
 
   it('returns false when the untrusted probe fails after install', async () => {
     const { install } = await import('../../src/package-manager/bun')
-    mockSpawn.mockReturnValueOnce(createProc(0)).mockReturnValueOnce(createProc(1)).mockReturnValueOnce(createProc(0))
+    mockSpawn
+      .mockReturnValueOnce(createProc(0, '', 'No package.json was found for directory'))
+      .mockReturnValueOnce(createProc(0))
+      .mockReturnValueOnce(createProc(1))
+      .mockReturnValueOnce(createProc(0))
 
     expect(await install('some-package')).toBe(false)
-    expect(mockSpawn).toHaveBeenNthCalledWith(2, ['bun', 'pm', '-g', 'untrusted'], expect.any(Object))
-    expect(mockSpawn).toHaveBeenNthCalledWith(3, ['bun', 'remove', '-g', 'some-package'], expect.any(Object))
-    expect(mockSpawn).toHaveBeenCalledTimes(3)
+    expect(mockSpawn).toHaveBeenNthCalledWith(1, ['bun', 'pm', '-g', 'ls'], expect.any(Object))
+    expect(mockSpawn).toHaveBeenNthCalledWith(3, ['bun', 'pm', '-g', 'untrusted'], expect.any(Object))
+    expect(mockSpawn).toHaveBeenNthCalledWith(4, ['bun', 'remove', '-g', 'some-package'], expect.any(Object))
+    expect(mockSpawn).toHaveBeenCalledTimes(4)
   })
 
   it('trusts blocked postinstall packages after install', async () => {
     const { install } = await import('../../src/package-manager/bun')
     mockSpawn
+      .mockReturnValueOnce(createProc(0, '', 'No package.json was found for directory'))
       .mockReturnValueOnce(createProc(0))
       .mockReturnValueOnce(createProc(0, './node_modules/some-package @1.0.0\n » [postinstall]: node install.cjs\n'))
       .mockReturnValueOnce(createProc(0))
 
     expect(await install('some-package')).toBe(true)
-    expect(mockSpawn).toHaveBeenNthCalledWith(3, ['bun', 'pm', '-g', 'trust', 'some-package'], expect.any(Object))
+    expect(mockSpawn).toHaveBeenNthCalledWith(4, ['bun', 'pm', '-g', 'trust', 'some-package'], expect.any(Object))
+  })
+
+  it('rolls back install when trust fails for a newly added package', async () => {
+    const { install } = await import('../../src/package-manager/bun')
+    mockSpawn
+      .mockReturnValueOnce(createProc(0, '', 'No package.json was found for directory'))
+      .mockReturnValueOnce(createProc(0))
+      .mockReturnValueOnce(createProc(0, './node_modules/some-package @1.0.0\n » [postinstall]: node install.cjs\n'))
+      .mockReturnValueOnce(createProc(1))
+      .mockReturnValueOnce(createProc(0))
+
+    expect(await install('some-package')).toBe(false)
+    expect(mockSpawn).toHaveBeenNthCalledWith(4, ['bun', 'pm', '-g', 'trust', 'some-package'], expect.any(Object))
+    expect(mockSpawn).toHaveBeenNthCalledWith(5, ['bun', 'remove', '-g', 'some-package'], expect.any(Object))
+    expect(mockSpawn).toHaveBeenCalledTimes(5)
+  })
+
+  it('preserves an already-present package when trust fails after add', async () => {
+    const { install } = await import('../../src/package-manager/bun')
+    mockSpawn
+      .mockReturnValueOnce(createProc(0, '├── some-package@1.0.0\n'))
+      .mockReturnValueOnce(createProc(0))
+      .mockReturnValueOnce(createProc(0, './node_modules/some-package @1.0.0\n » [postinstall]: node install.cjs\n'))
+      .mockReturnValueOnce(createProc(1))
+
+    expect(await install('some-package')).toBe(false)
+    expect(mockSpawn).toHaveBeenNthCalledWith(4, ['bun', 'pm', '-g', 'trust', 'some-package'], expect.any(Object))
+    expect(mockSpawn.mock.calls.some(([command]) => command[1] === 'remove')).toBe(false)
+    expect(mockSpawn).toHaveBeenCalledTimes(4)
   })
 })
 
@@ -154,20 +196,6 @@ describe('bun update', () => {
     expect(await update('some-package')).toBe(false)
     expect(mockSpawn).toHaveBeenNthCalledWith(3, ['bun', 'pm', '-g', 'trust', 'some-package'], expect.any(Object))
     expect(mockSpawn).toHaveBeenCalledTimes(3)
-  })
-
-  it('rolls back install when trust fails for a blocked package', async () => {
-    const { install } = await import('../../src/package-manager/bun')
-    mockSpawn
-      .mockReturnValueOnce(createProc(0))
-      .mockReturnValueOnce(createProc(0, './node_modules/some-package @1.0.0\n » [postinstall]: node install.cjs\n'))
-      .mockReturnValueOnce(createProc(1))
-      .mockReturnValueOnce(createProc(0))
-
-    expect(await install('some-package')).toBe(false)
-    expect(mockSpawn).toHaveBeenNthCalledWith(3, ['bun', 'pm', '-g', 'trust', 'some-package'], expect.any(Object))
-    expect(mockSpawn).toHaveBeenNthCalledWith(4, ['bun', 'remove', '-g', 'some-package'], expect.any(Object))
-    expect(mockSpawn).toHaveBeenCalledTimes(4)
   })
 })
 

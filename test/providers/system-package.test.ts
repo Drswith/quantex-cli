@@ -1,6 +1,7 @@
 import type { ProviderAdapter, ProviderOperationContext, ProviderTarget } from '../../src/providers'
 import type { SystemPackageAdapterDependencies } from '../../src/providers/adapters/system-package'
 import { describe, expect, it, vi } from 'vitest'
+import * as brewPm from '../../src/package-manager/brew'
 import { createBrewProviderAdapter } from '../../src/providers/adapters/brew'
 import { createWingetProviderAdapter } from '../../src/providers/adapters/winget'
 import { describeProviderConformance } from './conformance'
@@ -161,5 +162,29 @@ describe('system package provider semantics', () => {
     })
     expect(dependencies.install).toHaveBeenCalledWith(wingetTarget, context)
     expect(dependencies.uninstall).toHaveBeenCalledWith(wingetTarget, context)
+  })
+
+  it('observes Homebrew presence through formula and cask probes instead of hardcoding unknown', async () => {
+    const probe = vi.spyOn(brewPm, 'probePackagePresence').mockResolvedValue('present')
+    const version = vi.spyOn(brewPm, 'getInstalledVersion').mockResolvedValue('1.2.3')
+    const adapter = createBrewProviderAdapter()
+    const cask = { id: 'example-cask', kind: 'cask' } as const
+
+    await expect(adapter.observe({ context, target: brewTarget })).resolves.toMatchObject({
+      kind: 'success',
+      value: {
+        kind: 'present',
+        version: '1.2.3',
+      },
+    })
+    await expect(adapter.observe({ context, target: cask })).resolves.toMatchObject({
+      kind: 'success',
+      value: { kind: 'present', version: '1.2.3' },
+    })
+    expect(probe).toHaveBeenNthCalledWith(1, brewTarget.id, 'package', context)
+    expect(probe).toHaveBeenNthCalledWith(2, cask.id, 'cask', context)
+    expect(version).toHaveBeenCalled()
+    probe.mockRestore()
+    version.mockRestore()
   })
 })

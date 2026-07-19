@@ -4,20 +4,24 @@ import * as brewPm from '../../package-manager/brew'
 import * as detectUtils from '../../utils/detect'
 import { createSystemPackageAdapter } from './system-package'
 
+function packageTargetKind(target: ProviderTarget): 'cask' | 'package' {
+  return target.kind === 'cask' ? 'cask' : 'package'
+}
+
 const defaultDependencies: SystemPackageAdapterDependencies = {
   contextualMutation: true,
   contextualObservation: true,
-  install: (target, context) => brewPm.installOutcome(target.id, target.kind === 'cask' ? 'cask' : 'package', context),
+  getInstalledVersion: (target, context) => brewPm.getInstalledVersion(target.id, packageTargetKind(target), context),
+  install: (target, context) => brewPm.installOutcome(target.id, packageTargetKind(target), context),
   isAvailable: context => detectUtils.isBrewAvailable(context),
-  probePackagePresence: async () => 'unknown',
-  uninstall: (target, context) =>
-    brewPm.uninstallOutcome(target.id, target.kind === 'cask' ? 'cask' : 'package', context),
-  update: (target, context) => brewPm.updateOutcome(target.id, target.kind === 'cask' ? 'cask' : 'package', context),
+  probePackagePresence: (target, context) => brewPm.probePackagePresence(target.id, packageTargetKind(target), context),
+  uninstall: (target, context) => brewPm.uninstallOutcome(target.id, packageTargetKind(target), context),
+  update: (target, context) => brewPm.updateOutcome(target.id, packageTargetKind(target), context),
   updateMany: (targets, context) =>
     brewPm.updateManyOutcome(
       targets.map(target => ({
         packageName: target.id,
-        packageTargetKind: target.kind === 'cask' ? 'cask' : 'package',
+        packageTargetKind: packageTargetKind(target),
       })),
       context,
     ),
