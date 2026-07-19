@@ -96,7 +96,7 @@ export async function createAgentUpdateIdempotencyPolicy(
     async captureEvidence() {
       const outcome = invocation.getOutcome()
       if (!outcome) return undefined
-      if (outcome.kind === 'updated') {
+      if (outcome.kind === 'updated' || outcome.kind === 'up-to-date') {
         const classified = classifyUpdateObservation(outcome.after, outcome.plan, outcome.receipt)
         return classified.kind === 'compatible' ? classified.evidence : undefined
       }
@@ -145,7 +145,7 @@ export async function createAgentBatchUpdateIdempotencyPolicy(
         if (target.outcome.kind !== 'planned') return undefined
         const execution = results.get(target.id)?.execution
         let classified: UpdateObservationClassification
-        if (execution?.kind === 'updated') {
+        if (execution?.kind === 'updated' || execution?.kind === 'up-to-date') {
           classified = classifyUpdateObservation(execution.after, execution.plan, execution.receipt)
         } else if (execution?.kind === 'not-executed' && execution.plan.planning.decision === 'up-to-date') {
           const current = await safelyObserveUpdate(invocation.observe, target.agentName)
@@ -643,9 +643,16 @@ function classifyUpdateObservation(
   plan: SingleAgentLifecycleUpdatePlan,
   receipt: LifecycleReceipt | undefined = current.receipt,
 ): UpdateObservationClassification {
+  const expectedVersion =
+    plan.strategy === 'managed-provider'
+      ? plan.plannedTargetVersion
+      : (receipt?.version ??
+        (current.observation.kind === 'present' ? current.observation.version : undefined) ??
+        current.executable.version)
+  if (!expectedVersion) return { kind: 'inconclusive' }
   const expected: StoredUpdateEvidence = {
     agentTargetId: plan.before.agent.name,
-    expectedVersion: plan.plannedTargetVersion,
+    expectedVersion,
     providerId: plan.binding.providerId,
     providerTargetId: plan.binding.target.id,
     providerTargetKind: plan.binding.target.kind,
