@@ -2,6 +2,13 @@
 
 This changelog is maintained by release-please Release PRs.
 
+## [1.1.2](https://github.com/Drswith/quantex-cli/compare/v1.1.1...v1.1.2) (2026-07-19)
+
+
+### Bug Fixes
+
+* **update:** reconcile tracked self-updates and stale agent state ([0c3a2d8](https://github.com/Drswith/quantex-cli/commit/0c3a2d85b4e1a9c56768480899d84180fb301d80))
+
 ## [1.1.1](https://github.com/Drswith/quantex-cli/compare/v1.1.0...v1.1.1) (2026-07-19)
 
 
