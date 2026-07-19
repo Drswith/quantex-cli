@@ -2,6 +2,13 @@
 
 This changelog is maintained by release-please Release PRs.
 
+## [1.1.1](https://github.com/Drswith/quantex-cli/compare/v1.1.0...v1.1.1) (2026-07-19)
+
+
+### Bug Fixes
+
+* **lifecycle:** harden upgrade provider safety ([ed004ae](https://github.com/Drswith/quantex-cli/commit/ed004aefc5eff5b9ba39d4128e598b3eb436107c))
+
 ## [1.1.0](https://github.com/Drswith/quantex-cli/compare/v0.29.1...v1.1.0) (2026-07-16)
 
 ### Release summary
