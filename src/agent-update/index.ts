@@ -1,4 +1,5 @@
 export { getAgentUpdateFailureHint, getManualAgentUpdateMessage, getUntrackedPathAgentUpdateMessage } from './messages'
+export { executeAgentSelfUpdate } from './self-update'
 export {
   agentUpdateProviders,
   canResolveAgentUpdate,

@@ -182,6 +182,7 @@ describe('updateCommand', () => {
         },
         binding: { providerId: 'bun', target: { id: 'test-pkg', kind: 'package' } },
         plannedTargetVersion: '2.0.0',
+        strategy: 'managed-provider',
         planning: {
           decision: 'upgrade',
           plan: {
@@ -524,6 +525,71 @@ describe('updateCommand', () => {
       }
     },
   )
+
+  it('projects the same blocked untracked PATH outcome as manual-required in single scope', async () => {
+    const alpha = createBatchCommandUntrackedTarget('alpha')
+    agentSpy.mockReturnValue(alpha.agent)
+    lifecycleUpdateSpy.mockResolvedValue(alpha.target.outcome as never)
+
+    const result = await updateCommand('alpha', false)
+
+    expect(result.ok).toBe(true)
+    expect(result.data?.results).toEqual([
+      expect.objectContaining({
+        message: expect.stringContaining('detected in PATH but not tracked'),
+        name: 'alpha',
+        status: 'manual-required',
+      }),
+    ])
+  })
+
+  it('omits stale installed-state entries from update --all results and emits reconciliation guidance', async () => {
+    mockBatchCommandAgents(['jcode'])
+    const jcode = createBatchCommandStaleTarget('jcode')
+    const batchRoot = requireLifecycleBatchRoot()
+    const batchSpy = vi.spyOn(lifecycleUpdateProduction, batchRoot).mockResolvedValue({
+      cancellationRemainder: [],
+      kind: 'lifecycle-update-batch-outcome',
+      plan: createBatchCommandPlan([jcode.target]),
+      results: [jcode.result],
+      success: true,
+    } as never)
+
+    try {
+      const result = await updateCommand(undefined, true)
+
+      expect(result.ok).toBe(true)
+      expect(result.data?.results).toEqual([])
+      expect(result.warnings).toEqual([
+        expect.objectContaining({
+          code: 'AGENT_STALE_STATE',
+          details: expect.objectContaining({ suggestedCommands: ['quantex uninstall jcode'] }),
+        }),
+      ])
+      const output = stdoutWriteSpy.mock.calls.map((call: unknown[]) => String(call[0])).join('\n')
+      expect(output).toContain('stale lifecycle evidence')
+      expect(output).toContain('quantex uninstall jcode')
+    } finally {
+      batchSpy.mockRestore()
+    }
+  })
+
+  it('returns the same stale-state guidance for a single-agent update', async () => {
+    const jcode = createBatchCommandStaleTarget('jcode')
+    agentSpy.mockReturnValue(jcode.agent)
+    lifecycleUpdateSpy.mockResolvedValue(jcode.target.outcome as never)
+
+    const result = await updateCommand('jcode', false)
+
+    expect(result.ok).toBe(false)
+    expect(result.error?.code).toBe('AGENT_NOT_INSTALLED')
+    expect(result.warnings).toEqual([
+      expect.objectContaining({
+        code: 'AGENT_STALE_STATE',
+        details: expect.objectContaining({ suggestedCommands: ['quantex uninstall jcode'] }),
+      }),
+    ])
+  })
 
   it.each(['human', 'json', 'ndjson'] as const)(
     'projects a typed manual planning block as manual-required in %s mode',
@@ -974,6 +1040,7 @@ function mockSingleLifecycleOutcome(options: {
     before,
     binding: { providerId, target },
     plannedTargetVersion: options.latestVersion ?? options.installedVersion,
+    strategy: 'managed-provider' as const,
     planning: {
       decision: options.decision,
       plan: {
@@ -1078,6 +1145,7 @@ function createBatchCommandTarget(
     before,
     binding: { providerId: 'npm' as const, target },
     plannedTargetVersion: '2.0.0',
+    strategy: 'managed-provider' as const,
     planning: {
       decision,
       plan: {
@@ -1147,7 +1215,35 @@ function createBatchCommandUntrackedTarget(name: string) {
     reason: `Cannot infer the update source for ${name}.`,
   }
   const target = { agentName: name, id: `target-${name}`, outcome: planning }
-  return { result: { agentName: name, id: target.id, planning }, target }
+  return { agent, result: { agentName: name, id: target.id, planning }, target }
+}
+
+function createBatchCommandStaleTarget(name: string) {
+  const agent = { ...testAgent, binaryName: `${name}-bin`, displayName: name.toUpperCase(), name }
+  const before = {
+    agent,
+    capabilities: ['observe'] as const,
+    executable: { present: false },
+    installedState: {
+      agentName: name,
+      command: `curl https://example.com/${name} | bash`,
+      installType: 'script' as const,
+    },
+    methods: [{ command: `curl https://example.com/${name} | bash`, type: 'script' as const }],
+    observation: {
+      drift: { kind: 'recorded-absent' as const },
+      kind: 'absent' as const,
+      targetId: name,
+    },
+  }
+  const planning = {
+    before,
+    category: 'stale-state' as const,
+    kind: 'blocked' as const,
+    reason: `${agent.displayName} has stale lifecycle evidence.`,
+  }
+  const target = { agentName: name, id: `target-${name}`, outcome: planning }
+  return { agent, result: { agentName: name, id: target.id, planning }, target }
 }
 
 function createBatchCommandManualBlockedTarget(name: string) {

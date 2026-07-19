@@ -1,4 +1,4 @@
-import type { InstallMethod } from '../agents'
+import type { AgentSelfUpdate, InstallMethod } from '../agents'
 import type {
   LifecycleObservation,
   LifecyclePlanningProvider,
@@ -28,6 +28,7 @@ export interface LifecycleUpdateObservedAgent {
     readonly binaryName: string
     readonly displayName: string
     readonly name: string
+    readonly selfUpdate?: AgentSelfUpdate
   }
   readonly binding?: {
     readonly providerId: ProviderId
@@ -57,6 +58,11 @@ export interface LifecycleUpdateProviderRegistryPort {
 export interface LifecycleUpdateServicePorts {
   readonly clock: () => string
   readonly dryRun: boolean
+  readonly executeSelfUpdate?: (request: {
+    readonly commands: readonly (readonly string[])[]
+    readonly context: ProviderOperationContext
+    readonly target: ProviderTarget
+  }) => Promise<ProviderOutcome<ProviderMutationEvidence>>
   readonly observe: (agentName: string) => Promise<LifecycleUpdateObservedAgent | undefined>
   readonly planLifecycleUpdate: (input: LifecycleUpdatePlanningInput) => LifecycleUpdatePlanningResult
   readonly providerRegistry: LifecycleUpdateProviderRegistryPort
@@ -92,18 +98,30 @@ export interface LifecycleUpdateBatchPlan {
   readonly targets: readonly LifecycleUpdateBatchTargetPlan[]
 }
 
-export interface SingleAgentLifecycleUpdatePlan {
+interface SingleAgentLifecycleUpdatePlanBase {
   readonly before: LifecycleUpdateObservedAgent
   readonly binding: {
     readonly providerId: ProviderId
     readonly target: ProviderTarget
   }
-  readonly plannedTargetVersion: string
   readonly planning: LifecycleUpdatePlanningResult
-  readonly providerOptions?: RegistryPackageOperationOptions
 }
 
-export type LifecycleUpdateBlockedCategory = 'manual-required' | 'unsafe-source' | 'untracked'
+export interface ManagedAgentLifecycleUpdatePlan extends SingleAgentLifecycleUpdatePlanBase {
+  readonly plannedTargetVersion: string
+  readonly providerOptions?: RegistryPackageOperationOptions
+  readonly strategy: 'managed-provider'
+}
+
+export interface SelfAgentLifecycleUpdatePlan extends SingleAgentLifecycleUpdatePlanBase {
+  readonly beforeVersion: string
+  readonly commands: readonly (readonly string[])[]
+  readonly strategy: 'self-update'
+}
+
+export type SingleAgentLifecycleUpdatePlan = ManagedAgentLifecycleUpdatePlan | SelfAgentLifecycleUpdatePlan
+
+export type LifecycleUpdateBlockedCategory = 'manual-required' | 'stale-state' | 'unsafe-source' | 'untracked'
 
 export type SingleAgentLifecycleUpdatePlanningOutcome =
   | { readonly kind: 'unknown-agent'; readonly agentName: string }
@@ -174,6 +192,14 @@ export type SingleAgentLifecycleUpdateExecutionOutcome =
       readonly after: LifecycleUpdateObservedAgent
       readonly kind: 'updated'
       readonly plan: SingleAgentLifecycleUpdatePlan
+      readonly providerOutcome: Extract<ProviderOutcome<ProviderMutationEvidence>, { readonly kind: 'success' }>
+      readonly receipt: LifecycleReceipt
+      readonly verification: Extract<LifecycleVerification, { readonly kind: 'satisfied' }>
+    }
+  | {
+      readonly after: LifecycleUpdateObservedAgent
+      readonly kind: 'up-to-date'
+      readonly plan: SelfAgentLifecycleUpdatePlan
       readonly providerOutcome: Extract<ProviderOutcome<ProviderMutationEvidence>, { readonly kind: 'success' }>
       readonly receipt: LifecycleReceipt
       readonly verification: Extract<LifecycleVerification, { readonly kind: 'satisfied' }>
@@ -273,7 +299,14 @@ export async function executeLifecycleUpdateBatch(
 
 function isSuccessfulBatchTarget(target: LifecycleUpdateBatchTargetOutcome): boolean {
   const kind = target.execution?.kind
-  return kind === 'dry-run' || kind === 'not-executed' || kind === 'updated'
+  return (
+    kind === 'dry-run' ||
+    kind === 'not-executed' ||
+    kind === 'up-to-date' ||
+    kind === 'updated' ||
+    (target.planning.kind === 'blocked' &&
+      ['manual-required', 'stale-state', 'untracked'].includes(target.planning.category))
+  )
 }
 
 export async function planRegisteredAgentUpdates(
@@ -284,7 +317,7 @@ export async function planRegisteredAgentUpdates(
 
   for (const agentName of agentNames) {
     const outcome = await planSingleAgentLifecycleUpdate(agentName, ports)
-    if (isNormallyAbsentCatalogTarget(outcome)) continue
+    if (isCatalogOnlyAbsentTarget(outcome)) continue
     targets.push({ agentName, id: getSingleAgentLifecycleUpdateResolvedPlanId(agentName, outcome), outcome })
   }
 
@@ -321,18 +354,10 @@ export async function planRegisteredAgentUpdates(
   }
 }
 
-function isNormallyAbsentCatalogTarget(outcome: SingleAgentLifecycleUpdatePlanningOutcome): boolean {
-  if (outcome.kind !== 'blocked' || outcome.category !== 'unsafe-source') return false
-  const before = outcome.before
-  return (
-    before.observation.kind === 'absent' &&
-    before.observation.drift.kind === 'none' &&
-    !before.executable.present &&
-    before.binding === undefined &&
-    before.persistedBinding === undefined &&
-    before.installedState === undefined &&
-    before.receipt === undefined
-  )
+function isCatalogOnlyAbsentTarget(outcome: SingleAgentLifecycleUpdatePlanningOutcome): boolean {
+  if (outcome.kind === 'unknown-agent') return false
+  const before = outcome.kind === 'planned' ? outcome.planned.before : outcome.before
+  return !before.executable.present && before.installedState === undefined && before.receipt === undefined
 }
 
 export async function planSingleAgentLifecycleUpdate(
@@ -345,11 +370,41 @@ export async function planSingleAgentLifecycleUpdate(
 
   const binding = confirmedBinding(before)
   if (!binding) {
+    const staleState = before.observation.kind === 'absent' && before.observation.drift.kind === 'recorded-absent'
     return {
       before,
-      category: before.observation.drift.kind === 'untracked' ? 'untracked' : 'unsafe-source',
+      category: staleState
+        ? 'stale-state'
+        : before.observation.drift.kind === 'untracked'
+          ? 'untracked'
+          : 'unsafe-source',
       kind: 'blocked',
-      reason: 'The recorded update source does not match live provider evidence.',
+      reason: staleState
+        ? `${before.agent.displayName} has stale lifecycle evidence. Run \`quantex uninstall ${before.agent.name}\` to reconcile it.`
+        : 'The recorded update source does not match live provider evidence.',
+    }
+  }
+
+  if (isTrackedUnmanagedInstall(before.installedState) && before.agent.selfUpdate) {
+    const beforeVersion = consistentObservedVersion(before)
+    if (!beforeVersion) {
+      return {
+        before,
+        category: 'manual-required',
+        kind: 'blocked',
+        reason: `Cannot verify ${before.agent.displayName} self-update because its installed version is unknown.`,
+      }
+    }
+    return {
+      kind: 'planned',
+      planned: {
+        before,
+        beforeVersion,
+        binding,
+        commands: [before.agent.selfUpdate.command, ...(before.agent.selfUpdate.fallbackCommands ?? [])],
+        planning: createSelfUpdatePlanning(before),
+        strategy: 'self-update',
+      },
     }
   }
 
@@ -393,6 +448,7 @@ export async function planSingleAgentLifecycleUpdate(
       plannedTargetVersion: resolved.value.version,
       planning,
       providerOptions: ports.updateOptions,
+      strategy: 'managed-provider',
     },
   }
 }
@@ -415,6 +471,8 @@ async function executeLockedSingleAgentLifecycleUpdate(
   planned: SingleAgentLifecycleUpdatePlan,
   ports: LifecycleUpdateServicePorts,
 ): Promise<SingleAgentLifecycleUpdateExecutionOutcome> {
+  if (planned.strategy === 'self-update') return executeLockedSelfUpdate(planned, ports)
+
   const adapter = ports.providerRegistry.get(planned.binding.providerId)
   if (!adapter?.update) {
     return {
@@ -472,6 +530,71 @@ async function executeLockedSingleAgentLifecycleUpdate(
   return { after: after!, kind: 'updated', plan: planned, providerOutcome, receipt, verification }
 }
 
+async function executeLockedSelfUpdate(
+  planned: SelfAgentLifecycleUpdatePlan,
+  ports: LifecycleUpdateServicePorts,
+): Promise<SingleAgentLifecycleUpdateExecutionOutcome> {
+  if (!ports.executeSelfUpdate) {
+    return {
+      kind: 'provider-failed',
+      plan: planned,
+      providerOutcome: {
+        kind: 'unsupported',
+        operation: 'update',
+        reason: 'Self-update execution is unavailable.',
+      },
+    }
+  }
+
+  const providerOutcome = await ports.executeSelfUpdate({
+    commands: planned.commands,
+    context: operationContext(ports),
+    target: planned.binding.target,
+  })
+  if (providerOutcome.kind === 'timed-out') {
+    return { kind: 'timed-out', plan: planned, providerOutcome, timeoutMs: providerOutcome.timeoutMs }
+  }
+  if (providerOutcome.kind === 'cancelled') {
+    return { kind: 'cancelled', plan: planned, providerOutcome, reason: providerOutcome.reason }
+  }
+  if (providerOutcome.kind !== 'success') return { kind: 'provider-failed', plan: planned, providerOutcome }
+  if (ports.signal.aborted) {
+    return { kind: 'cancelled', plan: planned, providerOutcome, reason: abortReason(ports.signal) }
+  }
+
+  const after = await ports.observe(planned.before.agent.name)
+  if (ports.signal.aborted) {
+    return { after, kind: 'cancelled', plan: planned, providerOutcome, reason: abortReason(ports.signal) }
+  }
+  const verified = verifySelfUpdatedObservation(planned, after)
+  if (verified.verification.kind !== 'satisfied') {
+    return { after, kind: 'verification-failed', plan: planned, providerOutcome, verification: verified.verification }
+  }
+
+  const receipt = createReceipt(planned, after!, ports.clock())
+  try {
+    await ports.writeReceipt(receipt)
+  } catch (error) {
+    return {
+      after: after!,
+      kind: 'receipt-failed',
+      plan: planned,
+      providerOutcome,
+      reason: safeErrorReason(error),
+      verification: verified.verification,
+    }
+  }
+
+  return {
+    after: after!,
+    kind: verified.changed ? 'updated' : 'up-to-date',
+    plan: planned,
+    providerOutcome,
+    receipt,
+    verification: verified.verification,
+  }
+}
+
 function confirmedBinding(
   observed: LifecycleUpdateObservedAgent,
 ): SingleAgentLifecycleUpdatePlan['binding'] | undefined {
@@ -493,7 +616,7 @@ function confirmedBinding(
 }
 
 function verifyUpdatedObservation(
-  planned: SingleAgentLifecycleUpdatePlan,
+  planned: ManagedAgentLifecycleUpdatePlan,
   after: LifecycleUpdateObservedAgent | undefined,
 ): LifecycleVerification {
   const postcondition: LifecyclePostcondition = {
@@ -552,6 +675,98 @@ function verifyUpdatedObservation(
   return { kind: 'satisfied', observation: after.observation, postcondition }
 }
 
+function verifySelfUpdatedObservation(
+  planned: SelfAgentLifecycleUpdatePlan,
+  after: LifecycleUpdateObservedAgent | undefined,
+): { readonly changed: boolean; readonly verification: LifecycleVerification } {
+  const fallbackPostcondition: LifecyclePostcondition = {
+    expectedVersion: planned.beforeVersion,
+    kind: 'version-satisfies',
+    targetId: planned.binding.target.id,
+  }
+  if (!after) {
+    return {
+      changed: false,
+      verification: { kind: 'indeterminate', postcondition: fallbackPostcondition, reason: 'The agent disappeared.' },
+    }
+  }
+  if (!sameBinding(planned.binding, after.binding) || after.observation.drift.kind !== 'none') {
+    return {
+      changed: false,
+      verification: {
+        kind: 'unsatisfied',
+        observation: after.observation,
+        postcondition: fallbackPostcondition,
+        reason: 'Fresh observation no longer matches the recorded self-update source.',
+      },
+    }
+  }
+  if (after.observation.kind !== 'present' || !after.executable.present) {
+    return {
+      changed: false,
+      verification: {
+        kind: 'unsatisfied',
+        observation: after.observation,
+        postcondition: fallbackPostcondition,
+        reason: 'The executable is not present after self-update.',
+      },
+    }
+  }
+
+  const afterVersion = consistentObservedVersion(after)
+  const order = afterVersion ? compareVersions(afterVersion, planned.beforeVersion) : undefined
+  if (!afterVersion || order === undefined || order < 0) {
+    return {
+      changed: false,
+      verification: {
+        kind: 'unsatisfied',
+        observation: after.observation,
+        postcondition: fallbackPostcondition,
+        reason: `Observed version ${afterVersion ?? 'unknown'} cannot verify self-update from ${planned.beforeVersion}.`,
+      },
+    }
+  }
+
+  return {
+    changed: order > 0,
+    verification: {
+      kind: 'satisfied',
+      observation: after.observation,
+      postcondition: {
+        expectedVersion: afterVersion,
+        kind: 'version-satisfies',
+        targetId: planned.binding.target.id,
+      },
+    },
+  }
+}
+
+function consistentObservedVersion(observed: LifecycleUpdateObservedAgent): string | undefined {
+  const versions = [
+    observed.observation.kind === 'present' ? observed.observation.version : undefined,
+    observed.executable.version,
+  ].filter((version): version is string => version !== undefined)
+  const version = versions[0]
+  return version && versions.every(candidate => compareVersions(candidate, version) === 0) ? version : undefined
+}
+
+function isTrackedUnmanagedInstall(state: InstalledAgentState | undefined): boolean {
+  return state?.installType === 'script' || state?.installType === 'binary'
+}
+
+function createSelfUpdatePlanning(before: LifecycleUpdateObservedAgent): LifecycleUpdatePlanningResult {
+  return {
+    decision: 'upgrade',
+    plan: {
+      id: `self-update-${before.agent.name}`,
+      intent: { kind: 'update', targetId: before.agent.name },
+      kind: 'lifecycle-plan',
+      observation: before.observation,
+      steps: [],
+    },
+  }
+}
+
 function createReceipt(
   planned: SingleAgentLifecycleUpdatePlan,
   after: LifecycleUpdateObservedAgent,
@@ -591,7 +806,17 @@ export function getSingleAgentLifecycleUpdateResolvedPlanId(
 ): string {
   const prefix = `update-target:agent=${identityPart(agentName)};outcome=${outcome.kind}`
   if (outcome.kind === 'planned') {
-    const { binding, plannedTargetVersion, planning, providerOptions } = outcome.planned
+    const { binding, planning } = outcome.planned
+    if (outcome.planned.strategy === 'self-update') {
+      return `${prefix};strategy=self-update;provider=${identityPart(binding.providerId)};providerTargetKind=${identityPart(
+        binding.target.kind,
+      )};providerTarget=${identityPart(binding.target.id)};binary=${identityPart(
+        binding.target.binaryName,
+      )};beforeVersion=${identityPart(outcome.planned.beforeVersion)};commands=${outcome.planned.commands
+        .map(commandIdentity)
+        .join('|')};plan=${identityPart(planning.plan.id)}`
+    }
+    const { plannedTargetVersion, providerOptions } = outcome.planned
     return `${prefix};provider=${identityPart(binding.providerId)};providerTargetKind=${identityPart(
       binding.target.kind,
     )};providerTarget=${identityPart(binding.target.id)};binary=${identityPart(
@@ -647,6 +872,7 @@ function evidenceIdentity(evidence: readonly ProviderEvidence[] | undefined): st
 function automaticProviderCompatibilityId(target: LifecycleUpdateBatchTargetPlan): string | undefined {
   if (target.outcome.kind !== 'planned' || target.outcome.planned.planning.decision !== 'upgrade') return undefined
   const planned = target.outcome.planned
+  if (planned.strategy !== 'managed-provider') return undefined
   return `provider=${identityPart(planned.binding.providerId)};${providerOptionsIdentity(planned.providerOptions)}`
 }
 

@@ -159,6 +159,55 @@ describe('registered-agent lifecycle update batch planning', () => {
     expect(unsafePlan.resolvedPlanId).not.toBe(manualPlan.resolvedPlanId)
   })
 
+  it('omits a catalog-only target when neither live nor persisted evidence says it is installed', async () => {
+    const harness = createBatchHarness(['genie'], { genie: { providerId: 'npm' } })
+    const ports: LifecycleUpdateBatchPlanningPorts = {
+      ...harness.ports,
+      observe: async () => ({
+        ...batchObservationResult('genie', { providerId: 'npm' }),
+        executable: { present: false },
+        observation: {
+          drift: { kind: 'indeterminate', reason: 'provider unavailable' },
+          kind: 'indeterminate',
+          reason: 'provider unavailable',
+          targetId: 'genie',
+        },
+      }),
+    }
+
+    const plan = await planRegisteredAgentUpdates(ports)
+
+    expect(plan.targets).toEqual([])
+    expect(plan.providerBuckets).toEqual([])
+  })
+
+  it('preserves stale persisted state as a non-automatic reconciliation target', async () => {
+    const harness = createBatchHarness(['jcode'], { jcode: { providerId: 'npm' } })
+    const ports: LifecycleUpdateBatchPlanningPorts = {
+      ...harness.ports,
+      observe: async () => ({
+        ...batchObservationResult('jcode', { providerId: 'npm' }),
+        executable: { present: false },
+        installedState: {
+          agentName: 'jcode',
+          command: 'curl https://example.com/jcode | bash',
+          installType: 'script',
+        },
+        observation: {
+          drift: { kind: 'recorded-absent' },
+          kind: 'absent',
+          targetId: 'jcode',
+        },
+      }),
+    }
+
+    const plan = await planRegisteredAgentUpdates(ports)
+
+    expect(plan.targets).toHaveLength(1)
+    expect(plan.targets[0]?.outcome).toMatchObject({ category: 'stale-state', kind: 'blocked' })
+    expect(plan.providerBuckets).toEqual([])
+  })
+
   it.each(providerOutcomeIdentityCases)(
     'changes resolved identity when provider outcome %s changes',
     async (_field, before, after) => {
@@ -550,6 +599,46 @@ describe('single-agent lifecycle update application service', () => {
     })
     expect(harness.writeReceipt).toHaveBeenCalledTimes(1)
   })
+
+  it('uses the recorded self-update command for a tracked script install', async () => {
+    const harness = createSelfUpdateHarness({ afterVersion: '2.0.0' })
+    const planned = await requirePlanned(harness.ports)
+
+    expect(planned).toMatchObject({
+      beforeVersion: '1.0.0',
+      commands: [['alpha', 'update']],
+      strategy: 'self-update',
+    })
+    const result = await executeSingleAgentLifecycleUpdate(planned, harness.ports)
+
+    expect(result).toMatchObject({ kind: 'updated', receipt: { version: '2.0.0' } })
+    expect(harness.executeSelfUpdate).toHaveBeenCalledOnce()
+    expect(harness.resolveLatestVersion).not.toHaveBeenCalled()
+    expect(harness.writeReceipt).toHaveBeenCalledOnce()
+  })
+
+  it('reports a successful self-update with an unchanged version as up-to-date', async () => {
+    const harness = createSelfUpdateHarness({ afterVersion: '1.0.0' })
+    const planned = await requirePlanned(harness.ports)
+
+    const result = await executeSingleAgentLifecycleUpdate(planned, harness.ports)
+
+    expect(result).toMatchObject({ kind: 'up-to-date', receipt: { version: '1.0.0' } })
+    expect(harness.writeReceipt).toHaveBeenCalledOnce()
+  })
+
+  it('does not persist a receipt when the tracked self-update command fails', async () => {
+    const harness = createSelfUpdateHarness({
+      afterVersion: '1.0.0',
+      executeOutcome: { kind: 'failed', reason: 'self update failed', retryable: false },
+    })
+    const planned = await requirePlanned(harness.ports)
+
+    const result = await executeSingleAgentLifecycleUpdate(planned, harness.ports)
+
+    expect(result).toMatchObject({ kind: 'provider-failed', providerOutcome: { kind: 'failed' } })
+    expect(harness.writeReceipt).not.toHaveBeenCalled()
+  })
 })
 
 async function requirePlanned(ports: LifecycleUpdateServicePorts): Promise<SingleAgentLifecycleUpdatePlan> {
@@ -625,6 +714,81 @@ function createHarness(
     writeReceipt,
   }
   return { observe, ports, resolveLatestVersion, update, writeReceipt }
+}
+
+function createSelfUpdateHarness(options: { afterVersion: string; executeOutcome?: ProviderOutcome<never> }) {
+  const target = {
+    binaryName: 'alpha',
+    effect: { command: 'curl https://example.com/alpha | bash', kind: 'shell-script' as const },
+    id: 'https://example.com/alpha',
+    kind: 'script' as const,
+  }
+  let version = '1.0.0'
+  const observe = vi.fn(async () => ({
+    agent: {
+      binaryName: 'alpha',
+      displayName: 'Alpha',
+      name: 'alpha',
+      selfUpdate: { command: ['alpha', 'update'] },
+    },
+    binding: { providerId: 'script' as const, target },
+    capabilities: ['observe'] as const,
+    executable: { path: '/bin/alpha', present: true, version },
+    installedState: {
+      agentName: 'alpha',
+      command: 'curl https://example.com/alpha | bash',
+      installType: 'script' as const,
+    },
+    methods: [
+      {
+        command: 'curl https://example.com/alpha | bash',
+        probes: ['executable-presence' as const],
+        type: 'script' as const,
+      },
+    ],
+    observation: {
+      drift: { kind: 'none' as const },
+      executablePath: '/bin/alpha',
+      kind: 'present' as const,
+      providerId: 'script',
+      providerTargetId: target.id,
+      providerTargetKind: 'script' as const,
+      targetId: 'alpha',
+      version,
+    },
+    persistedBinding: { providerId: 'script' as const, target },
+  }))
+  const executeSelfUpdate = vi.fn(async () => {
+    version = options.afterVersion
+    return (
+      options.executeOutcome ?? {
+        kind: 'success' as const,
+        value: { evidence: [], target },
+      }
+    )
+  })
+  const resolveLatestVersion = vi.fn()
+  const writeReceipt = vi.fn(async (_receipt: LifecycleReceipt) => undefined)
+  const ports: LifecycleUpdateServicePorts = {
+    clock: () => '2026-07-13T04:00:00.000Z',
+    dryRun: false,
+    executeSelfUpdate,
+    observe,
+    planLifecycleUpdate,
+    providerRegistry: {
+      get: () =>
+        ({
+          availability: vi.fn(),
+          id: 'script',
+          observe: vi.fn(),
+          resolveLatestVersion,
+        }) as unknown as ProviderAdapter,
+      getCapabilities: () => ['observe'],
+    },
+    signal: new AbortController().signal,
+    writeReceipt,
+  }
+  return { executeSelfUpdate, ports, resolveLatestVersion, writeReceipt }
 }
 
 function observationResult(options: { executableVersion?: string; observation?: LifecycleObservation } = {}) {

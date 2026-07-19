@@ -7,6 +7,7 @@ import type {
   SingleAgentLifecycleUpdateExecutionOutcome,
   SingleAgentLifecycleUpdatePlanningOutcome,
 } from './lifecycle-updates'
+import { executeAgentSelfUpdate } from '../agent-update'
 import { getAllAgents } from '../agents'
 import { loadConfig } from '../config'
 import { planLifecycleUpdate } from '../lifecycle'
@@ -90,6 +91,7 @@ export function createLifecycleUpdateBatchInvocation(): LifecycleUpdateBatchInvo
           isResourceLockError(error) ? { reason: error.message, resource: error.resource } : undefined,
         clock: () => new Date().toISOString(),
         dryRun: isDryRunEnabled(),
+        executeSelfUpdate: executeAgentSelfUpdate,
         listRegisteredAgentNames: () => getAllAgents().map(agent => agent.name),
         observe: observationService.resolveAgentObservation,
         planLifecycleUpdate,
@@ -179,6 +181,7 @@ export function createSingleAgentLifecycleUpdateInvocation(agentName: string): S
       return {
         clock: () => new Date().toISOString(),
         dryRun: isDryRunEnabled(),
+        executeSelfUpdate: executeAgentSelfUpdate,
         observe: observationService.resolveAgentObservation,
         planLifecycleUpdate,
         providerRegistry: firstPartyProviderRegistry,

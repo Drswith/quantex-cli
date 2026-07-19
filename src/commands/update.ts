@@ -1,6 +1,6 @@
 import type { AgentDefinition } from '../agents'
 import type { CommandIdempotencyPolicyFactory } from '../command-runtime'
-import type { CommandResult } from '../output/types'
+import type { CommandResult, CommandWarning } from '../output/types'
 import type {
   LifecycleUpdateBatchCancellationRemainder,
   LifecycleUpdateBatchTargetOutcome,
@@ -155,6 +155,7 @@ async function updateAllAgents(dependencies: UpdateCommandDependencies): Promise
 
   const outcome = await dependencies.runBatch()
   const results = projectLifecycleUpdateBatch(outcome)
+  const warnings = projectLifecycleUpdateWarnings(outcome)
 
   if (hasBatchCancellation(outcome)) {
     return emitCommandResult(
@@ -171,6 +172,7 @@ async function updateAllAgents(dependencies: UpdateCommandDependencies): Promise
         target: {
           kind: 'agent',
         },
+        warnings,
       }),
       renderUpdateHuman,
     )
@@ -191,6 +193,7 @@ async function updateAllAgents(dependencies: UpdateCommandDependencies): Promise
         target: {
           kind: 'agent',
         },
+        warnings,
       }),
       renderUpdateHuman,
     )
@@ -206,6 +209,7 @@ async function updateAllAgents(dependencies: UpdateCommandDependencies): Promise
       target: {
         kind: 'agent',
       },
+      warnings,
     }),
     renderUpdateHuman,
   )
@@ -273,11 +277,13 @@ async function updateSingleAgent(
     )
   }
   if (before?.observation.kind === 'absent') {
+    const warnings = before.observation.drift.kind === 'recorded-absent' ? [staleStateWarning(agent)] : []
     return emitCommandResult(
       createErrorResult<UpdateCommandData>({
         action: 'update',
         error: { code: 'AGENT_NOT_INSTALLED', message: `${agent.displayName} is not installed.` },
         target: { kind: 'agent', name: agent.name },
+        warnings,
       }),
       renderUpdateHuman,
     )
@@ -337,8 +343,8 @@ function toSingleUpdateResult(agent: AgentDefinition, outcome: RunSingleAgentLif
   const before = getSingleUpdateBefore(outcome)
   const plan = 'plan' in outcome ? outcome.plan : undefined
   const installedVersion = before?.observation.kind === 'present' ? before.observation.version : undefined
-  const latestVersion = plan?.plannedTargetVersion
-  const strategy = plan ? `managed/${plan.binding.providerId}` : before?.binding?.providerId
+  const latestVersion = planLatestVersion(plan)
+  const strategy = planStrategy(plan) ?? before?.binding?.providerId
 
   switch (outcome.kind) {
     case 'updated':
@@ -348,6 +354,14 @@ function toSingleUpdateResult(agent: AgentDefinition, outcome: RunSingleAgentLif
         latestVersion: outcome.receipt.version ?? latestVersion,
         name: agent.name,
         status: 'updated',
+        strategy,
+      }
+    case 'up-to-date':
+      return {
+        displayName: agent.displayName,
+        installedVersion: outcome.receipt.version ?? installedVersion,
+        name: agent.name,
+        status: 'up-to-date',
         strategy,
       }
     case 'dry-run':
@@ -379,6 +393,24 @@ function toSingleUpdateResult(agent: AgentDefinition, outcome: RunSingleAgentLif
         status: 'manual-required',
       }
     case 'blocked':
+      if (outcome.category === 'untracked') {
+        return {
+          displayName: agent.displayName,
+          installedVersion,
+          message: getUntrackedPathAgentUpdateMessage(agent),
+          name: agent.name,
+          status: 'manual-required',
+        }
+      }
+      if (outcome.category === 'manual-required') {
+        return {
+          displayName: agent.displayName,
+          installedVersion,
+          message: getManualAgentUpdateMessage(agent),
+          name: agent.name,
+          status: 'manual-required',
+        }
+      }
       return {
         displayName: agent.displayName,
         installedVersion,
@@ -447,14 +479,16 @@ function projectLifecycleUpdateBatch(outcome: LifecycleUpdateBatchCommandOutcome
   for (const target of outcome.plan.targets) {
     const completed = completedById.get(target.id)
     const remainder = remainderById.get(target.id)
-    if (completed) pushUpdateResult(results, toBatchUpdateResult(completed))
-    else if (remainder) pushUpdateResult(results, toCancellationRemainderResult(remainder))
+    if (completed) {
+      const result = toBatchUpdateResult(completed)
+      if (result) pushUpdateResult(results, result)
+    } else if (remainder) pushUpdateResult(results, toCancellationRemainderResult(remainder))
   }
 
   return results
 }
 
-function toBatchUpdateResult(target: LifecycleUpdateBatchTargetOutcome): UpdateResultItem {
+function toBatchUpdateResult(target: LifecycleUpdateBatchTargetOutcome): UpdateResultItem | undefined {
   const before =
     target.planning.kind === 'unknown-agent'
       ? undefined
@@ -471,37 +505,18 @@ function toBatchUpdateResult(target: LifecycleUpdateBatchTargetOutcome): UpdateR
   }
 
   const execution = target.execution
-  if (target.planning.kind === 'blocked' && target.planning.category === 'untracked') {
-    return {
-      displayName: agent.displayName,
-      installedVersion:
-        target.planning.before.observation.kind === 'present' ? target.planning.before.observation.version : undefined,
-      message: getUntrackedPathAgentUpdateMessage(agent),
-      name: agent.name,
-      status: 'manual-required',
-    }
-  }
-  if (target.planning.kind === 'blocked' && target.planning.category === 'manual-required') {
-    return {
-      displayName: agent.displayName,
-      installedVersion:
-        target.planning.before.observation.kind === 'present' ? target.planning.before.observation.version : undefined,
-      message: getManualAgentUpdateMessage(agent),
-      name: agent.name,
-      status: 'manual-required',
-    }
-  }
+  if (target.planning.kind === 'blocked' && target.planning.category === 'stale-state') return undefined
   if (execution?.kind === 'locked') {
     return {
       displayName: agent.displayName,
       installedVersion:
         execution.plan.before.observation.kind === 'present' ? execution.plan.before.observation.version : undefined,
-      latestVersion: execution.plan.plannedTargetVersion,
+      latestVersion: planLatestVersion(execution.plan),
       message: execution.reason,
       name: agent.name,
       resource: execution.resource,
       status: 'locked',
-      strategy: `managed/${execution.plan.binding.providerId}`,
+      strategy: planStrategy(execution.plan),
     }
   }
   if (execution?.kind === 'unexpected-failure') {
@@ -509,11 +524,11 @@ function toBatchUpdateResult(target: LifecycleUpdateBatchTargetOutcome): UpdateR
       displayName: agent.displayName,
       installedVersion:
         execution.plan.before.observation.kind === 'present' ? execution.plan.before.observation.version : undefined,
-      latestVersion: execution.plan.plannedTargetVersion,
+      latestVersion: planLatestVersion(execution.plan),
       message: execution.reason,
       name: agent.name,
       status: 'failed',
-      strategy: `managed/${execution.plan.binding.providerId}`,
+      strategy: planStrategy(execution.plan),
     }
   }
 
@@ -540,12 +555,41 @@ function toCancellationRemainderResult(target: LifecycleUpdateBatchCancellationR
   return {
     displayName: agent?.displayName ?? before.agent.displayName,
     installedVersion: before.observation.kind === 'present' ? before.observation.version : undefined,
-    latestVersion: target.planning.planned.plannedTargetVersion,
+    latestVersion: planLatestVersion(target.planning.planned),
     message: target.reason ?? 'Update was cancelled before it could start.',
     name: agent?.name ?? target.agentName,
     status: 'failed',
-    strategy: `managed/${target.planning.planned.binding.providerId}`,
+    strategy: planStrategy(target.planning.planned),
   }
+}
+
+function projectLifecycleUpdateWarnings(outcome: LifecycleUpdateBatchCommandOutcome): CommandWarning[] {
+  return outcome.plan.targets.flatMap(target => {
+    if (target.outcome.kind !== 'blocked' || target.outcome.category !== 'stale-state') return []
+    const agent = resolveAgent(target.agentName) ?? target.outcome.before.agent
+    return [staleStateWarning(agent)]
+  })
+}
+
+function staleStateWarning(agent: Pick<AgentDefinition, 'displayName' | 'name'>): CommandWarning {
+  return {
+    code: 'AGENT_STALE_STATE',
+    details: {
+      agentName: agent.name,
+      suggestedAction: 'reconcile-agent-state',
+      suggestedCommands: [`quantex uninstall ${agent.name}`],
+    },
+    message: `${agent.displayName} is not installed but has stale lifecycle evidence. Run \`quantex uninstall ${agent.name}\` to reconcile it.`,
+  }
+}
+
+function planLatestVersion(plan: import('../services/lifecycle-updates').SingleAgentLifecycleUpdatePlan | undefined) {
+  return plan?.strategy === 'managed-provider' ? plan.plannedTargetVersion : undefined
+}
+
+function planStrategy(plan: import('../services/lifecycle-updates').SingleAgentLifecycleUpdatePlan | undefined) {
+  if (!plan) return undefined
+  return plan.strategy === 'self-update' ? 'self-update' : `managed/${plan.binding.providerId}`
 }
 
 function hasBatchCancellation(outcome: LifecycleUpdateBatchCommandOutcome): boolean {
@@ -572,11 +616,14 @@ function pushUpdateResult(results: UpdateResultItem[], result: UpdateResultItem)
 function renderUpdateHuman(result: {
   data?: UpdateCommandData
   error: { code: string; message: string } | null
+  warnings: CommandWarning[]
 }): void {
   if (!result.data) {
     if (result.error) printError(pc.red(result.error.message))
     return
   }
+
+  for (const warning of result.warnings) printWarn(pc.yellow(warning.message))
 
   for (const item of result.data.results) {
     switch (item.status) {
