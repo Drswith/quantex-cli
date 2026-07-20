@@ -38,6 +38,42 @@ Before choosing an uninstall action, Quantex MUST reconcile the recorded lifecyc
 - **THEN** the plan invokes npm uninstall for the package bound by the receipt
 - **AND** it does not substitute a package or provider from another install candidate
 
+#### Scenario: Receipt and cargo provider evidence identify a managed uninstall
+
+- **GIVEN** an agent receipt binds a cargo provider and crate identity
+- **AND** the cargo presence probe confirms that exact package is installed
+- **AND** the agent executable is present in `PATH`
+- **WHEN** Quantex plans the uninstall
+- **THEN** the plan invokes cargo uninstall for the package bound by the receipt
+- **AND** it does not treat cargo observation as permanently indeterminate
+
+#### Scenario: Receipt and deno provider evidence identify a managed uninstall
+
+- **GIVEN** an agent receipt binds a deno provider and tool identity
+- **AND** the deno presence probe confirms that exact global binary is installed
+- **AND** the agent executable is present in `PATH`
+- **WHEN** Quantex plans the uninstall
+- **THEN** the plan invokes deno uninstall for the binary bound by the receipt
+- **AND** it does not treat deno observation as permanently indeterminate
+
+#### Scenario: Receipt and pip provider evidence identify a managed uninstall
+
+- **GIVEN** an agent receipt binds a pip provider and package identity
+- **AND** the pip presence probe confirms that exact package is installed
+- **AND** the agent executable is present in `PATH`
+- **WHEN** Quantex plans the uninstall
+- **THEN** the plan invokes pip uninstall for the package bound by the receipt
+- **AND** it does not treat pip observation as permanently indeterminate
+
+#### Scenario: Receipt and winget provider evidence identify a managed uninstall
+
+- **GIVEN** an agent receipt binds a winget provider and package ID identity
+- **AND** the winget presence probe confirms that exact package is installed
+- **AND** the agent executable is present in `PATH`
+- **WHEN** Quantex plans the uninstall
+- **THEN** the plan invokes winget uninstall for the package bound by the receipt
+- **AND** it does not treat winget observation as permanently indeterminate
+
 #### Scenario: PATH-only detection does not establish managed ownership
 
 - **GIVEN** an agent executable is present in `PATH`
