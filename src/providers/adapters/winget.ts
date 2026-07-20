@@ -7,9 +7,10 @@ import { createSystemPackageAdapter } from './system-package'
 const defaultDependencies: SystemPackageAdapterDependencies = {
   contextualMutation: true,
   contextualObservation: true,
+  getInstalledVersion: (target, context) => wingetPm.getInstalledVersion(target.id, context),
   install: (target, context) => wingetPm.installOutcome(target.id, context),
   isAvailable: context => detectUtils.isWingetAvailable(context),
-  probePackagePresence: async () => 'unknown',
+  probePackagePresence: (target, context) => wingetPm.probePackagePresence(target.id, context),
   uninstall: (target, context) => wingetPm.uninstallOutcome(target.id, context),
   update: (target, context) => wingetPm.updateOutcome(target.id, context),
   updateMany: (targets, context) =>

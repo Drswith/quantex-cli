@@ -122,3 +122,51 @@ describe('deno uninstall', () => {
     expect(mockSpawn).toHaveBeenCalledWith(['deno', 'uninstall', '--global', 'tool-bin'], expect.any(Object))
   })
 })
+
+describe('probePackagePresence', () => {
+  it('returns present when the Deno global binary exists', async () => {
+    const { mkdtemp, mkdir, writeFile, rm } = await import('node:fs/promises')
+    const { tmpdir } = await import('node:os')
+    const { join } = await import('node:path')
+    const root = await mkdtemp(join(tmpdir(), 'quantex-deno-probe-'))
+    const previous = process.env.DENO_INSTALL_ROOT
+    process.env.DENO_INSTALL_ROOT = root
+    try {
+      await mkdir(join(root, 'bin'), { recursive: true })
+      await writeFile(join(root, 'bin', 'genie'), '#!/bin/sh\n', { mode: 0o755 })
+      const { probePackagePresence } = await import('../../src/package-manager/deno')
+      expect(await probePackagePresence('genie')).toBe('present')
+    } finally {
+      if (previous === undefined) delete process.env.DENO_INSTALL_ROOT
+      else process.env.DENO_INSTALL_ROOT = previous
+      await rm(root, { force: true, recursive: true })
+    }
+  })
+
+  it('returns absent when the Deno global binary is missing', async () => {
+    const { mkdtemp, mkdir, rm } = await import('node:fs/promises')
+    const { tmpdir } = await import('node:os')
+    const { join } = await import('node:path')
+    const root = await mkdtemp(join(tmpdir(), 'quantex-deno-probe-'))
+    const previous = process.env.DENO_INSTALL_ROOT
+    process.env.DENO_INSTALL_ROOT = root
+    try {
+      await mkdir(join(root, 'bin'), { recursive: true })
+      const { probePackagePresence } = await import('../../src/package-manager/deno')
+      expect(await probePackagePresence('missing-tool')).toBe('absent')
+    } finally {
+      if (previous === undefined) delete process.env.DENO_INSTALL_ROOT
+      else process.env.DENO_INSTALL_ROOT = previous
+      await rm(root, { force: true, recursive: true })
+    }
+  })
+})
+
+describe('inferDenoBinaryName', () => {
+  it('prefers an explicit binary name and otherwise uses the package stem', async () => {
+    const { inferDenoBinaryName } = await import('../../src/package-manager/deno')
+    expect(inferDenoBinaryName('jsr:@nicorio/genie', 'custom-bin')).toBe('custom-bin')
+    expect(inferDenoBinaryName('jsr:@nicorio/genie')).toBe('genie')
+    expect(inferDenoBinaryName('npm:@scope/tool@1.2.3')).toBe('tool')
+  })
+})

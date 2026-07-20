@@ -1,5 +1,12 @@
 import type { ProviderOperationContext } from '../providers'
 import type { PackageMutationOutcome } from './mutation-outcome'
+import process from 'node:process'
+import {
+  isProcessInterruptionError,
+  readProcessOutput,
+  readProcessOutputWithContext,
+  spawnCommand,
+} from '../utils/child-process'
 import { projectLegacyPackageMutation, runPackageMutationOutcome, runPackageMutationSequence } from './mutation-outcome'
 
 async function runCargoCommand(
@@ -75,4 +82,62 @@ export function uninstallOutcome(
   context: ProviderOperationContext,
 ): Promise<PackageMutationOutcome> {
   return runCargoCommandOutcome('uninstall', packageName, [], context)
+}
+
+export type PackagePresenceProbe = 'present' | 'absent' | 'unknown'
+
+async function readPackagePresence(
+  packageName: string,
+  context?: ProviderOperationContext,
+): Promise<{ presence: PackagePresenceProbe; version?: string }> {
+  try {
+    const proc = spawnCommand(['cargo', 'install', '--list'], {
+      detached: context !== undefined && process.platform !== 'win32',
+      stdio: ['ignore', 'pipe', 'pipe'],
+    })
+    const { exitCode, stdout } = context
+      ? await readProcessOutputWithContext(proc, context)
+      : await readProcessOutput(proc)
+
+    if (exitCode !== 0) return { presence: 'unknown' }
+
+    const version = parseCargoInstalledVersion(stdout, packageName)
+    if (version) return { presence: 'present', version }
+    if (hasCargoPackageEntry(stdout, packageName)) return { presence: 'present' }
+    return { presence: 'absent' }
+  } catch (error) {
+    if (isProcessInterruptionError(error)) throw error
+    return { presence: 'unknown' }
+  }
+}
+
+export async function probePackagePresence(
+  packageName: string,
+  context?: ProviderOperationContext,
+): Promise<PackagePresenceProbe> {
+  return (await readPackagePresence(packageName, context)).presence
+}
+
+export async function getInstalledVersion(
+  packageName: string,
+  context?: ProviderOperationContext,
+): Promise<string | undefined> {
+  return (await readPackagePresence(packageName, context)).version
+}
+
+export function parseCargoInstalledVersion(output: string, packageName: string): string | undefined {
+  const match = findCargoPackageHeader(output, packageName)
+  if (!match) return undefined
+  const version = match[1]
+  return version && /^\d/.test(version) ? version : undefined
+}
+
+function hasCargoPackageEntry(output: string, packageName: string): boolean {
+  return findCargoPackageHeader(output, packageName) !== undefined
+}
+
+function findCargoPackageHeader(output: string, packageName: string): RegExpMatchArray | undefined {
+  const escaped = packageName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+  const pattern = new RegExp(`^${escaped}\\s+v([^:\\s]+):\\s*$`, 'm')
+  return output.match(pattern) ?? undefined
 }

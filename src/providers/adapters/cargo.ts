@@ -7,10 +7,11 @@ import { createSystemPackageAdapter } from './system-package'
 const defaultDependencies: SystemPackageAdapterDependencies = {
   contextualMutation: true,
   contextualObservation: true,
+  getInstalledVersion: (target, context) => cargoPm.getInstalledVersion(target.id, context),
   install: (target, context) =>
     cargoPm.installOutcome(target.id, target.arguments ? [...target.arguments] : undefined, context),
   isAvailable: context => detectUtils.isCargoAvailable(context),
-  probePackagePresence: async () => 'unknown',
+  probePackagePresence: (target, context) => cargoPm.probePackagePresence(target.id, context),
   uninstall: (target, context) => cargoPm.uninstallOutcome(target.id, context),
   update: (target, context) =>
     cargoPm.updateOutcome(target.id, target.arguments ? [...target.arguments] : undefined, context),

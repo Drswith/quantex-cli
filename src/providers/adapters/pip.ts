@@ -6,9 +6,10 @@ import { createSystemPackageAdapter } from './system-package'
 const defaultDependencies: SystemPackageAdapterDependencies = {
   contextualMutation: true,
   contextualObservation: true,
+  getInstalledVersion: (target, context) => pipPm.getInstalledVersion(target.id, context),
   install: (target, context) => pipPm.installOutcome(target.id, context),
   isAvailable: context => detectUtils.isPipAvailable(context),
-  probePackagePresence: async () => 'unknown',
+  probePackagePresence: (target, context) => pipPm.probePackagePresence(target.id, context),
   uninstall: (target, context) => pipPm.uninstallOutcome(target.id, context),
   update: (target, context) => pipPm.updateOutcome(target.id, context),
   updateMany: (targets, context) =>

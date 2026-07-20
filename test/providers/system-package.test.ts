@@ -2,7 +2,14 @@ import type { ProviderAdapter, ProviderOperationContext, ProviderTarget } from '
 import type { SystemPackageAdapterDependencies } from '../../src/providers/adapters/system-package'
 import { describe, expect, it, vi } from 'vitest'
 import * as brewPm from '../../src/package-manager/brew'
+import * as cargoPm from '../../src/package-manager/cargo'
+import * as denoPm from '../../src/package-manager/deno'
+import * as pipPm from '../../src/package-manager/pip'
+import * as wingetPm from '../../src/package-manager/winget'
 import { createBrewProviderAdapter } from '../../src/providers/adapters/brew'
+import { createCargoProviderAdapter } from '../../src/providers/adapters/cargo'
+import { createDenoProviderAdapter } from '../../src/providers/adapters/deno'
+import { createPipProviderAdapter } from '../../src/providers/adapters/pip'
 import { createWingetProviderAdapter } from '../../src/providers/adapters/winget'
 import { describeProviderConformance } from './conformance'
 
@@ -186,5 +193,54 @@ describe('system package provider semantics', () => {
     expect(version).toHaveBeenCalled()
     probe.mockRestore()
     version.mockRestore()
+  })
+
+  it('observes cargo, deno, pip, and winget presence through package probes instead of hardcoding unknown', async () => {
+    const cargoProbe = vi.spyOn(cargoPm, 'probePackagePresence').mockResolvedValue('present')
+    const cargoVersion = vi.spyOn(cargoPm, 'getInstalledVersion').mockResolvedValue('0.2.0')
+    const denoProbe = vi.spyOn(denoPm, 'probePackagePresence').mockResolvedValue('present')
+    const pipProbe = vi.spyOn(pipPm, 'probePackagePresence').mockResolvedValue('absent')
+    const wingetProbe = vi.spyOn(wingetPm, 'probePackagePresence').mockResolvedValue('present')
+    const wingetVersion = vi.spyOn(wingetPm, 'getInstalledVersion').mockResolvedValue('1.2.3')
+
+    await expect(
+      createCargoProviderAdapter().observe({ context, target: { id: 'vtcode', kind: 'package' } }),
+    ).resolves.toMatchObject({
+      kind: 'success',
+      value: { kind: 'present', version: '0.2.0' },
+    })
+    await expect(
+      createDenoProviderAdapter().observe({
+        context,
+        target: { binaryName: 'genie', id: 'jsr:@nicorio/genie', kind: 'tool' },
+      }),
+    ).resolves.toMatchObject({
+      kind: 'success',
+      value: { kind: 'present' },
+    })
+    await expect(
+      createPipProviderAdapter().observe({ context, target: { id: 'mistral-vibe', kind: 'package' } }),
+    ).resolves.toMatchObject({
+      kind: 'success',
+      value: { kind: 'absent' },
+    })
+    await expect(createWingetProviderAdapter().observe({ context, target: wingetTarget })).resolves.toMatchObject({
+      kind: 'success',
+      value: { kind: 'present', version: '1.2.3' },
+    })
+
+    expect(cargoProbe).toHaveBeenCalledWith('vtcode', context)
+    expect(denoProbe).toHaveBeenCalledWith('genie', context)
+    expect(pipProbe).toHaveBeenCalledWith('mistral-vibe', context)
+    expect(wingetProbe).toHaveBeenCalledWith(wingetTarget.id, context)
+    expect(cargoVersion).toHaveBeenCalled()
+    expect(wingetVersion).toHaveBeenCalled()
+
+    cargoProbe.mockRestore()
+    cargoVersion.mockRestore()
+    denoProbe.mockRestore()
+    pipProbe.mockRestore()
+    wingetProbe.mockRestore()
+    wingetVersion.mockRestore()
   })
 })
