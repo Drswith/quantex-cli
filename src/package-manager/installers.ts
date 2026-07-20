@@ -19,9 +19,13 @@ import { wingetProviderAdapter } from '../providers/adapters/winget'
 import { createCliOperationContext } from '../runtime/cli-operation-context'
 import * as brewPm from './brew'
 import * as bunPm from './bun'
+import * as cargoPm from './cargo'
+import * as denoPm from './deno'
 import * as misePm from './mise'
 import * as npmPm from './npm'
+import * as pipPm from './pip'
 import * as uvPm from './uv'
+import * as wingetPm from './winget'
 
 export interface ManagedPackageSpec {
   binaryName?: string
@@ -265,8 +269,14 @@ const typedManagedInstallers: Record<ManagedInstallType, TypedManagedInstaller> 
     getInstalledVersion: packageName => bunPm.getInstalledVersion(packageName),
     probePackagePresence: packageName => bunPm.probePackagePresence(packageName),
   }),
-  cargo: createSystemManagedInstaller('cargo', cargoProviderAdapter, () => 'package'),
-  deno: createSystemManagedInstaller('deno', denoProviderAdapter, () => 'tool'),
+  cargo: createSystemManagedInstaller('cargo', cargoProviderAdapter, () => 'package', {
+    getInstalledVersion: packageName => cargoPm.getInstalledVersion(packageName),
+    probePackagePresence: packageName => cargoPm.probePackagePresence(packageName),
+  }),
+  deno: createSystemManagedInstaller('deno', denoProviderAdapter, () => 'tool', {
+    getInstalledVersion: packageName => denoPm.getInstalledVersion(denoPm.inferDenoBinaryName(packageName)),
+    probePackagePresence: packageName => denoPm.probePackagePresence(denoPm.inferDenoBinaryName(packageName)),
+  }),
   mise: createSystemManagedInstaller('mise', miseProviderAdapter, () => 'tool', {
     getInstalledVersion: packageName => misePm.getInstalledVersion(packageName),
     probePackagePresence: packageName => misePm.probePackagePresence(packageName),
@@ -275,12 +285,18 @@ const typedManagedInstallers: Record<ManagedInstallType, TypedManagedInstaller> 
     getInstalledVersion: packageName => npmPm.getInstalledVersion(packageName),
     probePackagePresence: packageName => npmPm.probePackagePresence(packageName),
   }),
-  pip: createSystemManagedInstaller('pip', pipProviderAdapter, () => 'package'),
+  pip: createSystemManagedInstaller('pip', pipProviderAdapter, () => 'package', {
+    getInstalledVersion: packageName => pipPm.getInstalledVersion(packageName),
+    probePackagePresence: packageName => pipPm.probePackagePresence(packageName),
+  }),
   uv: createSystemManagedInstaller('uv', uvProviderAdapter, () => 'tool', {
     getInstalledVersion: packageName => uvPm.getInstalledVersion(packageName),
     probePackagePresence: packageName => uvPm.probePackagePresence(packageName),
   }),
-  winget: createSystemManagedInstaller('winget', wingetProviderAdapter, () => 'id'),
+  winget: createSystemManagedInstaller('winget', wingetProviderAdapter, () => 'id', {
+    getInstalledVersion: packageName => wingetPm.getInstalledVersion(packageName),
+    probePackagePresence: packageName => wingetPm.probePackagePresence(packageName),
+  }),
 }
 
 const managedInstallers = Object.fromEntries(

@@ -7,11 +7,15 @@ import { createSystemPackageAdapter } from './system-package'
 const defaultDependencies: SystemPackageAdapterDependencies = {
   contextualMutation: true,
   contextualObservation: true,
+  getInstalledVersion: (target, context) =>
+    denoPm.getInstalledVersion(denoPm.inferDenoBinaryName(target.id, target.binaryName), context),
   install: (target, context) =>
     denoPm.installOutcome(target.id, target.arguments ? [...target.arguments] : undefined, context),
   isAvailable: context => detectUtils.isDenoAvailable(context),
-  probePackagePresence: async () => 'unknown',
-  uninstall: (target, context) => denoPm.uninstallOutcome(target.binaryName ?? target.id, context),
+  probePackagePresence: (target, context) =>
+    denoPm.probePackagePresence(denoPm.inferDenoBinaryName(target.id, target.binaryName), context),
+  uninstall: (target, context) =>
+    denoPm.uninstallOutcome(denoPm.inferDenoBinaryName(target.id, target.binaryName), context),
   update: (target, context) =>
     denoPm.updateOutcome(target.id, target.arguments ? [...target.arguments] : undefined, context),
   updateMany: (targets, context) =>
@@ -34,7 +38,12 @@ export function createDenoProviderAdapter(dependencies: SystemPackageAdapterDepe
     {
       commands: {
         install: target => installCommand(target),
-        uninstall: target => ['deno', 'uninstall', '--global', target.binaryName ?? target.id],
+        uninstall: target => [
+          'deno',
+          'uninstall',
+          '--global',
+          denoPm.inferDenoBinaryName(target.id, target.binaryName),
+        ],
         update: target => installCommand(target, true),
         updateMany: targets => [
           'deno',

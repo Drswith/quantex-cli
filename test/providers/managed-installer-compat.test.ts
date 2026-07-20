@@ -6,6 +6,7 @@ import * as denoPm from '../../src/package-manager/deno'
 import { getManagedInstaller } from '../../src/package-manager/installers'
 import * as misePm from '../../src/package-manager/mise'
 import * as npmPm from '../../src/package-manager/npm'
+import * as pipPm from '../../src/package-manager/pip'
 import * as uvPm from '../../src/package-manager/uv'
 import * as wingetPm from '../../src/package-manager/winget'
 import { brewProviderAdapter } from '../../src/providers/adapters/brew'
@@ -228,5 +229,21 @@ describe('managed installer typed provider compatibility', () => {
     expect(await getManagedInstaller('mise').getInstalledVersion?.('npm:@openai/codex')).toBe('0.42.0')
     expect(uvPresence).toHaveBeenCalledWith('example-tool')
     expect(miseVersion).toHaveBeenCalledWith('npm:@openai/codex')
+  })
+
+  it('keeps cargo, deno, pip, and winget presence probes as direct compatibility projections', async () => {
+    const cargoPresence = vi.spyOn(cargoPm, 'probePackagePresence').mockResolvedValue('present')
+    const denoPresence = vi.spyOn(denoPm, 'probePackagePresence').mockResolvedValue('absent')
+    const pipPresence = vi.spyOn(pipPm, 'probePackagePresence').mockResolvedValue('present')
+    const wingetPresence = vi.spyOn(wingetPm, 'probePackagePresence').mockResolvedValue('absent')
+
+    expect(await getManagedInstaller('cargo').probePackagePresence?.('vtcode')).toBe('present')
+    expect(await getManagedInstaller('deno').probePackagePresence?.('jsr:@nicorio/genie')).toBe('absent')
+    expect(await getManagedInstaller('pip').probePackagePresence?.('mistral-vibe')).toBe('present')
+    expect(await getManagedInstaller('winget').probePackagePresence?.('GitHub.Copilot')).toBe('absent')
+    expect(cargoPresence).toHaveBeenCalledWith('vtcode')
+    expect(denoPresence).toHaveBeenCalledWith('genie')
+    expect(pipPresence).toHaveBeenCalledWith('mistral-vibe')
+    expect(wingetPresence).toHaveBeenCalledWith('GitHub.Copilot')
   })
 })

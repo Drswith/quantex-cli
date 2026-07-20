@@ -40,7 +40,7 @@ export function resolveStateProviderBinding(
     providerId,
     target: {
       ...(state.packageInstallArgs?.length ? { arguments: state.packageInstallArgs } : {}),
-      ...(state.binaryName || providerId === 'binary' || providerId === 'script'
+      ...(state.binaryName || providerId === 'binary' || providerId === 'script' || providerId === 'deno'
         ? { binaryName: state.binaryName ?? agent.binaryName }
         : {}),
       id: targetId,

@@ -1,7 +1,12 @@
 import type { ProviderOperationContext, ProviderOutcome } from '../providers'
 import type { PackageMutationOutcome } from './mutation-outcome'
 import process from 'node:process'
-import { readProcessOutputWithContext, isProcessInterruptionError, spawnCommand } from '../utils/child-process'
+import {
+  readProcessOutput,
+  readProcessOutputWithContext,
+  isProcessInterruptionError,
+  spawnCommand,
+} from '../utils/child-process'
 import { projectLegacyPackageMutation, runPackageMutationOutcome, runPackageMutationSequence } from './mutation-outcome'
 
 let resolvedPipCommand: string[] | null = null
@@ -95,4 +100,67 @@ export function uninstallOutcome(
   context: ProviderOperationContext,
 ): Promise<PackageMutationOutcome> {
   return runPipCommandOutcome(['uninstall', '-y', packageName], context)
+}
+
+export type PackagePresenceProbe = 'present' | 'absent' | 'unknown'
+
+async function readPackagePresence(
+  packageName: string,
+  context?: ProviderOperationContext,
+): Promise<{ presence: PackagePresenceProbe; version?: string }> {
+  const resolveContext =
+    context ??
+    ({
+      signal: new AbortController().signal,
+      timeoutMs: 5_000,
+    } satisfies ProviderOperationContext)
+
+  try {
+    const resolved = await resolvePipCommandOutcome(resolveContext)
+    if (resolved.kind !== 'success') return { presence: 'unknown' }
+
+    const proc = spawnCommand([...resolved.value, 'show', packageName], {
+      detached: context !== undefined && process.platform !== 'win32',
+      stdio: ['ignore', 'pipe', 'pipe'],
+    })
+    const { exitCode, stderr, stdout } = context
+      ? await readProcessOutputWithContext(proc, context)
+      : await readProcessOutput(proc)
+    if (exitCode === 0) {
+      const version = parsePipInstalledVersion(stdout)
+      return version ? { presence: 'present', version } : { presence: 'present' }
+    }
+    if (exitCode === 1 && isPipPackageMissingMessage(stderr)) return { presence: 'absent' }
+    return { presence: 'unknown' }
+  } catch (error) {
+    if (isProcessInterruptionError(error)) throw error
+    return { presence: 'unknown' }
+  }
+}
+
+export async function probePackagePresence(
+  packageName: string,
+  context?: ProviderOperationContext,
+): Promise<PackagePresenceProbe> {
+  return (await readPackagePresence(packageName, context)).presence
+}
+
+export async function getInstalledVersion(
+  packageName: string,
+  context?: ProviderOperationContext,
+): Promise<string | undefined> {
+  return (await readPackagePresence(packageName, context)).version
+}
+
+export function parsePipInstalledVersion(output: string): string | undefined {
+  for (const rawLine of output.split(/\r?\n/)) {
+    const match = /^Version:\s*(.+)\s*$/i.exec(rawLine.trim())
+    if (match?.[1]) return match[1].trim()
+  }
+  return undefined
+}
+
+function isPipPackageMissingMessage(stderr: string): boolean {
+  const normalized = stderr.toLowerCase()
+  return normalized.includes('package(s) not found') || normalized.includes('not found')
 }
