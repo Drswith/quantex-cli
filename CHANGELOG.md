@@ -2,6 +2,13 @@
 
 This changelog is maintained by release-please Release PRs.
 
+## [1.1.3](https://github.com/Drswith/quantex-cli/compare/v1.1.2...v1.1.3) (2026-07-20)
+
+
+### Bug Fixes
+
+* **lifecycle:** probe cargo/deno/pip/winget package presence for install verification and uninstall ([4508956](https://github.com/Drswith/quantex-cli/commit/45089565a5c6bfb873c209023f39c13a758367f3))
+
 ## [1.1.2](https://github.com/Drswith/quantex-cli/compare/v1.1.1...v1.1.2) (2026-07-19)
 
 
