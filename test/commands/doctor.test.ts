@@ -7,7 +7,7 @@ import { resetCliContext, setCliContext } from '../../src/cli-context'
 import { doctorCommand } from '../../src/commands/doctor'
 import { observeAgentLifecycle } from '../../src/lifecycle'
 import * as selfModule from '../../src/self'
-import * as lifecycleObservations from '../../src/services/lifecycle-observations'
+import * as coreReadObservations from '../../src/services/core-read-observations'
 import * as providerObservations from '../../src/services/provider-observations'
 import * as state from '../../src/state'
 import * as detect from '../../src/utils/detect'
@@ -28,7 +28,7 @@ const installedStateSpy = vi.spyOn(state, 'getInstalledAgentState')
 const installedVerSpy = vi.spyOn(version, 'getInstalledVersion')
 const latestVerSpy = vi.spyOn(version, 'getLatestVersion')
 const inspectSelfSpy = vi.spyOn(selfModule, 'inspectSelfReadOnly')
-const observeRegisteredAgentsSpy = vi.spyOn(lifecycleObservations, 'observeRegisteredAgents')
+const observeRegisteredAgentsSpy = vi.spyOn(coreReadObservations, 'observeCliReadRegisteredAgents')
 const providerSnapshotSpy = vi.spyOn(providerObservations, 'observeProviderSnapshot')
 
 afterAll(() => {

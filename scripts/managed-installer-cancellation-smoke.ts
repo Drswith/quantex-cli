@@ -2,7 +2,7 @@ import type { AgentDefinition } from '../src/agents'
 import { resetCliContext, setCliContext } from '../src/cli-context'
 import { executeCommandWithRuntime } from '../src/command-runtime'
 import { createErrorResult, createSuccessResult } from '../src/output'
-import { installAgent } from '../src/package-manager'
+import { installAgentOutcome } from '../src/package-manager'
 import { getInstalledAgentState } from '../src/state'
 
 const agent: AgentDefinition = {
@@ -31,13 +31,51 @@ try {
   const result = await executeCommandWithRuntime({
     action: 'install',
     run: async () => {
-      const install = await installAgent(agent)
+      // Assert interruption before the v1 boolean projection intentionally drops its typed cause.
+      const install = await installAgentOutcome(agent)
 
-      if (install.success) {
+      if (install.kind === 'success') {
         return createSuccessResult({
           action: 'install',
           data: {
             installed: true,
+          },
+          target: {
+            kind: 'agent',
+            name: agent.name,
+          },
+        })
+      }
+
+      if (install.kind === 'timed-out') {
+        return createErrorResult({
+          action: 'install',
+          data: {
+            installed: false,
+          },
+          error: {
+            code: 'TIMEOUT',
+            details: {
+              timeoutMs: install.timeoutMs,
+            },
+            message: `Managed installer timed out after ${install.timeoutMs}ms.`,
+          },
+          target: {
+            kind: 'agent',
+            name: agent.name,
+          },
+        })
+      }
+
+      if (install.kind === 'cancelled') {
+        return createErrorResult({
+          action: 'install',
+          data: {
+            installed: false,
+          },
+          error: {
+            code: 'CANCELLED',
+            message: 'Managed installer was cancelled.',
           },
           target: {
             kind: 'agent',

@@ -16,7 +16,7 @@ import { cliErrorCodes, getExitCodeForResult } from '../../src/errors'
 import * as packageManager from '../../src/package-manager'
 import * as bunPackageManager from '../../src/package-manager/bun'
 import * as legacyAgentsService from '../../src/services/agents'
-import * as lifecycleObservations from '../../src/services/lifecycle-observations'
+import * as coreReadObservations from '../../src/services/core-read-observations'
 import * as lifecycleUpdateProduction from '../../src/services/lifecycle-updates-production'
 import * as stateStore from '../../src/state'
 import { loadState, StateFileError } from '../../src/state'
@@ -447,14 +447,14 @@ function v1UpdateAgent() {
 }
 
 function installInspectResolveRouteSpies(
-  ...observations: Array<Awaited<ReturnType<typeof lifecycleObservations.resolveAgentObservation>>>
+  ...observations: Array<Awaited<ReturnType<typeof coreReadObservations.resolveCliReadObservation>>>
 ) {
   const queue = [...observations]
   return {
     legacy: vi
       .spyOn(legacyAgentsService, 'resolveAgentInspection')
       .mockRejectedValue(new Error('legacy inspect/resolve inspection must not run')),
-    resolve: vi.spyOn(lifecycleObservations, 'resolveAgentObservation').mockImplementation(async () => queue.shift()),
+    resolve: vi.spyOn(coreReadObservations, 'resolveCliReadObservation').mockImplementation(async () => queue.shift()),
   }
 }
 
@@ -480,8 +480,8 @@ function installObservationRouteSpies() {
     legacyList: vi
       .spyOn(legacyAgentsService, 'inspectRegisteredAgents')
       .mockRejectedValueOnce(new Error('legacy list inspection must not run')),
-    observe: vi.spyOn(lifecycleObservations, 'observeRegisteredAgents').mockResolvedValueOnce([observation]),
-    resolve: vi.spyOn(lifecycleObservations, 'resolveAgentObservation').mockResolvedValueOnce(observation),
+    observe: vi.spyOn(coreReadObservations, 'observeCliReadRegisteredAgents').mockResolvedValueOnce([observation]),
+    resolve: vi.spyOn(coreReadObservations, 'resolveCliReadObservation').mockResolvedValueOnce(observation),
   }
 }
 

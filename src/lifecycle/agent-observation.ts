@@ -2,15 +2,14 @@ import type { AgentDefinition, Platform } from '../agents'
 import type { ProviderOperation, ProviderOutcome, ProviderObservation, ProviderRegistry } from '../providers'
 import type { InstalledAgentState } from '../state'
 import type { LifecycleObservation, LifecycleReceipt } from './model'
-import { compareVersions } from '../utils/version'
+import { compareVersions } from '../utils/compare-versions'
 import {
   type LifecycleProviderBinding,
-  observeLifecycleProvider,
   providerBindingsEqual,
   resolveCatalogProviderEvidence,
   resolveReceiptProviderBinding,
   resolveStateProviderBinding,
-} from './provider-evidence'
+} from './provider-binding'
 
 export interface AgentExecutableObservation {
   readonly path?: string
@@ -317,10 +316,24 @@ async function observeProvider(
   ports: AgentLifecycleObservationPorts,
 ): Promise<ProviderOutcome<ProviderObservation>> {
   try {
-    return await (ports.observeProvider ?? observeLifecycleProvider)(binding, {
-      registry: ports.providerRegistry,
-      signal: ports.signal,
-      timeoutMs: ports.timeoutMs,
+    if (ports.observeProvider) {
+      return await ports.observeProvider(binding, {
+        registry: ports.providerRegistry,
+        signal: ports.signal,
+        timeoutMs: ports.timeoutMs,
+      })
+    }
+    const adapter = ports.providerRegistry.get(binding.providerId)
+    if (!adapter) {
+      return {
+        kind: 'unavailable',
+        reason: `Provider ${binding.providerId} is not registered.`,
+        retryable: false,
+      }
+    }
+    return await adapter.observe({
+      context: { signal: ports.signal, timeoutMs: ports.timeoutMs },
+      target: binding.target,
     })
   } catch (error) {
     return {

@@ -72,6 +72,30 @@ describe('path taxonomy', () => {
     })
   })
 
+  it('treats Core package sources as product-impacting and sandbox-relevant', () => {
+    expect(classifyChangedFiles(['packages/core/src/index.ts'])).toEqual({
+      changedFiles: ['packages/core/src/index.ts'],
+      processOnly: false,
+      productImpacting: true,
+      productImpactingFiles: ['packages/core/src/index.ts'],
+      sandboxRelevant: true,
+      sandboxRelevantFiles: ['packages/core/src/index.ts'],
+      runTestMatrix: true,
+      scope: 'product-impacting',
+    })
+  })
+
+  it('treats Core package manifests and build configuration as product-impacting', () => {
+    const classification = classifyChangedFiles(['packages/core/package.json', 'packages/core/tsdown.config.ts'])
+
+    expect(classification.productImpacting).toBe(true)
+    expect(classification.productImpactingFiles).toEqual([
+      'packages/core/package.json',
+      'packages/core/tsdown.config.ts',
+    ])
+    expect(classification.runTestMatrix).toBe(true)
+  })
+
   it('exposes stable product-impacting and process-only predicates', () => {
     expect(isProductImpactingPath('scripts/path-taxonomy.ts')).toBe(true)
     expect(isProductImpactingPath('docs/README.md')).toBe(false)
@@ -80,6 +104,8 @@ describe('path taxonomy', () => {
     expect(isSandboxRelevantPath('.github/workflows/sandbox-tests.yml')).toBe(true)
     expect(isSandboxRelevantPath('scripts/deno-lifecycle-smoke.ts')).toBe(true)
     expect(isSandboxRelevantPath('scripts/uv-lifecycle-smoke.ts')).toBe(true)
+    expect(isProductImpactingPath('packages/core/src/client.ts')).toBe(true)
+    expect(isSandboxRelevantPath('packages/core/src/client.ts')).toBe(true)
     expect(isSandboxRelevantPath('.github/workflows/ci.yml')).toBe(false)
   })
 })
