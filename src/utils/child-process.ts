@@ -1,10 +1,12 @@
-import type { ProviderOperationContext, ProviderOutputPolicy } from '../providers'
+import type { ProviderOperationContext } from '../providers'
+import type { ProviderOutputPolicy } from '../providers/internal-operation-context'
 import crossSpawn from 'cross-spawn'
 import { spawn, type ChildProcess, type SpawnOptions as NodeSpawnOptions } from 'node:child_process'
 import { accessSync, constants } from 'node:fs'
 import { delimiter, join } from 'node:path'
 import process from 'node:process'
 import { text as readText } from 'node:stream/consumers'
+import { getProviderOutputPolicy } from '../providers/internal-operation-context'
 
 export type SpawnCommand = readonly string[]
 type SpawnStdio = 'ignore' | 'inherit' | 'pipe'
@@ -93,7 +95,7 @@ export function runCommandWithContext(
   context: ProviderOperationContext,
   options: SpawnOptions = {},
 ): Promise<number> {
-  const handle = spawnWithOutputPolicy(command, context.outputPolicy ?? 'discard', options)
+  const handle = spawnWithOutputPolicy(command, getProviderOutputPolicy(context), options)
   return waitForSpawnedCommandWithContext(handle, context)
 }
 

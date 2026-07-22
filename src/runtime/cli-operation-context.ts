@@ -1,5 +1,6 @@
 import type { OutputMode } from '../cli-context'
-import type { ProviderOperationContext, ProviderOutputPolicy, ProviderResourceCleanup } from '../providers'
+import type { ProviderResourceCleanup } from '../providers'
+import type { ProviderOutputPolicy, ProviderProcessOperationContext } from '../providers/internal-operation-context'
 import { getCliContext, registerCliCancellationHandler } from '../cli-context'
 import { ProcessInterruptionError } from '../utils/child-process'
 
@@ -7,7 +8,7 @@ const CLEANUP_GRACE_MS = 500
 const FORCE_GRACE_MS = 250
 
 export interface CliOperationContext {
-  readonly context: ProviderOperationContext
+  readonly context: ProviderProcessOperationContext
   dispose(): void
   run<T>(invoke: () => Promise<T>): Promise<T>
 }

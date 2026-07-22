@@ -11,7 +11,6 @@ vi.mock('../../src/utils/child-process', async importOriginal => {
 })
 
 const context: ProviderOperationContext = {
-  outputPolicy: 'discard',
   signal: new AbortController().signal,
   timeoutMs: 5_000,
 }

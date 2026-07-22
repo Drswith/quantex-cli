@@ -2,6 +2,7 @@ import type { AgentDefinition, InstallMethod, ManagedInstallType } from '../agen
 import type { NpmBunUpdateStrategy } from '../config'
 import type { LifecycleOutcome } from '../lifecycle/model'
 import type { ProviderOperationContext } from '../providers'
+import type { ProviderProcessOperationContext } from '../providers/internal-operation-context'
 import type { InstalledAgentState } from '../state'
 import type { ManagedInstallerUpdateOptions, ManagedMutationOutcome, ManagedPackageSpec } from './installers'
 import { AsyncLocalStorage } from 'node:async_hooks'
@@ -541,7 +542,7 @@ export async function rollbackInstalledAgentInstallation(
   )
 }
 
-function createCompensationContext(): ProviderOperationContext {
+function createCompensationContext(): ProviderProcessOperationContext {
   const cliContext = getCliContext()
   const timeoutMs = cliContext.timeoutMs
   return {
