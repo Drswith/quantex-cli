@@ -11,7 +11,7 @@
 - [x] 2.1 Include the integration branch in CI, release-verification, and Sandbox trigger classification without widening protected release targets
 - [x] 2.2 Make Linux, macOS, and Windows validation explicit for Core routing promotion and stop treating skipped Windows PR coverage as sufficient
 - [x] 2.3 Add semantic compile coverage for every maintained root export before changing declaration generation; keep the existing v1 fixtures unchanged
-- [ ] 2.4 Add released N/N-1 state and idempotency compatibility fixtures covering old-to-new and new-to-old-to-new reads and mutations with schema version 2
+- [x] 2.4 Add released N/N-1 state and idempotency compatibility fixtures covering old-to-new and new-to-old-to-new reads and mutations with schema version 2
 - [ ] 2.5 Add a test-only legacy/Core differential harness that compares observations, typed outcomes, state deltas, receipts, and v1 CLI projections without production shadow mutations
 - [ ] 2.6 Extend first-party provider conformance to cover relevant observe, mutate, verify, unknown, cancellation, timeout, and compensation behavior before each provider path migrates
 
