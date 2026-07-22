@@ -19,8 +19,8 @@ vi.mock('../../src/utils/child-process', async importOriginal => {
   }
 })
 
-vi.mock('../../src/package-manager/mutation-outcome', async importOriginal => {
-  const actual = await importOriginal<typeof import('../../src/package-manager/mutation-outcome')>()
+vi.mock('../../src/package-manager/context-mutation', async importOriginal => {
+  const actual = await importOriginal<typeof import('../../src/package-manager/context-mutation')>()
   return {
     ...actual,
     runPackageMutationOutcome: mutationRun,

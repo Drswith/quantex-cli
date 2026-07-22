@@ -1,4 +1,5 @@
-import type { ProviderOperationContext, ProviderResourceCleanup } from '../providers'
+import type { OutputMode } from '../cli-context'
+import type { ProviderOperationContext, ProviderOutputPolicy, ProviderResourceCleanup } from '../providers'
 import { getCliContext, registerCliCancellationHandler } from '../cli-context'
 import { ProcessInterruptionError } from '../utils/child-process'
 
@@ -27,6 +28,7 @@ export function createCliOperationContext(): CliOperationContext {
 
   return {
     context: {
+      outputPolicy: resolveCliProviderOutputPolicy(cliContext.outputMode),
       registerCleanup(cleanup): () => void {
         cleanups.add(cleanup)
         return () => cleanups.delete(cleanup)
@@ -52,6 +54,10 @@ export function createCliOperationContext(): CliOperationContext {
       }
     },
   }
+}
+
+export function resolveCliProviderOutputPolicy(outputMode: OutputMode): ProviderOutputPolicy {
+  return outputMode === 'human' ? 'inherit' : 'stderr'
 }
 
 function cancelledError(signal: AbortSignal): ProcessInterruptionError {

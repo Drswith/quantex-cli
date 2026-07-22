@@ -1,15 +1,14 @@
-import type { ProviderOperationContext } from '../providers'
+import type { ProviderOperationContext, ProviderOutputPolicy } from '../providers'
 import crossSpawn from 'cross-spawn'
 import { spawn, type ChildProcess, type SpawnOptions as NodeSpawnOptions } from 'node:child_process'
 import { accessSync, constants } from 'node:fs'
 import { delimiter, join } from 'node:path'
 import process from 'node:process'
 import { text as readText } from 'node:stream/consumers'
-import { getCliContext, registerCliCancellationHandler } from '../cli-context'
 
 export type SpawnCommand = readonly string[]
 type SpawnStdio = 'ignore' | 'inherit' | 'pipe'
-type SpawnOptions = Omit<NodeSpawnOptions, 'shell' | 'stdio'> & {
+export type SpawnOptions = Omit<NodeSpawnOptions, 'shell' | 'stdio'> & {
   stdio?: [SpawnStdio, SpawnStdio, SpawnStdio]
 }
 
@@ -57,14 +56,18 @@ export function isProcessInterruptionError(error: unknown): error is ProcessInte
   return error instanceof ProcessInterruptionError
 }
 
-export function spawnWithQuantexStdio(command: SpawnCommand, options: SpawnOptions = {}): SpawnHandle {
-  if (getCliContext().outputMode === 'human') {
+export function spawnWithOutputPolicy(
+  command: SpawnCommand,
+  outputPolicy: ProviderOutputPolicy,
+  options: SpawnOptions = {},
+): SpawnHandle {
+  if (outputPolicy === 'inherit') {
     const proc = spawnCommand(command, {
       ...options,
       stdio: ['inherit', 'inherit', 'inherit'] as const,
     })
     return {
-      cleanup: registerCliCancellationHandler(() => terminateManagedProcess(proc)),
+      cleanup: () => undefined,
       outputDrained: Promise.resolve(),
       proc,
     }
@@ -72,26 +75,26 @@ export function spawnWithQuantexStdio(command: SpawnCommand, options: SpawnOptio
 
   const proc = spawnCommand(command, {
     ...options,
-    stdio: ['ignore', 'pipe', 'pipe'] as const,
+    stdio: outputPolicy === 'stderr' ? ['ignore', 'pipe', 'pipe'] : ['ignore', 'ignore', 'ignore'],
   })
 
   return {
-    cleanup: registerCliCancellationHandler(() => terminateManagedProcess(proc)),
-    outputDrained: Promise.all([forwardToStderr(proc.stdout), forwardToStderr(proc.stderr)]).then(() => undefined),
+    cleanup: () => undefined,
+    outputDrained:
+      outputPolicy === 'stderr'
+        ? Promise.all([forwardToStderr(proc.stdout), forwardToStderr(proc.stderr)]).then(() => undefined)
+        : Promise.resolve(),
     proc,
   }
 }
 
-export async function waitForSpawnedCommand(handle: SpawnHandle): Promise<number> {
-  const context = getCliContext()
-  try {
-    const exitCode = await handle.proc.exited
-    await handle.outputDrained
-    if (context.cancelled) return 1
-    return exitCode
-  } finally {
-    handle.cleanup()
-  }
+export function runCommandWithContext(
+  command: SpawnCommand,
+  context: ProviderOperationContext,
+  options: SpawnOptions = {},
+): Promise<number> {
+  const handle = spawnWithOutputPolicy(command, context.outputPolicy ?? 'discard', options)
+  return waitForSpawnedCommandWithContext(handle, context)
 }
 
 export async function waitForSpawnedCommandWithContext(
@@ -322,13 +325,8 @@ function spawnWithBun(
   }
 }
 
-async function terminateManagedProcess(proc: SpawnedProcessHandle): Promise<void> {
-  await terminateProcessTree(proc)
-}
-
 export async function terminateProcessTree(proc: SpawnedProcessHandle, requestedGraceMs?: number): Promise<void> {
-  if (process.platform === 'win32' && proc.pid !== undefined)
-    await runWithDeadline(terminateWindowsProcessTree(proc.pid), 2_000)
+  if (process.platform === 'win32' && proc.pid !== undefined) await terminateWindowsProcessTree(proc.pid, spawn, 2_000)
 
   signalProcessTree(proc, 'SIGTERM')
 
@@ -353,8 +351,7 @@ export async function terminateProcessTree(proc: SpawnedProcessHandle, requested
 }
 
 export async function forceTerminateProcessTree(proc: SpawnedProcessHandle): Promise<void> {
-  if (process.platform === 'win32' && proc.pid !== undefined)
-    await runWithDeadline(terminateWindowsProcessTree(proc.pid), 250)
+  if (process.platform === 'win32' && proc.pid !== undefined) await terminateWindowsProcessTree(proc.pid, spawn, 250)
   signalProcessTree(proc, 'SIGKILL')
   await runWithDeadline(
     proc.exited.then(() => undefined).catch(() => undefined),
@@ -379,14 +376,37 @@ function signalProcessTree(proc: SpawnedProcessHandle, signal: NodeJS.Signals): 
   }
 }
 
-export async function terminateWindowsProcessTree(pid: number, spawnProcess: typeof spawn = spawn): Promise<void> {
+export async function terminateWindowsProcessTree(
+  pid: number,
+  spawnProcess: typeof spawn = spawn,
+  timeoutMs = 2_000,
+): Promise<void> {
   await new Promise<void>(resolve => {
     const killer = spawnProcess('taskkill.exe', ['/PID', String(pid), '/T', '/F'], {
       stdio: ['ignore', 'ignore', 'ignore'],
       windowsHide: true,
     })
-    killer.once('error', () => resolve())
-    killer.once('close', () => resolve())
+    let settled = false
+    let timeout: ReturnType<typeof setTimeout> | undefined
+    const finish = (): void => {
+      if (settled) return
+      settled = true
+      if (timeout) clearTimeout(timeout)
+      resolve()
+    }
+    killer.once('error', finish)
+    killer.once('close', finish)
+    timeout = setTimeout(
+      () => {
+        try {
+          killer.kill('SIGKILL')
+        } catch {
+          // Bounded direct termination of the owned child follows in the caller.
+        }
+        finish()
+      },
+      Math.max(10, timeoutMs),
+    )
   })
 }
 

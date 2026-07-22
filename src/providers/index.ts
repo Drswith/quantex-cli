@@ -20,6 +20,7 @@ export {
   type ProviderOptionalOperation,
   type ProviderOperation,
   type ProviderOperationContext,
+  type ProviderOutputPolicy,
   type ProviderOutcome,
   type ProviderResolvedVersion,
   type ProviderResourceCleanup,

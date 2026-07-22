@@ -28,7 +28,10 @@ export interface ProviderTarget {
   readonly kind: ProviderTargetKind
 }
 
+export type ProviderOutputPolicy = 'discard' | 'inherit' | 'stderr'
+
 export interface ProviderOperationContext {
+  readonly outputPolicy?: ProviderOutputPolicy
   readonly registerCleanup?: (cleanup: ProviderResourceCleanup) => () => void
   readonly signal: AbortSignal
   readonly timeoutMs?: number

@@ -9,12 +9,12 @@ import { cancelCliContextOperations, setCliContext } from '../../src/cli-context
 import {
   readProcessOutputWithContext,
   readProcessOutput,
+  runCommandWithContext,
   shouldUseCrossSpawnOnWindows,
   spawnCommand,
-  spawnWithQuantexStdio,
   terminateWindowsProcessTree,
-  waitForSpawnedCommand,
 } from '../../src/utils/child-process'
+import { spawnWithQuantexStdio, waitForSpawnedCommand } from '../../src/utils/cli-child-process'
 
 const mockSpawn = vi.fn()
 const crossSpawnOverride = vi.hoisted(() => vi.fn())
@@ -130,6 +130,31 @@ describe('spawnWithQuantexStdio', () => {
     )
     expect(stderrWriteSpy).toHaveBeenCalledWith('installer stdout')
     expect(stderrWriteSpy).toHaveBeenCalledWith('installer stderr')
+  })
+
+  it('defaults context-native commands to discarded output and registers cleanup before yielding', async () => {
+    const unregisterCleanup = vi.fn()
+    const registerCleanup = vi.fn(() => unregisterCleanup)
+    mockSpawn.mockReturnValue({
+      exited: Promise.resolve(),
+      exitCode: 0,
+    })
+
+    const completion = runCommandWithContext(['npm', '--version'], {
+      registerCleanup,
+      signal: new AbortController().signal,
+    })
+
+    expect(mockSpawn).toHaveBeenCalledWith(
+      ['npm', '--version'],
+      expect.objectContaining({
+        stdio: ['ignore', 'ignore', 'ignore'],
+      }),
+    )
+    expect(registerCleanup).toHaveBeenCalledOnce()
+    expect(stderrWriteSpy).not.toHaveBeenCalled()
+    await expect(completion).resolves.toBe(0)
+    expect(unregisterCleanup).toHaveBeenCalledOnce()
   })
 
   it('kills registered child processes when the cli context is cancelled', async () => {
@@ -257,5 +282,17 @@ describe('context-aware process observations', () => {
     expect(calls).toEqual([
       ['taskkill.exe', ['/PID', '42', '/T', '/F'], { stdio: ['ignore', 'ignore', 'ignore'], windowsHide: true }],
     ])
+  })
+
+  it('terminates a stalled taskkill helper within its cleanup deadline', async () => {
+    const kill = vi.fn(() => true)
+    const spawnProcess = (() =>
+      Object.assign(new EventEmitter(), { kill })) as unknown as typeof import('node:child_process').spawn
+    const startedAt = Date.now()
+
+    await terminateWindowsProcessTree(42, spawnProcess, 10)
+
+    expect(kill).toHaveBeenCalledWith('SIGKILL')
+    expect(Date.now() - startedAt).toBeLessThan(100)
   })
 })

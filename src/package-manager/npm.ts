@@ -1,6 +1,6 @@
 import type { ProviderOperationContext } from '../providers'
 import type { RegistryUpdateStrategy } from './bun'
-import type { PackageMutationOutcome } from './mutation-outcome'
+import type { PackageMutationOutcome } from './context-mutation'
 import {
   readProcessOutput,
   readProcessOutputWithContext,
@@ -8,7 +8,8 @@ import {
   spawnCommand,
 } from '../utils/child-process'
 import { normalizeRegistryUrl } from '../utils/registry'
-import { projectLegacyPackageMutation, runPackageMutationOutcome } from './mutation-outcome'
+import { runPackageMutationOutcome } from './context-mutation'
+import { projectLegacyPackageMutation } from './mutation-outcome'
 
 export async function install(packageName: string, distTag?: string, registry?: string): Promise<boolean> {
   return projectLegacyPackageMutation(context => installOutcome(packageName, distTag, registry, context))

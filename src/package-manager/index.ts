@@ -8,7 +8,7 @@ import { AsyncLocalStorage } from 'node:async_hooks'
 import { getCliContext } from '../cli-context'
 import { loadConfig } from '../config'
 import { binaryProviderAdapter, scriptProviderAdapter } from '../providers/adapters/install-effect'
-import { createCliOperationContext } from '../runtime/cli-operation-context'
+import { createCliOperationContext, resolveCliProviderOutputPolicy } from '../runtime/cli-operation-context'
 import { getInstalledAgentState, removeInstalledAgentState, setInstalledAgentState } from '../state'
 import { getPlatform } from '../utils/detect'
 import {
@@ -542,8 +542,10 @@ export async function rollbackInstalledAgentInstallation(
 }
 
 function createCompensationContext(): ProviderOperationContext {
-  const timeoutMs = getCliContext().timeoutMs
+  const cliContext = getCliContext()
+  const timeoutMs = cliContext.timeoutMs
   return {
+    outputPolicy: resolveCliProviderOutputPolicy(cliContext.outputMode),
     signal: new AbortController().signal,
     timeoutMs: timeoutMs === undefined ? 5_000 : Math.max(10, Math.min(timeoutMs, 5_000)),
   }
