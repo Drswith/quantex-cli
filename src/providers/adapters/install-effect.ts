@@ -40,6 +40,34 @@ export function createInstallEffectProviderAdapter<Id extends 'binary' | 'script
     ...overrides,
     contextualExecution: overrides.execute ? (overrides.contextualExecution ?? false) : true,
   }
+  const observe: ProviderAdapter['observe'] = async request => {
+    const binaryName = request.target.binaryName
+    if (!binaryName) {
+      return {
+        evidence: [{ kind: 'provider', value: `${id}:${request.target.id}:presence-unknown` }],
+        kind: 'indeterminate',
+        reason: `${id} candidate does not declare an executable presence probe`,
+      }
+    }
+    const operation = await runPendingOperation(request.context, () => dependencies.isExecutablePresent(binaryName))
+    if (isInterruptedOperation(operation)) return interruptedOutcome(operation)
+    if (operation.kind === 'rejected') {
+      return {
+        kind: 'failed',
+        reason: `${id} executable probe failed for ${request.target.id}: ${operation.reason}`,
+        retryable: true,
+      }
+    }
+    return {
+      kind: 'success',
+      value: {
+        evidence: [{ kind: 'executable', value: binaryName }],
+        kind: operation.value ? 'present' : 'absent',
+        target: request.target,
+      },
+    }
+  }
+
   return {
     availability: async context => availableShell(context),
     id,
@@ -83,30 +111,25 @@ export function createInstallEffectProviderAdapter<Id extends 'binary' | 'script
 
       return { kind: 'success', value: { evidence, target: request.target } }
     },
-    observe: async request => {
-      const binaryName = request.target.binaryName
-      if (!binaryName) {
+    observe,
+    verify: async request => {
+      const observation = await observe(request)
+      if (observation.kind !== 'success') return observation
+      if (observation.value.kind === 'absent') {
         return {
-          evidence: [{ kind: 'provider', value: `${id}:${request.target.id}:presence-unknown` }],
-          kind: 'indeterminate',
-          reason: `${id} candidate does not declare an executable presence probe`,
-        }
-      }
-      const operation = await runPendingOperation(request.context, () => dependencies.isExecutablePresent(binaryName))
-      if (isInterruptedOperation(operation)) return interruptedOutcome(operation)
-      if (operation.kind === 'rejected') {
-        return {
-          kind: 'failed',
-          reason: `${id} executable probe failed for ${request.target.id}: ${operation.reason}`,
-          retryable: true,
+          kind: 'success',
+          value: {
+            evidence: observation.value.evidence ?? [],
+            kind: 'unsatisfied',
+            reason: `${request.target.id} is not installed through ${id}`,
+          },
         }
       }
       return {
         kind: 'success',
         value: {
-          evidence: [{ kind: 'executable', value: binaryName }],
-          kind: operation.value ? 'present' : 'absent',
-          target: request.target,
+          evidence: observation.value.evidence ?? [],
+          kind: 'satisfied',
         },
       }
     },

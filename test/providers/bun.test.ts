@@ -59,6 +59,7 @@ describeProviderConformance('Bun provider', () => {
     install: mutation(false),
     isAvailable: vi.fn(async () => false),
     resolveLatestVersion: vi.fn(() => new Promise<undefined>(() => {})),
+    update: pendingMutation(),
   })
   const adapter = createBunProviderAdapter(dependencies)
 
@@ -90,9 +91,17 @@ describeProviderConformance('Bun provider', () => {
         target,
         version: '1.2.3',
       },
+      successfulMutation: {
+        expected: {
+          evidence: [providerEvidence, { kind: 'command', value: `bun remove -g ${target.id}` }],
+          target,
+        },
+        invoke: (requestedAdapter, requestedContext, requestedTarget) =>
+          requestedAdapter.uninstall?.({ context: requestedContext, target: requestedTarget }),
+      },
       timedOut: {
         invoke: (requestedAdapter, requestedContext, requestedTarget) =>
-          requestedAdapter.resolveLatestVersion?.({ context: requestedContext, target: requestedTarget }),
+          requestedAdapter.update?.({ context: requestedContext, target: requestedTarget }),
         timeoutMs: 2,
       },
       unavailable: {

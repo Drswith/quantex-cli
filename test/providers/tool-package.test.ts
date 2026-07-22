@@ -39,6 +39,7 @@ function conformance(
   target: ProviderTarget,
   createAdapter: (dependencies: SystemPackageAdapterDependencies) => ProviderAdapter,
   installCommand: readonly string[],
+  uninstallCommand: readonly string[],
 ): void {
   describeProviderConformance(`${id} provider`, () => {
     const adapter = createAdapter(
@@ -54,7 +55,8 @@ function conformance(
       cases: {
         absentEvidence: { kind: 'package', value: `${id}:${target.id}-absent:absent` },
         absentTarget: { ...target, id: `${target.id}-absent` },
-        cancelled: (subject, signalContext) => subject.availability(signalContext),
+        cancelled: (subject, signalContext, requestedTarget) =>
+          subject.update?.({ context: signalContext, target: requestedTarget }),
         failed: {
           expected: {
             command: installCommand,
@@ -75,6 +77,17 @@ function conformance(
           target: { ...target, id: `${target.id}-unknown` },
         },
         present: { evidence: presentEvidence, target },
+        successfulMutation: {
+          expected: {
+            evidence: [
+              { kind: 'provider', value: id },
+              { kind: 'command', value: uninstallCommand.join(' ') },
+            ],
+            target,
+          },
+          invoke: (subject, signalContext, requestedTarget) =>
+            subject.uninstall?.({ context: signalContext, target: requestedTarget }),
+        },
         timedOut: {
           invoke: (subject, signalContext, requestedTarget) =>
             subject.update?.({ context: signalContext, target: requestedTarget }),
@@ -101,16 +114,22 @@ const denoTarget: ProviderTarget = {
   kind: 'tool',
 }
 
-conformance('cargo', 'Cargo', cargoTarget, createCargoProviderAdapter, ['cargo', 'install', 'some-crate', '--locked'])
-conformance('deno', 'Deno', denoTarget, createDenoProviderAdapter, [
+conformance(
+  'cargo',
+  'Cargo',
+  cargoTarget,
+  createCargoProviderAdapter,
+  ['cargo', 'install', 'some-crate', '--locked'],
+  ['cargo', 'uninstall', 'some-crate'],
+)
+conformance(
   'deno',
-  'install',
-  '--global',
-  '--allow-net',
-  '--name',
-  'tool-bin',
-  'jsr:@scope/tool',
-])
+  'Deno',
+  denoTarget,
+  createDenoProviderAdapter,
+  ['deno', 'install', '--global', '--allow-net', '--name', 'tool-bin', 'jsr:@scope/tool'],
+  ['deno', 'uninstall', '--global', 'tool-bin'],
+)
 
 describe('Cargo and Deno provider semantics', () => {
   it('preserves Cargo install arguments and forced update ordering', async () => {

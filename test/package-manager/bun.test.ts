@@ -126,8 +126,8 @@ describe('bun install', () => {
     expect(mockSpawn).toHaveBeenNthCalledWith(4, ['bun', 'pm', '-g', 'trust', 'some-package'], expect.any(Object))
   })
 
-  it('rolls back install when trust fails for a newly added package', async () => {
-    const { install } = await import('../../src/package-manager/bun')
+  it('returns the typed trust failure and compensates only a newly added package', async () => {
+    const { installOutcome } = await import('../../src/package-manager/bun')
     mockSpawn
       .mockReturnValueOnce(createProc(0, '', 'No package.json was found for directory'))
       .mockReturnValueOnce(createProc(0))
@@ -135,21 +135,43 @@ describe('bun install', () => {
       .mockReturnValueOnce(createProc(1))
       .mockReturnValueOnce(createProc(0))
 
-    expect(await install('some-package')).toBe(false)
+    expect(
+      await installOutcome('some-package', undefined, undefined, {
+        signal: new AbortController().signal,
+        timeoutMs: 5_000,
+      }),
+    ).toEqual({
+      command: ['bun', 'pm', '-g', 'trust', 'some-package'],
+      exitCode: 1,
+      kind: 'failed',
+      reason: 'bun trust failed',
+      retryable: false,
+    })
     expect(mockSpawn).toHaveBeenNthCalledWith(4, ['bun', 'pm', '-g', 'trust', 'some-package'], expect.any(Object))
     expect(mockSpawn).toHaveBeenNthCalledWith(5, ['bun', 'remove', '-g', 'some-package'], expect.any(Object))
     expect(mockSpawn).toHaveBeenCalledTimes(5)
   })
 
-  it('preserves an already-present package when trust fails after add', async () => {
-    const { install } = await import('../../src/package-manager/bun')
+  it('returns the typed trust failure without compensating a pre-existing package', async () => {
+    const { installOutcome } = await import('../../src/package-manager/bun')
     mockSpawn
       .mockReturnValueOnce(createProc(0, '├── some-package@1.0.0\n'))
       .mockReturnValueOnce(createProc(0))
       .mockReturnValueOnce(createProc(0, './node_modules/some-package @1.0.0\n » [postinstall]: node install.cjs\n'))
       .mockReturnValueOnce(createProc(1))
 
-    expect(await install('some-package')).toBe(false)
+    expect(
+      await installOutcome('some-package', undefined, undefined, {
+        signal: new AbortController().signal,
+        timeoutMs: 5_000,
+      }),
+    ).toEqual({
+      command: ['bun', 'pm', '-g', 'trust', 'some-package'],
+      exitCode: 1,
+      kind: 'failed',
+      reason: 'bun trust failed',
+      retryable: false,
+    })
     expect(mockSpawn).toHaveBeenNthCalledWith(4, ['bun', 'pm', '-g', 'trust', 'some-package'], expect.any(Object))
     expect(mockSpawn.mock.calls.some(([command]) => command[1] === 'remove')).toBe(false)
     expect(mockSpawn).toHaveBeenCalledTimes(4)
