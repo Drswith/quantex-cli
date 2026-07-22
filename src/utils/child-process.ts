@@ -383,33 +383,36 @@ export async function terminateWindowsProcessTree(
   spawnProcess: typeof spawn = spawn,
   timeoutMs = 2_000,
 ): Promise<void> {
-  await new Promise<void>(resolve => {
-    const killer = spawnProcess('taskkill.exe', ['/PID', String(pid), '/T', '/F'], {
-      stdio: ['ignore', 'ignore', 'ignore'],
-      windowsHide: true,
-    })
-    let settled = false
-    let timeout: ReturnType<typeof setTimeout> | undefined
-    const finish = (): void => {
-      if (settled) return
-      settled = true
-      if (timeout) clearTimeout(timeout)
-      resolve()
-    }
-    killer.once('error', finish)
-    killer.once('close', finish)
-    timeout = setTimeout(
-      () => {
-        try {
-          killer.kill('SIGKILL')
-        } catch {
-          // Bounded direct termination of the owned child follows in the caller.
-        }
-        finish()
-      },
-      Math.max(10, timeoutMs),
-    )
+  const killer = spawnProcess('taskkill.exe', ['/PID', String(pid), '/T', '/F'], {
+    stdio: ['ignore', 'ignore', 'ignore'],
+    windowsHide: true,
   })
+  let timeout: ReturnType<typeof setTimeout> | undefined
+  let onClose!: () => void
+  let onError!: () => void
+  const outcome = await Promise.race([
+    new Promise<'finished'>(resolve => {
+      onClose = () => resolve('finished')
+      killer.once('close', onClose)
+    }),
+    new Promise<'finished'>(resolve => {
+      onError = () => resolve('finished')
+      killer.once('error', onError)
+    }),
+    new Promise<'timed-out'>(resolve => {
+      timeout = setTimeout(() => resolve('timed-out'), Math.max(10, timeoutMs))
+    }),
+  ])
+  if (timeout) clearTimeout(timeout)
+  killer.removeListener('close', onClose)
+  killer.removeListener('error', onError)
+  if (outcome === 'timed-out') {
+    try {
+      killer.kill('SIGKILL')
+    } catch {
+      // Bounded direct termination of the owned child follows in the caller.
+    }
+  }
 }
 
 async function runWithDeadline(work: Promise<void>, timeoutMs: number): Promise<void> {
