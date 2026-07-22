@@ -9,7 +9,7 @@
 
 ## Agent Quickstart
 
-1. 如果当前 agent 环境可用，先激活 Superpowers，再读取 `skills/quantex-agent-runtime/SKILL.md`。
+1. 先读取 `skills/quantex-agent-runtime/SKILL.md`，再按其仓库内流程启动任务。
 2. 分类当前请求，判断是否触发 OpenSpec intake gate。
 3. 只要改动 observable behavior、durable workflow、project memory 或 product-facing docs，就先选择或创建 OpenSpec change。
 4. 用 `bun run openspec:status -- --change <id>` 和 `bun run openspec:instructions -- <artifact> --change <id>` 确认下一步。
@@ -20,7 +20,7 @@
 ## Must
 
 - 实现前先过 intake gate；用户说“直接开始”或“做到闭环”为授权推进，不是授权跳过流程。
-- 跨 agent session 行为默认由 Superpowers + `skills/quantex-agent-runtime/SKILL.md` 承载；OpenSpec 仍是变更契约 source of truth。
+- 跨 agent session 行为默认由 `skills/quantex-agent-runtime/SKILL.md` 承载；OpenSpec 仍是变更契约 source of truth。
 - 非平凡行为或 durable-process 改动必须先有 OpenSpec change，再做文件编辑。
 - GitHub Discussion 不是长期依据；要把结论提升为 issue、OpenSpec、ADR、runbook 或 session summary。
 - `AGENTS.md` 必须保持薄且高信号：只内联立即影响执行的规则，把易漂移细节指向 source of truth。
@@ -30,8 +30,8 @@
 
 - 不要把 Quantex 主线扩展成 workflow orchestration platform。
 - 不要因为用户催促、测试通过或任务勾选完成，就跳过 commit / push / PR / archive closure 检查。
-- 不要重新在各 agent 目录复制完整 OPSX workflow；只保留薄 bootstrap，具体规则走 central runtime skill 和 OpenSpec。
-- 不要新增 `pr:create` 等 repo-local workflow 包装命令；优先使用 Superpowers/runtime 指令、OpenSpec、GitHub Actions、原生 CLI 和窄验证器。
+- 不要重新在各 agent 目录复制完整 workflow；只保留薄 bootstrap，具体规则走 central runtime skill 和 OpenSpec。
+- 不要新增 `pr:create` 等 repo-local workflow 包装命令；优先使用 central runtime 指令、OpenSpec、GitHub Actions、原生 CLI 和窄验证器。
 - 不要在 `AGENTS.md` 里复制大段目录树、类型定义、完整命令表或其他易漂移内容。
 - 不要新建 ad hoc root-level markdown；先把内容归类到 `openspec/` 或 `docs/`。
 
@@ -74,7 +74,7 @@ bun run release:artifacts
 - agent registry/catalog fields、install methods、update strategy 或 version probing
 - configuration、state、cache、release、publishing 或 upgrade behavior
 - architecture boundaries，如 `core`、`surface`、services、package-manager、self-upgrade
-- project memory policy、durable workflow、OPSX/OpenSpec rules、ADR/runbook process、GitHub collaboration flow
+- project memory policy、durable workflow、OpenSpec rules、ADR/runbook process、GitHub collaboration flow
 - product-facing documentation that changes how users understand installation、commands、release 或 agent-facing usage
 
 只有这些情况可以不走 OpenSpec：

@@ -63,7 +63,7 @@ npm exec --yes --package quantex-cli -- qtx schema --json
 如果 agent 正在这个仓库内参与开发，请把下面这段作为启动提示：
 
 ```text
-Activate Superpowers if available, then read AGENTS.md, openspec/README.md, skills/quantex-agent-runtime/SKILL.md, and skills/quantex-cli/SKILL.md.
+Read AGENTS.md, openspec/README.md, skills/quantex-agent-runtime/SKILL.md, and skills/quantex-cli/SKILL.md.
 For non-trivial changes, use OpenSpec through the Quantex agent runtime.
 Before finishing, run bun run lint, bun run format:check, and bun run typecheck.
 If command behavior changed, also run bun run test.
@@ -284,7 +284,7 @@ Quantex 使用 release-please 维护 Release PR，发布说明以 GitHub Release
 
 - [AGENTS.md](./AGENTS.md)：仓库级 agent 执行手册，包含流程守卫、验证门槛和 trigger-based pointers。
 - [docs/README.md](./docs/README.md)：ADR、runbook、session、postmortem 等项目文档入口。
-- [openspec/README.md](./openspec/README.md)：OpenSpec / OPSX 变更流程。
+- [openspec/README.md](./openspec/README.md)：OpenSpec 变更流程。
 - [docs/github-collaboration.md](./docs/github-collaboration.md)：Issue、PR、Discussion 协作流程。
 - [skills/quantex-cli/SKILL.md](./skills/quantex-cli/SKILL.md)：面向 agent 使用 Quantex 的 repo-native skill。
 - [skills/quantex-agent-runtime/SKILL.md](./skills/quantex-agent-runtime/SKILL.md)：面向本仓库开发协作的 agent runtime。

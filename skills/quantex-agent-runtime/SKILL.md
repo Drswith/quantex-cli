@@ -1,6 +1,6 @@
 ---
 name: quantex-agent-runtime
-description: Use when starting or resuming any Quantex repository task; routes Superpowers-backed agent sessions through Quantex intake, OpenSpec, validation, and delivery closure.
+description: Use when starting or resuming any Quantex repository task; routes agent sessions through Quantex intake, OpenSpec, validation, and delivery closure.
 license: MIT
 ---
 
@@ -10,20 +10,19 @@ Use this skill at the start of every Quantex repository session, and again befor
 
 ## Runtime Stack
 
-- Superpowers is the cross-agent workflow runtime.
+- This skill is the central cross-agent repository-session guide.
 - OpenSpec is the source of truth for non-trivial behavior and durable process contracts.
 - GitHub Actions are the remote enforcement layer.
 - Cursor Cloud Automations provide external role specialists for recurring bug finding, PR governance review, CI triage, and OpenSpec archive follow-up.
 - Repository scripts are executable validation, build, release, and package checks.
-- `AGENTS.md` is the thin fallback when Superpowers is unavailable.
+- `AGENTS.md` is the thin, high-signal execution handbook.
 
 ## Session Start
 
-1. Activate Superpowers first when the environment provides it.
-2. Read `AGENTS.md` for hard mission, scope, validation, and red-line constraints.
-3. Check the current branch and working tree.
-4. Run `bun run openspec:list` to identify active changes.
-5. Classify the user request before editing files.
+1. Read `AGENTS.md` for hard mission, scope, validation, and red-line constraints.
+2. Check the current branch and working tree.
+3. Run `bun run openspec:list` to identify active changes.
+4. Classify the user request before editing files.
 
 ## Task Start Entry
 
@@ -31,7 +30,6 @@ Use this canonical entry when a user starts or resumes Quantex work from a fresh
 
 ```text
 Use quantex-agent-runtime.
-Activate Superpowers first if this environment supports it.
 Read AGENTS.md, skills/quantex-agent-runtime/SKILL.md, and openspec/README.md.
 Check git status, the current branch, git worktree list, and bun run openspec:list.
 If this will create commits or a PR, do not work on main; create or switch to a dedicated worktree branch named <agent>/<task-slug>.
@@ -51,7 +49,7 @@ Create or select an OpenSpec change before implementation when the work affects:
 - agent catalog fields, install methods, update strategies, or version probing
 - configuration, state, cache, release, publishing, or upgrade behavior
 - architecture boundaries
-- project memory policy, durable workflow, OPSX/OpenSpec/Superpowers rules, ADR/runbook process, or GitHub collaboration flow
+- project memory policy, durable workflow, OpenSpec rules, ADR/runbook process, or GitHub collaboration flow
 - product-facing documentation that changes user expectations
 
 Small typo, formatting-only, mechanical no-behavior, and test-only cleanup may proceed without OpenSpec after stating that classification.
@@ -142,7 +140,7 @@ If an implementation PR is only one milestone of an active umbrella change, do n
 
 ## Script Boundary
 
-Repository scripts are executable guardrails: validation, path classification, build metadata, package checks, release artifact generation, and release smoke verification. Prefer Superpowers runtime instructions, OpenSpec artifacts, GitHub Actions, and native CLIs for workflow actions.
+Repository scripts are executable guardrails: validation, path classification, build metadata, package checks, release artifact generation, and release smoke verification. Prefer central runtime instructions, OpenSpec artifacts, GitHub Actions, and native CLIs for workflow actions.
 
 Do not add project-specific workflow orchestration commands, such as `pr:create`, when a native CLI action plus a shared validator is sufficient.
 
