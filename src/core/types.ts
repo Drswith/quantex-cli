@@ -3,10 +3,18 @@ import type { Platform } from '../agents/types'
 export type CoreErrorCode =
   | 'agent-not-found'
   | 'cancelled'
+  | 'conflict'
+  | 'indeterminate'
   | 'inspection-failed'
+  | 'installation-failed'
   | 'invalid-request'
   | 'invalid-state'
+  | 'provider-unavailable'
+  | 'provider-unsupported'
+  | 'resource-locked'
+  | 'state-write-failed'
   | 'timed-out'
+  | 'verification-failed'
 
 export interface CoreError {
   readonly code: CoreErrorCode
