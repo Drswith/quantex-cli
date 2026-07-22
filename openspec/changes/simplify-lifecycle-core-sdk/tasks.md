@@ -35,7 +35,7 @@
 - [x] 4.4 Publish and verify Core before CLI, preserve idempotent per-package recovery, and upload standalone artifacts only after repository npm closure
 - [x] 4.5 Pin release workflow Bun versions to the repository toolchain and include Core manifests in cache keys, release PR policy, path taxonomy, and Sandbox selection
 - [ ] 4.6 Verify npm namespace ownership and bootstrap Core trusted publishing before enabling the first public release
-- [ ] 4.7 Commit and push coordinated packaging and recovery as the third recoverable checkpoint
+- [x] 4.7 Commit and push coordinated packaging and recovery as the third recoverable checkpoint (`0fefedb`)
 
 ## 5. Install and ensure migration for 1.3 beta or opt-in
 
@@ -67,5 +67,5 @@
 - [x] 8.1 Add an ADR for the two-package boundary, frozen 1.x state shape, engine-selection rule, and release train
 - [x] 8.2 Document current SDK installation, runtime requirements, supported methods, CLI/Core responsibility split, compatibility stage, and rollback boundary in English and Simplified Chinese
 - [x] 8.3 Run `bun install --frozen-lockfile`, lint, format check, root and Core typecheck, tests, OpenSpec validation, memory check, both builds, package checks, standalone binary build, and release artifact validation
-- [ ] 8.4 Commit and push the validated integration state, create or update the PR from the repository template, and record remaining milestone owners without archiving the umbrella change early
+- [x] 8.4 Commit and push the validated integration state, create or update draft PR #500 from the repository template, and record remaining milestone owners without archiving the umbrella change early
 - [ ] 8.5 After all accepted milestones merge and current specs synchronize, complete archive closure and report release state
