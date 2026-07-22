@@ -4,7 +4,7 @@
 - [x] 1.2 Audit current lifecycle boundaries, root exports, state schema, provider evidence, release packaging, and historical regression tests
 - [x] 1.3 Create the umbrella proposal, design, Core SDK delta, compatibility delta, package delta, release delta, and README delta
 - [x] 1.4 Validate all OpenSpec artifacts with `bun run openspec:validate`
-- [ ] 1.5 Commit and push the OpenSpec contract as the first recoverable integration-branch checkpoint
+- [x] 1.5 Commit and push the OpenSpec contract as the first recoverable integration-branch checkpoint (`2ffc1e3`)
 
 ## 2. Integration and compatibility gates
 
