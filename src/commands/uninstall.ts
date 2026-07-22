@@ -21,6 +21,7 @@ import {
 } from '../state'
 import { pc } from '../utils/color'
 import { isBinaryInPath } from '../utils/detect'
+import { canUninstallInstallType } from '../utils/install'
 import { createResourceLockedError } from '../utils/lifecycle-errors'
 import { isResourceLockError } from '../utils/lock'
 import { isDryRunEnabled, printError, printInfo, printWarn } from '../utils/user-output'
@@ -134,6 +135,37 @@ export async function uninstallCommand(agentName: string): Promise<CommandResult
       if (isDryRunEnabled()) {
         return emitCommandResult(
           createDryRunUninstallResult(agent, `would uninstall ${agent.displayName}`),
+          renderUninstallHuman,
+        )
+      }
+
+      // Script/binary installs are state-only: Quantex untracks them without removing the
+      // upstream executable, so managed receipt synthesis and PATH absence polling do not apply.
+      if (!canUninstallInstallType(installedState.installType)) {
+        const uninstallOutcome = await uninstallInstalledAgentOutcome(agent, installedState)
+        if (uninstallOutcome.kind !== 'success') {
+          return emitCommandResult(
+            createUninstallFailure(agent, 'provider-failure', `Failed to uninstall ${agent.displayName}.`),
+            renderUninstallHuman,
+          )
+        }
+
+        await removeLifecycleReceipt(agent.name)
+        return emitCommandResult(
+          createSuccessResult<UninstallCommandData>({
+            action: 'uninstall',
+            data: {
+              agent: {
+                displayName: agent.displayName,
+                name: agent.name,
+              },
+              changed: true,
+            },
+            target: {
+              kind: 'agent',
+              name: agent.name,
+            },
+          }),
           renderUninstallHuman,
         )
       }

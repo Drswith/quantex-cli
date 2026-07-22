@@ -454,6 +454,67 @@ describe('uninstallCommand', () => {
     expect(removeReceiptSpy).not.toHaveBeenCalled()
     expect(setInstalledStateSpy).toHaveBeenCalledWith(managedInstalledState)
   })
+
+  it('untracks a script install without requiring PATH absence', async () => {
+    const scriptInstalledState = {
+      agentName: 'test-agent',
+      binaryName: 'test-bin',
+      command: 'curl https://example.com/install | sh',
+      installType: 'script' as const,
+    }
+    agentSpy.mockReturnValue(testAgent)
+    installedStateSpy.mockResolvedValue(scriptInstalledState)
+    getReceiptSpy.mockResolvedValue(undefined)
+    binaryInPathSpy.mockResolvedValue(true)
+    uninstallSpy.mockResolvedValue(true)
+
+    const result = await uninstallCommand('test-agent')
+
+    expect(result.ok).toBe(true)
+    expect(result.data).toMatchObject({
+      agent: { name: 'test-agent' },
+      changed: true,
+    })
+    expect(uninstallSpy).toHaveBeenCalledWith(testAgent, scriptInstalledState)
+    expect(setReceiptSpy).not.toHaveBeenCalled()
+    expect(setInstalledStateSpy).not.toHaveBeenCalled()
+    expect(removeReceiptSpy).toHaveBeenCalledWith('test-agent')
+    expect(binaryInPathSpy).toHaveBeenCalledTimes(1)
+  })
+
+  it('untracks a binary install without requiring PATH absence', async () => {
+    const binaryInstalledState = {
+      agentName: 'test-agent',
+      binaryName: 'test-bin',
+      installType: 'binary' as const,
+    }
+    agentSpy.mockReturnValue(testAgent)
+    installedStateSpy.mockResolvedValue(binaryInstalledState)
+    getReceiptSpy.mockResolvedValue({
+      executableName: 'test-bin',
+      kind: 'lifecycle-receipt' as const,
+      providerId: 'binary',
+      providerTargetId: 'test-bin',
+      providerTargetKind: 'binary' as const,
+      schemaVersion: 1,
+      targetId: 'test-agent',
+      verifiedAt: '2026-07-12T03:00:00.000Z',
+    })
+    binaryInPathSpy.mockResolvedValue(true)
+    uninstallSpy.mockResolvedValue(true)
+
+    const result = await uninstallCommand('test-agent')
+
+    expect(result.ok).toBe(true)
+    expect(result.data).toMatchObject({
+      agent: { name: 'test-agent' },
+      changed: true,
+    })
+    expect(uninstallSpy).toHaveBeenCalledWith(testAgent, binaryInstalledState)
+    expect(setReceiptSpy).not.toHaveBeenCalled()
+    expect(setInstalledStateSpy).not.toHaveBeenCalled()
+    expect(removeReceiptSpy).toHaveBeenCalledWith('test-agent')
+  })
 })
 
 const managedReceipt = {
