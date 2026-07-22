@@ -39,10 +39,10 @@
 
 ## 5. Install and ensure migration for 1.3 beta or opt-in
 
-- [ ] 5.1 Add Core `install` and `ensure` only after their public result, preview, cancellation, and timeout contracts are implemented
-- [ ] 5.2 Replace generic single-step DAG planning on these paths with decision, provider recipe, fresh verification, verified recording, and scoped compensation
+- [ ] 5.1 Add Core `install` and `ensure` with a shared discriminated preview/apply result, four stable decisions, and phase/side-effect errors without exposing infrastructure
+- [ ] 5.2 Replace generic single-step DAG planning on these paths with a narrow Core decision/executor, explicit-config locks, one provider recipe, fresh verification, verified recording, and scoped compensation
 - [ ] 5.3 Preserve exact-source ownership, external no-adopt defaults, tri-state probes, Bun trust ownership, and no success recording after failed verification
-- [ ] 5.4 Select legacy or Core before invocation, prohibit post-side-effect fallback, and keep stable CLI mutation routing on legacy until promotion gates pass
+- [ ] 5.4 Select legacy or Core before invocation, keep any v1 safe-adoption policy private, prohibit post-side-effect fallback, and keep stable CLI mutation routing on legacy until promotion gates pass
 - [ ] 5.5 Run differential, provider, state, idempotency, cancellation, timeout, and platform gates before enabling beta or explicit whole-invocation Core routing
 - [ ] 5.6 Commit and push the install/ensure vertical slice as a recoverable milestone checkpoint
 

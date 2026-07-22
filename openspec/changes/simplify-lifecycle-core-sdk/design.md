@@ -69,6 +69,33 @@ Expected lifecycle failures return a serializable discriminated `CoreResult<T>` 
 
 Request options contain explicit cancellation and timeout. Mutation options add only preview versus apply. Run options make install policy and standard IO explicit. CLI-only concerns such as output mode, prompting, color, quiet mode, exit mapping, and client-supplied idempotency keys are excluded.
 
+The 1.3 install and ensure result is deliberately smaller than the CLI command result:
+
+```ts
+type AgentMutationDecision = 'already-satisfied' | 'external-preserved' | 'install' | 'reinstall'
+
+type AgentMutation =
+  | {
+      mode: 'preview'
+      decision: AgentMutationDecision
+      before: AgentInspection
+      source?: AgentSource
+      wouldChange: boolean
+    }
+  | {
+      mode: 'apply'
+      decision: AgentMutationDecision
+      before: AgentInspection
+      after: AgentInspection
+      source?: AgentSource
+      changed: boolean
+    }
+```
+
+Preview never fabricates an `after` inspection. Apply defaults when mode is omitted and always returns a fresh `after` inspection. PATH-only executables remain `external-preserved` in the public SDK; if the maintained v1 CLI still needs its historical narrowly safe adoption heuristic, that policy stays private to the compatibility adapter and is removed with that compatibility branch rather than becoming an SDK option.
+
+Mutation failures use stable domain codes and include compact `phase` (`decide`, `execute`, `verify`, `record`, or `compensate`) and `sideEffect` (`none`, `compensated`, or `may-remain`) details. They do not publish the provider outcome, internal plan, receipt, state, or compensation interface.
+
 Why this over publishing all current exports:
 
 - The current root is a compatibility facade containing command handlers, mutable CLI context, raw state mutators, package-manager helpers, self-upgrade, and release utilities. Publishing it again would preserve the accidental architecture rather than create a Core.
@@ -100,6 +127,12 @@ The current generic plan model supports dependency edges, effect lists, precondi
 7. compensate only resources proven to have been created by this invocation.
 
 Typed first-party provider drivers remain. They own reliable `present | absent | unknown` observation, operation execution, verification evidence, cancellation, and provider-specific platform behavior. Declarative recipes may describe target, argv, and risk, but they do not replace provider observation. This preserves the historical cargo, Deno, pip, winget, npm, Bun, script, and binary lessons while allowing the legacy boolean package-manager facade and duplicate capability tables to disappear after callers migrate.
+
+Install and ensure use a Core-owned narrow decision/execution module instead of importing the legacy `reconcileAgentInstallation`, package-manager facade, or single-step DAG. Apply holds one explicit-config-directory lifecycle lock across fresh observation, decision, the first provider side effect, verification, atomic schema-version-2 recording, and final observation. Preview performs only the required read probes and takes no write lock. Missing agents may try availability probes before selecting one recipe; stale agents may use only their exact recorded source. After a provider side effect starts, no other provider or engine is eligible for that invocation.
+
+The provider process primitive accepts only an invocation-owned operation context, including its signal, timeout, cleanup registration, and explicit output policy. CLI-global stdio and cancellation projection remain in a legacy wrapper that Core cannot import. Lifecycle and state locks similarly gain an explicit configuration-root primitive, with the current global-config helpers reduced to compatibility wrappers around it.
+
+State recording registers a rollback resource before its first asynchronous write and retains the original document. If interruption races with the atomic write, cleanup waits for that write and restores the original document before returning. Provider compensation is automatic only when pre-observation conclusively proves the target absent and the invocation proves it created that resource. Script/binary effects without a reliable uninstall are reported as `may-remain`; Core never guesses at file deletion. Bun trust recovery retains its existing pre-existing-versus-new ownership rule.
 
 Why this over pure command recipes:
 
@@ -152,6 +185,8 @@ Publishing runs Core first, verifies the registry version, then publishes the CL
 The existing `quantex` alias repository remains outside this repository's release coordination. Core package bootstrap requires confirmed npm namespace ownership before publication. npm requires a package to exist before a trusted publisher can be configured, so the first Core version is a deliberate two-stage operation: an authorized maintainer publishes the already validated package once with 2FA, then configures `release.yml` as its trusted publisher and marks the repository gate ready. Automated Core-first publication starts only after that bootstrap; a missing scope, uncertain registry response, or unconfirmed gate fails closed before CLI publication.
 
 Builds use explicit CLI and Core tsdown configurations rather than experimental workspace auto-discovery. Packed-package tests install real tarballs into clean temporary consumers, compile under TypeScript NodeNext, and execute with Node.js 20 and Bun. The Core tarball contains no CLI binary, prompts, command modules, source, tests, or release binaries. Its initial read-only runtime entry stays below an 80,000-byte uncompressed budget and is scanned for high-signal mutation, cache/network, CLI-context, self-upgrade, and release fragments. A TypeScript import-closure test independently enforces the allowed source boundary. Package validation also proves the CLI tarball and standalone binary work without Core installed and contain no unresolved Core package import.
+
+Mutation methods are loaded through an internal build chunk so importing the Core root or using read-only methods does not initialize mutation providers. The root entry retains its read-only size budget. Package validation allowlists emitted internal chunks by verified build output rather than broad globs and scans every chunk for CLI, presentation, self-upgrade, release, and unsupported infrastructure leakage.
 
 Repository installation disables lifecycle scripts through Bun configuration. This prevents a default-trusted dependency postinstall from running against Bun's workspace store layout and keeps install behavior fail-closed; hook setup, builds, tests, and publication are explicit commands rather than ambient install side effects. CI caches Bun's download store only and recreates `node_modules` on every job, because archived Windows workspace links can restore as an incomplete dependency graph even when a frozen install reports no changes.
 
