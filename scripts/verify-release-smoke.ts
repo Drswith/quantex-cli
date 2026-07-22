@@ -34,29 +34,58 @@ if (manifest.version !== BUILD_VERSION)
   throw new Error(`manifest.json version "${manifest.version}" does not match build version "${BUILD_VERSION}".`)
 
 const binaryPath = new URL(`../dist/bin/${currentAssetName}`, import.meta.url)
-const proc = Bun.spawn([binaryPath.pathname, '--version'], {
-  stdio: ['ignore', 'pipe', 'pipe'] as const,
-})
+const versionOutput = await runBinary(binaryPath.pathname, ['--version'])
 
-const [stdout, stderr, exitCode] = await Promise.all([
-  proc.stdout ? new Response(proc.stdout).text() : Promise.resolve(''),
-  proc.stderr ? new Response(proc.stderr).text() : Promise.resolve(''),
-  proc.exited,
-])
-
-if (exitCode !== 0) {
+if (versionOutput.exitCode !== 0) {
   throw new Error(
-    `Release smoke check failed for "${currentAssetName}" with exit code ${exitCode}: ${stderr.trim() || 'no stderr output'}`,
+    `Release smoke check failed for "${currentAssetName}" with exit code ${versionOutput.exitCode}: ${versionOutput.stderr.trim() || 'no stderr output'}`,
   )
 }
 
-if (!stdout.includes(BUILD_VERSION)) {
+if (!versionOutput.stdout.includes(BUILD_VERSION)) {
   throw new Error(
-    `Release smoke check for "${currentAssetName}" did not report version "${BUILD_VERSION}". Output was: ${stdout.trim() || '(empty)'}`,
+    `Release smoke check for "${currentAssetName}" did not report version "${BUILD_VERSION}". Output was: ${versionOutput.stdout.trim() || '(empty)'}`,
   )
+}
+
+const listOutput = await runBinary(binaryPath.pathname, ['--color', 'never', '--output', 'json', 'list'])
+if (listOutput.exitCode !== 0) {
+  throw new Error(
+    `Release list smoke check failed for "${currentAssetName}" with exit code ${listOutput.exitCode}: ${listOutput.stderr.trim() || 'no stderr output'}`,
+  )
+}
+if (Buffer.byteLength(listOutput.stdout) <= 8 * 1024) {
+  throw new Error(`Release list smoke check for "${currentAssetName}" did not exercise a multi-chunk stdout pipe.`)
+}
+
+let listResult: { action?: unknown; ok?: unknown }
+try {
+  listResult = JSON.parse(listOutput.stdout) as { action?: unknown; ok?: unknown }
+} catch (error) {
+  throw new Error(`Release list smoke check for "${currentAssetName}" emitted incomplete JSON.`, { cause: error })
+}
+if (listResult.action !== 'list' || listResult.ok !== true) {
+  throw new Error(`Release list smoke check for "${currentAssetName}" emitted an invalid result envelope.`)
 }
 
 console.log(`Release smoke check passed for ${currentAssetName} (${BUILD_VERSION}).`)
+
+async function runBinary(
+  executable: string,
+  args: readonly string[],
+): Promise<{ exitCode: number; stderr: string; stdout: string }> {
+  const proc = Bun.spawn([executable, ...args], {
+    stdio: ['ignore', 'pipe', 'pipe'] as const,
+  })
+
+  const [stdout, stderr, exitCode] = await Promise.all([
+    proc.stdout ? new Response(proc.stdout).text() : Promise.resolve(''),
+    proc.stderr ? new Response(proc.stderr).text() : Promise.resolve(''),
+    proc.exited,
+  ])
+
+  return { exitCode, stderr, stdout }
+}
 
 function getCurrentReleaseAssetName(): string | undefined {
   if (process.platform === 'darwin') {

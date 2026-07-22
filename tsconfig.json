@@ -4,6 +4,11 @@
     "lib": ["ESNext"],
     "module": "ESNext",
     "moduleResolution": "Bundler",
+    "baseUrl": ".",
+    "paths": {
+      "@quantex/core": ["packages/core/src/index.ts"],
+      "@quantex/core/internal": ["packages/core/src/internal.ts"]
+    },
     "resolveJsonModule": true,
     "types": ["node", "bun-types"],
     "strict": true,
@@ -14,5 +19,5 @@
     "skipDefaultLibCheck": true,
     "skipLibCheck": true
   },
-  "exclude": ["test/fixtures/compatibility/v1/downstream/consumer.ts"]
+  "exclude": ["packages/core", "test/fixtures/compatibility/v1/downstream/consumer.ts"]
 }

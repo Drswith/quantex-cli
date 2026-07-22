@@ -38,6 +38,32 @@ Default agent lifecycle commands reconcile live executable, provider, saved-stat
 
 The internal engine can evolve without changing the maintained v1 command syntax, JSON/NDJSON envelopes, exit meanings, state/config projection, `qtx`/`quantex` binaries, or root-package exports. Any future removal of a maintained root export requires a separate deprecation proposal; it is not part of the lifecycle-engine redesign.
 
+## TypeScript Core SDK preview
+
+Quantex is extracting a non-interactive TypeScript SDK under the provisional package name `@quantex/core`. It is currently an integration-branch preview: the package has not been published, and npm namespace ownership and trusted-publisher setup are not yet confirmed. The planned public install command below will apply only after the first Core release; it is not expected to work today.
+
+```bash
+# Available after the first published 1.2 Core release
+npm install @quantex/core
+```
+
+The first 1.2 SDK surface is read-only and ESM-only. It supports Node.js 20 or newer and Bun, and exposes only `createQuantex`, `list`, and `inspect`:
+
+```ts
+import { createQuantex } from '@quantex/core'
+
+const quantex = createQuantex()
+const result = await quantex.inspect('codex')
+
+if (result.ok) {
+  console.log(result.value.status)
+}
+```
+
+Core does not prompt, print, call `process.exit`, or choose CLI exit codes; it returns typed results to its caller. The `qtx` / `quantex` CLI remains responsible for prompts, human and JSON/NDJSON presentation, exit-code policy, command-line execution, and Quantex self-upgrade. The SDK does not yet publish `install`, `ensure`, `update`, `uninstall`, or `run`; CLI mutations continue to use the maintained legacy engine.
+
+The compatibility transition is staged across 1.2-1.5: 1.2 introduces read-only Core, 1.3 may add gated mutation families, 1.4 is the earliest Core can become the CLI default, and 1.5 provides a second default soak. The persisted state schema remains version 2 throughout 1.x. Engine selection happens before an invocation, and a mutating call never falls back after side effects begin; when Core routing is promoted, rollback uses the preserved whole-invocation legacy route through 1.5. Removing maintained v1 surfaces requires a separate later-major proposal after the documented soak gates.
+
 ## Agent Quick Start
 
 If you are using a coding agent with Quantex, start by installing the repo-provided user-facing Quantex CLI skill:

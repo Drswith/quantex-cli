@@ -1,7 +1,7 @@
 import type { CommandResult } from '../src/output/types'
 import { spawn } from 'node:child_process'
 import { existsSync } from 'node:fs'
-import { chmod, mkdir, mkdtemp, readFile, readdir, rm, writeFile } from 'node:fs/promises'
+import { chmod, mkdir, mkdtemp, open, readFile, readdir, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { dirname, join } from 'node:path'
 import process from 'node:process'
@@ -365,25 +365,37 @@ async function runCli(
     command,
     ...(AGENT_COMMANDS.has(command) ? ['codex'] : []),
   ]
-  const child = spawn(args[0]!, args.slice(1), {
-    cwd: ROOT,
-    env: sandbox.env,
-    stdio: ['ignore', 'pipe', 'pipe'],
-  })
-  const stdoutChunks: Buffer[] = []
-  const stderrChunks: Buffer[] = []
-  child.stdout.on('data', chunk => stdoutChunks.push(Buffer.from(chunk)))
-  child.stderr.on('data', chunk => stderrChunks.push(Buffer.from(chunk)))
-  const exitCode = await waitForChildExit(child, {
-    commandLabel: `${fixture}/${mode}/${command}`,
-    graceMs: COMMAND_TIMEOUT_GRACE_MS,
-    timeoutMs: COMMAND_TIMEOUT_MS,
-  })
+  const captureDirectory = await mkdtemp(join(sandbox.root, `output-${fixture}-${mode}-${command}-`))
+  const stdoutPath = join(captureDirectory, 'stdout')
+  const stderrPath = join(captureDirectory, 'stderr')
+  let stdoutHandle: Awaited<ReturnType<typeof open>> | undefined
+  let stderrHandle: Awaited<ReturnType<typeof open>> | undefined
+  let captureDirectoryRemoved = false
 
-  return {
-    exitCode,
-    stderr: Buffer.concat(stderrChunks).toString('utf8'),
-    stdout: Buffer.concat(stdoutChunks).toString('utf8'),
+  try {
+    stdoutHandle = await open(stdoutPath, 'w')
+    stderrHandle = await open(stderrPath, 'w')
+    const child = spawn(args[0]!, args.slice(1), {
+      cwd: ROOT,
+      env: sandbox.env,
+      stdio: ['ignore', stdoutHandle.fd, stderrHandle.fd],
+    })
+    const exitCode = await waitForChildExit(child, {
+      commandLabel: `${fixture}/${mode}/${command}`,
+      graceMs: COMMAND_TIMEOUT_GRACE_MS,
+      timeoutMs: COMMAND_TIMEOUT_MS,
+    })
+    await Promise.all([stdoutHandle.close(), stderrHandle.close()])
+    stdoutHandle = undefined
+    stderrHandle = undefined
+    const [stdout, stderr] = await Promise.all([readFile(stdoutPath, 'utf8'), readFile(stderrPath, 'utf8')])
+
+    await rm(captureDirectory, { force: true, recursive: true })
+    captureDirectoryRemoved = true
+    return { exitCode, stderr, stdout }
+  } finally {
+    await Promise.allSettled([stdoutHandle?.close(), stderrHandle?.close()])
+    if (!captureDirectoryRemoved) await rm(captureDirectory, { force: true, recursive: true }).catch(() => {})
   }
 }
 

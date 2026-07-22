@@ -1,7 +1,7 @@
 import { spawn } from 'node:child_process'
 import { createHash } from 'node:crypto'
 import { existsSync } from 'node:fs'
-import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises'
+import { mkdir, mkdtemp, open, readFile, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { basename, delimiter, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -69,6 +69,12 @@ describe('v1 command-family process compatibility', () => {
         if (mode === 'human') {
           expect(execution.stdout.trim().length, `${command.name} human stdout`).toBeGreaterThan(0)
         } else {
+          if (command.name === 'list' && mode === 'json') {
+            expect(
+              Buffer.byteLength(execution.stdout),
+              'list json exercises output larger than one 8 KiB chunk',
+            ).toBeGreaterThan(8 * 1024)
+          }
           const envelope =
             mode === 'json'
               ? (JSON.parse(execution.stdout) as ResultEnvelope)
@@ -132,26 +138,42 @@ async function runCli(
   readonly stderr: string
   readonly stdout: string
 }> {
-  const child = spawn(bunExecutable, ['src/cli.ts', '--color', 'never', '--output', mode, ...args], {
-    cwd: repositoryRoot,
-    env: {
-      ...process.env,
-      HOME: tempHome,
-      NO_COLOR: '1',
-      PATH: '',
-      USERPROFILE: tempHome,
-    },
-    stdio: ['ignore', 'pipe', 'pipe'],
-  })
-  let stdout = ''
-  let stderr = ''
-  child.stdout.setEncoding('utf8').on('data', chunk => (stdout += chunk))
-  child.stderr.setEncoding('utf8').on('data', chunk => (stderr += chunk))
-  const exitCode = await new Promise<number>((resolve, reject) => {
-    child.once('error', reject)
-    child.once('close', code => resolve(code ?? 1))
-  })
-  return { exitCode, stderr, stdout }
+  const captureDirectory = await mkdtemp(join(tempHome, 'command-capture-'))
+  const stdoutPath = join(captureDirectory, 'stdout')
+  const stderrPath = join(captureDirectory, 'stderr')
+  let stdoutHandle: Awaited<ReturnType<typeof open>> | undefined
+  let stderrHandle: Awaited<ReturnType<typeof open>> | undefined
+  let captureDirectoryRemoved = false
+
+  try {
+    stdoutHandle = await open(stdoutPath, 'w')
+    stderrHandle = await open(stderrPath, 'w')
+    const child = spawn(bunExecutable, ['src/cli.ts', '--color', 'never', '--output', mode, ...args], {
+      cwd: repositoryRoot,
+      env: {
+        ...process.env,
+        HOME: tempHome,
+        NO_COLOR: '1',
+        PATH: '',
+        USERPROFILE: tempHome,
+      },
+      stdio: ['ignore', stdoutHandle.fd, stderrHandle.fd],
+    })
+    const exitCode = await new Promise<number>((resolve, reject) => {
+      child.once('error', reject)
+      child.once('close', code => resolve(code ?? 1))
+    })
+    await Promise.all([stdoutHandle.close(), stderrHandle.close()])
+    stdoutHandle = undefined
+    stderrHandle = undefined
+    const [stdout, stderr] = await Promise.all([readFile(stdoutPath, 'utf8'), readFile(stderrPath, 'utf8')])
+    await rm(captureDirectory, { force: true, recursive: true })
+    captureDirectoryRemoved = true
+    return { exitCode, stderr, stdout }
+  } finally {
+    await Promise.allSettled([stdoutHandle?.close(), stderrHandle?.close()])
+    if (!captureDirectoryRemoved) await rm(captureDirectory, { force: true, recursive: true }).catch(() => {})
+  }
 }
 
 function expectGolden(label: string, stdout: string, mode: OutputMode, expected: string): string {

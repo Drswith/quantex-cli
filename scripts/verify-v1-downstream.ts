@@ -1,4 +1,4 @@
-import { cp, mkdir } from 'node:fs/promises'
+import { cp, mkdir, readFile, rm, writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
 import process from 'node:process'
 
@@ -30,23 +30,31 @@ export async function verifyV1DownstreamCompatibility(options: DownstreamCompati
     await Promise.all(['consumer.ts', 'runtime.mjs'].map(file => cp(join(fixtureRoot, file), join(consumerRoot, file))))
   }
 
-  await runChecked(
-    [
-      process.execPath,
-      tsc,
-      '--noEmit',
-      '--module',
-      'NodeNext',
-      '--moduleResolution',
-      'NodeNext',
-      '--target',
-      'ES2022',
-      '--strict',
-      '--skipLibCheck',
-      join(consumerRoot, 'consumer.ts'),
-    ],
-    consumerRoot,
-  )
+  const semanticRuntimeExportConsumer = join(consumerRoot, `all-runtime-exports.${process.pid}.ts`)
+  await writeFile(semanticRuntimeExportConsumer, await createSemanticRuntimeExportConsumer(root))
+
+  try {
+    await runChecked(
+      [
+        process.execPath,
+        tsc,
+        '--noEmit',
+        '--module',
+        'NodeNext',
+        '--moduleResolution',
+        'NodeNext',
+        '--target',
+        'ES2022',
+        '--strict',
+        '--skipLibCheck',
+        join(consumerRoot, 'consumer.ts'),
+        semanticRuntimeExportConsumer,
+      ],
+      consumerRoot,
+    )
+  } finally {
+    await rm(semanticRuntimeExportConsumer, { force: true })
+  }
 
   const runtime = await runChecked(['node', join(consumerRoot, 'runtime.mjs')], consumerRoot)
   const actual = JSON.parse(runtime.stdout) as DownstreamRuntimeResult
@@ -63,6 +71,28 @@ export async function verifyV1DownstreamCompatibility(options: DownstreamCompati
       `Built root runtime changed the v1 downstream contract.\nExpected: ${JSON.stringify(expected)}\nActual: ${JSON.stringify(actual)}`,
     )
   }
+}
+
+async function createSemanticRuntimeExportConsumer(root: string): Promise<string> {
+  const fixturePath = join(root, 'test', 'fixtures', 'compatibility', 'v1', 'root-exports.json')
+  const exportNames = JSON.parse(await readFile(fixturePath, 'utf8')) as unknown
+  if (
+    !Array.isArray(exportNames) ||
+    exportNames.some(name => typeof name !== 'string' || !/^[$A-Z_a-z][$\w]*$/u.test(name))
+  ) {
+    throw new Error('The maintained v1 root export fixture must contain TypeScript identifiers.')
+  }
+
+  return [
+    "import * as quantex from 'quantex-cli'",
+    '',
+    'const maintainedRuntimeExports = {',
+    ...exportNames.map(name => `  ${name}: quantex.${name},`),
+    '} as const',
+    '',
+    'void maintainedRuntimeExports',
+    '',
+  ].join('\n')
 }
 
 if (import.meta.main) {

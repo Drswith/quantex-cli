@@ -7,15 +7,24 @@ const generatedMarker = 'This PR was generated with [Release Please]'
 const finalZeroMajorVersion = '0.29.1'
 const firstPostRedesignVersion = '1.1.0'
 const burnedStableReleaseVersions = new Set(['1.0.0'])
+const releaseBranches = new Set(['main', 'beta'])
 
 const allowedFiles = new Set([
   '.release-please-manifest.json',
   'CHANGELOG.md',
   'package.json',
+  'packages/core/package.json',
   'src/generated/build-meta.ts',
 ])
 
-const requiredFiles = new Set(['.release-please-manifest.json', 'package.json', 'src/generated/build-meta.ts'])
+const requiredFiles = new Set([
+  '.release-please-manifest.json',
+  'package.json',
+  'packages/core/package.json',
+  'src/generated/build-meta.ts',
+])
+
+const dependencySections = ['dependencies', 'devDependencies', 'optionalDependencies', 'peerDependencies']
 
 export function validateReleasePrPolicy(input) {
   const issues = []
@@ -25,6 +34,19 @@ export function validateReleasePrPolicy(input) {
   const body = input.body || ''
   const changedFiles = [...(input.changedFiles || [])].sort()
   const baseVersion = input.baseVersion || ''
+  const rootManifest = isRecord(input.rootManifest) ? input.rootManifest : null
+  const coreManifest = isRecord(input.coreManifest) ? input.coreManifest : null
+  const rootVersion = readString(rootManifest?.version)
+  const coreVersion = readString(coreManifest?.version)
+  const rootCoreDevelopmentDependency = readDependencyVersion(rootManifest, 'devDependencies', '@quantex/core')
+
+  if (!releaseBranches.has(baseBranch)) {
+    issues.push(`Release PR base branch "${baseBranch}" is not allowed; expected main or beta.`)
+  }
+
+  if (!baseVersion) {
+    issues.push('Release PR policy requires the current base package version.')
+  }
 
   const expectedHeadBranch = `release-please--branches--${baseBranch}--components--quantex-cli`
   if (headBranch !== expectedHeadBranch) {
@@ -40,6 +62,30 @@ export function validateReleasePrPolicy(input) {
   if (!body.includes(generatedMarker)) {
     issues.push('Release PR body does not include the release-please generated marker.')
   }
+
+  if (!rootManifest) {
+    issues.push('Release PR policy requires the root package.json manifest from the PR head.')
+  }
+
+  if (!coreManifest) {
+    issues.push('Release PR policy requires packages/core/package.json from the PR head.')
+  }
+
+  if (versionMatch) {
+    const proposedVersion = versionMatch[1]
+
+    validateManifestVersion(issues, 'Root package.json', rootVersion, proposedVersion)
+    validateManifestVersion(issues, 'Core package.json', coreVersion, proposedVersion)
+    validateManifestVersion(
+      issues,
+      'Root devDependencies["@quantex/core"]',
+      rootCoreDevelopmentDependency,
+      proposedVersion,
+    )
+  }
+
+  for (const issue of findWorkspaceProtocolIssues('package.json', rootManifest)) issues.push(issue)
+  for (const issue of findWorkspaceProtocolIssues('packages/core/package.json', coreManifest)) issues.push(issue)
 
   const unexpectedFiles = changedFiles.filter(fileName => !allowedFiles.has(fileName))
   if (unexpectedFiles.length > 0) {
@@ -91,6 +137,52 @@ export function validateReleasePrPolicy(input) {
   }
 
   return issues
+}
+
+function validateManifestVersion(issues, label, actualVersion, proposedVersion) {
+  if (!actualVersion) {
+    issues.push(`${label} must contain an exact release version.`)
+    return
+  }
+
+  if (actualVersion !== proposedVersion) {
+    issues.push(`${label} version "${actualVersion}" must equal Release PR title version "${proposedVersion}".`)
+  }
+}
+
+function findWorkspaceProtocolIssues(manifestPath, manifest) {
+  if (!manifest) return []
+
+  const issues = []
+
+  for (const sectionName of dependencySections) {
+    const section = isRecord(manifest[sectionName]) ? manifest[sectionName] : null
+    if (!section) continue
+
+    for (const [dependencyName, dependencyVersion] of Object.entries(section)) {
+      if (typeof dependencyVersion !== 'string' || !dependencyVersion.trim().startsWith('workspace:')) continue
+
+      issues.push(
+        `${manifestPath} ${sectionName}["${dependencyName}"] uses forbidden workspace protocol "${dependencyVersion}".`,
+      )
+    }
+  }
+
+  return issues
+}
+
+function readDependencyVersion(manifest, sectionName, dependencyName) {
+  if (!manifest) return ''
+  const section = isRecord(manifest[sectionName]) ? manifest[sectionName] : null
+  return readString(section?.[dependencyName])
+}
+
+function readString(value) {
+  return typeof value === 'string' ? value : ''
+}
+
+function isRecord(value) {
+  return typeof value === 'object' && value !== null && !Array.isArray(value)
 }
 
 export function isLaterZeroMajorRelease(proposedRaw, baseRaw) {
@@ -183,7 +275,9 @@ if (import.meta.main) {
     baseVersion: options.baseVersion ?? process.env.PR_BASE_VERSION ?? '',
     body,
     changedFiles,
+    coreManifest: readManifestFile('packages/core/package.json'),
     headBranch: options.headBranch ?? process.env.PR_HEAD_BRANCH ?? '',
+    rootManifest: readManifestFile('package.json'),
     title: options.title ?? process.env.PR_TITLE ?? '',
   })
 
@@ -235,5 +329,11 @@ function parseChangedFiles(rawValue) {
     throw new Error('Changed files must be a JSON array of file paths.')
   }
 
+  return parsedValue
+}
+
+function readManifestFile(filePath) {
+  const parsedValue = JSON.parse(readFileSync(filePath, 'utf8'))
+  if (!isRecord(parsedValue)) throw new Error(`${filePath} must contain a JSON object.`)
   return parsedValue
 }

@@ -5,10 +5,10 @@ import { afterAll, afterEach, beforeEach, describe, expect, it, vi } from 'vites
 import { setCliContext } from '../../src/cli-context'
 import { listCommand } from '../../src/commands/list'
 import * as legacyAgentsService from '../../src/services/agents'
-import * as lifecycleObservations from '../../src/services/lifecycle-observations'
+import * as coreReadObservations from '../../src/services/core-read-observations'
 
 const inspectRegisteredAgentsSpy = vi.spyOn(legacyAgentsService, 'inspectRegisteredAgents')
-const observeRegisteredAgentsSpy = vi.spyOn(lifecycleObservations, 'observeRegisteredAgents')
+const observeRegisteredAgentsSpy = vi.spyOn(coreReadObservations, 'observeCliReadRegisteredAgents')
 
 const testAgent = agent('test-agent', 'Test Agent', 'test-bin', 'test-pkg')
 const secondAgent = agent('second-agent', 'Second Agent', 'second-bin', 'second-pkg')

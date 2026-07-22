@@ -4,9 +4,10 @@ import { describe, expect, it } from 'vitest'
 const ciWorkflow = readFileSync('.github/workflows/ci.yml', 'utf8')
 const prGovernanceWorkflow = readFileSync('.github/workflows/pr-governance.yml', 'utf8')
 const releaseAutomergeWorkflow = readFileSync('.github/workflows/release-pr-automerge.yml', 'utf8')
+const releaseVerifyWorkflow = readFileSync('.github/workflows/release-verify.yml', 'utf8')
 const releaseWorkflow = readFileSync('.github/workflows/release.yml', 'utf8')
 const sandboxWorkflow = readFileSync('.github/workflows/sandbox-tests.yml', 'utf8')
-const integrationBranch = 'codex/redesign-lifecycle-integration'
+const integrationBranch = 'codex/simplify-core-sdk-integration'
 
 function extractEventBlock(workflow: string, eventName: string): string {
   const lines = workflow.split(/\r?\n/)
@@ -76,16 +77,41 @@ describe('workflow classification integration', () => {
     expect(extractEventBlock(workflow, eventName)).not.toMatch(/^(?:permissions|jobs):/m)
   })
 
-  it('restores steady-state CI branch targets after integration teardown', () => {
+  it('runs CI for integration-branch pushes without widening pull-request base targets', () => {
     expect(extractYamlList(extractEventBlock(ciWorkflow, 'pull_request'), 'branches')).toEqual(['main', 'beta'])
-    expect(extractYamlList(extractEventBlock(ciWorkflow, 'push'), 'branches')).toEqual(['main', 'beta'])
-    expect(ciWorkflow).not.toContain(integrationBranch)
+    expect(extractYamlList(extractEventBlock(ciWorkflow, 'push'), 'branches')).toEqual([
+      'main',
+      'beta',
+      integrationBranch,
+    ])
   })
 
-  it('restores steady-state Sandbox Tests branch targets after integration teardown', () => {
+  it('runs Sandbox Tests for integration-branch pushes without widening pull-request base targets', () => {
     expect(extractYamlList(extractEventBlock(sandboxWorkflow, 'pull_request'), 'branches')).toEqual(['main', 'beta'])
-    expect(extractYamlList(extractEventBlock(sandboxWorkflow, 'push'), 'branches')).toEqual(['main', 'beta'])
-    expect(sandboxWorkflow).not.toContain(integrationBranch)
+    expect(extractYamlList(extractEventBlock(sandboxWorkflow, 'push'), 'branches')).toEqual([
+      'main',
+      'beta',
+      integrationBranch,
+    ])
+  })
+
+  it('runs full release verification for integration-branch pushes', () => {
+    expect(extractYamlList(extractEventBlock(releaseVerifyWorkflow, 'push'), 'branches')).toEqual([integrationBranch])
+    expect(releaseVerifyWorkflow).toContain('run: bun run package:check')
+  })
+
+  it('uses Node 20 package consumers and includes workspace manifests in CI cache keys', () => {
+    expect(ciWorkflow).toContain('node-version: 20')
+    expect(ciWorkflow).toContain("hashFiles('bun.lock', 'package.json', 'packages/*/package.json')")
+    expect(sandboxWorkflow).toContain("hashFiles('bun.lock', 'package.json', 'packages/*/package.json')")
+    expect(ciWorkflow).toContain("runner.os == 'Linux' }}\n        run: bun run package:check")
+  })
+
+  it('runs the real Windows test command for every product-impacting matrix event', () => {
+    expect(ciWorkflow).toContain(
+      "needs.classify.outputs.run_test_matrix == 'true' && runner.os == 'Windows' }}\n        run: bun run test -- --pool=threads",
+    )
+    expect(ciWorkflow).not.toContain("runner.os == 'Windows' && github.event_name != 'pull_request'")
   })
 
   it('preserves the six live merge-gate contexts', () => {
@@ -137,6 +163,15 @@ describe('workflow classification integration', () => {
     expect(releaseWorkflow).toContain('- name: Resolve release target')
     expect(releaseWorkflow).toContain('echo "npm_tag=beta"')
     expect(releaseWorkflow).toContain('echo "npm_tag=latest"')
+  })
+
+  it('validates Release PR versions from immutable base and head manifests', () => {
+    expect(releaseAutomergeWorkflow).toContain("readJsonFile('package.json', pullRequest.base.sha)")
+    expect(releaseAutomergeWorkflow).toContain("readJsonFile('package.json', pullRequest.head.sha)")
+    expect(releaseAutomergeWorkflow).toContain("readJsonFile('packages/core/package.json', pullRequest.head.sha)")
+    expect(releaseAutomergeWorkflow).toContain('coreManifest: headCorePackageJson')
+    expect(releaseAutomergeWorkflow).toContain('rootManifest: headPackageJson')
+    expect(releaseAutomergeWorkflow).not.toContain('ref: baseBranch')
   })
 
   it('keeps the exact 1.1.0 graduation Release PR on manual rebase-first delivery', () => {
