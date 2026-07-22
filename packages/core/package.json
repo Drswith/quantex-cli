@@ -1,0 +1,49 @@
+{
+  "name": "@quantex/core",
+  "version": "1.1.3",
+  "description": "Programmatic TypeScript SDK for the Quantex agent lifecycle core",
+  "keywords": [
+    "agent-cli",
+    "agent-lifecycle",
+    "ai-agent",
+    "sdk",
+    "typescript"
+  ],
+  "homepage": "https://github.com/Drswith/quantex-cli#readme",
+  "bugs": "https://github.com/Drswith/quantex-cli/issues",
+  "license": "Apache-2.0",
+  "author": "Drswith <drswith@outlook.com>",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Drswith/quantex-cli.git",
+    "directory": "packages/core"
+  },
+  "files": [
+    "dist",
+    "LICENSE",
+    "README.md"
+  ],
+  "type": "module",
+  "sideEffects": false,
+  "main": "./dist/index.mjs",
+  "module": "./dist/index.mjs",
+  "types": "./dist/index.d.mts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.mts",
+      "import": "./dist/index.mjs"
+    },
+    "./package.json": "./package.json"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "scripts": {
+    "build": "tsdown --config tsdown.config.ts",
+    "prepublishOnly": "bun run build",
+    "typecheck": "tsc --noEmit --project tsconfig.json"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

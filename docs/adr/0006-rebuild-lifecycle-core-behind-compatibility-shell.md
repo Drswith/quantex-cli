@@ -1,6 +1,6 @@
 # ADR 0006: Rebuild the Lifecycle Core Behind a Compatibility Shell
 
-- Status: Accepted
+- Status: Superseded in part by ADR 0007
 - Date: 2026-07-10
 
 ## Context
@@ -23,6 +23,8 @@ Quantex will rebuild its internal lifecycle core as a modular monolith behind an
 - Delivery is incremental by command family; the project will not introduce a parallel `quantex-v2` product.
 
 The detailed contract and migration sequence live in the active `redesign-lifecycle-engine` OpenSpec change.
+
+ADR 0007 preserves the compatibility and lifecycle-safety decisions here while superseding the single-package boundary, the generic plan shape as the long-term Core API, and the completed redesign change as the active migration contract.
 
 ## Consequences
 

@@ -5,7 +5,7 @@ import { BUILD_PACKAGE_NAME } from '../generated/build-meta'
 import { createSuccessResult, emitCommandResult } from '../output'
 import { createCliOperationContext } from '../runtime/cli-operation-context'
 import { getSelfUpgradeRecoveryHintForInspection, inspectSelfReadOnly } from '../self'
-import { observeRegisteredAgents } from '../services/lifecycle-observations'
+import { observeCliReadRegisteredAgents } from '../services/core-read-observations'
 import { observeProviderSnapshot, projectProviderSnapshotToV1Installers } from '../services/provider-observations'
 import { pc } from '../utils/color'
 import { isVersionNewer } from '../utils/version'
@@ -71,13 +71,13 @@ export async function doctorCommand(): Promise<CommandResult<DoctorData>> {
   const operation = createCliOperationContext()
   let providerSnapshot: Awaited<ReturnType<typeof observeProviderSnapshot>>
   let selfInspection: Awaited<ReturnType<typeof inspectSelfReadOnly>>
-  let observations: Awaited<ReturnType<typeof observeRegisteredAgents>>
+  let observations: Awaited<ReturnType<typeof observeCliReadRegisteredAgents>>
   try {
     ;[providerSnapshot, selfInspection, observations] = await operation.run(() =>
       Promise.all([
         observeProviderSnapshot({ context: operation.context }),
         inspectSelfReadOnly({ context: operation.context }),
-        observeRegisteredAgents(operation.context),
+        observeCliReadRegisteredAgents(operation.context),
       ]),
     )
   } finally {

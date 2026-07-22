@@ -12,6 +12,7 @@ on:
     branches:
       - main
       - beta
+      - codex/simplify-core-sdk-integration
 
   schedule:
     - cron: '0 6 * * 2'
@@ -170,12 +171,10 @@ jobs:
             && (github.event_name != 'pull_request' || needs.classify.outputs.trusted_pr == 'true')
           }}
         with:
-          path: |
-            .bun/install/cache
-            node_modules
-          key: ${{ runner.os }}-bun-${{ hashFiles('bun.lock', 'package.json') }}
+          path: .bun/install/cache
+          key: ${{ runner.os }}-bun-download-v1-${{ hashFiles('bun.lock', 'package.json', 'packages/*/package.json') }}
           restore-keys: |
-            ${{ runner.os }}-bun-
+            ${{ runner.os }}-bun-download-v1-
 
       - name: Install Modal CLI
         if: >-
