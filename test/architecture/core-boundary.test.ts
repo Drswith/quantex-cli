@@ -67,6 +67,7 @@ describe('Core package boundary', () => {
       .filter(file => !allowedOutsideCore.has(file))
 
     expect(violations).toEqual([])
+    expect([...closure].map(repositoryPath)).not.toContain('src/core/mutation-recipe-catalog.ts')
   })
 })
 
@@ -111,8 +112,24 @@ async function runtimeDependencyClosure(entry: string): Promise<Set<string>> {
         if (specifier?.startsWith('.')) pending.push(await resolveTypescriptImport(file, specifier))
       }
     }
+    for (const specifier of dynamicImportSpecifiers(sourceFile)) {
+      if (specifier.startsWith('.')) pending.push(await resolveTypescriptImport(file, specifier))
+    }
   }
   return visited
+}
+
+function dynamicImportSpecifiers(sourceFile: ts.SourceFile): string[] {
+  const specifiers: string[] = []
+  const visit = (node: ts.Node): void => {
+    if (ts.isCallExpression(node) && node.expression.kind === ts.SyntaxKind.ImportKeyword) {
+      const specifier = stringSpecifier(node.arguments[0])
+      if (specifier) specifiers.push(specifier)
+    }
+    ts.forEachChild(node, visit)
+  }
+  visit(sourceFile)
+  return specifiers
 }
 
 function stringSpecifier(node: ts.Expression | undefined): string | undefined {
