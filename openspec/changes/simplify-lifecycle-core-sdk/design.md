@@ -85,6 +85,8 @@ Core code MUST NOT import Commander, prompts, color/presenter modules, CLI comma
 
 The CLI remains responsible for parsing, confirmation, human and structured presentation, stdout/stderr routing, exit codes, JSON/NDJSON schemas, client-key replay idempotency, self-upgrade, and standalone binary behavior. Its compatibility adapter maps Core values into the maintained v1 contracts.
 
+The read-only Core slice uses a generated discovery catalog that deliberately omits mutation-only metadata and a small observation-only provider registry. It MUST NOT pull the complete first-party mutation registry, package-manager mutation adapters, cache/network update machinery, Zod-backed catalog source, or CLI context into the public runtime closure. The maintained CLI injects its complete compatibility provider registry and rehydrates legacy-only catalog metadata at the adapter boundary so existing v1 projections remain exact while SDK consumers receive the smaller runtime.
+
 ### Decision: simplify the internal lifecycle model without simplifying evidence
 
 The current generic plan model supports dependency edges, effect lists, preconditions, and compensation steps, while production lifecycle plans currently contain at most one operation and do not use a real DAG. Core therefore converges internally on:
@@ -126,14 +128,14 @@ Core keeps these non-negotiable rules:
 - Provider `unknown`, rejection, timeout, conflicting evidence, or an unresolved recorded source yields `indeterminate` or `conflict`, never synthetic absence.
 - Process exit success is insufficient. Install, update, and uninstall succeed and write state or receipts only after a fresh postcondition observation.
 - Ghost state is cleared only after conclusive absence; uncertainty retains provenance.
-- Cancellation is sticky. Cleanup and process-tree termination complete before return, later success cannot overwrite cancellation, and cancelled or timed-out work writes no success record.
+- Cancellation is sticky. Every Core-owned resource registers cleanup immediately after acquisition and before the next asynchronous boundary. Caller signals, Core deadlines, and provider-originated cancelled or timed-out outcomes all trigger the same bounded cleanup path; later success cannot overwrite interruption and interrupted work writes no success record.
 - Compensation removes only resources proven to have been created by the current invocation, including Bun trust handling.
 - Update is no-downgrade, and script/binary self-update retains recorded provenance and requires a freshly observed version increase.
-- Windows `.cmd`/PATHEXT execution, process-tree termination, file-lock handling, delayed binary replacement, backup/restore, and both executable entry points remain covered even though self-upgrade stays outside agent Core.
+- Windows `.cmd`/PATHEXT execution, bounded process-tree termination (including a bounded `taskkill` helper with direct-signal fallback), file-lock handling, delayed binary replacement, backup/restore, and both executable entry points remain covered even though self-upgrade stays outside agent Core.
 
 ### Decision: select one engine before an invocation and never fall back after mutation starts
 
-During transition the CLI may choose legacy or Core once, before invoking lifecycle work. Read-only differential tests may run both implementations against fixtures. A mutating invocation runs exactly one engine. After either engine starts a side effect, it MUST NOT silently call the other implementation on error, because that can install, update, or uninstall twice.
+During transition the CLI may choose legacy or Core once, before invoking lifecycle work. Before the maintained read commands route through Core, differential fixtures compare the canonical resolved observation for managed, alias, external, missing, stale, conflict, indeterminate, provider-timeout, corrupt-state, and future-state cases. A mutating invocation runs exactly one engine. After either engine starts a side effect, it MUST NOT silently call the other implementation on error, because that can install, update, or uninstall twice.
 
 Rollback is an explicit whole-invocation route selected before work begins. The route and its release gate are internal compatibility controls, not a new public workflow surface. Test-only differential harnesses compare observation, decision, typed result, state delta, receipt, and CLI projection without production shadow side effects.
 
@@ -145,11 +147,13 @@ Core `ensure` is semantically idempotent through observation and postcondition v
 
 Release-please continues to manage the root release version and one GitHub tag. It synchronizes the Core package version and the root's exact same-version development dependency. CLI npm and standalone binary builds explicitly inline Core; the published CLI has no runtime registry dependency on Core during the 1.x transition.
 
-Publishing runs Core first, verifies the registry version, then publishes the CLI and uploads standalone artifacts. Recovery is idempotent per package and treats a release as npm-complete only when both repository-owned packages exist at that version. Release PR policy checks that the title, root version, Core version, and root Core development dependency are equal and rejects workspace protocols.
+Publishing runs Core first, verifies the registry version, then publishes the CLI and uploads standalone artifacts. Recovery is idempotent per package and treats a Core-era release as npm-complete only when both repository-owned packages exist at that version. Releases whose source predates `packages/core/package.json` remain CLI-only and MUST NOT be misclassified as missing Core or backfilled with a package they never contained. Release PR policy checks that the title, root version, Core version, and root Core development dependency are equal and rejects workspace protocols.
 
-The existing `quantex` alias repository remains outside this repository's release coordination. Core package bootstrap requires confirmed npm namespace ownership and trusted-publisher configuration before publication.
+The existing `quantex` alias repository remains outside this repository's release coordination. Core package bootstrap requires confirmed npm namespace ownership before publication. npm requires a package to exist before a trusted publisher can be configured, so the first Core version is a deliberate two-stage operation: an authorized maintainer publishes the already validated package once with 2FA, then configures `release.yml` as its trusted publisher and marks the repository gate ready. Automated Core-first publication starts only after that bootstrap; a missing scope, uncertain registry response, or unconfirmed gate fails closed before CLI publication.
 
-Builds use explicit CLI and Core tsdown configurations rather than experimental workspace auto-discovery. Packed-package tests install real tarballs into clean temporary consumers, compile under TypeScript NodeNext, and execute with Node.js 20 and Bun. The Core tarball contains no CLI binary, prompts, command modules, source, tests, or release binaries. Package validation also proves the CLI tarball and standalone binary work without Core installed and contain no unresolved Core package import.
+Builds use explicit CLI and Core tsdown configurations rather than experimental workspace auto-discovery. Packed-package tests install real tarballs into clean temporary consumers, compile under TypeScript NodeNext, and execute with Node.js 20 and Bun. The Core tarball contains no CLI binary, prompts, command modules, source, tests, or release binaries. Its initial read-only runtime entry stays below an 80,000-byte uncompressed budget and is scanned for high-signal mutation, cache/network, CLI-context, self-upgrade, and release fragments. A TypeScript import-closure test independently enforces the allowed source boundary. Package validation also proves the CLI tarball and standalone binary work without Core installed and contain no unresolved Core package import.
+
+Repository installation disables lifecycle scripts through Bun configuration. This prevents a default-trusted dependency postinstall from running against Bun's workspace store layout and keeps install behavior fail-closed; hook setup, builds, tests, and publication are explicit commands rather than ambient install side effects.
 
 ### Decision: require four stable minor stages and a time soak
 
@@ -173,7 +177,8 @@ Removal is permitted only in a later major release through a separate deprecatio
 - [A state change makes downgrade destructive] → Freeze schema version 2 and run released N/N-1 bidirectional mutation tests before promotion.
 - [Provider abstraction is simplified past its evidence boundary] → Preserve typed tri-state driver conformance and remove only duplicate projections and boolean facades.
 - [A broad SDK surface becomes another compatibility burden] → Publish only implemented vertical slices, expose domain results rather than infrastructure, and add capabilities additively.
-- [Coordinated npm publication becomes partially complete] → Publish and verify Core first, then CLI; resolve and recover each package independently while using one tag.
+- [Coordinated npm publication becomes partially complete] → Publish and verify Core first, then CLI; resolve and recover each package independently while using one tag; treat pre-Core releases as CLI-only.
+- [npm cannot configure trusted publishing for a package that does not exist] → Stop the first Core release before any automated publish, bootstrap the validated package once with an authorized 2FA maintainer, configure trust, and only then enable automatic publication.
 - [The provisional npm scope cannot be published] → Verify ownership and trusted publishing before enabling publication; choose the final public name before the first package release.
 - [Windows regressions are hidden by Linux-heavy PR CI] → Include the integration branch in workflows and make Windows shim, cancellation, and replacement smoke tests promotion gates.
 - [Long-lived compatibility code becomes permanent] → Require a 1.5 deprecation inventory and a separately approved major removal change after the soak, while forbidding new features in the legacy engine.

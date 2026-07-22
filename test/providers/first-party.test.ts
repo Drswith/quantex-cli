@@ -46,6 +46,16 @@ describe('first-party provider registry projections', () => {
   })
 
   it('keeps registry operations and compatibility projections in lockstep', () => {
+    const managedProviderIds = firstPartyProviderRegistry
+      .list()
+      .filter(adapter => {
+        const operations = firstPartyProviderRegistry.getCapabilities(adapter.id)
+        return operations.includes('update') && operations.includes('uninstall')
+      })
+      .map(adapter => adapter.id)
+
+    expect(getManagedInstallTypes()).toEqual(managedProviderIds)
+
     for (const adapter of firstPartyProviderRegistry.list()) {
       const operations = firstPartyProviderRegistry.getCapabilities(adapter.id)
       const projected = getInstallerCapabilities(adapter.id)

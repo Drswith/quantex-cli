@@ -20,6 +20,16 @@ Package validation MUST install the actual packed Core tarball into clean tempor
 - **THEN** a clean consumer installs the packed tarball from its filesystem path
 - **AND** runtime and type imports succeed without a repository workspace or `node_modules` symlink
 
+### Requirement: Core SDK read-only runtime stays within a minimal dependency closure
+
+The first read-only Core runtime entry MUST stay below 80,000 uncompressed bytes and MUST NOT include mutation-capable provider adapters, package mutation helpers, update cache/network machinery, CLI context, self-upgrade, or release-artifact code. Source-level import closure and built-artifact scanning MUST enforce complementary boundaries.
+
+#### Scenario: Core runtime grows or crosses an internal boundary
+
+- **WHEN** package validation inspects the built Core entry and its recursive runtime imports
+- **THEN** it fails if the size budget is exceeded or a forbidden lifecycle layer enters the closure
+- **AND** the check does not rely only on package file allowlisting
+
 ### Requirement: CLI and Core builds remain independently scoped
 
 The repository SHALL build the root CLI and Core package with explicit entries and output directories so cleaning or packing one artifact does not delete or include the other's output.
@@ -35,6 +45,16 @@ The repository SHALL build the root CLI and Core package with explicit entries a
 - **WHEN** the root CLI build cleans and emits its distribution
 - **THEN** the Core distribution remains intact
 - **AND** the CLI tarball continues to satisfy its existing runtime and binary-exclusion contract
+
+### Requirement: Workspace installation does not execute dependency lifecycle scripts
+
+The repository SHALL disable dependency and project lifecycle scripts during Bun installation and SHALL run required build, validation, hook setup, or publication commands explicitly.
+
+#### Scenario: A clean workspace install runs
+
+- **WHEN** a maintainer or release runner executes `bun install --frozen-lockfile`
+- **THEN** installation succeeds without executing a dependency postinstall from Bun's default trust list
+- **AND** release builds and package checks still run through explicit repository scripts
 
 ### Requirement: CLI source consumes Core without adding a runtime registry dependency
 

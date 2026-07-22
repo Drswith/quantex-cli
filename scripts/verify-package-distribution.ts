@@ -1,7 +1,8 @@
 import { createHash } from 'node:crypto'
-import { mkdir, mkdtemp, readFile, rm, symlink } from 'node:fs/promises'
+import { cp, mkdir, mkdtemp, readFile, realpath, rm, symlink } from 'node:fs/promises'
+import { createRequire } from 'node:module'
 import { tmpdir } from 'node:os'
-import { basename, join } from 'node:path'
+import { basename, dirname, join } from 'node:path'
 import process from 'node:process'
 import { verifyV1DownstreamCompatibility } from './verify-v1-downstream'
 
@@ -16,7 +17,10 @@ interface PackedPackage {
 
 interface PackageManifest {
   bin?: Record<string, string>
+  dependencies?: Record<string, string>
   name?: string
+  optionalDependencies?: Record<string, string>
+  peerDependencies?: Record<string, string>
   version?: string
 }
 
@@ -83,11 +87,8 @@ async function verifyPackageDistribution(): Promise<void> {
     await mkdir(unpackRoot, { recursive: true })
     await runChecked(['tar', '-xzf', tarballPath, '-C', unpackRoot])
     const installedPackageRoot = join(unpackRoot, 'package')
-    await symlink(
-      join(process.cwd(), 'node_modules'),
-      join(installedPackageRoot, 'node_modules'),
-      process.platform === 'win32' ? 'junction' : 'dir',
-    )
+    assertCoreIsNotARuntimeDependency(packageManifest)
+    await copyInstalledRuntimeDependencies(installedPackageRoot, packageManifest.dependencies ?? {})
     await mkdir(join(installRoot, 'node_modules'), { recursive: true })
     await symlink(
       installedPackageRoot,
@@ -116,11 +117,105 @@ async function verifyPackageDistribution(): Promise<void> {
     await verifyV1DownstreamCompatibility({ consumerRoot: installRoot, packageRoot: installedPackageRoot })
 
     console.log(
-      `Managed-install tarball excludes dist/bin and postinstall entrypoints, keeps runtime/declaration files (${requiredFiles.join(', ')}), runs from an isolated local extraction with locked dependencies, preserves equivalent qtx/quantex entry points, and preserves the complete v1 downstream root contract.`,
+      `Managed-install tarball excludes dist/bin and postinstall entrypoints, keeps runtime/declaration files (${requiredFiles.join(', ')}), runs from an isolated local extraction with copied production dependencies and no installed @quantex/core package, preserves equivalent qtx/quantex entry points, and preserves the complete v1 downstream root contract.`,
     )
   } finally {
     await rm(tempRoot, { force: true, recursive: true })
   }
+}
+
+function assertCoreIsNotARuntimeDependency(manifest: PackageManifest): void {
+  const runtimeRanges = [
+    manifest.dependencies?.['@quantex/core'],
+    manifest.optionalDependencies?.['@quantex/core'],
+    manifest.peerDependencies?.['@quantex/core'],
+  ].filter((range): range is string => typeof range === 'string')
+
+  if (runtimeRanges.length > 0) {
+    throw new Error(
+      `Managed-install package must inline @quantex/core instead of requiring it at runtime; found ${runtimeRanges.join(', ')}.`,
+    )
+  }
+}
+
+async function copyInstalledRuntimeDependencies(
+  packageRoot: string,
+  dependencies: Readonly<Record<string, string>>,
+): Promise<void> {
+  const targetNodeModules = join(packageRoot, 'node_modules')
+  const pending = await Promise.all(
+    Object.keys(dependencies).map(async name => ({
+      destinationNodeModules: targetNodeModules,
+      name,
+      source: await resolveInstalledPackage(process.cwd(), name),
+    })),
+  )
+  const copied = new Set<string>()
+  const copiedNames = new Set<string>()
+
+  while (pending.length > 0) {
+    const dependency = pending.shift()
+    if (!dependency) continue
+
+    const destination = join(dependency.destinationNodeModules, dependency.name)
+    const copyKey = `${dependency.source}\0${destination}`
+    if (copied.has(copyKey)) continue
+    copied.add(copyKey)
+    copiedNames.add(dependency.name)
+
+    await mkdir(dirname(destination), { recursive: true })
+    await cp(dependency.source, destination, { dereference: true, recursive: true })
+
+    const dependencyManifest = JSON.parse(
+      await readFile(join(dependency.source, 'package.json'), 'utf8'),
+    ) as PackageManifest
+    const childNodeModules = join(destination, 'node_modules')
+    for (const childName of Object.keys(dependencyManifest.dependencies ?? {})) {
+      pending.push({
+        destinationNodeModules: childNodeModules,
+        name: childName,
+        source: await resolveInstalledPackage(dependency.source, childName),
+      })
+    }
+  }
+
+  if (copiedNames.has('@quantex/core')) {
+    throw new Error('Isolated managed-install dependency tree unexpectedly contains @quantex/core.')
+  }
+}
+
+async function resolveInstalledPackage(parentPackageRoot: string, name: string): Promise<string> {
+  const requireFromParent = createRequire(join(parentPackageRoot, 'package.json'))
+  try {
+    return dirname(await realpath(requireFromParent.resolve(`${name}/package.json`)))
+  } catch (error) {
+    if (!isPackageManifestResolutionError(error)) throw error
+  }
+
+  let candidate = dirname(await realpath(requireFromParent.resolve(name)))
+  while (candidate !== dirname(candidate)) {
+    try {
+      const manifest = JSON.parse(await readFile(join(candidate, 'package.json'), 'utf8')) as PackageManifest
+      if (manifest.name === name) return candidate
+    } catch (error) {
+      if (!isMissingFileError(error)) throw error
+    }
+    candidate = dirname(candidate)
+  }
+
+  throw new Error(`Unable to resolve installed package root for ${name} from ${parentPackageRoot}.`)
+}
+
+function isPackageManifestResolutionError(error: unknown): boolean {
+  return (
+    error instanceof Error &&
+    'code' in error &&
+    (error.code === 'ERR_PACKAGE_PATH_NOT_EXPORTED' || error.code === 'MODULE_NOT_FOUND')
+  )
+}
+
+function isMissingFileError(error: unknown): boolean {
+  return error instanceof Error && 'code' in error && error.code === 'ENOENT'
 }
 
 async function runBinaryCompatibilityProbe(

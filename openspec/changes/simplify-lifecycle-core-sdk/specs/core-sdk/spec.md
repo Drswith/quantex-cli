@@ -80,6 +80,13 @@ The Core SDK public entry point MUST NOT export command handlers, presenters, mu
 
 - **WHEN** the Core bundle and declarations are validated
 - **THEN** they contain no dependency on Commander, prompts, CLI presenters, CLI command modules, mutable CLI context, self-upgrade, or release-artifact code
+- **AND** the read-only slice does not depend on mutation-capable provider adapters, package mutation helpers, or update cache/network modules
+
+#### Scenario: Core observes the maintained catalog
+
+- **WHEN** the read-only Core bundle is generated and built
+- **THEN** it uses a deterministic catalog projection without mutation-only metadata
+- **AND** its default provider registry exposes observation capabilities but no install, update, or uninstall operation
 
 ### Requirement: Core lifecycle mutations preserve evidence and verification safety
 
@@ -120,6 +127,18 @@ Core MUST treat cancellation and timeout as terminal invocation outcomes, termin
 - **WHEN** an interrupted process produces a late successful exit or callback
 - **THEN** the returned result remains cancelled or timed out
 - **AND** no later success overwrites that result
+
+#### Scenario: Provider reports interruption without aborting the caller signal
+
+- **WHEN** a provider returns a cancelled or timed-out typed outcome
+- **THEN** Core marks the invocation interrupted and drains or forcibly runs every registered cleanup before return
+- **AND** the caller does not need to abort its own signal to obtain the cleanup guarantee
+
+#### Scenario: Core-owned runner acquires a resource
+
+- **WHEN** a Core-owned port or process runner acquires an owned child process, temporary resource, or lock
+- **THEN** it registers cleanup immediately after acquisition and before its next asynchronous boundary
+- **AND** cancellation cannot race past registration and return while the owned resource remains live
 
 ### Requirement: Core remains an agent lifecycle SDK rather than an orchestration platform
 

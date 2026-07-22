@@ -36,6 +36,9 @@
     "qtx": "./dist/cli.mjs",
     "quantex": "./dist/cli.mjs"
   },
+  "workspaces": [
+    "packages/core"
+  ],
   "files": [
     "dist",
     "!dist/bin",
@@ -51,11 +54,14 @@
     "./package.json": "./package.json"
   },
   "scripts": {
-    "agent-catalog:generate": "bun run agent-catalog:manifest && bun run agent-catalog:schema",
+    "agent-catalog:generate": "bun run agent-catalog:manifest && bun run agent-catalog:schema && bun run core-catalog:write",
     "agent-catalog:manifest": "bun run scripts/write-agent-catalog-manifest.ts",
     "agent-catalog:schema": "bun run scripts/write-agent-catalog-schema.ts",
-    "build": "tsdown",
+    "build": "bun run build:core && bun run build:cli",
     "build:bin": "bun run scripts/write-build-metadata.ts && bun run scripts/build-bin.ts",
+    "build:cli": "bun run scripts/write-build-metadata.ts && tsdown --config tsdown.config.ts",
+    "build:core": "bun run --cwd packages/core build",
+    "core-catalog:write": "bun run scripts/write-core-agent-catalog.ts",
     "dev": "bun run src/cli.ts",
     "format": "oxfmt",
     "format:check": "oxfmt --check",
@@ -70,9 +76,10 @@
     "openspec:show": "openspec show --no-interactive",
     "openspec:status": "openspec status --json",
     "openspec:validate": "openspec validate --all --no-interactive",
-    "package:check": "bun run scripts/verify-package-distribution.ts",
+    "package:check": "bun run package:check:core && bun run package:check:cli",
+    "package:check:cli": "bun run scripts/verify-package-distribution.ts",
+    "package:check:core": "bun run scripts/verify-core-package-distribution.ts",
     "pr:body:check": "bun run scripts/pr-body-policy.ts",
-    "prebuild": "bun run scripts/write-build-metadata.ts",
     "prepare": "simple-git-hooks",
     "prepublishOnly": "bun run build",
     "release:artifacts": "bun run scripts/write-release-checksums.ts && bun run scripts/generate-release-manifest.ts && bun run scripts/verify-release-artifacts.ts",
@@ -82,7 +89,9 @@
     "test:readonly-smoke": "vitest run test/read-only-lifecycle-smoke.test.ts test/read-only-lifecycle-timeout.test.ts test/read-only-lifecycle-provider-timeout.test.ts test/read-only-lifecycle-provider-signal.test.ts test/read-only-spawn-guard.test.ts",
     "test:sandbox": "bun run scripts/test-sandbox.ts",
     "test:watch": "vitest",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "bun run typecheck:cli && bun run typecheck:core",
+    "typecheck:cli": "tsc --noEmit",
+    "typecheck:core": "tsc --noEmit --project packages/core/tsconfig.json"
   },
   "dependencies": {
     "commander": "^14.0.3",
@@ -93,10 +102,12 @@
   },
   "devDependencies": {
     "@fission-ai/openspec": "1.3.1",
+    "@quantex/core": "1.1.3",
     "@types/bun": "^1.3.11",
     "@types/cross-spawn": "^6.0.6",
     "@types/node": "^25.0.1",
     "@types/prompts": "^2.4.9",
+    "bun-types": "1.3.11",
     "lint-staged": "^16.2.7",
     "oxfmt": "0.47.0",
     "oxlint": "^1.62.0",

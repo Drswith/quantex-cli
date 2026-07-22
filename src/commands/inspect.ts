@@ -1,7 +1,7 @@
 import type { CommandResult } from '../output/types'
 import { projectObservationToV1Inspection } from '../compatibility/agent-inspection'
 import { createErrorResult, createSuccessResult, emitCommandResult } from '../output'
-import { resolveAgentObservation } from '../services/lifecycle-observations'
+import { resolveCliReadObservation } from '../services/core-read-observations'
 import { pc } from '../utils/color'
 import { formatInstallMethodCommand, formatInstallMethodLabel } from '../utils/install'
 
@@ -37,7 +37,7 @@ interface InspectCommandData {
 }
 
 export async function inspectCommand(agentName: string): Promise<CommandResult<InspectCommandData>> {
-  const resolved = await resolveAgentObservation(agentName)
+  const resolved = await resolveCliReadObservation(agentName)
   if (!resolved) {
     return emitCommandResult(
       createErrorResult<InspectCommandData>({

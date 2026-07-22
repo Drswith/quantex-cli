@@ -71,6 +71,13 @@ Before a lifecycle family becomes Core-default, test-only comparison MUST cover 
 - **THEN** they execute against isolated fixtures or captured effects
 - **AND** production code does not shadow-run both mutating engines
 
+#### Scenario: Maintained read commands route through Core
+
+- **WHEN** list, info, inspect, resolve, or doctor begins consuming the Core read implementation by default
+- **THEN** test-only differential fixtures compare complete resolved observations for managed, alias, external, missing, stale, conflict, indeterminate, and provider-timeout cases
+- **AND** corrupt and future state documents fail closed in the same error domain
+- **AND** maintained human, JSON, NDJSON, exit, and stream fixtures remain unchanged
+
 ### Requirement: Compatibility removal requires four stable minors and time soak
 
 Quantex MUST retain the maintained v1 CLI, structured-output, state, standard-I/O, binary, and root-export contracts through at least the 1.2, 1.3, 1.4, and 1.5 stable minor stages described by this change. Breaking removal MUST wait for a later major, Core-default operation across at least two stable minors, at least 90 days after stable-default enablement, and a separately approved deprecation change; the later gate controls.
@@ -106,3 +113,9 @@ The lifecycle integration branch and every Core-default promotion SHALL run Linu
 
 - **WHEN** a lifecycle or self-binary path that touches Windows execution is proposed for stable default
 - **THEN** Windows smoke coverage proves command-shim argv safety, process-tree termination, and applicable delayed replacement or rollback behavior
+
+#### Scenario: Windows process-tree helper stalls
+
+- **WHEN** the Windows tree-termination helper does not exit before its cleanup deadline
+- **THEN** Quantex terminates the helper and falls back to bounded direct termination of the owned child
+- **AND** cleanup does not wait indefinitely or reuse a completed graceful-cleanup promise as force cleanup
