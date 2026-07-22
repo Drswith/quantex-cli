@@ -7,6 +7,8 @@ description: Use this skill when working with Quantex CLI to install, inspect, e
 
 Use this skill when the task is about operating AI agent CLIs through Quantex rather than invoking each agent tool ad hoc.
 
+When maintaining this skill from the Quantex repository, follow `skills/quantex-agent-runtime/SKILL.md` and its OpenSpec intake guidance. That contributor workflow does not apply to ordinary users operating the Quantex CLI.
+
 `qtx` is the preferred short user-facing entry point in the product README. This skill keeps the explicit `quantex` form in automation examples because it is clearer in prompts, logs, and durable runbooks; treat the two names as equivalent unless a command example explicitly depends on the published package-manager shim form.
 
 ## When to use

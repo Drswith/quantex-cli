@@ -15,7 +15,7 @@ Use these directories as the canonical places to write project knowledge:
 | `docs/postmortems/` | Failure analysis and lessons learned after incidents or costly mistakes |
 | `docs/sessions/` | Concise discussion summaries and decisions from a working session |
 | `openspec/changes/archive/` | Completed OpenSpec changes, including migrated historical task contracts |
-| `skills/quantex-agent-runtime/` | Central Superpowers-backed runtime rules for coding-agent sessions |
+| `skills/quantex-agent-runtime/` | Central runtime rules for coding-agent sessions |
 
 Do not create new root-level ad hoc markdown files for these categories.
 
@@ -35,7 +35,7 @@ This keeps the project memory compact, searchable, and safe for future agent ite
 
 For a typical feature or refactor:
 
-1. Activate Superpowers when available and follow `skills/quantex-agent-runtime/SKILL.md`.
+1. Follow `skills/quantex-agent-runtime/SKILL.md`.
 2. Start with a session summary if the discussion materially changes project direction.
 3. Create or update an OpenSpec artifact for any non-trivial behavior or durable process change.
 4. Record an ADR if the change introduces a lasting design or scope decision.
@@ -58,4 +58,4 @@ Operational runbooks:
 
 ## Migration status
 
-Legacy root-level design and backlog documents have been archived under [archive/legacy-root-notes/](./archive/legacy-root-notes/). The old `qtx-*` task queue was migrated into [OpenSpec archived change history](../openspec/changes/archive/qtx-task-history.md). Root document cleanup status is tracked in [project-memory-migration.md](./project-memory-migration.md).
+Legacy root-level design and backlog documents have been archived under [archive/legacy-root-notes/](./archive/legacy-root-notes/). Historical Superpowers plans and SDD records have been consolidated under [archive/superpowers/](./archive/superpowers/). The old `qtx-*` task queue was migrated into [OpenSpec archived change history](../openspec/changes/archive/qtx-task-history.md). Root document cleanup status is tracked in [project-memory-migration.md](./project-memory-migration.md).

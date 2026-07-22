@@ -32,7 +32,7 @@ Use the repository for:
 5. Create a dedicated branch or worktree-backed branch and open a PR.
 6. Merge only after CI, PR governance, and documentation updates are in place.
 7. Update any affected runbooks, specs, or ADRs; if an OpenSpec change lands, merge its delta into `openspec/specs/` and archive or close the change.
-8. Treat "implementation merged" and "OpenSpec archived" as separate closure steps; a non-trivial change is not fully done until a Superpowers/Quantex-runtime archive follow-up reaches PR or merge delivery.
+8. Treat "implementation merged" and "OpenSpec archived" as separate closure steps; a non-trivial change is not fully done until a Quantex-runtime archive follow-up reaches PR or merge delivery.
 
 ## Top-level backlog issues
 
@@ -187,15 +187,14 @@ Examples:
 
 ## Agent Runtime
 
-For non-trivial behavior or durable-process changes, use Superpowers plus the central Quantex runtime skill rather than ad hoc planning files or copied per-agent workflow prompts:
+For non-trivial behavior or durable-process changes, use the central Quantex runtime skill rather than ad hoc planning files or copied per-agent workflow prompts:
 
 - `skills/quantex-agent-runtime/SKILL.md`: Quantex-specific session startup, intake, validation, artifact routing, and closure
 - [Cloud Agent Automations](./runbooks/cloud-agent-automations.md): Cursor Cloud role split, prompt baselines, model routing, and audit checklist
-- Superpowers skills: brainstorming, worktrees, planning, review, verification, and finishing branch behavior
 - OpenSpec CLI: proposal, design, spec, task, status, instructions, validation, and archive state transitions
 - [Quantex Task Start](./runbooks/quantex-task-start.md): copy-paste start prompt for fresh agent conversations when a native slash or skill launcher is unavailable
 
-On protected branches, archive closure is an explicit agent-driven follow-up. A fresh agent session should be able to resume from Superpowers + `skills/quantex-agent-runtime/SKILL.md`, inspect active OpenSpec changes, archive completed work, validate, and deliver the archive PR. For an umbrella change delivered through a protected integration branch, each milestone merge closes only that milestone; archive eligibility begins only after the umbrella completion and promotion conditions are satisfied.
+On protected branches, archive closure is an explicit agent-driven follow-up. A fresh agent session should be able to resume from `skills/quantex-agent-runtime/SKILL.md`, inspect active OpenSpec changes, archive completed work, validate, and deliver the archive PR. For an umbrella change delivered through a protected integration branch, each milestone merge closes only that milestone; archive eligibility begins only after the umbrella completion and promotion conditions are satisfied.
 
 Agents should use `openspec status --change <id> --json` and `openspec instructions <artifact> --change <id> --json` when they need to determine the next artifact or implementation step.
 

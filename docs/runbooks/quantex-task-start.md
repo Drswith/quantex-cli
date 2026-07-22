@@ -17,7 +17,6 @@ Paste this into a fresh agent conversation:
 
 ```text
 Use quantex-agent-runtime.
-Activate Superpowers first if this environment supports it.
 Read AGENTS.md, skills/quantex-agent-runtime/SKILL.md, and openspec/README.md.
 Check git status, the current branch, git worktree list, and bun run openspec:list.
 If this will create commits or a PR, do not work on main; create or switch to a dedicated worktree branch named <agent>/<task-slug>.
@@ -70,7 +69,7 @@ bun run openspec:instructions -- tasks --change <change-id>
 - Do not treat a slash command as project memory.
 - Do not implement on `main` when the task will create commits or a PR.
 - Do not duplicate full workflow instructions into agent-specific bootstrap files.
-- Do not add repo-local workflow wrapper commands when native `git`, `gh`, OpenSpec, and Superpowers instructions are enough.
+- Do not add repo-local workflow wrapper commands when native `git`, `gh`, OpenSpec, and central runtime instructions are enough.
 
 ## Related artifacts
 

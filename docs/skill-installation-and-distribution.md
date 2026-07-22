@@ -37,7 +37,7 @@ Then update the skill files so they reflect the same contract.
 
 If a skill reference keeps a maintained supported-agent snapshot, verify it against `bun run dev -- list --json` and the current `src/agents/catalog/*.json` set in the same branch.
 
-The contributor-facing runtime lives separately under `skills/quantex-agent-runtime/`. Use it when working inside this repository with Superpowers, OpenSpec intake, validation, and delivery closure rules. Do not document it as the default skill for users who only want to operate Quantex.
+The contributor-facing runtime lives separately under `skills/quantex-agent-runtime/`. Use it when working inside this repository with OpenSpec intake, validation, and delivery closure rules. Do not document it as the default skill for users who only want to operate Quantex.
 
 ## Installation model
 

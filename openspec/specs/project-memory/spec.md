@@ -109,27 +109,29 @@ The project SHALL preserve completed historical task contracts under `openspec/c
 - THEN the contributor reads the migrated archived change under `openspec/changes/archive/`
 - AND uses `openspec/changes/archive/qtx-task-history.md` as the index
 
-### Requirement: Superpowers SHALL provide the cross-agent session runtime
+### Requirement: Central Quantex agent runtime SHALL drive cross-agent sessions
 
-Quantex SHALL use Superpowers as the preferred cross-agent runtime for coding-agent session startup, planning, implementation discipline, verification, and delivery closure. OpenSpec SHALL remain the source of truth for non-trivial change contracts and accepted project-memory state.
+Quantex SHALL use `skills/quantex-agent-runtime/SKILL.md` as the central repository-session guide for coding-agent startup, planning, implementation discipline, verification, and delivery closure. OpenSpec SHALL remain the source of truth for non-trivial change contracts and accepted project-memory state.
 
-#### Scenario: Agent starts a Quantex session with Superpowers available
+#### Scenario: Agent starts a Quantex session
 
 - **WHEN** a coding agent starts a new Quantex repository session
-- **AND** Superpowers is available in that agent environment
-- **THEN** the agent MUST activate Superpowers before planning or editing
-- **AND** it MUST use the central Quantex agent runtime skill for repository-specific intake, validation, artifact routing, and closure rules
+- **THEN** the agent MUST read and follow the central Quantex agent runtime skill before planning or editing
+- **AND** it MUST use OpenSpec and repository validation commands for the source-of-truth workflow
 
-#### Scenario: Agent starts without Superpowers available
+### Requirement: Historical agent-runtime records SHALL be preserved in docs/archive
 
-- **WHEN** a coding agent starts a Quantex repository session
-- **AND** Superpowers is not available in that agent environment
-- **THEN** the agent MUST follow the bootstrap fallback in `AGENTS.md`
-- **AND** it MUST still use OpenSpec and repository validation commands as the source-of-truth workflow
+The project SHALL preserve existing historical Markdown records under `docs/archive/superpowers/` without treating them as active runtime dependencies or rewriting their historical terminology or paths.
+
+#### Scenario: Maintainer removes a retired runtime dependency
+
+- **WHEN** a maintainer removes a retired runtime from current agent guidance
+- **THEN** the maintainer MUST move existing historical-record Markdown into `docs/archive/superpowers/` intact
+- **AND** current entry manuals and runtime skills MUST NOT require that retired runtime's activation or instructions
 
 ### Requirement: Quantex task start entry SHALL be canonical and text-first
 
-The project SHALL document a canonical task start entry that lets a user start or resume Quantex work from a fresh coding-agent conversation without relying on a specific agent's slash-command syntax. The entry MUST route the agent through Superpowers when available, the central Quantex runtime skill, OpenSpec intake, and worktree-backed implementation rules.
+The project SHALL document a canonical task start entry that lets a user start or resume Quantex work from a fresh coding-agent conversation without relying on a specific agent's slash-command syntax. The entry MUST route the agent through the central Quantex runtime skill, OpenSpec intake, and worktree-backed implementation rules.
 
 #### Scenario: User starts a task in a fresh agent conversation
 
@@ -153,7 +155,7 @@ The project SHALL document a canonical task start entry that lets a user start o
 
 ### Requirement: Agent-specific workflow files SHALL stay thin
 
-The repository SHALL NOT maintain full copied OPSX workflow instructions separately for each supported coding agent. The repository also SHALL NOT treat checked-in agent-specific skill mirrors as canonical workflow contracts. Agent-specific integration files MAY exist only when they are necessary for a supported environment and SHALL remain short routes to Superpowers, the central Quantex runtime skill, and repo-native OpenSpec artifacts.
+The repository SHALL NOT maintain full copied workflow instructions separately for each supported coding agent. The repository also SHALL NOT treat checked-in agent-specific skill mirrors as canonical workflow contracts. Agent-specific integration files MAY exist only when they are necessary for a supported environment and SHALL remain short routes to the central Quantex runtime skill and repo-native OpenSpec artifacts.
 
 #### Scenario: Maintainer updates Quantex workflow rules
 
@@ -168,15 +170,15 @@ The repository SHALL NOT maintain full copied OPSX workflow instructions separat
 - **THEN** that metadata may describe setup commands or provisioning details
 - **AND** it does not become the source of truth for durable Quantex workflow policy
 
-### Requirement: OPSX actions MUST be available across supported coding agents
+### Requirement: OpenSpec actions MUST be available across supported coding agents
 
-The project SHALL make OpenSpec actions available across supported coding agents through the Superpowers-backed Quantex agent runtime. The runtime SHALL instruct agents to use official OpenSpec CLI commands such as `openspec status`, `openspec instructions`, `openspec validate`, and `openspec archive` instead of relying on copied per-agent OPSX command bodies.
+The project SHALL make OpenSpec actions available across supported coding agents through the central Quantex agent runtime. The runtime SHALL instruct agents to use official OpenSpec CLI commands such as `openspec status`, `openspec instructions`, `openspec validate`, and `openspec archive` instead of relying on copied workflow command bodies.
 
 #### Scenario: Agent starts a non-trivial change
 
 - GIVEN a supported coding agent is asked to plan a non-trivial behavior or durable-process change
 - WHEN the agent needs workflow guidance
-- THEN it can use the Superpowers-backed Quantex runtime to choose explore, propose, apply, and archive behavior
+- THEN it can use the central Quantex runtime to choose explore, propose, apply, and archive behavior
 - AND shared project-specific guidance comes from the central runtime skill, `openspec/config.yaml`, and current OpenSpec artifacts
 
 ### Requirement: Canonical docs must stay aligned with implementation
@@ -315,7 +317,7 @@ Agents and contributors SHALL perform delivery closure checks before reporting i
 - **GIVEN** work was tracked by an OpenSpec change
 - **WHEN** the agent creates or updates the implementation PR
 - **THEN** the agent MUST state whether the OpenSpec change remains active by design until merge
-- **AND** the agent MUST identify whether archive closure is pending, already complete, or delegated to a Superpowers/Quantex-runtime follow-up
+- **AND** the agent MUST identify whether archive closure is pending, already complete, or delegated to a Quantex-runtime follow-up
 
 #### Scenario: User requests closure
 
@@ -344,7 +346,7 @@ Repository-native project-memory checks MUST allow the current canonical root RE
 
 ### Requirement: Repository workflow scripts MUST remain guardrails instead of orchestration commands
 
-Repository scripts that support the agent workflow SHALL remain focused on validation, classification, generation of build or release artifacts, and other executable guardrails. The project MUST NOT add repo-local workflow wrapper commands when Superpowers runtime instructions plus official CLIs such as `gh`, `git`, and `openspec` can perform the action with the same reviewability.
+Repository scripts that support the agent workflow SHALL remain focused on validation, classification, generation of build or release artifacts, and other executable guardrails. The project MUST NOT add repo-local workflow wrapper commands when central runtime instructions plus official CLIs such as `gh`, `git`, and `openspec` can perform the action with the same reviewability.
 
 #### Scenario: A workflow gap is discovered
 

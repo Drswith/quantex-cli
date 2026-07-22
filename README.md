@@ -63,7 +63,7 @@ npm exec --yes --package quantex-cli -- qtx schema --json
 If the agent is contributing inside this repository, use this as the bootstrap prompt:
 
 ```text
-Activate Superpowers if available, then read AGENTS.md, openspec/README.md, skills/quantex-agent-runtime/SKILL.md, and skills/quantex-cli/SKILL.md.
+Read AGENTS.md, openspec/README.md, skills/quantex-agent-runtime/SKILL.md, and skills/quantex-cli/SKILL.md.
 For non-trivial changes, use OpenSpec through the Quantex agent runtime.
 Before finishing, run bun run lint, bun run format:check, and bun run typecheck.
 If command behavior changed, also run bun run test.
@@ -284,7 +284,7 @@ If you are contributing to this repository or letting a coding agent work here, 
 
 - [AGENTS.md](./AGENTS.md): repository-level execution handbook with workflow guardrails, validation gates, and trigger-based pointers.
 - [docs/README.md](./docs/README.md): project docs for ADRs, runbooks, sessions, and postmortems.
-- [openspec/README.md](./openspec/README.md): OpenSpec / OPSX change workflow.
+- [openspec/README.md](./openspec/README.md): OpenSpec change workflow.
 - [docs/github-collaboration.md](./docs/github-collaboration.md): Issue, PR, and Discussion collaboration flow.
 - [skills/quantex-cli/SKILL.md](./skills/quantex-cli/SKILL.md): repo-native skill for agents using Quantex.
 - [skills/quantex-agent-runtime/SKILL.md](./skills/quantex-agent-runtime/SKILL.md): contributor-facing runtime for agents working inside this repository.
