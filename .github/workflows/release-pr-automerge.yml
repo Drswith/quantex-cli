@@ -42,6 +42,21 @@ jobs:
             const title = pullRequest.title || ''
             const body = pullRequest.body || ''
 
+            const readJsonFile = async (path, ref) => {
+              const response = await github.rest.repos.getContent({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                path,
+                ref,
+              })
+
+              if (Array.isArray(response.data) || !('content' in response.data)) {
+                throw new Error(`Expected ${path} at ${ref} to be a file.`)
+              }
+
+              return JSON.parse(Buffer.from(response.data.content, 'base64').toString('utf8'))
+            }
+
             if (pullRequest.head.repo.full_name !== `${context.repo.owner}/${context.repo.repo}`) {
               core.setFailed('Release PR automerge only supports release-please branches from this repository.')
               return
@@ -54,20 +69,20 @@ jobs:
               per_page: 100,
             })
 
-            const packageJson = await github.rest.repos.getContent({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              path: 'package.json',
-              ref: baseBranch,
-            })
+            const [basePackageJson, headPackageJson, headCorePackageJson] = await Promise.all([
+              readJsonFile('package.json', pullRequest.base.sha),
+              readJsonFile('package.json', pullRequest.head.sha),
+              readJsonFile('packages/core/package.json', pullRequest.head.sha),
+            ])
 
-            const basePackageJson = JSON.parse(Buffer.from(packageJson.data.content, 'base64').toString('utf8'))
             const issues = validateReleasePrPolicy({
               baseBranch,
               baseVersion: basePackageJson.version,
               body,
               changedFiles: files.map(file => file.filename),
+              coreManifest: headCorePackageJson,
               headBranch,
+              rootManifest: headPackageJson,
               title,
             })
 

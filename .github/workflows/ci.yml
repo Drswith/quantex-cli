@@ -5,6 +5,7 @@ on:
     branches:
       - main
       - beta
+      - codex/simplify-core-sdk-integration
 
   pull_request:
     branches:
@@ -150,7 +151,7 @@ jobs:
           path: |
             .bun/install/cache
             node_modules
-          key: ${{ runner.os }}-bun-${{ hashFiles('bun.lock', 'package.json') }}
+          key: ${{ runner.os }}-bun-${{ hashFiles('bun.lock', 'package.json', 'packages/*/package.json') }}
           restore-keys: |
             ${{ runner.os }}-bun-
 
@@ -196,13 +197,18 @@ jobs:
         with:
           bun-version: 1.3.11
 
+      - uses: actions/setup-node@v7
+        if: ${{ needs.classify.outputs.run_test_matrix == 'true' || runner.os == 'Linux' }}
+        with:
+          node-version: 20
+
       - uses: actions/cache@v6
         if: ${{ needs.classify.outputs.run_test_matrix == 'true' || runner.os == 'Linux' }}
         with:
           path: |
             .bun/install/cache
             node_modules
-          key: ${{ runner.os }}-bun-${{ hashFiles('bun.lock', 'package.json') }}
+          key: ${{ runner.os }}-bun-${{ hashFiles('bun.lock', 'package.json', 'packages/*/package.json') }}
           restore-keys: |
             ${{ runner.os }}-bun-
 
@@ -210,7 +216,9 @@ jobs:
         run: bun install --frozen-lockfile --ignore-scripts --no-progress
       - if: ${{ needs.classify.outputs.run_test_matrix == 'true' || runner.os == 'Linux' }}
         run: bun run build
-      - if: ${{ needs.classify.outputs.run_test_matrix == 'true' && runner.os == 'Windows' && github.event_name != 'pull_request' }}
+      - if: ${{ runner.os == 'Linux' }}
+        run: bun run package:check
+      - if: ${{ needs.classify.outputs.run_test_matrix == 'true' && runner.os == 'Windows' }}
         run: bun run test -- --pool=threads
 
       - if: ${{ needs.classify.outputs.run_test_matrix == 'true' && runner.os != 'Windows' }}

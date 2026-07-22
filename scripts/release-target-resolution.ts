@@ -7,7 +7,31 @@ const execFileAsync = promisify(execFile)
 
 export type ReleaseMode = 'publish' | 'pr' | 'skip'
 
+export const repositoryNpmPackageNames = ['@quantex/core', 'quantex-cli'] as const
+
+export type RepositoryNpmPackageName = (typeof repositoryNpmPackageNames)[number]
+export type NpmPackagePublicationStatus = 'indeterminate' | 'missing' | 'published'
+export type NpmReleaseIntegrity =
+  | 'both-missing'
+  | 'both-published'
+  | 'cli-missing'
+  | 'core-missing'
+  | 'legacy-cli-missing'
+  | 'legacy-cli-published'
+  | 'registry-indeterminate'
+
+export interface NpmPackagePublicationState {
+  detail?: string
+  status: NpmPackagePublicationStatus
+}
+
+export interface NpmReleasePublicationState {
+  '@quantex/core'?: NpmPackagePublicationState
+  'quantex-cli': NpmPackagePublicationState
+}
+
 export interface SuccessfulCiRun {
+  corePackagePresent?: boolean
   databaseId: number
   displayTitle?: string
   headBranch?: string
@@ -24,7 +48,9 @@ export interface CommitReleaseIntent {
 
 export interface ReleaseTargetResolution {
   configFile: string
+  coreRequired: boolean
   mode: ReleaseMode
+  npmIntegrity: NpmReleaseIntegrity | 'not-applicable'
   npmTag: string
   reason: string
   sourceCiRunId: number | null
@@ -35,7 +61,7 @@ export interface ReleaseTargetResolution {
 
 export interface SelectReleaseCandidateOptions {
   commitsBySha: Record<string, CommitReleaseIntent>
-  publishedNpmVersions?: Set<string>
+  npmPublicationsByVersion: Record<string, NpmReleasePublicationState>
   publishedReleaseShas: Set<string>
   publishedTags: Set<string>
   runs: SuccessfulCiRun[]
@@ -59,9 +85,29 @@ export function classifyCommitReleaseIntent(message: string): CommitReleaseInten
   }
 }
 
+export function classifyNpmReleaseIntegrity(
+  publication: NpmReleasePublicationState,
+  coreRequired = true,
+): NpmReleaseIntegrity {
+  const cliStatus = publication['quantex-cli'].status
+
+  if (!coreRequired) {
+    if (cliStatus === 'indeterminate') return 'registry-indeterminate'
+    return cliStatus === 'published' ? 'legacy-cli-published' : 'legacy-cli-missing'
+  }
+
+  const coreStatus = publication['@quantex/core']?.status ?? 'indeterminate'
+
+  if (coreStatus === 'indeterminate' || cliStatus === 'indeterminate') return 'registry-indeterminate'
+  if (coreStatus === 'published' && cliStatus === 'published') return 'both-published'
+  if (coreStatus === 'missing' && cliStatus === 'missing') return 'both-missing'
+  if (coreStatus === 'missing') return 'core-missing'
+  return 'cli-missing'
+}
+
 export function selectReleaseCandidate({
   commitsBySha,
-  publishedNpmVersions,
+  npmPublicationsByVersion,
   publishedReleaseShas,
   publishedTags,
   runs,
@@ -92,10 +138,14 @@ export function selectReleaseCandidate({
     const commit = commitsBySha[untaggedReleaseRun.headSha]
     const releaseVersion = commit.releaseVersion as string
     const tagName = `v${releaseVersion}`
+    const coreRequired = untaggedReleaseRun.corePackagePresent !== false
+    const npmIntegrity = resolveNpmReleaseIntegrity(releaseVersion, npmPublicationsByVersion, coreRequired)
 
     return {
       configFile: '',
+      coreRequired,
       mode: 'publish',
+      npmIntegrity,
       npmTag: '',
       reason: `publish pending untagged release commit ${releaseVersion}`,
       sourceCiRunId: untaggedReleaseRun.databaseId,
@@ -108,21 +158,31 @@ export function selectReleaseCandidate({
   const latestReleaseRun = newestRuns.find(run => commitsBySha[run.headSha]?.isReleaseCommit)
   const latestReleaseCommit = latestReleaseRun ? commitsBySha[latestReleaseRun.headSha] : undefined
   const latestReleaseVersion = latestReleaseCommit?.releaseVersion
-  if (
-    latestReleaseRun &&
-    latestReleaseVersion &&
-    publishedNpmVersions &&
-    !publishedNpmVersions.has(latestReleaseVersion)
-  ) {
-    return {
-      configFile: '',
-      mode: 'publish',
-      npmTag: '',
-      reason: `publish release commit ${latestReleaseVersion} because npm package is missing`,
-      sourceCiRunId: latestReleaseRun.databaseId,
-      targetBranch: '',
-      targetTag: `v${latestReleaseVersion}`,
-      targetSha: latestReleaseRun.headSha,
+  let latestNpmIntegrity: NpmReleaseIntegrity | 'not-applicable' = 'not-applicable'
+  let latestCoreRequired = false
+
+  if (latestReleaseRun && latestReleaseVersion) {
+    latestCoreRequired = latestReleaseRun.corePackagePresent !== false
+    const resolvedNpmIntegrity = resolveNpmReleaseIntegrity(
+      latestReleaseVersion,
+      npmPublicationsByVersion,
+      latestCoreRequired,
+    )
+    latestNpmIntegrity = resolvedNpmIntegrity
+
+    if (resolvedNpmIntegrity !== 'both-published' && resolvedNpmIntegrity !== 'legacy-cli-published') {
+      return {
+        configFile: '',
+        coreRequired: latestCoreRequired,
+        mode: 'publish',
+        npmIntegrity: resolvedNpmIntegrity,
+        npmTag: '',
+        reason: `publish release commit ${latestReleaseVersion} because ${describeMissingPackages(resolvedNpmIntegrity)}`,
+        sourceCiRunId: latestReleaseRun.databaseId,
+        targetBranch: '',
+        targetTag: `v${latestReleaseVersion}`,
+        targetSha: latestReleaseRun.headSha,
+      }
     }
   }
 
@@ -130,7 +190,9 @@ export function selectReleaseCandidate({
   if (releasePrRun) {
     return {
       configFile: '',
+      coreRequired: latestCoreRequired,
       mode: 'pr',
+      npmIntegrity: latestNpmIntegrity,
       npmTag: '',
       reason: 'prepare or refresh release PR from latest successful release-worthy CI run',
       sourceCiRunId: releasePrRun.databaseId,
@@ -142,7 +204,9 @@ export function selectReleaseCandidate({
 
   return {
     configFile: '',
+    coreRequired: latestCoreRequired,
     mode: 'skip',
+    npmIntegrity: latestNpmIntegrity,
     npmTag: '',
     reason: 'no successful release-worthy or pending release commit found on target branch',
     sourceCiRunId: null,
@@ -150,6 +214,46 @@ export function selectReleaseCandidate({
     targetTag: null,
     targetSha: null,
   }
+}
+
+function resolveNpmReleaseIntegrity(
+  version: string,
+  publicationsByVersion: Record<string, NpmReleasePublicationState>,
+  coreRequired: boolean,
+): Exclude<NpmReleaseIntegrity, 'registry-indeterminate'> {
+  const publication = publicationsByVersion[version]
+  if (!publication) {
+    throw new Error(
+      `Cannot determine npm publication integrity for release ${version}: no registry inspection result is available. Release automation fails closed.`,
+    )
+  }
+
+  const integrity = classifyNpmReleaseIntegrity(publication, coreRequired)
+  if (integrity !== 'registry-indeterminate') return integrity
+
+  const diagnostics = repositoryNpmPackageNames
+    .filter(
+      packageName =>
+        (coreRequired || packageName === 'quantex-cli') && publication[packageName]?.status !== 'published',
+    )
+    .map(
+      packageName =>
+        `${packageName}: ${publication[packageName]?.detail ?? (publication[packageName] ? 'registry inspection failed' : 'inspection result missing')}`,
+    )
+    .join('; ')
+
+  throw new Error(
+    `Cannot determine npm publication integrity for release ${version}: ${diagnostics}. Release automation fails closed without publishing either repository-owned package.`,
+  )
+}
+
+function describeMissingPackages(
+  integrity: Exclude<NpmReleaseIntegrity, 'both-published' | 'legacy-cli-published' | 'registry-indeterminate'>,
+): string {
+  if (integrity === 'core-missing') return '@quantex/core is missing from npm'
+  if (integrity === 'cli-missing') return 'quantex-cli is missing from npm'
+  if (integrity === 'legacy-cli-missing') return 'legacy quantex-cli is missing from npm'
+  return '@quantex/core and quantex-cli are missing from npm'
 }
 
 function dedupeRunsByHeadSha(runs: SuccessfulCiRun[]): SuccessfulCiRun[] {
@@ -192,7 +296,12 @@ async function resolveReleaseTargetFromEnvironment(): Promise<ReleaseTargetResol
   if (!token) throw new Error('GITHUB_TOKEN or GH_TOKEN is required.')
 
   const successfulRuns = await listSuccessfulCiRuns({ repository, targetBranch, token })
-  const reachableRuns = await filterRunsReachableFromHead(successfulRuns)
+  const reachableRuns = await Promise.all(
+    (await filterRunsReachableFromHead(successfulRuns)).map(async run => ({
+      ...run,
+      corePackagePresent: await fileExistsAtCommit(run.headSha, 'packages/core/package.json'),
+    })),
+  )
   const commitsBySha = Object.fromEntries(
     await Promise.all(
       reachableRuns.map(
@@ -209,14 +318,15 @@ async function resolveReleaseTargetFromEnvironment(): Promise<ReleaseTargetResol
   const publishedReleaseShas = new Set(
     reachableRuns.filter(run => releaseTagPointsAtCommit(run.headSha)).map(run => run.headSha),
   )
-  const releaseVersions = reachableRuns
-    .map(run => commitsBySha[run.headSha]?.releaseVersion)
-    .filter((version): version is string => Boolean(version))
-  const publishedNpmVersions = await listPublishedNpmVersions(releaseVersions)
+  const releases = reachableRuns.flatMap(run => {
+    const version = commitsBySha[run.headSha]?.releaseVersion
+    return version ? [{ coreRequired: run.corePackagePresent !== false, version }] : []
+  })
+  const npmPublicationsByVersion = await inspectNpmReleasePublications(releases)
 
   const resolution = selectReleaseCandidate({
     commitsBySha,
-    publishedNpmVersions,
+    npmPublicationsByVersion,
     publishedReleaseShas,
     publishedTags: new Set([...publishedTags].map(version => `v${version}`)),
     runs: reachableRuns,
@@ -230,30 +340,80 @@ async function resolveReleaseTargetFromEnvironment(): Promise<ReleaseTargetResol
   }
 }
 
-async function listPublishedNpmVersions(versions: string[]): Promise<Set<string>> {
-  const publishedVersions = new Set<string>()
+async function inspectNpmReleasePublications(
+  releases: Array<{ coreRequired: boolean; version: string }>,
+): Promise<Record<string, NpmReleasePublicationState>> {
   const registryUrl = (process.env.NPM_CONFIG_REGISTRY ?? 'https://registry.npmjs.org').replace(/\/$/, '')
+  const publicationsByVersion: Record<string, NpmReleasePublicationState> = {}
+  const requirementsByVersion = new Map<string, boolean>()
+
+  for (const release of releases) {
+    requirementsByVersion.set(
+      release.version,
+      (requirementsByVersion.get(release.version) ?? false) || release.coreRequired,
+    )
+  }
 
   await Promise.all(
-    [...new Set(versions)].map(async version => {
-      const response = await fetch(`${registryUrl}/quantex-cli/${encodeURIComponent(version)}`, {
-        headers: {
-          Accept: 'application/json',
-        },
-      })
+    [...requirementsByVersion].map(async ([version, coreRequired]) => {
+      const packageNames: readonly RepositoryNpmPackageName[] = coreRequired
+        ? repositoryNpmPackageNames
+        : ['quantex-cli']
+      const entries = await Promise.all(
+        packageNames.map(async packageName => {
+          const publication = await inspectNpmPackageVersion({ packageName, registryUrl, version })
+          return [packageName, publication] as const
+        }),
+      )
 
-      if (response.status === 404) return
-      if (!response.ok) {
-        throw new Error(
-          `Unable to inspect npm package quantex-cli@${version}: ${response.status} ${response.statusText}`,
-        )
-      }
-
-      publishedVersions.add(version)
+      publicationsByVersion[version] = Object.fromEntries(entries) as unknown as NpmReleasePublicationState
     }),
   )
 
-  return publishedVersions
+  return publicationsByVersion
+}
+
+async function inspectNpmPackageVersion({
+  packageName,
+  registryUrl,
+  version,
+}: {
+  packageName: RepositoryNpmPackageName
+  registryUrl: string
+  version: string
+}): Promise<NpmPackagePublicationState> {
+  const registryPackageName = encodeURIComponent(packageName).replace(/^%40/, '@')
+
+  try {
+    const response = await fetch(`${registryUrl}/${registryPackageName}/${encodeURIComponent(version)}`, {
+      headers: {
+        Accept: 'application/json',
+      },
+    })
+
+    if (response.status === 404) return { status: 'missing' }
+    if (!response.ok) {
+      return {
+        detail: `HTTP ${response.status} ${response.statusText}`,
+        status: 'indeterminate',
+      }
+    }
+
+    const payload = (await response.json()) as { version?: unknown }
+    if (payload.version !== version) {
+      return {
+        detail: `registry returned version ${String(payload.version)} for exact request ${version}`,
+        status: 'indeterminate',
+      }
+    }
+
+    return { status: 'published' }
+  } catch (error) {
+    return {
+      detail: error instanceof Error ? error.message : String(error),
+      status: 'indeterminate',
+    }
+  }
 }
 
 function readTargetBranchFromEnv(): string {
@@ -363,6 +523,15 @@ async function isAncestorOf(sha: string, tipSha: string): Promise<boolean> {
   }
 }
 
+async function fileExistsAtCommit(sha: string, fileName: string): Promise<boolean> {
+  try {
+    await execFileAsync('git', ['cat-file', '-e', `${sha}:${fileName}`])
+    return true
+  } catch {
+    return false
+  }
+}
+
 async function readCommitMessage(sha: string): Promise<string> {
   const { stdout } = await execFileAsync('git', ['log', '-1', '--pretty=%B', sha])
   return stdout.trimEnd()
@@ -406,7 +575,9 @@ async function writeGithubOutputs(resolution: ReleaseTargetResolution): Promise<
 
   const lines = [
     `config_file=${resolution.configFile}`,
+    `core_required=${String(resolution.coreRequired)}`,
     `mode=${resolution.mode}`,
+    `npm_integrity=${resolution.npmIntegrity}`,
     `npm_tag=${resolution.npmTag}`,
     `reason=${resolution.reason}`,
     `source_ci_run_id=${resolution.sourceCiRunId ?? ''}`,

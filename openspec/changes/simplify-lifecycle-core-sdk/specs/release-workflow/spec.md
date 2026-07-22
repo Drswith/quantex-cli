@@ -27,6 +27,14 @@ The Release workflow SHALL publish the repository-owned Core SDK and primary `qu
 - **THEN** it MUST treat npm publication as incomplete
 - **AND** it MUST publish and verify Core before declaring repository release closure
 
+#### Scenario: Latest release predates the Core package
+
+- **GIVEN** the latest release commit does not contain `packages/core/package.json`
+- **AND** its `quantex-cli` version already exists on npm
+- **WHEN** release recovery evaluates that release during the transition
+- **THEN** it MUST treat Core as not applicable to that historical release
+- **AND** it MUST NOT publish or backfill a Core package for that historical version
+
 #### Scenario: quantex package synchronization credentials are absent
 
 - **WHEN** a release publish run executes without a `QUANTEX_SYNC_TOKEN` secret
@@ -38,3 +46,10 @@ The Release workflow SHALL publish the repository-owned Core SDK and primary `qu
 - **WHEN** npm ownership or trusted publishing has not been confirmed for the Core package
 - **THEN** release validation MUST fail before publishing either repository-owned npm package for a version that depends on Core
 - **AND** it MUST provide an actionable bootstrap diagnostic rather than leaving a partially published CLI dependency
+
+#### Scenario: Core package does not yet exist for trusted publishing
+
+- **GIVEN** npm requires the package to exist before a trusted publisher can be configured
+- **WHEN** the first Core release reaches automated publication
+- **THEN** the workflow MUST stop before publishing either repository-owned package
+- **AND** it MUST instruct an authorized maintainer to publish the validated Core package once with 2FA, configure `release.yml` trust, and rerun

@@ -14,7 +14,7 @@ export interface ChangeScopeClassification {
   scope: ChangeScope
 }
 
-export const productImpactingPrefixes = ['src/', 'scripts/', 'skills/quantex-cli/'] as const
+export const productImpactingPrefixes = ['packages/core/', 'src/', 'scripts/', 'skills/quantex-cli/'] as const
 
 export const productImpactingFiles = new Set([
   'package.json',
@@ -33,6 +33,7 @@ export const processOnlyFiles = new Set([
 export const processOnlyPrefixes = ['.github/', 'docs/', 'openspec/'] as const
 
 export const sandboxRelevantPrefixes = [
+  'packages/core/src/',
   'src/agents/',
   'src/agent-update/',
   'src/commands/',
