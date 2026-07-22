@@ -2,6 +2,18 @@
 
 This changelog is maintained by release-please Release PRs.
 
+## [1.2.0](https://github.com/Drswith/quantex-cli/compare/v1.1.3...v1.2.0) (2026-07-22)
+
+
+### Features
+
+* **core:** add a minimal read-only TypeScript SDK for agent discovery and inspection ([554c0e1](https://github.com/Drswith/quantex-cli/commit/554c0e197c53d0b776beb714a81f644b8cb49210))
+
+
+### Bug Fixes
+
+* **lifecycle:** clear tracked script/binary state on uninstall without requiring PATH absence ([6550610](https://github.com/Drswith/quantex-cli/commit/655061042a12e00a36819e08ae27a069318e87c3))
+
 ## [1.1.3](https://github.com/Drswith/quantex-cli/compare/v1.1.2...v1.1.3) (2026-07-20)
 
 
