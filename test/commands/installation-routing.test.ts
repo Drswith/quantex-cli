@@ -27,7 +27,8 @@ import {
   reportInstallationEngineRoute,
   selectInstallationEngineRoute,
 } from '../../src/commands/installation-routing'
-import { createErrorResult, createSuccessResult } from '../../src/output'
+import { getExitCodeForResult } from '../../src/errors'
+import { createErrorResult, createSuccessResult, emitCommandEvent } from '../../src/output'
 
 beforeEach(() => {
   setCliContext({
@@ -118,6 +119,75 @@ describe('installation engine routing', () => {
     expect(control.execute).toHaveBeenCalledWith('fixture', { emitStartedEvent: true })
     expect(control.dispose).toHaveBeenCalledTimes(1)
     expect(control.legacyLock).not.toHaveBeenCalled()
+  })
+
+  it.each([
+    ['install', 'human'],
+    ['install', 'json'],
+    ['install', 'ndjson'],
+    ['ensure', 'human'],
+    ['ensure', 'json'],
+    ['ensure', 'ndjson'],
+  ] as const)('keeps the %s Core route on the maintained v1 %s presentation path', async (operation, outputMode) => {
+    setCliContext({
+      cancelled: false,
+      colorMode: 'never',
+      interactive: false,
+      logLevel: outputMode === 'human' ? 'info' : 'silent',
+      outputMode,
+      quiet: false,
+      runId: `core-${operation}-${outputMode}`,
+    })
+    const log = vi.spyOn(console, 'log').mockImplementation(() => undefined)
+    const stdout = vi.spyOn(process.stdout, 'write').mockReturnValue(true)
+    control.execute.mockImplementation(async (name: string, options?: { emitStartedEvent?: boolean }) => {
+      const canonicalName = name === 'cmd' ? 'commandcode' : name
+      if (options?.emitStartedEvent) {
+        emitCommandEvent({
+          action: operation,
+          data: { agent: { displayName: canonicalName, name: canonicalName } },
+          target: { kind: 'agent', name: canonicalName },
+          type: 'started',
+        })
+      }
+      return operation === 'install' ? installSuccess(canonicalName) : ensureSuccess(canonicalName)
+    })
+
+    try {
+      const result =
+        operation === 'install'
+          ? await installCommandWithRoute('cmd', createCoreInstallationTestRoute())
+          : await ensureCommandWithRoute('cmd', createCoreInstallationTestRoute())
+
+      expect(result.action).toBe(operation)
+      expect(result.target).toEqual({ kind: 'agent', name: 'commandcode' })
+      expect(getExitCodeForResult(result)).toBe(0)
+      expect(control.legacyLock).not.toHaveBeenCalled()
+
+      if (outputMode === 'human') {
+        const rendered = stdout.mock.calls.map(call => String(call[0])).join('')
+        expect(rendered).toContain('Installing commandcode...')
+        expect(rendered).toContain(
+          operation === 'install' ? 'commandcode installed successfully!' : 'commandcode is now installed.',
+        )
+        expect(log).not.toHaveBeenCalled()
+      } else if (outputMode === 'json') {
+        expect(log).toHaveBeenCalledTimes(1)
+        const payload = JSON.parse(String(log.mock.calls[0]?.[0])) as Record<string, unknown>
+        expect(payload).toMatchObject({ action: operation, ok: true, target: { kind: 'agent', name: 'commandcode' } })
+        expect(JSON.stringify(payload)).not.toMatch(/"(?:engine|route)"/)
+      } else {
+        expect(log).toHaveBeenCalledTimes(2)
+        const events = log.mock.calls.map(call => JSON.parse(String(call[0])) as Record<string, unknown>)
+        expect(events.map(event => event.type)).toEqual(['started', 'result'])
+        expect(events[0]).toMatchObject({ action: operation, target: { kind: 'agent', name: 'commandcode' } })
+        expect(events[1]).toMatchObject({ action: operation, data: { ok: true } })
+        expect(JSON.stringify(events)).not.toMatch(/"(?:engine|route)"/)
+      }
+    } finally {
+      log.mockRestore()
+      stdout.mockRestore()
+    }
   })
 
   it('writes route diagnostics only to debug stderr', () => {

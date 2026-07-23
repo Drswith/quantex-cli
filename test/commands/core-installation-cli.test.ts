@@ -4,17 +4,18 @@ import type {
   CoreInstallationCompatibilityRequest,
 } from '../../src/core/installation-compatibility'
 import type { CoreInstallationExecutionOutcome } from '../../src/core/installation-executor'
-import type { CoreInvocationOutcome } from '../../src/core/invocation'
 import type { CoreAgentObservation } from '../../src/core/production-observation'
 import type { LifecycleObservation, LifecycleReceipt } from '../../src/lifecycle/model'
 import type { LifecycleProviderBinding } from '../../src/lifecycle/provider-binding'
 import type { InstalledAgentState } from '../../src/state'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { cancelCliContextOperations, setCliContext } from '../../src/cli-context'
+import { executeCommandWithRuntime } from '../../src/command-runtime'
 import {
   createCoreInstallationCliSession,
   projectCoreInstallationOutcome,
 } from '../../src/commands/core-installation-cli'
+import { runCoreInvocation, type CoreInvocationOutcome } from '../../src/core/invocation'
 import { StateSchemaError } from '../../src/state/schema'
 import { ResourceLockError } from '../../src/utils/lock'
 
@@ -247,6 +248,34 @@ describe('Core installation CLI session', () => {
     expect(requests[0]?.resolveAdoption).toBeTypeOf('function')
   })
 
+  it('keeps safe PATH adoption private and refuses ambiguous paths', async () => {
+    let safeAdoption: Awaited<ReturnType<NonNullable<CoreInstallationCompatibilityRequest['resolveAdoption']>>>
+    let ambiguousAdoption: Awaited<ReturnType<NonNullable<CoreInstallationCompatibilityRequest['resolveAdoption']>>>
+    const executor = fakeExecutor(
+      async request =>
+        await runCoreInvocation(undefined, async context => {
+          safeAdoption = await request.resolveAdoption?.(
+            observed(present({ kind: 'untracked' }), {
+              resolvedBinaryPath: '/home/fixture/.nvm/versions/node/v24/bin/fixture-agent',
+            }),
+            context,
+          )
+          ambiguousAdoption = await request.resolveAdoption?.(untrackedObservation(), context)
+          return { kind: 'agent-not-found', name: request.name }
+        }),
+    )
+    const session = createCoreInstallationCliSession('ensure', { loadExecutor: async () => executor })
+
+    await session.execute(agent.name)
+    session.dispose()
+
+    expect(safeAdoption).toMatchObject({
+      binding,
+      installedState: { agentName: agent.name, installType: 'npm', packageName: agent.name },
+    })
+    expect(ambiguousAdoption).toBeUndefined()
+  })
+
   it('maps a cached engine initialization failure without retrying or invoking another engine', async () => {
     const loadExecutor = vi.fn(async (): Promise<CoreInstallationCompatibilityExecutor> => {
       throw new Error('fixture loader failure')
@@ -298,6 +327,61 @@ describe('Core installation CLI session', () => {
     await cancellation
     await expect(execution).resolves.toMatchObject({ error: { code: 'CANCELLED' }, ok: false })
     session.dispose()
+  })
+
+  it('leaves TIMEOUT to the outer runtime and waits for Core cleanup before returning', async () => {
+    setCliContext({
+      cancelled: false,
+      colorMode: 'never',
+      interactive: false,
+      logLevel: 'silent',
+      outputMode: 'json',
+      quiet: true,
+      runId: 'core-outer-timeout',
+      timeoutMs: 20,
+    })
+    const requestReady = deferred<CoreInstallationCompatibilityRequest>()
+    const cleanupStarted = deferred<void>()
+    const finishCleanup = deferred<void>()
+    let cleanupFinished = false
+    const executor = fakeExecutor(
+      request =>
+        new Promise(resolve => {
+          requestReady.resolve(request)
+          request.signal?.addEventListener(
+            'abort',
+            () => {
+              void (async () => {
+                cleanupStarted.resolve()
+                await finishCleanup.promise
+                cleanupFinished = true
+                resolve({
+                  error: { code: 'cancelled', message: 'cancelled', retryable: false },
+                  kind: 'failure',
+                })
+              })()
+            },
+            { once: true },
+          )
+        }),
+    )
+    const session = createCoreInstallationCliSession('install', { loadExecutor: async () => executor })
+
+    const runtime = executeCommandWithRuntime({
+      action: 'install',
+      run: () => session.execute(agent.name),
+      target: { kind: 'agent', name: agent.name },
+    })
+    await requestReady.promise
+    await cleanupStarted.promise
+    expect(await Promise.race([runtime.then(() => 'settled'), Promise.resolve('pending')])).toBe('pending')
+
+    finishCleanup.resolve()
+    const result = await runtime
+    session.dispose()
+
+    expect(cleanupFinished).toBe(true)
+    expect(result.error).toMatchObject({ code: 'TIMEOUT', details: { timeoutMs: 20 } })
   })
 
   it('emits started immediately from the Core pre-side-effect hook and keeps route data out of the event', async () => {

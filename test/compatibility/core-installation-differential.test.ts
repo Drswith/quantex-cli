@@ -26,6 +26,7 @@ type Operation = 'ensure' | 'install'
 type ScenarioName =
   | 'binary-verification-failure'
   | 'conflict'
+  | 'external-adopted'
   | 'external-preserved'
   | 'indeterminate'
   | 'managed-no-op'
@@ -230,22 +231,14 @@ vi.mock('../../src/lifecycle', async importOriginal => {
     },
   }
 })
-vi.mock('../../src/output', () => ({
-  createErrorResult: <T>(options: Record<string, unknown> & { data?: T; error: unknown }) => ({
-    ...options,
-    error: options.error,
-    ok: false,
-    warnings: options.warnings ?? [],
-  }),
-  createSuccessResult: <T>(options: Record<string, unknown> & { data?: T }) => ({
-    ...options,
-    error: null,
-    ok: true,
-    warnings: options.warnings ?? [],
-  }),
-  emitCommandEvent: () => undefined,
-  emitCommandResult: <T>(result: T) => result,
-}))
+vi.mock('../../src/output', async importOriginal => {
+  const actual = await importOriginal<typeof import('../../src/output')>()
+  return {
+    ...actual,
+    emitCommandEvent: () => undefined,
+    emitCommandResult: <T>(result: T) => result,
+  }
+})
 vi.mock('../../src/utils/user-output', () => ({
   isDryRunEnabled: () => false,
   printError: vi.fn(),
@@ -260,6 +253,7 @@ import { decideCoreInstallation } from '../../src/core/installation-decision'
 import { executeCoreInstallation } from '../../src/core/installation-executor'
 import { createProductionCoreInstallationPorts } from '../../src/core/installation-production'
 import { runCoreInvocation } from '../../src/core/invocation'
+import { getExitCodeForResult } from '../../src/errors'
 import {
   providerBindingsEqual,
   resolveInstallMethodProviderBinding,
@@ -310,6 +304,13 @@ const SCENARIOS: readonly DifferentialScenario[] = [
     mutation: 'success',
     name: 'external-preserved',
     source: 'npm',
+    verification: 'satisfied',
+  },
+  {
+    initial: 'external',
+    mutation: 'success',
+    name: 'external-adopted',
+    source: 'script',
     verification: 'satisfied',
   },
   {
@@ -487,13 +488,19 @@ interface NormalizedStateDelta {
 }
 
 interface NormalizedCliProjection {
-  readonly action: Operation
-  readonly changed: boolean
-  readonly error: null | { readonly code: string; readonly lifecycle?: string; readonly message: string }
-  readonly installed: boolean
-  readonly installState?: { readonly installType: string; readonly packageName?: string }
+  readonly action: string
+  readonly data?: unknown
+  readonly error: null | { readonly code: string; readonly details?: unknown; readonly message: string }
+  readonly exitCode: number
+  readonly meta: {
+    readonly mode: string
+    readonly runId: string
+    readonly schemaVersion: string
+    readonly version: string
+  }
   readonly ok: boolean
-  readonly warningCodes: readonly string[]
+  readonly target?: unknown
+  readonly warnings: readonly unknown[]
 }
 
 async function runLegacy(operation: Operation, scenario: DifferentialScenario): Promise<DifferentialSnapshot> {
@@ -512,7 +519,7 @@ async function runLegacy(operation: Operation, scenario: DifferentialScenario): 
   const decision = legacyDecision(world)
   return {
     artifactPresent: world.artifactPresent,
-    cli: normalizeCliResult(result, operation),
+    cli: normalizeCliResult(result),
     decision,
     events: [...world.events],
     incomparableFields: incomparableV1Fields(),
@@ -566,13 +573,26 @@ async function runCore(operation: Operation, scenario: DifferentialScenario): Pr
 
   const directive = decideCoreInstallation(world.initialObservation)
   const outcome = await runCoreInvocation(undefined, context =>
-    executeCoreInstallation({ mode: 'apply', name: AGENT.name, operation }, context, ports),
+    executeCoreInstallation(
+      { mode: 'apply', name: AGENT.name, operation },
+      context,
+      ports,
+      scenario.name === 'external-adopted'
+        ? {
+            async resolveAdoption(before) {
+              const binding = resolveInstallMethodProviderBinding(before.agent, world.method)
+              if (!binding) throw new Error('The adoption fixture must resolve to a provider binding.')
+              return { binding, installedState: clone(world.recipeState) }
+            },
+          }
+        : {},
+    ),
   )
   const decision = normalizeCoreDecision(directive)
 
   return {
     artifactPresent: world.artifactPresent,
-    cli: normalizeCliResult(projectCoreInstallationOutcome(operation, AGENT.name, outcome), operation),
+    cli: normalizeCliResult(projectCoreInstallationOutcome(operation, AGENT.name, outcome)),
     decision,
     diagnostics: coreDiagnostics(outcome),
     events: [...world.events],
@@ -861,7 +881,7 @@ function normalizeCoreDecision(directive: ReturnType<typeof decideCoreInstallati
 }
 
 function normalizeLegacyOutcome(world: MutableWorld, decision: CanonicalDecision): CommonTypedOutcome {
-  if (decision === 'external-preserved') return { changed: false, kind: 'success' }
+  if (decision === 'external-preserved' && world.legacyRoute !== 'adopt') return { changed: false, kind: 'success' }
   const outcome = world.legacyOutcome
   if (!outcome) throw new Error('The legacy engine did not expose a typed outcome.')
   if (outcome.kind === 'success') return { changed: outcome.value.changed, kind: 'success' }
@@ -987,33 +1007,27 @@ function receiptFor(
   }
 }
 
-function normalizeCliResult(result: CommandResult<unknown>, operation: Operation): NormalizedCliProjection {
-  const data = (result.data ?? {}) as {
-    changed?: boolean
-    installed?: boolean
-    installState?: { installType: string; packageName?: string }
-  }
+function normalizeCliResult(result: CommandResult<unknown>): NormalizedCliProjection {
   return {
-    action: operation,
-    changed: data.changed ?? false,
+    action: result.action,
+    ...(result.data === undefined ? {} : { data: clone(result.data) }),
     error: result.error
       ? {
           code: result.error.code,
-          ...(typeof result.error.details?.lifecycle === 'string' ? { lifecycle: result.error.details.lifecycle } : {}),
+          ...(result.error.details === undefined ? {} : { details: clone(result.error.details) }),
           message: result.error.message,
         }
       : null,
-    installed: data.installed ?? false,
-    ...(data.installState
-      ? {
-          installState: {
-            installType: data.installState.installType,
-            ...(data.installState.packageName ? { packageName: data.installState.packageName } : {}),
-          },
-        }
-      : {}),
+    exitCode: getExitCodeForResult(result),
+    meta: {
+      mode: result.meta.mode,
+      runId: result.meta.runId,
+      schemaVersion: result.meta.schemaVersion,
+      version: result.meta.version,
+    },
     ok: result.ok,
-    warningCodes: result.warnings.map(warning => warning.code).filter((code): code is string => Boolean(code)),
+    ...(result.target === undefined ? {} : { target: clone(result.target) }),
+    warnings: clone(result.warnings),
   }
 }
 
