@@ -298,6 +298,7 @@ describe('Core installation executor fault handling', () => {
 
     expect(outcome).toEqual({
       error: {
+        cause: expect.any(Error),
         code: 'verification-failed',
         phase: 'verify',
         reason: 'verification port rejected',
@@ -442,6 +443,7 @@ describe('Core installation executor fault handling', () => {
 
     expect(outcome).toEqual({
       error: {
+        cause: expect.any(Error),
         code: 'recording-failed',
         phase: 'record',
         reason: 'state rename failed',

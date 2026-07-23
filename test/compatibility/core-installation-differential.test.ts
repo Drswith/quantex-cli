@@ -70,6 +70,7 @@ type WorldWithoutInitialObservation = Omit<MutableWorld, 'initialObservation'>
 
 const legacyControl = vi.hoisted(() => {
   let active: MutableWorld | undefined
+  let lastAgent: AgentDefinition | undefined
 
   const world = (): MutableWorld => {
     if (!active) throw new Error('The legacy differential world is not active.')
@@ -89,6 +90,7 @@ const legacyControl = vi.hoisted(() => {
     activate(next: MutableWorld): void {
       if (active) throw new Error('A differential engine is already active.')
       active = next
+      lastAgent = next.agent
     },
     async buildInstalledAgentState(): Promise<InstalledAgentState> {
       return structuredClone(world().recipeState)
@@ -149,8 +151,8 @@ const legacyControl = vi.hoisted(() => {
       world().events.push('legacy:reinstall')
       return executeInstall()
     },
-    resolveAgent(): AgentDefinition {
-      return world().agent
+    resolveAgent(): AgentDefinition | undefined {
+      return active?.agent ?? lastAgent
     },
     async resolveAgentObservation(): Promise<CoreAgentObservation> {
       const current = world()
@@ -251,6 +253,7 @@ vi.mock('../../src/utils/user-output', () => ({
   printWarn: vi.fn(),
 }))
 
+import { projectCoreInstallationOutcome } from '../../src/commands/core-installation-cli'
 import { ensureCommand } from '../../src/commands/ensure'
 import { installCommand } from '../../src/commands/install'
 import { decideCoreInstallation } from '../../src/core/installation-decision'
@@ -486,7 +489,7 @@ interface NormalizedStateDelta {
 interface NormalizedCliProjection {
   readonly action: Operation
   readonly changed: boolean
-  readonly error: null | { readonly code: string; readonly lifecycle?: string }
+  readonly error: null | { readonly code: string; readonly lifecycle?: string; readonly message: string }
   readonly installed: boolean
   readonly installState?: { readonly installType: string; readonly packageName?: string }
   readonly ok: boolean
@@ -569,7 +572,7 @@ async function runCore(operation: Operation, scenario: DifferentialScenario): Pr
 
   return {
     artifactPresent: world.artifactPresent,
-    cli: projectCoreCli(outcome, decision, operation, world.recipeState),
+    cli: normalizeCliResult(projectCoreInstallationOutcome(operation, AGENT.name, outcome), operation),
     decision,
     diagnostics: coreDiagnostics(outcome),
     events: [...world.events],
@@ -997,6 +1000,7 @@ function normalizeCliResult(result: CommandResult<unknown>, operation: Operation
       ? {
           code: result.error.code,
           ...(typeof result.error.details?.lifecycle === 'string' ? { lifecycle: result.error.details.lifecycle } : {}),
+          message: result.error.message,
         }
       : null,
     installed: data.installed ?? false,
@@ -1010,68 +1014,6 @@ function normalizeCliResult(result: CommandResult<unknown>, operation: Operation
       : {}),
     ok: result.ok,
     warningCodes: result.warnings.map(warning => warning.code).filter((code): code is string => Boolean(code)),
-  }
-}
-
-function projectCoreCli(
-  outcome: CoreInvocationOutcome<CoreInstallationExecutionOutcome>,
-  decision: CanonicalDecision,
-  operation: Operation,
-  installedState: InstalledAgentState,
-): NormalizedCliProjection {
-  const typed = normalizeCoreOutcome(outcome)
-  if (typed.kind === 'success') {
-    if (decision === 'already-satisfied') {
-      return cliSuccess(operation, false, true, undefined, ['ALREADY_INSTALLED'])
-    }
-    if (decision === 'external-preserved') {
-      return cliSuccess(operation, false, true, undefined, ['UNTRACKED_EXISTING_INSTALL'])
-    }
-    return cliSuccess(operation, typed.changed, true, installedState, [])
-  }
-
-  const lifecycle =
-    typed.kind === 'failure' &&
-    (typed.code === 'decision-conflict' ||
-      typed.code === 'decision-indeterminate' ||
-      typed.code === 'verification-failed')
-      ? 'verification-failed'
-      : undefined
-  return {
-    action: operation,
-    changed: false,
-    error: {
-      code: typed.kind === 'cancelled' ? 'CANCELLED' : 'INSTALL_FAILED',
-      ...(lifecycle ? { lifecycle } : {}),
-    },
-    installed: false,
-    ok: false,
-    warningCodes: [],
-  }
-}
-
-function cliSuccess(
-  action: Operation,
-  changed: boolean,
-  installed: boolean,
-  installedState: InstalledAgentState | undefined,
-  warningCodes: readonly string[],
-): NormalizedCliProjection {
-  return {
-    action,
-    changed,
-    error: null,
-    installed,
-    ...(installedState
-      ? {
-          installState: {
-            installType: installedState.installType,
-            ...(installedState.packageName ? { packageName: installedState.packageName } : {}),
-          },
-        }
-      : {}),
-    ok: true,
-    warningCodes,
   }
 }
 

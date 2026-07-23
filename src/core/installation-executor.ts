@@ -174,7 +174,7 @@ async function apply(
   try {
     providerVerification = await ports.verify(recipe, operationContext(context))
   } catch (error) {
-    return await recoverFailure(recovery, 'verification-failed', 'verify', errorReason(error), false)
+    return await recoverFailure(recovery, 'verification-failed', 'verify', errorReason(error), false, error)
   }
   if (isInterruption(providerVerification)) return await interruptProvider(providerVerification, 'verify', recovery)
   if (providerVerification.kind !== 'success') {
@@ -194,7 +194,7 @@ async function apply(
   try {
     verified = await ports.observe(input.name, context)
   } catch (error) {
-    return await recoverFailure(recovery, 'verification-failed', 'verify', errorReason(error), false)
+    return await recoverFailure(recovery, 'verification-failed', 'verify', errorReason(error), false, error)
   }
   if (context.signal.aborted) return await interruptOwned(context.signal, 'verify', recovery)
   const verifiedInterruption = observationInterruption(verified)
@@ -215,7 +215,7 @@ async function apply(
     if (context.signal.aborted) return await interruptOwned(context.signal, 'record', recovery)
     await recovery.applyRecord()
   } catch (error) {
-    return await recoverFailure(recovery, 'recording-failed', 'record', errorReason(error), false)
+    return await recoverFailure(recovery, 'recording-failed', 'record', errorReason(error), false, error)
   }
   if (context.signal.aborted) return await interruptOwned(context.signal, 'record', recovery)
 
@@ -224,7 +224,7 @@ async function apply(
   try {
     after = await ports.observe(input.name, context)
   } catch (error) {
-    return await recoverFailure(recovery, 'verification-failed', 'verify', errorReason(error), false)
+    return await recoverFailure(recovery, 'verification-failed', 'verify', errorReason(error), false, error)
   }
   if (context.signal.aborted) return await interruptOwned(context.signal, 'verify', recovery)
   const afterInterruption = observationInterruption(after)
@@ -244,7 +244,7 @@ async function apply(
     if (context.signal.aborted) return await interruptOwned(context.signal, 'record', recovery)
     await recovery.commitRecord()
   } catch (error) {
-    return await recoverFailure(recovery, 'recording-failed', 'record', errorReason(error), false)
+    return await recoverFailure(recovery, 'recording-failed', 'record', errorReason(error), false, error)
   }
   if (context.signal.aborted) return await interruptOwned(context.signal, 'record', recovery)
 
@@ -379,7 +379,7 @@ async function applyCompatibilityAdoption(
     setMutationPhase(context, 'record', 'may-remain')
     await recovery.applyRecord()
   } catch (error) {
-    return await recoverFailure(recovery, 'recording-failed', 'record', errorReason(error), false)
+    return await recoverFailure(recovery, 'recording-failed', 'record', errorReason(error), false, error)
   }
   if (context.signal.aborted) return await interruptOwned(context.signal, 'record', recovery)
 
@@ -388,7 +388,7 @@ async function applyCompatibilityAdoption(
   try {
     after = await ports.observe(name, context)
   } catch (error) {
-    return await recoverFailure(recovery, 'verification-failed', 'verify', errorReason(error), false)
+    return await recoverFailure(recovery, 'verification-failed', 'verify', errorReason(error), false, error)
   }
   if (context.signal.aborted) return await interruptOwned(context.signal, 'verify', recovery)
   const afterInterruption = observationInterruption(after)
@@ -406,7 +406,7 @@ async function applyCompatibilityAdoption(
     setMutationPhase(context, 'record', 'may-remain')
     await recovery.commitRecord()
   } catch (error) {
-    return await recoverFailure(recovery, 'recording-failed', 'record', errorReason(error), false)
+    return await recoverFailure(recovery, 'recording-failed', 'record', errorReason(error), false, error)
   }
   if (context.signal.aborted) return await interruptOwned(context.signal, 'record', recovery)
 
@@ -555,6 +555,7 @@ async function recoverFailure(
   phase: CoreMutationPhase,
   reason: string,
   retryable: boolean,
+  cause?: unknown,
 ): Promise<CoreInstallationExecutionOutcome> {
   const recovered = await recovery.recover()
   recovery.close()
@@ -566,7 +567,7 @@ async function recoverFailure(
       `${reason} ${recovered.reason}`,
       false,
       recovered.remediation ?? manualRemediation(),
-      undefined,
+      cause,
       code === 'compensation-failed' ? undefined : code,
     )
   }
@@ -577,6 +578,7 @@ async function recoverFailure(
     reason,
     retryable,
     recovered.sideEffect === 'may-remain' ? manualRemediation() : undefined,
+    cause,
   )
 }
 

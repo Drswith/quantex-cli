@@ -1,5 +1,6 @@
 import type { AgentDefinition } from '../agents'
 import type { CommandError, CommandResult } from '../output/types'
+import type { InstallationEngineRoute } from './installation-routing'
 import {
   type AgentInstallationExecutionValue,
   type AgentInstallationRoute,
@@ -15,6 +16,7 @@ import { getAdoptableExistingInstallMethod } from '../utils/install'
 import { createResourceLockedError } from '../utils/lifecycle-errors'
 import { isResourceLockError } from '../utils/lock'
 import { isDryRunEnabled, printError, printInfo, printWarn } from '../utils/user-output'
+import { reportInstallationEngineRoute, selectInstallationEngineRoute } from './installation-routing'
 
 interface EnsureCommandData {
   agent: {
@@ -30,6 +32,24 @@ interface EnsureCommandData {
 }
 
 export async function ensureCommand(agentName: string): Promise<CommandResult<EnsureCommandData>> {
+  return await ensureCommandWithRoute(agentName, selectInstallationEngineRoute('ensure'))
+}
+
+export async function ensureCommandWithRoute(
+  agentName: string,
+  route: InstallationEngineRoute,
+): Promise<CommandResult<EnsureCommandData>> {
+  reportInstallationEngineRoute('ensure', route)
+  if (route.engine === 'core') {
+    const { createCoreInstallationCliSession } = await import('./core-installation-cli')
+    const session = createCoreInstallationCliSession('ensure')
+    try {
+      return emitCommandResult(await session.execute(agentName, { emitStartedEvent: true }), renderEnsureHuman)
+    } finally {
+      session.dispose()
+    }
+  }
+
   if (!resolveAgent(agentName) || isDryRunEnabled()) return ensureCommandLocked(agentName)
 
   try {

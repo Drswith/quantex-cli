@@ -1,5 +1,7 @@
 import type { AgentDefinition } from '../agents'
 import type { CommandError, CommandResult, CommandWarning } from '../output/types'
+import type { CoreInstallationCliSession } from './core-installation-cli'
+import type { InstallationEngineRoute } from './installation-routing'
 import { getCliContext } from '../cli-context'
 import { normalizeAgentPresenceTargets } from '../idempotency/lifecycle-policy'
 import {
@@ -17,6 +19,7 @@ import { getAdoptableExistingInstallMethod } from '../utils/install'
 import { createResourceLockedError } from '../utils/lifecycle-errors'
 import { isResourceLockError } from '../utils/lock'
 import { isDryRunEnabled, printError, printInfo, printWarn } from '../utils/user-output'
+import { reportInstallationEngineRoute, selectInstallationEngineRoute } from './installation-routing'
 
 interface InstallCommandData {
   agent: {
@@ -79,10 +82,33 @@ export async function installCommand(
 export async function installCommand(
   agentNames: string | string[],
 ): Promise<CommandResult<InstallBatchCommandData | InstallCommandData>> {
+  return await installCommandWithRoute(agentNames, selectInstallationEngineRoute('install'))
+}
+
+export async function installCommandWithRoute(
+  agentNames: string | string[],
+  route: InstallationEngineRoute,
+): Promise<CommandResult<InstallBatchCommandData | InstallCommandData>> {
+  reportInstallationEngineRoute('install', route)
+  const coreSession =
+    route.engine === 'core'
+      ? (await import('./core-installation-cli')).createCoreInstallationCliSession('install')
+      : undefined
+  try {
+    return await runInstallCommand(agentNames, coreSession)
+  } finally {
+    coreSession?.dispose()
+  }
+}
+
+async function runInstallCommand(
+  agentNames: string | string[],
+  coreSession: CoreInstallationCliSession | undefined,
+): Promise<CommandResult<InstallBatchCommandData | InstallCommandData>> {
   const requestedAgents = normalizeAgentPresenceTargets(Array.isArray(agentNames) ? agentNames : [agentNames])
 
   if (requestedAgents.length <= 1) {
-    const singleResult = await performSingleInstall(requestedAgents[0]!, { emitStartedEvent: true })
+    const singleResult = await performSingleInstall(requestedAgents[0]!, { emitStartedEvent: true }, coreSession)
     return emitCommandResult(singleResult, renderInstallHuman)
   }
 
@@ -102,7 +128,7 @@ export async function installCommand(
   for (const agentName of requestedAgents) {
     if (getCliContext().cancelled) break
 
-    const singleResult = await performSingleInstall(agentName)
+    const singleResult = await performSingleInstall(agentName, {}, coreSession)
     const batchResult = toBatchResultItem(agentName, singleResult)
     results.push(batchResult)
 
@@ -166,7 +192,9 @@ export async function installCommand(
 async function performSingleInstall(
   agentName: string,
   options: SingleInstallOptions = {},
+  coreSession?: CoreInstallationCliSession,
 ): Promise<CommandResult<InstallCommandData>> {
+  if (coreSession) return await coreSession.execute(agentName, options)
   if (getCliContext().cancelled) return performSingleInstallLocked(agentName, options)
   if (!resolveAgent(agentName) || isDryRunEnabled()) return performSingleInstallLocked(agentName, options)
 
