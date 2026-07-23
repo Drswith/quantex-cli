@@ -120,6 +120,57 @@ jobs:
           fetch-depth: 0
           ref: ${{ steps.release-target.outputs.target_sha }}
 
+      - name: Setup Node.js
+        if: ${{ steps.release-target.outputs.mode == 'publish' }}
+        uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          registry-url: https://registry.npmjs.org
+
+      - name: Validate Core npm publishing bootstrap
+        if: >-
+          steps.release-target.outputs.mode == 'publish'
+          && steps.release-target.outputs.core_required == 'true'
+        env:
+          CORE_NPM_TRUSTED_PUBLISHING_READY: ${{ vars.CORE_NPM_TRUSTED_PUBLISHING_READY }}
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          release_version="$(node -p "require('./packages/core/package.json').version")"
+          core_package_exists=false
+          registry_error_file="$(mktemp)"
+
+          if inspection="$(npm view "@quantex/core" name --json 2>"${registry_error_file}")"; then
+            rm -f "${registry_error_file}"
+            inspected_name="$(printf '%s' "${inspection}" | tr -d '[:space:]\"')"
+            if [ "${inspected_name}" != "@quantex/core" ]; then
+              echo "::error title=npm package identity is indeterminate::Expected @quantex/core, but the registry returned ${inspected_name:-no-name}. No GitHub Release or repository package will be published."
+              exit 1
+            fi
+            core_package_exists=true
+          else
+            registry_error="$(<"${registry_error_file}")"
+            rm -f "${registry_error_file}"
+            if ! printf '%s' "${registry_error}" | grep -Eq 'E404|404 Not Found'; then
+              compact_error="$(printf '%s' "${registry_error}" | tr '\n' ' ')"
+              echo "::error title=npm package identity is indeterminate::Unable to determine whether @quantex/core exists. ${compact_error} No GitHub Release or repository package will be published."
+              exit 1
+            fi
+          fi
+
+          if [ "${CORE_NPM_TRUSTED_PUBLISHING_READY:-}" = "true" ]; then
+            if [ "${core_package_exists}" = "true" ]; then
+              exit 0
+            fi
+
+            echo "::error title=Core npm package needs a one-time bootstrap::npm requires a package to exist before a trusted publisher can be configured. Publish the already validated @quantex/core@${release_version} tarball once with an authorized maintainer account and 2FA, then configure the release.yml GitHub Actions trusted publisher, set CORE_NPM_TRUSTED_PUBLISHING_READY=true, and rerun this workflow. No GitHub Release or repository package was published by this run."
+            exit 1
+          fi
+
+          echo "::error title=Core npm publishing is not bootstrapped::Confirm ownership of the @quantex scope. If @quantex/core does not exist, publish the validated package once with an authorized maintainer account and 2FA. Then configure its GitHub Actions trusted publisher for Drswith/quantex-cli and release.yml with npm publish permission, and set CORE_NPM_TRUSTED_PUBLISHING_READY=true. No GitHub Release or repository package was published by this run."
+          exit 1
+
       - name: Release Please GitHub Release
         id: release
         if: ${{ steps.release-target.outputs.mode == 'publish' }}
@@ -137,13 +188,6 @@ jobs:
         with:
           fetch-depth: 0
           ref: ${{ steps.release-target.outputs.target_sha }}
-
-      - name: Setup Node.js
-        if: ${{ steps.release-target.outputs.mode == 'publish' }}
-        uses: actions/setup-node@v7
-        with:
-          node-version: 24
-          registry-url: https://registry.npmjs.org
 
       - name: Install dependencies
         if: ${{ steps.release-target.outputs.mode == 'publish' }}
@@ -279,28 +323,6 @@ jobs:
             echo "core_package_exists=not-applicable" >> "$GITHUB_OUTPUT"
           fi
           inspect_package "quantex-cli" "cli"
-
-      - name: Validate Core npm publishing bootstrap
-        if: >-
-          steps.release-target.outputs.mode == 'publish'
-          && steps.release-target.outputs.core_required == 'true'
-        env:
-          CORE_NPM_TRUSTED_PUBLISHING_READY: ${{ vars.CORE_NPM_TRUSTED_PUBLISHING_READY }}
-        shell: bash
-        run: |
-          set -euo pipefail
-
-          if [ "${CORE_NPM_TRUSTED_PUBLISHING_READY:-}" = "true" ]; then
-            if [ "${{ steps.npm-publication.outputs.core_package_exists }}" = "true" ]; then
-              exit 0
-            fi
-
-            echo "::error title=Core npm package needs a one-time bootstrap::npm requires a package to exist before a trusted publisher can be configured. Publish the already validated @quantex/core@${{ steps.npm-publication.outputs.release_version }} tarball once with an authorized maintainer account and 2FA, then configure the release.yml GitHub Actions trusted publisher, set CORE_NPM_TRUSTED_PUBLISHING_READY=true, and rerun this workflow. No repository package was published by this run."
-            exit 1
-          fi
-
-          echo "::error title=Core npm publishing is not bootstrapped::Confirm ownership of the @quantex scope. If @quantex/core does not exist, publish the validated package once with an authorized maintainer account and 2FA. Then configure its GitHub Actions trusted publisher for Drswith/quantex-cli and release.yml with npm publish permission, and set CORE_NPM_TRUSTED_PUBLISHING_READY=true. No repository package was published by this run."
-          exit 1
 
       - name: Publish Core npm package
         if: >-

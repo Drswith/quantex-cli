@@ -14,7 +14,7 @@ Starting with the first Core-era release, one version and repository tag coordin
 
 ## One-time Core bootstrap
 
-npm requires a package to exist before its trusted publisher can be configured. The first Core release therefore stops before publishing either repository-owned npm package and requires this one-time operator sequence:
+npm requires a package to exist before its trusted publisher can be configured. The first Core release therefore stops **before creating or refreshing the public GitHub Release** and before publishing either repository-owned npm package. It requires this one-time operator sequence:
 
 1. Check out the exact release commit and rerun `bun install --frozen-lockfile`, `bun run build:core`, and `bun run package:check:core`.
 2. Pack `packages/core` and publish that validated first version with an authorized npm maintainer account and 2FA using public access and the release channel's npm tag.
@@ -23,3 +23,5 @@ npm requires a package to exist before its trusted publisher can be configured. 
 5. Rerun the Release workflow. It verifies the existing Core version, publishes the still-missing CLI version, verifies both, and then closes the binary artifacts.
 
 Do not use the readiness variable to claim ownership or bypass the first publication. If package identity, registry state, or trusted publishing is uncertain, leave the gate disabled and resolve it before retrying.
+
+If a public GitHub Release was already created empty before this gate ordering landed, restore it by completing the bootstrap sequence above and rerunning Release so packages publish and binaries upload to the existing tag. Do not leave `releases/latest` pointing at an asset-less release.
