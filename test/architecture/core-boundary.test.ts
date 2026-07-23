@@ -51,8 +51,8 @@ describe('Core package boundary', () => {
     expect(entry).not.toMatch(/provider|receipt|state|plan|command|presenter|self|release/iu)
   })
 
-  it('keeps the complete public runtime dependency closure outside mutation and CLI infrastructure', async () => {
-    const closure = await runtimeDependencyClosure(PACKAGE_ENTRY)
+  it('keeps the eager public runtime dependency closure outside mutation and CLI infrastructure', async () => {
+    const closure = await runtimeDependencyClosure(PACKAGE_ENTRY, false)
     const allowedOutsideCore = new Set([
       'src/lifecycle/agent-observation.ts',
       'src/lifecycle/provider-binding.ts',
@@ -68,6 +68,19 @@ describe('Core package boundary', () => {
 
     expect(violations).toEqual([])
     expect([...closure].map(repositoryPath)).not.toContain('src/core/mutation-recipe-catalog.ts')
+  })
+
+  it('loads the mutation closure only through the public client dynamic boundary', async () => {
+    const eager = await runtimeDependencyClosure(PACKAGE_ENTRY, false)
+    const complete = await runtimeDependencyClosure(PACKAGE_ENTRY, true)
+    const eagerPaths = [...eager].map(repositoryPath)
+    const completePaths = [...complete].map(repositoryPath)
+
+    expect(eagerPaths).not.toContain('src/core/installation-production.ts')
+    expect(eagerPaths).not.toContain('src/providers/first-party.ts')
+    expect(completePaths).toContain('src/core/installation-production.ts')
+    expect(completePaths).toContain('src/core/installation-provider-registry.ts')
+    expect(completePaths).not.toContain('src/providers/first-party.ts')
   })
 })
 
@@ -91,7 +104,7 @@ function importSpecifiers(source: string): string[] {
   return [...source.matchAll(/\b(?:from\s+|import\s*\()(['"])([^'"]+)\1/gu)].map(match => match[2]!)
 }
 
-async function runtimeDependencyClosure(entry: string): Promise<Set<string>> {
+async function runtimeDependencyClosure(entry: string, includeDynamicImports: boolean): Promise<Set<string>> {
   const visited = new Set<string>()
   const pending = [entry]
   while (pending.length > 0) {
@@ -112,8 +125,10 @@ async function runtimeDependencyClosure(entry: string): Promise<Set<string>> {
         if (specifier?.startsWith('.')) pending.push(await resolveTypescriptImport(file, specifier))
       }
     }
-    for (const specifier of dynamicImportSpecifiers(sourceFile)) {
-      if (specifier.startsWith('.')) pending.push(await resolveTypescriptImport(file, specifier))
+    if (includeDynamicImports) {
+      for (const specifier of dynamicImportSpecifiers(sourceFile)) {
+        if (specifier.startsWith('.')) pending.push(await resolveTypescriptImport(file, specifier))
+      }
     }
   }
   return visited

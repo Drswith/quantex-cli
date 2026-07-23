@@ -9,9 +9,10 @@ import type { InstalledAgentState } from '../state/schema'
 import type { CoreInstallationDecision, CoreInstallationDirective } from './installation-decision'
 import type { CoreInvocationContext } from './invocation'
 import type { CoreAgentObservation } from './production-observation'
+import type { AgentMutationFailureCode, AgentMutationPhase, AgentMutationSideEffect } from './types'
 
-export type CoreMutationPhase = 'decide' | 'execute' | 'verify' | 'record' | 'compensate'
-export type CoreMutationSideEffect = 'none' | 'compensated' | 'may-remain'
+export type CoreMutationPhase = AgentMutationPhase
+export type CoreMutationSideEffect = AgentMutationSideEffect
 
 export interface CoreInstallationRecipe {
   readonly binding: LifecycleProviderBinding
@@ -97,14 +98,7 @@ export type CoreInstallationExecutionOutcome =
   | { readonly error: CoreMutationFailure; readonly kind: 'failed' }
 
 export interface CoreMutationFailure {
-  readonly code:
-    | 'compensation-failed'
-    | 'decision-conflict'
-    | 'decision-indeterminate'
-    | 'execution-failed'
-    | 'recipe-unavailable'
-    | 'recording-failed'
-    | 'verification-failed'
+  readonly code: AgentMutationFailureCode
   readonly phase: CoreMutationPhase
   readonly reason: string
   readonly remediation?: string

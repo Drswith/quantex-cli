@@ -44,11 +44,11 @@ export interface CoreInstallationProductionDependencies {
 export async function loadProductionCoreInstallationPorts(configDir: string): Promise<CoreInstallationExecutorPorts> {
   const [recipeCatalog, providers] = await Promise.all([
     loadCoreMutationRecipeCatalog(),
-    import('../providers/first-party'),
+    import('./installation-provider-registry'),
   ])
   return createProductionCoreInstallationPorts({
     configDir,
-    providerRegistry: providers.firstPartyProviderRegistry,
+    providerRegistry: providers.createCoreInstallationProviderRegistry(),
     recipeCatalog,
   })
 }

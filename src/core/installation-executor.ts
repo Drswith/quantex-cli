@@ -60,6 +60,7 @@ export async function executeCoreInstallation(
   let completed: CoreInstallationExecutionOutcome | undefined
   try {
     if (input.mode === 'preview') return await preview(input, context, ports)
+    throwIfAborted(context, 'decide', 'none')
     return await ports.withMutationLock(input.name, context, async () => {
       completed = await apply(input, context, ports)
       return completed
