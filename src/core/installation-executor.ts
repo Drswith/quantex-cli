@@ -2,7 +2,9 @@ import type { LifecycleProviderBinding } from '../lifecycle/provider-binding'
 import type { ProviderOperationContext, ProviderOutcome } from '../providers/types'
 import type { CoreInstallationDirective } from './installation-decision'
 import type {
+  CoreInstallationCompatibilityAdoption,
   CoreInstallationExecutionOutcome,
+  CoreInstallationExecutionHooks,
   CoreInstallationExecutorPorts,
   CoreInstallationRecipe,
   CoreInstallationRecipeResolution,
@@ -30,6 +32,7 @@ import {
 
 export type {
   CoreInstallationExecutionOutcome,
+  CoreInstallationExecutionHooks,
   CoreInstallationExecutionValue,
   CoreInstallationExecutorPorts,
   CoreInstallationRecipe,
@@ -54,15 +57,16 @@ export async function executeCoreInstallation(
   input: InstallationRequest,
   context: CoreInvocationContext,
   ports: CoreInstallationExecutorPorts,
+  hooks: CoreInstallationExecutionHooks = {},
 ): Promise<CoreInstallationExecutionOutcome> {
   const settlement = createMutationSettlementBarrier(context)
   setMutationPhase(context, 'decide', 'none')
   let completed: CoreInstallationExecutionOutcome | undefined
   try {
-    if (input.mode === 'preview') return await preview(input, context, ports)
+    if (input.mode === 'preview') return await preview(input, context, ports, hooks)
     throwIfAborted(context, 'decide', 'none')
     return await ports.withMutationLock(input.name, context, async () => {
-      completed = await apply(input, context, ports)
+      completed = await apply(input, context, ports, hooks)
       return completed
     })
   } catch (error) {
@@ -76,6 +80,8 @@ export async function executeCoreInstallation(
       sideEffect,
       `Lifecycle mutation lock failed: ${errorReason(error)}`,
       false,
+      undefined,
+      error,
     )
   } finally {
     settlement.release()
@@ -86,12 +92,29 @@ async function preview(
   input: InstallationRequest,
   context: CoreInvocationContext,
   ports: CoreInstallationExecutorPorts,
+  hooks: CoreInstallationExecutionHooks,
 ): Promise<CoreInstallationExecutionOutcome> {
   const observed = await observeDecision(input.name, context, ports)
   if (observed.kind !== 'ready') return observed.outcome
   const { before, directive } = observed
 
-  if (!isMutating(directive)) return successPreview(before, directive)
+  if (!isMutating(directive)) {
+    if (directive.decision !== 'external-preserved') return successPreview(before, directive)
+    const adoption = await resolveCompatibilityAdoption(before, context, hooks)
+    if (adoption.kind === 'terminal') return adoption.outcome
+    if (adoption.kind === 'none') return successPreview(before, directive)
+    return {
+      kind: 'success',
+      value: {
+        before,
+        binding: adoption.value.binding,
+        compatibility: { kind: 'adopt' },
+        decision: directive.decision,
+        kind: 'preview',
+        wouldChange: true,
+      },
+    }
+  }
   const recipe = await resolveRecipe(input, before, directive, context, ports)
   if (recipe.kind !== 'ready') return recipe.outcome
   return {
@@ -110,16 +133,26 @@ async function apply(
   input: InstallationRequest,
   context: CoreInvocationContext,
   ports: CoreInstallationExecutorPorts,
+  hooks: CoreInstallationExecutionHooks,
 ): Promise<CoreInstallationExecutionOutcome> {
   const observed = await observeDecision(input.name, context, ports)
   if (observed.kind !== 'ready') return observed.outcome
   const { before, directive } = observed
 
-  if (!isMutating(directive)) return await confirmNoChange(input.name, before, directive, context, ports)
+  if (!isMutating(directive)) {
+    if (directive.decision !== 'external-preserved')
+      return await confirmNoChange(input.name, before, directive, context, ports)
+    const adoption = await resolveCompatibilityAdoption(before, context, hooks)
+    if (adoption.kind === 'terminal') return adoption.outcome
+    if (adoption.kind === 'ready')
+      return await applyCompatibilityAdoption(input.name, before, adoption.value, context, ports, hooks)
+    return await confirmNoChange(input.name, before, directive, context, ports)
+  }
   const resolved = await resolveRecipe(input, before, directive, context, ports)
   if (resolved.kind !== 'ready') return resolved.outcome
 
   const recipe = resolved.value
+  hooks.onMutationStart?.({ before, binding: recipe.binding, decision: directive.decision })
   setMutationPhase(context, 'execute', 'may-remain')
   let installed: Awaited<ReturnType<CoreInstallationExecutorPorts['install']>>
   try {
@@ -222,6 +255,176 @@ async function apply(
   }
 }
 
+type CompatibilityAdoptionResolution =
+  | { readonly kind: 'none' }
+  | { readonly kind: 'ready'; readonly value: CoreInstallationCompatibilityAdoption }
+  | { readonly kind: 'terminal'; readonly outcome: CoreInstallationExecutionOutcome }
+
+async function resolveCompatibilityAdoption(
+  before: CoreAgentObservation,
+  context: CoreInvocationContext,
+  hooks: CoreInstallationExecutionHooks,
+): Promise<CompatibilityAdoptionResolution> {
+  if (!hooks.resolveAdoption) return { kind: 'none' }
+  let adoption: CoreInstallationCompatibilityAdoption | undefined
+  try {
+    adoption = await hooks.resolveAdoption(before, context)
+  } catch (error) {
+    if (context.signal.aborted) throw signalInterruption(context.signal, 'decide', 'none')
+    return {
+      kind: 'terminal',
+      outcome: failure('decision-indeterminate', 'decide', 'none', errorReason(error), false, undefined, error),
+    }
+  }
+  throwIfAborted(context, 'decide', 'none')
+  if (!adoption) return { kind: 'none' }
+
+  const invalidReason = invalidAdoptionReason(before, adoption)
+  return invalidReason
+    ? {
+        kind: 'terminal',
+        outcome: failure('decision-indeterminate', 'decide', 'none', invalidReason, false),
+      }
+    : { kind: 'ready', value: adoption }
+}
+
+function invalidAdoptionReason(
+  before: CoreAgentObservation,
+  adoption: CoreInstallationCompatibilityAdoption,
+): string | undefined {
+  if (before.observation.kind !== 'present' || before.observation.drift.kind !== 'untracked')
+    return 'Compatibility adoption requires a fresh untracked present observation.'
+  if (adoption.installedState.agentName !== before.agent.name)
+    return 'Compatibility adoption state does not target the observed agent.'
+  if (before.binding && !providerBindingsExactlyEqual(before.binding, adoption.binding, before.agent.binaryName))
+    return 'Compatibility adoption does not preserve the observed provider source.'
+  const stateBinding = resolveStateProviderBinding(before.agent, adoption.installedState)
+  if (!stateBinding || !providerBindingsExactlyEqual(stateBinding, adoption.binding, before.agent.binaryName))
+    return 'Compatibility adoption state does not resolve to the selected provider source.'
+  return undefined
+}
+
+async function applyCompatibilityAdoption(
+  name: string,
+  before: CoreAgentObservation,
+  adoption: CoreInstallationCompatibilityAdoption,
+  context: CoreInvocationContext,
+  ports: CoreInstallationExecutorPorts,
+  hooks: CoreInstallationExecutionHooks,
+): Promise<CoreInstallationExecutionOutcome> {
+  const recipe: CoreInstallationRecipe = {
+    binding: adoption.binding,
+    compensation: 'manual',
+    installedState: adoption.installedState,
+    ownership: 'pre-existing',
+  }
+
+  setMutationPhase(context, 'verify', 'none')
+  let providerVerification: Awaited<ReturnType<CoreInstallationExecutorPorts['verify']>>
+  try {
+    providerVerification = await ports.verify(recipe, operationContext(context))
+  } catch (error) {
+    if (context.signal.aborted) throw signalInterruption(context.signal, 'verify', 'none')
+    return failure('verification-failed', 'verify', 'none', errorReason(error), false, undefined, error)
+  }
+  if (isInterruption(providerVerification)) throw mutationInterruption(providerVerification, 'verify', 'none')
+  if (providerVerification.kind !== 'success') {
+    return failure(
+      'verification-failed',
+      'verify',
+      'none',
+      providerReason(providerVerification),
+      providerRetryable(providerVerification),
+      providerRemediation(providerVerification),
+    )
+  }
+  if (providerVerification.value.kind === 'unsatisfied')
+    return failure('verification-failed', 'verify', 'none', providerVerification.value.reason, false)
+
+  let verified: CoreAgentObservation | undefined
+  try {
+    verified = await ports.observe(name, context)
+  } catch (error) {
+    if (context.signal.aborted) throw signalInterruption(context.signal, 'verify', 'none')
+    return failure('verification-failed', 'verify', 'none', errorReason(error), false, undefined, error)
+  }
+  throwIfAborted(context, 'verify', 'none')
+  const verifiedInterruption = observationInterruption(verified)
+  if (verifiedInterruption) throw mutationInterruption(verifiedInterruption, 'verify', 'none')
+  if (!verified || !matchesAdoptableLiveRecipe(verified, recipe))
+    return failure(
+      'verification-failed',
+      'verify',
+      'none',
+      'Fresh observation did not confirm the compatibility adoption source.',
+      false,
+    )
+
+  hooks.onMutationStart?.({ before, binding: recipe.binding, decision: 'external-preserved' })
+  let record: Awaited<ReturnType<CoreInstallationExecutorPorts['prepareRecord']>>
+  try {
+    setMutationPhase(context, 'record', 'none')
+    record = await ports.prepareRecord({ before, context, recipe, verified })
+  } catch (error) {
+    if (context.signal.aborted) throw signalInterruption(context.signal, 'record', 'none')
+    return failure('recording-failed', 'record', 'none', errorReason(error), false, undefined, error)
+  }
+
+  const recovery = new CoreMutationRecovery(recipe, context, ports)
+  recovery.attachRecord(record)
+  recovery.register()
+  if (context.signal.aborted) return await interruptOwned(context.signal, 'record', recovery)
+
+  try {
+    setMutationPhase(context, 'record', 'may-remain')
+    await recovery.applyRecord()
+  } catch (error) {
+    return await recoverFailure(recovery, 'recording-failed', 'record', errorReason(error), false)
+  }
+  if (context.signal.aborted) return await interruptOwned(context.signal, 'record', recovery)
+
+  setMutationPhase(context, 'verify', 'may-remain')
+  let after: CoreAgentObservation | undefined
+  try {
+    after = await ports.observe(name, context)
+  } catch (error) {
+    return await recoverFailure(recovery, 'verification-failed', 'verify', errorReason(error), false)
+  }
+  if (context.signal.aborted) return await interruptOwned(context.signal, 'verify', recovery)
+  const afterInterruption = observationInterruption(after)
+  if (afterInterruption) return await interruptProvider(afterInterruption, 'verify', recovery)
+  if (!after || !matchesRecordedRecipe(after, recipe))
+    return await recoverFailure(
+      recovery,
+      'verification-failed',
+      'verify',
+      'Fresh observation did not confirm the recorded compatibility adoption source.',
+      false,
+    )
+
+  try {
+    setMutationPhase(context, 'record', 'may-remain')
+    await recovery.commitRecord()
+  } catch (error) {
+    return await recoverFailure(recovery, 'recording-failed', 'record', errorReason(error), false)
+  }
+  if (context.signal.aborted) return await interruptOwned(context.signal, 'record', recovery)
+
+  recovery.close()
+  return {
+    kind: 'success',
+    value: {
+      after,
+      before,
+      binding: recipe.binding,
+      changed: true,
+      compatibility: { kind: 'adopt' },
+      decision: 'external-preserved',
+      kind: 'apply',
+    },
+  }
+}
+
 async function observeDecision(
   name: string,
   context: CoreInvocationContext,
@@ -238,7 +441,7 @@ async function observeDecision(
     if (context.signal.aborted) throw signalInterruption(context.signal, 'decide', 'none')
     return {
       kind: 'terminal',
-      outcome: failure('decision-indeterminate', 'decide', 'none', errorReason(error), false),
+      outcome: failure('decision-indeterminate', 'decide', 'none', errorReason(error), false, undefined, error),
     }
   }
   throwIfAborted(context, 'decide', 'none')
@@ -316,7 +519,7 @@ async function confirmNoChange(
     after = await ports.observe(name, context)
   } catch (error) {
     if (context.signal.aborted) throw signalInterruption(context.signal, 'verify', 'none')
-    return failure('verification-failed', 'verify', 'none', errorReason(error), false)
+    return failure('verification-failed', 'verify', 'none', errorReason(error), false, undefined, error)
   }
   throwIfAborted(context, 'verify', 'none')
   if (!after) return failure('verification-failed', 'verify', 'none', 'The agent disappeared.', true)
@@ -362,7 +565,9 @@ async function recoverFailure(
       recovered.sideEffect,
       `${reason} ${recovered.reason}`,
       false,
-      manualRemediation(),
+      recovered.remediation ?? manualRemediation(),
+      undefined,
+      code === 'compensation-failed' ? undefined : code,
     )
   }
   return failure(
@@ -433,9 +638,20 @@ function failure(
   reason: string,
   retryable: boolean,
   remediation?: string,
+  cause?: unknown,
+  originCode?: CoreMutationFailure['originCode'],
 ): CoreInstallationExecutionOutcome {
   return {
-    error: { code, phase, reason, ...(remediation ? { remediation } : {}), retryable, sideEffect },
+    error: {
+      ...(cause === undefined ? {} : { cause }),
+      code,
+      ...(originCode ? { originCode } : {}),
+      phase,
+      reason,
+      ...(remediation ? { remediation } : {}),
+      retryable,
+      sideEffect,
+    },
     kind: 'failed',
   }
 }
@@ -446,6 +662,16 @@ function matchesLiveRecipe(observed: CoreAgentObservation, recipe: CoreInstallat
     observed.executable.present &&
     observed.binding !== undefined &&
     providerBindingsExactlyEqual(observed.binding, recipe.binding, observed.agent.binaryName)
+  )
+}
+
+function matchesAdoptableLiveRecipe(observed: CoreAgentObservation, recipe: CoreInstallationRecipe): boolean {
+  return (
+    matchesLiveRecipe(observed, recipe) &&
+    observed.observation.drift.kind === 'untracked' &&
+    observed.installedState === undefined &&
+    observed.persistedBinding === undefined &&
+    observed.receipt === undefined
   )
 }
 
@@ -467,6 +693,9 @@ function matchesRecordedRecipe(observed: CoreAgentObservation, recipe: CoreInsta
 }
 
 function invalidRecipeReason(observed: CoreAgentObservation, recipe: CoreInstallationRecipe): string | undefined {
+  if (recipe.ownership !== 'created-on-success') {
+    return 'Resolved installation recipes must prove created-on-success ownership.'
+  }
   if (recipe.installedState.agentName !== observed.agent.name) {
     return 'Resolved recipe state does not target the observed agent.'
   }

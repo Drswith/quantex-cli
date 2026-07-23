@@ -1,5 +1,6 @@
 import type { AgentDefinition } from '../../src/agents/types'
 import type {
+  CoreInstallationExecutionHooks,
   CoreInstallationExecutionOutcome,
   CoreInstallationExecutorPorts,
   CoreInstallationRecipe,
@@ -99,6 +100,7 @@ describe('Core installation executor fault handling', () => {
 
     expect(outcome).toEqual({
       error: {
+        cause: expect.any(Error),
         code: 'decision-indeterminate',
         phase: 'decide',
         reason: 'observation port rejected',
@@ -149,6 +151,26 @@ describe('Core installation executor fault handling', () => {
         code: 'recipe-unavailable',
         phase: 'decide',
         reason: 'Resolved recipe does not preserve the schema-v2 provider source identity.',
+        sideEffect: 'none',
+      },
+      kind: 'failed',
+    })
+    expect(harness.events).toEqual(['lock:acquire', 'observe:0', 'resolve', 'lock:release'])
+  })
+
+  it('rejects pre-existing ownership from the normal installation recipe resolver', async () => {
+    const harness = createHarness({
+      observations: [missingObservation()],
+      recipe: { ...npmRecipe, ownership: 'pre-existing' },
+    })
+
+    const outcome = await execute(harness.ports)
+
+    expect(outcome).toMatchObject({
+      error: {
+        code: 'recipe-unavailable',
+        phase: 'decide',
+        reason: 'Resolved installation recipes must prove created-on-success ownership.',
         sideEffect: 'none',
       },
       kind: 'failed',
@@ -443,6 +465,39 @@ describe('Core installation executor fault handling', () => {
     ])
   })
 
+  it('preserves provider resources when state rollback is uncertain', async () => {
+    const harness = createHarness({
+      observations: [missingObservation(), untrackedObservation()],
+      record: {
+        async apply() {
+          harness.events.push('record:apply')
+          throw new Error('state write failed')
+        },
+        async commit() {
+          harness.events.push('record:commit')
+        },
+        async rollback() {
+          harness.events.push('record:rollback')
+          throw new Error('state rollback failed')
+        },
+      },
+    })
+
+    const outcome = await execute(harness.ports)
+
+    expect(outcome).toMatchObject({
+      error: {
+        code: 'compensation-failed',
+        originCode: 'recording-failed',
+        remediation: expect.stringContaining('Keep the installed resource in place'),
+        sideEffect: 'may-remain',
+      },
+      kind: 'failed',
+    })
+    expect(outcome.kind === 'failed' ? outcome.error.remediation : undefined).not.toContain('remove')
+    expect(harness.events).not.toContain('compensate')
+  })
+
   it.each(['state', 'receipt', 'final'] as const)(
     'rolls back and compensates when the recorded %s binding disagrees with the selected source',
     async mismatch => {
@@ -632,6 +687,318 @@ describe('Core installation executor fault handling', () => {
       expect(harness.events).not.toContain('record:prepare')
     },
   )
+
+  it('keeps an external installation unmanaged when the private adoption hook is absent', async () => {
+    const before = untrackedObservation()
+    const after = untrackedObservation(npmBinding, '2026-07-22T00:00:01.000Z')
+    const harness = createHarness({ observations: [before, after] })
+
+    const outcome = await execute(harness.ports)
+
+    expect(outcome).toEqual({
+      kind: 'success',
+      value: {
+        after,
+        before,
+        binding: npmBinding,
+        changed: false,
+        decision: 'external-preserved',
+        kind: 'apply',
+      },
+    })
+    expect(harness.events).toEqual(['lock:acquire', 'observe:0', 'observe:1', 'lock:release'])
+  })
+
+  it('previews private compatibility adoption without taking a lock or writing state', async () => {
+    const before = untrackedObservation()
+    const harness = createHarness({ observations: [before] })
+
+    const outcome = await execute(
+      harness.ports,
+      { mode: 'preview', name: agent.name, operation: 'ensure' },
+      adoptionHooks(harness.events),
+    )
+
+    expect(outcome).toEqual({
+      kind: 'success',
+      value: {
+        before,
+        binding: npmBinding,
+        compatibility: { kind: 'adopt' },
+        decision: 'external-preserved',
+        kind: 'preview',
+        wouldChange: true,
+      },
+    })
+    expect(harness.events).toEqual(['observe:0', 'adoption:resolve'])
+  })
+
+  it('adopts a verified external installation under one Core mutation lock without installing it', async () => {
+    const before = untrackedObservation()
+    const verified = untrackedObservation(npmBinding, '2026-07-22T00:00:01.000Z')
+    const after = managedObservation('2026-07-22T00:00:02.000Z')
+    const harness = createHarness({ observations: [before, verified, after] })
+
+    const outcome = await execute(harness.ports, undefined, adoptionHooks(harness.events))
+
+    expect(outcome).toEqual({
+      kind: 'success',
+      value: {
+        after,
+        before,
+        binding: npmBinding,
+        changed: true,
+        compatibility: { kind: 'adopt' },
+        decision: 'external-preserved',
+        kind: 'apply',
+      },
+    })
+    expect(harness.events).toEqual([
+      'lock:acquire',
+      'observe:0',
+      'adoption:resolve',
+      'verify',
+      'observe:1',
+      'mutation:start:external-preserved',
+      'record:prepare',
+      'record:apply',
+      'observe:2',
+      'record:commit',
+      'lock:release',
+    ])
+    expect(harness.events).not.toContain('install')
+    expect(harness.events).not.toContain('compensate')
+    expect(harness.prepared[0]?.recipe).toEqual({
+      binding: npmBinding,
+      compensation: 'manual',
+      installedState: installedStateFor(npmBinding),
+      ownership: 'pre-existing',
+    })
+  })
+
+  it('fails closed before recording when an adoption cannot verify the live provider source', async () => {
+    const harness = createHarness({
+      observations: [untrackedObservation()],
+      overrides: {
+        async verify() {
+          harness.events.push('verify')
+          return {
+            kind: 'success',
+            value: { evidence: [], kind: 'unsatisfied', reason: 'provider source is absent' },
+          }
+        },
+      },
+    })
+
+    const outcome = await execute(harness.ports, undefined, adoptionHooks(harness.events))
+
+    expect(outcome).toMatchObject({
+      error: {
+        code: 'verification-failed',
+        phase: 'verify',
+        reason: 'provider source is absent',
+        sideEffect: 'none',
+      },
+      kind: 'failed',
+    })
+    expect(harness.events).toEqual(['lock:acquire', 'observe:0', 'adoption:resolve', 'verify', 'lock:release'])
+  })
+
+  it('fails closed when a fresh adoption observation is no longer untracked', async () => {
+    const conflict = {
+      ...untrackedObservation(npmBinding, '2026-07-22T00:00:01.000Z'),
+      installedState: installedStateFor(npmBinding),
+      observation: present(
+        { kind: 'conflicting-source', observedProviderId: 'npm', recordedProviderId: 'bun' },
+        '2026-07-22T00:00:01.000Z',
+      ),
+      persistedBinding: npmBinding,
+    }
+    const harness = createHarness({ observations: [untrackedObservation(), conflict] })
+
+    const outcome = await execute(harness.ports, undefined, adoptionHooks(harness.events))
+
+    expect(outcome).toMatchObject({
+      error: { code: 'verification-failed', phase: 'verify', sideEffect: 'none' },
+      kind: 'failed',
+    })
+    expect(harness.events).toEqual([
+      'lock:acquire',
+      'observe:0',
+      'adoption:resolve',
+      'verify',
+      'observe:1',
+      'lock:release',
+    ])
+    expect(harness.events).not.toContain('mutation:start:external-preserved')
+    expect(harness.events).not.toContain('record:prepare')
+  })
+
+  it('rolls adoption state back without uninstalling a pre-existing installation', async () => {
+    const harness = createHarness({
+      observations: [untrackedObservation(), untrackedObservation()],
+      record: {
+        async apply() {
+          harness.events.push('record:apply')
+          throw new Error('state write failed')
+        },
+        async commit() {
+          harness.events.push('record:commit')
+        },
+        async rollback() {
+          harness.events.push('record:rollback')
+        },
+      },
+    })
+
+    const outcome = await execute(harness.ports, undefined, adoptionHooks(harness.events))
+
+    expect(outcome).toMatchObject({
+      error: {
+        code: 'recording-failed',
+        phase: 'record',
+        sideEffect: 'compensated',
+      },
+      kind: 'failed',
+    })
+    expect(harness.events).toContain('record:rollback')
+    expect(harness.events).not.toContain('compensate')
+    expect(harness.events).not.toContain('record:commit')
+  })
+
+  it('preserves committed adoption state and the external installation when cancellation crosses commit', async () => {
+    const commitStarted = deferred<void>()
+    const finishCommit = deferred<void>()
+    const controller = new AbortController()
+    const harness = createHarness({
+      observations: [untrackedObservation(), untrackedObservation(), managedObservation()],
+      record: {
+        async apply() {
+          harness.events.push('record:apply')
+        },
+        async commit() {
+          harness.events.push('record:commit:start')
+          commitStarted.resolve()
+          await finishCommit.promise
+          harness.events.push('record:commit:done')
+        },
+        async rollback() {
+          harness.events.push('record:rollback')
+        },
+      },
+    })
+
+    const execution = invoke(harness.ports, { signal: controller.signal }, undefined, adoptionHooks(harness.events))
+    await commitStarted.promise
+    controller.abort('stop during commit')
+    expect(await Promise.race([execution.then(() => 'settled'), Promise.resolve('pending')])).toBe('pending')
+
+    finishCommit.resolve()
+    const outcome = await execution
+
+    expect(outcome).toMatchObject({
+      error: {
+        code: 'cancelled',
+        details: { phase: 'record', reason: 'stop during commit', sideEffect: 'may-remain' },
+      },
+      kind: 'failure',
+    })
+    expect(harness.events).not.toContain('record:rollback')
+    expect(harness.events).not.toContain('compensate')
+    expect(harness.events).toContain('record:commit:done')
+  })
+
+  it('does not roll back state or uninstall the external resource after adoption commit rejects', async () => {
+    const harness = createHarness({
+      observations: [untrackedObservation(), untrackedObservation(), managedObservation()],
+      record: {
+        async apply() {
+          harness.events.push('record:apply')
+        },
+        async commit() {
+          harness.events.push('record:commit')
+          throw new Error('state lock release failed')
+        },
+        async rollback() {
+          harness.events.push('record:rollback')
+        },
+      },
+    })
+
+    const outcome = await execute(harness.ports, undefined, adoptionHooks(harness.events))
+
+    expect(outcome).toMatchObject({
+      error: {
+        code: 'compensation-failed',
+        originCode: 'recording-failed',
+        phase: 'compensate',
+        remediation: expect.stringContaining('Keep the installed resource in place'),
+        sideEffect: 'may-remain',
+      },
+      kind: 'failed',
+    })
+    expect(outcome.kind === 'failed' ? outcome.error.remediation : undefined).not.toContain('remove')
+    expect(harness.events).not.toContain('record:rollback')
+    expect(harness.events).not.toContain('compensate')
+  })
+
+  it('rejects adoption state whose provider identity differs before any side effect', async () => {
+    const harness = createHarness({ observations: [untrackedObservation()] })
+    const hooks: CoreInstallationExecutionHooks = {
+      async resolveAdoption() {
+        harness.events.push('adoption:resolve')
+        return { binding: npmBinding, installedState: installedStateFor(bunBinding) }
+      },
+    }
+
+    const outcome = await execute(harness.ports, undefined, hooks)
+
+    expect(outcome).toMatchObject({
+      error: {
+        code: 'decision-indeterminate',
+        phase: 'decide',
+        sideEffect: 'none',
+      },
+      kind: 'failed',
+    })
+    expect(harness.events).toEqual(['lock:acquire', 'observe:0', 'adoption:resolve', 'lock:release'])
+  })
+
+  it('rejects a preview adoption that conflicts with observed provider evidence', async () => {
+    const harness = createHarness({ observations: [untrackedObservation()] })
+    const hooks: CoreInstallationExecutionHooks = {
+      async resolveAdoption() {
+        harness.events.push('adoption:resolve')
+        return { binding: bunBinding, installedState: installedStateFor(bunBinding) }
+      },
+    }
+
+    const outcome = await execute(harness.ports, { mode: 'preview', name: agent.name, operation: 'ensure' }, hooks)
+
+    expect(outcome).toMatchObject({
+      error: {
+        code: 'decision-indeterminate',
+        reason: 'Compatibility adoption does not preserve the observed provider source.',
+        sideEffect: 'none',
+      },
+      kind: 'failed',
+    })
+    expect(harness.events).toEqual(['observe:0', 'adoption:resolve'])
+  })
+
+  it('emits the mutation-start hook immediately before a provider install', async () => {
+    const harness = createHarness({
+      observations: [missingObservation(), untrackedObservation(), managedObservation()],
+    })
+
+    await execute(harness.ports, undefined, {
+      onMutationStart(event) {
+        harness.events.push(`mutation:start:${event.decision}`)
+      },
+    })
+
+    expect(harness.events.indexOf('mutation:start:install')).toBe(harness.events.indexOf('install') - 1)
+  })
 })
 
 interface HarnessOptions {
@@ -718,8 +1085,9 @@ async function execute(
     name: agent.name,
     operation: 'ensure',
   },
+  hooks?: CoreInstallationExecutionHooks,
 ): Promise<CoreInstallationExecutionOutcome> {
-  const invocation = await invoke(ports, undefined, request)
+  const invocation = await invoke(ports, undefined, request, hooks)
   if (invocation.kind === 'failure') throw new Error(`Unexpected invocation failure: ${invocation.error.code}`)
   return invocation.value
 }
@@ -732,8 +1100,21 @@ function invoke(
     name: agent.name,
     operation: 'ensure',
   },
+  hooks?: CoreInstallationExecutionHooks,
 ) {
-  return runCoreInvocation(options, context => executeCoreInstallation(request, context, ports))
+  return runCoreInvocation(options, context => executeCoreInstallation(request, context, ports, hooks))
+}
+
+function adoptionHooks(events: string[]): CoreInstallationExecutionHooks {
+  return {
+    onMutationStart(event) {
+      events.push(`mutation:start:${event.decision}`)
+    },
+    async resolveAdoption() {
+      events.push('adoption:resolve')
+      return { binding: npmBinding, installedState: installedStateFor(npmBinding) }
+    },
+  }
 }
 
 function successfulMutation(recipe: CoreInstallationRecipe): ProviderOutcome<ProviderMutationEvidence> {

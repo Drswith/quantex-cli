@@ -19,8 +19,13 @@ export interface CoreInstallationRecipe {
   readonly compensation: 'manual' | 'provider-uninstall'
   /** Existing schema-v2 projection used by both Core and the maintained v1 CLI. */
   readonly installedState: InstalledAgentState
-  /** Resolution must conclusively prove absence before this recipe can be returned. */
-  readonly ownership: 'created-on-success'
+  /** Installation recipes prove absence; the private CLI adoption bridge marks pre-existing ownership. */
+  readonly ownership: 'created-on-success' | 'pre-existing'
+}
+
+export interface CoreInstallationCompatibilityAdoption {
+  readonly binding: LifecycleProviderBinding
+  readonly installedState: InstalledAgentState
 }
 
 export type CoreInstallationRecipeResolution =
@@ -42,8 +47,21 @@ export type CoreMutationInterruptionOutcome =
 
 export interface CoreInstallationStateRecord {
   apply(): Promise<void>
+  /** Calling commit enters the irreversible terminal boundary, even while its promise is pending. */
   commit(): Promise<void>
   rollback(): Promise<void>
+}
+
+export interface CoreInstallationExecutionHooks {
+  readonly onMutationStart?: (event: {
+    readonly before: CoreAgentObservation
+    readonly binding: LifecycleProviderBinding
+    readonly decision: 'external-preserved' | 'install' | 'reinstall'
+  }) => void
+  readonly resolveAdoption?: (
+    before: CoreAgentObservation,
+    context: CoreInvocationContext,
+  ) => Promise<CoreInstallationCompatibilityAdoption | undefined>
 }
 
 export interface CoreInstallationExecutorPorts {
@@ -79,6 +97,7 @@ export type CoreInstallationExecutionValue =
   | {
       readonly before: CoreAgentObservation
       readonly binding?: LifecycleProviderBinding
+      readonly compatibility?: { readonly kind: 'adopt' }
       readonly decision: CoreInstallationDecision
       readonly kind: 'preview'
       readonly wouldChange: boolean
@@ -88,6 +107,7 @@ export type CoreInstallationExecutionValue =
       readonly before: CoreAgentObservation
       readonly binding?: LifecycleProviderBinding
       readonly changed: boolean
+      readonly compatibility?: { readonly kind: 'adopt' }
       readonly decision: CoreInstallationDecision
       readonly kind: 'apply'
     }
@@ -98,7 +118,11 @@ export type CoreInstallationExecutionOutcome =
   | { readonly error: CoreMutationFailure; readonly kind: 'failed' }
 
 export interface CoreMutationFailure {
+  /** Internal compatibility evidence; the public SDK projection deliberately strips it. */
+  readonly cause?: unknown
   readonly code: AgentMutationFailureCode
+  /** Original failure category retained only when scoped compensation also fails. */
+  readonly originCode?: Exclude<AgentMutationFailureCode, 'compensation-failed'>
   readonly phase: CoreMutationPhase
   readonly reason: string
   readonly remediation?: string

@@ -11,12 +11,14 @@ import type { CoreInvocationCleanup, CoreInvocationContext } from './invocation'
 
 export interface CoreMutationRecoveryResult {
   readonly reason?: string
+  readonly remediation?: string
   readonly sideEffect: CoreMutationSideEffect
 }
 
 export class CoreMutationRecovery implements CoreInvocationCleanup {
   private active = true
   private cleanupPromise?: Promise<CoreMutationRecoveryResult>
+  private commitStarted = false
   private record?: CoreInstallationStateRecord
   private recordWrite?: Promise<void>
   private unregister?: () => void
@@ -43,6 +45,9 @@ export class CoreMutationRecovery implements CoreInvocationCleanup {
 
   async commitRecord(): Promise<void> {
     if (!this.record) throw new Error('Installation record was not prepared.')
+    // commit() is the record contract's irreversible terminal transition. From
+    // this line onward recovery must retain both state and provider resources.
+    this.commitStarted = true
     await this.record.commit()
   }
 
@@ -66,13 +71,29 @@ export class CoreMutationRecovery implements CoreInvocationCleanup {
 
   private async runRecovery(): Promise<CoreMutationRecoveryResult> {
     if (!this.active) return { sideEffect: 'none' }
+    if (this.commitStarted) {
+      setMutationPhase(this.context, 'compensate', 'may-remain')
+      return {
+        reason: 'State commit crossed its irreversible boundary; resources were preserved.',
+        remediation: preserveResourceRemediation(),
+        sideEffect: 'may-remain',
+      }
+    }
 
     const rollbackReason = await this.rollbackState()
     if (rollbackReason) {
       // Keep the installed resource when state restoration is uncertain. Removing it
       // could turn a recoverable matching record into ghost provenance.
       setMutationPhase(this.context, 'compensate', 'may-remain')
-      return { reason: rollbackReason, sideEffect: 'may-remain' }
+      return {
+        reason: rollbackReason,
+        remediation: preserveResourceRemediation(),
+        sideEffect: 'may-remain',
+      }
+    }
+    if (this.recipe.ownership === 'pre-existing') {
+      setMutationPhase(this.context, 'compensate', 'compensated')
+      return { sideEffect: 'compensated' }
     }
     if (this.recipe.compensation === 'manual') {
       setMutationPhase(this.context, 'compensate', 'may-remain')
@@ -189,4 +210,8 @@ function errorReason(error: unknown): string {
   if (error instanceof Error && error.message.trim()) return error.message
   if (typeof error === 'string' && error.trim()) return error
   return 'Core lifecycle operation failed.'
+}
+
+function preserveResourceRemediation(): string {
+  return 'Keep the installed resource in place. Inspect Quantex state and lock files, then run inspect or ensure again.'
 }
