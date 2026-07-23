@@ -1,5 +1,9 @@
 name: Release
 
+env:
+  N_MINUS_ONE_COMMIT: e17b84e11583f77f810ad3052d8919484dc9f909
+  N_MINUS_ONE_SOURCE_DIR: .tmp/releases/quantex-cli-v1.1.3
+
 on:
   workflow_run:
     workflows:
@@ -138,6 +142,15 @@ jobs:
           fetch-depth: 0
           ref: ${{ steps.release-target.outputs.target_sha }}
 
+      - name: Checkout pinned N-1 release
+        if: ${{ steps.release-target.outputs.mode == 'publish' }}
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 1
+          path: ${{ env.N_MINUS_ONE_SOURCE_DIR }}
+          persist-credentials: false
+          ref: ${{ env.N_MINUS_ONE_COMMIT }}
+
       - name: Setup Node.js
         if: ${{ steps.release-target.outputs.mode == 'publish' }}
         uses: actions/setup-node@v7
@@ -172,6 +185,19 @@ jobs:
       - name: Build package
         if: ${{ steps.release-target.outputs.mode == 'publish' }}
         run: bun run build
+
+      - name: Build pinned N-1 release from the shared dependency install
+        if: ${{ steps.release-target.outputs.mode == 'publish' }}
+        run: |
+          ln -s "$GITHUB_WORKSPACE/node_modules" "$GITHUB_WORKSPACE/$N_MINUS_ONE_SOURCE_DIR/node_modules"
+          bun run --cwd "$N_MINUS_ONE_SOURCE_DIR" build
+
+      - name: Verify offline N/N-1 state and idempotency compatibility
+        if: ${{ steps.release-target.outputs.mode == 'publish' }}
+        run: >-
+          bun run compat:n-minus-one --
+          --previous-cli "$N_MINUS_ONE_SOURCE_DIR/dist/cli.mjs"
+          --candidate-cli dist/cli.mjs
 
       - name: Build binaries
         if: ${{ steps.release-target.outputs.mode == 'publish' }}

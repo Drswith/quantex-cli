@@ -147,9 +147,15 @@ export class LifecycleStateStore {
     return projectQuantexState(await this.loadDocument())
   }
 
+  async saveDocument(document: VersionedQuantexState): Promise<void> {
+    const validated = parseStateDocument(document)
+    if (validated.source !== 'current') throw new Error('State documents must use the current state schema.')
+    await this.persistence.save(validated.document)
+  }
+
   async saveProjection(projection: QuantexState): Promise<void> {
     const document = replaceLegacyProjection(await this.loadDocument(), projection)
-    await this.persistence.save(document)
+    await this.saveDocument(document)
   }
 
   async getReceipt(targetId: string): Promise<LifecycleReceipt | undefined> {
@@ -169,7 +175,7 @@ export class LifecycleStateStore {
     const validated = parseStateDocument(next)
     if (validated.source !== 'current')
       throw new Error('Verified lifecycle evidence must use the current state schema.')
-    await this.persistence.save(validated.document)
+    await this.saveDocument(validated.document)
   }
 
   async setAgentLifecycleEvidence(installedState: InstalledAgentState, receipt: LifecycleReceipt): Promise<void> {
@@ -192,14 +198,14 @@ export class LifecycleStateStore {
     const validated = parseStateDocument(next)
     if (validated.source !== 'current')
       throw new Error('Verified lifecycle evidence must use the current state schema.')
-    await this.persistence.save(validated.document)
+    await this.saveDocument(validated.document)
   }
 
   async removeReceipt(targetId: string): Promise<void> {
     const document = await this.loadDocument()
     const lifecycleReceipts = { ...document.lifecycleReceipts }
     delete lifecycleReceipts[targetId]
-    await this.persistence.save({ ...document, lifecycleReceipts })
+    await this.saveDocument({ ...document, lifecycleReceipts })
   }
 }
 

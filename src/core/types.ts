@@ -3,10 +3,17 @@ import type { Platform } from '../agents/types'
 export type CoreErrorCode =
   | 'agent-not-found'
   | 'cancelled'
+  | 'compensation-failed'
+  | 'decision-conflict'
+  | 'decision-indeterminate'
+  | 'execution-failed'
   | 'inspection-failed'
   | 'invalid-request'
   | 'invalid-state'
+  | 'recipe-unavailable'
+  | 'recording-failed'
   | 'timed-out'
+  | 'verification-failed'
 
 export interface CoreError {
   readonly code: CoreErrorCode
@@ -16,11 +23,17 @@ export interface CoreError {
   readonly retryable: boolean
 }
 
-export type CoreResult<T> = { readonly ok: true; readonly value: T } | { readonly error: CoreError; readonly ok: false }
+export type CoreResult<T, E extends CoreError = CoreError> =
+  | { readonly ok: true; readonly value: T }
+  | { readonly error: E; readonly ok: false }
 
 export interface CoreRequestOptions {
   readonly signal?: AbortSignal
   readonly timeoutMs?: number
+}
+
+export interface AgentMutationOptions extends CoreRequestOptions {
+  readonly mode?: 'apply' | 'preview'
 }
 
 export interface CreateQuantexOptions {
@@ -94,7 +107,54 @@ export type AgentInspection =
   | MissingAgentInspection
   | StaleAgentInspection
 
+export type AgentMutationDecision = 'already-satisfied' | 'external-preserved' | 'install' | 'reinstall'
+
+export type AgentMutationFailureCode =
+  | 'compensation-failed'
+  | 'decision-conflict'
+  | 'decision-indeterminate'
+  | 'execution-failed'
+  | 'recipe-unavailable'
+  | 'recording-failed'
+  | 'verification-failed'
+
+export type AgentMutationPhase = 'decide' | 'execute' | 'verify' | 'record' | 'compensate'
+export type AgentMutationSideEffect = 'none' | 'compensated' | 'may-remain'
+
+export interface AgentMutationFailureDetails extends Readonly<Record<string, unknown>> {
+  readonly phase: AgentMutationPhase
+  readonly sideEffect: AgentMutationSideEffect
+}
+
+export type AgentMutationError =
+  | (Omit<CoreError, 'code' | 'details'> & {
+      readonly code: AgentMutationFailureCode
+      readonly details: AgentMutationFailureDetails
+    })
+  | (Omit<CoreError, 'code'> & {
+      readonly code: 'agent-not-found' | 'cancelled' | 'invalid-request' | 'invalid-state' | 'timed-out'
+    })
+
+export type AgentMutation =
+  | {
+      readonly before: AgentInspection
+      readonly decision: AgentMutationDecision
+      readonly mode: 'preview'
+      readonly source?: AgentSource
+      readonly wouldChange: boolean
+    }
+  | {
+      readonly after: AgentInspection
+      readonly before: AgentInspection
+      readonly changed: boolean
+      readonly decision: AgentMutationDecision
+      readonly mode: 'apply'
+      readonly source?: AgentSource
+    }
+
 export interface Quantex {
+  ensure(name: string, options?: AgentMutationOptions): Promise<CoreResult<AgentMutation, AgentMutationError>>
   inspect(name: string, options?: CoreRequestOptions): Promise<CoreResult<AgentInspection>>
+  install(name: string, options?: AgentMutationOptions): Promise<CoreResult<AgentMutation, AgentMutationError>>
   list(options?: CoreRequestOptions): Promise<CoreResult<readonly AgentDescriptor[]>>
 }

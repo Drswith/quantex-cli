@@ -53,11 +53,15 @@ const commandActionHandlers: Record<StableCommandName, CommandActionHandler> = {
   },
   ensure: async (...args) => {
     const agent = args[0] as string
-    const { ensureCommand } = await import('../commands/ensure')
+    const [{ ensureCommandWithRoute }, { selectInstallationEngineRoute }] = await Promise.all([
+      import('../commands/ensure'),
+      import('../commands/installation-routing'),
+    ])
+    const route = selectInstallationEngineRoute('ensure')
     await setCliExitCode({
       action: 'ensure',
       idempotencyPolicy: () => createAgentPresenceIdempotencyPolicy('ensure', agent),
-      run: () => ensureCommand(agent),
+      run: () => ensureCommandWithRoute(agent, route),
       target: { kind: 'agent', name: agent },
     })
   },
@@ -100,7 +104,11 @@ const commandActionHandlers: Record<StableCommandName, CommandActionHandler> = {
     })
   },
   install: async (...args) => {
-    const { installCommand } = await import('../commands/install')
+    const [{ installCommandWithRoute }, { selectInstallationEngineRoute }] = await Promise.all([
+      import('../commands/install'),
+      import('../commands/installation-routing'),
+    ])
+    const route = selectInstallationEngineRoute('install')
     const normalizedAgents = normalizeAgentPresenceTargets(args[0] as string[])
     const isSingleAgent = normalizedAgents.length === 1
     await setCliExitCode({
@@ -108,7 +116,7 @@ const commandActionHandlers: Record<StableCommandName, CommandActionHandler> = {
       ...(isSingleAgent
         ? { idempotencyPolicy: () => createAgentPresenceIdempotencyPolicy('install', normalizedAgents[0]!) }
         : { idempotencyPolicy: () => createAgentBatchPresenceIdempotencyPolicy(normalizedAgents) }),
-      run: () => installCommand(normalizedAgents),
+      run: () => installCommandWithRoute(normalizedAgents, route),
       target: isSingleAgent
         ? { kind: 'agent', name: normalizedAgents[0] }
         : { kind: 'agent', name: normalizedAgents.join(',') },

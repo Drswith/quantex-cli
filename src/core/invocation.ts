@@ -7,6 +7,8 @@ export type CoreInvocationOutcome<T> =
 export interface CoreInvocationContext {
   /** Register an owned resource immediately after acquisition and before the next await. */
   registerCleanup(cleanup: CoreInvocationCleanup): () => void
+  /** Attach compact domain context to a later cancellation or timeout result. */
+  setInterruptionDetails(details: Readonly<Record<string, unknown>>): void
   readonly signal: AbortSignal
   readonly timeoutMs?: number
 }
@@ -18,7 +20,6 @@ export interface CoreInvocationCleanup {
 
 const INTERRUPTED = Symbol('core-invocation-interrupted')
 const CLEANUP_GRACE_MS = 500
-const FORCE_GRACE_MS = 500
 const WORK_SETTLE_GRACE_MS = 50
 
 export async function runCoreInvocation<T>(
@@ -42,6 +43,7 @@ export async function runCoreInvocation<T>(
   let cleanupQueue = Promise.resolve()
   const externalSignal = options?.signal
   let timedOut = false
+  let interruptionDetails: Readonly<Record<string, unknown>> | undefined
   let timeout: ReturnType<typeof setTimeout> | undefined
   const abortFromExternal = (): void => controller.abort(externalSignal?.reason)
 
@@ -88,6 +90,9 @@ export async function runCoreInvocation<T>(
         cleanups.add(cleanup)
         return () => cleanups.delete(cleanup)
       },
+      setInterruptionDetails(details): void {
+        interruptionDetails = { ...details }
+      },
       signal: controller.signal,
       timeoutMs,
     }),
@@ -99,7 +104,10 @@ export async function runCoreInvocation<T>(
       await interrupted
       await settleWithin(work, WORK_SETTLE_GRACE_MS)
       await drainRegisteredCleanups()
-      return { error: interruptedError(controller.signal, timedOut, timeoutMs), kind: 'failure' }
+      return {
+        error: interruptedError(controller.signal, timedOut, timeoutMs, interruptionDetails),
+        kind: 'failure',
+      }
     }
     return { kind: 'success', value }
   } catch (error) {
@@ -117,6 +125,7 @@ export async function runCoreInvocation<T>(
           controller.signal,
           timedOut || kind === 'timed-out',
           timeoutMs ?? interruptionTimeout(error),
+          mergeDetails(interruptionDetails, errorDetails(error)),
         ),
         kind: 'failure',
       }
@@ -134,7 +143,7 @@ async function cleanupResources(resources: readonly CoreInvocationCleanup[]): Pr
   const graceful = Promise.allSettled(resources.map(resource => Promise.resolve().then(() => resource.cleanup())))
   if (await settlesWithin(graceful, CLEANUP_GRACE_MS)) return
   const forced = Promise.allSettled(resources.map(resource => Promise.resolve().then(() => resource.force?.())))
-  await settlesWithin(forced, FORCE_GRACE_MS)
+  await forced
 }
 
 async function settleWithin(work: Promise<unknown>, durationMs: number): Promise<void> {
@@ -168,11 +177,16 @@ async function settlesWithin(work: Promise<unknown>, durationMs: number): Promis
   }
 }
 
-function interruptedError(signal: AbortSignal, timedOut: boolean, timeoutMs?: number): CoreError {
+function interruptedError(
+  signal: AbortSignal,
+  timedOut: boolean,
+  timeoutMs?: number,
+  details?: Readonly<Record<string, unknown>>,
+): CoreError {
   if (timedOut) {
     return {
       code: 'timed-out',
-      details: timeoutMs === undefined ? undefined : { timeoutMs },
+      details: mergeDetails(timeoutMs === undefined ? undefined : { timeoutMs }, details),
       message:
         timeoutMs === undefined ? 'The Core request timed out.' : `The Core request timed out after ${timeoutMs}ms.`,
       retryable: true,
@@ -181,10 +195,27 @@ function interruptedError(signal: AbortSignal, timedOut: boolean, timeoutMs?: nu
 
   return {
     code: 'cancelled',
-    details: signal.reason === undefined ? undefined : { reason: safeReason(signal.reason) },
+    details: mergeDetails(signal.reason === undefined ? undefined : { reason: safeReason(signal.reason) }, details),
     message: 'The Core request was cancelled.',
     retryable: false,
   }
+}
+
+function errorDetails(error: unknown): Readonly<Record<string, unknown>> | undefined {
+  if (!error || typeof error !== 'object' || !('details' in error)) return undefined
+  const details = error.details
+  return details && typeof details === 'object' && !Array.isArray(details)
+    ? (details as Readonly<Record<string, unknown>>)
+    : undefined
+}
+
+function mergeDetails(
+  first: Readonly<Record<string, unknown>> | undefined,
+  second: Readonly<Record<string, unknown>> | undefined,
+): Readonly<Record<string, unknown>> | undefined {
+  if (!first) return second
+  if (!second) return first
+  return { ...first, ...second }
 }
 
 function interruptionKind(error: unknown): 'cancelled' | 'timed-out' | undefined {

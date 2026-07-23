@@ -1,5 +1,5 @@
 import type { ProviderOperationContext, ProviderOutcome } from '../providers'
-import type { PackageMutationOutcome } from './mutation-outcome'
+import type { PackageMutationOutcome } from './context-mutation'
 import process from 'node:process'
 import {
   readProcessOutput,
@@ -7,7 +7,8 @@ import {
   isProcessInterruptionError,
   spawnCommand,
 } from '../utils/child-process'
-import { projectLegacyPackageMutation, runPackageMutationOutcome, runPackageMutationSequence } from './mutation-outcome'
+import { runPackageMutationOutcome, runPackageMutationSequence } from './context-mutation'
+import { projectLegacyPackageMutation } from './mutation-outcome'
 
 let resolvedPipCommand: string[] | null = null
 

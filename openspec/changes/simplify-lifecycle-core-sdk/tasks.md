@@ -11,9 +11,9 @@
 - [x] 2.1 Include the integration branch in CI, release-verification, and Sandbox trigger classification without widening protected release targets
 - [x] 2.2 Make Linux, macOS, and Windows validation explicit for Core routing promotion and stop treating skipped Windows PR coverage as sufficient
 - [x] 2.3 Add semantic compile coverage for every maintained root export before changing declaration generation; keep the existing v1 fixtures unchanged
-- [ ] 2.4 Add released N/N-1 state and idempotency compatibility fixtures covering old-to-new and new-to-old-to-new reads and mutations with schema version 2
-- [ ] 2.5 Add a test-only legacy/Core differential harness that compares observations, typed outcomes, state deltas, receipts, and v1 CLI projections without production shadow mutations
-- [ ] 2.6 Extend first-party provider conformance to cover relevant observe, mutate, verify, unknown, cancellation, timeout, and compensation behavior before each provider path migrates
+- [x] 2.4 Add released N/N-1 state and idempotency compatibility fixtures covering old-to-new and new-to-old-to-new reads and mutations with schema version 2
+- [x] 2.5 Add a test-only legacy/Core differential harness that compares observations, typed outcomes, state deltas, receipts, and v1 CLI projections without production shadow mutations
+- [x] 2.6 Extend first-party provider conformance to cover relevant observe, mutate, verify, unknown, cancellation, timeout, and compensation behavior before each provider path migrates
 
 ## 3. Core package and read-only SDK vertical slice
 
@@ -39,10 +39,10 @@
 
 ## 5. Install and ensure migration for 1.3 beta or opt-in
 
-- [ ] 5.1 Add Core `install` and `ensure` only after their public result, preview, cancellation, and timeout contracts are implemented
-- [ ] 5.2 Replace generic single-step DAG planning on these paths with decision, provider recipe, fresh verification, verified recording, and scoped compensation
-- [ ] 5.3 Preserve exact-source ownership, external no-adopt defaults, tri-state probes, Bun trust ownership, and no success recording after failed verification
-- [ ] 5.4 Select legacy or Core before invocation, prohibit post-side-effect fallback, and keep stable CLI mutation routing on legacy until promotion gates pass
+- [x] 5.1 Add Core `install` and `ensure` with a shared discriminated preview/apply result, four stable decisions, and phase/side-effect errors without exposing infrastructure
+- [x] 5.2 Replace generic single-step DAG planning on these paths with a narrow Core decision/executor, explicit-config locks, one provider recipe, fresh verification, verified recording, and scoped compensation
+- [x] 5.3 Preserve exact-source ownership, external no-adopt defaults, tri-state probes, Bun trust ownership, and no success recording after failed verification
+- [x] 5.4 Select legacy or Core before invocation, keep any v1 safe-adoption policy private, prohibit post-side-effect fallback, and keep stable CLI mutation routing on legacy until promotion gates pass
 - [ ] 5.5 Run differential, provider, state, idempotency, cancellation, timeout, and platform gates before enabling beta or explicit whole-invocation Core routing
 - [ ] 5.6 Commit and push the install/ensure vertical slice as a recoverable milestone checkpoint
 

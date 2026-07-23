@@ -7,6 +7,7 @@ import * as config from '../../src/config'
 import * as binaryPm from '../../src/package-manager/binary'
 import * as bunPm from '../../src/package-manager/bun'
 import * as cargoPm from '../../src/package-manager/cargo'
+import * as mutationOutcome from '../../src/package-manager/context-mutation'
 import * as denoPm from '../../src/package-manager/deno'
 import {
   installAgent,
@@ -17,7 +18,6 @@ import {
   updateAgentsByType,
 } from '../../src/package-manager/index'
 import * as misePm from '../../src/package-manager/mise'
-import * as mutationOutcome from '../../src/package-manager/mutation-outcome'
 import * as npmPm from '../../src/package-manager/npm'
 import * as uvPm from '../../src/package-manager/uv'
 import { StateFileError } from '../../src/state'

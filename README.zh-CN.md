@@ -43,24 +43,29 @@ Quantex 是一个 `human-friendly + agent-friendly` 的 AI 编程助手 CLI life
 Quantex 正在抽离一个非交互式 TypeScript SDK，暂定包名为 `@quantex/core`。它目前仍是集成分支预览：包尚未发布，npm namespace ownership 与 trusted publisher 也尚未确认。下面的计划公开安装命令只会在首个 Core 版本发布后生效，当前不应期望它能成功执行。
 
 ```bash
-# 首个 1.2 Core 版本发布后才可用
+# Core npm 发布完成初始化后才可用
 npm install @quantex/core
 ```
 
-1.2 的首个 SDK surface 只读且仅支持 ESM，可在 Node.js 20 或更高版本与 Bun 中使用，只暴露 `createQuantex`、`list` 和 `inspect`：
+1.2 阶段确立了只读、仅 ESM 的 `createQuantex`、`list` 和 `inspect` surface。1.3 集成 surface 在保持 Node.js 20+ 与 Bun 支持的同时，新增经过 gate 的 `install` 和 `ensure`：
 
 ```ts
 import { createQuantex } from '@quantex/core'
 
 const quantex = createQuantex()
 const result = await quantex.inspect('codex')
+const preview = await quantex.ensure('codex', { mode: 'preview' })
 
 if (result.ok) {
   console.log(result.value.status)
 }
+
+if (preview.ok && preview.value.mode === 'preview') {
+  console.log(preview.value.decision, preview.value.wouldChange)
+}
 ```
 
-Core 不提示、不打印、不调用 `process.exit`，也不决定 CLI 退出码；它只向调用方返回类型化结果。`qtx` / `quantex` CLI 仍负责提示、human 与 JSON/NDJSON 展示、退出码策略、命令行执行和 Quantex 自升级。SDK 尚未发布 `install`、`ensure`、`update`、`uninstall` 或 `run`；CLI 的变更操作仍使用受维护的 legacy engine。
+Core 不提示、不打印、不调用 `process.exit`，也不决定 CLI 退出码；它只向调用方返回类型化结果。`install` 与 `ensure` 默认执行 apply，也提供显式且无副作用的 preview；它们会保留 PATH-only external agent，并返回包含阶段与副作用状态的类型化失败。`qtx` / `quantex` CLI 仍负责提示、human 与 JSON/NDJSON 展示、退出码策略、命令行执行和 Quantex 自升级。SDK 仍未提供 `update`、`uninstall` 或 `run`；在 promotion gates 通过前，稳定 CLI 变更命令继续使用受维护的 legacy engine。
 
 兼容过渡跨越 1.2-1.5：1.2 引入只读 Core，1.3 可以添加经过 gate 的变更方法组，1.4 是 Core 最早可成为 CLI 默认引擎的版本，1.5 提供第二个默认版本的观察期。持久化 state schema 在整个 1.x 中保持为 version 2。引擎必须在单次调用前选定，变更操作一旦开始产生副作用就绝不会切换引擎重试；当 Core routing 晋级后，回滚通过保留至 1.5 的 whole-invocation legacy route 完成。删除受维护的 v1 surface 必须等待已记录的观察 gate 通过，并在后续 major 版本另行提案。
 

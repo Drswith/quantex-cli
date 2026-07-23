@@ -1,8 +1,20 @@
 import { describe, expect, it } from 'vitest'
-import { cancelCliContextOperations, clearCliContextCancelled } from '../../src/cli-context'
+import { cancelCliContextOperations, clearCliContextCancelled, setCliContext } from '../../src/cli-context'
 import { createCliOperationContext } from '../../src/runtime/cli-operation-context'
 
 describe('CLI operation context', () => {
+  it.each([
+    ['human', 'inherit'],
+    ['json', 'stderr'],
+    ['ndjson', 'stderr'],
+  ] as const)('maps %s output to the explicit provider %s policy', (outputMode, outputPolicy) => {
+    setCliContext({ interactive: outputMode === 'human', outputMode, runId: `${outputMode}-policy` })
+    const operation = createCliOperationContext()
+
+    expect(operation.context.outputPolicy).toBe(outputPolicy)
+    operation.dispose()
+  })
+
   it('aborts and joins live operations before cancellation completes', async () => {
     clearCliContextCancelled()
     const operation = createCliOperationContext()

@@ -53,6 +53,7 @@ function addConformanceCases(
   target: ProviderTarget,
   createAdapter: (dependencies: SystemPackageAdapterDependencies) => ProviderAdapter,
   installCommand: readonly string[],
+  uninstallCommand: readonly string[],
 ): void {
   describeProviderConformance(`${name} provider`, () => {
     const dependencies = createDependencies({
@@ -69,7 +70,8 @@ function addConformanceCases(
       cases: {
         absentEvidence: { kind: 'package', value: `${name}:${target.id}-absent:absent` },
         absentTarget: { ...target, id: `${target.id}-absent` },
-        cancelled: (requestedAdapter, requestedContext) => requestedAdapter.availability(requestedContext),
+        cancelled: (requestedAdapter, requestedContext, requestedTarget) =>
+          requestedAdapter.update?.({ context: requestedContext, target: requestedTarget }),
         failed: {
           expected: {
             command: installCommand,
@@ -87,6 +89,17 @@ function addConformanceCases(
           target: { ...target, id: `${target.id}-unknown` },
         },
         present: { evidence: presentEvidence, target },
+        successfulMutation: {
+          expected: {
+            evidence: [
+              { kind: 'provider', value: name },
+              { kind: 'command', value: uninstallCommand.join(' ') },
+            ],
+            target,
+          },
+          invoke: (requestedAdapter, requestedContext, requestedTarget) =>
+            requestedAdapter.uninstall?.({ context: requestedContext, target: requestedTarget }),
+        },
         timedOut: {
           invoke: (requestedAdapter, requestedContext, requestedTarget) =>
             requestedAdapter.update?.({ context: requestedContext, target: requestedTarget }),
@@ -108,14 +121,20 @@ function addConformanceCases(
 const brewTarget: ProviderTarget = { id: 'example/formula', kind: 'formula' }
 const wingetTarget: ProviderTarget = { id: 'Example.Package', kind: 'id' }
 
-addConformanceCases('brew', brewTarget, createBrewProviderAdapter, ['brew', 'install', brewTarget.id])
-addConformanceCases('winget', wingetTarget, createWingetProviderAdapter, [
+addConformanceCases(
+  'brew',
+  brewTarget,
+  createBrewProviderAdapter,
+  ['brew', 'install', brewTarget.id],
+  ['brew', 'uninstall', brewTarget.id],
+)
+addConformanceCases(
   'winget',
-  'install',
-  '--id',
-  wingetTarget.id,
-  '-e',
-])
+  wingetTarget,
+  createWingetProviderAdapter,
+  ['winget', 'install', '--id', wingetTarget.id, '-e'],
+  ['winget', 'uninstall', '--id', wingetTarget.id, '-e'],
+)
 
 describe('system package provider semantics', () => {
   it('preserves Homebrew formula and cask commands and batch target kinds', async () => {

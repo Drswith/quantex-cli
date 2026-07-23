@@ -1,13 +1,11 @@
 import type { LifecycleReceipt } from '../lifecycle/model'
 import type { SelfInstallSource } from '../self/types'
 import type { InstalledAgentState, QuantexState, SelfState } from './schema'
-import { mkdir, readFile, rename, rm, writeFile } from 'node:fs/promises'
-import { join } from 'node:path'
-import process from 'node:process'
+import type { LifecycleStateStore } from './store'
 import { getConfigDir } from '../config'
 import { acquireResourceLock, getResourceLockPath } from '../utils/lock'
+import { createFileLifecycleStateStore, getStateFilePathInConfigDir } from './file-store'
 import { StateSchemaError } from './schema'
-import { FileStateDocumentPersistence, LifecycleStateStore, type StateFileSystem } from './store'
 
 export type { InstalledAgentState, QuantexState, SelfState } from './schema'
 
@@ -24,7 +22,7 @@ const defaultState: QuantexState = {
 }
 
 export function getStateFilePath(): string {
-  return join(getConfigDir(), 'state.json')
+  return getStateFilePathInConfigDir(getConfigDir())
 }
 
 export function getStateLockPath(): string {
@@ -179,35 +177,8 @@ async function writeState(state: QuantexState): Promise<void> {
   }
 }
 
-const nodeStateFileSystem: StateFileSystem = {
-  async makeDirectory(path) {
-    await mkdir(path, { recursive: true })
-  },
-  async readText(path) {
-    return readFile(path, 'utf8')
-  },
-  async remove(path) {
-    await rm(path, { force: true })
-  },
-  async rename(from, to) {
-    await rename(from, to)
-  },
-  async writeText(path, data) {
-    await writeFile(path, data, 'utf8')
-  },
-}
-
 function createStateStore(): LifecycleStateStore {
-  const stateFilePath = getStateFilePath()
-  return new LifecycleStateStore(
-    new FileStateDocumentPersistence({
-      backupFilePath: `${stateFilePath}.v1.bak`,
-      directoryPath: getConfigDir(),
-      fileSystem: nodeStateFileSystem,
-      stateFilePath,
-      tempFileSuffix: String(process.pid),
-    }),
-  )
+  return createFileLifecycleStateStore(getConfigDir())
 }
 
 function isMissingStateFileError(error: unknown): boolean {

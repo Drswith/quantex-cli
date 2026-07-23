@@ -63,13 +63,32 @@ Before a lifecycle family becomes Core-default, test-only comparison MUST cover 
 
 - **WHEN** maintainers propose making one lifecycle family use Core by default
 - **THEN** its differential fixtures match for every maintained v1 contract
-- **AND** relevant first-party providers pass success, failure, absent, unknown, cancellation, timeout, and verification conformance
+- **AND** relevant first-party providers pass observation, successful mutation, failure, absent, unknown, cancellation, timeout, satisfied and unsatisfied verification, and scoped-compensation conformance
 
 #### Scenario: Differential comparison is run for a mutation
 
 - **WHEN** tests compare legacy and Core mutation behavior
 - **THEN** they execute against isolated fixtures or captured effects
 - **AND** production code does not shadow-run both mutating engines
+
+#### Scenario: Install and ensure are enabled only for explicit Core routing
+
+- **WHEN** 1.3 exposes beta or explicit whole-invocation Core routing for install or ensure
+- **THEN** isolated differential fixtures compare decision, typed outcome, state delta, receipt, and maintained v1 human, JSON, NDJSON, exit, and stream projections
+- **AND** stable CLI routing remains legacy until the full promotion matrix passes
+
+#### Scenario: Public SDK and v1 adoption policy differ during transition
+
+- **GIVEN** the public SDK preserves PATH-only agents as external by default
+- **WHEN** the v1 compatibility adapter must retain an existing safe-adoption contract
+- **THEN** any temporary adoption policy remains private to the compatibility adapter
+- **AND** it is selected before the invocation and is not exposed as a public SDK option
+
+#### Scenario: Released N/N-1 compatibility fixtures run in CI
+
+- **WHEN** state and idempotency downgrade compatibility is validated
+- **THEN** the fixtures are pinned to immutable released source identities or committed release artifacts
+- **AND** the ordinary test suite does not depend on network access, registry availability, mutable tags, or a non-shallow Git history
 
 #### Scenario: Maintained read commands route through Core
 
