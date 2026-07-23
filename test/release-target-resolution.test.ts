@@ -299,19 +299,22 @@ describe('release workflow package closure', () => {
     expect(releaseWorkflow).toContain('options:\n          - main\n          - beta')
   })
 
-  it('fails with an actionable two-stage Core bootstrap gate before either publish command', () => {
+  it('fails with an actionable two-stage Core bootstrap gate before GitHub Release creation and either publish command', () => {
     const bootstrapIndex = releaseWorkflow.indexOf('- name: Validate Core npm publishing bootstrap')
+    const githubReleaseIndex = releaseWorkflow.indexOf('- name: Release Please GitHub Release')
     const corePublishIndex = releaseWorkflow.indexOf('npm publish ./packages/core')
     const cliPublishIndex = releaseWorkflow.indexOf('npm publish . --access')
 
     expect(bootstrapIndex).toBeGreaterThan(-1)
+    expect(githubReleaseIndex).toBeGreaterThan(bootstrapIndex)
     expect(releaseWorkflow).toContain('CORE_NPM_TRUSTED_PUBLISHING_READY')
     expect(releaseWorkflow).toContain("steps.release-target.outputs.core_required == 'true'")
     expect(releaseWorkflow).toContain('npm requires a package to exist before a trusted publisher can be configured')
     expect(releaseWorkflow).toContain('authorized maintainer account and 2FA')
     expect(releaseWorkflow).toContain('configure the release.yml GitHub Actions trusted publisher')
-    expect(releaseWorkflow).toContain('core_package_exists')
-    expect(corePublishIndex).toBeGreaterThan(bootstrapIndex)
+    expect(releaseWorkflow).toContain('No GitHub Release or repository package will be published')
+    expect(releaseWorkflow).toContain('No GitHub Release or repository package was published by this run')
+    expect(corePublishIndex).toBeGreaterThan(githubReleaseIndex)
     expect(cliPublishIndex).toBeGreaterThan(corePublishIndex)
   })
 
