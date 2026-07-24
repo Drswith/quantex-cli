@@ -52,6 +52,19 @@ describe('upgradeCommand', () => {
     expect(stdoutWriteSpy).toHaveBeenCalledWith(expect.stringContaining('Unable to determine the latest'))
   })
 
+  it('reports structured NETWORK_ERROR for plain upgrade when latest cannot be resolved', async () => {
+    planSelfUpgradeSpy.mockResolvedValue(createPlan({ installSource: 'binary' }, 'check-unavailable'))
+
+    await expect(upgradeCommand()).resolves.toMatchObject({
+      data: { status: 'check-unavailable' },
+      error: { code: 'NETWORK_ERROR' },
+      ok: false,
+    })
+
+    expect(upgradeSelfSpy).not.toHaveBeenCalled()
+    expect(stdoutWriteSpy).toHaveBeenCalledWith(expect.stringContaining('Unable to determine the latest'))
+  })
+
   it('treats a lower latest version as stale instead of attempting a downgrade', async () => {
     planSelfUpgradeSpy.mockResolvedValue(
       createPlan(
