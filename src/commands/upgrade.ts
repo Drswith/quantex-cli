@@ -62,6 +62,31 @@ export async function upgradeCommand(
     )
   }
 
+  if (plan.status === 'check-unavailable') {
+    return emitCommandResult(
+      createErrorResult<UpgradeCommandData>({
+        action: 'upgrade',
+        data: {
+          canAutoUpdate: inspection.canAutoUpdate,
+          channel: inspection.updateChannel,
+          currentVersion: inspection.currentVersion,
+          installSource: inspection.installSource,
+          status: 'check-unavailable',
+        },
+        error: {
+          code: 'NETWORK_ERROR',
+          message: 'Unable to determine the latest Quantex CLI version.',
+        },
+        target: {
+          kind: 'self',
+          name: 'quantex',
+        },
+        warnings: [...registryWarnings, ...(staleLatestWarning ? [staleLatestWarning] : [])],
+      }),
+      renderUpgradeHuman,
+    )
+  }
+
   if (options.check || dryRun) {
     if (plan.status === 'update-available') {
       return emitCommandResult(
@@ -96,29 +121,6 @@ export async function upgradeCommand(
         renderUpgradeHuman,
       )
     }
-
-    return emitCommandResult(
-      createErrorResult<UpgradeCommandData>({
-        action: 'upgrade',
-        data: {
-          canAutoUpdate: inspection.canAutoUpdate,
-          channel: inspection.updateChannel,
-          currentVersion: inspection.currentVersion,
-          installSource: inspection.installSource,
-          status: 'check-unavailable',
-        },
-        error: {
-          code: 'NETWORK_ERROR',
-          message: 'Unable to determine the latest Quantex CLI version.',
-        },
-        target: {
-          kind: 'self',
-          name: 'quantex',
-        },
-        warnings: [...registryWarnings, ...(staleLatestWarning ? [staleLatestWarning] : [])],
-      }),
-      renderUpgradeHuman,
-    )
   }
 
   if (plan.status === 'manual-required') {
