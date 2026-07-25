@@ -62,6 +62,34 @@ export async function upgradeCommand(
     )
   }
 
+  if (plan.status === 'manual-required') {
+    const manualCommand = getSelfUpgradeRecoveryHintForInspection(inspection)
+    return emitCommandResult(
+      createErrorResult<UpgradeCommandData>({
+        action: 'upgrade',
+        data: {
+          canAutoUpdate: inspection.canAutoUpdate,
+          channel: inspection.updateChannel,
+          currentVersion: inspection.currentVersion,
+          installSource: inspection.installSource,
+          latestVersion: inspection.latestVersion,
+          recoveryHint: manualCommand,
+          status: 'manual-required',
+        },
+        error: {
+          code: 'MANUAL_ACTION_REQUIRED',
+          message: `Quantex CLI cannot auto-update from the current install source: ${inspection.installSource}.`,
+        },
+        target: {
+          kind: 'self',
+          name: 'quantex',
+        },
+        warnings: [...registryWarnings, ...(staleLatestWarning ? [staleLatestWarning] : [])],
+      }),
+      renderUpgradeHuman,
+    )
+  }
+
   if (options.check || dryRun) {
     if (plan.status === 'update-available') {
       return emitCommandResult(
@@ -110,34 +138,6 @@ export async function upgradeCommand(
         error: {
           code: 'NETWORK_ERROR',
           message: 'Unable to determine the latest Quantex CLI version.',
-        },
-        target: {
-          kind: 'self',
-          name: 'quantex',
-        },
-        warnings: [...registryWarnings, ...(staleLatestWarning ? [staleLatestWarning] : [])],
-      }),
-      renderUpgradeHuman,
-    )
-  }
-
-  if (plan.status === 'manual-required') {
-    const manualCommand = getSelfUpgradeRecoveryHintForInspection(inspection)
-    return emitCommandResult(
-      createErrorResult<UpgradeCommandData>({
-        action: 'upgrade',
-        data: {
-          canAutoUpdate: inspection.canAutoUpdate,
-          channel: inspection.updateChannel,
-          currentVersion: inspection.currentVersion,
-          installSource: inspection.installSource,
-          latestVersion: inspection.latestVersion,
-          recoveryHint: manualCommand,
-          status: 'manual-required',
-        },
-        error: {
-          code: 'MANUAL_ACTION_REQUIRED',
-          message: `Quantex CLI cannot auto-update from the current install source: ${inspection.installSource}.`,
         },
         target: {
           kind: 'self',

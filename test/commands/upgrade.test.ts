@@ -123,6 +123,58 @@ describe('upgradeCommand', () => {
     expect(stdoutWriteSpy).toHaveBeenCalledWith(expect.stringContaining('cannot auto-update'))
   })
 
+  it('preserves MANUAL_ACTION_REQUIRED for --check on unsupported install sources', async () => {
+    planSelfUpgradeSpy.mockResolvedValue(
+      createPlan(
+        {
+          canAutoUpdate: false,
+          installSource: 'source',
+          targetVersion: '1.1.0',
+        },
+        'manual-required',
+      ),
+    )
+
+    await expect(upgradeCommand({ check: true })).resolves.toMatchObject({
+      data: { status: 'manual-required' },
+      error: {
+        code: 'MANUAL_ACTION_REQUIRED',
+      },
+      ok: false,
+    })
+
+    expect(upgradeSelfSpy).not.toHaveBeenCalled()
+  })
+
+  it('preserves MANUAL_ACTION_REQUIRED for dry-run on unsupported install sources', async () => {
+    setCliContext({
+      dryRun: true,
+      interactive: false,
+      outputMode: 'json',
+      runId: 'manual-dry-run-id',
+    })
+    planSelfUpgradeSpy.mockResolvedValue(
+      createPlan(
+        {
+          canAutoUpdate: false,
+          installSource: 'source',
+          targetVersion: '1.1.0',
+        },
+        'manual-required',
+      ),
+    )
+
+    await expect(upgradeCommand()).resolves.toMatchObject({
+      data: { status: 'manual-required' },
+      error: {
+        code: 'MANUAL_ACTION_REQUIRED',
+      },
+      ok: false,
+    })
+
+    expect(upgradeSelfSpy).not.toHaveBeenCalled()
+  })
+
   it('shows manual recovery for bun installs when self-upgrade fails', async () => {
     const plan = createPlan(
       {
