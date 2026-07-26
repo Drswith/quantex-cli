@@ -22,9 +22,22 @@ New-Item -ItemType Directory -Force -Path $InstallDir | Out-Null
 
 $targetPath = Join-Path $InstallDir 'quantex.exe'
 $aliasPath = Join-Path $InstallDir 'qtx.exe'
+$tmpDir = Join-Path ([System.IO.Path]::GetTempPath()) ("quantex-install-" + [guid]::NewGuid().ToString('N'))
+$tmpFile = Join-Path $tmpDir $asset
 
-Invoke-WebRequest -Uri $downloadUrl -OutFile $targetPath
-Copy-Item $targetPath $aliasPath -Force
+New-Item -ItemType Directory -Force -Path $tmpDir | Out-Null
+try {
+  Invoke-WebRequest -Uri $downloadUrl -OutFile $tmpFile
+  if (-not (Test-Path -LiteralPath $tmpFile) -or ((Get-Item -LiteralPath $tmpFile).Length -le 0)) {
+    throw "Downloaded Quantex binary is missing or empty: $tmpFile"
+  }
+
+  Move-Item -LiteralPath $tmpFile -Destination $targetPath -Force
+  Copy-Item -LiteralPath $targetPath -Destination $aliasPath -Force
+}
+finally {
+  Remove-Item -LiteralPath $tmpDir -Force -Recurse -ErrorAction SilentlyContinue
+}
 
 Write-Host "Installed quantex to $targetPath"
 Write-Host "Installed qtx copy to $aliasPath"
