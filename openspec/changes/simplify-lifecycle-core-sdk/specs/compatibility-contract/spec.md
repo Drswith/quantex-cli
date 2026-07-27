@@ -101,11 +101,12 @@ Before a lifecycle family becomes Core-default, test-only comparison MUST cover 
 
 Quantex MUST retain the maintained v1 CLI, structured-output, state, standard-I/O, binary, and root-export contracts through at least the 1.2, 1.3, 1.4, and 1.5 stable minor stages described by this change. Breaking removal MUST wait for a later major, Core-default operation across at least two stable minors, at least 90 days after stable-default enablement, and a separately approved deprecation change; the later gate controls.
 
-#### Scenario: Core read-only SDK is introduced in 1.2
+#### Scenario: Core read-only boundary is introduced in 1.2
 
-- **WHEN** the first stable Core SDK is released
+- **WHEN** the independently packable Core workspace is introduced but public npm activation is deferred
 - **THEN** existing v1 surfaces remain supported and unchanged
 - **AND** CLI mutations continue using the established default path
+- **AND** CLI npm, GitHub Release, and standalone artifact closure does not depend on Core registry availability
 
 #### Scenario: Core becomes the stable default in 1.4
 

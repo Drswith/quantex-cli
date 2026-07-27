@@ -1,13 +1,6 @@
 # @quantex/core
 
-`@quantex/core` is the provisional package name for Quantex's non-interactive TypeScript SDK. It is currently an integration-branch preview: the package has not been published, and npm namespace ownership and trusted-publisher setup are not yet confirmed.
-
-The following command is the planned public installation path after Core npm publishing is bootstrapped. It is not expected to work today.
-
-```bash
-# Available after Core npm publishing is bootstrapped
-npm install @quantex/core
-```
+`@quantex/core` is the provisional package identity for Quantex's non-interactive TypeScript SDK. It is currently private and independently packable: clean tarball consumers are validated under Node.js, Bun, and TypeScript NodeNext, while public registry publication remains disabled until a separate activation change confirms the final package identity and publisher authority. `quantex-cli` releases do not depend on this activation.
 
 The 1.2 surface established `createQuantex`, `list`, and `inspect`. The 1.3 integration surface adds gated `install` and `ensure` methods:
 

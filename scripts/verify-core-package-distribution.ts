@@ -16,6 +16,7 @@ export interface CorePackageManifest {
   readonly name?: string
   readonly optionalDependencies?: Readonly<Record<string, string>>
   readonly peerDependencies?: Readonly<Record<string, string>>
+  readonly private?: boolean
   readonly version?: string
 }
 
@@ -71,6 +72,9 @@ export function assertCorePackageManifestContract(
   }
   if (coreManifest.name !== '@quantex/core') {
     issues.push(`the Core package name must be @quantex/core, found ${coreManifest.name ?? 'none'}`)
+  }
+  if (coreManifest.private !== true) {
+    issues.push('the provisional Core package must remain private until a separate publishing activation change')
   }
   if (!rootManifest.version || rootManifest.version !== coreManifest.version) {
     issues.push(

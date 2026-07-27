@@ -87,3 +87,19 @@ The root CLI and Core package SHALL carry the same release version, and the root
 
 - **WHEN** either npm tarball is inspected
 - **THEN** no dependency contains `workspace:`, repository-relative, or unpublished development protocol syntax
+
+### Requirement: Core publication remains explicitly disabled until activation
+
+Before the first public Core registry release, the Core manifest SHALL be marked private and the repository Release workflow MUST NOT publish, registry-inspect, or require the Core package for CLI release closure. A separate OpenSpec activation change MUST confirm the final package identity, publisher permission, bootstrap procedure, trusted publisher, and recovery semantics before removing this guard.
+
+#### Scenario: CLI release runs while Core identity is provisional
+
+- **WHEN** `quantex-cli` is ready to publish and the Core workspace is still private
+- **THEN** Core is still built and pack-validated from source
+- **AND** CLI npm publication, GitHub Release creation, and standalone artifact upload can close without Core existing on a registry
+
+#### Scenario: Core publication is proposed
+
+- **WHEN** a maintainer proposes removing the private guard or adding Core to release automation
+- **THEN** validation rejects the change unless the activation contract and confirmed publisher authority are present
+- **AND** toggling a repository variable alone cannot enable publication

@@ -6,7 +6,7 @@ This change is classified through the OpenSpec intake gate because it changes ar
 
 ## What Changes
 
-- Introduce one public TypeScript Core SDK package, provisionally named `@quantex/core`, in the same repository and release train as `quantex-cli`.
+- Introduce one independently packable TypeScript Core SDK workspace, provisionally named `@quantex/core`, while keeping public npm activation separate from the established `quantex-cli` release closure.
 - Make the Core SDK the single application-facing lifecycle boundary for catalog discovery, inspection, install/ensure, update, uninstall, and agent execution; keep CLI parsing, prompts, human/structured presentation, exit mapping, and self-upgrade outside the SDK.
 - Make `quantex-cli` consume the Core SDK through a thin compatibility adapter while preserving the maintained v1 command, JSON/NDJSON, state/config, standard-I/O, binary, and root-export contracts.
 - Replace duplicate internal catalog/provider/package-manager projections only after equivalent Core behavior is covered by compatibility, differential, provider-conformance, state, cancellation, timeout, and platform tests.
@@ -32,6 +32,6 @@ This change is classified through the OpenSpec intake gate because it changes ar
 
 - Code: lifecycle services, production composition roots, catalog/provider/package-manager adapters, compatibility facade, CLI commands, state/runtime integration, and tests.
 - Packages: repository workspace metadata, a new Core SDK package, `quantex-cli` dependency/exports, declarations, package checks, and lockfile.
-- Release: release-please configuration, npm publication/recovery, provenance, and validation for two coordinated packages.
+- Release: keep `quantex-cli` npm, GitHub Release, and binary publication recoverable on its own; keep Core private and pack-validated until a separate activation change confirms its final package identity and publishing authority.
 - Contracts: no immediate breaking CLI or package-root removal; new SDK API is additive. Any later removal remains a separately gated major-version action after the compatibility runway.
 - Documentation: README/SDK examples, compatibility status, and a durable ADR for the two-package boundary and migration rules.

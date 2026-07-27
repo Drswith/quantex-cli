@@ -22,6 +22,7 @@ const coreManifest: CorePackageManifest = {
     './package.json': './package.json',
   },
   name: '@quantex/core',
+  private: true,
   version: '1.1.3',
 }
 
@@ -76,6 +77,15 @@ describe('Core package manifest contract', () => {
         dependencies: { zod: '^4.3.6' },
       }),
     ).toThrow(/self-contained, found zod/)
+  })
+
+  it('rejects removing the private publication guard before Core activation', () => {
+    expect(() =>
+      assertCorePackageManifestContract(rootManifest, {
+        ...coreManifest,
+        private: false,
+      }),
+    ).toThrow(/must remain private until a separate publishing activation change/)
   })
 })
 

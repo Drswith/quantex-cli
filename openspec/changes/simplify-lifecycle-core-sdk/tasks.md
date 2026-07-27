@@ -31,10 +31,10 @@
 
 - [x] 4.1 Synchronize root and Core versions through one release-please component and reject mismatched title, root, Core, or exact Core development-dependency versions
 - [x] 4.2 Reject workspace protocols from publishable manifests and keep the external `quantex` alias outside this repository's release coordination
-- [x] 4.3 Extend package validation and release resolution to represent Core-missing, CLI-missing, both-missing, both-published, and registry-indeterminate states
-- [x] 4.4 Publish and verify Core before CLI, preserve idempotent per-package recovery, and upload standalone artifacts only after repository npm closure
+- [x] 4.3 Simplify release resolution to represent CLI-missing, CLI-published, and registry-indeterminate states without querying the private Core identity
+- [x] 4.4 Publish and verify CLI before creating a new public GitHub Release, preserve idempotent v1.2 recovery, and upload standalone artifacts only after CLI npm closure
 - [x] 4.5 Pin release workflow Bun versions to the repository toolchain, cache downloads rather than workspace links, and include Core manifests in cache keys, release PR policy, path taxonomy, and Sandbox selection
-- [ ] 4.6 Verify npm namespace ownership and bootstrap Core trusted publishing before enabling the first public release
+- [x] 4.6 Keep Core private and require a separate activation change to verify final package identity, publisher authority, bootstrap, trusted publishing, version policy, and recovery before its first public release
 - [x] 4.7 Commit and push coordinated packaging and recovery as the third recoverable checkpoint (`0fefedb`)
 
 ## 5. Install and ensure migration for 1.3 beta or opt-in

@@ -40,14 +40,9 @@ The internal engine can evolve without changing the maintained v1 command syntax
 
 ## TypeScript Core SDK preview
 
-Quantex is extracting a non-interactive TypeScript SDK under the provisional package name `@quantex/core`. It is currently an integration-branch preview: the package has not been published, and npm namespace ownership and trusted-publisher setup are not yet confirmed. The planned public install command below will apply only after the first Core release; it is not expected to work today.
+Quantex is extracting a non-interactive TypeScript SDK under the provisional package identity `@quantex/core`. It is currently a private, independently packable workspace: clean tarball consumers are validated under Node.js, Bun, and TypeScript NodeNext, but public registry installation is deliberately disabled until a separate activation change confirms the final package name and publisher authority. CLI npm and GitHub releases do not depend on that activation.
 
-```bash
-# Available after Core npm publishing is bootstrapped
-npm install @quantex/core
-```
-
-The 1.2 SDK stage established the read-only, ESM-only `createQuantex`, `list`, and `inspect` surface. The 1.3 integration surface adds gated `install` and `ensure` methods while retaining Node.js 20+ and Bun support:
+The 1.2 SDK stage established the read-only, ESM-only `createQuantex`, `list`, and `inspect` surface. The 1.3 integration surface adds gated `install` and `ensure` methods while retaining Node.js 20+ and Bun support. The import below describes the validated package API; it becomes a public registry import only after Core activation:
 
 ```ts
 import { createQuantex } from '@quantex/core'

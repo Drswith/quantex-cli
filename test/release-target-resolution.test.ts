@@ -17,22 +17,16 @@ function commit(message: string): CommitReleaseIntent {
   return classifyCommitReleaseIntent(message)
 }
 
-function run(databaseId: number, headSha: string, updatedAt: string, corePackagePresent = true): SuccessfulCiRun {
+function run(databaseId: number, headSha: string, updatedAt: string): SuccessfulCiRun {
   return {
-    corePackagePresent,
     databaseId,
     headSha,
     updatedAt,
   }
 }
 
-function npmPublication(
-  core: NpmPackagePublicationStatus,
-  cli: NpmPackagePublicationStatus,
-  detail?: string,
-): NpmReleasePublicationState {
+function npmPublication(cli: NpmPackagePublicationStatus, detail?: string): NpmReleasePublicationState {
   return {
-    '@quantex/core': { detail: core === 'indeterminate' ? detail : undefined, status: core },
     'quantex-cli': { detail: cli === 'indeterminate' ? detail : undefined, status: cli },
   }
 }
@@ -71,7 +65,7 @@ describe('release target resolution', () => {
         fix111: commit('fix(lock): close owner-less acquisition race'),
       },
       npmPublicationsByVersion: {
-        '0.16.4': npmPublication('missing', 'missing'),
+        '0.16.4': npmPublication('missing'),
       },
       publishedReleaseShas: new Set<string>(),
       publishedTags: new Set<string>(),
@@ -88,14 +82,14 @@ describe('release target resolution', () => {
     expect(resolution.reason).toContain('pending untagged release commit 0.16.4')
   })
 
-  it('publishes a release commit when Core exists but the CLI package is missing', () => {
+  it('publishes a release commit when the CLI package is missing', () => {
     const resolution = selectReleaseCandidate({
       commitsBySha: {
         rel235: commit('chore: release 0.23.5'),
         fix111: commit('fix(cli): harden idempotency target matching'),
       },
       npmPublicationsByVersion: {
-        '0.23.5': npmPublication('published', 'missing'),
+        '0.23.5': npmPublication('missing'),
       },
       publishedReleaseShas: new Set<string>(['rel235']),
       publishedTags: new Set<string>(['v0.23.5']),
@@ -109,31 +103,30 @@ describe('release target resolution', () => {
     expect(resolution.reason).toContain('quantex-cli is missing')
   })
 
-  it('publishes and verifies Core before closure when the CLI exists but Core is missing', () => {
+  it('does not reopen CLI closure when the private Core package is absent from npm', () => {
     const resolution = selectReleaseCandidate({
       commitsBySha: {
         rel235: commit('chore: release 0.23.5'),
       },
       npmPublicationsByVersion: {
-        '0.23.5': npmPublication('missing', 'published'),
+        '0.23.5': npmPublication('published'),
       },
       publishedReleaseShas: new Set<string>(['rel235']),
       publishedTags: new Set<string>(['v0.23.5']),
       runs: [run(20, 'rel235', '2026-06-11T03:45:00Z')],
     })
 
-    expect(resolution.mode).toBe('publish')
-    expect(resolution.npmIntegrity).toBe('core-missing')
-    expect(resolution.reason).toContain('@quantex/core is missing')
+    expect(resolution.mode).toBe('skip')
+    expect(resolution.npmIntegrity).toBe('cli-published')
   })
 
-  it('represents both repository-owned packages missing at the release version', () => {
+  it('represents the primary CLI package missing at the release version', () => {
     const resolution = selectReleaseCandidate({
       commitsBySha: {
         rel235: commit('chore: release 0.23.5'),
       },
       npmPublicationsByVersion: {
-        '0.23.5': npmPublication('missing', 'missing'),
+        '0.23.5': npmPublication('missing'),
       },
       publishedReleaseShas: new Set<string>(['rel235']),
       publishedTags: new Set<string>(['v0.23.5']),
@@ -141,8 +134,8 @@ describe('release target resolution', () => {
     })
 
     expect(resolution.mode).toBe('publish')
-    expect(resolution.npmIntegrity).toBe('both-missing')
-    expect(resolution.reason).toContain('@quantex/core and quantex-cli are missing')
+    expect(resolution.npmIntegrity).toBe('cli-missing')
+    expect(resolution.reason).toContain('quantex-cli is missing')
   })
 
   it('does not backfill older npm-missing release commits when the latest release is already on npm', () => {
@@ -152,8 +145,8 @@ describe('release target resolution', () => {
         rel172: commit('chore: release 0.17.2'),
       },
       npmPublicationsByVersion: {
-        '0.23.5': npmPublication('published', 'published'),
-        '0.17.2': npmPublication('missing', 'missing'),
+        '0.23.5': npmPublication('published'),
+        '0.17.2': npmPublication('missing'),
       },
       publishedReleaseShas: new Set<string>(['rel235', 'rel172']),
       publishedTags: new Set<string>(['v0.23.5', 'v0.17.2']),
@@ -161,11 +154,11 @@ describe('release target resolution', () => {
     })
 
     expect(resolution.mode).toBe('skip')
-    expect(resolution.npmIntegrity).toBe('both-published')
+    expect(resolution.npmIntegrity).toBe('cli-published')
     expect(resolution.targetSha).toBeNull()
   })
 
-  it('does not require or backfill Core for a release created before the Core package existed', () => {
+  it('uses the same CLI-only closure for releases before and after the Core workspace existed', () => {
     const resolution = selectReleaseCandidate({
       commitsBySha: {
         rel113: commit('chore: release 1.1.3'),
@@ -178,12 +171,11 @@ describe('release target resolution', () => {
       },
       publishedReleaseShas: new Set<string>(['rel113']),
       publishedTags: new Set<string>(['v1.1.3']),
-      runs: [run(20, 'rel113', '2026-07-20T03:45:00Z', false), run(10, 'fixNext', '2026-07-20T03:40:00Z')],
+      runs: [run(20, 'rel113', '2026-07-20T03:45:00Z'), run(10, 'fixNext', '2026-07-20T03:40:00Z')],
     })
 
     expect(resolution.mode).toBe('pr')
-    expect(resolution.coreRequired).toBe(false)
-    expect(resolution.npmIntegrity).toBe('legacy-cli-published')
+    expect(resolution.npmIntegrity).toBe('cli-published')
   })
 
   it('falls back to release PR mode when no untagged release commit is pending', () => {
@@ -226,8 +218,8 @@ describe('release target resolution', () => {
           rel100: commit('chore: release 0.16.4'),
         },
         npmPublicationsByVersion: {
-          '0.16.4': npmPublication('missing', 'missing'),
-          '0.16.5': npmPublication('missing', 'missing'),
+          '0.16.4': npmPublication('missing'),
+          '0.16.5': npmPublication('missing'),
         },
         publishedReleaseShas: new Set<string>(),
         publishedTags: new Set<string>(),
@@ -243,8 +235,8 @@ describe('release target resolution', () => {
         rel060: commit('chore: release 0.5.1'),
       },
       npmPublicationsByVersion: {
-        '0.16.4': npmPublication('missing', 'missing'),
-        '0.5.1': npmPublication('published', 'published'),
+        '0.16.4': npmPublication('missing'),
+        '0.5.1': npmPublication('published'),
       },
       publishedReleaseShas: new Set<string>(['rel060']),
       publishedTags: new Set<string>(),
@@ -256,10 +248,10 @@ describe('release target resolution', () => {
     expect(resolution.reason).toContain('pending untagged release commit 0.16.4')
   })
 
-  it('fails closed when either package registry result is indeterminate', () => {
-    expect(
-      classifyNpmReleaseIntegrity(npmPublication('indeterminate', 'published', 'HTTP 503 Service Unavailable')),
-    ).toBe('registry-indeterminate')
+  it('fails closed when the CLI registry result is indeterminate', () => {
+    expect(classifyNpmReleaseIntegrity(npmPublication('indeterminate', 'HTTP 503 Service Unavailable'))).toBe(
+      'registry-indeterminate',
+    )
 
     expect(() =>
       selectReleaseCandidate({
@@ -267,13 +259,13 @@ describe('release target resolution', () => {
           rel235: commit('chore: release 0.23.5'),
         },
         npmPublicationsByVersion: {
-          '0.23.5': npmPublication('indeterminate', 'published', 'HTTP 503 Service Unavailable'),
+          '0.23.5': npmPublication('indeterminate', 'HTTP 503 Service Unavailable'),
         },
         publishedReleaseShas: new Set<string>(['rel235']),
         publishedTags: new Set<string>(['v0.23.5']),
         runs: [run(20, 'rel235', '2026-06-11T03:45:00Z')],
       }),
-    ).toThrow(/@quantex\/core: HTTP 503 Service Unavailable[\s\S]*fails closed/)
+    ).toThrow(/quantex-cli: HTTP 503 Service Unavailable[\s\S]*fails closed/)
   })
 
   it('fails closed when a release commit has no registry inspection result', () => {
@@ -299,36 +291,30 @@ describe('release workflow package closure', () => {
     expect(releaseWorkflow).toContain('options:\n          - main\n          - beta')
   })
 
-  it('fails with an actionable two-stage Core bootstrap gate before either publish command', () => {
-    const bootstrapIndex = releaseWorkflow.indexOf('- name: Validate Core npm publishing bootstrap')
-    const corePublishIndex = releaseWorkflow.indexOf('npm publish ./packages/core')
+  it('keeps private Core publication out of the primary release workflow', () => {
     const cliPublishIndex = releaseWorkflow.indexOf('npm publish . --access')
 
-    expect(bootstrapIndex).toBeGreaterThan(-1)
-    expect(releaseWorkflow).toContain('CORE_NPM_TRUSTED_PUBLISHING_READY')
-    expect(releaseWorkflow).toContain("steps.release-target.outputs.core_required == 'true'")
-    expect(releaseWorkflow).toContain('npm requires a package to exist before a trusted publisher can be configured')
-    expect(releaseWorkflow).toContain('authorized maintainer account and 2FA')
-    expect(releaseWorkflow).toContain('configure the release.yml GitHub Actions trusted publisher')
-    expect(releaseWorkflow).toContain('core_package_exists')
-    expect(corePublishIndex).toBeGreaterThan(bootstrapIndex)
-    expect(cliPublishIndex).toBeGreaterThan(corePublishIndex)
+    expect(cliPublishIndex).toBeGreaterThan(-1)
+    expect(releaseWorkflow).toContain('bun run package:check')
+    expect(releaseWorkflow).not.toContain('npm publish ./packages/core')
+    expect(releaseWorkflow).not.toContain('npm view "@quantex/core')
+    expect(releaseWorkflow).not.toContain('CORE_NPM_TRUSTED_PUBLISHING_READY')
+    expect(releaseWorkflow).not.toContain('core_required')
   })
 
-  it('inspects exact versions, skips existing packages, verifies Core then CLI, and uploads artifacts last', () => {
+  it('inspects and verifies CLI before creating the GitHub Release and uploading artifacts', () => {
     const inspectIndex = releaseWorkflow.indexOf('npm view "${package_name}@${release_version}" version --json')
-    const coreVerifyIndex = releaseWorkflow.indexOf('verify_package_version "@quantex/core"')
     const cliPublishIndex = releaseWorkflow.indexOf('npm publish . --access')
     const cliVerifyIndex = releaseWorkflow.indexOf('verify_package_version "quantex-cli"')
+    const githubReleaseIndex = releaseWorkflow.indexOf('- name: Release Please GitHub Release')
     const uploadIndex = releaseWorkflow.indexOf('gh release upload')
 
     expect(inspectIndex).toBeGreaterThan(-1)
-    expect(releaseWorkflow).toContain("steps.npm-publication.outputs.core_published != 'true'")
     expect(releaseWorkflow).toContain("steps.npm-publication.outputs.cli_published != 'true'")
-    expect(coreVerifyIndex).toBeGreaterThan(inspectIndex)
-    expect(cliPublishIndex).toBeGreaterThan(coreVerifyIndex)
+    expect(cliPublishIndex).toBeGreaterThan(inspectIndex)
     expect(cliVerifyIndex).toBeGreaterThan(cliPublishIndex)
-    expect(uploadIndex).toBeGreaterThan(cliVerifyIndex)
+    expect(githubReleaseIndex).toBeGreaterThan(cliVerifyIndex)
+    expect(uploadIndex).toBeGreaterThan(githubReleaseIndex)
     expect(releaseWorkflow).not.toContain('sync-quantex-cli-release')
     expect(releaseWorkflow).not.toContain('QUANTEX_SYNC_TOKEN')
   })

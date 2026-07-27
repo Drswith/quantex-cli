@@ -94,7 +94,6 @@ jobs:
           echo "target_sha=${{ steps.release-target.outputs.target_sha }}"
           echo "target_tag=${{ steps.release-target.outputs.target_tag }}"
           echo "source_ci_run_id=${{ steps.release-target.outputs.source_ci_run_id }}"
-          echo "core_required=${{ steps.release-target.outputs.core_required }}"
           echo "npm_integrity=${{ steps.release-target.outputs.npm_integrity }}"
           echo "reason=${{ steps.release-target.outputs.reason }}"
 
@@ -123,17 +122,6 @@ jobs:
         with:
           fetch-depth: 0
           ref: ${{ steps.release-target.outputs.target_sha }}
-
-      - name: Release Please GitHub Release
-        id: release
-        if: ${{ steps.release-target.outputs.mode == 'publish' }}
-        uses: googleapis/release-please-action@v5
-        with:
-          token: ${{ steps.release-bot-token.outputs.token }}
-          target-branch: ${{ steps.release-target.outputs.target_branch }}
-          config-file: ${{ steps.release-target.outputs.config_file }}
-          manifest-file: .release-please-manifest.json
-          skip-github-pull-request: true
 
       - name: Checkout released source
         if: ${{ steps.release-target.outputs.mode == 'publish' }}
@@ -223,14 +211,6 @@ jobs:
           set -euo pipefail
 
           release_version="$(node -p "require('./package.json').version")"
-          core_required="${{ steps.release-target.outputs.core_required }}"
-          if [ "${core_required}" = "true" ]; then
-            core_version="$(node -p "require('./packages/core/package.json').version")"
-            if [ "${release_version}" != "${core_version}" ]; then
-              echo "::error title=Release package versions differ::quantex-cli is ${release_version}, but @quantex/core is ${core_version}. Regenerate the Release PR before publishing."
-              exit 1
-            fi
-          fi
 
           echo "release_version=${release_version}" >> "$GITHUB_OUTPUT"
 
@@ -267,107 +247,7 @@ jobs:
             exit 1
           }
 
-          inspect_package_identity() {
-            package_name="$1"
-            output_name="$2"
-            inspection=''
-            registry_error_file="$(mktemp)"
-
-            if inspection="$(npm view "${package_name}" name --json 2>"${registry_error_file}")"; then
-              rm -f "${registry_error_file}"
-              inspected_name="$(printf '%s' "${inspection}" | tr -d '[:space:]\"')"
-              if [ "${inspected_name}" != "${package_name}" ]; then
-                echo "::error title=npm package identity is indeterminate::Expected ${package_name}, but the registry returned ${inspected_name:-no-name}. No package will be published."
-                exit 1
-              fi
-
-              echo "${output_name}_package_exists=true" >> "$GITHUB_OUTPUT"
-              return
-            fi
-
-            registry_error="$(<"${registry_error_file}")"
-            rm -f "${registry_error_file}"
-            if printf '%s' "${registry_error}" | grep -Eq 'E404|404 Not Found'; then
-              echo "${output_name}_package_exists=false" >> "$GITHUB_OUTPUT"
-              return
-            fi
-
-            compact_error="$(printf '%s' "${registry_error}" | tr '\n' ' ')"
-            echo "::error title=npm package identity is indeterminate::Unable to determine whether ${package_name} exists. ${compact_error} No package will be published."
-            exit 1
-          }
-
-          if [ "${core_required}" = "true" ]; then
-            inspect_package "@quantex/core" "core"
-            inspect_package_identity "@quantex/core" "core"
-          else
-            echo "core_published=not-applicable" >> "$GITHUB_OUTPUT"
-            echo "core_package_exists=not-applicable" >> "$GITHUB_OUTPUT"
-          fi
           inspect_package "quantex-cli" "cli"
-
-      - name: Validate Core npm publishing bootstrap
-        if: >-
-          steps.release-target.outputs.mode == 'publish'
-          && steps.release-target.outputs.core_required == 'true'
-        env:
-          CORE_NPM_TRUSTED_PUBLISHING_READY: ${{ vars.CORE_NPM_TRUSTED_PUBLISHING_READY }}
-        shell: bash
-        run: |
-          set -euo pipefail
-
-          if [ "${CORE_NPM_TRUSTED_PUBLISHING_READY:-}" = "true" ]; then
-            if [ "${{ steps.npm-publication.outputs.core_package_exists }}" = "true" ]; then
-              exit 0
-            fi
-
-            echo "::error title=Core npm package needs a one-time bootstrap::npm requires a package to exist before a trusted publisher can be configured. Publish the already validated @quantex/core@${{ steps.npm-publication.outputs.release_version }} tarball once with an authorized maintainer account and 2FA, then configure the release.yml GitHub Actions trusted publisher, set CORE_NPM_TRUSTED_PUBLISHING_READY=true, and rerun this workflow. No repository package was published by this run."
-            exit 1
-          fi
-
-          echo "::error title=Core npm publishing is not bootstrapped::Confirm ownership of the @quantex scope. If @quantex/core does not exist, publish the validated package once with an authorized maintainer account and 2FA. Then configure its GitHub Actions trusted publisher for Drswith/quantex-cli and release.yml with npm publish permission, and set CORE_NPM_TRUSTED_PUBLISHING_READY=true. No repository package was published by this run."
-          exit 1
-
-      - name: Publish Core npm package
-        if: >-
-          steps.release-target.outputs.mode == 'publish'
-          && steps.release-target.outputs.core_required == 'true'
-          && steps.npm-publication.outputs.core_published != 'true'
-        run: npm publish ./packages/core --access public --ignore-scripts --tag ${{ steps.release-target.outputs.npm_tag }}
-
-      - name: Verify Core npm package
-        if: >-
-          steps.release-target.outputs.mode == 'publish'
-          && steps.release-target.outputs.core_required == 'true'
-        shell: bash
-        run: |
-          set -euo pipefail
-
-          release_version="${{ steps.npm-publication.outputs.release_version }}"
-
-          verify_package_version() {
-            package_name="$1"
-
-            for attempt in $(seq 1 12); do
-              inspection=''
-              if inspection="$(npm view "${package_name}@${release_version}" version --json 2>/dev/null)"; then
-                inspected_version="$(printf '%s' "${inspection}" | tr -d '[:space:]\"')"
-                if [ "${inspected_version}" = "${release_version}" ]; then
-                  echo "Verified ${package_name}@${release_version} on npm."
-                  return
-                fi
-              fi
-
-              if [ "${attempt}" -lt 12 ]; then
-                sleep 5
-              fi
-            done
-
-            echo "::error title=Core npm verification failed::Could not verify ${package_name}@${release_version} after publication. quantex-cli was not published by this run."
-            exit 1
-          }
-
-          verify_package_version "@quantex/core"
 
       - name: Publish CLI npm package
         if: >-
@@ -405,10 +285,18 @@ jobs:
             exit 1
           }
 
-          if [ "${{ steps.release-target.outputs.core_required }}" = "true" ]; then
-            verify_package_version "@quantex/core"
-          fi
           verify_package_version "quantex-cli"
+
+      - name: Release Please GitHub Release
+        id: release
+        if: ${{ steps.release-target.outputs.mode == 'publish' }}
+        uses: googleapis/release-please-action@v5
+        with:
+          token: ${{ steps.release-bot-token.outputs.token }}
+          target-branch: ${{ steps.release-target.outputs.target_branch }}
+          config-file: ${{ steps.release-target.outputs.config_file }}
+          manifest-file: .release-please-manifest.json
+          skip-github-pull-request: true
 
       - name: Upload release artifacts
         if: ${{ steps.release-target.outputs.mode == 'publish' }}

@@ -2,7 +2,7 @@
 
 ### Requirement: Core SDK is an independently consumable TypeScript package
 
-Quantex SHALL publish one ESM TypeScript Core SDK package with declarations and a documented public root entry point that can be installed without consuming the CLI binary or compatibility root exports.
+Quantex SHALL maintain one independently packable ESM TypeScript Core SDK workspace with declarations and a documented public root entry point that can be installed from its validated tarball without consuming the CLI binary or compatibility root exports. Public registry publication SHALL remain disabled until a separate activation change confirms the final package identity and publisher authority.
 
 #### Scenario: Node consumer imports the packed SDK
 
@@ -16,6 +16,12 @@ Quantex SHALL publish one ESM TypeScript Core SDK package with declarations and 
 - **GIVEN** a clean Bun consumer has installed the packed Core SDK
 - **WHEN** it imports the documented root entry point
 - **THEN** the same supported public API is available without repository-local path aliases or symlinks
+
+#### Scenario: Core npm activation is not complete
+
+- **WHEN** the provisional package identity has no confirmed publisher authority
+- **THEN** the Core manifest remains private and the CLI Release workflow does not publish or registry-verify it
+- **AND** clean packed-tarball consumer validation continues to enforce the future SDK contract
 
 ### Requirement: Core SDK exposes an instance-owned lifecycle client
 
