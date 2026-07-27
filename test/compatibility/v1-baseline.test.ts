@@ -21,6 +21,7 @@ import * as lifecycleUpdateProduction from '../../src/services/lifecycle-updates
 import * as stateStore from '../../src/state'
 import { loadState, StateFileError } from '../../src/state'
 import * as detect from '../../src/utils/detect'
+import * as resourceLock from '../../src/utils/lock'
 import * as version from '../../src/utils/version'
 
 interface CompatibilitySurface {
@@ -352,6 +353,7 @@ async function captureUpdateCompatibility(
   mode: 'json' | 'ndjson',
 ): Promise<UpdateCompatibilityFixture> {
   const batchRootSpy = scope === 'all' ? vi.spyOn(lifecycleUpdateProduction, requireLifecycleBatchRoot()) : undefined
+  const lifecycleLockSpy = vi.spyOn(resourceLock, 'acquireResourceLock').mockResolvedValue(async () => {})
   const agent = v1UpdateAgent()
   const installedVersionSpy = vi.spyOn(version, 'getInstalledVersion')
   installedVersionSpy.mockResolvedValueOnce('1.9.0').mockResolvedValue('1.10.0')
@@ -394,6 +396,7 @@ async function captureUpdateCompatibility(
     const result = await updateCommand(scope === 'single' ? agent.name : undefined, scope === 'all')
 
     if (scope === 'all') expect(batchRootSpy).toHaveBeenCalledOnce()
+    expect(lifecycleLockSpy).toHaveBeenCalled()
 
     return normalizeUpdateCompatibility({
       exitCode: getExitCodeForResult(result),
@@ -405,6 +408,7 @@ async function captureUpdateCompatibility(
     errorSpy.mockRestore()
     stderrWriteSpy.mockRestore()
     batchRootSpy?.mockRestore()
+    lifecycleLockSpy.mockRestore()
     for (const spy of spies) spy.mockRestore()
   }
 }

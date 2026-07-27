@@ -26,11 +26,11 @@ The product README SHALL present the Core SDK as the intended programmatic TypeS
 
 During the multi-minor transition, the README MUST identify the current Core capability stage, preserved v1 contracts, and any beta or explicit opt-in requirement without implying that a later mutation method is stable before its promotion gates pass.
 
-#### Scenario: Core supports only the read-only first milestone
+#### Scenario: Core supports the bounded initial SDK surface
 
-- **WHEN** the stable Core package exposes only `list` and `inspect`
+- **WHEN** the stable Core package exposes `list`, `inspect`, `install`, and `ensure`
 - **THEN** the README documents those methods as supported
-- **AND** it does not advertise install, ensure, update, uninstall, or run as published SDK methods
+- **AND** it does not advertise update, uninstall, or run as published SDK methods
 
 #### Scenario: Core routing changes in a later minor
 

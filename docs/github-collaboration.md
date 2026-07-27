@@ -94,13 +94,10 @@ Clean up merged or abandoned worktrees with `git worktree remove <path>` and `gi
 
 Quantex uses release-please to keep publishing compatible with protected `main` and source-visible versions.
 
-1. Merge one or more normal change PRs to `main`.
-2. The merge-gating `CI` workflow runs on the resulting `main` push. Product-impacting changes keep the normal cross-platform test matrix; process-only changes may skip the expensive platform jobs while still publishing the same required check contexts.
-3. After successful push-side `main` CI, the `Release` workflow reconciles branch release state from successful CI history, current branch history, and existing tags.
-4. If a successful merged `chore: release ...` commit is still untagged, the workflow publishes that commit first. Otherwise, if the merged commits warrant a version bump, release-please creates or updates a Release PR.
-5. The Release PR updates `CHANGELOG.md`, `package.json`, `.release-please-manifest.json`, and `src/generated/build-meta.ts`.
-6. `Release PR Automerge` validates the generated Release PR and enables auto-merge.
-7. After the Release PR merge produces another successful `main` CI run, the `Release` workflow creates the tag and GitHub Release, then builds artifacts, publishes `quantex-cli` to npm through trusted publishing, and uploads binaries.
+1. Merge one or more normal change PRs to `main` after required CI passes.
+2. A maintainer manually dispatches `Release` for `main` to let release-please create or refresh the Release PR.
+3. Review and merge that Release PR manually. It updates `CHANGELOG.md`, `package.json`, `.release-please-manifest.json`, and `src/generated/build-meta.ts`.
+4. A maintainer manually dispatches `Release` again. It validates the immutable release commit, publishes or verifies `quantex-cli`, then creates or refreshes the GitHub Release and uploads binaries.
 
 This keeps normal product changes behind PR review while making the release version visible in the source tree at the tagged commit.
 
@@ -110,7 +107,7 @@ The npm publish step uses GitHub Actions trusted publishing with OIDC rather tha
 
 This repository does not publish, synchronize, notify, or coordinate updates for the separate npm `quantex` package. `quantex` package update and synchronization policy is owned entirely by the `quantex` project, not by `quantex-cli`.
 
-For full unattended publishing, configure the release GitHub App secrets `RELEASE_APP_CLIENT_ID` and `RELEASE_APP_PRIVATE_KEY`. The workflows use `actions/create-github-app-token` to mint short-lived installation tokens for Release PR creation, Release PR auto-merge, GitHub Release creation, and artifact upload.
+For releases, configure the release GitHub App secrets `RELEASE_APP_CLIENT_ID` and `RELEASE_APP_PRIVATE_KEY`. The workflow uses a short-lived installation token for Release PR creation, GitHub Release creation, and artifact upload; it does not enable auto-merge.
 
 Avoid using `GITHUB_TOKEN` as the normal release identity because GitHub suppresses many workflow events created by `GITHUB_TOKEN`, which can leave generated Release PR checks in `action_required`.
 
@@ -123,11 +120,11 @@ Release PR creation relies on merged commit metadata. In practice that means:
 
 The stable 0.x line is closed at `0.29.1`. The first post-redesign stable release is exactly `1.1.0`; burned `1.0.0`, later 0.x releases, and other pre-major graduation targets are rejected. The one-time graduation commit carries `Release-As: 1.1.0`, allowing release-please to generate the ordinary trusted Release PR without a permanent override or manual edits to version-controlled release outputs. After `1.1.0`, normal SemVer planning applies.
 
-Ordinary Release PR automation may request auto-merge, but the exact `main@0.29.1 -> chore: release 1.1.0` graduation PR MUST skip release-bot token creation and auto-merge enablement. Required checks must finish before an operator locks the reviewed head and manually selects rebase merge first, with squash as the only documented fallback.
+Every Release PR is reviewed and merged manually after required checks finish. Prefer rebase merge for a locked reviewed head, with squash only when rebase is unavailable or unsafe.
 
 For PRs that only touch workflow, documentation, project-memory, or release-please configuration files, use `ci:`, `chore:`, or `docs:` titles. PR Governance blocks release-worthy metadata for those scopes so release-process changes do not accidentally create stable product Release PRs.
 
-Protected-branch release automation now keys off successful push-side CI completion rather than racing the raw `push` event. A failed `main` or `beta` CI run therefore blocks automated Release PR creation and publication until the branch is green again.
+Release dispatch is explicit. Required CI remains the merge gate; a failed `main` or `beta` CI must be fixed before a maintainer prepares or publishes a release.
 
 The stable release-please config may include a temporary `last-release-sha` anchor after release-governance incidents. Treat it as a recovery boundary, not a permanent release policy; remove or advance it after the next intentional stable release lands.
 

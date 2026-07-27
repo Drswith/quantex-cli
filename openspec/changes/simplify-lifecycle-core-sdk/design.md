@@ -15,7 +15,7 @@ Stakeholders are CLI users, automation consuming JSON/NDJSON and exit codes, dow
 **Goals:**
 
 - Publish one intentionally small TypeScript SDK package whose public API is instance-owned, non-interactive, re-entrant, and usable from Node.js or Bun.
-- Make the Core application API the eventual single source of lifecycle behavior while retaining the existing CLI and root-library compatibility facade during a measured transition.
+- Keep Core as the intentionally small programmatic boundary for discovery and safe installation, while the CLI retains update, uninstall, run, prompts, batch composition, and all v1 compatibility behavior.
 - Reduce the internal lifecycle model to the decisions Quantex actually performs without weakening observation, verification, provenance, compensation, state, cancellation, or platform guarantees.
 - Keep the existing state schema readable in both directions throughout 1.x, including temporary downgrade to the preceding released CLI.
 - Establish measurable promotion, rollback, soak, and removal gates spanning multiple stable minor releases.
@@ -63,7 +63,7 @@ const quantex = createQuantex({ configDir: '/optional/isolated/path' })
 const result = await quantex.inspect('codex', { signal, timeoutMs: 10_000 })
 ```
 
-The first stable Core release exposes `createQuantex`, `list`, and `inspect`. Mutating methods are added only when their vertical slice has passed the required provider, state, cancellation, differential, and downgrade gates. The intended final client surface is `list`, `inspect`, `install`, `ensure`, `update`, `uninstall`, and `run`; it deliberately does not add `updateAll` or generic workflow primitives.
+The current Core release exposes `createQuantex`, `list`, `inspect`, `install`, and `ensure`. `update`, `uninstall`, and `run` remain CLI-only in 1.x; they require a separate downstream-driven OpenSpec change rather than a migration checklist.
 
 Expected lifecycle failures return a serializable discriminated `CoreResult<T>` instead of throwing CLI-shaped errors. Inspection is one discriminated union with `missing`, `managed`, `external`, `stale`, `conflict`, and `indeterminate` states, preventing invalid combinations of presence and ownership. Mutations eventually return a compact lifecycle change with before/after observations and source; they do not expose the internal plan graph.
 
@@ -182,7 +182,7 @@ Release-please continues to manage the root release version and one GitHub tag. 
 
 The main Release workflow builds and pack-validates Core as repository source, but its public closure contains only `quantex-cli` on npm plus the GitHub Release and standalone artifacts. It inspects and recovers `quantex-cli` independently and does not query, publish, or backfill the provisional Core package. Before making a GitHub Release public, it validates the release source and publishes or verifies the exact CLI npm version. Release PR policy still checks that the title, root version, private Core version, and root Core development dependency are equal and rejects workspace protocols so in-repository compatibility remains reproducible.
 
-Release recovery keeps the immutable release commit as the package, build, and product-validation source, but snapshots the already validated protected-branch commit as a separate control source before checking out that older release. A release-owned N/N-1 harness is preferred whenever the target commit contains one, so later 1.3-1.5 releases retain their version-specific compatibility evidence. The protected-branch harness is only a fallback for historical targets such as v1.2.0 that predate the recovery check itself. This prevents both failure modes: asking an old release to execute a script it never contained, and asking a newer release to satisfy compatibility fixtures from a future branch head.
+Release is an explicit maintainer action. The immutable release commit is the only source used for package builds, validation, npm publication, and artifacts; rerunning the same dispatch recovers a partial closure idempotently. Fixed historical N/N-1 checkouts are removed from ordinary CI and release recovery. Schema version 2 remains frozen through 1.x, while focused offline state and lifecycle tests protect every relevant change.
 
 The existing `quantex` alias repository remains outside this repository's release coordination. Core publication requires a separate OpenSpec activation change after the final npm identity, owner permission, first-package bootstrap, trusted publisher, versioning policy, and recovery semantics are all known. That activation removes the private guard and adds an independently recoverable Core publication path; it does not become a prerequisite for CLI releases. A repository variable alone cannot activate Core publication.
 
@@ -198,10 +198,8 @@ The minimum transition is:
 
 | Stable line | Default routing | Required evidence |
 |---|---|---|
-| 1.2.x | Establish the private, independently packable read-only Core boundary; CLI mutation remains legacy | Packed SDK consumer and purity tests, v1 fixtures unchanged, N-1 state/idempotency read, integration-branch Linux/macOS/Windows CI and Sandbox coverage |
-| 1.3.x | Core mutations only on beta or explicit whole-invocation opt-in | Differential lifecycle matrix, all first-party provider conformance, no post-side-effect fallback |
-| 1.4.x | Core is stable default; legacy remains an explicit pre-invocation escape route | All platforms, packed packages, sandbox, cancellation, timeout, ghost state, corrupt state, and Windows smoke gates; no known critical or important regression |
-| 1.5.x | Core remains default for a second stable minor; legacy is frozen but runnable | Rollback drill, downgrade matrix, migration docs, deprecation inventory, and unchanged v1 contracts |
+| 1.2.x | Establish the private, independently packable Core boundary | Packed SDK consumer, purity tests, and unchanged v1 CLI contracts |
+| 1.3.x–1.5.x | Keep Core additive (`list`, `inspect`, `install`, `ensure`) and keep full lifecycle CLI-owned | Focused safety tests for any lifecycle change; no automatic Core routing or bulk API expansion |
 
 Removal is permitted only in a later major release through a separate deprecation OpenSpec change, after Core has been default for at least two stable minors and at least 90 days from stable default. The version and time requirements take the later date. Removal gates cannot be satisfied by deleting old tests or refreshing compatibility goldens without explicit contract review.
 
@@ -211,7 +209,7 @@ Removal is permitted only in a later major release through a separate deprecatio
 - [The Core package accidentally republishes CLI or internal APIs] → Keep two allowed exports, run packed-tarball allowlist and dependency-boundary tests, and compile a clean downstream consumer.
 - [Two implementations disagree] → Use test-only differential fixtures before routing changes; never shadow mutations in production; promote one command family at a time.
 - [A fallback performs a mutation twice] → Bind engine selection before invocation and allow only explicit whole-invocation rollback.
-- [A state change makes downgrade destructive] → Freeze schema version 2 and run released N/N-1 bidirectional mutation tests before promotion.
+- [A state change makes downgrade destructive] → Freeze schema version 2 and require focused offline state and lifecycle compatibility tests in the change that touches it.
 - [Provider abstraction is simplified past its evidence boundary] → Preserve typed tri-state driver conformance and remove only duplicate projections and boolean facades.
 - [A broad SDK surface becomes another compatibility burden] → Publish only implemented vertical slices, expose domain results rather than infrastructure, and add capabilities additively.
 - [CLI publication is blocked by an unavailable Core namespace] → Keep Core private and outside CLI release resolution; validate its tarball locally while recovering CLI npm and GitHub artifacts independently.
@@ -219,7 +217,7 @@ Removal is permitted only in a later major release through a separate deprecatio
 - [npm cannot configure trusted publishing for a package that does not exist] → Require a separate Core activation change to define and execute the one-time bootstrap without changing CLI release closure.
 - [The provisional npm scope cannot be published] → Keep the provisional identity private and allow activation to choose a different final public name before the first Core npm release.
 - [Windows regressions are hidden by Linux-heavy PR CI] → Include the integration branch in workflows and make Windows shim, cancellation, and replacement smoke tests promotion gates. Cancellation smoke tests preserve typed provider outcomes before the v1 boolean compatibility projection so an interruption that settles during the late-completion grace cannot become a platform-dependent `INSTALL_FAILED`.
-- [Long-lived compatibility code becomes permanent] → Require a 1.5 deprecation inventory and a separately approved major removal change after the soak, while forbidding new features in the legacy engine.
+- [Long-lived compatibility code becomes permanent] → Require a separately approved major removal change before deleting any maintained v1 surface; do not treat the bounded SDK as a reason to migrate unrelated CLI features.
 
 ## Migration Plan
 
@@ -236,34 +234,25 @@ Removal is permitted only in a later major release through a separate deprecatio
    - Verify previous-release state/idempotency input and bidirectional state compatibility.
    - Keep public npm activation deferred; do not make CLI release recovery depend on the provisional Core identity.
 
-3. **Install and ensure vertical slice (1.3 beta/opt-in)**
-   - Move decision, recipe, verification, receipt, and scoped compensation behind Core.
-   - Compare legacy and Core results, state deltas, receipts, cancellation, timeout, and provider faults.
-   - Route only one engine per invocation; retain legacy as the stable default.
+3. **Bounded SDK (1.3–1.5)**
+   - Keep the implemented `list`, `inspect`, `install`, and `ensure` SDK surface additive and independently packable.
+   - Keep update, uninstall, execution, prompts, structured presentation, and batch composition in the CLI.
+   - Require a separate OpenSpec change for any additional SDK method; do not migrate features merely because an internal adapter exists.
 
-4. **Update, uninstall, and run vertical slices (1.3)**
-   - Migrate exact-source update, ghost-state cleanup, external ownership refusal, script/binary self-update, and transparent run semantics.
-   - Complete the first-party provider conformance matrix and remove each duplicate legacy path only after the Core contract test exists.
-   - Keep CLI `update --all` as compatibility-side composition rather than a new Core batch API.
+4. **Compatibility observation (1.3–1.5)**
+   - Preserve v1 state, CLI, structured-output, standard-I/O, binary, and root-export contracts.
+   - Keep schema version 2 frozen and add focused offline tests when a lifecycle change touches that boundary.
 
-5. **Stable-default promotion (1.4)**
-   - Make Core the default only after cross-platform, package, sandbox, fault, and downgrade gates pass.
-   - Retain an explicit pre-invocation legacy escape route and perform a documented rollback drill.
-
-6. **Soak and deprecation preparation (1.5)**
-   - Keep Core default for a second stable minor, freeze the legacy engine, publish migration guidance, and inventory every compatibility export or branch that may later be removed.
-   - Keep this umbrella change active until all accepted milestones and current-spec synchronization are complete.
-
-7. **Core package activation and later major cleanup**
+5. **Core package activation and later major cleanup**
    - Create a separate activation change when the final package identity and publisher authority are available.
    - Remove the private guard and add Core publication/recovery only after clean-tarball and trusted-publisher gates pass.
-   - After both the version and 90-day gates, create a separate deprecation OpenSpec change.
+   - Create a separate deprecation OpenSpec change before removing any maintained v1 surface.
    - Remove only surfaces with stable replacements and completed telemetry/test evidence; preserve state migration and self-upgrade guarantees independently.
 
-Rollback before Core becomes default means selecting legacy for the next whole invocation. Rollback after stable-default promotion means changing the pre-invocation route through a patch release; no rollback may switch engines after a side effect or rewrite state into a new schema.
+The CLI remains the lifecycle execution source in 1.x. No release may switch engines after a side effect or rewrite state into a new schema.
 
 ## Open Questions
 
 - Which final public package identity and registry will be activated after publisher authority is available?
 - Which exact integration-branch name should remain in CI after this initial branch, if future milestone branches are cut from it?
-- Which real Windows environment will own the delayed-replacement and process-tree smoke gate before 1.4 promotion?
+- Which downstream integration will justify the first public Core package activation?

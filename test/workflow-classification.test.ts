@@ -3,8 +3,6 @@ import { describe, expect, it } from 'vitest'
 
 const ciWorkflow = readFileSync('.github/workflows/ci.yml', 'utf8')
 const prGovernanceWorkflow = readFileSync('.github/workflows/pr-governance.yml', 'utf8')
-const releaseAutomergeWorkflow = readFileSync('.github/workflows/release-pr-automerge.yml', 'utf8')
-const releaseVerifyWorkflow = readFileSync('.github/workflows/release-verify.yml', 'utf8')
 const releaseWorkflow = readFileSync('.github/workflows/release.yml', 'utf8')
 const sandboxWorkflow = readFileSync('.github/workflows/sandbox-tests.yml', 'utf8')
 const integrationBranchPattern = "'codex/simplify-core-sdk-*'"
@@ -95,13 +93,6 @@ describe('workflow classification integration', () => {
     ])
   })
 
-  it('runs full release verification for integration-branch pushes', () => {
-    expect(extractYamlList(extractEventBlock(releaseVerifyWorkflow, 'push'), 'branches')).toEqual([
-      integrationBranchPattern,
-    ])
-    expect(releaseVerifyWorkflow).toContain('run: bun run package:check')
-  })
-
   it('uses Node 20 package consumers and includes workspace manifests in CI cache keys', () => {
     expect(ciWorkflow).toContain('node-version: 20')
     expect(ciWorkflow).toContain("hashFiles('bun.lock', 'package.json', 'packages/*/package.json')")
@@ -149,42 +140,14 @@ describe('workflow classification integration', () => {
     expect(extractYamlList(pullRequestBlock, 'types')).toEqual(['opened', 'edited', 'reopened', 'synchronize'])
   })
 
-  it('blocks integration at release event gates before resolver and npm channel selection', () => {
-    const workflowRunBlock = extractEventBlock(releaseWorkflow, 'workflow_run')
+  it('keeps release dispatch explicit and isolated from integration branches', () => {
     const workflowDispatchBlock = extractEventBlock(releaseWorkflow, 'workflow_dispatch')
-    const releasePrBlock = extractEventBlock(releaseAutomergeWorkflow, 'pull_request_target')
 
-    expect(extractYamlList(workflowRunBlock, 'branches')).toEqual(['main', 'beta'])
     expect(extractYamlList(workflowDispatchBlock, 'options')).toEqual(['main', 'beta'])
-    expect(extractYamlList(releasePrBlock, 'branches')).toEqual(['main', 'beta'])
-    expect(workflowRunBlock).not.toContain(integrationBranchPattern)
     expect(workflowDispatchBlock).not.toContain(integrationBranchPattern)
-    expect(releasePrBlock).not.toContain(integrationBranchPattern)
     expect(releaseWorkflow).not.toContain(integrationBranchPattern)
-    expect(releaseAutomergeWorkflow).not.toContain(integrationBranchPattern)
     expect(releaseWorkflow).toContain('- name: Resolve release target')
     expect(releaseWorkflow).toContain('echo "npm_tag=beta"')
     expect(releaseWorkflow).toContain('echo "npm_tag=latest"')
-  })
-
-  it('validates Release PR versions from immutable base and head manifests', () => {
-    expect(releaseAutomergeWorkflow).toContain("readJsonFile('package.json', pullRequest.base.sha)")
-    expect(releaseAutomergeWorkflow).toContain("readJsonFile('package.json', pullRequest.head.sha)")
-    expect(releaseAutomergeWorkflow).toContain("readJsonFile('packages/core/package.json', pullRequest.head.sha)")
-    expect(releaseAutomergeWorkflow).toContain('coreManifest: headCorePackageJson')
-    expect(releaseAutomergeWorkflow).toContain('rootManifest: headPackageJson')
-    expect(releaseAutomergeWorkflow).not.toContain('ref: baseBranch')
-  })
-
-  it('keeps the exact 1.1.0 graduation Release PR on manual rebase-first delivery', () => {
-    expect(releaseAutomergeWorkflow).toContain('id: validate-release-pr')
-    expect(releaseAutomergeWorkflow).toContain("basePackageJson.version === '0.29.1'")
-    expect(releaseAutomergeWorkflow).toContain("title === 'chore: release 1.1.0'")
-    expect(releaseAutomergeWorkflow).toContain(
-      "core.setOutput('manual_merge_required', manualMergeRequired ? 'true' : 'false')",
-    )
-    expect(
-      releaseAutomergeWorkflow.match(/if: steps\.validate-release-pr\.outputs\.manual_merge_required != 'true'/g),
-    ).toHaveLength(2)
   })
 })

@@ -84,11 +84,11 @@ Before a lifecycle family becomes Core-default, test-only comparison MUST cover 
 - **THEN** any temporary adoption policy remains private to the compatibility adapter
 - **AND** it is selected before the invocation and is not exposed as a public SDK option
 
-#### Scenario: Released N/N-1 compatibility fixtures run in CI
+#### Scenario: a 1.x lifecycle change is proposed
 
-- **WHEN** state and idempotency downgrade compatibility is validated
-- **THEN** the fixtures are pinned to immutable released source identities or committed release artifacts
-- **AND** the ordinary test suite does not depend on network access, registry availability, mutable tags, or a non-shallow Git history
+- **WHEN** a change touches persisted state, idempotency, ownership, or lifecycle mutation semantics
+- **THEN** its focused compatibility tests MUST exercise both existing and newly written schema-version-2 state without network access
+- **AND** the change MUST NOT require CI or release recovery to clone, build, or execute a fixed historical release
 
 #### Scenario: Maintained read commands route through Core
 
@@ -99,7 +99,7 @@ Before a lifecycle family becomes Core-default, test-only comparison MUST cover 
 
 ### Requirement: Compatibility removal requires four stable minors and time soak
 
-Quantex MUST retain the maintained v1 CLI, structured-output, state, standard-I/O, binary, and root-export contracts through at least the 1.2, 1.3, 1.4, and 1.5 stable minor stages described by this change. Breaking removal MUST wait for a later major, Core-default operation across at least two stable minors, at least 90 days after stable-default enablement, and a separately approved deprecation change; the later gate controls.
+Quantex MUST retain the maintained v1 CLI, structured-output, state, standard-I/O, binary, and root-export contracts through at least the 1.2, 1.3, 1.4, and 1.5 stable minor stages described by this change. Breaking removal requires a later major and a separately approved deprecation change; this bounded Core extraction does not create a Core-default routing milestone.
 
 #### Scenario: Core read-only boundary is introduced in 1.2
 
@@ -108,15 +108,15 @@ Quantex MUST retain the maintained v1 CLI, structured-output, state, standard-I/
 - **AND** CLI mutations continue using the established default path
 - **AND** CLI npm, GitHub Release, and standalone artifact closure does not depend on Core registry availability
 
-#### Scenario: Core becomes the stable default in 1.4
+#### Scenario: Core capability remains deliberately bounded
 
-- **WHEN** all platform, provider, package, sandbox, fault, and downgrade promotion gates pass
-- **THEN** Core MAY become the stable default
-- **AND** legacy remains a pre-invocation rollback route through the following stable minor
+- **WHEN** a downstream SDK need is proposed after the initial `list`, `inspect`, `install`, and `ensure` surface
+- **THEN** it MUST be justified by a separate OpenSpec change and additive public contract
+- **AND** the maintained CLI contracts remain unchanged regardless of whether Core adds that capability
 
 #### Scenario: Removal is proposed before all gates expire
 
-- **WHEN** a maintained compatibility surface is proposed for removal before 1.5 has shipped, before two Core-default stable minors, before 90 days have elapsed, or without a separate deprecation change
+- **WHEN** a maintained compatibility surface is proposed for removal before 1.5 has shipped or without a separate deprecation change
 - **THEN** the removal MUST be rejected
 
 ### Requirement: Integration promotion includes real cross-platform gates

@@ -11,7 +11,6 @@ import {
 } from '../scripts/release-target-resolution.js'
 
 const releaseWorkflow = readFileSync('.github/workflows/release.yml', 'utf8')
-const releaseVerifyWorkflow = readFileSync('.github/workflows/release-verify.yml', 'utf8')
 
 function commit(message: string): CommitReleaseIntent {
   return classifyCommitReleaseIntent(message)
@@ -284,10 +283,8 @@ describe('release target resolution', () => {
 })
 
 describe('release workflow package closure', () => {
-  it('pins Bun and preserves main and beta as the only release branches', () => {
+  it('pins Bun and keeps release dispatch scoped to main and beta', () => {
     expect(releaseWorkflow).toContain('bun-version: 1.3.11')
-    expect(releaseVerifyWorkflow).toContain('bun-version: 1.3.11')
-    expect(releaseWorkflow).toContain('branches:\n      - main\n      - beta')
     expect(releaseWorkflow).toContain('options:\n          - main\n          - beta')
   })
 
@@ -319,22 +316,12 @@ describe('release workflow package closure', () => {
     expect(releaseWorkflow).not.toContain('QUANTEX_SYNC_TOKEN')
   })
 
-  it('keeps release-source validation separate from recovery control logic', () => {
+  it('uses one immutable release source without a cross-branch compatibility fallback', () => {
     const releasedSourceIndex = releaseWorkflow.indexOf('- name: Checkout released source')
-    const releaseControlIndex = releaseWorkflow.indexOf('- name: Checkout release control source')
-    const compatibilityIndex = releaseWorkflow.indexOf(
-      '- name: Verify offline N/N-1 state and idempotency compatibility',
-    )
 
-    expect(releaseWorkflow).toContain('id: release-control')
-    expect(releaseWorkflow).toContain('echo "source_sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"')
     expect(releasedSourceIndex).toBeGreaterThan(-1)
-    expect(releaseControlIndex).toBeGreaterThan(releasedSourceIndex)
-    expect(compatibilityIndex).toBeGreaterThan(releaseControlIndex)
-    expect(releaseWorkflow).toContain('path: ${{ env.RELEASE_CONTROL_SOURCE_DIR }}')
-    expect(releaseWorkflow).toContain('ref: ${{ steps.release-control.outputs.source_sha }}')
-    expect(releaseWorkflow).toContain("scripts?.['compat:n-minus-one']")
-    expect(releaseWorkflow).toContain('bun run compat:n-minus-one --')
-    expect(releaseWorkflow).toContain('bun "$RELEASE_CONTROL_SOURCE_DIR/scripts/verify-n-minus-one-compatibility.ts"')
+    expect(releaseWorkflow).not.toContain('RELEASE_CONTROL_SOURCE_DIR')
+    expect(releaseWorkflow).not.toContain('N_MINUS_ONE_SOURCE_DIR')
+    expect(releaseWorkflow).not.toContain('compat:n-minus-one')
   })
 })

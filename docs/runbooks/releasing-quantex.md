@@ -22,15 +22,14 @@ The automated release flow uses merged commit metadata on `main` to decide wheth
 
 Normal feature, fix, or maintenance work lands through standard PRs.
 
-### 2. Let release-please reconcile protected-branch release state
+### 2. Explicitly prepare the Release PR
 
-The `Release` workflow runs after successful push-side `CI` on `main` or `beta`, and it can also be invoked manually for the same protected branches.
+After required CI is green, a maintainer dispatches the `Release` workflow for `main` or `beta`.
 
 Before it chooses an action, the workflow reconciles branch state from:
 
-- successful push-side `CI` runs on the protected branch
 - current branch history and tags
-- whether a successful `chore: release ...` commit is still untagged
+- whether a `chore: release ...` commit is still untagged
 
 That resolver picks exactly one next action:
 
@@ -47,11 +46,11 @@ The Release PR materializes the pending version in:
 - `.release-please-manifest.json`
 - `src/generated/build-meta.ts`
 
-### 3. Let Release PR Automerge validate the Release PR
+### 3. Review and merge the Release PR manually
 
-The Release PR is the review point for the exact version and changelog that will be published. The `Release PR Automerge` workflow validates release-please generated PRs before enabling auto-merge.
+The Release PR is the review point for the exact version and changelog that will be published. Required checks and human review decide its merge.
 
-It only enables auto-merge when the PR:
+Confirm that the PR:
 
 - comes from this repository
 - uses the expected release-please branch for `main` or `beta`
@@ -59,11 +58,11 @@ It only enables auto-merge when the PR:
 - includes the release-please generated marker
 - only changes `CHANGELOG.md`, `package.json`, `.release-please-manifest.json`, and `src/generated/build-meta.ts`
 
-Branch protection and required checks still decide when the Release PR actually merges.
+Merge the locked reviewed head manually; prefer rebase and use squash only when rebase is unavailable or unsafe.
 
 ### 4. Let the release job validate the merged Release PR
 
-After the Release PR is merged, the release workflow waits for the successful push-side `CI` run that covers that merged release commit before it enters publish mode. A later docs or archive push must not steal priority from an already-green untagged release commit.
+After the Release PR is merged and its required CI is green, a maintainer dispatches Release again to enter publish mode.
 
 When the reconciler selects publish mode, the release workflow reruns:
 
@@ -75,7 +74,7 @@ When the reconciler selects publish mode, the release workflow reruns:
 
 This keeps publish gating inside the workflow that npm trusts for OIDC publishing.
 
-### 5. Publish automatically
+### 5. Publish through the explicit release dispatch
 
 When release-please reports that a GitHub Release was created, the workflow:
 
@@ -86,7 +85,7 @@ When release-please reports that a GitHub Release was created, the workflow:
 - publishes to npm
 - uploads binaries to the GitHub Release
 
-For regular non-release merges to `main`, the workflow exits cleanly unless it also finds a successful untagged release commit that still needs publication.
+Regular merges never publish by themselves; only a maintainer Release dispatch can create a Release PR or publish artifacts.
 
 ## Version rules
 
@@ -110,7 +109,7 @@ END_COMMIT_OVERRIDE
 
 The stable 0.x line ends at `0.29.1`. The completed lifecycle redesign graduates through the exact transition `0.29.1 -> 1.1.0`; `1.0.0` remains burned and MUST NOT be reused. The graduation implementation commit uses release-please's one-shot `Release-As: 1.1.0` footer, after which normal 1.x SemVer planning resumes. Do not persist `release-as` in release-please configuration and do not manually edit the version manifest, package version, changelog, or generated build metadata to imitate the generated Release PR.
 
-Both the graduation implementation PR and the generated `chore: release 1.1.0` PR use the normal protected-branch checks. The Release PR workflow MUST identify that exact generated PR from base version `0.29.1` and skip token creation and auto-merge enablement, leaving the PR fail-closed for a locked-head manual rebase merge. Squash remains the fallback only when rebase is unavailable or unsafe.
+Both the graduation implementation PR and the generated `chore: release 1.1.0` PR use the normal protected-branch checks. Every Release PR is manually reviewed and merged with a locked head; rebase is preferred and squash remains the fallback only when rebase is unavailable or unsafe.
 
 Release automation, documentation, and project-memory-only PRs must use non-release-worthy titles such as `ci:`, `chore:`, or `docs:`. PR Governance rejects release-worthy titles for PRs that only change `.github/`, `docs/`, `openspec/`, or release-please configuration files, because those changes should not create stable product releases by themselves.
 
@@ -149,7 +148,6 @@ Required Actions workflow permissions:
 
 - default workflow permissions: read and write
 - allow GitHub Actions to create and approve pull requests: enabled
-- repository auto-merge: enabled
 
 If this permission is disabled, release-please can calculate the next version and create its branch, but it fails when opening the Release PR with:
 
@@ -166,7 +164,6 @@ For the non-interactive release flow, configure a dedicated GitHub App installat
 - `RELEASE_APP_CLIENT_ID` stores the GitHub App client ID.
 - `RELEASE_APP_PRIVATE_KEY` stores the GitHub App private key PEM.
 - `.github/workflows/release.yml` uses `actions/create-github-app-token` to create or update Release PRs, create releases, and upload artifacts.
-- `.github/workflows/release-pr-automerge.yml` uses the same GitHub App token to enable auto-merge for validated Release PRs.
 
 The GitHub App should be installed only on `Drswith/quantex-cli` and only needs repository permissions for read-only actions/metadata plus read-write contents, issues, and pull requests.
 
@@ -220,13 +217,11 @@ If a mirror registry is introduced temporarily for local development or incident
 ## Related artifacts
 
 - `.github/workflows/release.yml`
-- `.github/workflows/release-pr-automerge.yml`
 - `.github/workflows/ci.yml`
 - `scripts/release-target-resolution.ts`
 - `release-please-config.json`
 - `.release-please-manifest.json`
 - `docs/releases.md`
 - `CHANGELOG.md`
-- `.github/workflows/release-verify.yml`
 - `docs/runbooks/release-and-self-upgrade-debugging.md`
 - `openspec/changes/archive/qtx-0030-adopt-release-please-release-pr-flow/proposal.md`
