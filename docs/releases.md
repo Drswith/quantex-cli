@@ -33,6 +33,6 @@ Public Core publication requires a separate OpenSpec activation change. That cha
 
 Do not remove the Core manifest's private guard or add a variable-controlled publish step before that activation change is approved and validated.
 
-## v1.2.0 recovery
+## v1.2.0 recovery closure
 
-The current `v1.2.0` GitHub Release was created before npm publication completed. After this split-release workflow lands, rerun the Release workflow for `main`. It will use the immutable v1.2.0 release commit for the package and artifacts, use the validated protected-branch harness because that historical commit predates `compat:n-minus-one`, publish or verify `quantex-cli@1.2.0`, and upload the already defined standalone artifacts without attempting to publish `@quantex/core`.
+The `v1.2.0` GitHub Release was initially created before npm publication completed. Recovery closed on 2026-07-27 through [Release run 30233396646](https://github.com/Drswith/quantex-cli/actions/runs/30233396646): it used the immutable v1.2.0 release commit for the package and artifacts, used the validated protected-branch harness because that historical commit predates `compat:n-minus-one`, published and verified `quantex-cli@1.2.0`, and attached the manifest, checksums, and five standalone binaries without publishing `@quantex/core`.
