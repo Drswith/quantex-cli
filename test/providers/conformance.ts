@@ -44,11 +44,18 @@ export interface ProviderConformanceSubject {
       readonly target: ProviderTarget
       readonly version?: string
     }
+    readonly successfulMutation: {
+      readonly expected: {
+        readonly evidence: readonly ProviderEvidence[]
+        readonly target: ProviderTarget
+      }
+      readonly invoke: AdapterOperation
+    }
     readonly timedOut: {
       readonly invoke: AdapterOperation
       readonly timeoutMs: number
     }
-    readonly unavailable: {
+    readonly unavailable?: {
       readonly invoke: AdapterOperation
       readonly reason: string
     }
@@ -86,20 +93,29 @@ export function describeProviderConformance(name: string, createSubject: () => P
       expect(outcome).toEqual({ kind: 'failed', ...subject.cases.failed.expected })
     })
 
-    it('uses the supplied aborted signal to distinguish cancellation', async () => {
+    it('returns exact evidence for a successful provider mutation', async () => {
       const subject = createSubject()
-      const liveContext = createOperationContext()
-      const liveOutcome = await subject.cases.cancelled(subject.adapter, liveContext, subject.target)
-      expect(liveContext.signal.aborted).toBe(false)
-      expect(liveOutcome?.kind).not.toBe('cancelled')
+      const outcome = await subject.cases.successfulMutation.invoke(
+        subject.adapter,
+        subject.context,
+        subject.cases.successfulMutation.expected.target,
+      )
 
+      expect(outcome).toEqual({
+        kind: 'success',
+        value: subject.cases.successfulMutation.expected,
+      })
+    })
+
+    it('uses the supplied aborted signal to distinguish mutation cancellation', async () => {
+      const subject = createSubject()
       const cancelledContext = createOperationContext({ aborted: true })
       expect(cancelledContext.signal.aborted).toBe(true)
       const cancelledOutcome = await subject.cases.cancelled(subject.adapter, cancelledContext, subject.target)
       expect(cancelledOutcome).toMatchObject({ kind: 'cancelled' })
     })
 
-    it('returns the effective timeout supplied by the harness', async () => {
+    it('returns the effective mutation timeout supplied by the harness', async () => {
       const subject = createSubject()
       const expectedTimeoutMs = subject.cases.timedOut.timeoutMs
       const outcome = await subject.cases.timedOut.invoke(
@@ -123,6 +139,7 @@ export function describeProviderConformance(name: string, createSubject: () => P
 
     it('distinguishes provider unavailability from command failure', async () => {
       const subject = createSubject()
+      if (!subject.cases.unavailable) return
       const outcome = await subject.cases.unavailable.invoke(subject.adapter, subject.context, subject.target)
 
       expect(outcome).toEqual({ kind: 'unavailable', reason: subject.cases.unavailable.reason })
@@ -176,6 +193,38 @@ export function describeProviderConformance(name: string, createSubject: () => P
           evidence: [subject.cases.verificationEvidence],
           kind: 'satisfied',
         },
+      })
+    })
+
+    it('derives unsatisfied verification from a fresh absent observation', async () => {
+      const subject = createSubject()
+      expect(subject.adapter.verify).toBeTypeOf('function')
+      if (!subject.adapter.verify) throw new Error('Expected a verification operation.')
+
+      const outcome = await subject.adapter.verify({ context: subject.context, target: subject.cases.absentTarget })
+      expect(outcome).toEqual({
+        kind: 'success',
+        value: {
+          evidence: subject.cases.absentEvidence ? [subject.cases.absentEvidence] : [],
+          kind: 'unsatisfied',
+          reason: `${subject.cases.absentTarget.id} is not installed through ${subject.adapter.id}`,
+        },
+      })
+    })
+
+    it('preserves indeterminate verification instead of projecting absence', async () => {
+      const subject = createSubject()
+      expect(subject.adapter.verify).toBeTypeOf('function')
+      if (!subject.adapter.verify) throw new Error('Expected a verification operation.')
+
+      const outcome = await subject.adapter.verify({
+        context: subject.context,
+        target: subject.cases.indeterminate.target,
+      })
+      expect(outcome).toEqual({
+        evidence: [subject.cases.indeterminate.evidence],
+        kind: 'indeterminate',
+        reason: subject.cases.indeterminate.reason,
       })
     })
   })

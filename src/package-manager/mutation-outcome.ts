@@ -1,70 +1,16 @@
-import type { ProviderOperationContext, ProviderOutcome } from '../providers'
-import { createCliOperationContext } from '../runtime/cli-operation-context'
-import {
-  isProcessInterruptionError,
-  spawnWithQuantexStdio,
-  waitForSpawnedCommandWithContext,
-} from '../utils/child-process'
+import type { ProviderOperationContext } from '../providers'
+import type { PackageMutationOutcome } from './context-mutation'
 
-export type PackageMutationOutcome = ProviderOutcome<void>
-
-export async function runPackageMutationOutcome(
-  command: readonly string[],
-  context: ProviderOperationContext,
-  description: string,
-): Promise<PackageMutationOutcome> {
-  try {
-    const exitCode = await waitForSpawnedCommandWithContext(
-      spawnWithQuantexStdio(command, { detached: process.platform !== 'win32' }),
-      context,
-    )
-    return exitCode === 0
-      ? { kind: 'success', value: undefined }
-      : {
-          command,
-          exitCode,
-          kind: 'failed',
-          reason: `${description} with exit code ${exitCode}`,
-          retryable: false,
-        }
-  } catch (error) {
-    if (isProcessInterruptionError(error)) {
-      return error.kind === 'timed-out'
-        ? { kind: 'timed-out', timeoutMs: error.timeoutMs ?? context.timeoutMs ?? 0 }
-        : { kind: 'cancelled', ...(error.reason ? { reason: error.reason } : {}) }
-    }
-    return {
-      command,
-      kind: 'failed',
-      reason: `${description}: ${errorReason(error)}`,
-      retryable: false,
-    }
-  }
-}
-
-export async function runPackageMutationSequence(
-  commands: readonly (readonly string[])[],
-  context: ProviderOperationContext,
-  description: string,
-): Promise<PackageMutationOutcome> {
-  for (const command of commands) {
-    const outcome = await runPackageMutationOutcome(command, context, description)
-    if (outcome.kind !== 'success') return outcome
-  }
-  return { kind: 'success', value: undefined }
-}
+export type { PackageMutationOutcome } from './context-mutation'
 
 export async function projectLegacyPackageMutation(
   invoke: (context: ProviderOperationContext) => Promise<PackageMutationOutcome>,
 ): Promise<boolean> {
+  const { createCliOperationContext } = await import('../runtime/cli-operation-context')
   const operation = createCliOperationContext()
   try {
     return (await invoke(operation.context)).kind === 'success'
   } finally {
     operation.dispose()
   }
-}
-
-function errorReason(error: unknown): string {
-  return error instanceof Error && error.message.trim() ? error.message : String(error)
 }

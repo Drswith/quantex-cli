@@ -42,6 +42,7 @@ function conformance(
   target: ProviderTarget,
   createAdapter: (dependencies: SystemPackageAdapterDependencies) => ProviderAdapter,
   installCommand: readonly string[],
+  uninstallCommand: readonly string[],
 ): void {
   describeProviderConformance(`${id} provider`, () => {
     const adapter = createAdapter(
@@ -57,7 +58,8 @@ function conformance(
       cases: {
         absentEvidence: { kind: 'package', value: `${id}:${target.id}-absent:absent` },
         absentTarget: { ...target, id: `${target.id}-absent` },
-        cancelled: (subject, signalContext) => subject.availability(signalContext),
+        cancelled: (subject, signalContext, requestedTarget) =>
+          subject.update?.({ context: signalContext, target: requestedTarget }),
         failed: {
           expected: {
             command: installCommand,
@@ -78,6 +80,17 @@ function conformance(
           target: { ...target, id: `${target.id}-unknown` },
         },
         present: { evidence: presentEvidence, target, version: '1.2.3' },
+        successfulMutation: {
+          expected: {
+            evidence: [
+              { kind: 'provider', value: id },
+              { kind: 'command', value: uninstallCommand.join(' ') },
+            ],
+            target,
+          },
+          invoke: (subject, signalContext, requestedTarget) =>
+            subject.uninstall?.({ context: signalContext, target: requestedTarget }),
+        },
         timedOut: {
           invoke: (subject, signalContext, requestedTarget) =>
             subject.update?.({ context: signalContext, target: requestedTarget }),
@@ -100,21 +113,33 @@ const pipTarget: ProviderTarget = { id: 'example-pkg', kind: 'package' }
 const uvTarget: ProviderTarget = { arguments: ['--python', '3.12'], id: 'example-tool', kind: 'tool' }
 const miseTarget: ProviderTarget = { id: 'npm:@openai/codex', kind: 'tool' }
 
-conformance('pip', 'pip', 'pip', pipTarget, createPipProviderAdapter, ['pip', 'install', 'example-pkg'])
-conformance('uv', 'uv', 'uv', uvTarget, createUvProviderAdapter, [
+conformance(
+  'pip',
+  'pip',
+  'pip',
+  pipTarget,
+  createPipProviderAdapter,
+  ['pip', 'install', 'example-pkg'],
+  ['pip', 'uninstall', '-y', 'example-pkg'],
+)
+conformance(
   'uv',
-  'tool',
-  'install',
-  'example-tool',
-  '--python',
-  '3.12',
-])
-conformance('mise', 'mise', 'mise', miseTarget, createMiseProviderAdapter, [
+  'uv',
+  'uv',
+  uvTarget,
+  createUvProviderAdapter,
+  ['uv', 'tool', 'install', 'example-tool', '--python', '3.12'],
+  ['uv', 'tool', 'uninstall', 'example-tool'],
+)
+conformance(
   'mise',
-  'use',
-  '--global',
-  'npm:@openai/codex',
-])
+  'mise',
+  'mise',
+  miseTarget,
+  createMiseProviderAdapter,
+  ['mise', 'use', '--global', 'npm:@openai/codex'],
+  ['mise', 'unuse', '--global', 'npm:@openai/codex'],
+)
 
 describe('pip, uv, and mise provider semantics', () => {
   it('preserves uv tool arguments for install and update', async () => {

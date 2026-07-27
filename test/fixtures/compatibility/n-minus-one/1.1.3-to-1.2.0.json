@@ -1,0 +1,52 @@
+{
+  "fixtureVersion": 1,
+  "previous": {
+    "version": "1.1.3",
+    "tag": "v1.1.3",
+    "commit": "e17b84e11583f77f810ad3052d8919484dc9f909"
+  },
+  "candidate": {
+    "version": "1.2.0"
+  },
+  "schemas": {
+    "state": 2,
+    "lifecycleReceipt": 1,
+    "idempotency": 1
+  },
+  "agent": {
+    "name": "commandcode",
+    "binaryName": "command-code",
+    "providerId": "npm",
+    "providerTargetId": "command-code",
+    "providerTargetKind": "package",
+    "version": "9.9.9"
+  },
+  "failClosedCases": [
+    {
+      "name": "corrupt-state",
+      "type": "state",
+      "file": "corrupt-state.txt",
+      "errorCode": "STATE_READ_ERROR"
+    },
+    {
+      "name": "future-state",
+      "type": "state",
+      "file": "future-state.json",
+      "errorCode": "STATE_READ_ERROR"
+    },
+    {
+      "name": "corrupt-idempotency",
+      "type": "idempotency",
+      "file": "corrupt-idempotency.txt",
+      "errorCode": "INVALID_ARGUMENT",
+      "invalidReason": "invalid-json"
+    },
+    {
+      "name": "unsupported-idempotency",
+      "type": "idempotency",
+      "file": "unsupported-idempotency.json",
+      "errorCode": "INVALID_ARGUMENT",
+      "invalidReason": "unsupported-schema"
+    }
+  ]
+}

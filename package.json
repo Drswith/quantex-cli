@@ -61,6 +61,7 @@
     "build:bin": "bun run scripts/write-build-metadata.ts && bun run scripts/build-bin.ts",
     "build:cli": "bun run scripts/write-build-metadata.ts && tsdown --config tsdown.config.ts",
     "build:core": "bun run --cwd packages/core build",
+    "compat:n-minus-one": "bun run scripts/verify-n-minus-one-compatibility.ts",
     "core-catalog:write": "bun run scripts/write-core-agent-catalog.ts",
     "dev": "bun run src/cli.ts",
     "format": "oxfmt",

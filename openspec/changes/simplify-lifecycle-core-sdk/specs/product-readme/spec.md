@@ -2,13 +2,19 @@
 
 ### Requirement: README documents the supported TypeScript SDK path
 
-The product README SHALL present the Core SDK as the supported programmatic TypeScript integration, document its runtime prerequisites and current lifecycle methods, and keep CLI onboarding as the primary path for users who want an executable tool.
+The product README SHALL present the Core SDK as the intended programmatic TypeScript integration, document its runtime prerequisites, current lifecycle methods, and distribution stage, and keep CLI onboarding as the primary published path for users who want an executable tool.
 
 #### Scenario: TypeScript consumer looks for programmatic integration
 
 - **WHEN** a downstream developer reads the English or Simplified Chinese product README
-- **THEN** they can find the Core package installation command and a copyable `createQuantex` import example
+- **THEN** they can find a copyable `createQuantex` import example and an accurate statement of whether public package installation is activated
 - **AND** the example uses only methods implemented in the current stable SDK
+
+#### Scenario: Core registry publication is deferred
+
+- **WHEN** the Core workspace is private and its final registry identity is not activated
+- **THEN** the README MUST NOT present the provisional npm install command as currently usable
+- **AND** it MUST state that CLI releases do not depend on Core registry publication
 
 #### Scenario: User compares CLI and SDK responsibilities
 

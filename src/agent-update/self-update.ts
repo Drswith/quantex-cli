@@ -1,5 +1,5 @@
 import type { ProviderMutationEvidence, ProviderOperationContext, ProviderOutcome, ProviderTarget } from '../providers'
-import { runPackageMutationOutcome } from '../package-manager/mutation-outcome'
+import { runPackageMutationOutcome } from '../package-manager/context-mutation'
 
 export async function executeAgentSelfUpdate(request: {
   readonly commands: readonly (readonly string[])[]

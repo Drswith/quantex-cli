@@ -1,5 +1,5 @@
 import type { ProviderOperationContext, ProviderOutcome } from '../providers'
-import type { PackageMutationOutcome } from './mutation-outcome'
+import type { PackageMutationOutcome } from './context-mutation'
 import { readFile } from 'node:fs/promises'
 import { homedir } from 'node:os'
 import { join } from 'node:path'
@@ -11,7 +11,8 @@ import {
   spawnCommand,
 } from '../utils/child-process'
 import { normalizeRegistryUrl } from '../utils/registry'
-import { projectLegacyPackageMutation, runPackageMutationOutcome } from './mutation-outcome'
+import { runPackageMutationOutcome } from './context-mutation'
+import { projectLegacyPackageMutation } from './mutation-outcome'
 
 export type RegistryUpdateStrategy = 'latest-major' | 'respect-semver'
 

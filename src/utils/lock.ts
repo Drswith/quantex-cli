@@ -29,7 +29,7 @@ export function isResourceLockError(error: unknown): error is ResourceLockError 
 const LOCK_OWNER_ACQUISITION_GRACE_MS = 100
 const LOCK_OWNER_POLL_INTERVAL_MS = 2
 
-export function getResourceLockPath(scope: readonly string[]): string {
+export function getResourceLockPathInConfigDir(configDir: string, scope: readonly string[]): string {
   const normalizedScope = scope
     .map(segment =>
       segment
@@ -43,11 +43,18 @@ export function getResourceLockPath(scope: readonly string[]): string {
   const parentSegments = pathSegments.slice(0, -1)
   const lockName = `${pathSegments.at(-1)}.lock`
 
-  return join(getConfigDir(), 'locks', ...parentSegments, lockName)
+  return join(configDir, 'locks', ...parentSegments, lockName)
 }
 
-export async function acquireResourceLock(options: ResourceLockOptions): Promise<() => Promise<void>> {
-  const lockPath = getResourceLockPath(options.scope)
+export function getResourceLockPath(scope: readonly string[]): string {
+  return getResourceLockPathInConfigDir(getConfigDir(), scope)
+}
+
+export async function acquireResourceLockInConfigDir(
+  configDir: string,
+  options: ResourceLockOptions,
+): Promise<() => Promise<void>> {
+  const lockPath = getResourceLockPathInConfigDir(configDir, options.scope)
   await mkdir(dirname(lockPath), { recursive: true })
 
   await createLockDirectory(options.resource, lockPath)
@@ -55,6 +62,10 @@ export async function acquireResourceLock(options: ResourceLockOptions): Promise
   return async () => {
     await rm(lockPath, { force: true, recursive: true })
   }
+}
+
+export async function acquireResourceLock(options: ResourceLockOptions): Promise<() => Promise<void>> {
+  return await acquireResourceLockInConfigDir(getConfigDir(), options)
 }
 
 async function createLockDirectory(resource: string, lockPath: string): Promise<void> {
@@ -156,12 +167,20 @@ function isMissingPathError(error: unknown): boolean {
   return code === 'ENOENT' || code === 'ENOTDIR'
 }
 
-export async function withResourceLock<T>(options: ResourceLockOptions, run: () => Promise<T>): Promise<T> {
-  const release = await acquireResourceLock(options)
+export async function withResourceLockInConfigDir<T>(
+  configDir: string,
+  options: ResourceLockOptions,
+  run: () => Promise<T>,
+): Promise<T> {
+  const release = await acquireResourceLockInConfigDir(configDir, options)
 
   try {
     return await run()
   } finally {
     await release()
   }
+}
+
+export async function withResourceLock<T>(options: ResourceLockOptions, run: () => Promise<T>): Promise<T> {
+  return await withResourceLockInConfigDir(getConfigDir(), options, run)
 }

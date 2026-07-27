@@ -7,7 +7,7 @@ const releaseAutomergeWorkflow = readFileSync('.github/workflows/release-pr-auto
 const releaseVerifyWorkflow = readFileSync('.github/workflows/release-verify.yml', 'utf8')
 const releaseWorkflow = readFileSync('.github/workflows/release.yml', 'utf8')
 const sandboxWorkflow = readFileSync('.github/workflows/sandbox-tests.yml', 'utf8')
-const integrationBranch = 'codex/simplify-core-sdk-integration'
+const integrationBranchPattern = "'codex/simplify-core-sdk-*'"
 
 function extractEventBlock(workflow: string, eventName: string): string {
   const lines = workflow.split(/\r?\n/)
@@ -82,7 +82,7 @@ describe('workflow classification integration', () => {
     expect(extractYamlList(extractEventBlock(ciWorkflow, 'push'), 'branches')).toEqual([
       'main',
       'beta',
-      integrationBranch,
+      integrationBranchPattern,
     ])
   })
 
@@ -91,12 +91,14 @@ describe('workflow classification integration', () => {
     expect(extractYamlList(extractEventBlock(sandboxWorkflow, 'push'), 'branches')).toEqual([
       'main',
       'beta',
-      integrationBranch,
+      integrationBranchPattern,
     ])
   })
 
   it('runs full release verification for integration-branch pushes', () => {
-    expect(extractYamlList(extractEventBlock(releaseVerifyWorkflow, 'push'), 'branches')).toEqual([integrationBranch])
+    expect(extractYamlList(extractEventBlock(releaseVerifyWorkflow, 'push'), 'branches')).toEqual([
+      integrationBranchPattern,
+    ])
     expect(releaseVerifyWorkflow).toContain('run: bun run package:check')
   })
 
@@ -155,11 +157,11 @@ describe('workflow classification integration', () => {
     expect(extractYamlList(workflowRunBlock, 'branches')).toEqual(['main', 'beta'])
     expect(extractYamlList(workflowDispatchBlock, 'options')).toEqual(['main', 'beta'])
     expect(extractYamlList(releasePrBlock, 'branches')).toEqual(['main', 'beta'])
-    expect(workflowRunBlock).not.toContain(integrationBranch)
-    expect(workflowDispatchBlock).not.toContain(integrationBranch)
-    expect(releasePrBlock).not.toContain(integrationBranch)
-    expect(releaseWorkflow).not.toContain(integrationBranch)
-    expect(releaseAutomergeWorkflow).not.toContain(integrationBranch)
+    expect(workflowRunBlock).not.toContain(integrationBranchPattern)
+    expect(workflowDispatchBlock).not.toContain(integrationBranchPattern)
+    expect(releasePrBlock).not.toContain(integrationBranchPattern)
+    expect(releaseWorkflow).not.toContain(integrationBranchPattern)
+    expect(releaseAutomergeWorkflow).not.toContain(integrationBranchPattern)
     expect(releaseWorkflow).toContain('- name: Resolve release target')
     expect(releaseWorkflow).toContain('echo "npm_tag=beta"')
     expect(releaseWorkflow).toContain('echo "npm_tag=latest"')

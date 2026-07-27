@@ -21,14 +21,30 @@ function success<T>(value: T): ProviderOutcome<T> {
   return { kind: 'success', value }
 }
 
-function mutationEvidence(): ProviderMutationEvidence {
+function mutationEvidence(requestedTarget = target): ProviderMutationEvidence {
   return {
-    evidence: [{ kind: 'command', value: 'fixture update fixture-agent' }],
-    target,
+    evidence: [{ kind: 'command', value: `fixture update ${requestedTarget.id}` }],
+    target: requestedTarget,
   }
 }
 
 function createFixtureAdapter(): ProviderAdapter {
+  const observe: ProviderAdapter['observe'] = async ({ target: requestedTarget }) =>
+    requestedTarget.id.endsWith('-absent')
+      ? success({ kind: 'absent', target: requestedTarget })
+      : requestedTarget.id.endsWith('-indeterminate')
+        ? {
+            evidence: [indeterminateEvidence],
+            kind: 'indeterminate',
+            reason: 'fixture response was ambiguous',
+          }
+        : success({
+            evidence: [presentEvidence],
+            kind: 'present',
+            target: requestedTarget,
+            version: '1.2.3',
+          })
+
   return {
     availability: async context =>
       context.signal.aborted
@@ -44,31 +60,27 @@ function createFixtureAdapter(): ProviderAdapter {
       remediation: 'repair the fixture registry',
       retryable: true,
     }),
-    observe: async ({ target: requestedTarget }) =>
-      requestedTarget.id.endsWith('-absent')
-        ? success({ kind: 'absent', target: requestedTarget })
-        : requestedTarget.id.endsWith('-indeterminate')
-          ? {
-              evidence: [indeterminateEvidence],
-              kind: 'indeterminate',
-              reason: 'fixture response was ambiguous',
-            }
-          : success({
-              evidence: [presentEvidence],
-              kind: 'present',
-              target: requestedTarget,
-              version: '1.2.3',
-            }),
+    observe,
     uninstall: async ({ context }) =>
       context.timeoutMs === 1
         ? { kind: 'timed-out', timeoutMs: context.timeoutMs }
         : ({ kind: 'unavailable', reason: 'fixture executable is unavailable' } as const),
-    update: async () => success(mutationEvidence()),
-    verify: async () =>
-      success({
-        evidence: [verificationEvidence],
-        kind: 'satisfied',
-      }),
+    update: async ({ context, target: requestedTarget }) =>
+      context.signal.aborted
+        ? { kind: 'cancelled', reason: String(context.signal.reason ?? 'cancelled') }
+        : success(mutationEvidence(requestedTarget)),
+    verify: async request => {
+      const observation = await observe(request)
+      if (observation.kind !== 'success') return observation
+      if (observation.value.kind === 'absent') {
+        return success({
+          evidence: observation.value.evidence ?? [],
+          kind: 'unsatisfied',
+          reason: `${request.target.id} is not installed through npm`,
+        })
+      }
+      return success({ evidence: [verificationEvidence], kind: 'satisfied' })
+    },
   }
 }
 
@@ -83,7 +95,7 @@ describeProviderConformance('fixture provider', () => ({
   adapter: createFixtureAdapter(),
   cases: {
     absentTarget: { ...target, id: 'fixture-agent-absent' },
-    cancelled: (adapter, context) => adapter.availability(context),
+    cancelled: (adapter, context, requestedTarget) => adapter.update?.({ context, target: requestedTarget }),
     failed: {
       expected: {
         command: ['fixture', 'install', target.id],
@@ -104,6 +116,10 @@ describeProviderConformance('fixture provider', () => ({
       evidence: presentEvidence,
       target,
       version: '1.2.3',
+    },
+    successfulMutation: {
+      expected: mutationEvidence(),
+      invoke: (adapter, context, requestedTarget) => adapter.update?.({ context, target: requestedTarget }),
     },
     timedOut: {
       invoke: (adapter, context, requestedTarget) => adapter.uninstall?.({ context, target: requestedTarget }),

@@ -3,7 +3,13 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterAll, afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import * as config from '../../src/config'
-import { acquireResourceLock, getResourceLockPath } from '../../src/utils/lock'
+import {
+  acquireResourceLock,
+  acquireResourceLockInConfigDir,
+  getResourceLockPath,
+  getResourceLockPathInConfigDir,
+  withResourceLockInConfigDir,
+} from '../../src/utils/lock'
 
 const tempDir = join(tmpdir(), `quantex-lock-test-${Date.now()}`)
 const getConfigDirSpy = vi.spyOn(config, 'getConfigDir')
@@ -19,6 +25,67 @@ describe('resource locks', () => {
 
   afterEach(() => {
     if (existsSync(tempDir)) rmSync(tempDir, { force: true, recursive: true })
+  })
+
+  it('preserves the legacy getConfigDir-derived lock path', () => {
+    expect(getResourceLockPath(['agent-lifecycle', 'codex'])).toBe(
+      join(tempDir, 'locks', 'agent-lifecycle', 'codex.lock'),
+    )
+    expect(getResourceLockPath(['agent-lifecycle', 'codex'])).toBe(
+      getResourceLockPathInConfigDir(tempDir, ['agent-lifecycle', 'codex']),
+    )
+  })
+
+  it('isolates the same resource scope across explicit config directories', async () => {
+    const leftConfigDir = join(tempDir, 'left')
+    const rightConfigDir = join(tempDir, 'right')
+    const options = {
+      resource: 'agent lifecycle',
+      scope: ['agent-lifecycle'],
+    } as const
+    const leftLockPath = getResourceLockPathInConfigDir(leftConfigDir, options.scope)
+    const rightLockPath = getResourceLockPathInConfigDir(rightConfigDir, options.scope)
+
+    const releaseLeft = await acquireResourceLockInConfigDir(leftConfigDir, options)
+    const releaseRight = await acquireResourceLockInConfigDir(rightConfigDir, options)
+
+    expect(leftLockPath).not.toBe(rightLockPath)
+    expect(existsSync(join(leftLockPath, 'owner.json'))).toBe(true)
+    expect(existsSync(join(rightLockPath, 'owner.json'))).toBe(true)
+
+    await expect(acquireResourceLockInConfigDir(leftConfigDir, options)).rejects.toMatchObject({
+      lockPath: leftLockPath,
+      name: 'ResourceLockError',
+      resource: 'agent lifecycle',
+    })
+
+    await releaseLeft()
+    expect(existsSync(leftLockPath)).toBe(false)
+    expect(existsSync(rightLockPath)).toBe(true)
+
+    await releaseRight()
+    expect(existsSync(rightLockPath)).toBe(false)
+  })
+
+  it('releases an explicit config-directory lock when the scoped operation fails', async () => {
+    const explicitConfigDir = join(tempDir, 'explicit')
+    const lockPath = getResourceLockPathInConfigDir(explicitConfigDir, ['agent-lifecycle'])
+
+    await expect(
+      withResourceLockInConfigDir(
+        explicitConfigDir,
+        {
+          resource: 'agent lifecycle',
+          scope: ['agent-lifecycle'],
+        },
+        async () => {
+          expect(existsSync(join(lockPath, 'owner.json'))).toBe(true)
+          throw new Error('operation failed')
+        },
+      ),
+    ).rejects.toThrow('operation failed')
+
+    expect(existsSync(lockPath)).toBe(false)
   })
 
   it('throws a stable conflict error when the same lock is already held', async () => {
