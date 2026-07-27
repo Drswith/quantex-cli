@@ -23,7 +23,6 @@ Provide a repeatable path for debugging Quantex release artifacts, release metad
 - `quantex doctor`
 - `dist/bin/manifest.json`
 - `dist/bin/SHA256SUMS.txt`
-- `.github/workflows/release-verify.yml`
 - `.github/workflows/release.yml`
 
 ## Triage order
@@ -262,10 +261,7 @@ bun run release:artifacts
 bun run release:smoke
 ```
 
-This mirrors the key validation stages in:
-
-- `.github/workflows/release-verify.yml`
-- `.github/workflows/release.yml`
+This mirrors the key validation stages in `.github/workflows/release.yml`.
 
 ## Escalation
 

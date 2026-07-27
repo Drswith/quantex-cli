@@ -2,7 +2,7 @@
 
 ### Requirement: Release Publishing Prioritizes Primary Artifacts
 
-The Release workflow SHALL keep the established `quantex-cli` npm package, GitHub Release, and standalone binaries on one independently recoverable closure. It SHALL build and pack-validate the private Core workspace without querying, publishing, or requiring its provisional npm identity, and SHALL avoid coordinating the separate `quantex` npm package.
+The manually dispatched Release workflow SHALL keep the established `quantex-cli` npm package, GitHub Release, and standalone binaries on one independently recoverable closure. It SHALL build and pack-validate the private Core workspace without querying, publishing, or requiring its provisional npm identity, and SHALL avoid coordinating the separate `quantex` npm package.
 
 #### Scenario: release publishes primary repository artifacts
 
@@ -25,13 +25,12 @@ The Release workflow SHALL keep the established `quantex-cli` npm package, GitHu
 - **THEN** it MUST retry CLI validation, publication, and verification
 - **AND** it MUST attach standalone artifacts only after the CLI version is visible on npm
 
-#### Scenario: Historical release predates the current recovery harness
+#### Scenario: release is retried after a partial closure
 
-- **GIVEN** an immutable release target does not contain a compatibility harness added by a later protected-branch commit
-- **WHEN** release recovery validates that target
-- **THEN** package builds, product tests, and publication MUST continue to use the immutable release source
-- **AND** the workflow MUST use the already validated protected-branch source only as the compatibility-harness fallback
-- **AND** a target-owned compatibility harness MUST take precedence when present so later releases use their version-specific N/N-1 contract
+- **GIVEN** the immutable release commit has an incomplete npm, GitHub Release, or artifact closure
+- **WHEN** a maintainer dispatches Release for its protected branch again
+- **THEN** package builds, product tests, publication, and artifact recovery MUST continue to use that immutable release source
+- **AND** the workflow MUST NOT check out a second protected-branch control source or execute a fixed historical compatibility harness
 
 #### Scenario: Core package is private
 

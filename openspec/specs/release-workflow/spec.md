@@ -1,16 +1,15 @@
 # release-workflow Specification
 
 ## Purpose
-Define how Quantex reconciles protected-branch release state from successful CI history so release-please can safely prepare Release PRs and publish merged release commits.
+Define the explicit, recoverable release procedure for protected branches. A maintainer deliberately dispatches the release workflow to prepare or publish a release; CI is a merge gate, not a hidden publication trigger.
 ## Requirements
-### Requirement: Release Workflow Skips Non-release Pushes
+### Requirement: Release Workflow Is Explicit and Idempotent
 
-The Release workflow SHALL evaluate release relevance only after merge-gating CI has completed successfully for a protected-branch push, and it SHALL reconcile the next release action from protected-branch state instead of trusting a single raw workflow event SHA.
+The Release workflow SHALL run only through `workflow_dispatch` for `main` or `beta`. It SHALL reconcile the selected protected branch into either Release PR preparation, publish/recovery, or a no-op, and every publication retry SHALL use the same immutable release commit.
 
-#### Scenario: release-worthy merge reaches main
+#### Scenario: maintainer prepares a release
 
-- **WHEN** merge-gating CI has succeeded for a release-worthy protected-branch commit on `main`
-- **AND** there is no newer successful release commit waiting for GitHub Release or npm publication on that branch
+- **WHEN** a maintainer dispatches Release for `main` after the intended change PRs have passed required checks
 - **THEN** the Release workflow MUST invoke release-please in Release PR mode
 - **AND** the release-please action version MUST be pinned to a repository-verified tag
 - **AND** it MUST skip GitHub Release creation in that invocation
@@ -36,7 +35,7 @@ The Release workflow SHALL evaluate release relevance only after merge-gating CI
 - **WHEN** an older successful release commit has a GitHub Release or tag
 - **AND** its `quantex-cli@<version>` package is missing from npm
 - **AND** the latest successful release commit is already published to npm
-- **THEN** the Release workflow MUST NOT publish the older release commit as part of automatic latest-release recovery
+- **THEN** a normal Release dispatch MUST NOT publish the older release commit as part of latest-release reconciliation
 
 #### Scenario: already tagged release commit has stale title version
 
@@ -46,20 +45,13 @@ The Release workflow SHALL evaluate release relevance only after merge-gating CI
 - **THEN** the Release workflow MUST treat that commit as already published
 - **AND** it MUST NOT count the stale title version as a pending untagged release commit
 
-#### Scenario: stale successful CI run is older than merged release commit
-
-- **WHEN** a successful protected-branch `CI` run triggers the Release workflow
-- **AND** current protected-branch state already contains a newer successful release commit waiting for GitHub Release publication
-- **OR** the latest successful release commit is missing from npm
-- **THEN** the workflow MUST NOT reopen or refresh Release PR mode from the older CI run
-- **AND** it MUST reconcile to the pending publish action instead
-
-#### Scenario: manual recovery uses the same resolver
+#### Scenario: maintainer retries a partial release
 
 - **WHEN** a maintainer runs the Release workflow through `workflow_dispatch`
-- **THEN** the workflow MUST derive the target protected branch from the dispatch input or current ref
-- **AND** it MUST use the same release-target reconciliation rules as automatic runs
-- **AND** it MUST NOT bypass the requirement that publish actions come only from a successful protected-branch `CI` run for the selected release commit
+- **AND** the selected release commit already has a tag or GitHub Release but its npm package or artifacts are incomplete
+- **THEN** the workflow MUST use the selected immutable release commit
+- **AND** it MUST verify or publish `quantex-cli` before attaching artifacts
+- **AND** it MUST NOT create a second release or require a different control-source checkout
 
 ### Requirement: Generated Release PRs satisfy governance sections
 
@@ -110,7 +102,7 @@ The stable Release workflow SHALL treat `0.29.1` as the final publishable 0.x ve
 - **WHEN** release-please prepares the stable Release PR
 - **THEN** it MUST propose exactly `1.1.0`
 - **AND** the generated Release PR MUST remain subject to normal protected-branch validation and manual rebase-first merge
-- **AND** the Release PR workflow MUST skip bot-token creation and auto-merge enablement for that exact graduation PR
+- **AND** the Release PR MUST be manually reviewed and merged
 
 #### Scenario: A different pre-major graduation is proposed
 
@@ -137,16 +129,9 @@ The stable Release workflow SHALL treat `1.0.0` as a burned stable release versi
 - **THEN** Release PR validation MUST reject the PR before automerge
 - **AND** a future 1.0 graduation MUST choose a different publishable stable version
 
-### Requirement: Release targets MUST use the protected-branch allowlist
+### Requirement: Release dispatch targets MUST use the protected-branch allowlist
 
-Every automatic, manual, and Release PR entry point MUST accept only the protected release branches `main` and `beta`. An unknown branch MUST be rejected before release-target resolution, npm tag or channel derivation, Release PR creation or validation, and artifact publication.
-
-#### Scenario: Automatic release observes an unknown branch
-
-- **GIVEN** merge-gating CI succeeds for a branch other than `main` or `beta`
-- **WHEN** the Release workflow evaluates the completed run
-- **THEN** it MUST reject the branch before release-target resolution
-- **AND** it MUST NOT create a Release PR, derive an npm channel, or publish artifacts
+The manual Release dispatch MUST accept only the protected release branches `main` and `beta`. An unknown branch MUST be rejected before release-target resolution, npm tag or channel derivation, Release PR creation, and artifact publication.
 
 #### Scenario: Manual release receives an unknown target
 
@@ -207,4 +192,3 @@ Stable and beta release-please configuration SHALL render `refactor` conventiona
 
 - **WHEN** the newest successful protected-branch CI run covers only a non-breaking `refactor` commit without Release-As
 - **THEN** the repository resolver MUST NOT create a Release PR solely because the changelog type is visible
-

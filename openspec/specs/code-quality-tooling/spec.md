@@ -119,7 +119,7 @@ The repository SHALL enforce a versioned `commit-msg` hook through `simple-git-h
 
 ### Requirement: CI lint and format gate
 
-CI workflows that gate merges to `main` or `beta` (such as `ci.yml`, `release.yml`, and `release-verify.yml`) SHALL run both `bun run lint` and `bun run format:check`. CI MUST fail when either command exits non-zero.
+CI workflows that gate merges to `main` or `beta` (such as `ci.yml` and the manually dispatched `release.yml`) SHALL run both `bun run lint` and `bun run format:check`. CI MUST fail when either command exits non-zero.
 
 #### Scenario: Pull request CI runs lint and format checks
 

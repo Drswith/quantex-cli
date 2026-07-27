@@ -11,7 +11,7 @@
 - [x] 2.1 Include the integration branch in CI, release-verification, and Sandbox trigger classification without widening protected release targets
 - [x] 2.2 Make Linux, macOS, and Windows validation explicit for Core routing promotion and stop treating skipped Windows PR coverage as sufficient
 - [x] 2.3 Add semantic compile coverage for every maintained root export before changing declaration generation; keep the existing v1 fixtures unchanged
-- [x] 2.4 Add released N/N-1 state and idempotency compatibility fixtures covering old-to-new and new-to-old-to-new reads and mutations with schema version 2
+- [x] 2.4 Preserve the released 1.2 compatibility evidence, then retire the fixed N/N-1 fixture from ordinary CI and release recovery; schema-version-2 changes require focused offline tests in their own change
 - [x] 2.5 Add a test-only legacy/Core differential harness that compares observations, typed outcomes, state deltas, receipts, and v1 CLI projections without production shadow mutations
 - [x] 2.6 Extend first-party provider conformance to cover relevant observe, mutate, verify, unknown, cancellation, timeout, and compensation behavior before each provider path migrates
 
@@ -36,7 +36,7 @@
 - [x] 4.5 Pin release workflow Bun versions to the repository toolchain, cache downloads rather than workspace links, and include Core manifests in cache keys, release PR policy, path taxonomy, and Sandbox selection
 - [x] 4.6 Keep Core private and require a separate activation change to verify final package identity, publisher authority, bootstrap, trusted publishing, version policy, and recovery before its first public release
 - [x] 4.7 Commit and push coordinated packaging and recovery as the third recoverable checkpoint (`0fefedb`)
-- [x] 4.8 Separate immutable release source from the validated recovery-control source and use the latter only when a historical release predates its N/N-1 harness
+- [x] 4.8 Replace automatic and cross-branch recovery with explicit manual release dispatch, a single immutable release source, and idempotent npm-first retry
 
 ## 5. Install and ensure migration for 1.3 beta or opt-in
 
@@ -47,21 +47,10 @@
 - [x] 5.5 Run differential, provider, state, idempotency, cancellation, timeout, and platform gates before enabling beta or explicit whole-invocation Core routing
 - [x] 5.6 Commit and push the install/ensure vertical slice as a recoverable milestone checkpoint
 
-## 6. Update, uninstall, and run migration for 1.3
+## 6. Deliberately deferred SDK expansion
 
-- [ ] 6.1 Add Core `update` with exact recorded-source selection, semver no-downgrade, and re-observed script/binary version increase
-- [ ] 6.2 Add Core `uninstall` with conclusive-only ghost cleanup, conflict retention, and PATH-only external refusal
-- [ ] 6.3 Add Core `run` with explicit install policy, inherited or captured standard IO, cancellation cleanup, and child exit preservation
-- [ ] 6.4 Keep CLI `update --all`, prompting, structured presentation, exit mapping, and request-key replay as compatibility adapters rather than Core batch APIs
-- [ ] 6.5 Remove each duplicate package-manager facade or command-owned lifecycle path only after its equivalent Core contract and compatibility tests pass
-- [ ] 6.6 Commit and push each command-family vertical slice before beginning the next family
-
-## 7. Stable-default and soak gates
-
-- [ ] 7.1 Promote Core to stable default no earlier than 1.4 after Linux, macOS, Windows, package, Sandbox, provider, fault, and downgrade matrices pass with no known critical or important regression
-- [ ] 7.2 Retain a pre-invocation legacy escape route through 1.5 and complete a documented rollback drill without state schema changes
-- [ ] 7.3 Keep Core default for a second stable minor, freeze legacy behavior, and publish the compatibility/deprecation inventory
-- [ ] 7.4 Require a separate major-version deprecation change after both two Core-default stable minors and 90 days from stable default before removing maintained v1 surfaces
+- [x] 6.1 Keep Core bounded to `list`, `inspect`, `install`, and `ensure` through 1.x; retain update, uninstall, run, batch composition, prompting, presentation, and replay in the CLI.
+- [x] 6.2 Require a separate OpenSpec change and a concrete downstream SDK consumer before adding another public Core method.
 
 ## 8. Documentation, validation, and delivery closure
 

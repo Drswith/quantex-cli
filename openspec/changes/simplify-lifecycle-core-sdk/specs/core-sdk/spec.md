@@ -41,20 +41,20 @@ The Core SDK MUST expose `createQuantex` as its client factory, and each created
 
 ### Requirement: Core SDK adds only implemented lifecycle methods
 
-The first stable Core SDK release SHALL expose `list` and `inspect`; later minor releases MAY add `install`, `ensure`, `update`, `uninstall`, and `run` only after each method satisfies its migration gates. The SDK MUST NOT publish placeholder lifecycle methods whose only implementation is an unsupported response.
+The initial Core SDK surface SHALL expose `list`, `inspect`, `install`, and `ensure`. `update`, `uninstall`, and `run` remain CLI responsibilities during 1.x unless a separate OpenSpec change establishes a concrete downstream SDK need and an additive contract. The SDK MUST NOT publish placeholder lifecycle methods whose only implementation is an unsupported response.
 
-#### Scenario: Consumer inspects the first stable client surface
+#### Scenario: Consumer inspects the current client surface
 
 - **WHEN** a consumer compiles against the first stable Core SDK release
 - **THEN** every published lifecycle method has a functional implementation and documented result contract
 - **AND** unimplemented future mutation methods are absent rather than frozen as placeholders
 
-#### Scenario: A mutation method is added in a later minor
+#### Scenario: a further SDK method is proposed
 
-- **GIVEN** a lifecycle method has passed its provider, compatibility, state, cancellation, and differential gates
-- **WHEN** a later compatible minor release adds that method
-- **THEN** existing Core consumers remain source-compatible
-- **AND** the new method follows the same instance and result conventions
+- **GIVEN** a lifecycle method is currently CLI-only
+- **WHEN** maintainers propose adding it to Core
+- **THEN** a separate OpenSpec change MUST establish the downstream use case and the full additive result contract
+- **AND** existing Core consumers remain source-compatible
 
 #### Scenario: Install and ensure are introduced in 1.3
 
