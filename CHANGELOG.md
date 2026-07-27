@@ -2,6 +2,13 @@
 
 This changelog is maintained by release-please Release PRs.
 
+## [1.3.0](https://github.com/Drswith/quantex-cli/compare/v1.2.0...v1.3.0) (2026-07-27)
+
+
+### Features
+
+* **core:** add verified install and ensure operations to the TypeScript SDK ([378ef08](https://github.com/Drswith/quantex-cli/commit/378ef0841005796a85deb6a50e8cf2dd9210249c))
+
 ## [1.2.0](https://github.com/Drswith/quantex-cli/compare/v1.1.3...v1.2.0) (2026-07-22)
 
 
