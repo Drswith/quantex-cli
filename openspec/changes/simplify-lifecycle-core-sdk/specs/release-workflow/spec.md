@@ -25,6 +25,14 @@ The Release workflow SHALL keep the established `quantex-cli` npm package, GitHu
 - **THEN** it MUST retry CLI validation, publication, and verification
 - **AND** it MUST attach standalone artifacts only after the CLI version is visible on npm
 
+#### Scenario: Historical release predates the current recovery harness
+
+- **GIVEN** an immutable release target does not contain a compatibility harness added by a later protected-branch commit
+- **WHEN** release recovery validates that target
+- **THEN** package builds, product tests, and publication MUST continue to use the immutable release source
+- **AND** the workflow MUST use the already validated protected-branch source only as the compatibility-harness fallback
+- **AND** a target-owned compatibility harness MUST take precedence when present so later releases use their version-specific N/N-1 contract
+
 #### Scenario: Core package is private
 
 - **GIVEN** the source commit contains `packages/core/package.json`

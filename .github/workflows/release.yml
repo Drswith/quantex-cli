@@ -3,6 +3,7 @@ name: Release
 env:
   N_MINUS_ONE_COMMIT: e17b84e11583f77f810ad3052d8919484dc9f909
   N_MINUS_ONE_SOURCE_DIR: .tmp/releases/quantex-cli-v1.1.3
+  RELEASE_CONTROL_SOURCE_DIR: .tmp/releases/quantex-cli-release-control
 
 on:
   workflow_run:
@@ -76,9 +77,11 @@ jobs:
           bun-version: 1.3.11
 
       - name: Refresh branch and tag state
+        id: release-control
         run: |
           git fetch --force origin "refs/heads/${{ steps.branch.outputs.target_branch }}:refs/remotes/origin/${{ steps.branch.outputs.target_branch }}" --tags
           git reset --hard "origin/${{ steps.branch.outputs.target_branch }}"
+          echo "source_sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
 
       - name: Resolve release target
         id: release-target
@@ -116,19 +119,21 @@ jobs:
           manifest-file: .release-please-manifest.json
           skip-github-release: true
 
-      - name: Checkout release commit
-        if: ${{ steps.release-target.outputs.mode == 'publish' }}
-        uses: actions/checkout@v7
-        with:
-          fetch-depth: 0
-          ref: ${{ steps.release-target.outputs.target_sha }}
-
       - name: Checkout released source
         if: ${{ steps.release-target.outputs.mode == 'publish' }}
         uses: actions/checkout@v7
         with:
           fetch-depth: 0
           ref: ${{ steps.release-target.outputs.target_sha }}
+
+      - name: Checkout release control source
+        if: ${{ steps.release-target.outputs.mode == 'publish' }}
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 1
+          path: ${{ env.RELEASE_CONTROL_SOURCE_DIR }}
+          persist-credentials: false
+          ref: ${{ steps.release-control.outputs.source_sha }}
 
       - name: Checkout pinned N-1 release
         if: ${{ steps.release-target.outputs.mode == 'publish' }}
@@ -182,10 +187,19 @@ jobs:
 
       - name: Verify offline N/N-1 state and idempotency compatibility
         if: ${{ steps.release-target.outputs.mode == 'publish' }}
-        run: >-
-          bun run compat:n-minus-one --
-          --previous-cli "$N_MINUS_ONE_SOURCE_DIR/dist/cli.mjs"
-          --candidate-cli dist/cli.mjs
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          if node -e "process.exit(require('./package.json').scripts?.['compat:n-minus-one'] ? 0 : 1)"; then
+            bun run compat:n-minus-one -- \
+              --previous-cli "$N_MINUS_ONE_SOURCE_DIR/dist/cli.mjs" \
+              --candidate-cli dist/cli.mjs
+          else
+            bun "$RELEASE_CONTROL_SOURCE_DIR/scripts/verify-n-minus-one-compatibility.ts" \
+              --previous-cli "$N_MINUS_ONE_SOURCE_DIR/dist/cli.mjs" \
+              --candidate-cli dist/cli.mjs
+          fi
 
       - name: Build binaries
         if: ${{ steps.release-target.outputs.mode == 'publish' }}

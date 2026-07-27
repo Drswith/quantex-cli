@@ -14,6 +14,8 @@ The repository keeps a source-controlled [CHANGELOG.md](../CHANGELOG.md). A Rele
 
 Registry errors other than a conclusive exact-version not-found response stop publication. Reruns are idempotent: an already published CLI version is verified and skipped, while an existing GitHub Release with a missing CLI version is recovered before artifacts are attached.
 
+Recovery deliberately keeps two source roles separate. The immutable release commit remains the source for package builds, product tests, npm publication, and standalone artifacts. The protected-branch commit that already passed CI is checked out separately as recovery-control source. A release-owned N/N-1 harness is preferred when present; the control-source harness is used only for historical releases that predate that validator.
+
 This repository does not coordinate publication of the separate `quantex` alias package.
 
 ## Deferred Core publication
@@ -33,4 +35,4 @@ Do not remove the Core manifest's private guard or add a variable-controlled pub
 
 ## v1.2.0 recovery
 
-The current `v1.2.0` GitHub Release was created before npm publication completed. After this split-release workflow lands, rerun the Release workflow for `main`. It will use the immutable v1.2.0 release commit, publish or verify `quantex-cli@1.2.0`, and upload the already defined standalone artifacts without attempting to publish `@quantex/core`.
+The current `v1.2.0` GitHub Release was created before npm publication completed. After this split-release workflow lands, rerun the Release workflow for `main`. It will use the immutable v1.2.0 release commit for the package and artifacts, use the validated protected-branch harness because that historical commit predates `compat:n-minus-one`, publish or verify `quantex-cli@1.2.0`, and upload the already defined standalone artifacts without attempting to publish `@quantex/core`.
