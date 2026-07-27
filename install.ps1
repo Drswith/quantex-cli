@@ -4,9 +4,11 @@ $Repo = if ($env:QUANTEX_REPO) { $env:QUANTEX_REPO } else { 'Drswith/quantex-cli
 $InstallDir = if ($env:QUANTEX_INSTALL_DIR) { $env:QUANTEX_INSTALL_DIR } else { Join-Path $HOME '.local\bin' }
 $Version = if ($env:QUANTEX_VERSION) { $env:QUANTEX_VERSION } else { 'latest' }
 
+# Release matrix ships Windows x64 only (`quantex-windows-x64.exe`). ARM64 Windows
+# runs that asset through built-in x64 emulation, matching binary self-upgrade naming.
 $arch = switch ($env:PROCESSOR_ARCHITECTURE.ToLowerInvariant()) {
   'amd64' { 'x64' }
-  'arm64' { 'arm64' }
+  'arm64' { 'x64' }
   default { throw "Unsupported architecture: $env:PROCESSOR_ARCHITECTURE" }
 }
 
