@@ -36,6 +36,7 @@
 - [x] 4.5 Pin release workflow Bun versions to the repository toolchain, cache downloads rather than workspace links, and include Core manifests in cache keys, release PR policy, path taxonomy, and Sandbox selection
 - [x] 4.6 Keep Core private and require a separate activation change to verify final package identity, publisher authority, bootstrap, trusted publishing, version policy, and recovery before its first public release
 - [x] 4.7 Commit and push coordinated packaging and recovery as the third recoverable checkpoint (`0fefedb`)
+- [x] 4.8 Separate immutable release source from the validated recovery-control source and use the latter only when a historical release predates its N/N-1 harness
 
 ## 5. Install and ensure migration for 1.3 beta or opt-in
 

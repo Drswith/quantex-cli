@@ -318,4 +318,23 @@ describe('release workflow package closure', () => {
     expect(releaseWorkflow).not.toContain('sync-quantex-cli-release')
     expect(releaseWorkflow).not.toContain('QUANTEX_SYNC_TOKEN')
   })
+
+  it('keeps release-source validation separate from recovery control logic', () => {
+    const releasedSourceIndex = releaseWorkflow.indexOf('- name: Checkout released source')
+    const releaseControlIndex = releaseWorkflow.indexOf('- name: Checkout release control source')
+    const compatibilityIndex = releaseWorkflow.indexOf(
+      '- name: Verify offline N/N-1 state and idempotency compatibility',
+    )
+
+    expect(releaseWorkflow).toContain('id: release-control')
+    expect(releaseWorkflow).toContain('echo "source_sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"')
+    expect(releasedSourceIndex).toBeGreaterThan(-1)
+    expect(releaseControlIndex).toBeGreaterThan(releasedSourceIndex)
+    expect(compatibilityIndex).toBeGreaterThan(releaseControlIndex)
+    expect(releaseWorkflow).toContain('path: ${{ env.RELEASE_CONTROL_SOURCE_DIR }}')
+    expect(releaseWorkflow).toContain('ref: ${{ steps.release-control.outputs.source_sha }}')
+    expect(releaseWorkflow).toContain("scripts?.['compat:n-minus-one']")
+    expect(releaseWorkflow).toContain('bun run compat:n-minus-one --')
+    expect(releaseWorkflow).toContain('bun "$RELEASE_CONTROL_SOURCE_DIR/scripts/verify-n-minus-one-compatibility.ts"')
+  })
 })
