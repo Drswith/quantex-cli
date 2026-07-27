@@ -136,8 +136,6 @@ jobs:
         if: ${{ steps.release-target.outputs.mode == 'publish' }}
         run: bun run build
 
-          fi
-
       - name: Build binaries
         if: ${{ steps.release-target.outputs.mode == 'publish' }}
         run: bun run build:bin
