@@ -1,6 +1,6 @@
 import type { Platform } from '../agents/types'
 import process from 'node:process'
-import { spawnWithQuantexStdio, waitForSpawnedCommand } from '../utils/child-process'
+import { spawnWithQuantexStdio, waitForSpawnedCommand } from '../utils/cli-child-process'
 import { getPlatform } from '../utils/detect'
 
 export async function runBinaryInstall(commandOrFn: string | ((platform: Platform) => string)): Promise<boolean> {

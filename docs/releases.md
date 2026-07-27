@@ -1,25 +1,36 @@
 # Releases
 
-Quantex releases are prepared by release-please Release PRs.
+The repository keeps a source-controlled [CHANGELOG.md](../CHANGELOG.md). A Release PR updates that changelog together with `.release-please-manifest.json`, `package.json`, `packages/core/package.json`, the root's exact `@quantex/core` development dependency, and `src/generated/build-meta.ts`.
 
-The repository now keeps a source-controlled [CHANGELOG.md](../CHANGELOG.md). A Release PR updates that changelog together with `.release-please-manifest.json`, `package.json`, `packages/core/package.json`, the root's exact `@quantex/core` development dependency, and `src/generated/build-meta.ts` before publication.
+## Primary CLI release closure
 
-Published release pages and attached binaries live in [GitHub Releases](https://github.com/Drswith/quantex-cli/releases).
+`quantex-cli`, the GitHub Release, and standalone binaries form the primary public release closure. Release automation:
 
-## Coordinated CLI and Core publication
+1. resolves the latest successful release commit and exact `quantex-cli` npm state;
+2. builds and validates the repository, including the private Core workspace and its clean packed-tarball consumers;
+3. publishes or verifies the exact `quantex-cli` version;
+4. creates or refreshes the GitHub Release only after CLI npm closure;
+5. uploads and verifies standalone release artifacts.
 
-Starting with the first Core-era release, one version and repository tag coordinate two npm packages. Release automation validates both tarballs, publishes or verifies Core first, publishes or verifies `quantex-cli` second, and uploads standalone binaries only after both npm versions are visible. Registry errors other than a conclusive 404 stop publication. Releases whose source predates `packages/core/package.json` remain CLI-only and are never backfilled with Core.
+Registry errors other than a conclusive exact-version not-found response stop publication. Reruns are idempotent: an already published CLI version is verified and skipped, while an existing GitHub Release with a missing CLI version is recovered before artifacts are attached.
 
-`@quantex/core` is still a provisional, unpublished name. Do not enable its release gate until an authenticated maintainer has confirmed control of the `@quantex` scope.
+This repository does not coordinate publication of the separate `quantex` alias package.
 
-## One-time Core bootstrap
+## Deferred Core publication
 
-npm requires a package to exist before its trusted publisher can be configured. The first Core release therefore stops before publishing either repository-owned npm package and requires this one-time operator sequence:
+`@quantex/core` remains a provisional private package identity. The main Release workflow builds and pack-validates it but does not query, publish, or require it for CLI release closure. This prevents unavailable scope permissions from blocking `quantex-cli` 1.2–1.5 releases while retaining a real SDK package boundary and clean downstream consumer tests.
 
-1. Check out the exact release commit and rerun `bun install --frozen-lockfile`, `bun run build:core`, and `bun run package:check:core`.
-2. Pack `packages/core` and publish that validated first version with an authorized npm maintainer account and 2FA using public access and the release channel's npm tag.
-3. Configure `release.yml` as the package's GitHub Actions trusted publisher for `Drswith/quantex-cli`, with `npm publish` permission.
-4. Set the repository variable `CORE_NPM_TRUSTED_PUBLISHING_READY=true` only after the trust configuration is complete.
-5. Rerun the Release workflow. It verifies the existing Core version, publishes the still-missing CLI version, verifies both, and then closes the binary artifacts.
+Public Core publication requires a separate OpenSpec activation change. That change must confirm:
 
-Do not use the readiness variable to claim ownership or bypass the first publication. If package identity, registry state, or trusted publishing is uncertain, leave the gate disabled and resolve it before retrying.
+- the final package name and registry;
+- maintainer publication permission;
+- the first-package bootstrap and 2FA owner;
+- trusted-publisher configuration;
+- public versioning and tag policy;
+- independent partial-publication recovery.
+
+Do not remove the Core manifest's private guard or add a variable-controlled publish step before that activation change is approved and validated.
+
+## v1.2.0 recovery
+
+The current `v1.2.0` GitHub Release was created before npm publication completed. After this split-release workflow lands, rerun the Release workflow for `main`. It will use the immutable v1.2.0 release commit, publish or verify `quantex-cli@1.2.0`, and upload the already defined standalone artifacts without attempting to publish `@quantex/core`.

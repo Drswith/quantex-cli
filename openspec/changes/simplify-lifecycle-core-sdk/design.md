@@ -34,7 +34,7 @@ Stakeholders are CLI users, automation consuming JSON/NDJSON and exit codes, dow
 
 ### Decision: publish one Core package beside the root CLI package
 
-Keep `quantex-cli` at the repository root and add a single workspace package, provisionally `@quantex/core`, in `packages/core`. Both packages use the same repository, version train, protected branches, and release tag. The Core package exposes only `.` and `./package.json`, is ESM-only, includes declarations, and supports Node.js 20 or newer and Bun.
+Keep `quantex-cli` at the repository root and add a single workspace package, provisionally `@quantex/core`, in `packages/core`. Both source manifests remain synchronized on the repository version train while Core is private, but only `quantex-cli` participates in the established npm and GitHub Release closure. The Core package exposes only `.` and `./package.json`, is ESM-only, includes declarations, and supports Node.js 20 or newer and Bun.
 
 The repository keeps one canonical Core source tree. The root CLI consumes that source through the Core package identity while its published runtime and standalone binaries explicitly inline Core during the 1.x transition. This preserves a real source dependency boundary without making CLI installation depend on a second registry artifact. The package boundary is enforced by import and packed-artifact tests, not by duplicating lifecycle code into two source trees.
 
@@ -50,7 +50,7 @@ Why this over several domain/provider packages:
 
 - More packages would turn internal seams into versioned public coordination and increase the release surface without improving the product mission.
 
-The package name is not considered publishable until npm scope ownership and trusted-publisher bootstrap are verified. That operational check may change the provisional public name before the first release, but not the two-package boundary or SDK shape.
+The package name is not considered publishable until npm scope ownership and trusted-publisher bootstrap are verified. Until a separate activation change completes those checks, the Core manifest remains private, release automation never publishes or registry-verifies it, and product docs must not present its planned npm install command as currently available. Activation may change the provisional public name without changing the two-package boundary or SDK shape.
 
 ### Decision: expose one instance client and add capabilities only when implemented
 
@@ -68,6 +68,33 @@ The first stable Core release exposes `createQuantex`, `list`, and `inspect`. Mu
 Expected lifecycle failures return a serializable discriminated `CoreResult<T>` instead of throwing CLI-shaped errors. Inspection is one discriminated union with `missing`, `managed`, `external`, `stale`, `conflict`, and `indeterminate` states, preventing invalid combinations of presence and ownership. Mutations eventually return a compact lifecycle change with before/after observations and source; they do not expose the internal plan graph.
 
 Request options contain explicit cancellation and timeout. Mutation options add only preview versus apply. Run options make install policy and standard IO explicit. CLI-only concerns such as output mode, prompting, color, quiet mode, exit mapping, and client-supplied idempotency keys are excluded.
+
+The 1.3 install and ensure result is deliberately smaller than the CLI command result:
+
+```ts
+type AgentMutationDecision = 'already-satisfied' | 'external-preserved' | 'install' | 'reinstall'
+
+type AgentMutation =
+  | {
+      mode: 'preview'
+      decision: AgentMutationDecision
+      before: AgentInspection
+      source?: AgentSource
+      wouldChange: boolean
+    }
+  | {
+      mode: 'apply'
+      decision: AgentMutationDecision
+      before: AgentInspection
+      after: AgentInspection
+      source?: AgentSource
+      changed: boolean
+    }
+```
+
+Preview never fabricates an `after` inspection. Apply defaults when mode is omitted and always returns a fresh `after` inspection. PATH-only executables remain `external-preserved` in the public SDK; if the maintained v1 CLI still needs its historical narrowly safe adoption heuristic, that policy stays private to the compatibility adapter and is removed with that compatibility branch rather than becoming an SDK option.
+
+Mutation failures use stable domain codes and include compact `phase` (`decide`, `execute`, `verify`, `record`, or `compensate`) and `sideEffect` (`none`, `compensated`, or `may-remain`) details. They do not publish the provider outcome, internal plan, receipt, state, or compensation interface.
 
 Why this over publishing all current exports:
 
@@ -100,6 +127,12 @@ The current generic plan model supports dependency edges, effect lists, precondi
 7. compensate only resources proven to have been created by this invocation.
 
 Typed first-party provider drivers remain. They own reliable `present | absent | unknown` observation, operation execution, verification evidence, cancellation, and provider-specific platform behavior. Declarative recipes may describe target, argv, and risk, but they do not replace provider observation. This preserves the historical cargo, Deno, pip, winget, npm, Bun, script, and binary lessons while allowing the legacy boolean package-manager facade and duplicate capability tables to disappear after callers migrate.
+
+Install and ensure use a Core-owned narrow decision/execution module instead of importing the legacy `reconcileAgentInstallation`, package-manager facade, or single-step DAG. Apply holds one explicit-config-directory lifecycle lock across fresh observation, decision, the first provider side effect, verification, atomic schema-version-2 recording, and final observation. Preview performs only the required read probes and takes no write lock. Missing agents may try availability probes before selecting one recipe; stale agents may use only their exact recorded source. After a provider side effect starts, no other provider or engine is eligible for that invocation.
+
+The provider process primitive accepts only an invocation-owned operation context, including its signal, timeout, cleanup registration, and explicit output policy. CLI-global stdio and cancellation projection remain in a legacy wrapper that Core cannot import. Lifecycle and state locks similarly gain an explicit configuration-root primitive, with the current global-config helpers reduced to compatibility wrappers around it.
+
+State recording registers a rollback resource before its first asynchronous write and retains the original document. If interruption races with the atomic write, cleanup waits for that write and restores the original document before returning. Provider compensation is automatic only when pre-observation conclusively proves the target absent and the invocation proves it created that resource. Script/binary effects without a reliable uninstall are reported as `may-remain`; Core never guesses at file deletion. Bun trust recovery retains its existing pre-existing-versus-new ownership rule.
 
 Why this over pure command recipes:
 
@@ -143,15 +176,17 @@ Rollback is an explicit whole-invocation route selected before work begins. The 
 
 Core `ensure` is semantically idempotent through observation and postcondition verification. The maintained `--idempotency-key` contract remains in the CLI adapter because it is a client/protocol replay feature coupled to normalized CLI requests and v1 results. Its stored request fingerprints, live replay validation, expiry, and no-record-on-dry-run/failure/cancellation semantics remain unchanged throughout 1.x.
 
-### Decision: publish Core and CLI on one coordinated version train
+### Decision: split CLI release closure from deferred Core publication
 
 Release-please continues to manage the root release version and one GitHub tag. It synchronizes the Core package version and the root's exact same-version development dependency. CLI npm and standalone binary builds explicitly inline Core; the published CLI has no runtime registry dependency on Core during the 1.x transition.
 
-Publishing runs Core first, verifies the registry version, then publishes the CLI and uploads standalone artifacts. Recovery is idempotent per package and treats a Core-era release as npm-complete only when both repository-owned packages exist at that version. Releases whose source predates `packages/core/package.json` remain CLI-only and MUST NOT be misclassified as missing Core or backfilled with a package they never contained. Release PR policy checks that the title, root version, Core version, and root Core development dependency are equal and rejects workspace protocols.
+The main Release workflow builds and pack-validates Core as repository source, but its public closure contains only `quantex-cli` on npm plus the GitHub Release and standalone artifacts. It inspects and recovers `quantex-cli` independently and does not query, publish, or backfill the provisional Core package. Before making a GitHub Release public, it validates the release source and publishes or verifies the exact CLI npm version. Release PR policy still checks that the title, root version, private Core version, and root Core development dependency are equal and rejects workspace protocols so in-repository compatibility remains reproducible.
 
-The existing `quantex` alias repository remains outside this repository's release coordination. Core package bootstrap requires confirmed npm namespace ownership before publication. npm requires a package to exist before a trusted publisher can be configured, so the first Core version is a deliberate two-stage operation: an authorized maintainer publishes the already validated package once with 2FA, then configures `release.yml` as its trusted publisher and marks the repository gate ready. Automated Core-first publication starts only after that bootstrap; a missing scope, uncertain registry response, or unconfirmed gate fails closed before CLI publication.
+The existing `quantex` alias repository remains outside this repository's release coordination. Core publication requires a separate OpenSpec activation change after the final npm identity, owner permission, first-package bootstrap, trusted publisher, versioning policy, and recovery semantics are all known. That activation removes the private guard and adds an independently recoverable Core publication path; it does not become a prerequisite for CLI releases. A repository variable alone cannot activate Core publication.
 
 Builds use explicit CLI and Core tsdown configurations rather than experimental workspace auto-discovery. Packed-package tests install real tarballs into clean temporary consumers, compile under TypeScript NodeNext, and execute with Node.js 20 and Bun. The Core tarball contains no CLI binary, prompts, command modules, source, tests, or release binaries. Its initial read-only runtime entry stays below an 80,000-byte uncompressed budget and is scanned for high-signal mutation, cache/network, CLI-context, self-upgrade, and release fragments. A TypeScript import-closure test independently enforces the allowed source boundary. Package validation also proves the CLI tarball and standalone binary work without Core installed and contain no unresolved Core package import.
+
+Mutation methods are loaded through an internal build chunk so importing the Core root or using read-only methods does not initialize mutation providers. The root entry retains its read-only size budget. Package validation allowlists emitted internal chunks by verified build output rather than broad globs and scans every chunk for CLI, presentation, self-upgrade, release, and unsupported infrastructure leakage.
 
 Repository installation disables lifecycle scripts through Bun configuration. This prevents a default-trusted dependency postinstall from running against Bun's workspace store layout and keeps install behavior fail-closed; hook setup, builds, tests, and publication are explicit commands rather than ambient install side effects. CI caches Bun's download store only and recreates `node_modules` on every job, because archived Windows workspace links can restore as an incomplete dependency graph even when a frozen install reports no changes.
 
@@ -161,7 +196,7 @@ The minimum transition is:
 
 | Stable line | Default routing | Required evidence |
 |---|---|---|
-| 1.2.x | Publish stable read-only Core; CLI mutation remains legacy | Packed SDK consumer and purity tests, v1 fixtures unchanged, N-1 state/idempotency read, integration-branch Linux/macOS/Windows CI and Sandbox coverage |
+| 1.2.x | Establish the private, independently packable read-only Core boundary; CLI mutation remains legacy | Packed SDK consumer and purity tests, v1 fixtures unchanged, N-1 state/idempotency read, integration-branch Linux/macOS/Windows CI and Sandbox coverage |
 | 1.3.x | Core mutations only on beta or explicit whole-invocation opt-in | Differential lifecycle matrix, all first-party provider conformance, no post-side-effect fallback |
 | 1.4.x | Core is stable default; legacy remains an explicit pre-invocation escape route | All platforms, packed packages, sandbox, cancellation, timeout, ghost state, corrupt state, and Windows smoke gates; no known critical or important regression |
 | 1.5.x | Core remains default for a second stable minor; legacy is frozen but runnable | Rollback drill, downgrade matrix, migration docs, deprecation inventory, and unchanged v1 contracts |
@@ -177,9 +212,9 @@ Removal is permitted only in a later major release through a separate deprecatio
 - [A state change makes downgrade destructive] → Freeze schema version 2 and run released N/N-1 bidirectional mutation tests before promotion.
 - [Provider abstraction is simplified past its evidence boundary] → Preserve typed tri-state driver conformance and remove only duplicate projections and boolean facades.
 - [A broad SDK surface becomes another compatibility burden] → Publish only implemented vertical slices, expose domain results rather than infrastructure, and add capabilities additively.
-- [Coordinated npm publication becomes partially complete] → Publish and verify Core first, then CLI; resolve and recover each package independently while using one tag; treat pre-Core releases as CLI-only.
-- [npm cannot configure trusted publishing for a package that does not exist] → Stop the first Core release before any automated publish, bootstrap the validated package once with an authorized 2FA maintainer, configure trust, and only then enable automatic publication.
-- [The provisional npm scope cannot be published] → Verify ownership and trusted publishing before enabling publication; choose the final public name before the first package release.
+- [CLI publication is blocked by an unavailable Core namespace] → Keep Core private and outside CLI release resolution; validate its tarball locally while recovering CLI npm and GitHub artifacts independently.
+- [npm cannot configure trusted publishing for a package that does not exist] → Require a separate Core activation change to define and execute the one-time bootstrap without changing CLI release closure.
+- [The provisional npm scope cannot be published] → Keep the provisional identity private and allow activation to choose a different final public name before the first Core npm release.
 - [Windows regressions are hidden by Linux-heavy PR CI] → Include the integration branch in workflows and make Windows shim, cancellation, and replacement smoke tests promotion gates. Cancellation smoke tests preserve typed provider outcomes before the v1 boolean compatibility projection so an interruption that settles during the late-completion grace cannot become a platform-dependent `INSTALL_FAILED`.
 - [Long-lived compatibility code becomes permanent] → Require a 1.5 deprecation inventory and a separately approved major removal change after the soak, while forbidding new features in the legacy engine.
 
@@ -191,11 +226,12 @@ Removal is permitted only in a later major release through a separate deprecatio
    - Include the integration branch in Linux, macOS, Windows, package, and sandbox validation.
    - Establish semantic root-export tests before changing declaration generation; do not refresh existing compatibility fixtures merely to make the refactor pass.
 
-2. **Core package and read-only vertical slice (1.2)**
+2. **Private Core package and read-only vertical slice (1.2)**
    - Add the workspace package, explicit build, packed consumer, purity, re-entrancy, and cancellation-isolation tests.
    - Implement only `createQuantex`, `list`, and `inspect` as the first stable surface.
    - Make legacy inspection adapters consume the same canonical observation implementation without changing CLI output or state.
    - Verify previous-release state/idempotency input and bidirectional state compatibility.
+   - Keep public npm activation deferred; do not make CLI release recovery depend on the provisional Core identity.
 
 3. **Install and ensure vertical slice (1.3 beta/opt-in)**
    - Move decision, recipe, verification, receipt, and scoped compensation behind Core.
@@ -215,7 +251,9 @@ Removal is permitted only in a later major release through a separate deprecatio
    - Keep Core default for a second stable minor, freeze the legacy engine, publish migration guidance, and inventory every compatibility export or branch that may later be removed.
    - Keep this umbrella change active until all accepted milestones and current-spec synchronization are complete.
 
-7. **Later major cleanup**
+7. **Core package activation and later major cleanup**
+   - Create a separate activation change when the final package identity and publisher authority are available.
+   - Remove the private guard and add Core publication/recovery only after clean-tarball and trusted-publisher gates pass.
    - After both the version and 90-day gates, create a separate deprecation OpenSpec change.
    - Remove only surfaces with stable replacements and completed telemetry/test evidence; preserve state migration and self-upgrade guarantees independently.
 
@@ -223,6 +261,6 @@ Rollback before Core becomes default means selecting legacy for the next whole i
 
 ## Open Questions
 
-- Does the maintainer control the `@quantex` npm scope and can it be configured for trusted publishing? If not, choose and reserve an unscoped name before the 1.2 publication PR.
+- Which final public package identity and registry will be activated after publisher authority is available?
 - Which exact integration-branch name should remain in CI after this initial branch, if future milestone branches are cut from it?
 - Which real Windows environment will own the delayed-replacement and process-tree smoke gate before 1.4 promotion?

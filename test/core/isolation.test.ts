@@ -252,6 +252,35 @@ describe('Core invocation isolation', () => {
     expect(cleaned).toBe(true)
   })
 
+  it('returns interruption details after cleanup reaches its terminal phase', async () => {
+    const started = deferred()
+    const controller = new AbortController()
+    const ports: CoreReadPorts = {
+      async inspectAgent(_name, context) {
+        context.setInterruptionDetails({ phase: 'record', sideEffect: 'may-remain' })
+        context.registerCleanup({
+          cleanup() {
+            context.setInterruptionDetails({ phase: 'compensate', sideEffect: 'compensated' })
+          },
+        })
+        started.resolve()
+        return new Promise<CoreAgentObservation>(() => undefined)
+      },
+      async listAgents() {
+        return [agent]
+      },
+    }
+
+    const resultPromise = createQuantexClient({}, ports).inspect(agent.name, { signal: controller.signal })
+    await started.promise
+    controller.abort('cancel-with-domain-details')
+
+    await expect(resultPromise).resolves.toMatchObject({
+      error: { code: 'cancelled', details: { phase: 'compensate', sideEffect: 'compensated' } },
+      ok: false,
+    })
+  })
+
   it('waits for an owned force cleanup that outlives the former grace window', async () => {
     const started = deferred()
     const forceStarted = deferred()
@@ -283,7 +312,7 @@ describe('Core invocation isolation', () => {
       return undefined
     })
 
-    await new Promise(resolve => setTimeout(resolve, 325))
+    await new Promise(resolve => setTimeout(resolve, 625))
     expect(returned).toBe(false)
     releaseForce.resolve()
 

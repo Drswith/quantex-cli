@@ -1,4 +1,4 @@
-import { spawnWithQuantexStdio, waitForSpawnedCommand } from './child-process'
+import { spawnWithQuantexStdio, waitForSpawnedCommand } from './cli-child-process'
 
 export async function execCommand(command: string, args: string[]): Promise<{ success: boolean; exitCode: number }> {
   try {

@@ -1,6 +1,8 @@
 import type { ProviderExecutionEffect, ProviderOperationContext, ProviderTarget } from '../../src/providers'
 import { describe, expect, it, vi } from 'vitest'
 import { createInstallEffectProviderAdapter, getEffectCommand } from '../../src/providers/adapters/install-effect'
+import { getPlatform } from '../../src/utils/detect'
+import { describeProviderConformance } from './conformance'
 
 const context: ProviderOperationContext = { signal: new AbortController().signal, timeoutMs: 5_000 }
 
@@ -16,9 +18,116 @@ function pendingMutation() {
   return vi.fn(() => new Promise<never>(() => {}))
 }
 
-function target(kind: 'binary' | 'script', effect: ProviderExecutionEffect): ProviderTarget {
-  return { binaryName: 'example', effect, id: 'example-agent', kind }
+function target(
+  kind: 'binary' | 'script',
+  effect: ProviderExecutionEffect,
+  overrides: Partial<ProviderTarget> = {},
+): ProviderTarget {
+  return { binaryName: 'example', effect, id: 'example-agent', kind, ...overrides }
 }
+
+function addInstallEffectConformance(id: 'binary' | 'script'): void {
+  const failedEffect =
+    id === 'script'
+      ? ({ command: 'exit 23', kind: 'shell-script' } as const)
+      : ({ command: ['fixture-installer', '--fail'], kind: 'executable' } as const)
+  const successfulEffect =
+    id === 'script'
+      ? ({ command: 'echo installed', kind: 'shell-script' } as const)
+      : ({ command: ['fixture-installer', '--install'], kind: 'executable' } as const)
+  const pendingEffect =
+    id === 'script'
+      ? ({ command: 'sleep 30', kind: 'shell-script' } as const)
+      : ({ command: ['fixture-installer', '--wait'], kind: 'executable' } as const)
+  const requestedTarget = target(id, failedEffect, {
+    binaryName: `${id}-present`,
+    id: `${id}-agent`,
+  })
+  const absentTarget = target(id, successfulEffect, {
+    binaryName: `${id}-absent`,
+    id: `${id}-agent-absent`,
+  })
+  const indeterminateTarget: ProviderTarget = {
+    effect: successfulEffect,
+    id: `${id}-agent-unknown`,
+    kind: id,
+  }
+  const successfulTarget = target(id, successfulEffect, {
+    binaryName: `${id}-present`,
+    id: `${id}-agent-success`,
+  })
+  const pendingTarget = target(id, pendingEffect, {
+    binaryName: `${id}-present`,
+    id: `${id}-agent-pending`,
+  })
+  const failedCommand = getEffectCommand(failedEffect, getPlatform())
+  const successfulCommand = getEffectCommand(successfulEffect, getPlatform())
+
+  describeProviderConformance(`${id} provider`, () => {
+    const execute = vi.fn(async (effect: ProviderExecutionEffect) => {
+      if (effect === failedEffect) throw new Error('fixture execution failed')
+      if (effect === pendingEffect) return new Promise<never>(() => {})
+      return { kind: 'success', value: undefined } as const
+    })
+    const adapter = createInstallEffectProviderAdapter(id, {
+      execute,
+      isExecutablePresent: vi.fn(async binaryName => binaryName !== `${id}-absent`),
+    })
+
+    return {
+      adapter,
+      cases: {
+        absentEvidence: { kind: 'executable', value: `${id}-absent` },
+        absentTarget,
+        cancelled: (subject, signalContext) => subject.install?.({ context: signalContext, target: pendingTarget }),
+        failed: {
+          expected: {
+            command: failedCommand,
+            evidence: [
+              { kind: 'provider', value: id },
+              { kind: 'command', value: failedCommand.join(' ') },
+            ],
+            reason: `${id} install failed for ${requestedTarget.id}: fixture execution failed`,
+            remediation: 'Review the installer output and upstream installation instructions.',
+            retryable: false,
+          },
+          invoke: (subject, signalContext, requested) =>
+            subject.install?.({ context: signalContext, target: requested }),
+        },
+        indeterminate: {
+          evidence: { kind: 'provider', value: `${id}:${indeterminateTarget.id}:presence-unknown` },
+          reason: `${id} candidate does not declare an executable presence probe`,
+          target: indeterminateTarget,
+        },
+        present: {
+          evidence: { kind: 'executable', value: `${id}-present` },
+          target: requestedTarget,
+        },
+        successfulMutation: {
+          expected: {
+            evidence: [
+              { kind: 'provider', value: id },
+              { kind: 'command', value: successfulCommand.join(' ') },
+            ],
+            target: successfulTarget,
+          },
+          invoke: (subject, signalContext) => subject.install?.({ context: signalContext, target: successfulTarget }),
+        },
+        timedOut: {
+          invoke: (subject, signalContext) => subject.install?.({ context: signalContext, target: pendingTarget }),
+          timeoutMs: 2,
+        },
+        unsupported: 'update',
+        verificationEvidence: { kind: 'executable', value: `${id}-present` },
+      },
+      context,
+      target: requestedTarget,
+    }
+  })
+}
+
+addInstallEffectConformance('script')
+addInstallEffectConformance('binary')
 
 describe('script and standalone-binary provider effects', () => {
   it('keeps shell-script effects explicit and platform invocation deterministic', () => {
@@ -48,10 +157,11 @@ describe('script and standalone-binary provider effects', () => {
     expect(execute).toHaveBeenCalledWith(effect, context)
   })
 
-  it('exposes install but not update or uninstall capabilities', () => {
+  it('exposes install and fresh verification but no reversible mutation capability', () => {
     const adapter = createInstallEffectProviderAdapter('script', { execute: mutation() })
 
     expect(adapter.install).toBeTypeOf('function')
+    expect(adapter.verify).toBeTypeOf('function')
     expect(adapter.update).toBeUndefined()
     expect(adapter.updateMany).toBeUndefined()
     expect(adapter.uninstall).toBeUndefined()

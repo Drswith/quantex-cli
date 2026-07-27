@@ -12,7 +12,7 @@ on:
     branches:
       - main
       - beta
-      - codex/simplify-core-sdk-integration
+      - 'codex/simplify-core-sdk-*'
 
   schedule:
     - cron: '0 6 * * 2'

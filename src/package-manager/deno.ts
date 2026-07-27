@@ -1,11 +1,12 @@
 import type { ProviderOperationContext } from '../providers'
-import type { PackageMutationOutcome } from './mutation-outcome'
+import type { PackageMutationOutcome } from './context-mutation'
 import { access, constants } from 'node:fs/promises'
 import { homedir } from 'node:os'
 import { join } from 'node:path'
 import process from 'node:process'
 import { isProcessInterruptionError } from '../utils/child-process'
-import { projectLegacyPackageMutation, runPackageMutationOutcome, runPackageMutationSequence } from './mutation-outcome'
+import { runPackageMutationOutcome, runPackageMutationSequence } from './context-mutation'
+import { projectLegacyPackageMutation } from './mutation-outcome'
 
 async function runDenoInstallCommand(
   packageName: string,

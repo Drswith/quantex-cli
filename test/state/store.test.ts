@@ -52,6 +52,20 @@ describe('LifecycleStateStore', () => {
     expect(persistence.saved[0]?.lifecycleReceipts).toHaveProperty('codex')
   })
 
+  it('replaces one complete validated current document without changing its schema', async () => {
+    const persistence = new MemoryPersistence(currentDocument())
+    const store = new LifecycleStateStore(persistence)
+    const replacement: VersionedQuantexState = {
+      ...currentDocument(),
+      self: { updateNoticeVersion: '1.2.0' },
+    }
+
+    await store.saveDocument(replacement)
+
+    expect(persistence.saved).toEqual([replacement])
+    expect(await store.loadDocument()).toEqual(replacement)
+  })
+
   it('writes and removes only verified receipt-shaped evidence', async () => {
     const persistence = new MemoryPersistence(undefined)
     const store = new LifecycleStateStore(persistence)
