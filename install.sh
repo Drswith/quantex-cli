@@ -59,47 +59,78 @@ ln -sf "$INSTALL_DIR/quantex" "$INSTALL_DIR/qtx"
 
 mkdir -p "$state_dir"
 
-if command -v python3 >/dev/null 2>&1; then
-  python3 - "$state_file" <<'PY'
+record_binary_install_source() {
+  python_bin=""
+  if command -v python3 >/dev/null 2>&1; then
+    python_bin="python3"
+  elif command -v python >/dev/null 2>&1; then
+    python_bin="python"
+  else
+    return 0
+  fi
+
+  "$python_bin" - "$state_file" <<'PY'
 import json
+import os
 import sys
+import tempfile
 from pathlib import Path
 
 state_path = Path(sys.argv[1])
-state = {"installedAgents": {}, "self": {}}
+state_path.parent.mkdir(parents=True, exist_ok=True)
+
+def warn_and_skip(reason: str) -> None:
+    print(f"Warning: leaving existing state.json untouched ({reason}).", file=sys.stderr)
+    raise SystemExit(0)
 
 if state_path.exists():
     try:
         state = json.loads(state_path.read_text())
-    except Exception:
-        pass
+    except Exception as error:
+        warn_and_skip(f"unreadable or invalid JSON: {error}")
+    if not isinstance(state, dict):
+        warn_and_skip("root value is not a JSON object")
+    if "installedAgents" in state and not isinstance(state["installedAgents"], dict):
+        warn_and_skip("installedAgents is not an object")
+    if "lifecycleReceipts" in state and not isinstance(state["lifecycleReceipts"], dict):
+        warn_and_skip("lifecycleReceipts is not an object")
+    if "self" in state and not isinstance(state["self"], dict):
+        warn_and_skip("self is not an object")
+    schema_version = state.get("schemaVersion")
+    if schema_version is not None and schema_version != 2:
+        warn_and_skip(f'unsupported schemaVersion "{schema_version}"')
+else:
+    state = {
+        "schemaVersion": 2,
+        "installedAgents": {},
+        "lifecycleReceipts": {},
+        "self": {},
+    }
 
 state.setdefault("installedAgents", {})
+state.setdefault("lifecycleReceipts", {})
 state.setdefault("self", {})
+if not isinstance(state["self"], dict):
+    warn_and_skip("self is not an object")
 state["self"]["installSource"] = "binary"
-state_path.write_text(json.dumps(state, indent=2) + "\n")
-PY
-elif command -v python >/dev/null 2>&1; then
-  python - "$state_file" <<'PY'
-import json
-import sys
-from pathlib import Path
 
-state_path = Path(sys.argv[1])
-state = {"installedAgents": {}, "self": {}}
-
-if state_path.exists():
+fd, tmp_name = tempfile.mkstemp(prefix="state.", suffix=".tmp", dir=str(state_path.parent))
+try:
+    with os.fdopen(fd, "w", encoding="utf-8") as handle:
+        handle.write(json.dumps(state, indent=2) + "\n")
+        handle.flush()
+        os.fsync(handle.fileno())
+    os.replace(tmp_name, state_path)
+except Exception:
     try:
-        state = json.loads(state_path.read_text())
-    except Exception:
+        os.unlink(tmp_name)
+    except OSError:
         pass
-
-state.setdefault("installedAgents", {})
-state.setdefault("self", {})
-state["self"]["installSource"] = "binary"
-state_path.write_text(json.dumps(state, indent=2) + "\n")
+    raise
 PY
-fi
+}
+
+record_binary_install_source
 
 echo "Installed quantex to $INSTALL_DIR/quantex"
 echo "Installed qtx symlink to $INSTALL_DIR/qtx"
