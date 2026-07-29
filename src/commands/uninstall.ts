@@ -197,6 +197,21 @@ export async function uninstallCommand(agentName: string): Promise<CommandResult
           { isCancelled: () => Boolean(getCliContext().cancelled) },
         )
         if (!postconditionSatisfied) {
+          const providerAfterFailure = await observeBoundProvider(binding)
+          if (providerAfterFailure.kind === 'success' && providerAfterFailure.value.kind === 'absent') {
+            // Managed package is gone; a residual PATH binary is not Quantex-owned tracking.
+            // Do not restore installed-agent state that uninstallInstalledAgentOutcome already cleared.
+            await removeLifecycleReceipt(agent.name)
+            return emitCommandResult(
+              createUninstallFailure(
+                agent,
+                'conflicting-source',
+                `${agent.displayName}'s managed package was removed, but another copy remains on PATH.`,
+              ),
+              renderUninstallHuman,
+            )
+          }
+
           await setInstalledAgentState(installedState)
           return emitCommandResult(
             createUninstallFailure(

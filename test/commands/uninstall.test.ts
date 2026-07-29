@@ -171,7 +171,8 @@ describe('uninstallCommand', () => {
       code: 'UNINSTALL_FAILED',
       details: { lifecycle: 'verification-failed' },
     })
-    expect(observeProviderSpy).toHaveBeenCalledTimes(2)
+    // before + one wait poll + postcondition failure re-check before restoring evidence
+    expect(observeProviderSpy).toHaveBeenCalledTimes(3)
     expect(removeReceiptSpy).not.toHaveBeenCalled()
     expect(setInstalledStateSpy).toHaveBeenCalledWith(managedInstalledState)
   })
@@ -453,6 +454,33 @@ describe('uninstallCommand', () => {
     })
     expect(removeReceiptSpy).not.toHaveBeenCalled()
     expect(setInstalledStateSpy).toHaveBeenCalledWith(managedInstalledState)
+  })
+
+  it('does not restore managed state when provider is absent but a PATH residual remains', async () => {
+    agentSpy.mockReturnValue(testAgent)
+    installedStateSpy.mockResolvedValue(managedInstalledState)
+    getReceiptSpy.mockResolvedValue(managedReceipt)
+    binaryInPathSpy.mockResolvedValue(true)
+    observeProviderSpy
+      .mockImplementationOnce(async binding => ({
+        kind: 'success',
+        value: { kind: 'present', target: binding.target },
+      }))
+      .mockImplementation(async binding => ({
+        kind: 'success',
+        value: { kind: 'absent', target: binding.target },
+      }))
+    uninstallSpy.mockResolvedValue(true)
+
+    const result = await uninstallCommand('test-agent')
+
+    expect(result.error).toMatchObject({
+      code: 'UNINSTALL_FAILED',
+      details: { lifecycle: 'conflicting-source' },
+      message: expect.stringContaining('another copy remains on PATH'),
+    })
+    expect(setInstalledStateSpy).not.toHaveBeenCalled()
+    expect(removeReceiptSpy).toHaveBeenCalledWith('test-agent')
   })
 
   it('untracks a script install without requiring PATH absence', async () => {
