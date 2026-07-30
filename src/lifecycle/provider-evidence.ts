@@ -8,6 +8,7 @@ export {
   resolveCatalogProviderBindings,
   resolveCatalogProviderEvidence,
   resolveInstallMethodProviderBinding,
+  resolvePersistedProviderBinding,
   resolveReceiptProviderBinding,
   resolveStateProviderBinding,
 } from './provider-binding'

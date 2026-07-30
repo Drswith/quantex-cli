@@ -7,6 +7,7 @@ import {
   type LifecycleProviderBinding,
   providerBindingsEqual,
   resolveCatalogProviderEvidence,
+  resolvePersistedProviderBinding,
   resolveReceiptProviderBinding,
   resolveStateProviderBinding,
 } from './provider-binding'
@@ -64,7 +65,7 @@ export async function observeAgentLifecycle(
   const catalogMethods = catalogEvidence.bindings
   const stateBinding = installedState ? resolveStateProviderBinding(agent, installedState) : undefined
   const receiptBinding = receipt ? resolveReceiptProviderBinding(receipt) : undefined
-  const persistedBinding = receiptBinding ?? stateBinding
+  const persistedBinding = resolvePersistedProviderBinding(stateBinding, receiptBinding, agent.binaryName)
   const base = { catalogMethods, executable, installedState, pathExecutable: executable, persistedBinding, receipt }
 
   if ((installedState && !stateBinding) || (receipt && !receiptBinding)) {
