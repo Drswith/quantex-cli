@@ -52,6 +52,34 @@ export function resolveReceiptProviderBinding(receipt: LifecycleReceipt): Lifecy
   }
 }
 
+/**
+ * Compose the persisted provider binding used for lifecycle observation and update.
+ * Receipts omit package install arguments; when state and receipt identities agree,
+ * overlay recorded state arguments onto the receipt binding.
+ */
+export function resolvePersistedProviderBinding(
+  stateBinding: LifecycleProviderBinding | undefined,
+  receiptBinding: LifecycleProviderBinding | undefined,
+  defaultExecutableName?: string,
+): LifecycleProviderBinding | undefined {
+  if (!stateBinding) return receiptBinding
+  if (!receiptBinding) return stateBinding
+  if (!providerBindingsEqual(stateBinding, receiptBinding, defaultExecutableName)) {
+    return receiptBinding
+  }
+
+  const argumentsFromState = stateBinding.target.arguments
+  if (!argumentsFromState?.length) return receiptBinding
+
+  return {
+    providerId: receiptBinding.providerId,
+    target: {
+      ...receiptBinding.target,
+      arguments: [...argumentsFromState],
+    },
+  }
+}
+
 export function resolveCatalogProviderBindings(
   agent: AgentDefinition,
   platform: Platform,
