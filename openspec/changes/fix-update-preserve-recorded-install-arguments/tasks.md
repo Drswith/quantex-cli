@@ -12,5 +12,5 @@
 
 ## 3. Validation
 
-- [ ] 3.1 Run `bun run lint`, `bun run format:check`, `bun run typecheck`, and `bun run test`
-- [ ] 3.2 Run `bun run openspec:validate`
+- [x] 3.1 Run `bun run lint`, `bun run format:check`, `bun run typecheck`, and `bun run test`
+- [x] 3.2 Run `bun run openspec:validate`
