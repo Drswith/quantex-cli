@@ -6,7 +6,7 @@
       ],
       "exitCode": 0,
       "goldens": {
-        "human": "d9c5b774f09ad11adf5d0e9ce62b21aa40b2bb2de9d800f7d8110222b5b668fb",
+        "human": "98e29e1d033ae277ffb3cc968f366b7eb5eb9d0bbddc40377f1330ce7659f99c",
         "json": "f108ef561bdf444897aa6ce8f2053bd77913f29bae3e2e498e167b4f12092df2",
         "ndjson": "fb0454ab8ec927255488aa5d0886784ce7ee382d180729a6f4ff84c4e7741509"
       },
@@ -23,7 +23,7 @@
       ],
       "exitCode": 0,
       "goldens": {
-        "human": "47e9b0bf27b3738528a0fe2c7e5961f4f691420721f3ce014c8b95b0e3562b05",
+        "human": "2e2b68c406ad0f508df1b367bdef79c50a3dbe731659641f2586d489131c0b9c",
         "json": "9af88b958e00e69f827204b36327668b0f8418089a2b72ad83b7e250e8181a31",
         "ndjson": "f596f54ab37f7a138fed828b1aedfd962fb7c6f3d98c9ad0c57f3ae8b34ff1ed"
       },
@@ -59,7 +59,7 @@
       ],
       "exitCode": 0,
       "goldens": {
-        "human": "c435d7f9c4a5eb32248fa517ef8660ac5a913b9f6357925a1501f6a839983855",
+        "human": "672225aaabb09ef337d5c16c3db431232ee444fa35f2dcee7695afddf4286a35",
         "json": "97ce206df1609d75f2c1dd88b7d7e0ba274b34764e39029f364cd1fe07c8a38c",
         "ndjson": "c02c67ed2761800593e6a115479aa3f10bd5f73679e77a5d5d64fad8a6b547f2"
       },
@@ -121,7 +121,7 @@
         "name": "codex"
       },
       "goldens": {
-        "human": "fd5fd66d8c7fe959ca87d474f0f915178bb6222dcff207366bbb93b7402618c0",
+        "human": "6d1e56a8ac25e5fc8fe584d5960d1697c60782e8c6a00fafdbf2239d547d5bca",
         "json": "f5a1fee6dba3274676eaf8b94ca7efa3c59cb30415c120c4f007e14ed1a12e56",
         "ndjson": "e41e28983250ce96a1c9ca0c22904ca510ad5e483c6873565601b4bfe5d571e2"
       }
@@ -139,7 +139,7 @@
         "name": "codex"
       },
       "goldens": {
-        "human": "fba115c26ae5a159bb7da717357e282e3e9f6dfb007e7a6c197ec23991dab0ea",
+        "human": "5d2985952dc7ace1cf1f7bafb855193dc52e5ca3681828ed8ae7a85a47b170a2",
         "json": "dabee33df8d245a4fb0eba2e8f9f706e46a447c30d13bfbe21788d43ff8332de",
         "ndjson": "b82197ea330052a5e202b8cbdabb50c6a4f7bf7562de6dd6c3f063c3122c2e31"
       }
@@ -175,7 +175,7 @@
         "name": "agents"
       },
       "goldens": {
-        "human": "7266a2a787f65c81f9327e032d54531bdbd3cb564fb9aeef7d1c2307ca926cda",
+        "human": "ee7de1d5ed88931d0172c55b63115c7e46e9250a2373ced2c22d99188923bd32",
         "json": "9c6b17a1114796536f084106ca7f7bca3e9495f66e2e087a8cf4f642af3fb64b",
         "ndjson": "ed7d1beae589fa715e3581b29fd4191bcf33ae20cf8a5688f6b4d34fb9e17f93"
       }
@@ -212,7 +212,7 @@
         "name": "schema"
       },
       "goldens": {
-        "human": "065a41501a9fb9c0426cd8bb6f01ef90f63a0bbaf11a711282eb86aebf3faeb7",
+        "human": "fbf58eeece557ab8b4611f341786fd60d7d99891b5fafefb02bf0a7966f3ff36",
         "json": "f3c26f82c741b09006111119115bd465d8e80dca529be014452ef7271baff9e0",
         "ndjson": "2c5e36df0c37996af70f835420f543001dc20a87dd5e08c9c833312d786464ac"
       }

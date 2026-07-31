@@ -642,10 +642,10 @@ function fixtureBaseline(
     : installed
       ? 'detected in PATH'
       : undefined
-  const installedHuman = installed ? ['Installed: Yes'] : ['Installed: No']
+  const installedHuman = installed ? ['Installed: yes'] : ['Installed: no']
   const inspectHuman = [
     ...installedHuman,
-    recordedInstallType ? 'Update Mode: managed update' : 'Update Mode: command update',
+    recordedInstallType ? 'Update mode: managed update' : 'Update mode: command update',
   ]
   if (installed && source) {
     installedHuman.push(`Source: ${source}`)
@@ -655,14 +655,14 @@ function fixtureBaseline(
   const resolveHuman = installed
     ? [`Source: ${source}`, `Lifecycle: ${recordedInstallType ? 'managed' : 'unmanaged'}`]
     : ['Codex CLI is not installed.', 'Try: quantex ensure codex']
-  const doctorHuman = ['Quantex CLI Environment Check', 'Managed Installers:', 'Installed Agents:', 'Issues:']
-  if (installed) doctorHuman.push(`[${recordedInstallType ? 'managed' : 'unmanaged'}; ${source}]`)
+  const doctorHuman = ['Quantex CLI Environment Check', 'Managed Installers', 'Installed Agents', 'Issues']
+  if (installed) doctorHuman.push('Codex CLI', recordedInstallType ? 'managed' : 'unmanaged')
   else doctorHuman.push('No agents installed')
 
   return {
     commands: {
       capabilities: {
-        human: ['Quantex Capabilities', 'Installers:', 'Features:', 'codex'],
+        human: ['Quantex Capabilities', 'Agents:', 'registered (qtx list)', 'Installers', 'Features'],
         json: {
           agentMarker: true,
           featureKeys: [...FEATURE_KEYS].sort(),
@@ -688,7 +688,7 @@ function fixtureBaseline(
       info: { human: ['Codex CLI', ...installedHuman], json: observations.info },
       inspect: { human: ['Codex CLI', ...inspectHuman], json: observations.inspect },
       list: {
-        human: ['AI Agents:', 'Codex CLI', installed ? 'Codex CLI installed' : 'Codex CLI not installed'],
+        human: ['AI Agents:', 'Agent Installed', installed ? 'Codex CLI yes' : 'Codex CLI no'],
         json: observations.list,
       },
       resolve: {

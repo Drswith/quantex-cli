@@ -1,6 +1,7 @@
 import type { CommandResult } from '../output/types'
 import { projectObservationToV1Inspection } from '../compatibility/agent-inspection'
 import { createErrorResult, createSuccessResult, emitCommandResult } from '../output'
+import { getHumanTerminalWidth, renderHumanFields, renderHumanTable } from '../output/human'
 import { resolveCliReadObservation } from '../services/core-read-observations'
 import { pc } from '../utils/color'
 import { formatInstallMethodCommand, formatInstallMethodLabel } from '../utils/install'
@@ -100,22 +101,39 @@ function renderInfoHuman(result: { data?: AgentInfoData; error: { message: strin
 
   if (!result.data) return
 
+  const width = getHumanTerminalWidth()
   console.log(pc.bold(`\n${result.data.agent.displayName}\n`))
-  console.log(`  Name:         ${result.data.agent.name}`)
-  console.log(`  Aliases:      ${result.data.agent.aliases.join(', ') || '-'}`)
-  console.log(`  Package:      ${result.data.agent.packageName ?? '-'}`)
-  console.log(`  Binary:       ${result.data.agent.binaryName}`)
-  console.log(`  Update:       ${result.data.agent.selfUpdateCommands.join(' || ') || '-'}`)
-  console.log(`  Installed:    ${result.data.inspection.installed ? pc.green('Yes') : pc.red('No')}`)
-  if (result.data.inspection.sourceLabel) console.log(`  Source:       ${result.data.inspection.sourceLabel}`)
-  if (result.data.inspection.installed) console.log(`  Lifecycle:    ${result.data.inspection.lifecycle}`)
-  if (result.data.inspection.installedVersion) console.log(`  Version:      ${result.data.inspection.installedVersion}`)
-  if (result.data.inspection.latestVersion) console.log(`  Latest:       ${result.data.inspection.latestVersion}`)
-  if (result.data.inspection.binaryPath) console.log(`  Path:         ${result.data.inspection.binaryPath}`)
+  const fields = [
+    { label: 'Name', value: result.data.agent.name },
+    { label: 'Aliases', value: result.data.agent.aliases.join(', ') || '—' },
+    { label: 'Package', value: result.data.agent.packageName ?? '—' },
+    { label: 'Binary', value: result.data.agent.binaryName },
+    { label: 'Self update', value: result.data.agent.selfUpdateCommands.join(' · ') || '—' },
+    { label: 'Installed', value: result.data.inspection.installed ? pc.green('yes') : pc.red('no') },
+    ...(result.data.inspection.sourceLabel ? [{ label: 'Source', value: result.data.inspection.sourceLabel }] : []),
+    ...(result.data.inspection.installed ? [{ label: 'Lifecycle', value: result.data.inspection.lifecycle }] : []),
+    ...(result.data.inspection.installedVersion
+      ? [{ label: 'Version', value: result.data.inspection.installedVersion }]
+      : []),
+    ...(result.data.inspection.latestVersion ? [{ label: 'Latest', value: result.data.inspection.latestVersion }] : []),
+    ...(result.data.inspection.binaryPath ? [{ label: 'Path', value: result.data.inspection.binaryPath }] : []),
+  ]
+  for (const line of renderHumanFields(fields, { labelStyle: pc.bold, width })) console.log(line)
 
-  console.log(pc.bold('\n  Install Methods:'))
-  for (const method of result.data.agent.installMethods) {
-    console.log(`    ${pc.green('+')} [${method.label}] ${method.command}`)
+  console.log(pc.bold('\nInstall Methods\n'))
+  if (result.data.agent.installMethods.length === 0) {
+    console.log(pc.dim('  No managed install methods'))
+  } else {
+    for (const line of renderHumanTable(
+      result.data.agent.installMethods,
+      [
+        { header: 'Method', maxWidth: 24, minWidth: 8, value: method => pc.green(method.label) },
+        { header: 'Command', minWidth: 16, value: method => method.command, wrap: true },
+      ],
+      { headerStyle: pc.bold, width },
+    )) {
+      console.log(line)
+    }
   }
 
   console.log()

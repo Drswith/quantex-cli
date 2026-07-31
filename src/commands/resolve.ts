@@ -1,6 +1,7 @@
 import type { CommandResult } from '../output/types'
 import { projectObservationToV1Inspection } from '../compatibility/agent-inspection'
 import { createErrorResult, createSuccessResult, emitCommandResult } from '../output'
+import { getHumanTerminalWidth, renderHumanFields, renderHumanWrapped } from '../output/human'
 import { resolveCliReadObservation } from '../services/core-read-observations'
 import { pc } from '../utils/color'
 import { formatInstallMethodCommand, formatInstallMethodLabel } from '../utils/install'
@@ -137,12 +138,26 @@ export async function resolveCommand(agentName: string): Promise<CommandResult<R
 }
 
 function renderResolveHuman(result: { data?: ResolveCommandData; error: { message: string } | null }): void {
+  const width = getHumanTerminalWidth()
   if (result.error) {
-    console.log(pc.red(result.error.message))
+    for (const line of renderHumanWrapped(pc.red(result.error.message), { width })) console.log(line)
     const guidance = result.data?.resolution.installGuidance
     if (guidance) {
-      console.log(pc.dim(`Try: ${guidance.suggestedEnsureCommand}`))
-      for (const method of guidance.installMethods) console.log(pc.dim(`Install: [${method.label}] ${method.command}`))
+      for (const line of renderHumanWrapped(pc.dim(`Try: ${guidance.suggestedEnsureCommand}`), {
+        continuationIndent: '     ',
+        width,
+      })) {
+        console.log(line)
+      }
+      for (const method of guidance.installMethods) {
+        for (const line of renderHumanWrapped(pc.dim(`[${method.label}] ${method.command}`), {
+          continuationIndent: '         ',
+          indent: 'Install: ',
+          width,
+        })) {
+          console.log(line)
+        }
+      }
     }
     return
   }
@@ -150,13 +165,18 @@ function renderResolveHuman(result: { data?: ResolveCommandData; error: { messag
   if (!result.data) return
 
   console.log(pc.bold(`\n${result.data.agent.displayName}\n`))
-  console.log(`  Name:         ${result.data.agent.name}`)
-  console.log(`  Binary:       ${result.data.agent.binaryName}`)
-  console.log(`  Path:         ${result.data.resolution.binaryPath}`)
-  console.log(`  Source:       ${result.data.resolution.sourceLabel}`)
-  console.log(`  Lifecycle:    ${result.data.resolution.lifecycle}`)
-  console.log(`  Install Type: ${result.data.resolution.installSource}`)
-  if (result.data.resolution.installedVersion) console.log(`  Version:      ${result.data.resolution.installedVersion}`)
-  console.log(`  Launch:       ${result.data.resolution.suggestedLaunchCommand.join(' ')}`)
+  const fields = [
+    { label: 'Name', value: result.data.agent.name },
+    { label: 'Binary', value: result.data.agent.binaryName },
+    { label: 'Path', value: result.data.resolution.binaryPath },
+    { label: 'Source', value: result.data.resolution.sourceLabel },
+    { label: 'Lifecycle', value: result.data.resolution.lifecycle },
+    { label: 'Install type', value: result.data.resolution.installSource },
+    ...(result.data.resolution.installedVersion
+      ? [{ label: 'Version', value: result.data.resolution.installedVersion }]
+      : []),
+    { label: 'Launch', value: result.data.resolution.suggestedLaunchCommand.join(' ') },
+  ]
+  for (const line of renderHumanFields(fields, { labelStyle: pc.bold, width })) console.log(line)
   console.log()
 }

@@ -3,6 +3,7 @@ import { getAgentUpdateFailureHint, getManualAgentUpdateMessage } from '../agent
 import { projectObservationToV1Inspection } from '../compatibility/agent-inspection'
 import { BUILD_PACKAGE_NAME } from '../generated/build-meta'
 import { createSuccessResult, emitCommandResult } from '../output'
+import { getHumanTerminalWidth, renderHumanFields, renderHumanTable, renderHumanWrapped } from '../output/human'
 import { createCliOperationContext } from '../runtime/cli-operation-context'
 import { getSelfUpgradeRecoveryHintForInspection, inspectSelfReadOnly } from '../self'
 import { observeCliReadRegisteredAgents } from '../services/core-read-observations'
@@ -265,48 +266,90 @@ export async function doctorCommand(): Promise<CommandResult<DoctorData>> {
 function renderDoctorHuman(result: { data?: DoctorData }): void {
   if (!result.data) return
 
+  const width = getHumanTerminalWidth()
   console.log(pc.bold('\nQuantex CLI Environment Check\n'))
 
-  console.log(pc.bold('Managed Installers:'))
-  console.log(`  Bun:   ${result.data.installers.bun ? pc.green('available') : pc.red('not found')}`)
-  console.log(`  npm:   ${result.data.installers.npm ? pc.green('available') : pc.red('not found')}`)
-  console.log(`  brew:  ${result.data.installers.brew ? pc.green('available') : pc.red('not found')}`)
-  console.log(`  cargo: ${result.data.installers.cargo ? pc.green('available') : pc.red('not found')}`)
-  console.log(`  deno:  ${result.data.installers.deno ? pc.green('available') : pc.red('not found')}`)
-  console.log(`  mise:  ${result.data.installers.mise ? pc.green('available') : pc.red('not found')}`)
-  console.log(`  pip:   ${result.data.installers.pip ? pc.green('available') : pc.red('not found')}`)
-  console.log(`  uv:    ${result.data.installers.uv ? pc.green('available') : pc.red('not found')}`)
-  console.log(`  winget:${result.data.installers.winget ? pc.green('available') : pc.red('not found')}`)
-
-  console.log(`\n${pc.bold('Quantex CLI:')}`)
-  console.log(`  Version:      ${result.data.self.currentVersion}`)
-  console.log(`  Source:       ${result.data.self.installSource}`)
-  console.log(`  Auto-update:  ${result.data.self.canAutoUpdate ? pc.green('supported') : pc.yellow('unsupported')}`)
-  if (result.data.self.latestVersion) {
-    console.log(
-      `  Latest:       ${result.data.self.latestVersion}${result.data.self.outdated ? pc.yellow(' (update available)') : ''}`,
-    )
+  const installers = Object.entries(result.data.installers).map(([name, available]) => ({ available, name }))
+  console.log(pc.bold('Managed Installers\n'))
+  for (const line of renderHumanTable(
+    installers,
+    [
+      { header: 'Installer', value: installer => installer.name },
+      {
+        header: 'Status',
+        value: installer => (installer.available ? pc.green('available') : pc.red('not found')),
+      },
+    ],
+    { headerStyle: pc.bold, width },
+  )) {
+    console.log(line)
   }
-  if (result.data.self.recoveryHint) console.log(`  Recovery:     ${result.data.self.recoveryHint}`)
 
-  console.log(`\n${pc.bold('Installed Agents:')}`)
+  const selfFields = [
+    { label: 'Version', value: result.data.self.currentVersion },
+    { label: 'Source', value: result.data.self.installSource },
+    {
+      label: 'Auto-update',
+      value: result.data.self.canAutoUpdate ? pc.green('supported') : pc.yellow('unsupported'),
+    },
+    ...(result.data.self.latestVersion
+      ? [
+          {
+            label: 'Latest',
+            value: `${result.data.self.latestVersion}${result.data.self.outdated ? pc.yellow(' (update available)') : ''}`,
+          },
+        ]
+      : []),
+    ...(result.data.self.recoveryHint ? [{ label: 'Recovery', value: result.data.self.recoveryHint }] : []),
+  ]
+  console.log(`\n${pc.bold('Quantex CLI')}\n`)
+  for (const line of renderHumanFields(selfFields, { labelStyle: pc.bold, width })) console.log(line)
+
+  console.log(`\n${pc.bold('Installed Agents')}\n`)
   if (result.data.agents.length === 0) {
     console.log(pc.dim('  No agents installed'))
   } else {
-    for (const agent of result.data.agents) {
-      console.log(
-        `  ${agent.displayName}: ${agent.installedVersion ?? 'unknown'} [${agent.lifecycle}; ${agent.sourceLabel}]${agent.outdated ? pc.yellow(` (update available: ${agent.latestVersion})`) : ''}`,
-      )
+    for (const line of renderHumanTable(
+      result.data.agents,
+      [
+        { header: 'Agent', minWidth: 8, value: agent => agent.displayName },
+        {
+          header: 'Version',
+          maxWidth: 24,
+          value: agent =>
+            agent.outdated && agent.latestVersion
+              ? pc.yellow(`${agent.installedVersion ?? 'unknown'} → ${agent.latestVersion}`)
+              : (agent.installedVersion ?? 'unknown'),
+        },
+        { header: 'Lifecycle', optional: true, priority: 2, value: agent => agent.lifecycle },
+        { header: 'Source', optional: true, priority: 1, value: agent => pc.dim(agent.sourceLabel) },
+      ],
+      { headerStyle: pc.bold, width },
+    )) {
+      console.log(line)
     }
   }
 
-  console.log(`\n${pc.bold('Issues:')}`)
+  console.log(`\n${pc.bold('Issues')}\n`)
   if (result.data.issues.length === 0) {
     console.log(pc.green('  No issues found.'))
   } else {
     for (const issue of result.data.issues) {
-      console.log(pc.yellow(`  - ${issue.message}`))
-      if (issue.suggestedCommands.length > 0) console.log(pc.dim(`    Next: ${issue.suggestedCommands.join(' | ')}`))
+      for (const line of renderHumanWrapped(pc.yellow(issue.message), {
+        continuationIndent: '    ',
+        indent: '  - ',
+        width,
+      })) {
+        console.log(line)
+      }
+      if (issue.suggestedCommands.length > 0) {
+        for (const line of renderHumanWrapped(pc.dim(`Next: ${issue.suggestedCommands.join(' | ')}`), {
+          indent: '    ',
+          width,
+        })) {
+          console.log(line)
+        }
+      }
     }
   }
 

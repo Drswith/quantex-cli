@@ -81,6 +81,7 @@ describe('doctorCommand', () => {
 
   beforeEach(() => {
     resetCliContext()
+    setCliContext({ colorMode: 'never', interactive: false, outputMode: 'human', runId: 'doctor-test' })
     logSpy = vi.spyOn(console, 'log').mockImplementation(() => {})
     allAgentsSpy.mockClear()
     isBunSpy.mockClear()
@@ -171,7 +172,8 @@ describe('doctorCommand', () => {
     allAgentsSpy.mockReturnValue([])
     await doctorCommand()
     const output = logSpy.mock.calls.map((c: any[]) => c[0]).join('\n')
-    expect(output).toContain('Bun')
+    expect(output).toContain('Installer  Status')
+    expect(output).toContain('bun')
     expect(output).toContain('npm')
     expect(output).toContain('brew')
     expect(output).toContain('cargo')
@@ -350,8 +352,9 @@ describe('doctorCommand', () => {
     await doctorCommand()
 
     const output = logSpy.mock.calls.map((c: any[]) => c[0]).join('\n')
-    expect(output).toContain('cannot auto-update from install source "source"')
-    expect(output).toContain('Reinstall via bun, npm, or the standalone binary')
+    const normalizedOutput = output.replace(/\s+/gu, ' ')
+    expect(normalizedOutput).toContain('cannot auto-update from install source "source"')
+    expect(normalizedOutput).toContain('Reinstall via bun, npm, or the standalone binary')
   })
 
   it('warns when an agent is only detected in PATH and not managed by Quantex', async () => {
@@ -365,8 +368,9 @@ describe('doctorCommand', () => {
     await doctorCommand()
 
     const output = logSpy.mock.calls.map((c: any[]) => c[0]).join('\n')
-    expect(output).toContain('available in PATH but not tracked as a managed Quantex install')
-    expect(output).toContain('quantex inspect test-agent --json')
+    const normalizedOutput = output.replace(/\s+/gu, ' ')
+    expect(normalizedOutput).toContain('available in PATH but not tracked as a managed Quantex install')
+    expect(normalizedOutput).toContain('quantex inspect test-agent --json')
   })
 
   it('returns machine-actionable self remediation in json mode', async () => {

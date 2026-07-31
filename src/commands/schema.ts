@@ -2,6 +2,7 @@ import type { SchemaDocument } from '../command-contract/schemas'
 import type { CommandResult } from '../output/types'
 import { getCommandContracts } from '../command-contract'
 import { createErrorResult, createSuccessResult, emitCommandResult } from '../output'
+import { getHumanTerminalWidth, renderHumanTable, renderHumanWrapped } from '../output/human'
 import { pc } from '../utils/color'
 
 export type { JsonSchema, SchemaDocument } from '../command-contract/schemas'
@@ -57,10 +58,21 @@ function renderSchemaHuman(result: { data?: SchemaCommandData; error: { message:
 
   if (!result.data) return
 
+  const width = getHumanTerminalWidth()
   console.log(pc.bold('\nQuantex Schemas\n'))
-  for (const schema of result.data.commands) {
-    console.log(`  ${pc.cyan(schema.name)}`)
-    console.log(`    ${schema.description}`)
+  for (const line of renderHumanTable(
+    result.data.commands,
+    [
+      { header: 'Command', maxWidth: 24, minWidth: 8, value: schema => pc.cyan(schema.name) },
+      { header: 'Description', minWidth: 16, value: schema => schema.description, wrap: true },
+    ],
+    { headerStyle: pc.bold, width },
+  )) {
+    console.log(line)
+  }
+  console.log()
+  for (const line of renderHumanWrapped(pc.dim('Document: qtx schema <command> --json'), { indent: '  ', width })) {
+    console.log(line)
   }
   console.log()
 }
