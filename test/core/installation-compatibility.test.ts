@@ -35,7 +35,7 @@ const recipe: CoreInstallationRecipe = {
   ownership: 'created-on-success',
 }
 
-describe('private Core installation compatibility executor', () => {
+describe('Core installation compatibility executor', () => {
   it('caches production ports while applying each invocation output and provider-timeout policy', async () => {
     const observedContexts: CoreInvocationContext[] = []
     const providerContexts: ProviderOperationContext[] = []

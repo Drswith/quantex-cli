@@ -40,12 +40,12 @@ Quantex 是一个 `human-friendly + agent-friendly` 的 AI 编程助手 CLI life
 
 ## TypeScript Core SDK 预览
 
-Quantex 正在抽离一个非交互式 TypeScript SDK，暂定包身份为 `@quantex/core`。它目前是 private、可独立打包的 workspace：干净 tarball consumer 已在 Node.js、Bun 和 TypeScript NodeNext 下验证，但在单独的激活变更确认最终包名和发布权限前，公开 registry 安装会保持禁用。CLI 的 npm 与 GitHub 发布不依赖这项激活。
+Quantex 提供非交互式 TypeScript SDK：[`quantex-core`](https://www.npmjs.com/package/quantex-core)。它独立版本化，并已通过 Node.js、Bun 与 TypeScript NodeNext 的干净 consumer 验证；CLI 的 npm 与 GitHub 发布仍与 Core 发布相互独立。
 
 1.2 阶段确立了只读、仅 ESM 的 `createQuantex`、`list` 和 `inspect` surface。1.3 集成 surface 在保持 Node.js 20+ 与 Bun 支持的同时，新增经过 gate 的 `install` 和 `ensure`。下面的 import 表示已验证的包 API；只有完成 Core 激活后，它才会成为公开 registry import：
 
 ```ts
-import { createQuantex } from '@quantex/core'
+import { createQuantex } from 'quantex-core'
 
 const quantex = createQuantex()
 const result = await quantex.inspect('codex')

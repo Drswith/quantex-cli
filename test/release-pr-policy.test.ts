@@ -6,8 +6,8 @@ import {
 } from '../scripts/release-pr-policy.js'
 
 type ReleasePrPolicyInput = Parameters<typeof validateReleasePrPolicyImplementation>[0]
-type TestReleasePrPolicyInput = Omit<ReleasePrPolicyInput, 'coreManifest' | 'rootManifest'> &
-  Partial<Pick<ReleasePrPolicyInput, 'coreManifest' | 'rootManifest'>>
+type TestReleasePrPolicyInput = Omit<ReleasePrPolicyInput, 'rootManifest'> &
+  Partial<Pick<ReleasePrPolicyInput, 'rootManifest'>>
 
 const stableReleaseConfig = JSON.parse(readFileSync('release-please-config.json', 'utf8'))
 const betaReleaseConfig = JSON.parse(readFileSync('release-please-config.beta.json', 'utf8'))
@@ -24,7 +24,6 @@ const validChangedFiles = [
   '.release-please-manifest.json',
   'CHANGELOG.md',
   'package.json',
-  'packages/core/package.json',
   'src/generated/build-meta.ts',
 ]
 
@@ -33,14 +32,8 @@ function validateReleasePrPolicy(input: TestReleasePrPolicyInput): string[] {
 
   return validateReleasePrPolicyImplementation({
     ...input,
-    coreManifest: input.coreManifest ?? {
-      version: proposedVersion,
-    },
     rootManifest: input.rootManifest ?? {
       version: proposedVersion,
-      devDependencies: {
-        '@quantex/core': proposedVersion,
-      },
     },
   })
 }
@@ -59,7 +52,7 @@ describe('release PR policy', () => {
     ).toEqual([])
   })
 
-  it('accepts a valid beta release PR with synchronized manifests', () => {
+  it('accepts a valid beta CLI release PR', () => {
     expect(
       validateReleasePrPolicy({
         baseBranch: 'beta',
@@ -228,19 +221,6 @@ describe('release PR policy', () => {
     expect(issues.join('\n')).toContain('Release PR changes unexpected files: README.md')
   })
 
-  it('rejects a Release PR that omits the Core manifest version update', () => {
-    const issues = validateReleasePrPolicy({
-      baseBranch: 'main',
-      baseVersion: '1.1.3',
-      body: validBody,
-      changedFiles: validChangedFiles.filter(fileName => fileName !== 'packages/core/package.json'),
-      headBranch: 'release-please--branches--main--components--quantex-cli',
-      title: 'chore: release 1.1.4',
-    })
-
-    expect(issues.join('\n')).toContain('Release PR is missing required version files: packages/core/package.json')
-  })
-
   it('rejects a root manifest version that differs from the Release PR title', () => {
     const issues = validateReleasePrPolicy({
       baseBranch: 'main',
@@ -250,9 +230,6 @@ describe('release PR policy', () => {
       headBranch: 'release-please--branches--main--components--quantex-cli',
       rootManifest: {
         version: '1.1.5',
-        devDependencies: {
-          '@quantex/core': '1.1.4',
-        },
       },
       title: 'chore: release 1.1.4',
     })
@@ -260,23 +237,7 @@ describe('release PR policy', () => {
     expect(issues.join('\n')).toContain('Root package.json version "1.1.5" must equal Release PR title version "1.1.4"')
   })
 
-  it('rejects a Core manifest version that differs from the Release PR title', () => {
-    const issues = validateReleasePrPolicy({
-      baseBranch: 'main',
-      baseVersion: '1.1.3',
-      body: validBody,
-      changedFiles: validChangedFiles,
-      coreManifest: {
-        version: '1.1.5',
-      },
-      headBranch: 'release-please--branches--main--components--quantex-cli',
-      title: 'chore: release 1.1.4',
-    })
-
-    expect(issues.join('\n')).toContain('Core package.json version "1.1.5" must equal Release PR title version "1.1.4"')
-  })
-
-  it('rejects a non-exact Core development dependency version', () => {
+  it('rejects workspace protocols from the CLI manifest', () => {
     const issues = validateReleasePrPolicy({
       baseBranch: 'main',
       baseVersion: '1.1.3',
@@ -286,63 +247,25 @@ describe('release PR policy', () => {
       rootManifest: {
         version: '1.1.4',
         devDependencies: {
-          '@quantex/core': '^1.1.4',
+          'example-cli-peer': 'workspace:*',
         },
       },
       title: 'chore: release 1.1.4',
     })
 
     expect(issues.join('\n')).toContain(
-      'Root devDependencies["@quantex/core"] version "^1.1.4" must equal Release PR title version "1.1.4"',
-    )
-  })
-
-  it('rejects workspace protocols from either publishable manifest', () => {
-    const issues = validateReleasePrPolicy({
-      baseBranch: 'main',
-      baseVersion: '1.1.3',
-      body: validBody,
-      changedFiles: validChangedFiles,
-      coreManifest: {
-        version: '1.1.4',
-        peerDependencies: {
-          'example-core-peer': 'workspace:^',
-        },
-      },
-      headBranch: 'release-please--branches--main--components--quantex-cli',
-      rootManifest: {
-        version: '1.1.4',
-        devDependencies: {
-          '@quantex/core': 'workspace:*',
-        },
-      },
-      title: 'chore: release 1.1.4',
-    })
-
-    expect(issues.join('\n')).toContain(
-      'package.json devDependencies["@quantex/core"] uses forbidden workspace protocol "workspace:*"',
-    )
-    expect(issues.join('\n')).toContain(
-      'packages/core/package.json peerDependencies["example-core-peer"] uses forbidden workspace protocol "workspace:^"',
+      'package.json devDependencies["example-cli-peer"] uses forbidden workspace protocol "workspace:*"',
     )
   })
 
   it.each([
     ['stable', stableReleaseConfig],
     ['beta', betaReleaseConfig],
-  ])('keeps the %s channel on one root release component and synchronizes Core as extra files', (_, config) => {
+  ])('keeps the %s channel on one CLI release component', (_, config) => {
     expect(Object.keys(config.packages)).toEqual(['.'])
     expect(config.packages['.']['package-name']).toBe('quantex-cli')
     expect(config.packages['.']['include-component-in-tag']).toBe(false)
-    expect(config.packages['.']['extra-files']).toEqual([
-      'src/generated/build-meta.ts',
-      'packages/core/package.json',
-      {
-        type: 'json',
-        path: 'package.json',
-        jsonpath: "$.devDependencies['@quantex/core']",
-      },
-    ])
+    expect(config.packages['.']['extra-files']).toEqual(['src/generated/build-meta.ts'])
   })
 
   it('compares stable releases after beta prereleases', () => {

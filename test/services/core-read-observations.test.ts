@@ -1,6 +1,6 @@
 import type { AgentDefinition } from '../../src/agents'
 import type { CoreBackedCliReadDependencies } from '../../src/services/core-read-observations'
-import type { CoreAgentObservation, CoreReadPorts } from '@quantex/core/internal'
+import type { CoreAgentObservation, CoreReadPorts } from 'quantex-core/internal'
 import { readFile } from 'node:fs/promises'
 import { describe, expect, it, vi } from 'vitest'
 import { createCoreBackedCliReadObservationService } from '../../src/services/core-read-observations'
@@ -89,7 +89,7 @@ describe('Core-backed CLI read observations', () => {
     }
 
     const adapter = await source('src/services/core-read-observations.ts')
-    expect(adapter).toContain("from '@quantex/core/internal'")
+    expect(adapter).toContain("from 'quantex-core/internal'")
     expect(adapter).not.toMatch(/from ['"]\.\.\/core\//u)
     expect(adapter).not.toContain('createProductionLifecycleObservationService')
     expect(adapter).not.toContain('fallback')

@@ -1,11 +1,11 @@
-# @quantex/core
+# quantex-core
 
-`@quantex/core` is the provisional package identity for Quantex's non-interactive TypeScript SDK. It is currently private and independently packable: clean tarball consumers are validated under Node.js, Bun, and TypeScript NodeNext, while public registry publication remains disabled until a separate activation change confirms the final package identity and publisher authority. `quantex-cli` releases do not depend on this activation.
+`quantex-core` is Quantex's non-interactive TypeScript SDK. It is independently versioned and published to npm after clean Node.js, Bun, and TypeScript NodeNext consumer validation. `quantex-cli` releases do not depend on Core publication.
 
 The 1.2 surface established `createQuantex`, `list`, and `inspect`. The 1.3 integration surface adds gated `install` and `ensure` methods:
 
 ```ts
-import { createQuantex } from '@quantex/core'
+import { createQuantex } from 'quantex-core'
 
 const quantex = createQuantex()
 const agents = await quantex.list()

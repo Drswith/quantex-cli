@@ -102,7 +102,7 @@ describe('release target resolution', () => {
     expect(resolution.reason).toContain('quantex-cli is missing')
   })
 
-  it('does not reopen CLI closure when the private Core package is absent from npm', () => {
+  it('does not reopen CLI closure based on the independent Core package state', () => {
     const resolution = selectReleaseCandidate({
       commitsBySha: {
         rel235: commit('chore: release 0.23.5'),
@@ -288,13 +288,13 @@ describe('release workflow package closure', () => {
     expect(releaseWorkflow).toContain('options:\n          - main\n          - beta')
   })
 
-  it('keeps private Core publication out of the primary release workflow', () => {
+  it('keeps independent Core publication out of the primary release workflow', () => {
     const cliPublishIndex = releaseWorkflow.indexOf('npm publish . --access')
 
     expect(cliPublishIndex).toBeGreaterThan(-1)
     expect(releaseWorkflow).toContain('bun run package:check')
     expect(releaseWorkflow).not.toContain('npm publish ./packages/core')
-    expect(releaseWorkflow).not.toContain('npm view "@quantex/core')
+    expect(releaseWorkflow).not.toContain('npm view "quantex-core')
     expect(releaseWorkflow).not.toContain('CORE_NPM_TRUSTED_PUBLISHING_READY')
     expect(releaseWorkflow).not.toContain('core_required')
   })

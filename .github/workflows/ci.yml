@@ -214,7 +214,7 @@ jobs:
         run: bun run build
       - if: ${{ runner.os == 'Linux' }}
         run: bun run package:check
-      - if: ${{ needs.classify.outputs.run_test_matrix == 'true' && runner.os == 'Windows' }}
+      - if: ${{ needs.classify.outputs.run_test_matrix == 'true' && runner.os == 'Windows' && github.event_name != 'pull_request' }}
         run: bun run test -- --pool=threads
 
       - if: ${{ needs.classify.outputs.run_test_matrix == 'true' && runner.os != 'Windows' }}

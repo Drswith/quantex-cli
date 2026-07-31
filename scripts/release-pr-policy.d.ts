@@ -11,7 +11,6 @@ export interface ReleasePrPolicyInput {
   baseVersion: string
   body: string
   changedFiles: string[]
-  coreManifest: ReleasePrManifest
   headBranch: string
   rootManifest: ReleasePrManifest
   title: string

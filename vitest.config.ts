@@ -5,11 +5,11 @@ export default defineConfig({
   resolve: {
     alias: [
       {
-        find: '@quantex/core/internal',
+        find: 'quantex-core/internal',
         replacement: fileURLToPath(new URL('./packages/core/src/internal.ts', import.meta.url)),
       },
       {
-        find: '@quantex/core',
+        find: 'quantex-core',
         replacement: fileURLToPath(new URL('./packages/core/src/index.ts', import.meta.url)),
       },
     ],

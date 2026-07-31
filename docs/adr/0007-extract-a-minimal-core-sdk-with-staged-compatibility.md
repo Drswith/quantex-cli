@@ -13,7 +13,7 @@ State schema version 2 rejects unknown future versions and current normalizers d
 
 ## Decision
 
-Quantex will keep the root `quantex-cli` package and add exactly one independently packable Core SDK workspace, provisionally `@quantex/core`, in the same repository. Source versions remain synchronized during the transition, but public Core registry activation is separate from the established CLI release closure.
+Quantex keeps the root `quantex-cli` package and adds exactly one independently packable Core SDK workspace, `quantex-core`, in the same repository. Core is publicly versioned independently from the CLI; its registry activation is separate from the established CLI release closure.
 
 - Core exposes one instance factory, `createQuantex`, and only lifecycle methods that have completed their compatibility and safety gates.
 - The first stable SDK surface is read-only: `list` and `inspect`. Install, ensure, update, uninstall, and run are added as verified vertical slices in later compatible minors.
@@ -25,7 +25,7 @@ Quantex will keep the root `quantex-cli` package and add exactly one independent
 - A lifecycle invocation selects legacy or Core before work begins. It never shadow-runs mutations and never falls back to the other engine after a side effect starts.
 - CLI request-key replay remains a compatibility decorator; Core ensure remains semantically idempotent through observation and verification.
 - The main release workflow builds and pack-validates Core but publishes and recovers only `quantex-cli`, the GitHub Release, and standalone artifacts. CLI npm closure precedes creation of a new public GitHub Release.
-- Core remains private until a separate activation change confirms its final package identity, publisher authority, bootstrap, trusted publisher, version policy, and recovery behavior. A repository variable alone cannot enable it.
+- Core public activation is governed by its own change, trusted publisher, `core-v<version>` tag, and recovery behavior. It cannot be coupled to a CLI Release PR or enabled by a repository variable.
 
 The compatibility runway is at least four stable minor stages:
 
@@ -44,8 +44,8 @@ The active `simplify-lifecycle-core-sdk` OpenSpec change is the detailed source 
 - The transition temporarily adds a package and compatibility adapters before it deletes legacy layers; every migrated path needs a named deletion checkpoint.
 - Provider-specific observation, Windows behavior, atomic state, exact ownership, cancellation cleanup, postcondition verification, and scoped compensation remain required even when their implementation looks more complex than command generation.
 - State evolution that cannot round-trip through the preceding supported 1.x release is deferred to a separate major-version design.
-- Release automation validates both source package manifests but keeps CLI npm/GitHub/binary closure independent of the private Core registry identity and the external `quantex` alias repository.
-- The provisional Core identity cannot be published until a separate activation decision records ownership, bootstrap, trust, and recovery; until then clean tarball consumers provide distribution evidence.
+- CLI release automation validates the bundled Core source but keeps CLI npm/GitHub/binary closure independent of the public Core registry identity and the external `quantex` alias repository. Core publishing uses its own manual workflow and tag recovery.
+- Core public identity, ownership, bootstrap, trust, and recovery are recorded in the independent activation change; clean tarball consumers remain the distribution evidence for the CLI's bundled Core boundary.
 
 ## Alternatives Considered
 
