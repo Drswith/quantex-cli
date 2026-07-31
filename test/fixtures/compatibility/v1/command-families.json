@@ -121,7 +121,7 @@
         "name": "codex"
       },
       "goldens": {
-        "human": "6d1e56a8ac25e5fc8fe584d5960d1697c60782e8c6a00fafdbf2239d547d5bca",
+        "human": "2b5e90a9c77b56a43ff01b68b36d0ccefbfb9d4d1fcd5bedea46ff7b16cfb093",
         "json": "f5a1fee6dba3274676eaf8b94ca7efa3c59cb30415c120c4f007e14ed1a12e56",
         "ndjson": "e41e28983250ce96a1c9ca0c22904ca510ad5e483c6873565601b4bfe5d571e2"
       }
@@ -139,7 +139,7 @@
         "name": "codex"
       },
       "goldens": {
-        "human": "5d2985952dc7ace1cf1f7bafb855193dc52e5ca3681828ed8ae7a85a47b170a2",
+        "human": "b15b3e11bc83b1cce1bfd9f8976904a9e8097e70905af4d37faa7f86ceded173",
         "json": "dabee33df8d245a4fb0eba2e8f9f706e46a447c30d13bfbe21788d43ff8332de",
         "ndjson": "b82197ea330052a5e202b8cbdabb50c6a4f7bf7562de6dd6c3f063c3122c2e31"
       }
