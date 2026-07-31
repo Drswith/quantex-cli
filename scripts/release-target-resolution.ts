@@ -2,6 +2,7 @@ import { execFile } from 'node:child_process'
 import { appendFile } from 'node:fs/promises'
 import process from 'node:process'
 import { promisify } from 'node:util'
+import { REQUIRED_RELEASE_ASSET_NAMES } from '../src/release-artifacts'
 
 const execFileAsync = promisify(execFile)
 
@@ -9,9 +10,17 @@ export type ReleaseMode = 'publish' | 'pr' | 'skip'
 
 export const repositoryNpmPackageNames = ['quantex-cli'] as const
 
+export const REQUIRED_GITHUB_RELEASE_ASSET_NAMES = [
+  ...REQUIRED_RELEASE_ASSET_NAMES,
+  'manifest.json',
+  'SHA256SUMS.txt',
+] as const
+
 export type RepositoryNpmPackageName = (typeof repositoryNpmPackageNames)[number]
 export type NpmPackagePublicationStatus = 'indeterminate' | 'missing' | 'published'
 export type NpmReleaseIntegrity = 'cli-missing' | 'cli-published' | 'registry-indeterminate'
+export type GithubReleaseAssetStatus = 'complete' | 'incomplete' | 'indeterminate'
+export type GithubReleaseAssetIntegrity = Exclude<GithubReleaseAssetStatus, 'indeterminate'>
 
 export interface NpmPackagePublicationState {
   detail?: string
@@ -20,6 +29,11 @@ export interface NpmPackagePublicationState {
 
 export interface NpmReleasePublicationState {
   'quantex-cli': NpmPackagePublicationState
+}
+
+export interface GithubReleaseAssetState {
+  detail?: string
+  status: GithubReleaseAssetStatus
 }
 
 export interface SuccessfulCiRun {
@@ -51,6 +65,7 @@ export interface ReleaseTargetResolution {
 
 export interface SelectReleaseCandidateOptions {
   commitsBySha: Record<string, CommitReleaseIntent>
+  githubReleaseAssetsByVersion: Record<string, GithubReleaseAssetState>
   npmPublicationsByVersion: Record<string, NpmReleasePublicationState>
   publishedReleaseShas: Set<string>
   publishedTags: Set<string>
@@ -82,8 +97,19 @@ export function classifyNpmReleaseIntegrity(publication: NpmReleasePublicationSt
   return cliStatus === 'published' ? 'cli-published' : 'cli-missing'
 }
 
+export function classifyGithubReleaseAssetIntegrity(assetNames: Iterable<string>): GithubReleaseAssetIntegrity {
+  const names = new Set(assetNames)
+
+  for (const requiredName of REQUIRED_GITHUB_RELEASE_ASSET_NAMES) {
+    if (!names.has(requiredName)) return 'incomplete'
+  }
+
+  return 'complete'
+}
+
 export function selectReleaseCandidate({
   commitsBySha,
+  githubReleaseAssetsByVersion,
   npmPublicationsByVersion,
   publishedReleaseShas,
   publishedTags,
@@ -146,6 +172,21 @@ export function selectReleaseCandidate({
         npmIntegrity: resolvedNpmIntegrity,
         npmTag: '',
         reason: `publish release commit ${latestReleaseVersion} because ${describeMissingPackages(resolvedNpmIntegrity)}`,
+        sourceCiRunId: latestReleaseRun.databaseId,
+        targetBranch: '',
+        targetTag: `v${latestReleaseVersion}`,
+        targetSha: latestReleaseRun.headSha,
+      }
+    }
+
+    const assetIntegrity = resolveGithubReleaseAssetIntegrity(latestReleaseVersion, githubReleaseAssetsByVersion)
+    if (assetIntegrity !== 'complete') {
+      return {
+        configFile: '',
+        mode: 'publish',
+        npmIntegrity: resolvedNpmIntegrity,
+        npmTag: '',
+        reason: `publish release commit ${latestReleaseVersion} because GitHub Release assets are incomplete`,
         sourceCiRunId: latestReleaseRun.databaseId,
         targetBranch: '',
         targetTag: `v${latestReleaseVersion}`,
@@ -215,6 +256,24 @@ function describeMissingPackages(
   return integrity === 'cli-missing' ? 'quantex-cli is missing from npm' : 'npm closure is incomplete'
 }
 
+function resolveGithubReleaseAssetIntegrity(
+  version: string,
+  assetsByVersion: Record<string, GithubReleaseAssetState>,
+): GithubReleaseAssetIntegrity {
+  const assets = assetsByVersion[version]
+  if (!assets) {
+    throw new Error(
+      `Cannot determine GitHub Release asset integrity for release ${version}: no asset inspection result is available. Release automation fails closed.`,
+    )
+  }
+
+  if (assets.status !== 'indeterminate') return assets.status
+
+  throw new Error(
+    `Cannot determine GitHub Release asset integrity for release ${version}: ${assets.detail ?? 'asset inspection failed'}. Release automation fails closed without skipping artifact recovery.`,
+  )
+}
+
 function dedupeRunsByHeadSha(runs: SuccessfulCiRun[]): SuccessfulCiRun[] {
   const sortedRuns = [...runs].sort((left, right) => {
     const leftTimestamp = Date.parse(left.updatedAt ?? '')
@@ -277,9 +336,15 @@ async function resolveReleaseTargetFromEnvironment(): Promise<ReleaseTargetResol
     return version ? [version] : []
   })
   const npmPublicationsByVersion = await inspectNpmReleasePublications(releases)
+  const githubReleaseAssetsByVersion = await inspectGithubReleaseAssets({
+    repository,
+    token,
+    versions: releases,
+  })
 
   const resolution = selectReleaseCandidate({
     commitsBySha,
+    githubReleaseAssetsByVersion,
     npmPublicationsByVersion,
     publishedReleaseShas,
     publishedTags: new Set([...publishedTags].map(version => `v${version}`)),
@@ -291,6 +356,86 @@ async function resolveReleaseTargetFromEnvironment(): Promise<ReleaseTargetResol
     configFile,
     npmTag,
     targetBranch,
+  }
+}
+
+async function inspectGithubReleaseAssets({
+  repository,
+  token,
+  versions,
+}: {
+  repository: string
+  token: string
+  versions: string[]
+}): Promise<Record<string, GithubReleaseAssetState>> {
+  const [owner, repo] = repository.split('/')
+  const apiBaseUrl = process.env.GITHUB_API_URL ?? 'https://api.github.com'
+  const assetsByVersion: Record<string, GithubReleaseAssetState> = {}
+
+  await Promise.all(
+    [...new Set(versions)].map(async version => {
+      assetsByVersion[version] = await inspectGithubReleaseAssetsForTag({
+        apiBaseUrl,
+        owner,
+        repo,
+        tagName: `v${version}`,
+        token,
+      })
+    }),
+  )
+
+  return assetsByVersion
+}
+
+async function inspectGithubReleaseAssetsForTag({
+  apiBaseUrl,
+  owner,
+  repo,
+  tagName,
+  token,
+}: {
+  apiBaseUrl: string
+  owner: string
+  repo: string
+  tagName: string
+  token: string
+}): Promise<GithubReleaseAssetState> {
+  try {
+    const response = await fetch(`${apiBaseUrl}/repos/${owner}/${repo}/releases/tags/${encodeURIComponent(tagName)}`, {
+      headers: {
+        Accept: 'application/vnd.github+json',
+        Authorization: `Bearer ${token}`,
+        'X-GitHub-Api-Version': '2022-11-28',
+      },
+    })
+
+    if (response.status === 404) {
+      return {
+        detail: `GitHub Release ${tagName} was not found`,
+        status: 'incomplete',
+      }
+    }
+
+    if (!response.ok) {
+      return {
+        detail: `HTTP ${response.status} ${response.statusText}`,
+        status: 'indeterminate',
+      }
+    }
+
+    const payload = (await response.json()) as { assets?: Array<{ name?: unknown }> }
+    const assetNames = (payload.assets ?? [])
+      .map(asset => asset.name)
+      .filter((name): name is string => typeof name === 'string' && name.length > 0)
+
+    return {
+      status: classifyGithubReleaseAssetIntegrity(assetNames),
+    }
+  } catch (error) {
+    return {
+      detail: error instanceof Error ? error.message : String(error),
+      status: 'indeterminate',
+    }
   }
 }
 
