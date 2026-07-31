@@ -13,6 +13,7 @@
 - [x] 3.1 Add a manual `release-core.yml` with OIDC, immutable Core tags, exact npm inspection, Core-only validation, and idempotent publication.
 - [x] 3.2 Add focused release-workflow and package-contract tests, including no CLI release coupling.
 - [x] 3.3 Update the release runbook for Core dispatch and recovery.
+- [x] 3.4 Configure deterministic Git committer identity before creating a Core recovery tag and cover it with a focused workflow test.
 
 ## 4. Verification and delivery
 

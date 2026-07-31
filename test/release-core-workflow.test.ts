@@ -8,6 +8,8 @@ describe('Core release workflow', () => {
     expect(workflow).toContain('workflow_dispatch:')
     expect(workflow).toContain('id-token: write')
     expect(workflow).toContain('core-v${package_version}')
+    expect(workflow).toContain('git config user.name "github-actions[bot]"')
+    expect(workflow).toContain('git config user.email "41898282+github-actions[bot]@users.noreply.github.com"')
     expect(workflow).toContain('npm publish --access public --ignore-scripts --tag latest')
     expect(workflow).toContain('bun run package:check:core')
   })
