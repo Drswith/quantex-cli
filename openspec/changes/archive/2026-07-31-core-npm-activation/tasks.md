@@ -17,6 +17,6 @@
 
 ## 4. Verification and delivery
 
-- [ ] 4.1 Run lint, format check, typecheck, tests, OpenSpec validation, memory check, Core build, and Core package check.
-- [ ] 4.2 Commit, push, and create the activation PR with validated body.
-- [ ] 4.3 Merge after required checks, dispatch `Release Core`, and verify npm/package-tag closure.
+- [x] 4.1 Run lint, format check, typecheck, tests, OpenSpec validation, memory check, Core build, and Core package check.
+- [x] 4.2 Commit, push, and create the activation PR with validated body.
+- [x] 4.3 Merge after required checks, dispatch `Release Core`, and verify npm/package-tag closure.
