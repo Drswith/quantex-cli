@@ -93,7 +93,7 @@ describe('Core provider observation registry', () => {
     const outcome = await registry.get('bun')!.observe({ context: context(), target })
 
     expect(outcome).toMatchObject({ kind: 'success', value: { kind: 'present', target } })
-    expect(readFile).toHaveBeenCalledWith('/fixture-global/package.json')
+    expect(readFile).toHaveBeenCalledWith(join('/fixture-global', 'package.json'))
   })
 })
 
