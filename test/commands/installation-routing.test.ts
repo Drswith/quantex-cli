@@ -1,7 +1,7 @@
-import type { InstallationEngineRoute } from '../../src/commands/installation-routing'
+import type { InstallationEngineRoute, InstallationOperation } from '../../src/commands/installation-routing'
 import type { CommandResult } from '../../src/output/types'
 import process from 'node:process'
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, expectTypeOf, it, vi } from 'vitest'
 
 const control = vi.hoisted(() => ({
   createSession: vi.fn(),
@@ -58,6 +58,10 @@ afterEach(() => {
 })
 
 describe('installation engine routing', () => {
+  it('keeps the promoted operation set frozen to install and ensure', () => {
+    expectTypeOf<InstallationOperation>().toEqualTypeOf<'ensure' | 'install'>()
+  })
+
   it('selects the frozen Core stable-default route for install and ensure', () => {
     const install = selectInstallationEngineRoute('install')
     const ensure = selectInstallationEngineRoute('ensure')
@@ -78,6 +82,16 @@ describe('installation engine routing', () => {
     expect(Object.isFrozen(install)).toBe(true)
   })
 
+  it('recognizes only the exact legacy compatibility override', () => {
+    process.env.QUANTEX_INSTALLATION_ENGINE = 'Legacy'
+
+    expect(selectInstallationEngineRoute('install')).toEqual({
+      adoption: 'v1-safe',
+      engine: 'core',
+      source: 'stable-default',
+    })
+  })
+
   it('retains the legacy route for v1-compatible dry-run planning', () => {
     setCliContext({
       cancelled: false,
@@ -92,6 +106,22 @@ describe('installation engine routing', () => {
 
     expect(selectInstallationEngineRoute('install')).toEqual({ engine: 'legacy', source: 'dry-run-compatibility' })
     expect(selectInstallationEngineRoute('ensure')).toEqual({ engine: 'legacy', source: 'dry-run-compatibility' })
+  })
+
+  it('gives dry-run compatibility precedence over the explicit legacy escape', () => {
+    process.env.QUANTEX_INSTALLATION_ENGINE = 'legacy'
+    setCliContext({
+      cancelled: false,
+      colorMode: 'never',
+      dryRun: true,
+      interactive: false,
+      logLevel: 'silent',
+      outputMode: 'json',
+      quiet: true,
+      runId: 'installation-routing-dry-run-override',
+    })
+
+    expect(selectInstallationEngineRoute('install')).toEqual({ engine: 'legacy', source: 'dry-run-compatibility' })
   })
 
   it('selects the Core batch route once and reuses one session for every target', async () => {

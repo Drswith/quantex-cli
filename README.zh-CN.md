@@ -62,7 +62,7 @@ if (preview.ok && preview.value.mode === 'preview') {
 
 Core 不提示、不打印、不调用 `process.exit`，也不决定 CLI 退出码；它只向调用方返回类型化结果。`install` 与 `ensure` 默认执行 apply，也提供显式且无副作用的 preview；它们会保留 PATH-only external agent，并返回包含阶段与副作用状态的类型化失败。`qtx` / `quantex` CLI 仍负责提示、human 与 JSON/NDJSON 展示、退出码策略、命令行执行和 Quantex 自升级。SDK 仍未提供 `update`、`uninstall` 或 `run`；它们的 CLI 实现继续使用受维护的 legacy 路径。
 
-兼容过渡跨越 1.2-1.5：1.2 引入只读 Core，1.3 新增经过 gate 的变更方法组，1.4 让 Core 成为 CLI `install` 与 `ensure` 的 apply 默认引擎，1.5 提供第二个默认版本的观察期。既有 v1 `--dry-run` 规划继续走 legacy，且不会产生任何生命周期副作用。持久化 state schema 在整个 1.x 中保持为 version 2。引擎必须在单次调用前选定，变更操作一旦开始产生副作用就绝不会切换引擎重试。观察期内，若需要兼容性重试，可通过保留的 whole-invocation legacy route 执行：`QUANTEX_INSTALLATION_ENGINE=legacy qtx ensure codex`。删除受维护的 v1 surface 必须等待已记录的观察 gate 通过，并在后续 major 版本另行提案。
+兼容过渡跨越 1.2-1.5：1.2 引入只读 Core，1.3 新增经过 gate 的变更方法组，1.4 让 Core 成为 CLI `install` 与 `ensure` 的 apply 默认引擎，1.5 是第二个 Core-default 观察版本。既有 v1 `--dry-run` 规划继续走已冻结的 legacy route，且不会产生任何生命周期副作用。持久化 state schema 在整个 1.x 中保持为 version 2。引擎必须在单次调用前选定，变更操作一旦开始产生副作用就绝不会切换引擎重试。观察期内，若需要兼容性重试，可通过保留的 whole-invocation legacy route 执行：`QUANTEX_INSTALLATION_ENGINE=legacy qtx ensure codex`；请依照[回滚演练](./docs/runbooks/core-installation-routing-rollback.md)采集证据并回到 Core 默认路由。删除受维护的 v1 surface 必须同时满足两个 Core-default 稳定小版本、默认启用后至少 90 天，并在后续 major 版本另行提出并批准提案。
 
 ## Agent 快速接入
 
