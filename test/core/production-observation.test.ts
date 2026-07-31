@@ -10,57 +10,62 @@ import { createProductionCoreReadPorts } from '../../src/core/production-observa
 import { createEmptyStateDocument } from '../../src/state/schema'
 
 describe('production Core observation', () => {
-  it('canonicalizes a PATH symlink before comparing it with a recorded executable path', async () => {
-    const root = await mkdtemp(join(tmpdir(), 'quantex-core-observation-'))
-    const binDir = join(root, 'bin')
-    const target = join(root, 'pi-target')
-    const configDir = join(root, 'config')
-    const previousPath = process.env.PATH
+  it.skipIf(process.platform === 'win32')(
+    'canonicalizes a PATH symlink before comparing it with a recorded executable path',
+    async () => {
+      const root = await mkdtemp(join(tmpdir(), 'quantex-core-observation-'))
+      const binDir = join(root, 'bin')
+      const target = join(root, 'pi-target')
+      const configDir = join(root, 'config')
+      const previousPath = process.env.PATH
 
-    try {
-      await mkdir(binDir, { recursive: true })
-      await mkdir(configDir, { recursive: true })
-      await writeFile(target, '#!/bin/sh\necho 0.73.1\n')
-      await chmod(target, 0o755)
-      await symlink(target, join(binDir, 'pi'))
-      const canonicalTarget = await realpath(target)
+      try {
+        await mkdir(binDir, { recursive: true })
+        await mkdir(configDir, { recursive: true })
+        await writeFile(target, '#!/bin/sh\necho 0.73.1\n')
+        await chmod(target, 0o755)
+        await symlink(target, join(binDir, 'pi'))
+        const canonicalTarget = await realpath(target)
 
-      const state = createEmptyStateDocument()
-      state.installedAgents.pi = {
-        agentName: 'pi',
-        installType: 'bun',
-        packageName: '@mariozechner/pi-coding-agent',
+        const state = createEmptyStateDocument()
+        state.installedAgents.pi = {
+          agentName: 'pi',
+          installType: 'bun',
+          packageName: '@mariozechner/pi-coding-agent',
+        }
+        state.lifecycleReceipts.pi = {
+          executablePath: canonicalTarget,
+          kind: 'lifecycle-receipt',
+          providerId: 'bun',
+          providerTargetId: '@mariozechner/pi-coding-agent',
+          providerTargetKind: 'package',
+          schemaVersion: 1,
+          targetId: 'pi',
+          verifiedAt: '2026-07-31T00:00:00.000Z',
+          version: '0.73.1',
+        }
+        await writeFile(join(configDir, 'state.json'), JSON.stringify(state))
+        process.env.PATH = `${binDir}:${previousPath ?? ''}`
+
+        const ports = createProductionCoreReadPorts({ providerRegistry: bunRegistry() })
+        const outcome = await runCoreInvocation(undefined, context =>
+          ports.inspectAgent('pi', { ...context, configDir }),
+        )
+
+        expect(outcome).toMatchObject({
+          kind: 'success',
+          value: {
+            executable: { path: canonicalTarget, present: true, version: '0.73.1' },
+            observation: { drift: { kind: 'none' }, executablePath: canonicalTarget, kind: 'present' },
+            resolvedBinaryPath: canonicalTarget,
+          },
+        })
+      } finally {
+        process.env.PATH = previousPath
+        await rm(root, { force: true, recursive: true })
       }
-      state.lifecycleReceipts.pi = {
-        executablePath: canonicalTarget,
-        kind: 'lifecycle-receipt',
-        providerId: 'bun',
-        providerTargetId: '@mariozechner/pi-coding-agent',
-        providerTargetKind: 'package',
-        schemaVersion: 1,
-        targetId: 'pi',
-        verifiedAt: '2026-07-31T00:00:00.000Z',
-        version: '0.73.1',
-      }
-      await writeFile(join(configDir, 'state.json'), JSON.stringify(state))
-      process.env.PATH = `${binDir}:${previousPath ?? ''}`
-
-      const ports = createProductionCoreReadPorts({ providerRegistry: bunRegistry() })
-      const outcome = await runCoreInvocation(undefined, context => ports.inspectAgent('pi', { ...context, configDir }))
-
-      expect(outcome).toMatchObject({
-        kind: 'success',
-        value: {
-          executable: { path: canonicalTarget, present: true, version: '0.73.1' },
-          observation: { drift: { kind: 'none' }, executablePath: canonicalTarget, kind: 'present' },
-          resolvedBinaryPath: canonicalTarget,
-        },
-      })
-    } finally {
-      process.env.PATH = previousPath
-      await rm(root, { force: true, recursive: true })
-    }
-  })
+    },
+  )
 })
 
 function bunRegistry(): ProviderRegistry {
