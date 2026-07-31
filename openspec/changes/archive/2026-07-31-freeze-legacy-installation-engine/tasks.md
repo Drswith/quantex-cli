@@ -11,4 +11,4 @@
 ## 3. Validate and deliver
 
 - [x] 3.1 Run routing-focused tests, lint, format check, typecheck, full tests, OpenSpec validation, and memory validation.
-- [ ] 3.2 Commit, push, and open the implementation PR with a validated repository template body; report merge, archive, and release ownership separately.
+- [x] 3.2 Commit, push, and open the implementation PR with a validated repository template body; report merge, archive, and release ownership separately. Delivered by PR #531, merged to `main` as `263335d` on 2026-07-31.
