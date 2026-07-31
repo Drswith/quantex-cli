@@ -12,5 +12,5 @@
 ## 3. Validation and delivery
 
 - [x] 3.1 Run focused routing and differential compatibility tests.
-- [ ] 3.2 Run lint, format check, typecheck, full tests, OpenSpec validation, memory check, build, and release-artifact validation. (Local full Vitest runner remained idle after startup; CI owns the full-suite completion gate.)
+- [x] 3.2 Run lint, format check, typecheck, full tests, OpenSpec validation, memory check, build, and release-artifact validation. (Local full Vitest runner remained idle after startup; CI owns the full-suite completion gate. The merged `main` CI and Sandbox runs completed successfully.)
 - [x] 3.3 Commit one reviewable change, push it, create the implementation PR, and report release and archive follow-up ownership. (PR #527; release-please follows merge, and an agent-owned archive follow-up remains required after accepted spec sync.)
