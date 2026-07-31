@@ -10,6 +10,8 @@ import type {
 } from '../runtime'
 import type { SelfUpdateChannel, SelfUpdateResult, SelfUpgradePlan } from './types'
 
+type MetadataCacheMode = 'default' | 'no-cache' | 'refresh'
+
 export interface SelfUpgradeApplicationInput {
   readonly check: boolean
   readonly dryRun: boolean
@@ -19,6 +21,7 @@ export interface SelfUpgradeApplicationInput {
 export interface SelfUpgradeApplicationPlanInput {
   readonly context: SelfUpgradeOperationContext
   readonly metadataCache: CachePort
+  readonly metadataCacheMode: MetadataCacheMode
   readonly networkPort: NetworkPort
   readonly persistencePort: PersistencePort
   readonly updateChannel?: SelfUpdateChannel
@@ -61,6 +64,7 @@ export async function runSelfUpgradeApplication(
       timeoutMs: invocation.options.timeoutMs,
     },
     metadataCache: invocation.ports.cache,
+    metadataCacheMode: invocation.options.cacheMode === 'no-cache' ? 'no-cache' : 'refresh',
     networkPort: invocation.ports.network,
     persistencePort: invocation.ports.persistence,
     updateChannel: input.updateChannel,

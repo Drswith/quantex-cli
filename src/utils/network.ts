@@ -6,6 +6,8 @@ import { getCliContext, recordCliFreshness } from '../cli-context'
 import { getConfigDir, loadConfig } from '../config'
 import { ProcessInterruptionError } from './child-process'
 
+type MetadataCacheMode = 'default' | 'no-cache' | 'refresh'
+
 interface CachedResponseEntry {
   body: string
   etag?: string
@@ -18,6 +20,7 @@ interface CachedResponseStore {
 }
 
 interface NetworkOperationOptions {
+  cacheMode?: MetadataCacheMode
   context?: ProviderOperationContext
   networkPort?: NetworkPort
   signal?: AbortSignal
@@ -67,7 +70,7 @@ export async function fetchTextWithCache(
   const config = await loadConfig()
   throwIfAborted(signal)
   const ttlMs = config.versionCacheTtlHours * 60 * 60 * 1000
-  const cacheMode = getCliContext().cacheMode
+  const cacheMode = options.cacheMode ?? getCliContext().cacheMode
   const cache = cacheMode === 'no-cache' ? { entries: {} } : await loadResponseCache()
   throwIfAborted(signal)
   const cachedEntry = cache.entries[cacheKey]

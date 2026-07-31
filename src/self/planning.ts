@@ -7,24 +7,27 @@ import { loadConfig } from '../config'
 import { BUILD_PACKAGE_NAME } from '../generated/build-meta'
 import { isProcessInterruptionError, ProcessInterruptionError } from '../utils/child-process'
 import { OFFICIAL_NPM_REGISTRY } from '../utils/registry'
-import { compareVersions, getInstalledVersion, getLatestVersion, isVersionNewer } from '../utils/version'
+import { compareVersions, getInstalledVersion, getLatestVersionWithCacheMode, isVersionNewer } from '../utils/version'
 import { resolveSelfInstallFacts } from './facts'
 import { resolveManagedSelfUpdateRegistry } from './registry'
 import { fetchBinaryReleaseManifest, resolveBinaryReleaseAsset } from './release'
 import { createSelfUpdateMetadata, writeSelfUpdateMetadata } from './update-metadata'
 
+type MetadataCacheMode = 'default' | 'no-cache' | 'refresh'
+
 export async function resolveSelfUpdateTarget(
   facts: SelfInstallFacts,
   context?: ProviderOperationContext,
   networkPort?: NetworkPort,
+  cacheMode?: MetadataCacheMode,
 ): Promise<SelfUpdateTarget> {
   const config = await loadConfig()
 
   if (facts.installSource === 'binary') {
     try {
       const manifest = context
-        ? await fetchBinaryReleaseManifest(facts.updateChannel, context, networkPort)
-        : await fetchBinaryReleaseManifest(facts.updateChannel, undefined, networkPort)
+        ? await fetchBinaryReleaseManifest(facts.updateChannel, context, networkPort, cacheMode)
+        : await fetchBinaryReleaseManifest(facts.updateChannel, undefined, networkPort, cacheMode)
       const asset = resolveBinaryReleaseAsset(manifest, facts.executablePath)
 
       if (!asset) {
@@ -55,8 +58,9 @@ export async function resolveSelfUpdateTarget(
   }
 
   const packageTag = facts.updateChannel === 'beta' ? 'beta' : 'latest'
-  const upstreamLatestVersion = await getLatestVersion(BUILD_PACKAGE_NAME, packageTag, {
+  const upstreamLatestVersion = await getLatestVersionWithCacheMode(BUILD_PACKAGE_NAME, packageTag, {
     ...(context ? { context } : {}),
+    cacheMode,
     networkPort,
     registry: OFFICIAL_NPM_REGISTRY,
   })
@@ -68,8 +72,9 @@ export async function resolveSelfUpdateTarget(
       managedRegistry: managedRegistry?.registry,
       managedRegistryIsOverride: managedRegistry?.isOverride ?? false,
       packageTag,
-      targetVersion: await getLatestVersion(BUILD_PACKAGE_NAME, packageTag, {
+      targetVersion: await getLatestVersionWithCacheMode(BUILD_PACKAGE_NAME, packageTag, {
         ...(context ? { context } : {}),
+        cacheMode,
         networkPort,
         registry: managedRegistry?.registry,
       }),
@@ -89,6 +94,7 @@ export async function planSelfUpgrade(options?: {
   context?: ProviderOperationContext
   facts?: SelfInstallFacts
   metadataCache?: CachePort
+  metadataCacheMode?: MetadataCacheMode
   metadataTtlMs?: number
   networkPort?: NetworkPort
   persistencePort?: PersistencePort
@@ -103,7 +109,9 @@ export async function planSelfUpgrade(options?: {
       signal: options?.context?.signal,
       updateChannel: options?.updateChannel,
     }))
-  const target = options?.target ?? (await resolveSelfUpdateTarget(facts, options?.context, options?.networkPort))
+  const target =
+    options?.target ??
+    (await resolveSelfUpdateTarget(facts, options?.context, options?.networkPort, options?.metadataCacheMode))
   const updateAvailable = target.targetVersion ? isVersionNewer(target.targetVersion, facts.currentVersion) : false
 
   const plan: SelfUpgradePlan = {

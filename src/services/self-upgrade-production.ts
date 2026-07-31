@@ -39,6 +39,7 @@ export function createProductionSelfUpgradeInvocation(): ProductionSelfUpgradeIn
       selfModule.planSelfUpgrade({
         context: input.context,
         metadataCache: input.metadataCache,
+        metadataCacheMode: input.metadataCacheMode,
         networkPort: input.networkPort,
         persistencePort: input.persistencePort,
         updateChannel: input.updateChannel,

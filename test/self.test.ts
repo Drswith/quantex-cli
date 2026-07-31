@@ -20,7 +20,7 @@ const npmUpdateSpy = vi.spyOn(npmPm, 'update')
 const binaryUpgradeSpy = vi.spyOn(binarySelf, 'upgradeStandaloneBinary')
 const releaseManifestSpy = vi.spyOn(releaseSelf, 'fetchBinaryReleaseManifest')
 const installedVersionSpy = vi.spyOn(version, 'getInstalledVersion')
-const latestVersionSpy = vi.spyOn(version, 'getLatestVersion')
+const latestVersionWithCacheModeSpy = vi.spyOn(version, 'getLatestVersionWithCacheMode')
 const tempConfigDir = join(tmpdir(), `quantex-self-test-${Date.now()}`)
 const originalPlatform = process.platform
 const originalArch = process.arch
@@ -34,7 +34,7 @@ afterAll(() => {
   binaryUpgradeSpy.mockRestore()
   releaseManifestSpy.mockRestore()
   installedVersionSpy.mockRestore()
-  latestVersionSpy.mockRestore()
+  latestVersionWithCacheModeSpy.mockRestore()
   Object.defineProperty(process, 'platform', { value: originalPlatform })
   Object.defineProperty(process, 'arch', { value: originalArch })
 })
@@ -49,7 +49,7 @@ describe('self helpers', () => {
     binaryUpgradeSpy.mockClear()
     releaseManifestSpy.mockClear()
     installedVersionSpy.mockClear()
-    latestVersionSpy.mockClear()
+    latestVersionWithCacheModeSpy.mockClear()
     Object.defineProperty(process, 'platform', { value: originalPlatform })
     Object.defineProperty(process, 'arch', { value: originalArch })
   })
@@ -398,7 +398,7 @@ describe('self helpers', () => {
 
   it('inspects the current CLI and resolves latest version metadata', async () => {
     const { inspectSelf } = await import('../src/self')
-    latestVersionSpy.mockResolvedValue('9.9.9')
+    latestVersionWithCacheModeSpy.mockResolvedValue('9.9.9')
 
     const inspection = await inspectSelf()
 
@@ -408,6 +408,31 @@ describe('self helpers', () => {
     expect(inspection.executablePath).toBeTruthy()
     expect(inspection.latestVersion).toBe('9.9.9')
     expect(inspection.updateChannel).toBe('stable')
+  })
+
+  it('propagates an explicit metadata refresh through self-upgrade target resolution', async () => {
+    const { resolveSelfUpdateTarget } = await import('../src/self')
+    latestVersionWithCacheModeSpy.mockResolvedValue('1.1.0')
+
+    await resolveSelfUpdateTarget(
+      {
+        canAutoUpdate: true,
+        currentVersion: '1.0.0',
+        executablePath: '/tmp/.bun/bin/qtx',
+        installSource: 'bun',
+        packageRoot: '/tmp/.bun/install/global/node_modules/quantex-cli',
+        updateChannel: 'stable',
+      },
+      undefined,
+      undefined,
+      'refresh',
+    )
+
+    expect(latestVersionWithCacheModeSpy).toHaveBeenCalledWith(
+      expect.any(String),
+      'latest',
+      expect.objectContaining({ cacheMode: 'refresh' }),
+    )
   })
 
   it('prefers QTX self-update registry overrides over package-manager defaults', async () => {
