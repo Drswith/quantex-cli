@@ -20,6 +20,8 @@ export interface AgentExecutableObservation {
 export interface AgentLifecycleObservationPorts {
   readonly clock: () => string
   readonly inspectExecutable: (agent: AgentDefinition) => Promise<AgentExecutableObservation>
+  /** Restricts a post-mutation verification to one exact catalog source. */
+  readonly observationBinding?: LifecycleProviderBinding
   readonly platform: Platform
   readonly preferredCatalogBinding?: LifecycleProviderBinding
   readonly providerRegistry: ProviderRegistry
@@ -62,6 +64,8 @@ export async function observeAgentLifecycle(
   const observedAt = ports.clock()
   const catalogEvidence = resolveCatalogProviderEvidence(agent, ports.platform)
   const catalogMethods = catalogEvidence.bindings
+  const observationBinding = resolveObservationBinding(catalogMethods, ports.observationBinding, agent.binaryName)
+  const observedCatalogMethods = observationBinding ? [observationBinding] : catalogMethods
   const stateBinding = installedState ? resolveStateProviderBinding(agent, installedState) : undefined
   const receiptBinding = receipt ? resolveReceiptProviderBinding(receipt) : undefined
   const persistedBinding = receiptBinding ?? stateBinding
@@ -174,7 +178,7 @@ export async function observeAgentLifecycle(
   }
 
   const candidateOutcomes = await Promise.all(
-    catalogMethods.map(async binding => ({ binding, outcome: await observeProvider(binding, ports) })),
+    observedCatalogMethods.map(async binding => ({ binding, outcome: await observeProvider(binding, ports) })),
   )
   const mismatchedCandidate = candidateOutcomes.find(
     candidate =>
@@ -225,7 +229,7 @@ export async function observeAgentLifecycle(
     }
   }
 
-  if (catalogEvidence.unresolvedCandidates.length > 0) {
+  if (!observationBinding && catalogEvidence.unresolvedCandidates.length > 0) {
     return {
       ...base,
       capabilities: [],
@@ -275,7 +279,7 @@ export async function observeAgentLifecycle(
     }
   }
 
-  const preferredCatalogBinding = ports.preferredCatalogBinding
+  const preferredCatalogBinding = observationBinding ?? ports.preferredCatalogBinding
   const absentCandidate = preferredCatalogBinding
     ? candidateOutcomes.find(
         candidate =>
@@ -309,6 +313,24 @@ export async function observeAgentLifecycle(
       ? presentObservation(agent, executable, observedAt, { kind: 'untracked' })
       : { drift: { kind: 'none' }, kind: 'absent', observedAt, targetId: agent.name },
   }
+}
+
+function resolveObservationBinding(
+  catalogMethods: readonly LifecycleProviderBinding[],
+  requested: LifecycleProviderBinding | undefined,
+  defaultExecutableName: string,
+): LifecycleProviderBinding | undefined {
+  if (!requested) return undefined
+  return catalogMethods.find(
+    candidate =>
+      providerBindingsEqual(candidate, requested, defaultExecutableName) &&
+      stringArraysEqual(candidate.target.arguments, requested.target.arguments),
+  )
+}
+
+function stringArraysEqual(left: readonly string[] | undefined, right: readonly string[] | undefined): boolean {
+  if (!left || !right) return left === right
+  return left.length === right.length && left.every((value, index) => value === right[index])
 }
 
 async function observeProvider(

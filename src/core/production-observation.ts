@@ -1,5 +1,6 @@
 import type { AgentDefinition, AgentVersionProbe, InstallMethod, Platform } from '../agents/types'
 import type { AgentExecutableObservation, AgentLifecycleObservationResult } from '../lifecycle/agent-observation'
+import type { LifecycleProviderBinding } from '../lifecycle/provider-binding'
 import type { ProviderRegistry } from '../providers/registry'
 import type { ProviderOperationContext } from '../providers/types'
 import type { VersionedQuantexState } from '../state/schema'
@@ -26,7 +27,11 @@ export interface CoreReadContext extends CoreInvocationContext {
 }
 
 export interface CoreReadPorts {
-  inspectAgent(name: string, context: CoreReadContext): Promise<CoreAgentObservation | undefined>
+  inspectAgent(
+    name: string,
+    context: CoreReadContext,
+    options?: { readonly observationBinding?: LifecycleProviderBinding },
+  ): Promise<CoreAgentObservation | undefined>
   listAgents(context: CoreReadContext): Promise<readonly AgentDefinition[]>
 }
 
@@ -42,10 +47,10 @@ export function resolveCoreConfigDir(configDir?: string): string {
 export function createProductionCoreReadPorts(options: ProductionCoreReadOptions = {}): CoreReadPorts {
   const providerRegistry = options.providerRegistry ?? createCoreProviderObservationRegistry()
   return {
-    async inspectAgent(name, context): Promise<CoreAgentObservation | undefined> {
+    async inspectAgent(name, context, inspectionOptions): Promise<CoreAgentObservation | undefined> {
       const agent = getCoreAgentByNameOrAlias(name)
       if (!agent) return undefined
-      return observeProductionAgent(agent, context, providerRegistry)
+      return observeProductionAgent(agent, context, providerRegistry, inspectionOptions?.observationBinding)
     },
     async listAgents(context): Promise<readonly AgentDefinition[]> {
       throwIfAborted(context.signal)
@@ -77,6 +82,7 @@ async function observeProductionAgent(
   agent: AgentDefinition,
   context: CoreReadContext,
   providerRegistry: ProviderRegistry,
+  observationBinding?: LifecycleProviderBinding,
 ): Promise<CoreAgentObservation> {
   const [state, methods] = await Promise.all([
     loadCoreStateDocument(context.configDir),
@@ -90,6 +96,7 @@ async function observeProductionAgent(
   const result = await observeAgentLifecycle(agent, {
     clock: () => new Date().toISOString(),
     inspectExecutable: () => inspectExecutable(agent, operationContext),
+    ...(observationBinding ? { observationBinding } : {}),
     platform: getPlatform(),
     preferredCatalogBinding: methods[0] ? resolveInstallMethodProviderBinding(agent, methods[0]) : undefined,
     providerRegistry,
@@ -125,9 +132,10 @@ async function inspectExecutable(
 ): Promise<AgentExecutableObservation> {
   const path = await findExecutable(agent.binaryName, context)
   if (!path) return { present: false }
-  const version = await inspectVersion(agent, path, context)
+  const executablePath = (await resolveExecutablePath(path, context.signal)) ?? path
+  const version = await inspectVersion(agent, executablePath, context)
   return {
-    path,
+    path: executablePath,
     present: true,
     ...(version ? { version } : {}),
   }

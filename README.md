@@ -42,7 +42,7 @@ The internal engine can evolve without changing the maintained v1 command syntax
 
 Quantex provides a non-interactive TypeScript SDK as [`quantex-core`](https://www.npmjs.com/package/quantex-core). It is independently versioned and validated through clean Node.js, Bun, and TypeScript NodeNext consumers. CLI npm and GitHub releases remain independent from Core publication.
 
-The 1.2 SDK stage established the read-only, ESM-only `createQuantex`, `list`, and `inspect` surface. The 1.3 integration surface adds gated `install` and `ensure` methods while retaining Node.js 20+ and Bun support. The import below describes the validated package API; it becomes a public registry import only after Core activation:
+The 1.2 SDK stage established the read-only, ESM-only `createQuantex`, `list`, and `inspect` surface. The 1.3 integration surface adds gated `install` and `ensure` methods while retaining Node.js 20+ and Bun support. The import below is the published package API:
 
 ```ts
 import { createQuantex } from 'quantex-core'
@@ -60,9 +60,9 @@ if (preview.ok && preview.value.mode === 'preview') {
 }
 ```
 
-Core does not prompt, print, call `process.exit`, or choose CLI exit codes; it returns typed results to its caller. `install` and `ensure` default to apply mode, expose an explicit side-effect-free preview mode, preserve PATH-only external agents, and return typed phase/side-effect failures. The `qtx` / `quantex` CLI remains responsible for prompts, human and JSON/NDJSON presentation, exit-code policy, command-line execution, and Quantex self-upgrade. The SDK still does not publish `update`, `uninstall`, or `run`, and stable CLI mutations continue to use the maintained legacy engine until the promotion gates pass.
+Core does not prompt, print, call `process.exit`, or choose CLI exit codes; it returns typed results to its caller. `install` and `ensure` default to apply mode, expose an explicit side-effect-free preview mode, preserve PATH-only external agents, and return typed phase/side-effect failures. The `qtx` / `quantex` CLI remains responsible for prompts, human and JSON/NDJSON presentation, exit-code policy, command-line execution, and Quantex self-upgrade. The SDK still does not publish `update`, `uninstall`, or `run`; their CLI implementations remain on the maintained legacy path.
 
-The compatibility transition is staged across 1.2-1.5: 1.2 introduces read-only Core, 1.3 may add gated mutation families, 1.4 is the earliest Core can become the CLI default, and 1.5 provides a second default soak. The persisted state schema remains version 2 throughout 1.x. Engine selection happens before an invocation, and a mutating call never falls back after side effects begin; when Core routing is promoted, rollback uses the preserved whole-invocation legacy route through 1.5. Removing maintained v1 surfaces requires a separate later-major proposal after the documented soak gates.
+The compatibility transition is staged across 1.2-1.5: 1.2 introduces read-only Core, 1.3 adds gated mutation families, 1.4 makes Core the CLI apply default for `install` and `ensure`, and 1.5 provides a second default soak. Existing v1 `--dry-run` planning stays on legacy and makes no lifecycle side effect. The persisted state schema remains version 2 throughout 1.x. Engine selection happens before an invocation, and a mutating call never falls back after side effects begin. During the soak, an operator can retry either promoted command through the retained whole-invocation legacy route: `QUANTEX_INSTALLATION_ENGINE=legacy qtx ensure codex`. Removing maintained v1 surfaces requires a separate later-major proposal after the documented soak gates.
 
 ## Agent Quick Start
 

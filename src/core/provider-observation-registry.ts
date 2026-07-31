@@ -191,9 +191,30 @@ async function probeBun(
   }
   const version = parseBunVersion(result.stdout, packageName)
   if (version) return { presence: 'present', version }
-  return result.stdout.split('\n').some(line => line.trim().split(/\s+/u).at(-1)?.startsWith(`${packageName}@`))
-    ? { presence: 'present' }
-    : { presence: 'absent' }
+  if (result.stdout.split('\n').some(line => line.trim().split(/\s+/u).at(-1)?.startsWith(`${packageName}@`))) {
+    return { presence: 'present' }
+  }
+
+  // Bun's human-readable global list has changed its package/version layout across
+  // supported releases. The global manifest is the authoritative fallback when
+  // the command completed but its output does not preserve the package@version token.
+  return await probeBunGlobalManifest(packageName, dependencies, 'absent')
+}
+
+async function probeBunGlobalManifest(
+  packageName: string,
+  dependencies: CoreProviderObservationDependencies,
+  fallback: PackagePresence,
+): Promise<PackageProbe> {
+  try {
+    const globalRoot =
+      dependencies.env.BUN_INSTALL_GLOBAL_DIR ?? join(dependencies.homeDir(), '.bun', 'install', 'global')
+    return {
+      presence: classifyManifestPresence(await dependencies.readFile(join(globalRoot, 'package.json')), packageName),
+    }
+  } catch {
+    return { presence: fallback }
+  }
 }
 
 async function probeNpm(

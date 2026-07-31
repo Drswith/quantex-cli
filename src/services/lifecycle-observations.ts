@@ -170,10 +170,11 @@ async function inspectExecutable(
   const present = await isBinaryInPath(agent.binaryName, context)
   if (!present) return { present: false }
 
-  const [path, version] = await Promise.all([
+  const [binaryPath, version] = await Promise.all([
     getBinaryPath(agent.binaryName, context),
     getObservedInstalledVersion(agent, installedState, context),
   ])
+  const path = (await getResolvedBinaryPath(binaryPath, context)) ?? binaryPath
   return { path, present, version }
 }
 

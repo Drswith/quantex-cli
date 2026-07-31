@@ -20,6 +20,7 @@ import { createResourceLockedError } from '../utils/lifecycle-errors'
 import { isResourceLockError } from '../utils/lock'
 import { isDryRunEnabled, printError, printInfo, printWarn } from '../utils/user-output'
 import { reportInstallationEngineRoute, selectInstallationEngineRoute } from './installation-routing'
+import { resolveUnmanagedExternalAgent } from './unmanaged-install-compatibility'
 
 interface InstallCommandData {
   agent: {
@@ -194,7 +195,10 @@ async function performSingleInstall(
   options: SingleInstallOptions = {},
   coreSession?: CoreInstallationCliSession,
 ): Promise<CommandResult<InstallCommandData>> {
-  if (coreSession) return await coreSession.execute(agentName, options)
+  if (coreSession) {
+    const unmanaged = await resolveUnmanagedExternalAgent(agentName)
+    return unmanaged ? createUnmanagedInstallResult(unmanaged) : await coreSession.execute(agentName, options)
+  }
   if (getCliContext().cancelled) return performSingleInstallLocked(agentName, options)
   if (!resolveAgent(agentName) || isDryRunEnabled()) return performSingleInstallLocked(agentName, options)
 

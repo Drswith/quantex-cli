@@ -78,6 +78,23 @@ describe('Core provider observation registry', () => {
 
     expect(outcome).toMatchObject({ kind: 'indeterminate', reason: expect.stringContaining('could not determine') })
   })
+
+  it('uses the Bun global manifest when a supported Bun list format omits the package@version token', async () => {
+    const target: ProviderTarget = { id: '@scope/fixture', kind: 'package' }
+    const readFile = vi.fn(async () => JSON.stringify({ dependencies: { '@scope/fixture': '1.2.3' } }))
+    const registry = createCoreProviderObservationRegistry(
+      dependencies({
+        env: { BUN_INSTALL_GLOBAL_DIR: '/fixture-global' },
+        readFile,
+        runCommand: async () => ({ exitCode: 0, stderr: '', stdout: '\u2514\u2500\u2500 @scope/fixture v1.2.3\n' }),
+      }),
+    )
+
+    const outcome = await registry.get('bun')!.observe({ context: context(), target })
+
+    expect(outcome).toMatchObject({ kind: 'success', value: { kind: 'present', target } })
+    expect(readFile).toHaveBeenCalledWith('/fixture-global/package.json')
+  })
 })
 
 function dependencies(overrides: Partial<CoreProviderObservationDependencies>): CoreProviderObservationDependencies {

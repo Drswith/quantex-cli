@@ -1,4 +1,5 @@
 import type { AgentDefinition, InstallMethod } from '../../src/agents/types'
+import type { InstallationEngineRoute } from '../../src/commands/installation-routing'
 import type { CoreInstallationExecutionOutcome } from '../../src/core/installation-executor'
 import type { CoreInvocationOutcome } from '../../src/core/invocation'
 import type { CoreMutationRecipeCatalog } from '../../src/core/mutation-recipe-catalog'
@@ -23,6 +24,12 @@ import { describe, expect, it, vi } from 'vitest'
  * transaction and injects fake providers, reads, locks, and persistence.
  */
 type Operation = 'ensure' | 'install'
+
+const LEGACY_DIFFERENTIAL_ROUTE: InstallationEngineRoute = Object.freeze({
+  engine: 'legacy',
+  source: 'compatibility-escape',
+})
+
 type ScenarioName =
   | 'binary-verification-failure'
   | 'conflict'
@@ -247,8 +254,8 @@ vi.mock('../../src/utils/user-output', () => ({
 }))
 
 import { projectCoreInstallationOutcome } from '../../src/commands/core-installation-cli'
-import { ensureCommand } from '../../src/commands/ensure'
-import { installCommand } from '../../src/commands/install'
+import { ensureCommandWithRoute } from '../../src/commands/ensure'
+import { installCommandWithRoute } from '../../src/commands/install'
 import { decideCoreInstallation } from '../../src/core/installation-decision'
 import { executeCoreInstallation } from '../../src/core/installation-executor'
 import { createProductionCoreInstallationPorts } from '../../src/core/installation-production'
@@ -510,8 +517,8 @@ async function runLegacy(operation: Operation, scenario: DifferentialScenario): 
   try {
     result =
       operation === 'install'
-        ? ((await installCommand(AGENT.name)) as CommandResult<unknown>)
-        : ((await ensureCommand(AGENT.name)) as CommandResult<unknown>)
+        ? ((await installCommandWithRoute(AGENT.name, LEGACY_DIFFERENTIAL_ROUTE)) as CommandResult<unknown>)
+        : ((await ensureCommandWithRoute(AGENT.name, LEGACY_DIFFERENTIAL_ROUTE)) as CommandResult<unknown>)
   } finally {
     legacyControl.clear()
   }

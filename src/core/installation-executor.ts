@@ -192,7 +192,7 @@ async function apply(
 
   let verified: CoreAgentObservation | undefined
   try {
-    verified = await ports.observe(input.name, context)
+    verified = await ports.observe(input.name, context, { observationBinding: recipe.binding })
   } catch (error) {
     return await recoverFailure(recovery, 'verification-failed', 'verify', errorReason(error), false, error)
   }
@@ -343,7 +343,7 @@ async function applyCompatibilityAdoption(
 
   let verified: CoreAgentObservation | undefined
   try {
-    verified = await ports.observe(name, context)
+    verified = await ports.observe(name, context, { observationBinding: recipe.binding })
   } catch (error) {
     if (context.signal.aborted) throw signalInterruption(context.signal, 'verify', 'none')
     return failure('verification-failed', 'verify', 'none', errorReason(error), false, undefined, error)

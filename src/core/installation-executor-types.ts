@@ -73,7 +73,11 @@ export interface CoreInstallationExecutorPorts {
     recipe: CoreInstallationRecipe,
     context: ProviderOperationContext,
   ): Promise<ProviderOutcome<ProviderMutationEvidence>>
-  observe(name: string, context: CoreInvocationContext): Promise<CoreAgentObservation | undefined>
+  observe(
+    name: string,
+    context: CoreInvocationContext,
+    options?: { readonly observationBinding?: LifecycleProviderBinding },
+  ): Promise<CoreAgentObservation | undefined>
   prepareRecord(input: {
     readonly before: CoreAgentObservation
     readonly context: CoreInvocationContext

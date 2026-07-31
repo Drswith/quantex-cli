@@ -501,6 +501,39 @@ describe('observeAgentLifecycle', () => {
       expect(result.binding).toBeUndefined()
     })
   }
+
+  it('uses only the exact selected catalog source for post-mutation verification', async () => {
+    const result = await observeAgentLifecycle(agent, {
+      clock: () => '2026-07-12T04:00:00.000Z',
+      inspectExecutable: async () => ({ path: '/bin/test-bin', present: true, version: '1.2.3' }),
+      observationBinding: { providerId: 'bun', target: { id: 'test-pkg', kind: 'package' } },
+      platform: 'linux',
+      providerRegistry: createRegistry({ bun: present('bun'), npm: present('npm') }),
+      readInstalledState: async () => undefined,
+      readReceipt: async () => undefined,
+      signal: new AbortController().signal,
+    })
+
+    expect(result.observation).toMatchObject({ drift: { kind: 'untracked' }, kind: 'present', providerId: 'bun' })
+    expect(result.binding).toMatchObject({ providerId: 'bun', target: { id: 'test-pkg', kind: 'package' } })
+    expect(result.catalogMethods).toHaveLength(4)
+  })
+
+  it('does not honor a non-catalog selected source', async () => {
+    const result = await observeAgentLifecycle(agent, {
+      clock: () => '2026-07-12T04:00:00.000Z',
+      inspectExecutable: async () => ({ path: '/bin/test-bin', present: true }),
+      observationBinding: { providerId: 'bun', target: { id: 'other-package', kind: 'package' } },
+      platform: 'linux',
+      providerRegistry: createRegistry({ bun: present('bun'), npm: present('npm') }),
+      readInstalledState: async () => undefined,
+      readReceipt: async () => undefined,
+      signal: new AbortController().signal,
+    })
+
+    expect(result.observation).toMatchObject({ drift: { kind: 'conflicting-source' }, kind: 'present' })
+    expect(result.binding).toBeUndefined()
+  })
 })
 
 function createRegistry(
