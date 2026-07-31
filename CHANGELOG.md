@@ -2,6 +2,13 @@
 
 This changelog is maintained by release-please Release PRs.
 
+## [1.5.0](https://github.com/Drswith/quantex-cli/compare/v1.4.0...v1.5.0) (2026-07-31)
+
+
+### Features
+
+* **compat:** start the second Core-default soak with a documented legacy recovery route ([263335d](https://github.com/Drswith/quantex-cli/commit/263335d88406680195506c047cd6550cdc589317))
+
 ## [1.4.0](https://github.com/Drswith/quantex-cli/compare/v1.3.0...v1.4.0) (2026-07-31)
 
 
