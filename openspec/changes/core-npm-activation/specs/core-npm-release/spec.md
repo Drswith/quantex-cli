@@ -16,7 +16,12 @@ The repository SHALL publish `quantex-core` only through a manually dispatched `
 
 ### Requirement: Core releases use immutable, idempotent recovery sources
 
-The Core release workflow MUST use `core-v<version>` as its immutable source tag and inspect `quantex-core@<version>` before publishing. It MUST reject a tag pointing at another commit and MUST treat an exact existing npm version as already published.
+The Core release workflow MUST use `core-v<version>` as its immutable source tag and inspect `quantex-core@<version>` before publishing. It MUST configure a deterministic Git committer identity before creating an annotated source tag, reject a tag pointing at another commit, and treat an exact existing npm version as already published.
+
+#### Scenario: the immutable source tag does not yet exist
+- **WHEN** a maintainer dispatches Core release for a version without `core-v<version>`
+- **THEN** the workflow configures its Git committer identity and creates an annotated tag at the selected source commit
+- **AND THEN** it pushes that tag before Core package validation and publication
 
 #### Scenario: a Core release is retried
 - **WHEN** a maintainer dispatches Core release after an interrupted publish
