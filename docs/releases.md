@@ -1,13 +1,13 @@
 # Releases
 
-The repository keeps a source-controlled [CHANGELOG.md](../CHANGELOG.md). A Release PR updates that changelog together with `.release-please-manifest.json`, `package.json`, `packages/core/package.json`, the root's exact `@quantex/core` development dependency, and `src/generated/build-meta.ts`.
+The repository keeps a source-controlled [CHANGELOG.md](../CHANGELOG.md). A CLI Release PR updates that changelog together with `.release-please-manifest.json`, `package.json`, and `src/generated/build-meta.ts`.
 
 ## Primary CLI release closure
 
 `quantex-cli`, the GitHub Release, and standalone binaries form the primary public release closure. Release automation:
 
 1. resolves the selected protected branch's pending release commit and exact `quantex-cli` npm state when a maintainer dispatches Release;
-2. builds and validates the repository, including the private Core workspace and its clean packed-tarball consumers;
+2. builds and validates the repository, including the bundled Core workspace and its clean packed-tarball consumers;
 3. publishes or verifies the exact `quantex-cli` version;
 4. creates or refreshes the GitHub Release only after CLI npm closure;
 5. uploads and verifies standalone release artifacts.
@@ -18,21 +18,14 @@ Recovery uses one source role: the immutable release commit remains the source f
 
 This repository does not coordinate publication of the separate `quantex` alias package.
 
-## Deferred Core publication
+## Core SDK publication
 
-`@quantex/core` remains a provisional private package identity. The main Release workflow builds and pack-validates it but does not query, publish, or require it for CLI release closure. This prevents unavailable scope permissions from blocking `quantex-cli` 1.2–1.5 releases while retaining a real SDK package boundary and clean downstream consumer tests.
+`quantex-core` is the public TypeScript SDK package. It begins supported publication at `0.1.0`; the manually published `0.0.0` bootstrap version is never selected for a release. Core has an independent version line and immutable `core-v<version>` tags.
 
-Public Core publication requires a separate OpenSpec activation change. That change must confirm:
+The manually dispatched [`release-core.yml`](../.github/workflows/release-core.yml) workflow validates, publishes, and verifies only the Core package through npm OIDC. It creates no CLI GitHub Release or standalone binaries, and Core publication state never reopens CLI release closure. Conversely, the CLI Release workflow pack-validates bundled Core but neither queries nor publishes it.
 
-- the final package name and registry;
-- maintainer publication permission;
-- the first-package bootstrap and 2FA owner;
-- trusted-publisher configuration;
-- public versioning and tag policy;
-- independent partial-publication recovery.
-
-Do not remove the Core manifest's private guard or add a variable-controlled publish step before that activation change is approved and validated.
+If an npm publication attempt is interrupted, re-dispatch Release Core from `main`: it resolves the same `core-v<version>` source and skips publication only after npm confirms the exact package version.
 
 ## v1.2.0 recovery closure
 
-The `v1.2.0` GitHub Release was initially created before npm publication completed. Recovery closed on 2026-07-27 through [Release run 30233396646](https://github.com/Drswith/quantex-cli/actions/runs/30233396646): it used the immutable v1.2.0 release commit for the package and artifacts, published and verified `quantex-cli@1.2.0`, and attached the manifest, checksums, and five standalone binaries without publishing `@quantex/core`.
+The `v1.2.0` GitHub Release was initially created before npm publication completed. Recovery closed on 2026-07-27 through [Release run 30233396646](https://github.com/Drswith/quantex-cli/actions/runs/30233396646): it used the immutable v1.2.0 release commit for the package and artifacts, published and verified `quantex-cli@1.2.0`, and attached the manifest, checksums, and five standalone binaries without publishing Core.

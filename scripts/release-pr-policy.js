@@ -13,16 +13,10 @@ const allowedFiles = new Set([
   '.release-please-manifest.json',
   'CHANGELOG.md',
   'package.json',
-  'packages/core/package.json',
   'src/generated/build-meta.ts',
 ])
 
-const requiredFiles = new Set([
-  '.release-please-manifest.json',
-  'package.json',
-  'packages/core/package.json',
-  'src/generated/build-meta.ts',
-])
+const requiredFiles = new Set(['.release-please-manifest.json', 'package.json', 'src/generated/build-meta.ts'])
 
 const dependencySections = ['dependencies', 'devDependencies', 'optionalDependencies', 'peerDependencies']
 
@@ -35,10 +29,7 @@ export function validateReleasePrPolicy(input) {
   const changedFiles = [...(input.changedFiles || [])].sort()
   const baseVersion = input.baseVersion || ''
   const rootManifest = isRecord(input.rootManifest) ? input.rootManifest : null
-  const coreManifest = isRecord(input.coreManifest) ? input.coreManifest : null
   const rootVersion = readString(rootManifest?.version)
-  const coreVersion = readString(coreManifest?.version)
-  const rootCoreDevelopmentDependency = readDependencyVersion(rootManifest, 'devDependencies', '@quantex/core')
 
   if (!releaseBranches.has(baseBranch)) {
     issues.push(`Release PR base branch "${baseBranch}" is not allowed; expected main or beta.`)
@@ -67,25 +58,13 @@ export function validateReleasePrPolicy(input) {
     issues.push('Release PR policy requires the root package.json manifest from the PR head.')
   }
 
-  if (!coreManifest) {
-    issues.push('Release PR policy requires packages/core/package.json from the PR head.')
-  }
-
   if (versionMatch) {
     const proposedVersion = versionMatch[1]
 
     validateManifestVersion(issues, 'Root package.json', rootVersion, proposedVersion)
-    validateManifestVersion(issues, 'Core package.json', coreVersion, proposedVersion)
-    validateManifestVersion(
-      issues,
-      'Root devDependencies["@quantex/core"]',
-      rootCoreDevelopmentDependency,
-      proposedVersion,
-    )
   }
 
   for (const issue of findWorkspaceProtocolIssues('package.json', rootManifest)) issues.push(issue)
-  for (const issue of findWorkspaceProtocolIssues('packages/core/package.json', coreManifest)) issues.push(issue)
 
   const unexpectedFiles = changedFiles.filter(fileName => !allowedFiles.has(fileName))
   if (unexpectedFiles.length > 0) {
@@ -169,12 +148,6 @@ function findWorkspaceProtocolIssues(manifestPath, manifest) {
   }
 
   return issues
-}
-
-function readDependencyVersion(manifest, sectionName, dependencyName) {
-  if (!manifest) return ''
-  const section = isRecord(manifest[sectionName]) ? manifest[sectionName] : null
-  return readString(section?.[dependencyName])
 }
 
 function readString(value) {
@@ -275,7 +248,6 @@ if (import.meta.main) {
     baseVersion: options.baseVersion ?? process.env.PR_BASE_VERSION ?? '',
     body,
     changedFiles,
-    coreManifest: readManifestFile('packages/core/package.json'),
     headBranch: options.headBranch ?? process.env.PR_HEAD_BRANCH ?? '',
     rootManifest: readManifestFile('package.json'),
     title: options.title ?? process.env.PR_TITLE ?? '',

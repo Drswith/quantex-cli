@@ -6,8 +6,8 @@
     "moduleResolution": "Bundler",
     "baseUrl": ".",
     "paths": {
-      "@quantex/core": ["packages/core/src/index.ts"],
-      "@quantex/core/internal": ["packages/core/src/internal.ts"]
+      "quantex-core": ["packages/core/src/index.ts"],
+      "quantex-core/internal": ["packages/core/src/internal.ts"]
     },
     "resolveJsonModule": true,
     "types": ["node", "bun-types"],

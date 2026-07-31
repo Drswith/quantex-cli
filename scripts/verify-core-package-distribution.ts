@@ -57,7 +57,7 @@ const forbiddenRuntimeFragments = {
     'process.exit',
   ],
   'self-upgrade or release': ['versions.json', 'release-artifact', 'self-upgrade'],
-  'unsupported Core infrastructure': ['@quantex/core/internal', 'catalog-source', 'update-cache', 'version-cache'],
+  'unsupported Core infrastructure': ['quantex-core/internal', 'catalog-source', 'update-cache', 'version-cache'],
 } as const
 const forbiddenEagerRuntimeFragments = ['runPackageMutationOutcome'] as const
 
@@ -70,20 +70,15 @@ export function assertCorePackageManifestContract(
   if (JSON.stringify(rootManifest.workspaces) !== JSON.stringify(['packages/core'])) {
     issues.push('the repository must declare packages/core as its only workspace')
   }
-  if (coreManifest.name !== '@quantex/core') {
-    issues.push(`the Core package name must be @quantex/core, found ${coreManifest.name ?? 'none'}`)
+  if (coreManifest.name !== 'quantex-core') {
+    issues.push(`the Core package name must be quantex-core, found ${coreManifest.name ?? 'none'}`)
   }
-  if (coreManifest.private !== true) {
-    issues.push('the provisional Core package must remain private until a separate publishing activation change')
+  if (!coreManifest.version || coreManifest.version === '0.0.0') {
+    issues.push(`Core must carry a supported non-bootstrap version, found ${coreManifest.version ?? 'none'}`)
   }
-  if (!rootManifest.version || rootManifest.version !== coreManifest.version) {
+  if (rootManifest.devDependencies?.['quantex-core'] !== coreManifest.version) {
     issues.push(
-      `root and Core versions must match exactly, found ${rootManifest.version ?? 'none'} and ${coreManifest.version ?? 'none'}`,
-    )
-  }
-  if (rootManifest.devDependencies?.['@quantex/core'] !== coreManifest.version) {
-    issues.push(
-      `root devDependencies must pin @quantex/core exactly to ${coreManifest.version ?? 'the Core version'}, found ${rootManifest.devDependencies?.['@quantex/core'] ?? 'none'}`,
+      `root devDependencies must pin quantex-core exactly to ${coreManifest.version ?? 'the Core version'}, found ${rootManifest.devDependencies?.['quantex-core'] ?? 'none'}`,
     )
   }
   if (coreManifest.engines?.node !== '>=20') {
@@ -102,9 +97,9 @@ export function assertCorePackageManifestContract(
   }
 
   const rootRuntimeCoreRanges = [
-    rootManifest.dependencies?.['@quantex/core'],
-    rootManifest.optionalDependencies?.['@quantex/core'],
-    rootManifest.peerDependencies?.['@quantex/core'],
+    rootManifest.dependencies?.['quantex-core'],
+    rootManifest.optionalDependencies?.['quantex-core'],
+    rootManifest.peerDependencies?.['quantex-core'],
   ].filter((range): range is string => typeof range === 'string')
   if (rootRuntimeCoreRanges.length > 0) {
     issues.push(
@@ -385,7 +380,7 @@ async function writeConsumerFixtures(consumerRoot: string): Promise<void> {
   await writeFile(
     join(consumerRoot, 'runtime.mjs'),
     [
-      "import * as core from '@quantex/core'",
+      "import * as core from 'quantex-core'",
       '',
       'const exportNames = Object.keys(core).sort()',
       "if (JSON.stringify(exportNames) !== JSON.stringify(['createQuantex'])) {",
@@ -405,11 +400,11 @@ async function writeConsumerFixtures(consumerRoot: string): Promise<void> {
   await writeFile(
     join(consumerRoot, 'consumer.ts'),
     [
-      "import { createQuantex, type AgentDescriptor, type AgentMutation, type AgentMutationPhase, type AgentMutationSideEffect, type CoreResult } from '@quantex/core'",
+      "import { createQuantex, type AgentDescriptor, type AgentMutation, type AgentMutationPhase, type AgentMutationSideEffect, type CoreResult } from 'quantex-core'",
       '// @ts-expect-error CLI implementation types are not part of the Core SDK.',
-      "import type { ManagedInstaller } from '@quantex/core'",
+      "import type { ManagedInstaller } from 'quantex-core'",
       '// @ts-expect-error Core does not expose internal subpaths.',
-      "import type {} from '@quantex/core/internal'",
+      "import type {} from 'quantex-core/internal'",
       '',
       'const quantex = createQuantex()',
       'const agents: Promise<CoreResult<readonly AgentDescriptor[]>> = quantex.list()',

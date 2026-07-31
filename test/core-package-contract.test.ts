@@ -7,8 +7,8 @@ import {
 } from '../scripts/verify-core-package-distribution'
 
 const rootManifest: RootPackageManifest = {
-  devDependencies: { '@quantex/core': '1.1.3' },
-  version: '1.1.3',
+  devDependencies: { 'quantex-core': '0.1.0' },
+  version: '1.3.0',
   workspaces: ['packages/core'],
 }
 
@@ -21,9 +21,8 @@ const coreManifest: CorePackageManifest = {
     },
     './package.json': './package.json',
   },
-  name: '@quantex/core',
-  private: true,
-  version: '1.1.3',
+  name: 'quantex-core',
+  version: '0.1.0',
 }
 
 const corePublicFiles = ['LICENSE', 'README.md', 'dist/index.d.mts', 'package.json'] as const
@@ -33,23 +32,23 @@ function packedFilesFor(runtimeModules: ReadonlyMap<string, string>): readonly s
 }
 
 describe('Core package manifest contract', () => {
-  it('accepts one same-version Core workspace with no runtime coupling', () => {
+  it('accepts an independently versioned Core workspace with no runtime coupling', () => {
     expect(() => assertCorePackageManifestContract(rootManifest, coreManifest)).not.toThrow()
   })
 
-  it('rejects version drift and a non-exact root development dependency', () => {
+  it('rejects a bootstrap Core version and a non-exact root development dependency', () => {
     expect(() =>
       assertCorePackageManifestContract(
         {
           ...rootManifest,
-          devDependencies: { '@quantex/core': '^1.1.3' },
+          devDependencies: { 'quantex-core': '^0.1.0' },
         },
         {
           ...coreManifest,
-          version: '1.1.4',
+          version: '0.0.0',
         },
       ),
-    ).toThrow(/versions must match exactly[\s\S]*must pin @quantex\/core exactly/)
+    ).toThrow(/supported non-bootstrap version[\s\S]*must pin quantex-core exactly/)
   })
 
   it('rejects runtime Core installation, extra public subpaths, and workspace protocols', () => {
@@ -57,7 +56,7 @@ describe('Core package manifest contract', () => {
       assertCorePackageManifestContract(
         {
           ...rootManifest,
-          dependencies: { '@quantex/core': 'workspace:*' },
+          dependencies: { 'quantex-core': 'workspace:*' },
         },
         {
           ...coreManifest,
@@ -79,13 +78,13 @@ describe('Core package manifest contract', () => {
     ).toThrow(/self-contained, found zod/)
   })
 
-  it('rejects removing the private publication guard before Core activation', () => {
+  it('rejects retaining the bootstrap Core version after activation', () => {
     expect(() =>
       assertCorePackageManifestContract(rootManifest, {
         ...coreManifest,
-        private: false,
+        version: '0.0.0',
       }),
-    ).toThrow(/must remain private until a separate publishing activation change/)
+    ).toThrow(/supported non-bootstrap version/)
   })
 })
 

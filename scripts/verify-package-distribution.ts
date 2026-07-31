@@ -117,7 +117,7 @@ async function verifyPackageDistribution(): Promise<void> {
     await verifyV1DownstreamCompatibility({ consumerRoot: installRoot, packageRoot: installedPackageRoot })
 
     console.log(
-      `Managed-install tarball excludes dist/bin and postinstall entrypoints, keeps runtime/declaration files (${requiredFiles.join(', ')}), runs from an isolated local extraction with copied production dependencies and no installed @quantex/core package, preserves equivalent qtx/quantex entry points, and preserves the complete v1 downstream root contract.`,
+      `Managed-install tarball excludes dist/bin and postinstall entrypoints, keeps runtime/declaration files (${requiredFiles.join(', ')}), runs from an isolated local extraction with copied production dependencies and no installed quantex-core package, preserves equivalent qtx/quantex entry points, and preserves the complete v1 downstream root contract.`,
     )
   } finally {
     await rm(tempRoot, { force: true, recursive: true })
@@ -126,14 +126,14 @@ async function verifyPackageDistribution(): Promise<void> {
 
 function assertCoreIsNotARuntimeDependency(manifest: PackageManifest): void {
   const runtimeRanges = [
-    manifest.dependencies?.['@quantex/core'],
-    manifest.optionalDependencies?.['@quantex/core'],
-    manifest.peerDependencies?.['@quantex/core'],
+    manifest.dependencies?.['quantex-core'],
+    manifest.optionalDependencies?.['quantex-core'],
+    manifest.peerDependencies?.['quantex-core'],
   ].filter((range): range is string => typeof range === 'string')
 
   if (runtimeRanges.length > 0) {
     throw new Error(
-      `Managed-install package must inline @quantex/core instead of requiring it at runtime; found ${runtimeRanges.join(', ')}.`,
+      `Managed-install package must inline quantex-core instead of requiring it at runtime; found ${runtimeRanges.join(', ')}.`,
     )
   }
 }
@@ -179,8 +179,8 @@ async function copyInstalledRuntimeDependencies(
     }
   }
 
-  if (copiedNames.has('@quantex/core')) {
-    throw new Error('Isolated managed-install dependency tree unexpectedly contains @quantex/core.')
+  if (copiedNames.has('quantex-core')) {
+    throw new Error('Isolated managed-install dependency tree unexpectedly contains quantex-core.')
   }
 }
 

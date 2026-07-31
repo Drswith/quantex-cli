@@ -132,6 +132,14 @@ That means:
 - keep the publish step in `.github/workflows/release.yml`
 - use `npm publish --ignore-scripts` without a long-lived token after the workflow has already built and smoke checked the release artifacts
 
+## Core SDK publishing
+
+`quantex-core` is released independently from the CLI. Its npm trusted publisher MUST target GitHub user `Drswith`, repository `quantex-cli`, and workflow filename `release-core.yml` (not the CLI `release.yml`). The Core workflow uses OIDC and no `NPM_TOKEN`.
+
+To publish or recover Core, dispatch **Release Core** for `main`. The workflow derives its version from `packages/core/package.json`, creates or verifies the immutable `core-v<version>` tag, validates the Core build and clean packed consumers, then inspects and publishes only `quantex-core@<version>`. A retry reuses the tag and skips publication only when that exact npm version already exists.
+
+Do not add Core publishing to `release.yml`: CLI GitHub Releases, standalone binaries, release-please, and recovery remain CLI-only.
+
 ## Important automation note
 
 Do not assume a workflow-created tag or GitHub Release should trigger a second publish workflow.

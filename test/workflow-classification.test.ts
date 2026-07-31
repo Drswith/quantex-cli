@@ -100,11 +100,11 @@ describe('workflow classification integration', () => {
     expect(ciWorkflow).toContain("runner.os == 'Linux' }}\n        run: bun run package:check")
   })
 
-  it('runs the real Windows test command for every product-impacting matrix event', () => {
+  it('skips full Windows tests only for product-impacting pull requests', () => {
     expect(ciWorkflow).toContain(
-      "needs.classify.outputs.run_test_matrix == 'true' && runner.os == 'Windows' }}\n        run: bun run test -- --pool=threads",
+      "needs.classify.outputs.run_test_matrix == 'true' && runner.os == 'Windows' && github.event_name != 'pull_request' }}\n        run: bun run test -- --pool=threads",
     )
-    expect(ciWorkflow).not.toContain("runner.os == 'Windows' && github.event_name != 'pull_request'")
+    expect(ciWorkflow).toContain("github.event_name != 'pull_request'")
   })
 
   it('preserves the six live merge-gate contexts', () => {

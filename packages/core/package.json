@@ -1,7 +1,6 @@
 {
-  "name": "@quantex/core",
-  "version": "1.3.0",
-  "private": true,
+  "name": "quantex-core",
+  "version": "0.1.0",
   "description": "Programmatic TypeScript SDK for the Quantex agent lifecycle core",
   "keywords": [
     "agent-cli",

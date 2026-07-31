@@ -1,0 +1,149 @@
+name: Release Core
+
+on:
+  workflow_dispatch:
+    inputs:
+      target_branch:
+        description: Protected branch whose Core package state should be reconciled
+        required: true
+        default: main
+        type: choice
+        options:
+          - main
+
+permissions:
+  contents: write
+  id-token: write
+
+concurrency:
+  group: release-core-${{ github.event.inputs.target_branch }}
+  cancel-in-progress: false
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Core source
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+          ref: ${{ github.event.inputs.target_branch }}
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.3.11
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          registry-url: https://registry.npmjs.org
+
+      - name: Resolve immutable Core source
+        id: source
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          package_name="$(node -p "require('./packages/core/package.json').name")"
+          package_version="$(node -p "require('./packages/core/package.json').version")"
+          tag_name="core-v${package_version}"
+          source_sha="$(git rev-parse HEAD)"
+
+          if [ "${package_name}" != "quantex-core" ]; then
+            echo "::error title=Unexpected Core package identity::Expected quantex-core, found ${package_name}."
+            exit 1
+          fi
+          if [ "${package_version}" = "0.0.0" ]; then
+            echo "::error title=Bootstrap version cannot be released::Use a supported Core version instead of 0.0.0."
+            exit 1
+          fi
+
+          git fetch --force origin "refs/tags/${tag_name}:refs/tags/${tag_name}" || true
+          if git rev-parse -q --verify "refs/tags/${tag_name}" >/dev/null; then
+            tag_sha="$(git rev-list -n 1 "${tag_name}")"
+            if [ "${tag_sha}" != "${source_sha}" ]; then
+              echo "::error title=Core release tag conflict::${tag_name} points at ${tag_sha}, not ${source_sha}."
+              exit 1
+            fi
+          else
+            git tag -a "${tag_name}" -m "Release Core ${package_version}" "${source_sha}"
+            git push origin "refs/tags/${tag_name}"
+          fi
+
+          echo "package_name=${package_name}" >> "$GITHUB_OUTPUT"
+          echo "package_version=${package_version}" >> "$GITHUB_OUTPUT"
+          echo "tag_name=${tag_name}" >> "$GITHUB_OUTPUT"
+
+      - name: Checkout immutable Core source
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+          ref: ${{ steps.source.outputs.tag_name }}
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Validate Core package
+        run: |
+          bun run typecheck:core
+          bun run build:core
+          bun run package:check:core
+
+      - name: Resolve Core npm publication state
+        id: npm-publication
+        shell: bash
+        env:
+          PACKAGE_NAME: ${{ steps.source.outputs.package_name }}
+          PACKAGE_VERSION: ${{ steps.source.outputs.package_version }}
+        run: |
+          set -euo pipefail
+
+          registry_error_file="$(mktemp)"
+          if inspection="$(npm view "${PACKAGE_NAME}@${PACKAGE_VERSION}" version --json 2>"${registry_error_file}")"; then
+            rm -f "${registry_error_file}"
+            inspected_version="$(printf '%s' "${inspection}" | tr -d '[:space:]\"')"
+            if [ "${inspected_version}" != "${PACKAGE_VERSION}" ]; then
+              echo "::error title=npm registry inspection is indeterminate::Expected ${PACKAGE_NAME}@${PACKAGE_VERSION}, found ${inspected_version:-no-version}."
+              exit 1
+            fi
+            echo "published=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          registry_error="$(<"${registry_error_file}")"
+          rm -f "${registry_error_file}"
+          if printf '%s' "${registry_error}" | grep -Eq 'E404|404 Not Found'; then
+            echo "published=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          echo "::error title=npm registry inspection is indeterminate::$(printf '%s' "${registry_error}" | tr '\n' ' ')"
+          exit 1
+
+      - name: Publish Core npm package
+        if: ${{ steps.npm-publication.outputs.published != 'true' }}
+        working-directory: packages/core
+        run: npm publish --access public --ignore-scripts --tag latest
+
+      - name: Verify Core npm closure
+        shell: bash
+        env:
+          PACKAGE_NAME: ${{ steps.source.outputs.package_name }}
+          PACKAGE_VERSION: ${{ steps.source.outputs.package_version }}
+        run: |
+          set -euo pipefail
+
+          for attempt in $(seq 1 12); do
+            if inspection="$(npm view "${PACKAGE_NAME}@${PACKAGE_VERSION}" version --json 2>/dev/null)"; then
+              inspected_version="$(printf '%s' "${inspection}" | tr -d '[:space:]\"')"
+              if [ "${inspected_version}" = "${PACKAGE_VERSION}" ]; then
+                exit 0
+              fi
+            fi
+            [ "${attempt}" -eq 12 ] || sleep 5
+          done
+
+          echo "::error title=Core npm closure failed::Could not verify ${PACKAGE_NAME}@${PACKAGE_VERSION}."
+          exit 1
