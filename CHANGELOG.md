@@ -2,6 +2,18 @@
 
 This changelog is maintained by release-please Release PRs.
 
+## [1.6.0](https://github.com/Drswith/quantex-cli/compare/v1.5.0...v1.6.0) (2026-07-31)
+
+
+### Features
+
+* **output:** improve human CLI readability across terminal widths ([7553c5d](https://github.com/Drswith/quantex-cli/commit/7553c5dbd4a7884675ac87750d95845c5c214382))
+
+
+### Bug Fixes
+
+* **self-upgrade:** discover newly published versions during explicit upgrade checks ([b2ed013](https://github.com/Drswith/quantex-cli/commit/b2ed0136b1463b3c2d3373ec4c1aabc3fd06a113))
+
 ## [1.5.0](https://github.com/Drswith/quantex-cli/compare/v1.4.0...v1.5.0) (2026-07-31)
 
 
