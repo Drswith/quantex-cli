@@ -2,6 +2,13 @@
 
 This changelog is maintained by release-please Release PRs.
 
+## [1.4.0](https://github.com/Drswith/quantex-cli/compare/v1.3.0...v1.4.0) (2026-07-31)
+
+
+### Features
+
+* **core:** use the verified Core lifecycle engine by default for install and ensure, while retaining v1 dry-run planning and a safe legacy rollback route. ([c1e70ab](https://github.com/Drswith/quantex-cli/commit/c1e70ab9e982cac66242bd0aad36e1828779dd10))
+
 ## [1.3.0](https://github.com/Drswith/quantex-cli/compare/v1.2.0...v1.3.0) (2026-07-27)
 
 
