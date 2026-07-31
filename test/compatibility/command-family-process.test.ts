@@ -127,6 +127,12 @@ describe('v1 command-family process compatibility', () => {
     expect(normalizeOutput(`Install Methods:\n${stableMethod}\n${platformMethod}\n`, 'human')).toBe(
       normalizeOutput(`Install Methods:\n${stableMethod}\n`, 'human'),
     )
+
+    const windowsInstaller = '  winget     not-found'
+    const nonWindowsInstaller = '  winget     not-on-platform'
+    expect(normalizeOutput(`Installers:\n${windowsInstaller}\n`, 'human')).toBe(
+      normalizeOutput(`Installers:\n${nonWindowsInstaller}\n`, 'human'),
+    )
   })
 })
 
@@ -195,6 +201,10 @@ function normalizeOutput(stdout: string, mode: OutputMode): string {
       .replace(/\b\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?Z\b/gu, '<timestamp>')
       .replace(/\bv?\d+\.\d+\.\d+(?:[-+][0-9A-Za-z.-]+)?\b/gu, '<version>')
       .replace(/^(\s*(?:bun|npm|brew|cargo|deno|mise|pip|uv|winget):\s*).*$/gimu, '$1<availability>')
+      .replace(
+        /^(\s+(?:brew|bun|cargo|deno|mise|npm|pip|uv|winget)\s+)(?:available|not-found|not-on-platform)$/gimu,
+        '$1<availability>',
+      )
       .replace(/^(?:.*\[managed\/(?:brew|winget)[^\]]*\].*|\s*managed\/(?:brew|winget)\b.*)$/gimu, '')
       .replace(/^[ \t]*- No managed installer found\.[\s\S]*?(?=^[ \t]*- |\n\n|$(?![\s\S]))/gimu, '')
       .replace(/\n{3,}/gu, '\n\n')

@@ -6,7 +6,7 @@
       ],
       "exitCode": 0,
       "goldens": {
-        "human": "98e29e1d033ae277ffb3cc968f366b7eb5eb9d0bbddc40377f1330ce7659f99c",
+        "human": "dd94e38f59ba99353d48bac910aca67657305659f31965ccbaf514d41239a6e3",
         "json": "f108ef561bdf444897aa6ce8f2053bd77913f29bae3e2e498e167b4f12092df2",
         "ndjson": "fb0454ab8ec927255488aa5d0886784ce7ee382d180729a6f4ff84c4e7741509"
       },
@@ -59,7 +59,7 @@
       ],
       "exitCode": 0,
       "goldens": {
-        "human": "672225aaabb09ef337d5c16c3db431232ee444fa35f2dcee7695afddf4286a35",
+        "human": "a21a4916b9bd8e05c94fd262dcdd1334ac7e2f3959c25d3e18fef5e6e23c9301",
         "json": "97ce206df1609d75f2c1dd88b7d7e0ba274b34764e39029f364cd1fe07c8a38c",
         "ndjson": "c02c67ed2761800593e6a115479aa3f10bd5f73679e77a5d5d64fad8a6b547f2"
       },
