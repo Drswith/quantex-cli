@@ -112,10 +112,12 @@ describe('capabilitiesCommand', () => {
     expect(output).toContain('Quantex Capabilities')
     expect(output).toContain('Platform:')
     expect(output).toContain('Agents:')
-    expect(output).toContain('--yes:')
-    expect(output).toContain('dry-run:')
-    expect(output).toContain('self-upgrade:')
-    expect(output).toContain('exec-install-policy:')
+    expect(output).toContain('--yes')
+    expect(output).toContain('dry-run')
+    expect(output).toContain('self-upgrade')
+    expect(output).toContain('exec install policy')
+    expect(output).toContain('2 registered (qtx list)')
+    expect(output).not.toContain('claude, codex')
   })
 
   it('emits structured capability data in json mode', async () => {

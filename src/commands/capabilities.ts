@@ -2,6 +2,7 @@ import type { CommandResult } from '../output/types'
 import process from 'node:process'
 import { getAllAgents } from '../agents'
 import { createSuccessResult, emitCommandResult } from '../output'
+import { getHumanTerminalWidth, renderHumanFields, renderHumanTable, renderHumanWrapped } from '../output/human'
 import { createCliOperationContext } from '../runtime/cli-operation-context'
 import { inspectSelfReadOnly } from '../self'
 import { getCommandCapabilitySnapshot, projectCommandCapabilitiesToV1Features } from '../services/command-capabilities'
@@ -131,36 +132,63 @@ function getUnavailableReason(
 function renderCapabilitiesHuman(result: { data?: CapabilitiesData }): void {
   if (!result.data) return
 
+  const width = getHumanTerminalWidth()
   console.log(pc.bold('\nQuantex Capabilities\n'))
-  console.log(`  Platform:     ${result.data.platform.os}/${result.data.platform.arch}`)
-  console.log(`  Output Modes: ${result.data.outputModes.join(', ')}`)
-  console.log(`  Agents:       ${result.data.agents.join(', ')}`)
+  for (const line of renderHumanFields(
+    [
+      { label: 'Platform', value: `${result.data.platform.os}/${result.data.platform.arch}` },
+      { label: 'Output', value: result.data.outputModes.join(', ') },
+      { label: 'Agents', value: `${result.data.agents.length} registered (qtx list)` },
+    ],
+    { labelStyle: pc.bold, width },
+  )) {
+    console.log(line)
+  }
 
-  console.log(pc.bold('\n  Installers:'))
-  console.log(`    bun:    ${formatCapabilityAvailability(result.data.installers.bun)}`)
-  console.log(`    npm:    ${formatCapabilityAvailability(result.data.installers.npm)}`)
-  console.log(`    brew:   ${formatCapabilityAvailability(result.data.installers.brew)}`)
-  console.log(`    cargo:  ${formatCapabilityAvailability(result.data.installers.cargo)}`)
-  console.log(`    deno:   ${formatCapabilityAvailability(result.data.installers.deno)}`)
-  console.log(`    mise:   ${formatCapabilityAvailability(result.data.installers.mise)}`)
-  console.log(`    pip:    ${formatCapabilityAvailability(result.data.installers.pip)}`)
-  console.log(`    uv:     ${formatCapabilityAvailability(result.data.installers.uv)}`)
-  console.log(`    winget: ${formatCapabilityAvailability(result.data.installers.winget)}`)
+  const installers = Object.entries(result.data.installers).map(([name, availability]) => ({ availability, name }))
+  console.log(pc.bold('\nInstallers\n'))
+  for (const line of renderHumanTable(
+    installers,
+    [
+      { header: 'Installer', value: installer => installer.name },
+      { header: 'Status', value: installer => formatCapabilityAvailability(installer.availability) },
+    ],
+    { headerStyle: pc.bold, width },
+  )) {
+    console.log(line)
+  }
 
-  console.log(pc.bold('\n  Features:'))
-  console.log(`    --yes:                ${result.data.features.assumeYes ? 'yes' : 'no'}`)
-  console.log(`    cache-refresh:        ${result.data.features.cacheRefresh ? 'yes' : 'no'}`)
-  console.log(`    color-modes:          ${result.data.features.colorModes.join(', ')}`)
-  console.log(`    no-cache:             ${result.data.features.cacheBypass ? 'yes' : 'no'}`)
-  console.log(`    dry-run:              ${result.data.features.dryRun ? 'yes' : 'no'}`)
-  console.log(`    freshness-metadata:   ${result.data.features.freshnessMetadata ? 'yes' : 'no'}`)
-  console.log(`    self-upgrade:         ${result.data.features.selfUpgrade ? 'yes' : 'no'}`)
-  console.log(`    idempotency-key:      ${result.data.features.idempotencyKey ? 'yes' : 'no'}`)
-  console.log(`    log-levels:           ${result.data.features.logLevels.join(', ')}`)
-  console.log(`    quiet-logs:           ${result.data.features.quietLogs ? 'yes' : 'no'}`)
-  console.log(`    timeout:              ${result.data.features.timeout ? 'yes' : 'no'}`)
-  console.log(`    channels:             ${result.data.features.channels.join(', ')}`)
-  console.log(`    exec-install-policy:  ${result.data.features.execInstallPolicies.join(', ')}`)
+  const features = [
+    ['--yes', yesNo(result.data.features.assumeYes)],
+    ['cache refresh', yesNo(result.data.features.cacheRefresh)],
+    ['color modes', result.data.features.colorModes.join(', ')],
+    ['no-cache', yesNo(result.data.features.cacheBypass)],
+    ['dry-run', yesNo(result.data.features.dryRun)],
+    ['freshness metadata', yesNo(result.data.features.freshnessMetadata)],
+    ['self-upgrade', yesNo(result.data.features.selfUpgrade)],
+    ['idempotency key', yesNo(result.data.features.idempotencyKey)],
+    ['log levels', result.data.features.logLevels.join(', ')],
+    ['quiet logs', yesNo(result.data.features.quietLogs)],
+    ['timeout', yesNo(result.data.features.timeout)],
+    ['channels', result.data.features.channels.join(', ')],
+    ['exec install policy', result.data.features.execInstallPolicies.join(', ')],
+  ].map(([feature, value]) => ({ feature: feature!, value: value! }))
+  console.log(pc.bold('\nFeatures\n'))
+  for (const line of renderHumanTable(
+    features,
+    [
+      { header: 'Feature', minWidth: 8, value: feature => feature.feature },
+      { header: 'Value', minWidth: 8, value: feature => feature.value, wrap: true },
+    ],
+    { headerStyle: pc.bold, width },
+  )) {
+    console.log(line)
+  }
+
+  console.log()
+  for (const line of renderHumanWrapped(pc.dim('Details: qtx capabilities --json'), { indent: '  ', width })) {
+    console.log(line)
+  }
   console.log()
 }
 
@@ -168,4 +196,8 @@ function formatCapabilityAvailability(value: { available: boolean; reason?: stri
   if (value.available) return pc.green('available')
 
   return pc.red(value.reason ?? 'not-found')
+}
+
+function yesNo(value: boolean): string {
+  return value ? pc.green('yes') : pc.dim('no')
 }

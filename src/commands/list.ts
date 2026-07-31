@@ -1,6 +1,7 @@
 import type { CommandResult } from '../output/types'
 import { projectObservationToV1Inspection } from '../compatibility/agent-inspection'
 import { createSuccessResult, emitCommandResult } from '../output'
+import { getHumanTerminalWidth, renderHumanTable, renderHumanWrapped } from '../output/human'
 import { observeCliReadRegisteredAgents } from '../services/core-read-observations'
 import { pc } from '../utils/color'
 
@@ -45,19 +46,50 @@ export async function listCommand(): Promise<CommandResult<{ agents: ListedAgent
 }
 
 function renderListHuman(result: { data?: { agents: ListedAgent[] } }): void {
+  const agents = result.data?.agents ?? []
+  const width = getHumanTerminalWidth()
   console.log(pc.bold('\nAI Agents:\n'))
-
-  for (const agent of result.data?.agents ?? []) {
-    const nameStr = agent.displayName.padEnd(18)
-    const statusStr = agent.installed ? pc.green('installed') : pc.gray('not installed')
-    const versionStr = agent.installed ? pc.dim(agent.installedVersion ?? 'unknown version') : ''
-    const updateStr = agent.installed ? pc.cyan(agent.updateLabel) : ''
-    const sourceStr = agent.installed ? pc.dim(agent.sourceLabel) : ''
-
-    console.log(
-      `  ${nameStr} ${statusStr}  ${versionStr}${updateStr ? `  ${updateStr}` : ''}${sourceStr ? `  ${sourceStr}` : ''}`,
-    )
+  for (const line of renderHumanTable(
+    agents,
+    [
+      {
+        header: 'Agent',
+        minWidth: 8,
+        value: agent => agent.displayName,
+      },
+      {
+        header: 'Installed',
+        minWidth: 5,
+        value: agent => (agent.installed ? pc.green('yes') : pc.dim('no')),
+      },
+      {
+        header: 'Version',
+        maxWidth: 22,
+        optional: true,
+        priority: 2,
+        value: agent => (agent.installed ? pc.dim(agent.installedVersion ?? 'unknown') : pc.dim('—')),
+      },
+      {
+        header: 'Update',
+        optional: true,
+        priority: 1,
+        value: agent => (agent.installed ? pc.cyan(formatListUpdateMode(agent.updateLabel)) : pc.dim('—')),
+      },
+    ],
+    { headerStyle: pc.bold, width },
+  )) {
+    console.log(line)
   }
 
+  const installed = agents.filter(agent => agent.installed).length
+  const summary = `${installed} installed · ${agents.length - installed} not installed`
   console.log()
+  for (const line of renderHumanWrapped(pc.dim(summary), { indent: '  ', width })) console.log(line)
+  for (const line of renderHumanWrapped(pc.dim('Details: qtx inspect <agent>'), { indent: '  ', width }))
+    console.log(line)
+  console.log()
+}
+
+function formatListUpdateMode(label: string): string {
+  return label.replace(/ update$/u, '')
 }

@@ -2,6 +2,7 @@ import type { V1CommandDescriptor } from '../command-contract'
 import type { CommandResult } from '../output/types'
 import { getCommandContracts, toV1CommandDescriptor } from '../command-contract'
 import { createSuccessResult, emitCommandResult } from '../output'
+import { getHumanTerminalWidth, renderHumanTable, renderHumanWrapped } from '../output/human'
 import { pc } from '../utils/color'
 
 interface CommandsCommandData {
@@ -27,12 +28,24 @@ export async function commandsCommand(): Promise<CommandResult<CommandsCommandDa
 function renderCommandsHuman(result: { data?: CommandsCommandData }): void {
   if (!result.data) return
 
+  const width = getHumanTerminalWidth()
   console.log(pc.bold('\nQuantex Commands\n'))
-  for (const command of result.data.commands) {
-    const flags = command.flags.length > 0 ? pc.dim(` [${command.flags.join(', ')}]`) : ''
-    console.log(`  ${pc.cyan(command.name)}${flags}`)
-    console.log(`    ${command.summary}`)
-    console.log(`    ${pc.dim(command.outputSchemaRef)}`)
+  for (const line of renderHumanTable(
+    result.data.commands,
+    [
+      { header: 'Command', maxWidth: 24, minWidth: 8, value: command => pc.cyan(command.name) },
+      { header: 'Summary', minWidth: 16, value: command => command.summary, wrap: true },
+    ],
+    { headerStyle: pc.bold, width },
+  )) {
+    console.log(line)
+  }
+  console.log()
+  for (const line of renderHumanWrapped(pc.dim('Contracts: qtx commands --json · Schemas: qtx schema <command>'), {
+    indent: '  ',
+    width,
+  })) {
+    console.log(line)
   }
   console.log()
 }

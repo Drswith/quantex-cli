@@ -74,14 +74,14 @@ describe('resolveCommand', () => {
     expectNoInternalObservationFields(result.data)
     expect(logSpy.mock.calls.map((call: unknown[]) => call[0])).toEqual([
       '\nTest Agent\n',
-      '  Name:         test-agent',
-      '  Binary:       test-bin',
-      '  Path:         /usr/bin/test-bin',
-      '  Source:       managed via bun (test-pkg)',
-      '  Lifecycle:    managed',
-      '  Install Type: bun',
-      '  Version:      1.2.3',
-      '  Launch:       /usr/bin/test-bin',
+      '  Name:          test-agent',
+      '  Binary:        test-bin',
+      '  Path:          /usr/bin/test-bin',
+      '  Source:        managed via bun (test-pkg)',
+      '  Lifecycle:     managed',
+      '  Install type:  bun',
+      '  Version:       1.2.3',
+      '  Launch:        /usr/bin/test-bin',
       undefined,
     ])
   })

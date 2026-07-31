@@ -195,8 +195,8 @@ function normalizeOutput(stdout: string, mode: OutputMode): string {
       .replace(/\b\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?Z\b/gu, '<timestamp>')
       .replace(/\bv?\d+\.\d+\.\d+(?:[-+][0-9A-Za-z.-]+)?\b/gu, '<version>')
       .replace(/^(\s*(?:bun|npm|brew|cargo|deno|mise|pip|uv|winget):\s*).*$/gimu, '$1<availability>')
-      .replace(/^.*\[managed\/(?:brew|winget)[^\]]*\].*$/gimu, '')
-      .replace(/^[ \t]*- No managed installer found\..*(?:\n|$)/gimu, '')
+      .replace(/^(?:.*\[managed\/(?:brew|winget)[^\]]*\].*|\s*managed\/(?:brew|winget)\b.*)$/gimu, '')
+      .replace(/^[ \t]*- No managed installer found\.[\s\S]*?(?=^[ \t]*- |\n\n|$(?![\s\S]))/gimu, '')
       .replace(/\n{3,}/gu, '\n\n')
       .trimEnd()
   }

@@ -1,6 +1,8 @@
 import type { AgentDefinition, InstallMethod } from '../../src/agents'
 import type { ResolvedAgentObservation } from '../../src/services/lifecycle-observations'
 import type { InstalledAgentState } from '../../src/state'
+import process from 'node:process'
+import stringWidth from 'string-width'
 import { afterAll, afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { setCliContext } from '../../src/cli-context'
 import { listCommand } from '../../src/commands/list'
@@ -12,6 +14,7 @@ const observeRegisteredAgentsSpy = vi.spyOn(coreReadObservations, 'observeCliRea
 
 const testAgent = agent('test-agent', 'Test Agent', 'test-bin', 'test-pkg')
 const secondAgent = agent('second-agent', 'Second Agent', 'second-bin', 'second-pkg')
+const originalStdoutColumns = process.stdout.columns
 
 afterAll(() => {
   inspectRegisteredAgentsSpy.mockRestore()
@@ -31,6 +34,7 @@ describe('listCommand', () => {
 
   afterEach(() => {
     logSpy.mockRestore()
+    Object.defineProperty(process.stdout, 'columns', { configurable: true, value: originalStdoutColumns })
   })
 
   it('routes ordered v1 rows through lifecycle observations without exposing internal fields', async () => {
@@ -73,7 +77,7 @@ describe('listCommand', () => {
     ])
   })
 
-  it('preserves human status, version, source, and update labels', async () => {
+  it('prioritizes aligned lifecycle summary and an explicit detail path in human output', async () => {
     const selfUpdatingAgent = { ...secondAgent, selfUpdate: { command: ['second-bin', 'update'] } }
     observeRegisteredAgentsSpy.mockResolvedValueOnce([
       observed(testAgent, {
@@ -87,12 +91,35 @@ describe('listCommand', () => {
     await listCommand()
 
     const output = logSpy.mock.calls.map((call: any[]) => call[0]).join('\n')
-    expect(output).toContain('unknown version')
-    expect(output).toContain('managed update')
-    expect(output).toContain('managed via bun (test-pkg)')
-    expect(output).toContain('command update')
-    expect(output).toContain('detected in PATH')
-    expect(output).toContain('not installed')
+    expect(output).toContain('Agent')
+    expect(output).toContain('Installed')
+    expect(output).toContain('unknown')
+    expect(output).toContain('managed')
+    expect(output).toContain('command')
+    expect(output).toContain('2 installed · 1 not installed')
+    expect(output).toContain('Details: qtx inspect <agent>')
+    expect(output).not.toContain('managed via bun (test-pkg)')
+    expect(output).not.toContain('detected in PATH')
+  })
+
+  it('drops optional columns before terminal wrapping in a narrow terminal', async () => {
+    Object.defineProperty(process.stdout, 'columns', { configurable: true, value: 32 })
+    observeRegisteredAgentsSpy.mockResolvedValueOnce([
+      observed(testAgent, { installedState: trackedState('test-agent', 'test-pkg'), version: '1.2.3' }),
+      observed(agent('missing-agent', 'Missing Agent', 'missing-bin', 'missing-pkg'), { present: false }),
+    ])
+
+    await listCommand()
+
+    const lines: string[] = logSpy.mock.calls
+      .map((call: unknown[]) => String(call[0]))
+      .join('\n')
+      .split('\n')
+    const header = lines.find(line => line.includes('Installed')) ?? ''
+    expect(header).toContain('Agent')
+    expect(header).not.toContain('Version')
+    expect(header).not.toContain('Update')
+    expect(lines.every(line => stringWidth(line) <= 32)).toBe(true)
   })
 
   it('emits the unchanged structured list envelope in json mode', async () => {
