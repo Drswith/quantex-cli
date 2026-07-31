@@ -67,10 +67,13 @@ describe('production Core installation ports', () => {
       readPorts: { inspectAgent, listAgents: async () => [agent] },
     })
 
-    await expect(ports.observe(agent.name, invocation.context)).resolves.toBe(inspected)
+    await expect(ports.observe(agent.name, invocation.context, { observationBinding: binding })).resolves.toBe(
+      inspected,
+    )
     expect(inspectAgent).toHaveBeenCalledWith(
       agent.name,
       expect.objectContaining({ configDir, signal: invocation.context.signal }),
+      { observationBinding: binding },
     )
   })
 

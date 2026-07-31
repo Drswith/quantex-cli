@@ -42,7 +42,7 @@ Quantex 是一个 `human-friendly + agent-friendly` 的 AI 编程助手 CLI life
 
 Quantex 提供非交互式 TypeScript SDK：[`quantex-core`](https://www.npmjs.com/package/quantex-core)。它独立版本化，并已通过 Node.js、Bun 与 TypeScript NodeNext 的干净 consumer 验证；CLI 的 npm 与 GitHub 发布仍与 Core 发布相互独立。
 
-1.2 阶段确立了只读、仅 ESM 的 `createQuantex`、`list` 和 `inspect` surface。1.3 集成 surface 在保持 Node.js 20+ 与 Bun 支持的同时，新增经过 gate 的 `install` 和 `ensure`。下面的 import 表示已验证的包 API；只有完成 Core 激活后，它才会成为公开 registry import：
+1.2 阶段确立了只读、仅 ESM 的 `createQuantex`、`list` 和 `inspect` surface。1.3 集成 surface 在保持 Node.js 20+ 与 Bun 支持的同时，新增经过 gate 的 `install` 和 `ensure`。下面的 import 表示已发布的包 API：
 
 ```ts
 import { createQuantex } from 'quantex-core'
@@ -60,9 +60,9 @@ if (preview.ok && preview.value.mode === 'preview') {
 }
 ```
 
-Core 不提示、不打印、不调用 `process.exit`，也不决定 CLI 退出码；它只向调用方返回类型化结果。`install` 与 `ensure` 默认执行 apply，也提供显式且无副作用的 preview；它们会保留 PATH-only external agent，并返回包含阶段与副作用状态的类型化失败。`qtx` / `quantex` CLI 仍负责提示、human 与 JSON/NDJSON 展示、退出码策略、命令行执行和 Quantex 自升级。SDK 仍未提供 `update`、`uninstall` 或 `run`；在 promotion gates 通过前，稳定 CLI 变更命令继续使用受维护的 legacy engine。
+Core 不提示、不打印、不调用 `process.exit`，也不决定 CLI 退出码；它只向调用方返回类型化结果。`install` 与 `ensure` 默认执行 apply，也提供显式且无副作用的 preview；它们会保留 PATH-only external agent，并返回包含阶段与副作用状态的类型化失败。`qtx` / `quantex` CLI 仍负责提示、human 与 JSON/NDJSON 展示、退出码策略、命令行执行和 Quantex 自升级。SDK 仍未提供 `update`、`uninstall` 或 `run`；它们的 CLI 实现继续使用受维护的 legacy 路径。
 
-兼容过渡跨越 1.2-1.5：1.2 引入只读 Core，1.3 可以添加经过 gate 的变更方法组，1.4 是 Core 最早可成为 CLI 默认引擎的版本，1.5 提供第二个默认版本的观察期。持久化 state schema 在整个 1.x 中保持为 version 2。引擎必须在单次调用前选定，变更操作一旦开始产生副作用就绝不会切换引擎重试；当 Core routing 晋级后，回滚通过保留至 1.5 的 whole-invocation legacy route 完成。删除受维护的 v1 surface 必须等待已记录的观察 gate 通过，并在后续 major 版本另行提案。
+兼容过渡跨越 1.2-1.5：1.2 引入只读 Core，1.3 新增经过 gate 的变更方法组，1.4 让 Core 成为 CLI `install` 与 `ensure` 的 apply 默认引擎，1.5 提供第二个默认版本的观察期。既有 v1 `--dry-run` 规划继续走 legacy，且不会产生任何生命周期副作用。持久化 state schema 在整个 1.x 中保持为 version 2。引擎必须在单次调用前选定，变更操作一旦开始产生副作用就绝不会切换引擎重试。观察期内，若需要兼容性重试，可通过保留的 whole-invocation legacy route 执行：`QUANTEX_INSTALLATION_ENGINE=legacy qtx ensure codex`。删除受维护的 v1 surface 必须等待已记录的观察 gate 通过，并在后续 major 版本另行提案。
 
 ## Agent 快速接入
 

@@ -91,7 +91,8 @@ function withProviderContext(
     ...ports,
     compensate: (recipe, context) => ports.compensate(recipe, compensationContext(context)),
     install: (recipe, context) => ports.install(recipe, operationContext(context)),
-    observe: (name, context) => ports.observe(name, timeoutMs === undefined ? context : { ...context, timeoutMs }),
+    observe: (name, context, options) =>
+      ports.observe(name, timeoutMs === undefined ? context : { ...context, timeoutMs }, options),
     resolveRecipe: input => ports.resolveRecipe({ ...input, context: operationContext(input.context) }),
     verify: (recipe, context) => ports.verify(recipe, operationContext(context)),
   }

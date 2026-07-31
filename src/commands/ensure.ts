@@ -17,6 +17,7 @@ import { createResourceLockedError } from '../utils/lifecycle-errors'
 import { isResourceLockError } from '../utils/lock'
 import { isDryRunEnabled, printError, printInfo, printWarn } from '../utils/user-output'
 import { reportInstallationEngineRoute, selectInstallationEngineRoute } from './installation-routing'
+import { resolveUnmanagedExternalAgent } from './unmanaged-install-compatibility'
 
 interface EnsureCommandData {
   agent: {
@@ -41,6 +42,8 @@ export async function ensureCommandWithRoute(
 ): Promise<CommandResult<EnsureCommandData>> {
   reportInstallationEngineRoute('ensure', route)
   if (route.engine === 'core') {
+    const unmanaged = await resolveUnmanagedExternalAgent(agentName)
+    if (unmanaged) return emitCommandResult(createUnmanagedEnsureResult(unmanaged), renderEnsureHuman)
     const { createCoreInstallationCliSession } = await import('./core-installation-cli')
     const session = createCoreInstallationCliSession('ensure')
     try {

@@ -1,7 +1,7 @@
 import type { InstallationEngineRoute } from '../../src/commands/installation-routing'
 import type { CommandResult } from '../../src/output/types'
 import process from 'node:process'
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 const control = vi.hoisted(() => ({
   createSession: vi.fn(),
@@ -31,6 +31,7 @@ import { getExitCodeForResult } from '../../src/errors'
 import { createErrorResult, createSuccessResult, emitCommandEvent } from '../../src/output'
 
 beforeEach(() => {
+  delete process.env.QUANTEX_INSTALLATION_ENGINE
   setCliContext({
     cancelled: false,
     colorMode: 'never',
@@ -52,14 +53,45 @@ beforeEach(() => {
   control.execute.mockImplementation(async (name: string) => installSuccess(name))
 })
 
+afterEach(() => {
+  delete process.env.QUANTEX_INSTALLATION_ENGINE
+})
+
 describe('installation engine routing', () => {
-  it('keeps the production selector frozen on legacy for install and ensure', () => {
+  it('selects the frozen Core stable-default route for install and ensure', () => {
     const install = selectInstallationEngineRoute('install')
     const ensure = selectInstallationEngineRoute('ensure')
 
-    expect(install).toEqual({ engine: 'legacy', source: 'stable-default' })
+    expect(install).toEqual({ adoption: 'v1-safe', engine: 'core', source: 'stable-default' })
     expect(ensure).toBe(install)
     expect(Object.isFrozen(install)).toBe(true)
+  })
+
+  it('uses the legacy compatibility escape for the complete selected invocation', () => {
+    process.env.QUANTEX_INSTALLATION_ENGINE = 'legacy'
+
+    const install = selectInstallationEngineRoute('install')
+    const ensure = selectInstallationEngineRoute('ensure')
+
+    expect(install).toEqual({ engine: 'legacy', source: 'compatibility-escape' })
+    expect(ensure).toBe(install)
+    expect(Object.isFrozen(install)).toBe(true)
+  })
+
+  it('retains the legacy route for v1-compatible dry-run planning', () => {
+    setCliContext({
+      cancelled: false,
+      colorMode: 'never',
+      dryRun: true,
+      interactive: false,
+      logLevel: 'silent',
+      outputMode: 'json',
+      quiet: true,
+      runId: 'installation-routing-dry-run',
+    })
+
+    expect(selectInstallationEngineRoute('install')).toEqual({ engine: 'legacy', source: 'dry-run-compatibility' })
+    expect(selectInstallationEngineRoute('ensure')).toEqual({ engine: 'legacy', source: 'dry-run-compatibility' })
   })
 
   it('selects the Core batch route once and reuses one session for every target', async () => {
@@ -208,6 +240,9 @@ describe('installation engine routing', () => {
 
     expect(stderr).toHaveBeenCalledOnce()
     expect(String(stderr.mock.calls[0]?.[0])).toContain('install engine=core source=test')
+
+    reportInstallationEngineRoute('ensure', selectInstallationEngineRoute('ensure'))
+    expect(String(stderr.mock.calls[1]?.[0])).toContain('ensure engine=core source=stable-default')
     stderr.mockRestore()
   })
 })

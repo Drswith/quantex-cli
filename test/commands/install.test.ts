@@ -91,6 +91,8 @@ describe('installCommand', () => {
   let stdoutWriteSpy: ReturnType<typeof vi.spyOn>
 
   beforeEach(() => {
+    // This suite verifies the retained legacy compatibility implementation directly.
+    process.env.QUANTEX_INSTALLATION_ENGINE = 'legacy'
     logSpy = vi.spyOn(console, 'log').mockImplementation(() => {})
     stdoutWriteSpy = vi.spyOn(process.stdout, 'write').mockReturnValue(true)
     agentSpy.mockClear()
@@ -126,6 +128,7 @@ describe('installCommand', () => {
   })
 
   afterEach(() => {
+    delete process.env.QUANTEX_INSTALLATION_ENGINE
     resetCliContext()
     logSpy.mockRestore()
     stdoutWriteSpy.mockRestore()

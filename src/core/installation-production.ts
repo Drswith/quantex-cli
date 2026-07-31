@@ -66,7 +66,8 @@ export function createProductionCoreInstallationPorts(
   return {
     compensate: (recipe, context) => compensateOwnedInstallation(registry, recipe, context),
     install: (recipe, context) => invokeMutation(registry, recipe, 'install', context),
-    observe: (name, context) => readPorts.inspectAgent(name, { ...context, configDir: dependencies.configDir }),
+    observe: (name, context, options) =>
+      readPorts.inspectAgent(name, { ...context, configDir: dependencies.configDir }, options),
     prepareRecord: ({ before, context, recipe, verified }) =>
       prepareVerifiedRecord({
         acquireLock,

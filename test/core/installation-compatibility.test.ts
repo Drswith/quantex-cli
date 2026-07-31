@@ -151,6 +151,46 @@ describe('Core installation compatibility executor', () => {
     expect((compensationContext as ProviderProcessOperationContext | undefined)?.outputPolicy).toBe('stderr')
   })
 
+  it('preserves the selected provider binding for post-mutation observation', async () => {
+    const observedOptions: Array<{ readonly observationBinding?: LifecycleProviderBinding } | undefined> = []
+    let observations = 0
+    const ports: CoreInstallationExecutorPorts = {
+      async compensate() {
+        return { kind: 'success', value: { evidence: [], target: binding.target } }
+      },
+      async install() {
+        return { kind: 'success', value: { evidence: [], target: binding.target } }
+      },
+      async observe(_name, _context, options) {
+        observations += 1
+        observedOptions.push(options)
+        return observations === 1 ? missingObservation() : untrackedObservation()
+      },
+      async prepareRecord() {
+        throw new Error('fixture record failure after post-mutation observation')
+      },
+      async resolveRecipe() {
+        return { kind: 'ready', recipe }
+      },
+      async verify() {
+        return { kind: 'success', value: { evidence: [], kind: 'satisfied' } }
+      },
+      async withMutationLock(_name, _context, run) {
+        return await run()
+      },
+    }
+    const executor = createCoreInstallationCompatibilityExecutor({ loadPorts: async () => ports })
+
+    await executor.execute({
+      mode: 'apply',
+      name: agent.name,
+      operation: 'install',
+      outputPolicy: 'discard',
+    })
+
+    expect(observedOptions).toEqual([undefined, { observationBinding: binding }])
+  })
+
   it('returns cancellation while ports load and never acquires a late mutation lock', async () => {
     const pendingPorts = deferred<CoreInstallationExecutorPorts>()
     let lockCalls = 0
