@@ -7,9 +7,9 @@
 ## 2. Regression coverage
 
 - [x] 2.1 Add tests for asset-incomplete publish recovery and asset-indeterminate fail-closed behavior
-- [ ] 2.2 Keep existing npm-missing / older-release-no-backfill coverage green
+- [x] 2.2 Keep existing npm-missing / older-release-no-backfill coverage green
 
 ## 3. Validation
 
-- [ ] 3.1 Run lint, format:check, typecheck, and the release-target resolution tests
-- [ ] 3.2 Run `bun run openspec:validate`
+- [x] 3.1 Run lint, format:check, typecheck, and the release-target resolution tests
+- [x] 3.2 Run `bun run openspec:validate`
