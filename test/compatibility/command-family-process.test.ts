@@ -128,6 +128,12 @@ describe('v1 command-family process compatibility', () => {
       normalizeOutput(`Install Methods:\n${stableMethod}\n`, 'human'),
     )
 
+    const compactMethods = '  Method        Command\n  managed/bun   bun add -g package'
+    const platformPaddedMethods = '  Method           Command\n  managed/bun      bun add -g package'
+    expect(normalizeOutput(`Install Methods:\n${compactMethods}\n`, 'human')).toBe(
+      normalizeOutput(`Install Methods:\n${platformPaddedMethods}\n`, 'human'),
+    )
+
     const windowsInstaller = '  winget     not found'
     const nonWindowsInstaller = '  winget     not on platform'
     expect(normalizeOutput(`Installers:\n${windowsInstaller}\n`, 'human')).toBe(
@@ -206,6 +212,7 @@ function normalizeOutput(stdout: string, mode: OutputMode): string {
         '$1<availability>',
       )
       .replace(/^(?:.*\[managed\/(?:brew|winget)[^\]]*\].*|\s*managed\/(?:brew|winget)\b.*)$/gimu, '')
+      .replace(/^(\s+(?:Method|managed\/(?:bun|cargo|deno|mise|npm|pip|uv)))\s{2,}(.+)$/gimu, '$1  $2')
       .replace(/^[ \t]*- No managed installer found\.[\s\S]*?(?=^[ \t]*- |\n\n|$(?![\s\S]))/gimu, '')
       .replace(/\n{3,}/gu, '\n\n')
       .trimEnd()
