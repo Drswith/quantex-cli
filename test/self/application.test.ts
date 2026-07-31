@@ -22,7 +22,7 @@ describe('runSelfUpgradeApplication', () => {
     expect(upgrade).not.toHaveBeenCalled()
   })
 
-  it('passes invocation cache, lock, signal, and timeout into planning and mutation in order', async () => {
+  it('passes invocation cache, lock, signal, timeout, and refresh mode into planning and mutation in order', async () => {
     const events: string[] = []
     const runtimePorts = createFakeRuntimePorts()
     const context = createInvocationContext({ ports: runtimePorts, timeoutMs: 1_500 })
@@ -35,6 +35,7 @@ describe('runSelfUpgradeApplication', () => {
         expect(input.context.signal).toBe(context.signal)
         expect(input.context.timeoutMs).toBe(1_500)
         expect(input.metadataCache).toBe(runtimePorts.cache)
+        expect(input.metadataCacheMode).toBe('refresh')
         expect(input.networkPort).toBe(runtimePorts.network)
         expect(input.persistencePort).toBe(runtimePorts.persistence)
         expect(input.updateChannel).toBe('stable')

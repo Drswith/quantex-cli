@@ -14,6 +14,8 @@ import { compareVersions } from './compare-versions'
 import { fetchJsonWithCache } from './network'
 import { buildRegistryPackageVersionUrl, OFFICIAL_NPM_REGISTRY, normalizeRegistryUrl } from './registry'
 
+type MetadataCacheMode = 'default' | 'no-cache' | 'refresh'
+
 export { compareVersions } from './compare-versions'
 
 // 通用版本号提取正则，匹配 v1.2.3 或 1.2.3 等格式
@@ -57,12 +59,25 @@ export async function getLatestVersion(
   distTag: string = 'latest',
   options: { context?: ProviderOperationContext; networkPort?: NetworkPort; registry?: string } = {},
 ): Promise<string | undefined> {
+  return getLatestVersionWithCacheMode(packageName, distTag, options)
+}
+
+export async function getLatestVersionWithCacheMode(
+  packageName: string,
+  distTag: string = 'latest',
+  options: {
+    cacheMode?: MetadataCacheMode
+    context?: ProviderOperationContext
+    networkPort?: NetworkPort
+    registry?: string
+  } = {},
+): Promise<string | undefined> {
   try {
     const registry = normalizeRegistryUrl(options.registry) ?? OFFICIAL_NPM_REGISTRY
     const data = await fetchJsonWithCache<{ version: string }>(
       buildRegistryPackageVersionUrl(packageName, distTag, registry),
       `npm:${registry}:${packageName}:${distTag}`,
-      { context: options.context, networkPort: options.networkPort },
+      { cacheMode: options.cacheMode, context: options.context, networkPort: options.networkPort },
     )
     if (options.context?.signal.aborted) throw cancelledError(options.context.signal)
     return data?.version

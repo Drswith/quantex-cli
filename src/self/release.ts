@@ -6,6 +6,8 @@ import process from 'node:process'
 import { BUILD_REPOSITORY_URL } from '../generated/build-meta'
 import { fetchJsonWithCache, fetchTextWithCache } from '../utils/network'
 
+type MetadataCacheMode = 'default' | 'no-cache' | 'refresh'
+
 export interface BinaryReleaseAsset {
   arch: 'arm64' | 'x64'
   checksum: string
@@ -95,9 +97,11 @@ export async function fetchBinaryReleaseManifest(
   channel: SelfUpdateChannel,
   context?: ProviderOperationContext,
   networkPort?: NetworkPort,
+  cacheMode?: MetadataCacheMode,
 ): Promise<BinaryReleaseManifest> {
-  const manifestUrl = await resolveBinaryReleaseManifestUrl(channel, context, networkPort)
+  const manifestUrl = await resolveBinaryReleaseManifestUrl(channel, context, networkPort, cacheMode)
   const manifest = await fetchJsonWithCache<BinaryReleaseManifest>(manifestUrl, `self:manifest:${channel}`, {
+    cacheMode,
     context,
     networkPort,
   })
@@ -111,12 +115,13 @@ export async function resolveBinaryReleaseManifestUrl(
   channel: SelfUpdateChannel,
   context?: ProviderOperationContext,
   networkPort?: NetworkPort,
+  cacheMode?: MetadataCacheMode,
 ): Promise<string> {
   if (!BUILD_REPOSITORY_URL) throw new Error('No repository URL is configured for Quantex releases.')
 
   if (channel === 'stable') return `${BUILD_REPOSITORY_URL}/releases/latest/download/manifest.json`
 
-  const release = await fetchGitHubReleaseSummary(channel, context, networkPort)
+  const release = await fetchGitHubReleaseSummary(channel, context, networkPort, cacheMode)
   const manifestAsset = release.assets.find(asset => asset.name === 'manifest.json')
 
   if (!manifestAsset?.browser_download_url)
@@ -129,6 +134,7 @@ export async function fetchGitHubReleaseSummary(
   channel: SelfUpdateChannel,
   context?: ProviderOperationContext,
   networkPort?: NetworkPort,
+  cacheMode?: MetadataCacheMode,
 ): Promise<GitHubReleaseSummary> {
   const repositorySlug = getRepositorySlug()
 
@@ -137,7 +143,7 @@ export async function fetchGitHubReleaseSummary(
   const releases = await fetchJsonWithCache<GitHubReleaseSummary[]>(
     `https://api.github.com/repos/${repositorySlug}/releases?per_page=20`,
     'self:github-releases',
-    { context, networkPort },
+    { cacheMode, context, networkPort },
   )
 
   if (!releases) throw new Error('Failed to query GitHub releases.')

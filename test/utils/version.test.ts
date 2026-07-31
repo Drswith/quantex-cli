@@ -305,21 +305,21 @@ describe('getLatestVersion', () => {
     expect(getCliContext().freshness?.source).toBe('cache')
   })
 
-  it('forces a network refresh when refresh mode is enabled', async () => {
-    const { getLatestVersion } = await import('../../src/utils/version')
+  it('forces a network refresh for a metadata lookup despite a valid default-cache entry', async () => {
+    const { getLatestVersion, getLatestVersionWithCacheMode } = await import('../../src/utils/version')
     mockFetch.mockResolvedValueOnce(new Response(JSON.stringify({ version: '2.0.0' }), { status: 200 }))
 
     expect(await getLatestVersion('refresh-package')).toBe('2.0.0')
 
     setCliContext({
-      cacheMode: 'refresh',
+      cacheMode: 'default',
       interactive: false,
       outputMode: 'json',
       runId: 'refresh-run-id',
     })
     mockFetch.mockResolvedValueOnce(new Response(JSON.stringify({ version: '2.1.0' }), { status: 200 }))
 
-    expect(await getLatestVersion('refresh-package')).toBe('2.1.0')
+    expect(await getLatestVersionWithCacheMode('refresh-package', 'latest', { cacheMode: 'refresh' })).toBe('2.1.0')
     expect(mockFetch).toHaveBeenCalledTimes(2)
     expect(getCliContext().freshness?.source).toBe('network')
   })
