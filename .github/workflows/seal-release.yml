@@ -55,6 +55,9 @@ jobs:
         run: |
           set -euo pipefail
 
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
           if git rev-parse --verify --quiet "refs/tags/${RELEASE_TAG}" >/dev/null; then
             existing_sha="$(git rev-list -n 1 "refs/tags/${RELEASE_TAG}")"
             test "${existing_sha}" = "${RELEASE_SHA}"
