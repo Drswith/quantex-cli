@@ -123,6 +123,8 @@ The stable 0.x line is closed at `0.29.1`. The first post-redesign stable releas
 
 Every Release PR is re-authored as one maintainer commit, reviewed, and merged manually after required checks finish. Prefer rebase merge for a locked reviewed head, with squash only when rebase is unavailable or unsafe and only after the bot-authored topology has been replaced.
 
+Stable `2.x` publication is temporarily blocked. Do not remove this gate until the required v2 refactor has merged and at least 90 days have elapsed; lift it only through a new reviewed OpenSpec change that records the evidence and validates the new release path.
+
 For PRs that only touch workflow, documentation, project-memory, or release-please configuration files, use `ci:`, `chore:`, or `docs:` titles. PR Governance blocks release-worthy metadata for those scopes so release-process changes do not accidentally create stable product Release PRs.
 
 Release preparation and sealing are explicit. Required CI remains the merge gate; a failed `main` or `beta` push CI must be fixed before a maintainer seals a release.

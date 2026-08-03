@@ -34,6 +34,10 @@ export function validateReleaseIdentity(input: ReleaseIdentityInput): ReleaseIde
     throw new Error(`Invalid release package version: ${input.packageVersion}.`)
 
   const prerelease = input.packageVersion.includes('-')
+  if (!prerelease && input.packageVersion.split('.')[0] === '2')
+    throw new Error(
+      'Stable 2.x releases are deferred until the required refactor has completed and its 90-day stabilization window has elapsed.',
+    )
   const targetBranch = prerelease ? 'beta' : 'main'
   const channel = prerelease ? 'beta' : 'stable'
   const npmTag = prerelease ? 'beta' : 'latest'

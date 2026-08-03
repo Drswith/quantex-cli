@@ -208,6 +208,19 @@ describe('release PR policy', () => {
     ).toEqual([])
   })
 
+  it('defers stable v2 release candidates until the refactor stabilization window is complete', () => {
+    const issues = validateReleasePrPolicy({
+      baseBranch: 'main',
+      baseVersion: '1.7.1',
+      body: validBody,
+      changedFiles: validChangedFiles,
+      headBranch: 'release-please--branches--main--components--quantex-cli',
+      title: 'chore: release 2.0.0',
+    })
+
+    expect(issues.join('\n')).toContain('Stable 2.x releases are deferred')
+  })
+
   it('rejects unexpected file scope', () => {
     const issues = validateReleasePrPolicy({
       baseBranch: 'main',

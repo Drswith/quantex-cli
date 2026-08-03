@@ -103,6 +103,17 @@ describe('immutable release identity', () => {
     )
   })
 
+  it('rejects deferred stable v2 sealing', () => {
+    expect(() =>
+      validateReleaseIdentity({
+        ...stableIdentity,
+        commitTitle: 'chore: release 2.0.0',
+        packageVersion: '2.0.0',
+        requestedTag: 'v2.0.0',
+      }),
+    ).toThrow(/Stable 2.x releases are deferred/)
+  })
+
   it('requires publication to use an existing tag at the candidate SHA', () => {
     expect(() => validateReleaseIdentity({ ...stableIdentity, mode: 'publish' })).toThrow(/Publication requires/)
     expect(

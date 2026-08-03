@@ -8,6 +8,7 @@ const finalZeroMajorVersion = '0.29.1'
 const firstPostRedesignVersion = '1.1.0'
 const burnedStableReleaseVersions = new Set(['1.0.0'])
 const releaseBranches = new Set(['main', 'beta'])
+const deferredStableMajorVersion = '2'
 
 const allowedFiles = new Set([
   '.release-please-manifest.json',
@@ -108,6 +109,11 @@ export function validateReleasePrPolicy(input) {
 
   if (versionMatch && baseBranch === 'main') {
     const proposedVersion = versionMatch[1]
+    if (proposedVersion.split('.')[0] === deferredStableMajorVersion) {
+      issues.push(
+        'Stable 2.x releases are deferred until the required refactor has completed and its 90-day stabilization window has elapsed.',
+      )
+    }
     if (burnedStableReleaseVersions.has(proposedVersion)) {
       issues.push(
         `Release PR version "${proposedVersion}" is a burned stable release version and must not be published again.`,
