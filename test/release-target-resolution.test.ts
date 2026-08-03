@@ -140,8 +140,16 @@ describe('release workflow closure', () => {
   })
 
   it('seals the exact branch head and explicitly dispatches its tag', () => {
+    const identityNameIndex = sealWorkflow.indexOf('git config user.name "github-actions[bot]"')
+    const identityEmailIndex = sealWorkflow.indexOf(
+      'git config user.email "41898282+github-actions[bot]@users.noreply.github.com"',
+    )
+    const tagCreationIndex = sealWorkflow.indexOf('git tag --annotate "${RELEASE_TAG}" "${RELEASE_SHA}"')
+
     expect(sealWorkflow).toContain('bun run scripts/release-seal-contract.ts seal')
-    expect(sealWorkflow).toContain('git tag --annotate "${RELEASE_TAG}" "${RELEASE_SHA}"')
+    expect(identityNameIndex).toBeGreaterThan(-1)
+    expect(identityEmailIndex).toBeGreaterThan(identityNameIndex)
+    expect(tagCreationIndex).toBeGreaterThan(identityEmailIndex)
     expect(sealWorkflow).toContain('gh workflow run release.yml --ref "${RELEASE_TAG}"')
     expect(sealWorkflow).not.toContain('npm publish')
   })
