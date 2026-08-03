@@ -39,6 +39,11 @@ export function normalizePath(path: string): string {
 }
 
 export function getBinaryReleaseAssetName(executablePath: string = process.execPath): string | undefined {
+  const executableName = getBinaryReleaseExecutableName(executablePath)
+  return executableName ? `${executableName}.tar.gz` : undefined
+}
+
+export function getBinaryReleaseExecutableName(executablePath: string = process.execPath): string | undefined {
   const normalizedPath = normalizePath(executablePath)
   const executableName = basename(normalizedPath)
 

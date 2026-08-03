@@ -6,6 +6,7 @@ import { chmod, mkdir, mkdtemp, readFile, readdir, rm, stat, writeFile } from 'n
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import process from 'node:process'
+import { gzipSync } from 'node:zlib'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { getWindowsStandaloneBinaryPeerPath, upgradeStandaloneBinary } from '../src/self/binary'
 
@@ -127,7 +128,7 @@ describe('upgradeStandaloneBinary', () => {
           'https://example.com/qtx.exe',
           executablePath,
           createHash('sha256').update(binary).digest('hex'),
-          '1.2.3',
+          undefined,
           undefined,
           { networkPort, signal: controller.signal },
         ),
@@ -387,6 +388,59 @@ describe('upgradeStandaloneBinary', () => {
     }
   })
 
+  it('verifies and extracts a compressed release archive before replacement', async () => {
+    const tempRoot = await mkdtemp(join(tmpdir(), 'quantex-binary-archive-'))
+    const executablePath = join(tempRoot, 'qtx')
+    const replacement = '#!/bin/sh\necho 1.2.3\n'
+    const archive = createTarArchive('quantex-linux-x64', replacement)
+
+    Object.defineProperty(process, 'platform', { value: 'linux' })
+    await writeFile(executablePath, '#!/bin/sh\necho old\n', 'utf8')
+    await chmod(executablePath, 0o755)
+    globalThis.fetch = vi.fn().mockResolvedValue(new Response(archive, { status: 200 })) as unknown as typeof fetch
+
+    try {
+      expect(
+        await upgradeStandaloneBinary(
+          'https://example.com/qtx.tar.gz',
+          executablePath,
+          createHash('sha256').update(archive).digest('hex'),
+          undefined,
+          undefined,
+          { archiveEntryName: 'quantex-linux-x64', signal: new AbortController().signal },
+        ),
+      ).toEqual({ success: true })
+      expect(await readFile(executablePath, 'utf8')).toBe(replacement)
+    } finally {
+      await rm(tempRoot, { recursive: true, force: true })
+    }
+  })
+
+  it('rejects an archive with an unexpected entry before replacement', async () => {
+    const tempRoot = await mkdtemp(join(tmpdir(), 'quantex-binary-archive-unsafe-'))
+    const executablePath = join(tempRoot, 'qtx')
+    const archive = createTarArchive('../qtx', 'replacement')
+
+    Object.defineProperty(process, 'platform', { value: 'linux' })
+    await writeFile(executablePath, 'old-binary', 'utf8')
+    globalThis.fetch = vi.fn().mockResolvedValue(new Response(archive, { status: 200 })) as unknown as typeof fetch
+
+    try {
+      const result = await upgradeStandaloneBinary(
+        'https://example.com/qtx.tar.gz',
+        executablePath,
+        createHash('sha256').update(archive).digest('hex'),
+        undefined,
+        undefined,
+        { archiveEntryName: 'quantex-linux-x64', signal: new AbortController().signal },
+      )
+      expect(result.success).toBe(false)
+      expect(await readFile(executablePath, 'utf8')).toBe('old-binary')
+    } finally {
+      await rm(tempRoot, { recursive: true, force: true })
+    }
+  })
+
   it('rolls back to the previous executable when verification fails', async () => {
     const tempRoot = await mkdtemp(join(tmpdir(), 'quantex-binary-verify-fail-'))
     const executablePath = join(tempRoot, 'qtx')
@@ -428,4 +482,18 @@ function createByteStream(content: string): ReadableStream<Uint8Array> {
       controller.close()
     },
   })
+}
+
+function createTarArchive(name: string, contents: string): Uint8Array {
+  const body = new TextEncoder().encode(contents)
+  const header = new Uint8Array(512)
+  header.set(new TextEncoder().encode(name), 0)
+  header.set(new TextEncoder().encode(`${body.length.toString(8).padStart(11, '0')}\0`), 124)
+  header[156] = '0'.charCodeAt(0)
+  const paddedBody = new Uint8Array(Math.ceil(body.length / 512) * 512)
+  paddedBody.set(body)
+  const tar = new Uint8Array(512 + paddedBody.length + 1024)
+  tar.set(header)
+  tar.set(paddedBody, 512)
+  return gzipSync(tar)
 }

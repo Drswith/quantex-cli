@@ -8,7 +8,7 @@ Provide a repeatable path for debugging Quantex release artifacts, release metad
 
 - `quantex upgrade` failed and the failure might be in release metadata, download, checksum, verify, or install-source detection
 - a release build completed but you are not sure whether the publishable binary for the current platform is actually runnable
-- `manifest.json` or `SHA256SUMS.txt` looks suspicious or out of sync with built binaries
+- `manifest.json` or `SHA256SUMS.txt` looks suspicious or out of sync with compressed release archives
 - the npm or Bun install package looks much larger than the JS CLI runtime should require
 - you need to validate a release candidate locally before trusting the GitHub workflow
 
@@ -89,7 +89,7 @@ bun run package:check
 
 Expected outputs:
 
-- platform binaries under `dist/bin/`
+- platform binaries and their `.tar.gz` release archives under `dist/bin/`
 - `dist/bin/SHA256SUMS.txt`
 - `dist/bin/manifest.json`
 
@@ -128,7 +128,7 @@ bun run scripts/verify-release-artifacts.ts
 
 What this should guarantee:
 
-- every release binary listed in `manifest.json` exists in `SHA256SUMS.txt`
+- every compressed release archive listed in `manifest.json` exists in `SHA256SUMS.txt`
 - every checksum in the manifest matches the checksum file
 - asset filenames still match Quantex release naming rules
 - the stable release matrix contains all required platform binaries
@@ -156,15 +156,15 @@ What it validates:
 
 - the current runner asset exists in both `manifest.json` and `SHA256SUMS.txt`
 - manifest version matches the injected `BUILD_VERSION`
-- the current runner binary executes with `--version`
+- the current runner archive extracts its expected binary, which executes with `--version`
 - the binary reports the expected version string
 
 Current runner mapping:
 
-- macOS arm64 -> `quantex-darwin-arm64`
-- macOS x64 -> `quantex-darwin-x64`
-- Linux arm64 -> `quantex-linux-arm64`
-- Linux x64 -> `quantex-linux-x64`
+- macOS arm64 -> `quantex-darwin-arm64.tar.gz`
+- macOS x64 -> `quantex-darwin-x64.tar.gz`
+- Linux arm64 -> `quantex-linux-arm64.tar.gz`
+- Linux x64 -> `quantex-linux-x64.tar.gz`
 - Windows x64 -> `quantex-windows-x64.exe`
 
 If smoke fails:

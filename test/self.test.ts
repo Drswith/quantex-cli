@@ -198,7 +198,7 @@ describe('self helpers', () => {
     } = await import('../src/self')
     Object.defineProperty(process, 'platform', { value: 'darwin' })
     Object.defineProperty(process, 'arch', { value: 'arm64' })
-    const downloadUrl = 'https://example.com/releases/download/v1.1.0/quantex-darwin-arm64'
+    const downloadUrl = 'https://example.com/releases/download/v1.1.0/quantex-darwin-arm64.tar.gz'
 
     releaseManifestSpy.mockResolvedValue({
       assets: [
@@ -206,7 +206,7 @@ describe('self helpers', () => {
           arch: 'arm64',
           checksum: 'abc123',
           downloadUrl,
-          name: 'quantex-darwin-arm64',
+          name: 'quantex-darwin-arm64.tar.gz',
           platform: 'darwin',
         },
       ],
@@ -231,7 +231,14 @@ describe('self helpers', () => {
       installSource: 'binary',
       newVersion: '1.1.0',
     })
-    expect(binaryUpgradeSpy).toHaveBeenCalledWith(downloadUrl, '/usr/local/bin/qtx', 'abc123', '1.1.0', undefined)
+    expect(binaryUpgradeSpy).toHaveBeenCalledWith(
+      downloadUrl,
+      '/usr/local/bin/qtx',
+      'abc123',
+      '1.1.0',
+      undefined,
+      expect.objectContaining({ archiveEntryName: 'quantex-darwin-arm64' }),
+    )
     expect(
       getSelfUpgradeRecoveryHint('binary', '/usr/local/bin/qtx', 'stable', {
         error: {
@@ -242,10 +249,12 @@ describe('self helpers', () => {
         success: false,
       }),
     ).toContain('check network access')
-    expect(parseBinaryReleaseChecksum(`abc123  quantex-darwin-arm64\n`, 'quantex-darwin-arm64')).toBeUndefined()
-    expect(parseBinaryReleaseChecksum(`${'a'.repeat(64)}  quantex-darwin-arm64\n`, 'quantex-darwin-arm64')).toBe(
-      'a'.repeat(64),
-    )
+    expect(
+      parseBinaryReleaseChecksum(`abc123  quantex-darwin-arm64.tar.gz\n`, 'quantex-darwin-arm64.tar.gz'),
+    ).toBeUndefined()
+    expect(
+      parseBinaryReleaseChecksum(`${'a'.repeat(64)}  quantex-darwin-arm64.tar.gz\n`, 'quantex-darwin-arm64.tar.gz'),
+    ).toBe('a'.repeat(64))
     expect(getSelfUpdateChannel(undefined, 'stable', { QUANTEX_UPDATE_CHANNEL: 'beta' })).toBe('beta')
     expect(getSelfUpdateChannel('stable', 'beta', {})).toBe('stable')
     expect(getSelfUpdateChannel('stable', 'beta', { QUANTEX_UPDATE_CHANNEL: 'beta' })).toBe('stable')
@@ -256,8 +265,8 @@ describe('self helpers', () => {
             {
               arch: 'arm64',
               checksum: 'abc123',
-              downloadUrl: 'https://example.com/quantex-darwin-arm64',
-              name: 'quantex-darwin-arm64',
+              downloadUrl: 'https://example.com/quantex-darwin-arm64.tar.gz',
+              name: 'quantex-darwin-arm64.tar.gz',
               platform: 'darwin',
             },
           ],
@@ -273,7 +282,7 @@ describe('self helpers', () => {
     const { upgradeSelf } = await import('../src/self')
     Object.defineProperty(process, 'platform', { value: 'win32' })
     Object.defineProperty(process, 'arch', { value: 'x64' })
-    const downloadUrl = 'https://example.com/releases/download/v1.1.0/quantex-windows-x64.exe'
+    const downloadUrl = 'https://example.com/releases/download/v1.1.0/quantex-windows-x64.exe.tar.gz'
 
     releaseManifestSpy.mockResolvedValue({
       assets: [
@@ -281,7 +290,7 @@ describe('self helpers', () => {
           arch: 'x64',
           checksum: 'abc123',
           downloadUrl,
-          name: 'quantex-windows-x64.exe',
+          name: 'quantex-windows-x64.exe.tar.gz',
           platform: 'win32',
         },
       ],
@@ -312,6 +321,7 @@ describe('self helpers', () => {
       'abc123',
       '1.1.0',
       'C:\\Users\\test\\.local\\bin\\quantex.exe',
+      expect.objectContaining({ archiveEntryName: 'quantex-windows-x64.exe' }),
     )
   })
 

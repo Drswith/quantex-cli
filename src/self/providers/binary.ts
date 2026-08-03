@@ -1,5 +1,6 @@
 import type { SelfInspection, SelfUpdateResult, SelfUpgradePlan } from '../types'
 import type { SelfUpgradeProvider, SelfUpgradeProviderExecutionContext } from './types'
+import { getReleaseBinaryName } from '../../release-artifacts'
 import { getWindowsStandaloneBinaryPeerPath, upgradeStandaloneBinary } from '../binary'
 import { getBinaryReleaseDownloadUrl } from '../release'
 
@@ -42,27 +43,36 @@ export const binarySelfUpgradeProvider: SelfUpgradeProvider = {
     }
 
     const peerPath = getWindowsStandaloneBinaryPeerPath(plan.facts.executablePath)
-    const result = context
-      ? await upgradeStandaloneBinary(
-          asset.downloadUrl,
-          plan.facts.executablePath,
-          asset.checksum,
-          plan.target.targetVersion ?? 'latest',
-          peerPath,
-          {
+    const archiveEntryName = getReleaseBinaryName(asset.name)
+    if (!archiveEntryName) {
+      return {
+        error: {
+          kind: 'unsupported',
+          message: 'The resolved release artifact is not a compressed standalone binary archive.',
+        },
+        installSource: plan.facts.installSource,
+        success: false,
+      }
+    }
+    const result = await upgradeStandaloneBinary(
+      asset.downloadUrl,
+      plan.facts.executablePath,
+      asset.checksum,
+      plan.target.targetVersion ?? 'latest',
+      peerPath,
+      context
+        ? {
+            archiveEntryName,
             networkPort: context.network,
             processPort: context.process,
             signal: context.signal,
             timeoutMs: context.timeoutMs,
+          }
+        : {
+            archiveEntryName,
+            signal: new AbortController().signal,
           },
-        )
-      : await upgradeStandaloneBinary(
-          asset.downloadUrl,
-          plan.facts.executablePath,
-          asset.checksum,
-          plan.target.targetVersion ?? 'latest',
-          peerPath,
-        )
+    )
 
     const enrichedResult =
       !result.success && result.error
