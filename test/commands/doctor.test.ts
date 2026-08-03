@@ -247,11 +247,13 @@ describe('doctorCommand', () => {
       updateChannel: 'stable',
     })
 
-    await doctorCommand()
+    const result = await doctorCommand()
 
     const output = logSpy.mock.calls.map((c: any[]) => c[0]).join('\n')
     expect(output).toContain('Recovery:')
-    expect(output).toContain('/releases/latest/download/quantex-')
+    const recoveryHint = result.data?.self.recoveryHint
+    expect(recoveryHint).toBeDefined()
+    expect(output.replaceAll(/\s/g, '')).toContain(recoveryHint!.replaceAll(/\s/g, ''))
   })
 
   it('shows installed agents with versions', async () => {
