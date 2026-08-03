@@ -121,6 +121,14 @@ Use explicit closure labels:
 - OpenSpec archive closure
 - release closure
 
+For a CLI release, keep the three release roles separate:
+
+1. Dispatch `Prepare Release` for `main` or `beta`; this may only create or refresh a Release PR.
+2. Re-author the generated Release PR as one maintainer-authored commit, pass governance, merge it, and wait for successful push CI on the exact protected-branch head.
+3. Dispatch `Seal Release` for that branch; it validates and creates or verifies the immutable version tag, then explicitly dispatches tag-only `Release` publication.
+
+Never recover publication by asking branch history to choose another commit or by moving a version tag. Retry `Release` at the same tag so the workflow reconciles the exact candidate artifact, draft or published GitHub Release, assets, and npm integrity.
+
 ## Archive Closure
 
 Archive closure is agent-driven.

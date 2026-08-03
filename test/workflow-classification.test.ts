@@ -3,7 +3,9 @@ import { describe, expect, it } from 'vitest'
 
 const ciWorkflow = readFileSync('.github/workflows/ci.yml', 'utf8')
 const prGovernanceWorkflow = readFileSync('.github/workflows/pr-governance.yml', 'utf8')
+const prepareReleaseWorkflow = readFileSync('.github/workflows/prepare-release.yml', 'utf8')
 const releaseWorkflow = readFileSync('.github/workflows/release.yml', 'utf8')
+const sealReleaseWorkflow = readFileSync('.github/workflows/seal-release.yml', 'utf8')
 const sandboxWorkflow = readFileSync('.github/workflows/sandbox-tests.yml', 'utf8')
 const integrationBranchPattern = "'codex/simplify-core-sdk-*'"
 
@@ -71,6 +73,8 @@ describe('workflow classification integration', () => {
   it.each([
     ['PR Governance', prGovernanceWorkflow, 'pull_request'],
     ['Release', releaseWorkflow, 'workflow_dispatch'],
+    ['Prepare Release', prepareReleaseWorkflow, 'workflow_dispatch'],
+    ['Seal Release', sealReleaseWorkflow, 'workflow_dispatch'],
   ])('isolates the terminal %s %s event from following top-level keys', (_, workflow, eventName) => {
     expect(extractEventBlock(workflow, eventName)).not.toMatch(/^(?:permissions|jobs):/m)
   })
@@ -140,14 +144,19 @@ describe('workflow classification integration', () => {
     expect(extractYamlList(pullRequestBlock, 'types')).toEqual(['opened', 'edited', 'reopened', 'synchronize'])
   })
 
-  it('keeps release dispatch explicit and isolated from integration branches', () => {
-    const workflowDispatchBlock = extractEventBlock(releaseWorkflow, 'workflow_dispatch')
+  it('keeps preparation and sealing explicit and isolated from integration branches', () => {
+    const prepareDispatchBlock = extractEventBlock(prepareReleaseWorkflow, 'workflow_dispatch')
+    const sealDispatchBlock = extractEventBlock(sealReleaseWorkflow, 'workflow_dispatch')
 
-    expect(extractYamlList(workflowDispatchBlock, 'options')).toEqual(['main', 'beta'])
-    expect(workflowDispatchBlock).not.toContain(integrationBranchPattern)
+    expect(extractYamlList(prepareDispatchBlock, 'options')).toEqual(['main', 'beta'])
+    expect(extractYamlList(sealDispatchBlock, 'options')).toEqual(['main', 'beta'])
+    expect(prepareDispatchBlock).not.toContain(integrationBranchPattern)
+    expect(sealDispatchBlock).not.toContain(integrationBranchPattern)
+    expect(prepareReleaseWorkflow).not.toContain(integrationBranchPattern)
+    expect(sealReleaseWorkflow).not.toContain(integrationBranchPattern)
     expect(releaseWorkflow).not.toContain(integrationBranchPattern)
-    expect(releaseWorkflow).toContain('- name: Resolve release target')
-    expect(releaseWorkflow).toContain('echo "npm_tag=beta"')
-    expect(releaseWorkflow).toContain('echo "npm_tag=latest"')
+    expect(prepareReleaseWorkflow).toContain('- name: Resolve Release PR preparation')
+    expect(sealReleaseWorkflow).toContain('- name: Validate release seal')
+    expect(releaseWorkflow).toContain('- name: Validate immutable release identity')
   })
 })

@@ -40,8 +40,13 @@ await verifyPackageDistribution()
 async function verifyPackageDistribution(): Promise<void> {
   const tempRoot = await mkdtemp(join(tmpdir(), 'quantex-package-contract-'))
   try {
-    const packOutput = await runChecked(['npm', 'pack', '--json', '--pack-destination', tempRoot])
-    const packedPackage = parsePackOutput(packOutput)[0]
+    const providedTarballPath = process.argv[2]
+    const packOutput = providedTarballPath
+      ? undefined
+      : await runChecked(['npm', 'pack', '--ignore-scripts', '--json', '--pack-destination', tempRoot])
+    const packedPackage = providedTarballPath
+      ? await inspectExistingTarball(providedTarballPath)
+      : parsePackOutput(packOutput ?? '')[0]
     if (!packedPackage?.filename) throw new Error('npm pack --json did not return package metadata with a filename.')
 
     const packedFiles = packedPackage.files ?? []
@@ -81,7 +86,7 @@ async function verifyPackageDistribution(): Promise<void> {
       throw new Error(`qtx and quantex must resolve to one packaged CLI entry; found ${[...binaryTargets].join(', ')}.`)
     }
 
-    const tarballPath = join(tempRoot, basename(packedPackage.filename))
+    const tarballPath = providedTarballPath ?? join(tempRoot, basename(packedPackage.filename))
     const unpackRoot = join(tempRoot, 'unpacked')
     const installRoot = join(tempRoot, 'consumer')
     await mkdir(unpackRoot, { recursive: true })
@@ -122,6 +127,17 @@ async function verifyPackageDistribution(): Promise<void> {
   } finally {
     await rm(tempRoot, { force: true, recursive: true })
   }
+}
+
+async function inspectExistingTarball(tarballPath: string): Promise<PackedPackage> {
+  const listing = await runChecked(['tar', '-tzf', tarballPath])
+  const files = listing
+    .split(/\r?\n/)
+    .filter(path => path.startsWith('package/') && !path.endsWith('/'))
+    .map(path => ({ path: path.slice('package/'.length) }))
+
+  if (files.length === 0) throw new Error(`Candidate tarball has no package files: ${tarballPath}`)
+  return { filename: basename(tarballPath), files }
 }
 
 function assertCoreIsNotARuntimeDependency(manifest: PackageManifest): void {

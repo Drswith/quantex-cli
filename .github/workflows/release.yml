@@ -1,254 +1,286 @@
 name: Release
 
 on:
+  push:
+    tags:
+      - 'v*'
   workflow_dispatch:
-    inputs:
-      target_branch:
-        description: Protected branch whose release state should be reconciled
-        required: true
-        default: main
-        type: choice
-        options:
-          - main
-          - beta
-
-permissions:
-  actions: read
-  contents: write
-  id-token: write
-  issues: write
-  pull-requests: write
 
 concurrency:
-  group: release-${{ github.event.inputs.target_branch }}
+  group: release-${{ github.ref_name }}
   cancel-in-progress: false
 
 jobs:
-  release:
+  build-candidate:
     runs-on: ubuntu-latest
+    permissions:
+      actions: read
+      contents: read
+    outputs:
+      npm_tag: ${{ steps.release.outputs.npm_tag }}
+      prerelease: ${{ steps.release.outputs.prerelease }}
+      tag: ${{ steps.release.outputs.tag }}
+      version: ${{ steps.release.outputs.version }}
     steps:
-      - name: Select release branch
-        id: branch
+      - name: Require an immutable version tag
         run: |
-          target_branch="${{ github.event.inputs.target_branch }}"
+          test "${GITHUB_REF_TYPE}" = "tag"
+          case "${GITHUB_REF_NAME}" in
+            v*) ;;
+            *) exit 1 ;;
+          esac
 
-          echo "target_branch=${target_branch}" >> "$GITHUB_OUTPUT"
-
-          if [ "${target_branch}" = "beta" ]; then
-            echo "config_file=release-please-config.beta.json" >> "$GITHUB_OUTPUT"
-            echo "npm_tag=beta" >> "$GITHUB_OUTPUT"
-          else
-            echo "config_file=release-please-config.json" >> "$GITHUB_OUTPUT"
-            echo "npm_tag=latest" >> "$GITHUB_OUTPUT"
-          fi
-
-      - name: Checkout branch source
+      - name: Checkout exact release tag
         uses: actions/checkout@v7
         with:
           fetch-depth: 0
-          ref: ${{ steps.branch.outputs.target_branch }}
+          ref: ${{ github.ref }}
 
       - name: Setup Bun
         uses: oven-sh/setup-bun@v2
         with:
           bun-version: 1.3.11
 
-      - name: Refresh branch and tag state
-        run: |
-          git fetch --force origin "refs/heads/${{ steps.branch.outputs.target_branch }}:refs/remotes/origin/${{ steps.branch.outputs.target_branch }}" --tags
-          git reset --hard "origin/${{ steps.branch.outputs.target_branch }}"
-
-      - name: Resolve release target
-        id: release-target
-        env:
-          GITHUB_TOKEN: ${{ github.token }}
-          RELEASE_TARGET_BRANCH: ${{ steps.branch.outputs.target_branch }}
-        run: bun run scripts/release-target-resolution.ts
-
-      - name: Print release resolution
-        run: |
-          echo "mode=${{ steps.release-target.outputs.mode }}"
-          echo "target_branch=${{ steps.release-target.outputs.target_branch }}"
-          echo "target_sha=${{ steps.release-target.outputs.target_sha }}"
-          echo "target_tag=${{ steps.release-target.outputs.target_tag }}"
-          echo "source_ci_run_id=${{ steps.release-target.outputs.source_ci_run_id }}"
-          echo "npm_integrity=${{ steps.release-target.outputs.npm_integrity }}"
-          echo "reason=${{ steps.release-target.outputs.reason }}"
-
-      - name: Create release bot token
-        id: release-bot-token
-        if: ${{ steps.release-target.outputs.mode != 'skip' }}
-        uses: actions/create-github-app-token@v3
-        with:
-          client-id: ${{ secrets.RELEASE_APP_CLIENT_ID }}
-          private-key: ${{ secrets.RELEASE_APP_PRIVATE_KEY }}
-
-      - name: Release Please PR
-        id: release-pr
-        if: ${{ steps.release-target.outputs.mode == 'pr' }}
-        uses: googleapis/release-please-action@v5
-        with:
-          token: ${{ steps.release-bot-token.outputs.token }}
-          target-branch: ${{ steps.release-target.outputs.target_branch }}
-          config-file: ${{ steps.release-target.outputs.config_file }}
-          manifest-file: .release-please-manifest.json
-          skip-github-release: true
-
-      - name: Checkout released source
-        if: ${{ steps.release-target.outputs.mode == 'publish' }}
-        uses: actions/checkout@v7
-        with:
-          fetch-depth: 0
-          ref: ${{ steps.release-target.outputs.target_sha }}
-
       - name: Setup Node.js
-        if: ${{ steps.release-target.outputs.mode == 'publish' }}
         uses: actions/setup-node@v7
         with:
           node-version: 24
           registry-url: https://registry.npmjs.org
 
+      - name: Fetch protected branches and tags
+        run: |
+          release_version="$(node -p "require('./package.json').version")"
+          if [[ "${release_version}" == *-* ]]; then
+            target_branch=beta
+          else
+            target_branch=main
+          fi
+          git fetch --force origin \
+            "refs/heads/${target_branch}:refs/remotes/origin/${target_branch}" \
+            --tags
+
+      - name: Validate immutable release identity
+        id: release
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: bun run scripts/release-seal-contract.ts publish
+
       - name: Install dependencies
-        if: ${{ steps.release-target.outputs.mode == 'publish' }}
         run: bun install --frozen-lockfile
 
       - name: Validate project memory
-        if: ${{ steps.release-target.outputs.mode == 'publish' }}
         run: bun run memory:check
 
       - name: Lint
-        if: ${{ steps.release-target.outputs.mode == 'publish' }}
         run: bun run lint
 
       - name: Format check
-        if: ${{ steps.release-target.outputs.mode == 'publish' }}
         run: bun run format:check
 
       - name: Typecheck
-        if: ${{ steps.release-target.outputs.mode == 'publish' }}
         run: bun run typecheck
 
       - name: Test
-        if: ${{ steps.release-target.outputs.mode == 'publish' }}
         run: bun run test
 
-      - name: Build package
-        if: ${{ steps.release-target.outputs.mode == 'publish' }}
+      - name: Build package once
         run: bun run build
 
-      - name: Build binaries
-        if: ${{ steps.release-target.outputs.mode == 'publish' }}
+      - name: Build standalone binaries once
         run: bun run build:bin
 
       - name: Generate release artifacts
-        if: ${{ steps.release-target.outputs.mode == 'publish' }}
         run: bun run release:artifacts
 
       - name: Smoke check current runner release binary
-        if: ${{ steps.release-target.outputs.mode == 'publish' }}
         run: bun run release:smoke
 
-      - name: Verify managed-install package contents
-        if: ${{ steps.release-target.outputs.mode == 'publish' }}
-        run: bun run package:check
+      - name: Verify bundled Core package contents
+        run: bun run package:check:core
 
-      - name: Resolve npm package publication state
-        id: npm-publication
-        if: ${{ steps.release-target.outputs.mode == 'publish' }}
-        shell: bash
-        run: |
-          set -euo pipefail
+      - name: Stage exact release candidate
+        run: bun run scripts/stage-release-candidate.ts release-candidate
 
-          release_version="$(node -p "require('./package.json').version")"
+      - name: Verify exact candidate tarball contents
+        run: bun run scripts/verify-package-distribution.ts release-candidate/npm/*.tgz
 
-          echo "release_version=${release_version}" >> "$GITHUB_OUTPUT"
-
-          inspect_package() {
-            package_name="$1"
-            output_name="$2"
-            inspection=''
-            registry_error_file="$(mktemp)"
-
-            if inspection="$(npm view "${package_name}@${release_version}" version --json 2>"${registry_error_file}")"; then
-              rm -f "${registry_error_file}"
-              inspected_version="$(printf '%s' "${inspection}" | tr -d '[:space:]\"')"
-              if [ "${inspected_version}" != "${release_version}" ]; then
-                echo "::error title=npm registry inspection is indeterminate::Expected ${package_name}@${release_version}, but the exact-version lookup returned ${inspected_version:-no-version}. No package will be published."
-                exit 1
-              fi
-
-              echo "${output_name}_published=true" >> "$GITHUB_OUTPUT"
-              echo "${package_name}@${release_version} is already published; publication will be skipped."
-              return
-            fi
-
-            registry_error="$(<"${registry_error_file}")"
-            rm -f "${registry_error_file}"
-
-            if printf '%s' "${registry_error}" | grep -Eq 'E404|404 Not Found'; then
-              echo "${output_name}_published=false" >> "$GITHUB_OUTPUT"
-              echo "${package_name}@${release_version} is not published yet."
-              return
-            fi
-
-            compact_error="$(printf '%s' "${registry_error}" | tr '\n' ' ')"
-            echo "::error title=npm registry inspection is indeterminate::Unable to determine whether ${package_name}@${release_version} exists. ${compact_error} No package will be published."
-            exit 1
-          }
-
-          inspect_package "quantex-cli" "cli"
-
-      - name: Publish CLI npm package
-        if: >-
-          steps.release-target.outputs.mode == 'publish'
-          && steps.npm-publication.outputs.cli_published != 'true'
-        run: npm publish . --access public --ignore-scripts --tag ${{ steps.release-target.outputs.npm_tag }}
-
-      - name: Verify repository npm closure
-        if: ${{ steps.release-target.outputs.mode == 'publish' }}
-        shell: bash
-        run: |
-          set -euo pipefail
-
-          release_version="${{ steps.npm-publication.outputs.release_version }}"
-
-          verify_package_version() {
-            package_name="$1"
-
-            for attempt in $(seq 1 12); do
-              inspection=''
-              if inspection="$(npm view "${package_name}@${release_version}" version --json 2>/dev/null)"; then
-                inspected_version="$(printf '%s' "${inspection}" | tr -d '[:space:]\"')"
-                if [ "${inspected_version}" = "${release_version}" ]; then
-                  echo "Verified ${package_name}@${release_version} on npm."
-                  return
-                fi
-              fi
-
-              if [ "${attempt}" -lt 12 ]; then
-                sleep 5
-              fi
-            done
-
-            echo "::error title=Repository npm closure failed::Could not verify ${package_name}@${release_version}. Standalone artifacts will not be uploaded."
-            exit 1
-          }
-
-          verify_package_version "quantex-cli"
-
-      - name: Release Please GitHub Release
-        id: release
-        if: ${{ steps.release-target.outputs.mode == 'publish' }}
-        uses: googleapis/release-please-action@v5
+      - name: Upload exact release candidate
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
-          token: ${{ steps.release-bot-token.outputs.token }}
-          target-branch: ${{ steps.release-target.outputs.target_branch }}
-          config-file: ${{ steps.release-target.outputs.config_file }}
-          manifest-file: .release-please-manifest.json
-          skip-github-pull-request: true
+          name: release-candidate-${{ steps.release.outputs.tag }}
+          if-no-files-found: error
+          path: release-candidate
+          retention-days: 30
 
-      - name: Upload release artifacts
-        if: ${{ steps.release-target.outputs.mode == 'publish' }}
+  publish:
+    needs: build-candidate
+    runs-on: ubuntu-latest
+    permissions:
+      actions: read
+      contents: write
+      id-token: write
+    steps:
+      - name: Download exact release candidate
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: release-candidate-${{ needs.build-candidate.outputs.tag }}
+          path: release-candidate
+
+      - name: Setup Node.js for trusted publishing
+        uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          registry-url: https://registry.npmjs.org
+
+      - name: Create release bot token
+        id: release-bot-token
+        uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1 # v3.2.0
+        with:
+          app-id: ${{ secrets.RELEASE_APP_ID }}
+          private-key: ${{ secrets.RELEASE_APP_PRIVATE_KEY }}
+
+      - name: Validate downloaded candidate
+        env:
+          RELEASE_TAG: ${{ needs.build-candidate.outputs.tag }}
+          RELEASE_VERSION: ${{ needs.build-candidate.outputs.version }}
+        run: |
+          set -euo pipefail
+          node --input-type=module <<'NODE'
+          import { createHash } from 'node:crypto'
+          import { readFile, stat } from 'node:fs/promises'
+
+          const candidate = JSON.parse(await readFile('release-candidate/candidate.json', 'utf8'))
+          if (candidate.tag !== process.env.RELEASE_TAG || candidate.version !== process.env.RELEASE_VERSION) {
+            throw new Error('Downloaded candidate identity does not match validated job outputs.')
+          }
+          for (const [directory, files] of [
+            ['assets', candidate.assets],
+            ['npm', [candidate.npm]],
+            ['', [candidate.releaseNotes]],
+          ]) {
+            for (const file of files) {
+              const path = `release-candidate/${directory}/${file.name}`
+              const contents = await readFile(path)
+              const sha256 = createHash('sha256').update(contents).digest('hex')
+              if ((await stat(path)).size !== file.size || sha256 !== file.sha256) {
+                throw new Error(`Downloaded candidate file mismatch: ${file.name}`)
+              }
+            }
+          }
+          NODE
+
+      - name: Resolve exact npm publication state
+        id: npm
+        env:
+          RELEASE_VERSION: ${{ needs.build-candidate.outputs.version }}
+        run: |
+          set -euo pipefail
+          error_file="$(mktemp)"
+          if integrity="$(npm view "quantex-cli@${RELEASE_VERSION}" dist.integrity --json 2>"${error_file}")"; then
+            echo "published=true" >> "${GITHUB_OUTPUT}"
+            echo "integrity=$(printf '%s' "${integrity}" | tr -d '[:space:]\"')" >> "${GITHUB_OUTPUT}"
+          elif grep -Eq 'E404|404 Not Found' "${error_file}"; then
+            echo "published=false" >> "${GITHUB_OUTPUT}"
+          else
+            tr '\n' ' ' < "${error_file}"
+            exit 1
+          fi
+          rm -f "${error_file}"
+
+      - name: Verify existing npm candidate integrity
+        if: ${{ steps.npm.outputs.published == 'true' }}
+        env:
+          REGISTRY_INTEGRITY: ${{ steps.npm.outputs.integrity }}
+        run: |
+          set -euo pipefail
+          candidate_integrity="$(node -p "require('./release-candidate/candidate.json').npm.integrity")"
+          test "${REGISTRY_INTEGRITY}" = "${candidate_integrity}"
+
+      - name: Create or recover draft GitHub Release
         env:
           GH_TOKEN: ${{ steps.release-bot-token.outputs.token }}
-        run: gh release upload ${{ steps.release-target.outputs.target_tag }} dist/bin/* --clobber
+          RELEASE_TAG: ${{ needs.build-candidate.outputs.tag }}
+        run: |
+          set -euo pipefail
+          if ! gh release view "${RELEASE_TAG}" >/dev/null 2>&1; then
+            gh release create "${RELEASE_TAG}" \
+              --draft \
+              --notes-file release-candidate/release-notes.md \
+              --title "${RELEASE_TAG}" \
+              --verify-tag
+          fi
+          gh release edit "${RELEASE_TAG}" \
+            --notes-file release-candidate/release-notes.md \
+            --title "${RELEASE_TAG}"
+
+      - name: Reconcile candidate release assets
+        env:
+          GH_TOKEN: ${{ steps.release-bot-token.outputs.token }}
+          RELEASE_TAG: ${{ needs.build-candidate.outputs.tag }}
+        run: gh release upload "${RELEASE_TAG}" release-candidate/assets/* --clobber
+
+      - name: Verify staged GitHub Release assets
+        env:
+          GH_TOKEN: ${{ steps.release-bot-token.outputs.token }}
+          RELEASE_TAG: ${{ needs.build-candidate.outputs.tag }}
+        run: |
+          set -euo pipefail
+          gh release view "${RELEASE_TAG}" --json assets,tagName > release-candidate/github-release.json
+          node --input-type=module <<'NODE'
+          import { readFile } from 'node:fs/promises'
+
+          const candidate = JSON.parse(await readFile('release-candidate/candidate.json', 'utf8'))
+          const release = JSON.parse(await readFile('release-candidate/github-release.json', 'utf8'))
+          if (release.tagName !== candidate.tag) throw new Error('GitHub Release tag does not match the candidate.')
+          const assets = new Map(release.assets.map(asset => [asset.name, asset]))
+          for (const asset of candidate.assets) {
+            const uploaded = assets.get(asset.name)
+            if (uploaded?.size !== asset.size || uploaded.digest !== `sha256:${asset.sha256}`) {
+              throw new Error(`GitHub Release asset is missing or does not match: ${asset.name}`)
+            }
+          }
+          NODE
+
+      - name: Publish exact CLI candidate tarball
+        if: ${{ steps.npm.outputs.published != 'true' }}
+        run: npm publish release-candidate/npm/*.tgz --access public --ignore-scripts --tag ${{ needs.build-candidate.outputs.npm_tag }}
+
+      - name: Verify npm registry closure
+        env:
+          RELEASE_VERSION: ${{ needs.build-candidate.outputs.version }}
+        run: |
+          set -euo pipefail
+          candidate_integrity="$(node -p "require('./release-candidate/candidate.json').npm.integrity")"
+          for attempt in $(seq 1 12); do
+            registry_integrity="$(npm view "quantex-cli@${RELEASE_VERSION}" dist.integrity --json 2>/dev/null | tr -d '[:space:]\"' || true)"
+            if [ "${registry_integrity}" = "${candidate_integrity}" ]; then
+              exit 0
+            fi
+            if [ "${attempt}" -lt 12 ]; then sleep 5; fi
+          done
+          echo "npm registry integrity did not converge to the validated candidate."
+          exit 1
+
+      - name: Publish recovered GitHub Release
+        env:
+          GH_TOKEN: ${{ steps.release-bot-token.outputs.token }}
+          PRERELEASE: ${{ needs.build-candidate.outputs.prerelease }}
+          RELEASE_TAG: ${{ needs.build-candidate.outputs.tag }}
+        run: |
+          set -euo pipefail
+          is_draft="$(gh release view "${RELEASE_TAG}" --json isDraft --jq .isDraft)"
+          if [ "${is_draft}" = "true" ]; then
+            if [ "${PRERELEASE}" = "true" ]; then
+              gh release edit "${RELEASE_TAG}" --draft=false --latest=false --prerelease=true
+            else
+              gh release edit "${RELEASE_TAG}" --draft=false --latest=true --prerelease=false
+            fi
+          fi
+
+      - name: Verify public release closure
+        env:
+          GH_TOKEN: ${{ steps.release-bot-token.outputs.token }}
+          RELEASE_TAG: ${{ needs.build-candidate.outputs.tag }}
+        run: |
+          set -euo pipefail
+          test "$(gh release view "${RELEASE_TAG}" --json isDraft --jq .isDraft)" = "false"
