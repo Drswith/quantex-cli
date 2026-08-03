@@ -1,3 +1,5 @@
+import { gunzipSync } from 'node:zlib'
+
 export type ReleaseChannel = 'beta' | 'stable'
 
 export interface ReleaseArtifactTarget {
@@ -18,13 +20,26 @@ export interface ReleaseManifest {
   version: string
 }
 
-export const REQUIRED_RELEASE_ASSET_NAMES = [
+export const REQUIRED_RELEASE_BINARY_NAMES = [
   'quantex-darwin-arm64',
   'quantex-darwin-x64',
   'quantex-linux-arm64',
   'quantex-linux-x64',
   'quantex-windows-x64.exe',
 ] as const
+
+export const REQUIRED_RELEASE_ASSET_NAMES = REQUIRED_RELEASE_BINARY_NAMES.map(getReleaseArchiveName)
+
+export function getReleaseArchiveName(binaryName: string): `${string}.tar.gz` {
+  return `${binaryName}.tar.gz`
+}
+
+export function getReleaseBinaryName(assetName: string): string | undefined {
+  if (!assetName.endsWith('.tar.gz')) return undefined
+
+  const binaryName = assetName.slice(0, -'.tar.gz'.length)
+  return parseBinaryTarget(binaryName) ? binaryName : undefined
+}
 
 export function formatChecksums(entries: Array<{ checksum: string; name: string }>): string {
   return `${entries
@@ -50,7 +65,8 @@ export function parseChecksums(contents: string): Map<string, string> {
 }
 
 export function parseBinaryTarget(name: string): ReleaseArtifactTarget | undefined {
-  const match = name.match(/^quantex-(darwin|linux|windows)-(arm64|x64)(?:\.exe)?$/)
+  const binaryName = getReleaseBinaryName(name) ?? name
+  const match = binaryName.match(/^quantex-(darwin|linux|windows)-(arm64|x64)(?:\.exe)?$/)
   if (!match) return undefined
 
   return {
@@ -89,6 +105,9 @@ export function createReleaseManifest(input: {
 
       const checksum = input.checksums.get(file.name)
       if (!checksum) throw new Error(`Missing checksum entry for ${file.name}.`)
+
+      if (!getReleaseBinaryName(file.name))
+        throw new Error(`Release asset is not a compressed binary archive: ${file.name}.`)
 
       return {
         arch: target.arch,
@@ -132,4 +151,56 @@ export function validateReleaseManifest(manifest: ReleaseManifest, checksums: Ma
     if (!parseBinaryTarget(asset.name))
       throw new Error(`manifest.json contains an invalid binary asset name: ${asset.name}.`)
   }
+}
+
+export function extractReleaseArchive(archive: Uint8Array, expectedBinaryName: string): Uint8Array {
+  if (getReleaseBinaryName(getReleaseArchiveName(expectedBinaryName)) !== expectedBinaryName)
+    throw new Error(`Invalid expected release binary name: ${expectedBinaryName}.`)
+
+  let contents: Uint8Array
+  try {
+    contents = gunzipSync(archive)
+  } catch (error) {
+    throw new Error('Release archive is not a valid gzip stream.', { cause: error })
+  }
+
+  let offset = 0
+  let extracted: Uint8Array | undefined
+  while (offset + 512 <= contents.length) {
+    const header = contents.subarray(offset, offset + 512)
+    if (header.every(byte => byte === 0)) break
+
+    const name = readTarString(header.subarray(0, 100))
+    const prefix = readTarString(header.subarray(345, 500))
+    const entryName = prefix ? `${prefix}/${name}` : name
+    const type = header[156]
+    const size = readTarSize(header.subarray(124, 136))
+    const bodyStart = offset + 512
+    const bodyEnd = bodyStart + size
+
+    if (!name || bodyEnd > contents.length) throw new Error('Release archive contains an invalid tar entry.')
+    if (type !== 0 && type !== '0'.charCodeAt(0)) throw new Error('Release archive must contain only a regular file.')
+    if (entryName !== expectedBinaryName || extracted)
+      throw new Error(`Release archive must contain exactly ${expectedBinaryName}.`)
+
+    extracted = contents.slice(bodyStart, bodyEnd)
+    offset = bodyStart + Math.ceil(size / 512) * 512
+  }
+
+  if (!extracted) throw new Error(`Release archive does not contain ${expectedBinaryName}.`)
+  return extracted
+}
+
+function readTarString(bytes: Uint8Array): string {
+  const zero = bytes.indexOf(0)
+  return new TextDecoder().decode(zero === -1 ? bytes : bytes.subarray(0, zero))
+}
+
+function readTarSize(bytes: Uint8Array): number {
+  const value = readTarString(bytes).trim()
+  if (!/^[0-7]+$/u.test(value)) throw new Error('Release archive contains an invalid tar size.')
+
+  const size = Number.parseInt(value, 8)
+  if (!Number.isSafeInteger(size) || size < 0) throw new Error('Release archive contains an unsafe tar size.')
+  return size
 }

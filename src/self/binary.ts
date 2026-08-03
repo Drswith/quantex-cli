@@ -5,11 +5,13 @@ import { createHash } from 'node:crypto'
 import { chmod, mkdtemp, rename, rm, stat, writeFile } from 'node:fs/promises'
 import { basename, dirname, join, win32 } from 'node:path'
 import process from 'node:process'
+import { extractReleaseArchive } from '../release-artifacts'
 import { ProcessInterruptionError, readProcessOutput, spawnCommand } from '../utils/child-process'
 
 type BinaryUpgradeResult = Omit<SelfUpdateResult, 'installSource'>
 
 export interface StandaloneBinaryRuntimeOptions {
+  readonly archiveEntryName?: string
   readonly networkPort?: NetworkPort
   readonly processPort?: ProcessPort
   readonly signal: AbortSignal
@@ -30,8 +32,24 @@ export async function upgradeStandaloneBinary(
       ? await downloadBinaryWithPort(downloadUrl, { ...runtime, networkPort })
       : await downloadBinaryWithFetch(downloadUrl)
   if (downloaded.kind === 'failure') return downloaded.result
-  const binary = downloaded.binary
+  let binary = downloaded.binary
   throwIfBinaryUpgradeCancelled(runtime)
+
+  const actualChecksum = getSha256(downloaded.binary)
+  if (actualChecksum !== normalizeChecksum(expectedChecksum)) {
+    return createBinaryFailure(
+      'checksum',
+      `Checksum mismatch for ${downloadUrl}. Expected ${normalizeChecksum(expectedChecksum)}, got ${actualChecksum}.`,
+    )
+  }
+
+  if (runtime?.archiveEntryName) {
+    try {
+      binary = Buffer.from(extractReleaseArchive(binary, runtime.archiveEntryName))
+    } catch (error) {
+      return createBinaryFailure('unknown', `Failed to extract the expected binary from ${downloadUrl}.`, error)
+    }
+  }
 
   const tempDir = await mkdtemp(join(dirname(executablePath), '.quantex-upgrade-'))
   const tempPath = join(tempDir, basename(executablePath))
@@ -42,14 +60,6 @@ export async function upgradeStandaloneBinary(
   try {
     throwIfBinaryUpgradeCancelled(runtime)
     const executableMode = await resolveExecutableMode(executablePath)
-    const actualChecksum = getSha256(binary)
-
-    if (actualChecksum !== normalizeChecksum(expectedChecksum)) {
-      return createBinaryFailure(
-        'checksum',
-        `Checksum mismatch for ${downloadUrl}. Expected ${normalizeChecksum(expectedChecksum)}, got ${actualChecksum}.`,
-      )
-    }
 
     await writeFile(tempPath, binary)
     throwIfBinaryUpgradeCancelled(runtime)

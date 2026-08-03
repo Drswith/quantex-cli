@@ -1,5 +1,10 @@
 import { readdir, readFile, stat, writeFile } from 'node:fs/promises'
-import { createReleaseManifest, normalizeRepositoryUrl, parseChecksums } from '../src/release-artifacts'
+import {
+  createReleaseManifest,
+  getReleaseBinaryName,
+  normalizeRepositoryUrl,
+  parseChecksums,
+} from '../src/release-artifacts'
 
 interface PackageJsonShape {
   name?: string
@@ -15,7 +20,7 @@ const checksums = parseChecksums(checksumContents)
 const files = await readdir(binDir)
 const binaryFiles = await Promise.all(
   files
-    .filter(name => name.startsWith('quantex-'))
+    .filter(name => getReleaseBinaryName(name) !== undefined)
     .map(async name => ({
       name,
       size: (await stat(new URL(name, binDir))).size,

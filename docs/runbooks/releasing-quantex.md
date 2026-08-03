@@ -83,7 +83,7 @@ The tag-only Release workflow reruns:
 
 This keeps publish gating inside the workflow that npm trusts for OIDC publishing.
 
-It then builds the package and binaries once, generates the manifest and checksums, smoke-checks them, packs the exact npm tarball with scripts disabled, and uploads one release-candidate Actions artifact. A separate mutation job downloads that artifact without checking out source or rebuilding.
+It then builds the package and binaries once, compresses each standalone binary as a `.tar.gz` archive, generates the manifest and checksums for those archives, smoke-checks them, packs the exact npm tarball with scripts disabled, and uploads one release-candidate Actions artifact. A separate mutation job downloads that artifact without checking out source or rebuilding.
 
 After a fail-closed exact-version registry preflight, the mutation order is:
 
@@ -202,13 +202,13 @@ bun run release:smoke
 bun run package:check
 ```
 
-`release:artifacts` must fail if the release manifest is missing any required platform binary:
+`release:artifacts` must fail if the release manifest is missing any required platform archive. Each archive contains the corresponding executable:
 
-- `quantex-darwin-arm64`
-- `quantex-darwin-x64`
-- `quantex-linux-arm64`
-- `quantex-linux-x64`
-- `quantex-windows-x64.exe`
+- `quantex-darwin-arm64.tar.gz`
+- `quantex-darwin-x64.tar.gz`
+- `quantex-linux-arm64.tar.gz`
+- `quantex-linux-x64.tar.gz`
+- `quantex-windows-x64.exe.tar.gz`
 
 `package:check` must fail if the managed-install tarball still contains any `dist/bin/` entries after `build:bin` has populated standalone release outputs.
 
