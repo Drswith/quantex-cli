@@ -25,7 +25,7 @@ describe('listCommand', () => {
   let logSpy: ReturnType<typeof vi.spyOn>
 
   beforeEach(() => {
-    setCliContext({ interactive: false, outputMode: 'human', runId: 'list-test' })
+    setCliContext({ colorMode: 'never', interactive: false, outputMode: 'human', runId: 'list-test' })
     logSpy = vi.spyOn(console, 'log').mockImplementation(() => {})
     inspectRegisteredAgentsSpy.mockReset()
     inspectRegisteredAgentsSpy.mockRejectedValue(new Error('legacy list inspection must not run'))
@@ -94,6 +94,8 @@ describe('listCommand', () => {
     expect(output).toContain('Agent')
     expect(output).toContain('Installed')
     expect(output).toContain('Source')
+    expect(output).toContain('Managed')
+    expect(output).toContain('Available')
     expect(output).toContain('unknown')
     expect(output).toContain('bun')
     expect(output).toContain('PATH')
@@ -103,6 +105,39 @@ describe('listCommand', () => {
     expect(output).toContain('Details: qtx inspect <agent>')
     expect(output).not.toContain('managed via bun (test-pkg)')
     expect(output).not.toContain('detected in PATH')
+  })
+
+  it('shows a version as available only when it is semantically newer', async () => {
+    Object.defineProperty(process.stdout, 'columns', { configurable: true, value: 120 })
+    observeRegisteredAgentsSpy.mockResolvedValueOnce([
+      observed(agent('newer-agent', 'Newer Agent', 'newer-bin', 'newer-pkg'), {
+        latestVersion: '2.0.0',
+        version: '1.2.3',
+      }),
+      observed(agent('equal-agent', 'Equal Agent', 'equal-bin', 'equal-pkg'), {
+        latestVersion: '3.4.5',
+        version: '3.4.5',
+      }),
+      observed(agent('older-agent', 'Older Agent', 'older-bin', 'older-pkg'), {
+        latestVersion: '3.9.0',
+        version: '4.0.0',
+      }),
+      observed(agent('unknown-agent', 'Unknown Agent', 'unknown-bin', 'unknown-pkg'), {
+        latestVersion: '5.0.0',
+        version: 'main',
+      }),
+    ])
+
+    await listCommand()
+
+    const lines: string[] = logSpy.mock.calls
+      .map((call: unknown[]) => String(call[0]))
+      .join('\n')
+      .split('\n')
+    expect(lines.find(line => line.includes('Newer Agent'))).toContain('2.0.0')
+    expect(lines.find(line => line.includes('Equal Agent'))).toMatch(/—\s*$/u)
+    expect(lines.find(line => line.includes('Older Agent'))).toMatch(/—\s*$/u)
+    expect(lines.find(line => line.includes('Unknown Agent'))).toMatch(/—\s*$/u)
   })
 
   it('renders compact recorded and PATH-only installation sources in wide output', async () => {
@@ -154,7 +189,8 @@ describe('listCommand', () => {
     expect(header).toContain('Agent')
     expect(header).not.toContain('Version')
     expect(header).not.toContain('Source')
-    expect(header).not.toContain('Update')
+    expect(header).not.toContain('Managed')
+    expect(header).not.toContain('Available')
     expect(lines.every(line => stringWidth(line) <= 32)).toBe(true)
   })
 
