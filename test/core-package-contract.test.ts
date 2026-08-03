@@ -9,7 +9,7 @@ import {
 const rootManifest: RootPackageManifest = {
   devDependencies: { 'quantex-core': '0.1.0' },
   version: '1.3.0',
-  workspaces: ['packages/core'],
+  workspaces: ['apps/desktop', 'packages/core'],
 }
 
 const coreManifest: CorePackageManifest = {
@@ -49,6 +49,18 @@ describe('Core package manifest contract', () => {
         },
       ),
     ).toThrow(/supported non-bootstrap version[\s\S]*must pin quantex-core exactly/)
+  })
+
+  it('rejects an unexpected workspace without broadening the Core package contract', () => {
+    expect(() =>
+      assertCorePackageManifestContract(
+        {
+          ...rootManifest,
+          workspaces: [...rootManifest.workspaces!, 'packages/experimental'],
+        },
+        coreManifest,
+      ),
+    ).toThrow(/declare only apps\/desktop and packages\/core as workspaces/)
   })
 
   it('rejects runtime Core installation, extra public subpaths, and workspace protocols', () => {

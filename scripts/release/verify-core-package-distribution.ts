@@ -43,6 +43,7 @@ const coreRoot = join(root, 'packages', 'core')
 const coreRuntimeEntry = 'dist/index.mjs'
 const corePackageFiles = ['LICENSE', 'README.md', 'dist/index.d.mts', 'package.json'] as const
 const maximumCoreEntryBytes = 80_000
+const allowedRootWorkspaces = ['apps/desktop', 'packages/core'] as const
 
 const forbiddenRuntimeFragments = {
   'CLI or presentation': [
@@ -67,8 +68,8 @@ export function assertCorePackageManifestContract(
 ): void {
   const issues: string[] = []
 
-  if (JSON.stringify(rootManifest.workspaces) !== JSON.stringify(['packages/core'])) {
-    issues.push('the repository must declare packages/core as its only workspace')
+  if (JSON.stringify(rootManifest.workspaces) !== JSON.stringify(allowedRootWorkspaces)) {
+    issues.push(`the repository must declare only ${allowedRootWorkspaces.join(' and ')} as workspaces`)
   }
   if (coreManifest.name !== 'quantex-core') {
     issues.push(`the Core package name must be quantex-core, found ${coreManifest.name ?? 'none'}`)
