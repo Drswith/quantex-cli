@@ -4,6 +4,7 @@ import { createSuccessResult, emitCommandResult } from '../output'
 import { getHumanTerminalWidth, renderHumanTable, renderHumanWrapped } from '../output/human'
 import { observeCliReadRegisteredAgents } from '../services/core-read-observations'
 import { pc } from '../utils/color'
+import { isVersionNewer } from '../utils/version'
 
 interface ListedAgent {
   binaryName: string
@@ -76,10 +77,16 @@ function renderListHuman(result: { data?: { agents: ListedAgent[] } }): void {
         value: agent => pc.dim(agent.installed ? formatListSource(agent.sourceLabel) : '—'),
       },
       {
-        header: 'Update',
+        header: 'Managed',
         optional: true,
         priority: 1,
         value: agent => (agent.installed ? pc.cyan(formatListUpdateMode(agent.updateLabel)) : pc.dim('—')),
+      },
+      {
+        header: 'Available',
+        optional: true,
+        priority: 0,
+        value: formatListAvailableVersion,
       },
     ],
     { headerStyle: pc.bold, width },
@@ -98,6 +105,12 @@ function renderListHuman(result: { data?: { agents: ListedAgent[] } }): void {
 
 function formatListUpdateMode(label: string): string {
   return label.replace(/ update$/u, '')
+}
+
+function formatListAvailableVersion(agent: ListedAgent): string {
+  if (!agent.installed || !agent.installedVersion || !agent.latestVersion) return pc.dim('—')
+
+  return isVersionNewer(agent.latestVersion, agent.installedVersion) ? pc.cyan(agent.latestVersion) : pc.dim('—')
 }
 
 function formatListSource(label: string): string {
