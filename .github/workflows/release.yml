@@ -115,6 +115,8 @@ jobs:
   publish:
     needs: build-candidate
     runs-on: ubuntu-latest
+    env:
+      GH_REPO: ${{ github.repository }}
     permissions:
       actions: read
       contents: write

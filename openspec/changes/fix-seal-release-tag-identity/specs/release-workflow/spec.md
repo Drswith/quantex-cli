@@ -15,3 +15,13 @@ The stable and beta release sealing workflow MUST configure a deterministic repo
 - **WHEN** the corresponding `v<version>` tag already exists
 - **THEN** `Seal Release` MUST continue to verify that the tag resolves to the validated release commit
 - **AND** it MUST NOT move or recreate the tag
+
+### Requirement: Checkout-free publication MUST address its repository explicitly
+
+The release publication job MUST preserve its checkout-free artifact promotion boundary while providing an explicit repository context to GitHub CLI release operations.
+
+#### Scenario: publish job creates or recovers a GitHub Release
+
+- **WHEN** the publish job operates only on the downloaded exact release candidate and has no `.git` directory
+- **THEN** every `gh release` operation MUST target the workflow repository explicitly
+- **AND** publication MUST NOT add a source checkout to infer that repository
