@@ -2,6 +2,13 @@
 
 This changelog is maintained by release-please Release PRs.
 
+## [1.8.0](https://github.com/Drswith/quantex-cli/compare/v1.7.1...v1.8.0) (2026-08-03)
+
+### Features
+
+* **list:** show available agent updates ([3325f0b](https://github.com/Drswith/quantex-cli/commit/3325f0bcd477aab12618c830a3e9853d5e2481c8))
+* **release:** publish compressed standalone binaries ([fdd0d80](https://github.com/Drswith/quantex-cli/commit/fdd0d80437d0b9c445b75ab02fa3fd289e9654c3))
+
 ## [1.7.1](https://github.com/Drswith/quantex-cli/compare/v1.7.0...v1.7.1) (2026-08-03)
 
 
