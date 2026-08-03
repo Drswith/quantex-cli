@@ -2,6 +2,13 @@
 
 This changelog is maintained by release-please Release PRs.
 
+## [1.7.0](https://github.com/Drswith/quantex-cli/compare/v1.6.0...v1.7.0) (2026-08-03)
+
+
+### Features
+
+* **list:** show compact install source ([a0455c9](https://github.com/Drswith/quantex-cli/commit/a0455c92f8461d7ba06b91d9066f7e42470c06cd))
+
 ## [1.6.0](https://github.com/Drswith/quantex-cli/compare/v1.5.0...v1.6.0) (2026-07-31)
 
 
