@@ -2,6 +2,13 @@
 
 This changelog is maintained by release-please Release PRs.
 
+## [1.7.1](https://github.com/Drswith/quantex-cli/compare/v1.7.0...v1.7.1) (2026-08-03)
+
+
+### Bug Fixes
+
+* **update:** accept equivalent executable paths ([d4f6d45](https://github.com/Drswith/quantex-cli/commit/d4f6d456250715813a5ee232551e4743c6378601))
+
 ## [1.7.0](https://github.com/Drswith/quantex-cli/compare/v1.6.0...v1.7.0) (2026-08-03)
 
 
