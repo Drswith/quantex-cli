@@ -93,11 +93,46 @@ describe('listCommand', () => {
     const output = logSpy.mock.calls.map((call: any[]) => call[0]).join('\n')
     expect(output).toContain('Agent')
     expect(output).toContain('Installed')
+    expect(output).toContain('Source')
     expect(output).toContain('unknown')
+    expect(output).toContain('bun')
+    expect(output).toContain('PATH')
     expect(output).toContain('managed')
     expect(output).toContain('command')
     expect(output).toContain('2 installed · 1 not installed')
     expect(output).toContain('Details: qtx inspect <agent>')
+    expect(output).not.toContain('managed via bun (test-pkg)')
+    expect(output).not.toContain('detected in PATH')
+  })
+
+  it('renders compact recorded and PATH-only installation sources in wide output', async () => {
+    Object.defineProperty(process.stdout, 'columns', { configurable: true, value: 80 })
+    observeRegisteredAgentsSpy.mockResolvedValueOnce([
+      observed(testAgent, { installedState: trackedState('test-agent', 'test-pkg'), version: '1.2.3' }),
+      observed(agent('npm-agent', 'Npm Agent', 'npm-bin', 'npm-pkg'), {
+        installedState: trackedState('npm-agent', 'npm-pkg', 'npm'),
+        version: '1.2.3',
+      }),
+      observed(agent('script-agent', 'Script Agent', 'script-bin', 'script-pkg'), {
+        installedState: trackedState('script-agent', undefined, 'script'),
+        version: '1.2.3',
+      }),
+      observed(agent('binary-agent', 'Binary Agent', 'binary-bin', 'binary-pkg'), {
+        installedState: trackedState('binary-agent', undefined, 'binary'),
+        version: '1.2.3',
+      }),
+      observed(secondAgent, { version: '3.4.5' }),
+    ])
+
+    await listCommand()
+
+    const output = logSpy.mock.calls.map((call: unknown[]) => String(call[0])).join('\n')
+    expect(output).toContain('Source')
+    expect(output).toContain('bun')
+    expect(output).toContain('npm')
+    expect(output).toContain('script')
+    expect(output).toContain('binary')
+    expect(output).toContain('PATH')
     expect(output).not.toContain('managed via bun (test-pkg)')
     expect(output).not.toContain('detected in PATH')
   })
@@ -118,6 +153,7 @@ describe('listCommand', () => {
     const header = lines.find(line => line.includes('Installed')) ?? ''
     expect(header).toContain('Agent')
     expect(header).not.toContain('Version')
+    expect(header).not.toContain('Source')
     expect(header).not.toContain('Update')
     expect(lines.every(line => stringWidth(line) <= 32)).toBe(true)
   })
@@ -199,6 +235,10 @@ function observed(
   }
 }
 
-function trackedState(agentName: string, packageName: string): InstalledAgentState {
-  return { agentName, installType: 'bun', packageName }
+function trackedState(
+  agentName: string,
+  packageName: string | undefined,
+  installType: InstalledAgentState['installType'] = 'bun',
+): InstalledAgentState {
+  return { agentName, installType, ...(packageName ? { packageName } : {}) }
 }

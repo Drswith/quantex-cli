@@ -70,6 +70,12 @@ function renderListHuman(result: { data?: { agents: ListedAgent[] } }): void {
         value: agent => (agent.installed ? pc.dim(agent.installedVersion ?? 'unknown') : pc.dim('—')),
       },
       {
+        header: 'Source',
+        optional: true,
+        priority: 2,
+        value: agent => pc.dim(agent.installed ? formatListSource(agent.sourceLabel) : '—'),
+      },
+      {
         header: 'Update',
         optional: true,
         priority: 1,
@@ -92,4 +98,15 @@ function renderListHuman(result: { data?: { agents: ListedAgent[] } }): void {
 
 function formatListUpdateMode(label: string): string {
   return label.replace(/ update$/u, '')
+}
+
+function formatListSource(label: string): string {
+  const managedInstallType = /^managed via ([^ (]+)/u.exec(label)?.[1]
+  if (managedInstallType) return managedInstallType
+
+  if (label === 'script installer') return 'script'
+  if (label === 'binary installer') return 'binary'
+  if (label === 'detected in PATH') return 'PATH'
+
+  return '—'
 }
