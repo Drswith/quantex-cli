@@ -29,6 +29,7 @@ import {
   pi,
   qoder,
   reasonix,
+  vtcode,
 } from '../src/index'
 
 describe('agent registry', () => {
@@ -118,8 +119,11 @@ describe('agent registry', () => {
     expect(agent?.name).toBe('reasonix')
   })
 
-  it('does not find removed VTCode', () => {
-    expect(getAgentByNameOrAlias('vtcode')).toBeUndefined()
+  it('finds VTCode by name', () => {
+    const agent = getAgentByNameOrAlias('vtcode')
+    expect(agent).toBeDefined()
+    expect(agent!.name).toBe('vtcode')
+    expect(agent!.binaryName).toBe('vtcode')
   })
 
   it('finds Hermes Agent by name and resolves by alias', () => {
@@ -311,6 +315,15 @@ describe('agent definitions', () => {
     expect(agent!.homepage).toBe('https://github.com/esengine/DeepSeek-Reasonix')
   })
 
+  it('vtcode has correct structure', () => {
+    const agent = getAgentByNameOrAlias('vtcode')
+    expect(agent).toBeDefined()
+    expect(agent!.displayName).toBe('VTCode')
+    expect(agent!.packages?.cargo).toBe('vtcode')
+    expect(agent!.binaryName).toBe('vtcode')
+    expect(agent!.homepage).toBe('https://github.com/vinhnx/vtcode')
+  })
+
   it('re-exports all built-in agents from root index', () => {
     expect(autohand.name).toBe('autohand')
     expect(codebuddy.name).toBe('codebuddy')
@@ -333,6 +346,7 @@ describe('agent definitions', () => {
     expect(pi.name).toBe('pi')
     expect(qoder.name).toBe('qoder')
     expect(reasonix.name).toBe('reasonix')
+    expect(vtcode.name).toBe('vtcode')
   })
 })
 

@@ -2523,4 +2523,91 @@ export const coreMutationRecipeCatalog = [
       ],
     },
   },
+  {
+    name: 'vtcode',
+    platforms: {
+      linux: [
+        {
+          probes: ['executable-presence'],
+          provider: 'script',
+          target: {
+            effect: {
+              command: 'curl -fsSL https://raw.githubusercontent.com/vinhnx/vtcode/main/scripts/install.sh | bash',
+              kind: 'shell-script',
+            },
+            id: 'https://raw.githubusercontent.com/vinhnx/vtcode/main/scripts/install.sh',
+            kind: 'script',
+          },
+        },
+        {
+          probes: ['executable-presence'],
+          provider: 'cargo',
+          target: {
+            id: 'vtcode',
+            kind: 'package',
+          },
+        },
+        {
+          probes: ['executable-presence'],
+          provider: 'brew',
+          target: {
+            id: 'vtcode',
+            kind: 'formula',
+          },
+        },
+      ],
+      macos: [
+        {
+          probes: ['executable-presence'],
+          provider: 'script',
+          target: {
+            effect: {
+              command: 'curl -fsSL https://raw.githubusercontent.com/vinhnx/vtcode/main/scripts/install.sh | bash',
+              kind: 'shell-script',
+            },
+            id: 'https://raw.githubusercontent.com/vinhnx/vtcode/main/scripts/install.sh',
+            kind: 'script',
+          },
+        },
+        {
+          probes: ['executable-presence'],
+          provider: 'cargo',
+          target: {
+            id: 'vtcode',
+            kind: 'package',
+          },
+        },
+        {
+          probes: ['executable-presence'],
+          provider: 'brew',
+          target: {
+            id: 'vtcode',
+            kind: 'formula',
+          },
+        },
+      ],
+      windows: [
+        {
+          probes: ['executable-presence'],
+          provider: 'cargo',
+          target: {
+            id: 'vtcode',
+            kind: 'package',
+          },
+        },
+        {
+          probes: ['executable-presence'],
+          provider: 'script',
+          target: {
+            effect: {
+              command: 'irm https://raw.githubusercontent.com/vinhnx/vtcode/main/scripts/install.ps1 | iex',
+              kind: 'shell-script',
+            },
+            id: 'https://raw.githubusercontent.com/vinhnx/vtcode/main/scripts/install.ps1',
+            kind: 'script',
+          },
+        },
+      ],
+    },
+  },
 ] as const satisfies readonly CoreAgentMutationRecipes[]

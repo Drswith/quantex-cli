@@ -6,12 +6,12 @@
 | --- | ---: | --- | --- | --- |
 | `bun` | 18 | `linux`, `macos`, `windows` | `package` | `executable-presence`, `installed-version`, `package-presence`, `target-version` |
 | `npm` | 23 | `linux`, `macos`, `windows` | `package` | `executable-presence`, `installed-version`, `package-presence`, `target-version` |
-| `brew` | 13 | `linux`, `macos` | `cask`, `formula` | `executable-presence` |
-| `cargo` | 1 | `linux`, `macos`, `windows` | `package` | `executable-presence` |
+| `brew` | 14 | `linux`, `macos` | `cask`, `formula` | `executable-presence` |
+| `cargo` | 2 | `linux`, `macos`, `windows` | `package` | `executable-presence` |
 | `deno` | 1 | `linux`, `macos`, `windows` | `tool` | `executable-presence` |
 | `mise` | 1 | `linux`, `macos`, `windows` | `tool` | `executable-presence`, `installed-version`, `package-presence` |
 | `pip` | 1 | `linux`, `macos`, `windows` | `package` | `executable-presence` |
 | `uv` | 2 | `linux`, `macos`, `windows` | `tool` | `executable-presence`, `installed-version`, `package-presence` |
 | `winget` | 3 | `windows` | `id` | `executable-presence` |
-| `script` | 24 | `linux`, `macos`, `windows` | `script` | `executable-presence` |
+| `script` | 25 | `linux`, `macos`, `windows` | `script` | `executable-presence` |
 | `binary` | 0 | — | — | — |

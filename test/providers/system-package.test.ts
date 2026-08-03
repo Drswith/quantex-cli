@@ -223,7 +223,7 @@ describe('system package provider semantics', () => {
     const wingetVersion = vi.spyOn(wingetPm, 'getInstalledVersion').mockResolvedValue('1.2.3')
 
     await expect(
-      createCargoProviderAdapter().observe({ context, target: { id: 'ripgrep', kind: 'package' } }),
+      createCargoProviderAdapter().observe({ context, target: { id: 'vtcode', kind: 'package' } }),
     ).resolves.toMatchObject({
       kind: 'success',
       value: { kind: 'present', version: '0.2.0' },
@@ -248,7 +248,7 @@ describe('system package provider semantics', () => {
       value: { kind: 'present', version: '1.2.3' },
     })
 
-    expect(cargoProbe).toHaveBeenCalledWith('ripgrep', context)
+    expect(cargoProbe).toHaveBeenCalledWith('vtcode', context)
     expect(denoProbe).toHaveBeenCalledWith('genie', context)
     expect(pipProbe).toHaveBeenCalledWith('mistral-vibe', context)
     expect(wingetProbe).toHaveBeenCalledWith(wingetTarget.id, context)

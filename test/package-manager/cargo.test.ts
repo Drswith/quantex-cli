@@ -128,10 +128,10 @@ function createListProc(exitCode: number, stdout: string, stderr = '') {
 describe('probePackagePresence', () => {
   it('returns present when cargo install --list reports the crate', async () => {
     const { probePackagePresence, getInstalledVersion } = await import('../../src/package-manager/cargo')
-    mockSpawn.mockReturnValue(createListProc(0, 'ripgrep v14.1.1:\n    rg\nfd-find v10.3.0:\n    fd\n'))
+    mockSpawn.mockReturnValue(createListProc(0, 'ripgrep v14.1.1:\n    rg\nvtcode v0.2.0:\n    vtcode\n'))
 
-    expect(await probePackagePresence('fd-find')).toBe('present')
-    expect(await getInstalledVersion('fd-find')).toBe('10.3.0')
+    expect(await probePackagePresence('vtcode')).toBe('present')
+    expect(await getInstalledVersion('vtcode')).toBe('0.2.0')
     expect(mockSpawn).toHaveBeenCalledWith(['cargo', 'install', '--list'], expect.any(Object))
   })
 
@@ -139,14 +139,14 @@ describe('probePackagePresence', () => {
     const { probePackagePresence } = await import('../../src/package-manager/cargo')
     mockSpawn.mockReturnValue(createListProc(0, 'ripgrep v14.1.1:\n    rg\n'))
 
-    expect(await probePackagePresence('fd-find')).toBe('absent')
+    expect(await probePackagePresence('vtcode')).toBe('absent')
   })
 
   it('returns unknown when cargo install --list fails', async () => {
     const { probePackagePresence } = await import('../../src/package-manager/cargo')
     mockSpawn.mockReturnValue(createListProc(1, '', 'error: failed to list\n'))
 
-    expect(await probePackagePresence('fd-find')).toBe('unknown')
+    expect(await probePackagePresence('vtcode')).toBe('unknown')
   })
 })
 
@@ -154,6 +154,6 @@ describe('parseCargoInstalledVersion', () => {
   it('extracts the package version from cargo install --list output', async () => {
     const { parseCargoInstalledVersion } = await import('../../src/package-manager/cargo')
     expect(parseCargoInstalledVersion('ripgrep v14.1.1:\n    rg\n', 'ripgrep')).toBe('14.1.1')
-    expect(parseCargoInstalledVersion('ripgrep v14.1.1:\n    rg\n', 'fd-find')).toBeUndefined()
+    expect(parseCargoInstalledVersion('ripgrep v14.1.1:\n    rg\n', 'vtcode')).toBeUndefined()
   })
 })
