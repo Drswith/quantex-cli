@@ -541,15 +541,15 @@ describe('executeCommandWithRuntime', () => {
 
     const replayed = await executeCommandWithRuntime({
       action: 'install',
-      run: () => run('vtcode'),
+      run: () => run('codex'),
       target: {
         kind: 'agent',
-        name: 'vtcode',
+        name: 'codex',
       },
     })
 
     expect(run).toHaveBeenCalledTimes(2)
-    expect(replayed.target?.name).toBe('vtcode')
+    expect(replayed.target?.name).toBe('codex')
   })
 
   it('does not persist or replay transient timeout failures for an idempotency key', async () => {
@@ -1548,7 +1548,7 @@ describe('executeCommandWithRuntime', () => {
       run: () => new Promise<CommandResult<unknown>>(() => {}),
       target: {
         kind: 'agent',
-        name: 'vtcode',
+        name: 'codex',
       },
     })
 
