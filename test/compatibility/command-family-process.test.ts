@@ -53,7 +53,7 @@ beforeAll(async () => {
 })
 
 afterAll(async () => {
-  await rm(tempHome, { force: true, recursive: true })
+  await removeDirectory(tempHome)
 })
 
 describe('v1 command-family process compatibility', () => {
@@ -179,13 +179,17 @@ async function runCli(
     stdoutHandle = undefined
     stderrHandle = undefined
     const [stdout, stderr] = await Promise.all([readFile(stdoutPath, 'utf8'), readFile(stderrPath, 'utf8')])
-    await rm(captureDirectory, { force: true, recursive: true })
+    await removeDirectory(captureDirectory)
     captureDirectoryRemoved = true
     return { exitCode, stderr, stdout }
   } finally {
     await Promise.allSettled([stdoutHandle?.close(), stderrHandle?.close()])
-    if (!captureDirectoryRemoved) await rm(captureDirectory, { force: true, recursive: true }).catch(() => {})
+    if (!captureDirectoryRemoved) await removeDirectory(captureDirectory).catch(() => {})
   }
+}
+
+async function removeDirectory(path: string): Promise<void> {
+  await rm(path, { force: true, maxRetries: 10, recursive: true, retryDelay: 50 })
 }
 
 function expectGolden(label: string, stdout: string, mode: OutputMode, expected: string): string {
