@@ -27,6 +27,7 @@ export interface AgentLifecycleObservationPorts {
   readonly providerRegistry: ProviderRegistry
   readonly readInstalledState: (agentName: string) => Promise<InstalledAgentState | undefined>
   readonly readReceipt: (agentName: string) => Promise<LifecycleReceipt | undefined>
+  readonly resolveExecutablePath?: (path: string) => Promise<string | undefined>
   readonly signal: AbortSignal
   readonly timeoutMs?: number
   readonly observeProvider?: (
@@ -141,17 +142,17 @@ export async function observeAgentLifecycle(
       }
     }
 
+    const [providerPathConflicts, receiptPathConflicts] = await Promise.all([
+      providerObservation.kind === 'present'
+        ? executablePathsConflict(providerObservation.executablePath, executable.path, ports)
+        : false,
+      executablePathsConflict(receipt?.executablePath, executable.path, ports),
+    ])
     const evidenceConflicts =
       providerObservation.kind !== (executable.present ? 'present' : 'absent') ||
-      (providerObservation.kind === 'present' &&
-        executable.present &&
-        providerObservation.executablePath !== undefined &&
-        executable.path !== undefined &&
-        providerObservation.executablePath !== executable.path) ||
+      (executable.present && providerPathConflicts) ||
       (providerObservation.kind === 'present' && versionsConflict(providerObservation.version, executable.version)) ||
-      (receipt?.executablePath !== undefined &&
-        executable.path !== undefined &&
-        receipt.executablePath !== executable.path) ||
+      receiptPathConflicts ||
       executableIdentityConflicts(agent, installedState, receipt, recordedBinding)
     const liveExecutable = mergeExecutableObservation(executable, providerObservation)
 
@@ -255,12 +256,13 @@ export async function observeAgentLifecycle(
     const binding = liveCandidate.binding
     const providerObservation = liveCandidate.outcome.value
     const liveExecutable = mergeExecutableObservation(executable, providerObservation)
+    const providerPathConflicts = await executablePathsConflict(
+      providerObservation.executablePath,
+      executable.path,
+      ports,
+    )
     const evidenceConflicts =
-      !executable.present ||
-      (providerObservation.executablePath !== undefined &&
-        executable.path !== undefined &&
-        providerObservation.executablePath !== executable.path) ||
-      versionsConflict(providerObservation.version, executable.version)
+      !executable.present || providerPathConflicts || versionsConflict(providerObservation.version, executable.version)
     return {
       ...base,
       binding,
@@ -416,6 +418,21 @@ function versionsConflict(left: string | undefined, right: string | undefined): 
   if (left === undefined || right === undefined) return false
   const order = compareVersions(left, right)
   return order === undefined ? left !== right : order !== 0
+}
+
+async function executablePathsConflict(
+  left: string | undefined,
+  right: string | undefined,
+  ports: AgentLifecycleObservationPorts,
+): Promise<boolean> {
+  if (left === undefined || right === undefined || left === right) return false
+  if (!ports.resolveExecutablePath) return true
+
+  const [resolvedLeft, resolvedRight] = await Promise.all([
+    ports.resolveExecutablePath(left),
+    ports.resolveExecutablePath(right),
+  ])
+  return resolvedLeft === undefined || resolvedRight === undefined || resolvedLeft !== resolvedRight
 }
 
 function executableIdentityConflicts(

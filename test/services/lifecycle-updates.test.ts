@@ -1,6 +1,14 @@
+import type { AgentDefinition } from '../../src/agents'
 import type { LifecycleObservation, LifecycleReceipt } from '../../src/lifecycle'
-import type { ProviderAdapter, ProviderOperation, ProviderOutcome, ProviderResolvedVersion } from '../../src/providers'
+import type {
+  ProviderAdapter,
+  ProviderOperation,
+  ProviderOutcome,
+  ProviderRegistry,
+  ProviderResolvedVersion,
+} from '../../src/providers'
 import { describe, expect, it, vi } from 'vitest'
+import { observeAgentLifecycle } from '../../src/lifecycle/agent-observation'
 import { planLifecycleUpdate } from '../../src/lifecycle/update-planner'
 import {
   executeLifecycleUpdateBatch,
@@ -346,6 +354,85 @@ describe('single-agent lifecycle update application service', () => {
     expect(harness.resolveLatestVersion).toHaveBeenCalledWith(
       expect.objectContaining({ target: expect.objectContaining({ id: '@scope/alpha' }) }),
     )
+  })
+
+  it('plans a managed update when receipt and live paths resolve to the same executable', async () => {
+    const target = {
+      binaryName: 'alpha',
+      displayName: 'Alpha',
+      homepage: 'https://example.com',
+      name: 'alpha',
+      packages: { npm: '@scope/alpha' },
+      platforms: { linux: [{ packageName: '@scope/alpha', type: 'npm' as const }] },
+    } satisfies AgentDefinition
+    const adapter: ProviderAdapter = {
+      availability: async () => ({ kind: 'success', value: { executable: 'npm' } }),
+      id: 'npm',
+      observe: async request => ({
+        kind: 'success',
+        value: {
+          executablePath: '/shim/alpha',
+          kind: 'present',
+          target: request.target,
+          version: '1.0.0',
+        },
+      }),
+      resolveLatestVersion: async () => ({ kind: 'success', value: { version: '2.0.0' } }),
+      update: async request => ({ kind: 'success', value: { evidence: [], target: request.target } }),
+    }
+    const providerRegistry: ProviderRegistry = {
+      get: id => (id === 'npm' ? adapter : undefined),
+      getCapabilities: id =>
+        id === 'npm' ? ['availability', 'observe', 'resolve-latest-version', 'update', 'verify'] : [],
+      list: () => [adapter],
+    }
+    const observed = await observeAgentLifecycle(target, {
+      clock: () => '2026-08-03T02:00:00.000Z',
+      inspectExecutable: async () => ({ path: '/real/alpha', present: true, version: '1.0.0' }),
+      platform: 'linux',
+      providerRegistry,
+      readInstalledState: async () => ({
+        agentName: 'alpha',
+        installType: 'npm',
+        packageName: '@scope/alpha',
+      }),
+      readReceipt: async () => ({
+        executableName: 'alpha',
+        executablePath: '/shim/alpha',
+        kind: 'lifecycle-receipt',
+        providerId: 'npm',
+        providerTargetId: '@scope/alpha',
+        providerTargetKind: 'package',
+        schemaVersion: 1,
+        targetId: 'alpha',
+        verifiedAt: '2026-07-28T20:52:08.265Z',
+        version: '1.0.0',
+      }),
+      resolveExecutablePath: async path => (path === '/shim/alpha' ? '/real/alpha' : path),
+      signal: new AbortController().signal,
+    })
+    const writeReceipt = vi.fn(async () => undefined)
+    const ports: LifecycleUpdateServicePorts = {
+      clock: () => '2026-08-03T02:00:00.000Z',
+      dryRun: true,
+      observe: async () => ({ agent: target, ...observed, methods: target.platforms.linux }),
+      planLifecycleUpdate,
+      providerRegistry,
+      signal: new AbortController().signal,
+      writeReceipt,
+    }
+
+    const result = await planSingleAgentLifecycleUpdate('alpha', ports)
+
+    expect(observed.observation).toMatchObject({ drift: { kind: 'none' }, kind: 'present' })
+    expect(result).toMatchObject({
+      kind: 'planned',
+      planned: {
+        binding: { providerId: 'npm', target: { id: '@scope/alpha', kind: 'package' } },
+        planning: { decision: 'upgrade' },
+      },
+    })
+    expect(writeReceipt).not.toHaveBeenCalled()
   })
 
   it('blocks conflicting provider evidence before resolving or mutating', async () => {

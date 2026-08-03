@@ -80,6 +80,7 @@ export function createLifecycleObservationService(
       providerRegistry: ports.providerRegistry,
       readInstalledState,
       readReceipt: ports.readReceipt,
+      resolveExecutablePath: path => ports.getResolvedBinaryPath(path),
       signal: ports.signal,
       timeoutMs: ports.timeoutMs,
     })

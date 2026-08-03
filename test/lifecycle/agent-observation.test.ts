@@ -24,6 +24,7 @@ interface Scenario {
   readonly outcomes?: Partial<Record<'bun' | 'cargo' | 'npm' | 'script', ObservationOutcome>>
   readonly receipt?: LifecycleReceipt
   readonly rejectingProviders?: readonly ('bun' | 'cargo' | 'npm' | 'script')[]
+  readonly resolvedPaths?: Readonly<Record<string, string>>
   readonly state?: InstalledAgentState
 }
 
@@ -233,6 +234,23 @@ const scenarios: readonly Scenario[] = [
     state: legacyState,
   },
   {
+    executable: { path: '/real/test-bin', present: true, version: '1.2.3' },
+    expected: {
+      binding: { providerId: 'bun', target: { id: 'test-pkg', kind: 'package' } },
+      capabilities: ['availability', 'observe', 'update'],
+      drift: 'none',
+      kind: 'present',
+      path: '/real/test-bin',
+      providerId: 'bun',
+      version: '1.2.3',
+    },
+    name: 'accepts receipt and provider shim paths that resolve to the live executable',
+    outcomes: { bun: present('bun', '/shim/test-bin') },
+    receipt: { ...receipt, executablePath: '/shim/test-bin' },
+    resolvedPaths: { '/shim/test-bin': '/real/test-bin' },
+    state: legacyState,
+  },
+  {
     executable: { path: '/bin/test-bin', present: true, version: '1.2.3' },
     expected: {
       binding: { providerId: 'bun', target: { id: 'test-pkg', kind: 'package' } },
@@ -278,6 +296,7 @@ const scenarios: readonly Scenario[] = [
     name: 'reports a changed executable path against recorded receipt identity',
     outcomes: { bun: present('bun') },
     receipt: { ...receipt, executablePath: '/old/test-bin' },
+    resolvedPaths: { '/old/test-bin': '/other/test-bin' },
     state: legacyState,
   },
   {
@@ -439,6 +458,7 @@ describe('observeAgentLifecycle', () => {
         providerRegistry: registry,
         readInstalledState,
         readReceipt,
+        resolveExecutablePath: async path => scenario.resolvedPaths?.[path] ?? path,
         signal: new AbortController().signal,
       }
 

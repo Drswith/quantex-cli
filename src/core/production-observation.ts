@@ -102,6 +102,7 @@ async function observeProductionAgent(
     providerRegistry,
     readInstalledState: async agentName => state.installedAgents[agentName],
     readReceipt: async agentName => state.lifecycleReceipts[agentName],
+    resolveExecutablePath: path => resolveExecutablePath(path, context.signal),
     signal: context.signal,
     timeoutMs: context.timeoutMs,
     observeProvider: async binding => {
