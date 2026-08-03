@@ -111,7 +111,7 @@ describe('workflow classification integration', () => {
     expect(ciWorkflow).toContain("github.event_name != 'pull_request'")
   })
 
-  it('preserves the six live merge-gate contexts', () => {
+  it('preserves the seven live merge-gate contexts', () => {
     const ciJobIds = extractTopLevelJobIds(ciWorkflow)
     const sandboxJobIds = extractTopLevelJobIds(sandboxWorkflow)
     const governanceJobIds = extractTopLevelJobIds(prGovernanceWorkflow)
@@ -128,6 +128,7 @@ describe('workflow classification integration', () => {
     expect(requiredContexts).toEqual([
       'classify',
       'lint',
+      'desktop-macos',
       'test (ubuntu-latest)',
       'test (windows-latest)',
       'test (macos-latest)',

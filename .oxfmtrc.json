@@ -26,6 +26,11 @@
   },
   "ignorePatterns": [
     "dist",
+    "apps/desktop/src/app.css",
+    "apps/desktop/src/components/ui",
+    "apps/desktop/src/lib/utils.ts",
+    "apps/desktop/src-tauri/gen",
+    "apps/desktop/src-tauri/target",
     "node_modules",
     ".bun",
     "bun.lock",
