@@ -36,6 +36,7 @@ import agent32 from '../catalog/qoder.json'
 import agent33 from '../catalog/qwen.json'
 import agent34 from '../catalog/reasonix.json'
 import agent35 from '../catalog/vibe.json'
+import agent36 from '../catalog/vtcode.json'
 
 export const catalogData = [
   agent0,
@@ -74,4 +75,5 @@ export const catalogData = [
   agent33,
   agent34,
   agent35,
+  agent36,
 ]

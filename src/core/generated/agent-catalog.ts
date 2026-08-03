@@ -1494,4 +1494,53 @@ export const coreAgentCatalog: readonly AgentDefinition[] = [
       command: ['vibe', '--version'],
     },
   },
+  {
+    binaryName: 'vtcode',
+    displayName: 'VTCode',
+    homepage: 'https://github.com/vinhnx/vtcode',
+    name: 'vtcode',
+    packages: {
+      cargo: 'vtcode',
+    },
+    platforms: {
+      linux: [
+        {
+          command: 'curl -fsSL https://raw.githubusercontent.com/vinhnx/vtcode/main/scripts/install.sh | bash',
+          type: 'script',
+        },
+        {
+          type: 'cargo',
+        },
+        {
+          packageName: 'vtcode',
+          type: 'brew',
+        },
+      ],
+      macos: [
+        {
+          command: 'curl -fsSL https://raw.githubusercontent.com/vinhnx/vtcode/main/scripts/install.sh | bash',
+          type: 'script',
+        },
+        {
+          type: 'cargo',
+        },
+        {
+          packageName: 'vtcode',
+          type: 'brew',
+        },
+      ],
+      windows: [
+        {
+          type: 'cargo',
+        },
+        {
+          command: 'irm https://raw.githubusercontent.com/vinhnx/vtcode/main/scripts/install.ps1 | iex',
+          type: 'script',
+        },
+      ],
+    },
+    versionProbe: {
+      command: ['vtcode', '--version'],
+    },
+  },
 ]
