@@ -114,6 +114,5 @@
   "updateAgentsByType",
   "upgradeSelf",
   "validateReleaseManifest",
-  "vibe",
-  "vtcode"
+  "vibe"
 ]

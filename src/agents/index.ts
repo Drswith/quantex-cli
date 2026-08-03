@@ -56,7 +56,6 @@ export {
   qwen,
   reasonix,
   vibe,
-  vtcode,
 } from './generated/catalog-agents'
 export { agentCatalogJsonSchema, getCatalogAgent, getCatalogAgents } from './catalog'
 export { agentCatalogEntrySchema, agentCatalogSchema } from './schema'

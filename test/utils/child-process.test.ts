@@ -196,7 +196,7 @@ describe('spawnWithQuantexStdio', () => {
       stdout: '',
     })
 
-    const handle = spawnWithQuantexStdio(['cargo', 'install', 'vtcode'])
+    const handle = spawnWithQuantexStdio(['cargo', 'install', 'ripgrep'])
     const cancellation = cancelCliContextOperations()
     await new Promise(resolve => setTimeout(resolve, 0))
     mockSpawn.mock.results[0]!.value.exitCode = 0

@@ -42,7 +42,6 @@ export {
   qoder,
   reasonix,
   vibe,
-  vtcode,
 } from '../agents'
 export type {
   AgentDefinition,

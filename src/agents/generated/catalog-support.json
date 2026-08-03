@@ -1813,66 +1813,6 @@
           }
         ]
       }
-    },
-    {
-      "binaryName": "vtcode",
-      "name": "vtcode",
-      "platforms": {
-        "linux": [
-          {
-            "probes": ["executable-presence"],
-            "provider": "script",
-            "targetId": "https://raw.githubusercontent.com/vinhnx/vtcode/main/scripts/install.sh",
-            "targetKind": "script"
-          },
-          {
-            "probes": ["executable-presence"],
-            "provider": "cargo",
-            "targetId": "vtcode",
-            "targetKind": "package"
-          },
-          {
-            "probes": ["executable-presence"],
-            "provider": "brew",
-            "targetId": "vtcode",
-            "targetKind": "formula"
-          }
-        ],
-        "macos": [
-          {
-            "probes": ["executable-presence"],
-            "provider": "script",
-            "targetId": "https://raw.githubusercontent.com/vinhnx/vtcode/main/scripts/install.sh",
-            "targetKind": "script"
-          },
-          {
-            "probes": ["executable-presence"],
-            "provider": "cargo",
-            "targetId": "vtcode",
-            "targetKind": "package"
-          },
-          {
-            "probes": ["executable-presence"],
-            "provider": "brew",
-            "targetId": "vtcode",
-            "targetKind": "formula"
-          }
-        ],
-        "windows": [
-          {
-            "probes": ["executable-presence"],
-            "provider": "cargo",
-            "targetId": "vtcode",
-            "targetKind": "package"
-          },
-          {
-            "probes": ["executable-presence"],
-            "provider": "script",
-            "targetId": "https://raw.githubusercontent.com/vinhnx/vtcode/main/scripts/install.ps1",
-            "targetKind": "script"
-          }
-        ]
-      }
     }
   ],
   "providers": {
@@ -1945,15 +1885,14 @@
         "junie",
         "opencode",
         "qoder",
-        "qwen",
-        "vtcode"
+        "qwen"
       ],
       "platforms": ["linux", "macos"],
       "probes": ["executable-presence"],
       "targetKinds": ["cask", "formula"]
     },
     "cargo": {
-      "agents": ["codewhale", "vtcode"],
+      "agents": ["codewhale"],
       "platforms": ["linux", "macos", "windows"],
       "probes": ["executable-presence"],
       "targetKinds": ["package"]
@@ -2013,8 +1952,7 @@
         "openhands",
         "qoder",
         "qwen",
-        "vibe",
-        "vtcode"
+        "vibe"
       ],
       "platforms": ["linux", "macos", "windows"],
       "probes": ["executable-presence"],

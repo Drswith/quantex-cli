@@ -237,11 +237,11 @@ describe('managed installer typed provider compatibility', () => {
     const pipPresence = vi.spyOn(pipPm, 'probePackagePresence').mockResolvedValue('present')
     const wingetPresence = vi.spyOn(wingetPm, 'probePackagePresence').mockResolvedValue('absent')
 
-    expect(await getManagedInstaller('cargo').probePackagePresence?.('vtcode')).toBe('present')
+    expect(await getManagedInstaller('cargo').probePackagePresence?.('ripgrep')).toBe('present')
     expect(await getManagedInstaller('deno').probePackagePresence?.('jsr:@nicorio/genie')).toBe('absent')
     expect(await getManagedInstaller('pip').probePackagePresence?.('mistral-vibe')).toBe('present')
     expect(await getManagedInstaller('winget').probePackagePresence?.('GitHub.Copilot')).toBe('absent')
-    expect(cargoPresence).toHaveBeenCalledWith('vtcode')
+    expect(cargoPresence).toHaveBeenCalledWith('ripgrep')
     expect(denoPresence).toHaveBeenCalledWith('genie')
     expect(pipPresence).toHaveBeenCalledWith('mistral-vibe')
     expect(wingetPresence).toHaveBeenCalledWith('GitHub.Copilot')

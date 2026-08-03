@@ -6,9 +6,9 @@
       ],
       "exitCode": 0,
       "goldens": {
-        "human": "dd94e38f59ba99353d48bac910aca67657305659f31965ccbaf514d41239a6e3",
-        "json": "f108ef561bdf444897aa6ce8f2053bd77913f29bae3e2e498e167b4f12092df2",
-        "ndjson": "fb0454ab8ec927255488aa5d0886784ce7ee382d180729a6f4ff84c4e7741509"
+        "human": "bedd025c3794ffbdb98fc01752d3c46900495dcf46d1108f116b219dcc34d8ea",
+        "json": "9180694c30e1eef279fdd4a98b433fee6f43117e3a95832c263f318481bb5ec2",
+        "ndjson": "e21e8e9c00ec2f10f0f20cacafe465d42c2798401d6a5bb6ebdb13f2c98944b5"
       },
       "name": "capabilities",
       "ok": true,
@@ -175,9 +175,9 @@
         "name": "agents"
       },
       "goldens": {
-        "human": "2716b10a673a74da4c79343dc2f5cff312747cca84f901c5226ea04d435db0f8",
-        "json": "9c6b17a1114796536f084106ca7f7bca3e9495f66e2e087a8cf4f642af3fb64b",
-        "ndjson": "ed7d1beae589fa715e3581b29fd4191bcf33ae20cf8a5688f6b4d34fb9e17f93"
+        "human": "0094a3667683c2da9876b0c9a26e28ffac0b6b72054355cb4575fee7195e5421",
+        "json": "0c03f2274dcc472d8ac0957e90d21928774e79ae28aec42f32870cfcea8b5a1a",
+        "ndjson": "a300e11738abc7257401a46217dbc08416ffc94847ce53a445caa2a0cbe2975e"
       }
     },
     {
@@ -290,7 +290,7 @@
         "ls"
       ],
       "canonicalName": "list",
-      "golden": "9c6b17a1114796536f084106ca7f7bca3e9495f66e2e087a8cf4f642af3fb64b"
+      "golden": "0c03f2274dcc472d8ac0957e90d21928774e79ae28aec42f32870cfcea8b5a1a"
     },
     {
       "args": [
