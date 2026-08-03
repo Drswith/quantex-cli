@@ -2,6 +2,15 @@
 
 This changelog is maintained by release-please Release PRs.
 
+## [1.8.1](https://github.com/Drswith/quantex-cli/compare/v1.8.0...v1.8.1) (2026-08-03)
+
+
+### Bug Fixes
+
+* **release:** configure the annotated-tag identity on fresh runners ([5ac7f42](https://github.com/Drswith/quantex-cli/commit/5ac7f42aba08171b0428c54cb476f5e9d0ba2443))
+* **release:** publish the exact candidate without a source checkout ([e515702](https://github.com/Drswith/quantex-cli/commit/e51570280563547bcbaaf6b53282fd7f558b0844))
+* **test:** stabilize Windows command-family compatibility cleanup ([0ec6c2d](https://github.com/Drswith/quantex-cli/commit/0ec6c2d103f897378117f1c76fc8e62681289a7f))
+
 ## [1.8.0](https://github.com/Drswith/quantex-cli/compare/v1.7.1...v1.8.0) (2026-08-03)
 
 ### Features
