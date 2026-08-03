@@ -24,18 +24,9 @@ Normal feature, fix, or maintenance work lands through standard PRs.
 
 ### 2. Explicitly prepare the Release PR
 
-After required CI is green, a maintainer dispatches the `Release` workflow for `main` or `beta`.
+After required CI is green, a maintainer dispatches the `Prepare Release` workflow for `main` or `beta`.
 
-Before it chooses an action, the workflow reconciles branch state from:
-
-- current branch history and tags
-- whether a `chore: release ...` commit is still untagged
-
-That resolver picks exactly one next action:
-
-- publish a successful but still-untagged release commit
-- otherwise create or refresh a Release PR from the newest successful release-worthy commit
-- otherwise exit cleanly with no release action
+The preparation resolver only decides whether successful release-worthy history warrants a Release PR. It never inspects npm, selects a publication candidate, creates a tag, or publishes artifacts.
 
 release-please then maintains a Release PR when a version bump is warranted.
 
@@ -57,14 +48,32 @@ Confirm that the PR:
 - has the expected release title shape
 - includes the release-please generated marker
 - only changes `CHANGELOG.md`, `package.json`, `.release-please-manifest.json`, and `src/generated/build-meta.ts`
+- contains one maintainer-authored commit rather than the release bot's original commit metadata
+
+Before merge, check out the generated branch with maintainer credentials, replace its commits with one commit authored by the maintainer, and force-push that branch with lease protection. PR Governance deliberately rejects the trusted release bot author as well as other bot or agent identities because GitHub squash can synthesize prohibited `Co-authored-by:` trailers.
 
 Merge the locked reviewed head manually; prefer rebase and use squash only when rebase is unavailable or unsafe.
 
-### 4. Let the release job validate the merged Release PR
+### 4. Seal the exact protected-branch head
 
-After the Release PR is merged and its required CI is green, a maintainer dispatches Release again to enter publish mode.
+After the Release PR is merged, wait for push CI to succeed on that exact `main` or `beta` head. Then dispatch `Seal Release` for the same protected branch.
 
-When the reconciler selects publish mode, the release workflow reruns:
+Sealing requires all of these values to agree before creating or reusing a tag:
+
+- protected-branch head SHA
+- successful push CI SHA
+- `chore: release <version>` commit title
+- root `package.json` version
+- `v<version>` tag
+- stable `main`/`latest` or prerelease `beta`/`beta` channel
+
+An existing tag is accepted only when it already points to the exact validated commit. The workflow never moves a version tag.
+
+### 5. Build and publish the sealed candidate
+
+After sealing, `Seal Release` explicitly dispatches `Release` at the tag. The explicit dispatch is required because a tag pushed with `GITHUB_TOKEN` does not trigger another workflow.
+
+The tag-only Release workflow reruns:
 
 - `bun run memory:check`
 - `bun run lint`
@@ -74,18 +83,17 @@ When the reconciler selects publish mode, the release workflow reruns:
 
 This keeps publish gating inside the workflow that npm trusts for OIDC publishing.
 
-### 5. Publish through the explicit release dispatch
+It then builds the package and binaries once, generates the manifest and checksums, smoke-checks them, packs the exact npm tarball with scripts disabled, and uploads one release-candidate Actions artifact. A separate mutation job downloads that artifact without checking out source or rebuilding.
 
-When release-please reports that a GitHub Release was created, the workflow:
+After a fail-closed exact-version registry preflight, the mutation order is:
 
-- builds binaries
-- generates release artifacts
-- runs `release:smoke`
-- runs `package:check`
-- publishes to npm
-- uploads binaries to the GitHub Release
+1. create or recover the draft GitHub Release;
+2. upload and verify every candidate asset by name and size;
+3. publish the exact candidate tarball when the preflight found no existing version;
+4. verify npm registry closure;
+5. make the GitHub Release public.
 
-Regular merges never publish by themselves; only a maintainer Release dispatch can create a Release PR or publish artifacts.
+Regular merges never publish by themselves. Preparation cannot publish, and Release cannot infer a commit from branch history.
 
 ## Version rules
 
@@ -117,9 +125,9 @@ The stable release-please config currently includes a temporary `last-release-sh
 
 The Release workflow pins `googleapis/release-please-action` to a repository-verified tag instead of floating on the major `v4` tag. Before changing that pin, run a dry run against the repository and confirm it can prepare the expected Release PR without GitHub GraphQL errors.
 
-Release PR creation and GitHub Release creation run as separate release-please phases. Product merges use Release PR mode, while `chore: release ...` merges use GitHub Release mode and then continue into build, npm trusted publishing, and artifact upload.
+release-please owns only Release PR preparation. Tag sealing and publication do not ask release-please to rediscover or create a GitHub Release.
 
-If a maintainer needs to recover release automation manually, use `workflow_dispatch` against the protected branch that needs reconciliation. Manual runs reuse the same branch-state resolver; they do not bypass the requirement that publish mode must come from a successful protected-branch `CI` run for the target release commit.
+If preparation fails, rerun `Prepare Release` for the branch. If sealing fails before tag creation, fix the protected-branch or CI mismatch and rerun `Seal Release`. If any later step fails, redispatch `Release` with `--ref v<version>` or rerun the failed workflow at the same tag. Never create a replacement version commit merely to recover incomplete npm or GitHub assets.
 
 ## npm trusted publishing
 
@@ -146,7 +154,7 @@ Do not assume a workflow-created tag or GitHub Release should trigger a second p
 
 GitHub's documented behavior is that events created by `GITHUB_TOKEN` do not start another workflow run, except for `workflow_dispatch` and `repository_dispatch`.
 
-That is why Quantex performs release-please tagging, npm publish, and artifact upload inside the same release workflow.
+That is why `Seal Release` explicitly runs `gh workflow run release.yml --ref "v<version>"` after creating or verifying the tag. The publish workflow validates the tag again rather than trusting the dispatch source.
 
 ## Repository settings
 
@@ -169,9 +177,10 @@ Release PRs are created by the configured release GitHub App. If GitHub marks a 
 
 For the non-interactive release flow, configure a dedicated GitHub App installation token:
 
-- `RELEASE_APP_CLIENT_ID` stores the GitHub App client ID.
+- `RELEASE_APP_ID` stores the GitHub App numeric application ID.
 - `RELEASE_APP_PRIVATE_KEY` stores the GitHub App private key PEM.
-- `.github/workflows/release.yml` uses `actions/create-github-app-token` to create or update Release PRs, create releases, and upload artifacts.
+- `.github/workflows/prepare-release.yml` uses `actions/create-github-app-token` to create or update Release PRs.
+- `.github/workflows/release.yml` uses `actions/create-github-app-token` to create or recover releases and upload artifacts.
 
 The GitHub App should be installed only on `Drswith/quantex-cli` and only needs repository permissions for read-only actions/metadata plus read-write contents, issues, and pull requests.
 
@@ -225,6 +234,8 @@ If a mirror registry is introduced temporarily for local development or incident
 ## Related artifacts
 
 - `.github/workflows/release.yml`
+- `.github/workflows/prepare-release.yml`
+- `.github/workflows/seal-release.yml`
 - `.github/workflows/ci.yml`
 - `scripts/release-target-resolution.ts`
 - `release-please-config.json`

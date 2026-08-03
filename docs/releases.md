@@ -6,15 +6,17 @@ The repository keeps a source-controlled [CHANGELOG.md](../CHANGELOG.md). A CLI 
 
 `quantex-cli`, the GitHub Release, and standalone binaries form the primary public release closure. Release automation:
 
-1. resolves the selected protected branch's pending release commit and exact `quantex-cli` npm state when a maintainer dispatches Release;
-2. builds and validates the repository, including the bundled Core workspace and its clean packed-tarball consumers;
-3. publishes or verifies the exact `quantex-cli` version;
-4. creates or refreshes the GitHub Release only after CLI npm closure;
-5. uploads and verifies standalone release artifacts.
+1. prepares a release-please PR from successful release-worthy protected-branch history;
+2. requires the generated Release PR to be re-authored as one maintainer commit before merge;
+3. seals the exact successful protected-branch head as an immutable `v<version>` tag and explicitly dispatches publication at that tag;
+4. builds and validates one release-candidate artifact containing the npm tarball, standalone binaries, manifest, checksums, and release notes;
+5. creates or recovers a draft GitHub Release and verifies its candidate assets;
+6. publishes or verifies the exact candidate tarball on npm;
+7. makes the GitHub Release public only after npm integrity closure.
 
-Registry errors other than a conclusive exact-version not-found response stop publication. Reruns are idempotent: an already published CLI version is verified and skipped, while an existing GitHub Release with a missing CLI version is recovered before artifacts are attached.
+Registry errors other than a conclusive exact-version not-found response stop publication. Reruns are tag-idempotent: an existing tag may never move, a draft or published GitHub Release is reconciled in place, and an already published npm version is accepted only when its registry integrity matches the candidate tarball.
 
-Recovery uses one source role: the immutable release commit remains the source for package builds, product tests, npm publication, and standalone artifacts. Rerunning the same manual dispatch recovers a partial closure without checking out a protected-branch control source or running a fixed historical compatibility harness.
+Recovery uses one source role: the immutable tag identifies the release commit, and one Actions artifact carries every byte consumed by the mutation job. Publication never checks out source, rebuilds, or selects a candidate from newer branch history. If a run fails after tag creation, redispatch `Release` at the same tag; never move the tag.
 
 This repository does not coordinate publication of the separate `quantex` alias package.
 

@@ -86,20 +86,19 @@ describe('pr merge commit policy', () => {
     expect(issues).toContainEqual(expect.stringContaining('Re-author the commit'))
   })
 
-  it('accepts the trusted release bot author for validated release PRs', () => {
-    expect(
-      validatePullRequestMergeCommitPolicy({
-        commits: [
-          {
-            authorEmail: '279595574+quantex-cli-release-bot[bot]@users.noreply.github.com',
-            authorName: 'quantex-cli-release-bot[bot]',
-            message: 'chore: release 0.29.1',
-            sha: '88261fb1b9c4fbe11e2a5b883fc84a8bcb62f1f1',
-          },
-        ],
-        validatedReleasePr: true,
-      }),
-    ).toEqual([])
+  it('rejects the release bot author without a validation bypass', () => {
+    const issues = validatePullRequestMergeCommitPolicy({
+      commits: [
+        {
+          authorEmail: '279595574+quantex-cli-release-bot[bot]@users.noreply.github.com',
+          authorName: 'quantex-cli-release-bot[bot]',
+          message: 'chore: release 0.29.1',
+          sha: '88261fb1b9c4fbe11e2a5b883fc84a8bcb62f1f1',
+        },
+      ],
+    })
+
+    expect(issues).toContainEqual(expect.stringContaining('Re-author the commit'))
   })
 
   it('rejects direct co-author trailers in PR commit messages', () => {
@@ -141,7 +140,7 @@ describe('pr merge commit policy', () => {
 
     expect(policyStep).toContain('PR_COMMITS_JSON')
     expect(policyStep).toContain('PR_BODY')
-    expect(policyStep).toContain('PR_IS_VALIDATED_RELEASE_PR')
+    expect(policyStep).not.toContain('PR_IS_VALIDATED_RELEASE_PR')
     expect(policyStep).not.toContain('PR_BASE_BRANCH')
     expect(policyStep).not.toContain('PR_HEAD_BRANCH')
     expect(policyStep).not.toContain('PR_SAME_REPOSITORY')
