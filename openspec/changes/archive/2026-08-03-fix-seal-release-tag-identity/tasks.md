@@ -8,4 +8,4 @@
 ## 2. Validation and Delivery
 
 - [x] 2.1 Run focused tests and the required lint, format, typecheck, test, and OpenSpec validation commands.
-- [ ] 2.2 Commit, push, merge the fix PR, regenerate the 1.8.0 Release PR, and complete release publication verification.
+- [x] 2.2 Commit, push, merge the fix PR, regenerate the Release PR, and complete release publication verification.
