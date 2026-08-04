@@ -1,7 +1,7 @@
 # product-readme Specification
 
 ## Purpose
-TBD - created by archiving change productize-readme. Update Purpose after archive.
+Define product-facing README structure, content priorities, and installation guidance for the repository landing page.
 ## Requirements
 ### Requirement: README Presents Quantex As A Product
 

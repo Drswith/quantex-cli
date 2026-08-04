@@ -179,7 +179,7 @@ For the non-interactive release flow, configure a dedicated GitHub App installat
 
 - `RELEASE_APP_ID` stores the GitHub App numeric application ID.
 - `RELEASE_APP_PRIVATE_KEY` stores the GitHub App private key PEM.
-- `.github/workflows/prepare-release.yml` uses `actions/create-github-app-token` to create or update Release PRs.
+- `.github/workflows/release-please.yml` uses `actions/create-github-app-token` to create or update Release PRs on push.
 - `.github/workflows/release.yml` uses `actions/create-github-app-token` to create or recover releases and upload artifacts.
 
 The GitHub App should be installed only on `Drswith/quantex-cli` and only needs repository permissions for read-only actions/metadata plus read-write contents, issues, and pull requests.
@@ -234,13 +234,11 @@ If a mirror registry is introduced temporarily for local development or incident
 ## Related artifacts
 
 - `.github/workflows/release.yml`
-- `.github/workflows/prepare-release.yml`
-- `.github/workflows/seal-release.yml`
+- `.github/workflows/release-please.yml`
 - `.github/workflows/ci.yml`
-- `scripts/release-target-resolution.ts`
 - `release-please-config.json`
 - `.release-please-manifest.json`
 - `docs/releases.md`
 - `CHANGELOG.md`
 - `docs/runbooks/release-and-self-upgrade-debugging.md`
-- `openspec/changes/archive/qtx-0030-adopt-release-please-release-pr-flow/proposal.md`
+- `docs/adr/0008-workflow-redesign.md`

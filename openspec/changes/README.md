@@ -14,4 +14,4 @@ openspec/changes/<change-name>/
         └── spec.md
 ```
 
-Keep the change self-contained. When the work is accepted and landed, merge the resulting behavior into `openspec/specs/` and move the folder to `openspec/changes/archive/`.
+Keep the change self-contained. When the work is accepted and landed, sync spec deltas and archive via `bun run openspec:archive-closure`.

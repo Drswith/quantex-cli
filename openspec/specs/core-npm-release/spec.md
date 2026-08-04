@@ -1,7 +1,7 @@
 # core-npm-release Specification
 
 ## Purpose
-TBD - created by archiving change core-npm-activation. Update Purpose after archive.
+Define independent `quantex-core` npm publication through manual OIDC-backed workflow, separate from CLI release automation.
 ## Requirements
 ### Requirement: Core publication is independent and OIDC-backed
 

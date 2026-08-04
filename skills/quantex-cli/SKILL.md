@@ -93,7 +93,7 @@ quantex inspect codex --json
 quantex doctor
 ```
 
-Use [references/troubleshooting.md](references/troubleshooting.md) for common failure patterns, recovery order, and when to reach for `doctor`, `inspect`, `resolve`, `refresh`, or retries.
+Use [docs/runbooks/quantex-troubleshooting.md](../../docs/runbooks/quantex-troubleshooting.md) for common failure patterns, recovery order, and when to reach for `doctor`, `inspect`, `resolve`, `refresh`, or retries.
 
 ### 6. Validate the surface when maintaining the CLI or this skill
 

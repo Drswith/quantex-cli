@@ -51,6 +51,7 @@ export const sandboxRelevantFiles = new Set([
   '.github/workflows/sandbox-tests.yml',
   'bun.lock',
   'package.json',
+  'scripts/cargo-lifecycle-smoke.ts',
   'scripts/deno-lifecycle-smoke.ts',
   'scripts/lifecycle-smoke.ts',
   'scripts/test-container.ts',

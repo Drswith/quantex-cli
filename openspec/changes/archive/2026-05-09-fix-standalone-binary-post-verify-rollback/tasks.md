@@ -1,3 +1,0 @@
-- [x] Adjust `rollbackAvailable` lifecycle in `upgradeStandaloneBinary`
-- [x] Add regression test for backup `rm` failure after verify
-- [x] Sync `openspec/specs/self-upgrade/spec.md`

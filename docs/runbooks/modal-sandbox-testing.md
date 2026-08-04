@@ -148,4 +148,4 @@ Stop and ask for human input when:
 
 - [README.md](../../README.md)
 - [Code Quality Tooling Spec](../../openspec/specs/code-quality-tooling/spec.md)
-- [OpenSpec change add-modal-sandbox-test-layer](../../openspec/changes/add-modal-sandbox-test-layer/proposal.md)
+- [OpenSpec change redesign-project-workflow](../../openspec/changes/redesign-project-workflow/proposal.md)

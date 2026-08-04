@@ -1,0 +1,48 @@
+name: Release Please
+
+on:
+  push:
+    branches:
+      - main
+      - beta
+
+permissions:
+  contents: write
+  pull-requests: write
+
+concurrency:
+  group: release-please-${{ github.ref_name }}
+  cancel-in-progress: false
+
+jobs:
+  release-please:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - name: Select release-please config
+        id: config
+        run: |
+          if [ "${GITHUB_REF_NAME}" = "beta" ]; then
+            echo "file=release-please-config.beta.json" >> "$GITHUB_OUTPUT"
+          else
+            echo "file=release-please-config.json" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Create release bot token
+        id: release-bot-token
+        uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1 # v3.2.0
+        with:
+          app-id: ${{ secrets.RELEASE_APP_ID }}
+          private-key: ${{ secrets.RELEASE_APP_PRIVATE_KEY }}
+
+      - name: Run release-please
+        uses: googleapis/release-please-action@45996ed1f6d02564a971a2fa1b5860e934307cf7 # v5.0.0
+        with:
+          token: ${{ steps.release-bot-token.outputs.token }}
+          target-branch: ${{ github.ref_name }}
+          config-file: ${{ steps.config.outputs.file }}
+          manifest-file: .release-please-manifest.json
+          skip-github-release: true

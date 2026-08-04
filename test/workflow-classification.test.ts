@@ -2,12 +2,9 @@ import { readFileSync } from 'node:fs'
 import { describe, expect, it } from 'vitest'
 
 const ciWorkflow = readFileSync('.github/workflows/ci.yml', 'utf8')
-const prGovernanceWorkflow = readFileSync('.github/workflows/pr-governance.yml', 'utf8')
-const prepareReleaseWorkflow = readFileSync('.github/workflows/prepare-release.yml', 'utf8')
+const releasePleaseWorkflow = readFileSync('.github/workflows/release-please.yml', 'utf8')
 const releaseWorkflow = readFileSync('.github/workflows/release.yml', 'utf8')
-const sealReleaseWorkflow = readFileSync('.github/workflows/seal-release.yml', 'utf8')
 const sandboxWorkflow = readFileSync('.github/workflows/sandbox-tests.yml', 'utf8')
-const integrationBranchPattern = "'codex/simplify-core-sdk-*'"
 
 function extractEventBlock(workflow: string, eventName: string): string {
   const lines = workflow.split(/\r?\n/)
@@ -41,28 +38,21 @@ function extractYamlList(block: string, key: string): string[] {
   return values
 }
 
-function extractTopLevelJobIds(workflow: string): string[] {
-  const jobsBlock = workflow.split('\njobs:\n')[1]
-  if (!jobsBlock) throw new Error('Missing jobs block.')
-
-  return [...jobsBlock.matchAll(/^  ([\w-]+):\n/gm)].map(match => match[1] as string)
-}
-
 describe('workflow classification integration', () => {
   it('routes CI scope classification through the shared taxonomy script', () => {
-    expect(ciWorkflow).toContain('bun run scripts/path-taxonomy.ts')
+    expect(ciWorkflow).toContain('bun run ci:path-taxonomy')
     expect(ciWorkflow).toContain('CHANGED_FILES_JSON')
     expect(ciWorkflow).not.toContain('const productImpactingPrefixes = [')
   })
 
-  it('routes PR governance scope classification through the shared taxonomy script', () => {
-    expect(prGovernanceWorkflow).toContain('bun run scripts/path-taxonomy.ts')
-    expect(prGovernanceWorkflow).toContain('bun run pr:body:check')
-    expect(prGovernanceWorkflow).not.toContain("fileName.startsWith('src/')")
+  it('routes governance scope classification through the shared taxonomy script', () => {
+    expect(ciWorkflow).toContain('governance:')
+    expect(ciWorkflow).toContain('bun run pr:body:check')
+    expect(ciWorkflow).not.toContain("fileName.startsWith('src/')")
   })
 
   it('routes sandbox workflow classification through the shared taxonomy script', () => {
-    expect(sandboxWorkflow).toContain('bun run scripts/path-taxonomy.ts')
+    expect(sandboxWorkflow).toContain('bun run ci:path-taxonomy')
     expect(sandboxWorkflow).toContain('sandbox_relevant')
     expect(sandboxWorkflow).toContain(
       'QTX_ISOLATION_SCENARIOS=managed,deno-managed,uv-managed,adopt-preinstalled,ambiguous-multi-method,self-binary',
@@ -70,93 +60,59 @@ describe('workflow classification integration', () => {
     expect(sandboxWorkflow).not.toContain("'src/self/**'")
   })
 
-  it.each([
-    ['PR Governance', prGovernanceWorkflow, 'pull_request'],
-    ['Release', releaseWorkflow, 'workflow_dispatch'],
-    ['Prepare Release', prepareReleaseWorkflow, 'workflow_dispatch'],
-    ['Seal Release', sealReleaseWorkflow, 'workflow_dispatch'],
-  ])('isolates the terminal %s %s event from following top-level keys', (_, workflow, eventName) => {
-    expect(extractEventBlock(workflow, eventName)).not.toMatch(/^(?:permissions|jobs):/m)
-  })
-
-  it('runs CI for integration-branch pushes without widening pull-request base targets', () => {
+  it('runs CI and sandbox only for main and beta', () => {
     expect(extractYamlList(extractEventBlock(ciWorkflow, 'pull_request'), 'branches')).toEqual(['main', 'beta'])
-    expect(extractYamlList(extractEventBlock(ciWorkflow, 'push'), 'branches')).toEqual([
-      'main',
-      'beta',
-      integrationBranchPattern,
-    ])
-  })
-
-  it('runs Sandbox Tests for integration-branch pushes without widening pull-request base targets', () => {
+    expect(extractYamlList(extractEventBlock(ciWorkflow, 'push'), 'branches')).toEqual(['main', 'beta'])
     expect(extractYamlList(extractEventBlock(sandboxWorkflow, 'pull_request'), 'branches')).toEqual(['main', 'beta'])
-    expect(extractYamlList(extractEventBlock(sandboxWorkflow, 'push'), 'branches')).toEqual([
-      'main',
-      'beta',
-      integrationBranchPattern,
-    ])
+    expect(extractYamlList(extractEventBlock(sandboxWorkflow, 'push'), 'branches')).toEqual(['main', 'beta'])
   })
 
-  it('uses Node 20 package consumers and includes workspace manifests in CI cache keys', () => {
-    expect(ciWorkflow).toContain('node-version: 20')
-    expect(ciWorkflow).toContain("hashFiles('bun.lock', 'package.json', 'packages/*/package.json')")
-    expect(sandboxWorkflow).toContain("hashFiles('bun.lock', 'package.json', 'packages/*/package.json')")
-    expect(ciWorkflow).toContain("runner.os == 'Linux' }}\n        run: bun run package:check")
+  it('uses Node 24 in test jobs and includes workspace manifests in cache keys', () => {
+    const setupBunAction = readFileSync('.github/actions/setup-bun/action.yml', 'utf8')
+
+    expect(ciWorkflow).toContain('node-version: 24')
+    expect(setupBunAction).toContain("hashFiles('bun.lock', 'package.json', 'packages/*/package.json')")
+    expect(sandboxWorkflow).toContain('./.github/actions/setup-bun')
+    expect(ciWorkflow).toContain('bun run package:check')
   })
 
-  it('skips full Windows tests only for product-impacting pull requests', () => {
-    expect(ciWorkflow).toContain(
-      "needs.classify.outputs.run_test_matrix == 'true' && runner.os == 'Windows' && github.event_name != 'pull_request' }}\n        run: bun run test -- --pool=threads",
-    )
+  it('skips Windows test job for pull requests', () => {
+    expect(ciWorkflow).toContain('name: test (windows-latest)')
     expect(ciWorkflow).toContain("github.event_name != 'pull_request'")
   })
 
-  it('preserves the six live merge-gate contexts', () => {
-    const ciJobIds = extractTopLevelJobIds(ciWorkflow)
-    const sandboxJobIds = extractTopLevelJobIds(sandboxWorkflow)
-    const governanceJobIds = extractTopLevelJobIds(prGovernanceWorkflow)
-    const platformList = ciWorkflow.match(/^\s+os: \[(?<platforms>[^\]]+)\]$/m)?.groups?.platforms
-
-    if (!platformList) throw new Error('Missing CI test platform matrix.')
-
+  it('preserves the five live merge-gate contexts without classify', () => {
     const requiredContexts = [
-      ...ciJobIds.filter(jobId => jobId !== 'test'),
-      ...platformList.split(',').map(platform => `test (${platform.trim()})`),
-      ...sandboxJobIds.filter(jobId => jobId === 'sandbox-tests'),
-    ]
-
-    expect(requiredContexts).toEqual([
-      'classify',
       'lint',
       'test (ubuntu-latest)',
       'test (windows-latest)',
       'test (macos-latest)',
       'sandbox-tests',
-    ])
-    expect(governanceJobIds).toContain('validate-body')
-    expect(requiredContexts).not.toContain('validate-body')
+    ]
+
+    for (const context of requiredContexts) {
+      expect(ciWorkflow + sandboxWorkflow).toContain(context)
+    }
+
+    expect(ciWorkflow).not.toContain('name: classify')
+    expect(ciWorkflow).not.toContain('pr-governance.yml')
   })
 
-  it('keeps PR Governance on its unfiltered all-pull-request trigger', () => {
-    const pullRequestBlock = extractEventBlock(prGovernanceWorkflow, 'pull_request')
+  it('preserves PR governance on body edits', () => {
+    const pullRequestBlock = ciWorkflow.slice(
+      ciWorkflow.indexOf('pull_request:'),
+      ciWorkflow.indexOf('workflow_dispatch:'),
+    )
 
-    expect(pullRequestBlock).not.toMatch(/^\s+branches:/m)
-    expect(extractYamlList(pullRequestBlock, 'types')).toEqual(['opened', 'edited', 'reopened', 'synchronize'])
+    expect(pullRequestBlock).toContain('edited')
+    expect(pullRequestBlock).toContain('synchronize')
   })
 
-  it('keeps preparation and sealing explicit and isolated from integration branches', () => {
-    const prepareDispatchBlock = extractEventBlock(prepareReleaseWorkflow, 'workflow_dispatch')
-    const sealDispatchBlock = extractEventBlock(sealReleaseWorkflow, 'workflow_dispatch')
-
-    expect(extractYamlList(prepareDispatchBlock, 'options')).toEqual(['main', 'beta'])
-    expect(extractYamlList(sealDispatchBlock, 'options')).toEqual(['main', 'beta'])
-    expect(prepareDispatchBlock).not.toContain(integrationBranchPattern)
-    expect(sealDispatchBlock).not.toContain(integrationBranchPattern)
-    expect(prepareReleaseWorkflow).not.toContain(integrationBranchPattern)
-    expect(sealReleaseWorkflow).not.toContain(integrationBranchPattern)
-    expect(releaseWorkflow).not.toContain(integrationBranchPattern)
-    expect(prepareReleaseWorkflow).toContain('- name: Resolve Release PR preparation')
-    expect(sealReleaseWorkflow).toContain('- name: Validate release seal')
-    expect(releaseWorkflow).toContain('- name: Validate immutable release identity')
+  it('uses automatic release-please on protected-branch push', () => {
+    expect(extractYamlList(extractEventBlock(releasePleaseWorkflow, 'push'), 'branches')).toEqual(['main', 'beta'])
+    expect(releasePleaseWorkflow).toContain('skip-github-release: true')
+    expect(releasePleaseWorkflow).toContain('googleapis/release-please-action@45996ed1f6d02564a971a2fa1b5860e934307cf7')
+    expect(releaseWorkflow).toContain('bun run ci:release-publish-contract')
+    expect(releaseWorkflow).not.toContain('bun run test')
   })
 })

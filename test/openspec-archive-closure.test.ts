@@ -16,7 +16,7 @@ describe('OpenSpec archive closure helper', () => {
     expect(
       validatePrBodyPolicy({
         body,
-        changedFiles: ['openspec/changes/archive/generated-harden-agent-archive-closure/tasks.md'],
+        changedFiles: ['openspec/specs/harden-agent-archive-closure/spec.md'],
         title: 'docs(openspec): archive completed changes',
       }),
     ).toEqual([])
@@ -70,8 +70,8 @@ describe('OpenSpec archive closure helper', () => {
 
     expect(calls).toEqual([
       {
-        args: ['run', 'openspec:instructions', '--', 'apply', '--change', 'completed-change'],
-        command: 'bun',
+        args: ['instructions', 'apply', '--change', 'completed-change', '--json'],
+        command: 'openspec',
         options: { capture: true },
       },
     ])

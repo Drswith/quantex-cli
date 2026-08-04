@@ -61,7 +61,7 @@ Use repository scripts so the pinned dependency is used:
 ```bash
 bun run openspec:list
 bun run openspec:status -- --change <change-id>
-bun run openspec:instructions -- <artifact> --change <change-id>
+bunx openspec instructions <artifact> --change <change-id>
 bun run openspec:validate
 ```
 
@@ -121,13 +121,13 @@ Use explicit closure labels:
 - OpenSpec archive closure
 - release closure
 
-For a CLI release, keep the three release roles separate:
+For a CLI release:
 
-1. Dispatch `Prepare Release` for `main` or `beta`; this may only create or refresh a Release PR.
-2. Re-author the generated Release PR as one maintainer-authored commit, pass governance, merge it, and wait for successful push CI on the exact protected-branch head.
-3. Dispatch `Seal Release` for that branch; it validates and creates or verifies the immutable version tag, then explicitly dispatches tag-only `Release` publication.
+1. Merge normal change PRs to `main` or `beta`; `release-please.yml` opens or updates the Release PR on push.
+2. Review and merge the Release PR after required CI passes.
+3. Tag push triggers `release.yml` for npm and GitHub Release publication.
 
-Never recover publication by asking branch history to choose another commit or by moving a version tag. Retry `Release` at the same tag so the workflow reconciles the exact candidate artifact, draft or published GitHub Release, assets, and npm integrity.
+Never move a version tag to recover publication. Retry `Release` at the same tag.
 
 ## Archive Closure
 
@@ -163,7 +163,7 @@ Current role split:
 - CI triage: scheduled failure classification; reports root cause, evidence, owner, and minimal next step without implementing code.
 - OpenSpec archive: scheduled archive-readiness follow-up; opens narrow archive PRs only after implementation merge and spec-delta readiness.
 
-Cloud agents reduce manual repair loops by classifying and routing work earlier. They do not replace merge-gating CI, PR Governance, OpenSpec validation, release automation, local validation, or delivery closure reporting.
+Cloud agents reduce manual repair loops by classifying and routing work earlier. They do not replace merge-gating CI, PR governance in `ci.yml`, OpenSpec validation, release automation, local validation, or delivery closure reporting.
 
 If a Cursor Cloud run fails because of concurrency, quota, missing Slack/GitHub connection, or provider capacity, classify it as operational capacity rather than a repository regression.
 

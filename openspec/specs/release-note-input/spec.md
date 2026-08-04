@@ -1,7 +1,7 @@
 # release-note-input Specification
 
 ## Purpose
-TBD - created by archiving change improve-release-notes-workflow. Update Purpose after archive.
+Define PR release summary format and release-please consumable commit override blocks for user-facing release notes.
 ## Requirements
 ### Requirement: Release-source PRs MUST provide release-please consumable summaries
 

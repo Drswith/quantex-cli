@@ -1,7 +1,7 @@
 # human-readable-output Specification
 
 ## Purpose
-TBD - created by archiving change optimize-human-readable-cli-output. Update Purpose after archive.
+Define human-readable CLI output hierarchy, formatting, and status presentation for inventories, diagnostics, and detail views.
 ## Requirements
 ### Requirement: Human output uses a consistent visual hierarchy
 
@@ -41,13 +41,23 @@ Quantex SHALL measure visible terminal width with ANSI and Unicode display seman
 
 ### Requirement: Default inventory output prioritizes lifecycle summary
 
-The default human-readable `list` output SHALL explicitly show each agent's installation state and SHALL prioritize installed version and update mode over verbose source evidence.
+The default human-readable `list` output SHALL explicitly show each agent's
+installation state and SHALL present update management separately from a
+confirmed available newer version, while continuing to prioritize concise
+version and lifecycle information over verbose source evidence.
 
 #### Scenario: List agents at a typical terminal width
 
 - **WHEN** a user runs `qtx list` or `qtx ls` in human mode at a typical terminal width
-- **THEN** Quantex displays aligned agent, installed-state, version, and update-mode columns when they fit
+- **THEN** Quantex displays aligned agent, installed-state, version, `Managed`, and `Available` columns when they fit
+- **AND** `Managed` identifies the update path rather than update availability
+- **AND** `Available` shows the observed target version only when it is semantically newer than the installed version
 - **AND** displays a concise installed/not-installed summary
+
+#### Scenario: An update is not confirmed
+
+- **WHEN** an installed agent has an unavailable, equal, older, unknown, or non-comparable latest version
+- **THEN** Quantex renders no available-update claim for that agent
 
 #### Scenario: Source evidence is omitted from the default row
 
@@ -80,3 +90,4 @@ Quantex MUST preserve JSON and NDJSON payload fields, values, schemas, event rou
 - **WHEN** a user requests JSON or NDJSON output from a command whose human renderer was redesigned
 - **THEN** Quantex emits the same v1 structured result or event contract as before the redesign
 - **AND** no human table, summary, or detail hint is mixed into structured standard output
+
