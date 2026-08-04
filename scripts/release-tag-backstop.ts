@@ -105,10 +105,15 @@ async function runReleaseTagBackstop(): Promise<void> {
     const remoteUrl = `https://x-access-token:${token}@github.com/${repository}.git`
     await execFileAsync('git', ['push', remoteUrl, `refs/tags/${plan.tag}`])
     console.log(`Pushed tag ${plan.tag} at ${branchHeadSha}.`)
-    await dispatchReleaseWorkflow({ tag: plan.tag, token })
   }
 
   await relabelPendingReleasePullRequest({ branch, token })
+
+  if (plan.action === 'tag' && plan.tag) {
+    // workflow_dispatch is allowed for GITHUB_TOKEN; the release App token may lack Actions write.
+    const dispatchToken = process.env.GITHUB_TOKEN ?? token
+    await dispatchReleaseWorkflow({ tag: plan.tag, token: dispatchToken })
+  }
 }
 
 async function waitForSuccessfulCi(input: { branch: string; sha: string; token: string }): Promise<string | null> {

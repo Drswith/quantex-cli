@@ -52,6 +52,7 @@ jobs:
     if: ${{ github.event_name == 'push' }}
     runs-on: ubuntu-latest
     permissions:
+      actions: write
       contents: write
       pull-requests: write
     steps:
@@ -72,6 +73,7 @@ jobs:
       - name: Tag release when release-please left merged PR untagged
         env:
           GH_TOKEN: ${{ steps.release-bot-token.outputs.token }}
+          GITHUB_TOKEN: ${{ github.token }}
           GITHUB_REPOSITORY: ${{ github.repository }}
           TARGET_BRANCH: ${{ github.ref_name }}
         run: bun run ci:release-tag-backstop
