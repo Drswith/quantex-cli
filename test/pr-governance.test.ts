@@ -4,7 +4,7 @@ import { describe, expect, it } from 'vitest'
 const ciWorkflow = readFileSync('.github/workflows/ci.yml', 'utf8')
 const prTemplate = readFileSync('.github/pull_request_template.md', 'utf8')
 const prBodyPolicyScript = readFileSync('scripts/pr-body-policy.ts', 'utf8')
-const prMergeCommitPolicyScript = readFileSync('scripts/pr-merge-commit-policy.ts', 'utf8')
+const commitPolicyScript = readFileSync('scripts/commit-policy.ts', 'utf8')
 const collaborationGuide = readFileSync('docs/github-collaboration.md', 'utf8')
 const openspecReadme = readFileSync('openspec/README.md', 'utf8')
 const runtimeSkill = readFileSync('skills/quantex-agent-runtime/SKILL.md', 'utf8')
@@ -86,16 +86,16 @@ describe('pr governance release intent', () => {
 
   it('runs commit trailer governance from CI through a local repository script', () => {
     expect(ciWorkflow).toContain('Validate commit trailer policy')
-    expect(ciWorkflow).toContain('bun run ci:commit-trailer-policy')
-    expect(ciWorkflow).toContain('List commits for trailer policy')
+    expect(ciWorkflow).toContain('bun run ci:commit-policy')
+    expect(ciWorkflow).toContain('--mode push')
   })
 
   it('runs PR merge commit governance before merge', () => {
     expect(ciWorkflow).toContain('Validate PR merge commit policy')
-    expect(ciWorkflow).toContain('bun run ci:pr-merge-commit-policy')
+    expect(ciWorkflow).toContain('--mode pr')
     expect(ciWorkflow).toContain('PR_COMMITS_JSON')
     expect(ciWorkflow).toContain('PR_IS_VALIDATED_RELEASE_PR')
-    expect(prMergeCommitPolicyScript).toContain('GitHub squash merge')
+    expect(commitPolicyScript).toContain('GitHub squash merge')
   })
 
   it('validates release-please PRs before granting release-specific exemptions', () => {

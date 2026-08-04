@@ -1,6 +1,24 @@
 # Output Contracts
 
-Use this file when you need to consume Quantex output programmatically or explain the difference between human mode and agent mode.
+Use this file when you need to consume Quantex output programmatically, explain the difference between human mode and agent mode, or automate Quantex from another agent, script, or automation layer.
+
+## Automation stance
+
+Treat Quantex as a lifecycle CLI with a stable surface, not as a workflow engine.
+
+Good fits:
+
+- ensure an agent is available
+- inspect or resolve an agent before invoking it
+- update or uninstall a managed agent
+- discover supported commands and output schemas
+- run a supported agent through `quantex exec`
+
+Not mainline fits:
+
+- multi-step plan/apply orchestration
+- batch workflow routing across many tools
+- daemonized control-plane behavior
 
 ## Output modes
 
@@ -147,3 +165,49 @@ Use:
 - `--run-id` for correlation
 - `--timeout` to bound runtime
 - `--refresh` or `--no-cache` when freshness matters
+
+### Safe command patterns
+
+Check state before mutating:
+
+```bash
+quantex inspect claude --json
+quantex ensure claude --json --non-interactive --yes
+```
+
+Resolve before delegating to another runner that needs the absolute binary path or install source:
+
+```bash
+quantex resolve codex --json
+```
+
+Execute with explicit install policy, and never mix downstream flags with Quantex flags before the `--` separator:
+
+```bash
+quantex exec codex --install never -- --help
+quantex exec codex --install if-missing -- --help
+```
+
+### Reliability controls
+
+- Use `--idempotency-key` on mutating commands (`install`, `ensure`, `update`, `uninstall`, `upgrade`) so retries return the prior result instead of repeating side effects.
+- Use `--timeout` to bound operations; timeout and cancellation map to stable error handling.
+- Use `--run-id` or `QUANTEX_RUN_ID` to correlate JSON envelopes, NDJSON progress streams, and logs.
+
+## Discovery-first automation
+
+Before automating against a command you have not seen before, discover the live surface instead of relying on stale assumptions about flags, schema refs, output modes, or install policies:
+
+```bash
+quantex commands --json
+quantex schema --json
+quantex capabilities --json
+```
+
+## Practical guidance
+
+- Parse `stdout`, not `stderr`.
+- Prefer `inspect`, `ensure`, `resolve`, and `exec` over scraping `list` or `info`.
+- Prefer `exec` over shortcut commands in automation.
+- Use `doctor` when the question is "why is this environment broken?" rather than "what can I do?"
+- When using `quantex doctor --json`, prefer `data.issues[].suggestedAction`, `suggestedCommands`, and `docsRef` over scraping warning prose.

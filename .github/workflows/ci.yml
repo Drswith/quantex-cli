@@ -33,125 +33,41 @@ jobs:
   classify:
     runs-on: ubuntu-latest
     outputs:
-      changed_files: ${{ steps.classify.outputs.changed_files }}
-      run_test_matrix: ${{ steps.classify.outputs.run_test_matrix }}
-      scope: ${{ steps.classify.outputs.scope }}
+      changed_files: ${{ steps.taxonomy.outputs.changed_files }}
+      commits_json: ${{ steps.context.outputs.commits_json }}
+      run_test_matrix: ${{ steps.taxonomy.outputs.run_test_matrix }}
+      scope: ${{ steps.taxonomy.outputs.scope }}
+      trusted_pr: ${{ steps.context.outputs.trusted_pr }}
     steps:
       - uses: actions/checkout@v7
       - uses: oven-sh/setup-bun@v2
         with:
           bun-version: 1.3.11
 
-      - name: List changed files
-        id: changed-files
-        uses: actions/github-script@v9
-        with:
-          script: |
-            async function listChangedFiles() {
-              if (context.eventName === 'pull_request') {
-                const files = await github.paginate(github.rest.pulls.listFiles, {
-                  owner: context.repo.owner,
-                  repo: context.repo.repo,
-                  pull_number: context.payload.pull_request.number,
-                  per_page: 100,
-                })
-                return files.map(file => file.filename)
-              }
-
-              if (context.eventName === 'push') {
-                const before = context.payload.before
-                const after = context.payload.after || context.sha
-
-                if (!before || /^0+$/.test(before))
-                  return null
-
-                const { data } = await github.rest.repos.compareCommits({
-                  owner: context.repo.owner,
-                  repo: context.repo.repo,
-                  base: before,
-                  head: after,
-                })
-
-                return data.files?.map(file => file.filename) ?? []
-              }
-
-              return null
-            }
-
-            const changedFiles = await listChangedFiles()
-
-            if (!changedFiles || changedFiles.length === 0) {
-              core.info('No changed-file diff available for this event; defaulting to the full test matrix.')
-              core.setOutput('changed_files', '[]')
-              core.setOutput('changed_files_available', 'false')
-              return
-            }
-
-            core.setOutput('changed_files', JSON.stringify(changedFiles))
-            core.setOutput('changed_files_available', 'true')
+      - name: Collect CI context
+        id: context
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: bun run ci:context
 
       - name: Classify change scope
-        id: classify
+        id: taxonomy
         env:
-          CHANGED_FILES_AVAILABLE: ${{ steps.changed-files.outputs.changed_files_available }}
-          CHANGED_FILES_JSON: ${{ steps.changed-files.outputs.changed_files }}
+          CHANGED_FILES_AVAILABLE: ${{ steps.context.outputs.changed_files_available }}
+          CHANGED_FILES_JSON: ${{ steps.context.outputs.changed_files }}
         run: bun run ci:path-taxonomy
 
   lint:
+    needs: classify
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
       - uses: ./.github/actions/setup-bun
 
-      - name: List commits for trailer policy
-        id: commits
-        uses: actions/github-script@v9
-        with:
-          script: |
-            async function listCommits() {
-              if (context.eventName === 'pull_request') {
-                const commits = await github.paginate(github.rest.pulls.listCommits, {
-                  owner: context.repo.owner,
-                  repo: context.repo.repo,
-                  pull_number: context.payload.pull_request.number,
-                  per_page: 100,
-                })
-
-                return commits.map(commit => ({
-                  message: commit.commit.message,
-                  sha: commit.sha,
-                }))
-              }
-
-              if (context.eventName === 'push') {
-                const before = context.payload.before
-                const after = context.payload.after || context.sha
-
-                if (!before || /^0+$/.test(before))
-                  return []
-
-                const { data } = await github.rest.repos.compareCommits({
-                  owner: context.repo.owner,
-                  repo: context.repo.repo,
-                  base: before,
-                  head: after,
-                })
-
-                return (data.commits ?? []).map(commit => ({
-                  message: commit.commit.message,
-                  sha: commit.sha,
-                }))
-              }
-
-              return []
-            }
-
-            core.setOutput('commits_json', JSON.stringify(await listCommits()))
-
       - name: Validate commit trailer policy
         env:
-          COMMITS_JSON: ${{ steps.commits.outputs.commits_json }}
-        run: bun run ci:commit-trailer-policy
+          COMMITS_JSON: ${{ needs.classify.outputs.commits_json }}
+        run: bun run ci:commit-policy -- --mode push
 
       - run: bun run memory:check
       - run: bun run openspec:validate
@@ -161,71 +77,27 @@ jobs:
 
   governance:
     if: github.event_name == 'pull_request'
+    needs: classify
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
       - uses: ./.github/actions/setup-bun
 
-      - name: List changed files
-        id: changed-files
-        uses: actions/github-script@v9
-        with:
-          script: |
-            const files = await github.paginate(github.rest.pulls.listFiles, {
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              pull_number: context.payload.pull_request.number,
-              per_page: 100,
-            })
-
-            core.setOutput('changed_files', JSON.stringify(files.map(file => file.filename)))
-
-      - name: List pull request commits
-        id: commits
-        uses: actions/github-script@v9
-        with:
-          script: |
-            const commits = await github.paginate(github.rest.pulls.listCommits, {
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              pull_number: context.payload.pull_request.number,
-              per_page: 100,
-            })
-
-            core.setOutput('commits_json', JSON.stringify(commits.map(commit => ({
-              authorEmail: commit.commit.author?.email || '',
-              authorName: commit.commit.author?.name || '',
-              message: commit.commit.message,
-              sha: commit.sha,
-            }))))
-
-      - name: Classify pull request scope
-        id: classify
-        env:
-          CHANGED_FILES_JSON: ${{ steps.changed-files.outputs.changed_files }}
-        run: bun run ci:path-taxonomy
-
       - name: Read base package version for release PR validation
         id: base-version
         if: startsWith(github.event.pull_request.head.ref, 'release-please--branches--')
-        uses: actions/github-script@v9
-        with:
-          script: |
-            const packageJson = await github.rest.repos.getContent({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              path: 'package.json',
-              ref: context.payload.pull_request.base.sha,
-            })
-
-            const basePackageJson = JSON.parse(Buffer.from(packageJson.data.content, 'base64').toString('utf8'))
-            core.setOutput('base_version', basePackageJson.version)
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          content="$(gh api "repos/${{ github.repository }}/contents/package.json?ref=${BASE_SHA}" --jq '.content')"
+          echo "base_version=$(printf '%s' "${content}" | base64 -d | jq -r '.version')" >> "$GITHUB_OUTPUT"
 
       - name: Validate release PR policy
         id: release-pr
         if: startsWith(github.event.pull_request.head.ref, 'release-please--branches--')
         env:
-          CHANGED_FILES_JSON: ${{ steps.classify.outputs.changed_files }}
+          CHANGED_FILES_JSON: ${{ needs.classify.outputs.changed_files }}
           PR_BASE_BRANCH: ${{ github.event.pull_request.base.ref }}
           PR_BASE_VERSION: ${{ steps.base-version.outputs.base_version }}
           PR_BODY: ${{ github.event.pull_request.body }}
@@ -237,7 +109,7 @@ jobs:
 
       - name: Validate PR body
         env:
-          CHANGED_FILES_JSON: ${{ steps.classify.outputs.changed_files }}
+          CHANGED_FILES_JSON: ${{ needs.classify.outputs.changed_files }}
           PR_IS_VALIDATED_RELEASE_PR: ${{ steps.release-pr.outputs.validated == 'true' }}
           PR_BODY: ${{ github.event.pull_request.body }}
           PR_HEAD_BRANCH: ${{ github.event.pull_request.head.ref }}
@@ -247,9 +119,9 @@ jobs:
       - name: Validate PR merge commit policy
         env:
           PR_BODY: ${{ github.event.pull_request.body }}
-          PR_COMMITS_JSON: ${{ steps.commits.outputs.commits_json }}
+          PR_COMMITS_JSON: ${{ needs.classify.outputs.commits_json }}
           PR_HEAD_BRANCH: ${{ github.event.pull_request.head.ref }}
-        run: bun run ci:pr-merge-commit-policy
+        run: bun run ci:commit-policy -- --mode pr
 
   test-ubuntu:
     name: test (ubuntu-latest)
@@ -280,11 +152,7 @@ jobs:
   test-windows:
     name: test (windows-latest)
     needs: classify
-    if: >-
-      ${{
-        needs.classify.outputs.run_test_matrix == 'true'
-        && github.event_name != 'pull_request'
-      }}
+    if: needs.classify.outputs.run_test_matrix == 'true'
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v7

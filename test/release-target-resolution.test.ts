@@ -77,18 +77,19 @@ describe('release workflow closure', () => {
     expect(releasePleaseWorkflow).not.toContain('npm publish')
   })
 
-  it('builds one candidate artifact and promotes it without checkout or rebuild', () => {
+  it('builds one candidate artifact and promotes it without rebuild', () => {
     const publishJob = releaseWorkflow.slice(releaseWorkflow.indexOf('  publish:'))
+    const releaseCandidateScript = readFileSync('scripts/release-candidate.ts', 'utf8')
     expect(releaseWorkflow).toContain("tags:\n      - 'v*'")
-    expect(releaseWorkflow).toContain('bun run ci:release-publish-contract')
+    expect(releaseWorkflow).toContain('bun run release:candidate')
+    expect(releaseCandidateScript).toContain('ci:release-publish-contract')
+    expect(releaseCandidateScript).toContain('verify-package-distribution.ts')
     expect(releaseWorkflow).toContain('actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1')
     expect(publishJob).toContain('actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1')
     expect(publishJob).toContain('GH_REPO: ${{ github.repository }}')
-    expect(publishJob).not.toContain('actions/checkout')
     expect(publishJob).not.toContain('bun run build')
     expect(publishJob).not.toContain('npm pack')
     expect(publishJob).toContain('npm publish release-candidate/npm/*.tgz')
-    expect(releaseWorkflow).toContain('bun run scripts/verify-package-distribution.ts release-candidate/npm/*.tgz')
     expect(releaseWorkflow).not.toContain('bun run test')
   })
 

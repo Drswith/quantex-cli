@@ -82,7 +82,7 @@ Use:
 - `--run-id` to correlate logs and results
 - `--refresh` or `--no-cache` when stale version data would be risky
 
-For automation patterns and output contracts, read [references/automation-playbook.md](references/automation-playbook.md).
+For automation patterns and output contracts, read [references/output-contracts.md](references/output-contracts.md).
 
 ### 5. Diagnose before patching around failures
 

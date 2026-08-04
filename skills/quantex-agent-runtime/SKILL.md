@@ -90,6 +90,7 @@ Also run:
 - `bun run openspec:validate` for OpenSpec, docs, project memory, workflow, or process changes.
 - `bun run memory:check` for docs or project-memory changes.
 - `bun run build`, `bun run build:bin`, and `bun run release:artifacts` for build, release, self-upgrade, or release artifact changes.
+- `bun run release:dry-run` before changing release pipeline scripts or `release.yml`; it exercises the full build-candidate chain locally without a tag.
 
 ## Delivery Closure
 

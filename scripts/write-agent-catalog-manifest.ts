@@ -3,7 +3,7 @@ import { mkdir, readFile, readdir, writeFile } from 'node:fs/promises'
 import { basename, dirname, relative, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { format } from 'oxfmt'
-import { catalogSourceEntrySchema } from '../src/agents/schema'
+import { agentCatalogJsonSchema, catalogSourceEntrySchema } from '../src/agents/schema'
 import { firstPartyProviderIds } from '../src/providers/types'
 
 const rootDir = resolve(dirname(fileURLToPath(import.meta.url)), '..')
@@ -11,6 +11,7 @@ const defaultCatalogDir = resolve(rootDir, 'src/agents/catalog')
 const defaultCatalogDataOutputPath = resolve(rootDir, 'src/agents/generated/catalog-data.ts')
 const defaultCatalogAgentsOutputPath = resolve(rootDir, 'src/agents/generated/catalog-agents.ts')
 const defaultCatalogAdapterPath = resolve(rootDir, 'src/agents/catalog.ts')
+const defaultCatalogSchemaOutputPath = resolve(rootDir, 'src/agents/catalog.schema.json')
 const defaultCatalogSupportOutputPath = resolve(rootDir, 'src/agents/generated/catalog-support.json')
 const defaultCatalogSupportMarkdownOutputPath = resolve(rootDir, 'docs/generated/agent-provider-support.md')
 
@@ -27,6 +28,7 @@ interface AgentCatalogManifestOptions {
   catalogAgentsOutputPath?: string
   catalogDataOutputPath?: string
   catalogDir?: string
+  catalogSchemaOutputPath?: string
   catalogSupportMarkdownOutputPath?: string
   catalogSupportOutputPath?: string
 }
@@ -46,6 +48,7 @@ export async function writeAgentCatalogManifest(options: AgentCatalogManifestOpt
   const catalogSupportOutputPath = options.catalogSupportOutputPath ?? defaultCatalogSupportOutputPath
   const catalogSupportMarkdownOutputPath =
     options.catalogSupportMarkdownOutputPath ?? defaultCatalogSupportMarkdownOutputPath
+  const catalogSchemaOutputPath = options.catalogSchemaOutputPath ?? defaultCatalogSchemaOutputPath
 
   await mkdir(dirname(catalogDataOutputPath), { recursive: true })
   await mkdir(dirname(catalogSupportOutputPath), { recursive: true })
@@ -54,6 +57,7 @@ export async function writeAgentCatalogManifest(options: AgentCatalogManifestOpt
   await writeFile(catalogAgentsOutputPath, manifest.catalogAgentsSource)
   await writeFile(catalogSupportOutputPath, manifest.catalogSupportSource)
   await writeFile(catalogSupportMarkdownOutputPath, manifest.catalogSupportMarkdown)
+  await writeFile(catalogSchemaOutputPath, `${JSON.stringify(agentCatalogJsonSchema, null, 2)}\n`)
 }
 
 export async function buildAgentCatalogManifest(

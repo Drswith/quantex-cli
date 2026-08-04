@@ -2,7 +2,7 @@
 
 ## Purpose
 
-Provide the canonical release procedure now that Quantex releases are prepared by release-please Release PRs and published from protected `main`.
+Provide the canonical release procedure now that Quantex releases are prepared by release-please Release PRs, tagged deterministically after merge, and published from protected `main`.
 
 ## When to use
 
@@ -22,13 +22,9 @@ The automated release flow uses merged commit metadata on `main` to decide wheth
 
 Normal feature, fix, or maintenance work lands through standard PRs.
 
-### 2. Explicitly prepare the Release PR
+### 2. release-please maintains the Release PR automatically
 
-After required CI is green, a maintainer dispatches the `Prepare Release` workflow for `main` or `beta`.
-
-The preparation resolver only decides whether successful release-worthy history warrants a Release PR. It never inspects npm, selects a publication candidate, creates a tag, or publishes artifacts.
-
-release-please then maintains a Release PR when a version bump is warranted.
+On every push to `main` or `beta`, `release-please.yml` runs release-please with the branch-appropriate config and opens or updates the Release PR when a version bump is warranted. No manual dispatch is involved.
 
 The Release PR materializes the pending version in:
 
@@ -52,17 +48,20 @@ Confirm that the PR:
 
 Before merge, check out the generated branch with maintainer credentials, replace its commits with one commit authored by the maintainer, and force-push that branch with lease protection. PR Governance deliberately rejects the trusted release bot author as well as other bot or agent identities because GitHub squash can synthesize prohibited `Co-authored-by:` trailers.
 
+If the Release PR proposes a new major version on the stable line, governance fails until a maintainer adds a `Release-As: <version>` line to the Release PR body. This is the explicit human gate for major version identity.
+
 Merge the locked reviewed head manually; prefer rebase and use squash only when rebase is unavailable or unsafe.
 
-### 4. Automatic tag after push CI
+### 4. Deterministic tag after push CI
 
-After the Release PR merges, push CI on the exact `main` or `beta` head must succeed. The `tag-release-backstop` job in `release-please.yml` then:
+After the Release PR merges, push CI on the exact `main` or `beta` head must succeed. The `tag-release` job in `release-please.yml` then:
 
 - waits for a successful `ci.yml` push run on the branch head;
-- pushes `v<version>` when the head is `chore: release <version>` and the tag is still missing (common when maintainers merge the Release PR manually after re-authoring);
+- pushes `v<version>` with `git push` under the release GitHub App token when the head is `chore: release <version>` and the tag is still missing (the normal case, because maintainers re-author Release PR branches and release-please runs with `skip-github-release: true`);
+- confirms the tag event triggered `release.yml`, dispatching it only as a fallback so publication starts exactly once;
 - relabels the merged release PR from `autorelease: pending` to `autorelease: tagged` so release-please is not blocked on the next cycle.
 
-If release-please already created the tag, the backstop is a no-op.
+If the tag already points at the branch head, tag-release only relabels.
 
 Publication identity still requires all of these values to agree before `release.yml` publishes:
 
@@ -79,13 +78,11 @@ An existing tag is accepted only when it already points to the exact validated c
 
 `release.yml` runs on the pushed `v<version>` tag. It does not rerun merge CI gates (lint, format, typecheck, or vitest).
 
-It then builds the package and binaries once, compresses each standalone binary as a `.tar.gz` archive, generates the manifest and checksums for those archives, smoke-checks them, packs the exact npm tarball with scripts disabled, and uploads one release-candidate Actions artifact. A separate mutation job downloads that artifact without checking out source or rebuilding.
-
-After a fail-closed exact-version registry preflight, the mutation order is:
+The build-candidate job runs `bun run release:candidate`, the same pipeline definition maintainers can exercise locally with `bun run release:dry-run`: validate the immutable release identity, build the package and binaries once, compress each standalone binary as a `.tar.gz` archive, generate the manifest and checksums, smoke-check, verify the bundled Core package, stage the exact release candidate, and verify the candidate tarball. The publish job downloads that candidate, re-verifies every file against `candidate.json`, and then:
 
 1. create or recover the draft GitHub Release;
-2. upload and verify every candidate asset by name and size;
-3. publish the exact candidate tarball when the preflight found no existing version;
+2. upload and verify every candidate asset by name, size, and digest;
+3. publish the exact candidate tarball when the registry preflight found no existing version;
 4. verify npm registry closure;
 5. make the GitHub Release public.
 
@@ -111,9 +108,9 @@ END_COMMIT_OVERRIDE
 
 `refactor:` entries appear in the generated `Internal Improvements` section but do not independently trigger a version bump. When an exact one-shot version is needed, carry `Release-As: <version>` in the merged commit and repeat the same footer in the source PR's Release Summary. The protected-branch resolver recognizes that footer as a Release PR trigger, so do not add `!` or a false `BREAKING CHANGE` marker merely to start release automation.
 
-The stable 0.x line ends at `0.29.1`. The completed lifecycle redesign graduates through the exact transition `0.29.1 -> 1.1.0`; `1.0.0` remains burned and MUST NOT be reused. The graduation implementation commit uses release-please's one-shot `Release-As: 1.1.0` footer, after which normal 1.x SemVer planning resumes. Do not persist `release-as` in release-please configuration and do not manually edit the version manifest, package version, changelog, or generated build metadata to imitate the generated Release PR.
+A breaking-change marker (`!` or `BREAKING CHANGE:`) feeds release-please a major bump. On the stable line the generated major Release PR is rejected by governance until a maintainer adds `Release-As: <version>` to its body, so a major can never ship by accident.
 
-Both the graduation implementation PR and the generated `chore: release 1.1.0` PR use the normal protected-branch checks. Every Release PR is manually reviewed and merged with a locked head; rebase is preferred and squash remains the fallback only when rebase is unavailable or unsafe.
+The stable 0.x line ends at `0.29.1`. The completed lifecycle redesign graduates through the exact transition `0.29.1 -> 1.1.0`; `1.0.0` remains burned and MUST NOT be reused. Do not persist `release-as` in release-please configuration and do not manually edit the version manifest, package version, changelog, or generated build metadata to imitate the generated Release PR.
 
 Release automation, documentation, and project-memory-only PRs must use non-release-worthy titles such as `ci:`, `chore:`, or `docs:`. PR Governance rejects release-worthy titles for PRs that only change `.github/`, `docs/`, `openspec/`, or release-please configuration files, because those changes should not create stable product releases by themselves.
 
@@ -121,7 +118,7 @@ The stable release-please config currently includes a temporary `last-release-sh
 
 The Release workflow pins `googleapis/release-please-action` to a repository-verified tag instead of floating on the major `v4` tag. Before changing that pin, run a dry run against the repository and confirm it can prepare the expected Release PR without GitHub GraphQL errors.
 
-release-please owns Release PR preparation. The tag backstop creates missing tags after CI; `release.yml` publishes on tag push and does not ask release-please to create a GitHub Release.
+release-please owns Release PR preparation. The `tag-release` job creates missing tags after CI and guarantees exactly one Release workflow trigger; `release.yml` publishes on tag push and does not ask release-please to create a GitHub Release.
 
 If release-please fails to open a Release PR, check for stale `autorelease: pending` labels or an untagged merged Release PR. If tag creation fails, fix the protected-branch or CI mismatch and rerun `Release Please` on the branch. If publish fails after the tag exists, rerun `Release` at the same tag or dispatch `release.yml` with `--ref v<version>`. Never create a replacement version commit merely to recover incomplete npm or GitHub assets.
 
@@ -144,13 +141,13 @@ To publish or recover Core, dispatch **Release Core** for `main`. The workflow d
 
 Do not add Core publishing to `release.yml`: CLI GitHub Releases, standalone binaries, release-please, and recovery remain CLI-only.
 
+When a CLI release pins a new `quantex-core` version in `package.json`, publish Core first; the CLI release candidate pipeline consumes `quantex-core` from the registry.
+
 ## Important automation note
 
 Do not assume a workflow-created tag or GitHub Release should trigger a second publish workflow.
 
-GitHub's documented behavior is that events created by `GITHUB_TOKEN` do not start another workflow run, except for `workflow_dispatch` and `repository_dispatch`.
-
-The release bot pushes tags through the tag backstop using a GitHub App token. Because GitHub may suppress follow-on workflow runs for some automation tokens, the backstop also dispatches `release.yml` at the new tag after tagging.
+GitHub's documented behavior is that events created by `GITHUB_TOKEN` do not start another workflow run, except for `workflow_dispatch` and `repository_dispatch`. The release bot pushes tags through the `tag-release` job using a GitHub App token, which does fire the `on: push: tags` trigger. To stay deterministic even if GitHub suppresses a follow-on run, tag-release polls for the Release workflow run after tagging and dispatches `release.yml` only when nothing started — publication begins exactly once, never twice.
 
 ## Repository settings
 
@@ -184,19 +181,14 @@ Do not use `GITHUB_TOKEN` as the normal release identity because GitHub suppress
 
 ## Validation
 
-The closest local verification path for release artifacts remains:
+The full release-candidate chain is locally exercisable without a tag:
 
 ```bash
 bun install --frozen-lockfile
-bun run lint
-bun run format:check
-bun run typecheck
-bun run build
-bun run build:bin
-bun run release:artifacts
-bun run release:smoke
-bun run package:check
+bun run release:dry-run
 ```
+
+This runs the same pipeline definition CI uses (`scripts/release-candidate.ts` in local mode): build, binary build, artifact generation, smoke verification, Core package checks, candidate staging, and candidate verification. Run it before changing any release script or workflow.
 
 `release:artifacts` must fail if the release manifest is missing any required platform archive. Each archive contains the corresponding executable:
 
@@ -210,13 +202,9 @@ bun run package:check
 
 ## CI coverage split
 
-The main `CI` workflow uses a split Windows strategy to keep pull requests responsive without dropping protected-branch confidence.
+Every pull request that touches product-impacting paths runs the full test suite on all three platforms (`test (ubuntu-latest)`, `test (macos-latest)`, `test (windows-latest)`); process-only changes skip the platform matrix honestly and keep the Ubuntu build guard plus package checks. Required merge gates are `lint`, `governance`, and the three platform test contexts. `sandbox-tests` is advisory signal, not a required check.
 
-- `pull_request` runs still install dependencies and build on `windows-latest`, but they skip the full Windows test step.
-- `push` to `main` or `beta`, `workflow_dispatch`, and the scheduled CI run keep the full Windows test step enabled.
-- `ubuntu-latest` and `macos-latest` continue to run the full test suite for pull requests.
-
-If Windows coverage policy changes again, update `.github/workflows/ci.yml` and this runbook in the same change so release and workflow expectations stay aligned.
+If coverage policy changes again, update `.github/workflows/ci.yml`, this runbook, and the `code-quality-tooling` spec in the same change so release and workflow expectations stay aligned.
 
 ## Registry expectations
 
@@ -238,3 +226,4 @@ If a mirror registry is introduced temporarily for local development or incident
 - `CHANGELOG.md`
 - `docs/runbooks/release-and-self-upgrade-debugging.md`
 - `docs/adr/0008-workflow-redesign.md`
+- `docs/adr/0009-workflow-v2.md`

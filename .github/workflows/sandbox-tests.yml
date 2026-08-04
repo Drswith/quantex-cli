@@ -1,5 +1,9 @@
 name: Sandbox Tests
 
+# Advisory signal only: this workflow is intentionally NOT a required merge gate.
+# Fork PRs skip the Modal-backed job (no secrets) and same-repo PRs run a reduced
+# scenario set; treat failures as investigation input, not as merge blockers.
+
 on:
   workflow_dispatch:
 
@@ -30,84 +34,28 @@ jobs:
   classify:
     runs-on: ubuntu-latest
     outputs:
-      changed_files_available: ${{ steps.changed-files.outputs.changed_files_available }}
-      sandbox_relevant: ${{ steps.classify.outputs.sandbox_relevant }}
-      sandbox_relevant_files: ${{ steps.classify.outputs.sandbox_relevant_files }}
-      scope: ${{ steps.classify.outputs.scope }}
-      trusted_pr: ${{ steps.pr-trust.outputs.trusted_pr }}
+      sandbox_relevant: ${{ steps.taxonomy.outputs.sandbox_relevant }}
+      sandbox_relevant_files: ${{ steps.taxonomy.outputs.sandbox_relevant_files }}
+      scope: ${{ steps.taxonomy.outputs.scope }}
+      trusted_pr: ${{ steps.context.outputs.trusted_pr }}
     steps:
       - uses: actions/checkout@v7
       - uses: oven-sh/setup-bun@v2
         with:
           bun-version: 1.3.11
 
-      - name: List changed files
-        id: changed-files
-        uses: actions/github-script@v9
-        with:
-          script: |
-            async function listChangedFiles() {
-              if (context.eventName === 'pull_request') {
-                const files = await github.paginate(github.rest.pulls.listFiles, {
-                  owner: context.repo.owner,
-                  repo: context.repo.repo,
-                  pull_number: context.payload.pull_request.number,
-                  per_page: 100,
-                })
-                return files.map(file => file.filename)
-              }
-
-              if (context.eventName === 'push') {
-                const before = context.payload.before
-                const after = context.payload.after || context.sha
-
-                if (!before || /^0+$/.test(before))
-                  return null
-
-                const { data } = await github.rest.repos.compareCommits({
-                  owner: context.repo.owner,
-                  repo: context.repo.repo,
-                  base: before,
-                  head: after,
-                })
-
-                return data.files?.map(file => file.filename) ?? []
-              }
-
-              return null
-            }
-
-            const changedFiles = await listChangedFiles()
-
-            if (!changedFiles || changedFiles.length === 0) {
-              core.info('No changed-file diff available; defaulting sandbox classification to relevant.')
-              core.setOutput('changed_files', '[]')
-              core.setOutput('changed_files_available', 'false')
-              return
-            }
-
-            core.setOutput('changed_files', JSON.stringify(changedFiles))
-            core.setOutput('changed_files_available', 'true')
+      - name: Collect CI context
+        id: context
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: bun run ci:context
 
       - name: Classify sandbox scope
-        id: classify
+        id: taxonomy
         env:
-          CHANGED_FILES_AVAILABLE: ${{ steps.changed-files.outputs.changed_files_available }}
-          CHANGED_FILES_JSON: ${{ steps.changed-files.outputs.changed_files }}
+          CHANGED_FILES_AVAILABLE: ${{ steps.context.outputs.changed_files_available }}
+          CHANGED_FILES_JSON: ${{ steps.context.outputs.changed_files }}
         run: bun run ci:path-taxonomy
-
-      - name: Detect PR trust
-        id: pr-trust
-        uses: actions/github-script@v9
-        with:
-          script: |
-            if (context.eventName !== 'pull_request') {
-              core.setOutput('trusted_pr', 'true')
-              return
-            }
-
-            const sameRepository = context.payload.pull_request.head.repo.full_name === context.repo.owner + '/' + context.repo.repo
-            core.setOutput('trusted_pr', sameRepository ? 'true' : 'false')
 
   sandbox-tests:
     name: sandbox-tests
