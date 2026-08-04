@@ -54,34 +54,30 @@ Before merge, check out the generated branch with maintainer credentials, replac
 
 Merge the locked reviewed head manually; prefer rebase and use squash only when rebase is unavailable or unsafe.
 
-### 4. Seal the exact protected-branch head
+### 4. Automatic tag after push CI
 
-After the Release PR is merged, wait for push CI to succeed on that exact `main` or `beta` head. Then dispatch `Seal Release` for the same protected branch.
+After the Release PR merges, push CI on the exact `main` or `beta` head must succeed. The `tag-release-backstop` job in `release-please.yml` then:
 
-Sealing requires all of these values to agree before creating or reusing a tag:
+- waits for a successful `ci.yml` push run on the branch head;
+- pushes `v<version>` when the head is `chore: release <version>` and the tag is still missing (common when maintainers merge the Release PR manually after re-authoring);
+- relabels the merged release PR from `autorelease: pending` to `autorelease: tagged` so release-please is not blocked on the next cycle.
+
+If release-please already created the tag, the backstop is a no-op.
+
+Publication identity still requires all of these values to agree before `release.yml` publishes:
 
 - protected-branch head SHA
 - successful push CI SHA
 - `chore: release <version>` commit title
 - root `package.json` version
-- `v<version>` tag
+- `v<version>` tag at the same SHA
 - stable `main`/`latest` or prerelease `beta`/`beta` channel
 
 An existing tag is accepted only when it already points to the exact validated commit. The workflow never moves a version tag.
 
-### 5. Build and publish the sealed candidate
+### 5. Tag-triggered publish
 
-After sealing, `Seal Release` explicitly dispatches `Release` at the tag. The explicit dispatch is required because a tag pushed with `GITHUB_TOKEN` does not trigger another workflow.
-
-The tag-only Release workflow reruns:
-
-- `bun run memory:check`
-- `bun run lint`
-- `bun run format:check`
-- `bun run typecheck`
-- `bun run test`
-
-This keeps publish gating inside the workflow that npm trusts for OIDC publishing.
+`release.yml` runs on the pushed `v<version>` tag. It does not rerun merge CI gates (lint, format, typecheck, or vitest).
 
 It then builds the package and binaries once, compresses each standalone binary as a `.tar.gz` archive, generates the manifest and checksums for those archives, smoke-checks them, packs the exact npm tarball with scripts disabled, and uploads one release-candidate Actions artifact. A separate mutation job downloads that artifact without checking out source or rebuilding.
 
@@ -93,7 +89,7 @@ After a fail-closed exact-version registry preflight, the mutation order is:
 4. verify npm registry closure;
 5. make the GitHub Release public.
 
-Regular merges never publish by themselves. Preparation cannot publish, and Release cannot infer a commit from branch history.
+Regular source merges never publish by themselves. Only the immutable tag triggers publication.
 
 ## Version rules
 
@@ -125,9 +121,9 @@ The stable release-please config currently includes a temporary `last-release-sh
 
 The Release workflow pins `googleapis/release-please-action` to a repository-verified tag instead of floating on the major `v4` tag. Before changing that pin, run a dry run against the repository and confirm it can prepare the expected Release PR without GitHub GraphQL errors.
 
-release-please owns only Release PR preparation. Tag sealing and publication do not ask release-please to rediscover or create a GitHub Release.
+release-please owns Release PR preparation. The tag backstop creates missing tags after CI; `release.yml` publishes on tag push and does not ask release-please to create a GitHub Release.
 
-If preparation fails, rerun `Prepare Release` for the branch. If sealing fails before tag creation, fix the protected-branch or CI mismatch and rerun `Seal Release`. If any later step fails, redispatch `Release` with `--ref v<version>` or rerun the failed workflow at the same tag. Never create a replacement version commit merely to recover incomplete npm or GitHub assets.
+If release-please fails to open a Release PR, check for stale `autorelease: pending` labels or an untagged merged Release PR. If tag creation fails, fix the protected-branch or CI mismatch and rerun `Release Please` on the branch. If publish fails after the tag exists, rerun `Release` at the same tag or dispatch `release.yml` with `--ref v<version>`. Never create a replacement version commit merely to recover incomplete npm or GitHub assets.
 
 ## npm trusted publishing
 
@@ -154,7 +150,7 @@ Do not assume a workflow-created tag or GitHub Release should trigger a second p
 
 GitHub's documented behavior is that events created by `GITHUB_TOKEN` do not start another workflow run, except for `workflow_dispatch` and `repository_dispatch`.
 
-That is why `Seal Release` explicitly runs `gh workflow run release.yml --ref "v<version>"` after creating or verifying the tag. The publish workflow validates the tag again rather than trusting the dispatch source.
+The release bot pushes tags through the tag backstop using a GitHub App token. Because GitHub may suppress follow-on workflow runs for some automation tokens, the backstop also dispatches `release.yml` at the new tag after tagging.
 
 ## Repository settings
 
