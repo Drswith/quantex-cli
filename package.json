@@ -58,9 +58,15 @@
     "agent-catalog:manifest": "bun run scripts/write-agent-catalog-manifest.ts",
     "agent-catalog:schema": "bun run scripts/write-agent-catalog-schema.ts",
     "build": "bun run build:core && bun run build:cli",
-    "build:bin": "bun run scripts/write-build-metadata.ts && bun run scripts/build-bin.ts",
-    "build:cli": "bun run scripts/write-build-metadata.ts && tsdown --config tsdown.config.ts",
+    "build:bin": "bun run build:meta && bun run scripts/build-bin.ts",
+    "build:cli": "bun run build:meta && tsdown --config tsdown.config.ts",
     "build:core": "bun run --cwd packages/core build",
+    "build:meta": "bun run scripts/write-build-metadata.ts",
+    "ci:commit-trailer-policy": "bun run scripts/commit-trailer-policy.ts",
+    "ci:path-taxonomy": "bun run scripts/path-taxonomy.ts",
+    "ci:pr-merge-commit-policy": "bun run scripts/pr-merge-commit-policy.ts",
+    "ci:release-pr-policy": "bun run scripts/release-pr-policy.js",
+    "ci:release-publish-contract": "bun run scripts/release-seal-contract.ts",
     "core-catalog:write": "bun run scripts/write-core-agent-catalog.ts",
     "dev": "bun run src/cli.ts",
     "format": "oxfmt",
@@ -68,12 +74,8 @@
     "lint": "oxlint",
     "lint:fix": "oxlint --fix",
     "memory:check": "bun run scripts/check-project-memory.ts",
-    "openspec:archive": "openspec archive --yes",
     "openspec:archive-closure": "bun run scripts/openspec-archive-closure.ts",
-    "openspec:instructions": "openspec instructions --json",
     "openspec:list": "openspec list",
-    "openspec:new": "openspec new change",
-    "openspec:show": "openspec show --no-interactive",
     "openspec:status": "openspec status --json",
     "openspec:validate": "openspec validate --all --no-interactive",
     "package:check": "bun run package:check:core && bun run package:check:cli",
@@ -122,7 +124,7 @@
   "simple-git-hooks": {
     "commit-msg": "bun run scripts/strip-cursor-coauthor.ts \"$1\"",
     "pre-commit": "bun install --frozen-lockfile && npx lint-staged",
-    "pre-push": "bun run format:check && bun run typecheck && bun run openspec:validate && bun run memory:check"
+    "pre-push": "bun run lint && bun run format:check && bun run typecheck && bun run openspec:validate && bun run memory:check"
   },
   "lint-staged": {
     "*.{js,mjs,cjs,jsx,ts,mts,cts,tsx}": [

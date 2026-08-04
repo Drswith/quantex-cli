@@ -98,16 +98,16 @@ The project SHALL avoid growing project-specific workflow commands when an OpenS
 - WHEN an official OpenSpec command or GitHub-native workflow can provide that capability
 - THEN the project uses that external standard instead of adding project-specific CLI scripts
 
-### Requirement: Historical task contracts MUST be preserved as OpenSpec archive history
+### Requirement: Completed OpenSpec changes SHALL be archived without working-tree history
 
-The project SHALL preserve completed historical task contracts under `openspec/changes/archive/` instead of maintaining a parallel active task queue.
+The project SHALL archive completed OpenSpec changes through agent-driven `openspec:archive-closure`, syncing accepted spec deltas into `openspec/specs/`. Archived change folders SHALL NOT be retained in the working tree; git history preserves archaeology.
 
-#### Scenario: Looking up old qtx task context
+#### Scenario: Looking up old change context
 
-- GIVEN a contributor or agent needs context from a completed `qtx-*` task
-- WHEN the original task queue has been retired
-- THEN the contributor reads the migrated archived change under `openspec/changes/archive/`
-- AND uses `openspec/changes/archive/qtx-task-history.md` as the index
+- **GIVEN** a contributor needs context from a completed OpenSpec change
+- **WHEN** the change has been archived
+- **THEN** the contributor MUST use git history to recover archived artifacts
+- **AND** active changes remain under `openspec/changes/`
 
 ### Requirement: Central Quantex agent runtime SHALL drive cross-agent sessions
 
@@ -119,15 +119,15 @@ Quantex SHALL use `skills/quantex-agent-runtime/SKILL.md` as the central reposit
 - **THEN** the agent MUST read and follow the central Quantex agent runtime skill before planning or editing
 - **AND** it MUST use OpenSpec and repository validation commands for the source-of-truth workflow
 
-### Requirement: Historical agent-runtime records SHALL be preserved in docs/archive
+### Requirement: Retired runtime records SHALL not block current guidance
 
-The project SHALL preserve existing historical Markdown records under `docs/archive/superpowers/` without treating them as active runtime dependencies or rewriting their historical terminology or paths.
+The project SHALL not require retired runtime dependencies in current agent guidance. Historical records removed from the working tree remain recoverable from git history.
 
 #### Scenario: Maintainer removes a retired runtime dependency
 
 - **WHEN** a maintainer removes a retired runtime from current agent guidance
-- **THEN** the maintainer MUST move existing historical-record Markdown into `docs/archive/superpowers/` intact
-- **AND** current entry manuals and runtime skills MUST NOT require that retired runtime's activation or instructions
+- **THEN** current entry manuals and runtime skills MUST NOT require that retired runtime's activation or instructions
+- **AND** historical records MAY be removed from the working tree when no longer referenced
 
 ### Requirement: Quantex task start entry SHALL be canonical and text-first
 
@@ -398,7 +398,7 @@ Quantex SHALL keep active agent-support Markdown surfaces and their top-level Gi
 
 #### Scenario: Agent syncs current docs without rewriting history
 
-- **GIVEN** archived OpenSpec changes, session summaries, postmortems, or files under `docs/archive/`
+- **GIVEN** session summaries, postmortems, or historical records recoverable from git history
 - **WHEN** an agent is asked to update the current Markdown docs
 - **THEN** the agent updates active docs and live tracking artifacts first
 - **AND** historical records remain point-in-time snapshots unless the task explicitly asks to correct historical data

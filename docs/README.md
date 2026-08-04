@@ -1,62 +1,33 @@
 # Project Memory
 
-This repository uses a repo-native project memory system designed for `human + agent` collaboration and future autonomous iteration.
+This repository uses a repo-native project memory system designed for `human + agent` collaboration.
 
 ## Source of truth
 
-Use these directories as the canonical places to write project knowledge:
-
 | Location | Purpose |
 |---|---|
-| `openspec/specs/` | Current behavior and durable process contracts that the project is expected to satisfy |
-| `openspec/changes/` | Proposed non-trivial behavior or durable-process changes before or during implementation |
+| `openspec/specs/` | Current behavior and durable process contracts |
+| `openspec/changes/` | Active non-trivial changes before archive closure |
 | `docs/adr/` | Long-lived architectural and product decisions |
-| `docs/runbooks/` | Repeated operational knowledge, diagnostics, and recovery procedures |
-| `docs/postmortems/` | Failure analysis and lessons learned after incidents or costly mistakes |
-| `docs/sessions/` | Concise discussion summaries and decisions from a working session |
-| `openspec/changes/archive/` | Completed OpenSpec changes, including migrated historical task contracts |
+| `docs/runbooks/` | Repeated operational knowledge and recovery procedures |
+| `docs/postmortems/` | Failure analysis after incidents |
+| `docs/sessions/` | Concise discussion summaries |
 | `skills/quantex-agent-runtime/` | Central runtime rules for coding-agent sessions |
 
-Do not create new root-level ad hoc markdown files for these categories.
+Do not create new root-level ad hoc markdown for these categories. Workflow process details live in `skills/quantex-agent-runtime/SKILL.md`.
 
 ## Discussion funnel
 
-Discussion transcripts are not the long-term artifact. Use this funnel instead:
-
-1. Capture the discussion summary in `docs/sessions/`.
-2. Promote stable behavior and durable process changes into `openspec/`.
+1. Capture discussion summary in `docs/sessions/`.
+2. Promote behavior/process changes into `openspec/`.
 3. Promote durable design choices into `docs/adr/`.
-4. Promote recurring troubleshooting knowledge into `docs/runbooks/`.
-5. Promote actionable follow-up work into GitHub issues or OpenSpec changes.
+4. Promote troubleshooting knowledge into `docs/runbooks/`.
+5. Promote executable work into GitHub issues or OpenSpec changes.
 
-This keeps the project memory compact, searchable, and safe for future agent iteration.
+## Links
 
-## Working rhythm
-
-For a typical feature or refactor:
-
-1. Follow `skills/quantex-agent-runtime/SKILL.md`.
-2. Start with a session summary if the discussion materially changes project direction.
-3. Create or update an OpenSpec artifact for any non-trivial behavior or durable process change.
-4. Record an ADR if the change introduces a lasting design or scope decision.
-5. Use GitHub issues for executable work tracking.
-6. Update a runbook or postmortem if the work revealed a reusable debugging or recovery pattern.
-
-GitHub workflow guidance:
-
-- [github-collaboration.md](./github-collaboration.md)
-- [releases.md](./releases.md)
+- [github-collaboration.md](./github-collaboration.md) — GitHub roles, PR mechanics, branch protection
+- [releases.md](./releases.md) — release overview
+- [runbooks/README.md](./runbooks/README.md) — operational runbooks index
 - [skill-installation-and-distribution.md](./skill-installation-and-distribution.md)
 - [agent-support-matrix.md](./agent-support-matrix.md)
-
-Operational runbooks:
-
-- [cloud-agent-automations.md](./runbooks/cloud-agent-automations.md)
-- [quantex-troubleshooting.md](./runbooks/quantex-troubleshooting.md)
-- [releasing-quantex.md](./runbooks/releasing-quantex.md)
-- [release-and-self-upgrade-debugging.md](./runbooks/release-and-self-upgrade-debugging.md)
-- [core-installation-routing-rollback.md](./runbooks/core-installation-routing-rollback.md)
-
-## Migration status
-
-Legacy root-level design and backlog documents have been archived under [archive/legacy-root-notes/](./archive/legacy-root-notes/). Historical Superpowers plans and SDD records have been consolidated under [archive/superpowers/](./archive/superpowers/). The old `qtx-*` task queue was migrated into [OpenSpec archived change history](../openspec/changes/archive/qtx-task-history.md). Root document cleanup status is tracked in [project-memory-migration.md](./project-memory-migration.md).

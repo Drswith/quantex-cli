@@ -149,15 +149,15 @@ The binary self-upgrade path SHALL use a replacement strategy that matches platf
 
 ### Requirement: Release artifacts MUST be smoke-validated before publish
 
-The release pipeline SHALL verify that at least the current runner's publishable binary artifact is executable and matches the generated release metadata.
+The release pipeline SHALL verify that at least the current runner's compressed standalone archive is extractable, contains the expected executable, and matches the generated release metadata.
 
-#### Scenario: Verifying the current runner release asset
+#### Scenario: Verifying the current runner release archive
 
-- GIVEN Quantex has built release binaries, `SHA256SUMS.txt`, and `manifest.json`
-- WHEN the release verification workflow runs
-- THEN it checks that the current runner asset exists in the manifest and checksum file
-- AND it executes that binary with `--version`
-- AND the command reports the expected build version
+- **GIVEN** Quantex has built release binaries, compressed release archives, `SHA256SUMS.txt`, and `manifest.json`
+- **WHEN** the release verification workflow runs
+- **THEN** it checks that the current runner archive exists in the manifest and checksum file
+- **AND** it extracts and executes the archive's expected binary with `--version`
+- **AND** the command reports the expected build version
 
 ### Requirement: Self-upgrade MUST expose recovery guidance
 
@@ -282,3 +282,16 @@ Commands that do not explicitly declare a self-update network effect MUST NOT co
 - **WHEN** a successful ordinary human-mode command evaluates a passive self-update notice
 - **THEN** any notice Quantex displays is derived exclusively from that cached metadata
 - **AND** it does not contact a remote source or refresh the cached metadata
+
+### Requirement: Standalone binary self-upgrade preserves verified archive safety
+
+Standalone binary self-upgrade SHALL verify a release archive before extraction and SHALL only extract the expected executable entry before applying the existing replacement and rollback flow.
+
+#### Scenario: Updating from a compressed standalone archive
+
+- **GIVEN** a standalone binary installation resolves a release archive for its current platform and architecture
+- **WHEN** the user runs `quantex upgrade`
+- **THEN** Quantex MUST verify the archive SHA-256 before extracting it
+- **AND** it MUST reject an archive whose entry is absent, unexpected, or path-unsafe
+- **AND** it MUST preserve the existing replacement verification and rollback behavior after successful extraction
+

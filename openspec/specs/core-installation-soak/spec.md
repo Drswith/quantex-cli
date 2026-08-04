@@ -1,7 +1,7 @@
 # core-installation-soak Specification
 
 ## Purpose
-TBD - created by archiving change freeze-legacy-installation-engine. Update Purpose after archive.
+Define Core-default installation soak boundaries and freeze requirements during the Core migration period.
 ## Requirements
 ### Requirement: The second Core-default soak freezes the selected installation boundary
 

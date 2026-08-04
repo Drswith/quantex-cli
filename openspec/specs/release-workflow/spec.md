@@ -1,57 +1,49 @@
 # release-workflow Specification
 
 ## Purpose
-Define the explicit, recoverable release procedure for protected branches. A maintainer deliberately dispatches the release workflow to prepare or publish a release; CI is a merge gate, not a hidden publication trigger.
+Define automatic release-please flow on protected branches and tag-triggered publication for `quantex-cli`.
+
 ## Requirements
-### Requirement: Release Workflow Is Explicit and Idempotent
 
-The Release workflow SHALL run only through `workflow_dispatch` for `main` or `beta`. It SHALL reconcile the selected protected branch into either Release PR preparation, publish/recovery, or a no-op, and every publication retry SHALL use the same immutable release commit.
+### Requirement: Release-please SHALL run automatically on protected-branch push
 
-#### Scenario: maintainer prepares a release
+On push to `main` or `beta`, a `release-please` workflow SHALL open or update the Release PR using the branch-appropriate config file (`release-please-config.json` for `main`, `release-please-config.beta.json` for `beta`).
 
-- **WHEN** a maintainer dispatches Release for `main` after the intended change PRs have passed required checks
-- **THEN** the Release workflow MUST invoke release-please in Release PR mode
-- **AND** the release-please action version MUST be pinned to a repository-verified tag
-- **AND** it MUST skip GitHub Release creation in that invocation
+#### Scenario: push to main opens stable Release PR
 
-#### Scenario: successful release commit still lacks a tag
+- **WHEN** a commit is pushed to `main` that is not a release commit
+- **THEN** the release-please workflow MUST run
+- **AND** it MUST use `release-please-config.json`
+- **AND** it MUST open or update a Release PR for the next stable version
 
-- **WHEN** branch history contains a successful protected-branch `chore: release <version>` commit
-- **AND** the corresponding `v<version>` tag does not exist yet
-- **AND** no semver release tag points at that exact commit
-- **THEN** the Release workflow MUST prefer GitHub Release publication for that commit over creating or updating another Release PR
+#### Scenario: push to beta opens beta Release PR
 
-#### Scenario: latest successful release commit has GitHub Release but missing npm package
+- **WHEN** a commit is pushed to `beta` that is not a release commit
+- **THEN** the release-please workflow MUST run
+- **AND** it MUST use `release-please-config.beta.json`
+- **AND** it MUST open or update a beta Release PR
 
-- **WHEN** branch history contains a successful protected-branch `chore: release <version>` commit
-- **AND** that commit is the latest successful release commit on the selected protected branch
-- **AND** the corresponding `v<version>` GitHub Release or tag already exists
-- **AND** `quantex-cli@<version>` is missing from npm
-- **THEN** the Release workflow MUST still choose publish mode for that release commit
-- **AND** it MUST rerun package validation, npm publish, and GitHub Release asset upload using the resolver-selected commit and tag
+### Requirement: Tag push SHALL trigger publish without redundant merge gates
 
-#### Scenario: older release commit is missing from npm
+When a `v*` tag is pushed (created by release-please on Release PR merge), `release.yml` SHALL build, verify release artifacts, smoke-test, and publish to npm and GitHub Release without re-running lint, typecheck, or vitest gates already enforced at merge.
 
-- **WHEN** an older successful release commit has a GitHub Release or tag
-- **AND** its `quantex-cli@<version>` package is missing from npm
-- **AND** the latest successful release commit is already published to npm
-- **THEN** a normal Release dispatch MUST NOT publish the older release commit as part of latest-release reconciliation
+#### Scenario: tag publish runs artifact pipeline only
 
-#### Scenario: already tagged release commit has stale title version
+- **WHEN** a `v<version>` tag is pushed
+- **THEN** `release.yml` MUST run build, `release:artifacts`, `release:smoke`, and npm/GitHub publish
+- **AND** it MUST NOT require lint, format:check, typecheck, or test jobs to pass again
 
-- **WHEN** branch history contains a successful protected-branch `chore: release <version>` commit
-- **AND** a semver release tag already points at that exact commit
-- **AND** `quantex-cli@<version>` is already published to npm
-- **THEN** the Release workflow MUST treat that commit as already published
-- **AND** it MUST NOT count the stale title version as a pending untagged release commit
+### Requirement: Release Publishing Prioritizes Primary Artifacts
 
-#### Scenario: maintainer retries a partial release
+The Release workflow SHALL publish the primary `quantex-cli` npm package and attach generated compressed standalone binary archives to the GitHub Release without dispatching synchronization for the separate `quantex` npm package from this repository.
 
-- **WHEN** a maintainer runs the Release workflow through `workflow_dispatch`
-- **AND** the selected release commit already has a tag or GitHub Release but its npm package or artifacts are incomplete
-- **THEN** the workflow MUST use the selected immutable release commit
-- **AND** it MUST verify or publish `quantex-cli` before attaching artifacts
-- **AND** it MUST NOT create a second release or require a different control-source checkout
+#### Scenario: release publishes compressed standalone artifacts
+
+- **WHEN** a release publish run has created the GitHub Release and generated standalone artifacts are ready to upload
+- **THEN** it MUST upload one `.tar.gz` archive for every supported platform and architecture
+- **AND** each archive MUST contain its corresponding standalone executable
+- **AND** `manifest.json` and `SHA256SUMS.txt` MUST reference and checksum the uploaded archives
+- **AND** it MUST NOT dispatch synchronization events to external `quantex` packages
 
 ### Requirement: Generated Release PRs satisfy governance sections
 
@@ -66,155 +58,3 @@ Release PRs generated by release-please SHALL include the same governance sectio
 
 - **WHEN** release-please creates or updates a beta Release PR
 - **THEN** the PR body MUST include a `## Closure Check` section
-
-### Requirement: Release Publishing Prioritizes Primary Artifacts
-
-The Release workflow SHALL publish the primary `quantex-cli` npm package and attach generated binary artifacts to the GitHub Release without dispatching, notifying, or coordinating synchronization for the separate `quantex` npm package from this repository.
-
-#### Scenario: release publishes only primary package artifacts
-
-- **WHEN** a release publish run has created the GitHub Release and published the `quantex-cli` npm package
-- **AND** generated binary artifacts are ready to upload
-- **THEN** the workflow MUST upload the binary artifacts to the GitHub Release
-- **AND** it MUST NOT dispatch `sync-quantex-cli-release` or any other synchronization event to `Drswith/quantex`
-
-#### Scenario: quantex package synchronization credentials are absent
-
-- **WHEN** a release publish run executes without a `QUANTEX_SYNC_TOKEN` secret
-- **THEN** the workflow MUST NOT need that secret to complete `quantex-cli` npm publishing or GitHub Release artifact upload
-- **AND** the workflow MUST NOT treat missing `quantex` package synchronization credentials as relevant to this repository's release success
-
-### Requirement: Stable release planning MUST enforce the accepted post-redesign graduation
-
-The stable Release workflow SHALL treat `0.29.1` as the final publishable 0.x version and SHALL permit graduation from a stable 0.x base only for the exact transition `0.29.1 -> 1.1.0`. It MUST reject later 0.x proposals while `0.29.1` is the current base, MUST reject every other pre-major-to-major transition, and SHALL resume ordinary SemVer planning after `1.1.0` is published.
-
-#### Scenario: Release planning proposes another 0.x version after the final baseline
-
-- **GIVEN** the current stable version is `0.29.1`
-- **WHEN** release automation proposes `0.29.2`, `0.30.0`, or any other stable 0.x version
-- **THEN** Release PR validation MUST reject the proposal
-- **AND** `0.29.1` MUST remain the final 0.x release
-
-#### Scenario: Exact post-redesign graduation is requested
-
-- **GIVEN** the current stable version is `0.29.1`
-- **AND** the accepted main commit carries the one-shot footer `Release-As: 1.1.0`
-- **WHEN** release-please prepares the stable Release PR
-- **THEN** it MUST propose exactly `1.1.0`
-- **AND** the generated Release PR MUST remain subject to normal protected-branch validation and manual rebase-first merge
-- **AND** the Release PR MUST be manually reviewed and merged
-
-#### Scenario: A different pre-major graduation is proposed
-
-- **GIVEN** the current stable version is below `1.0.0`
-- **WHEN** a stable Release PR proposes `1.0.0`, proposes a 1.x version other than `1.1.0`, or proposes `1.1.0` from a base other than `0.29.1`
-- **THEN** Release PR validation MUST reject the proposal
-- **AND** burned version `1.0.0` MUST remain unpublished
-
-#### Scenario: Stable releases continue after graduation
-
-- **GIVEN** `1.1.0` or a newer stable 1.x version is the current base
-- **WHEN** release-worthy changes reach `main`
-- **THEN** release-please SHALL apply ordinary SemVer planning
-- **AND** the one-shot `Release-As: 1.1.0` override MUST NOT remain in workflow or manifest configuration
-
-### Requirement: Burned stable release versions MUST NOT be reused
-
-The stable Release workflow SHALL treat `1.0.0` as a burned stable release version because that npm version was already published and deprecated after the accidental pre-1.0 promotion.
-
-#### Scenario: release automation proposes a burned stable version
-
-- **WHEN** release-please creates or updates a stable Release PR
-- **AND** the proposed version is `1.0.0`
-- **THEN** Release PR validation MUST reject the PR before automerge
-- **AND** a future 1.0 graduation MUST choose a different publishable stable version
-
-### Requirement: Release dispatch targets MUST use the protected-branch allowlist
-
-The manual Release dispatch MUST accept only the protected release branches `main` and `beta`. An unknown branch MUST be rejected before release-target resolution, npm tag or channel derivation, Release PR creation, and artifact publication.
-
-#### Scenario: Manual release receives an unknown target
-
-- **WHEN** a maintainer supplies a manual release target other than `main` or `beta`
-- **THEN** the workflow MUST reject the target before resolving release state
-- **AND** it MUST NOT treat the target as a stable or prerelease channel
-
-#### Scenario: Release PR targets an unknown base
-
-- **WHEN** release automation or Release PR validation observes a proposed base other than `main` or `beta`
-- **THEN** it MUST refuse to create, update, validate, or automerge that Release PR
-- **AND** no npm tag, publishing channel, GitHub Release, or release artifact may be derived from that base
-
-### Requirement: Post-redesign historical release notes MUST state the compatibility boundary
-
-The maintained historical notes for `v0.29.1` and `v1.1.0` SHALL explain that the lifecycle-engine refactor was delivered after `v0.29.0`, and that the `v1.1.0` graduation does not intentionally remove the maintained v1 CLI, structured-output, state/config, binary-entry, or root-export contracts.
-
-#### Scenario: User reads the repository changelog
-
-- **WHEN** a user reads the `v0.29.1` or `v1.1.0` section of `CHANGELOG.md`
-- **THEN** the section MUST provide a concise lifecycle-refactor and compatibility summary alongside the generated commit index
-
-#### Scenario: User reads a published GitHub Release
-
-- **WHEN** a user reads the published GitHub Release body for `v0.29.1` or `v1.1.0`
-- **THEN** the body MUST provide the same compatibility interpretation as the corresponding changelog section
-
-#### Scenario: Historical correction is delivered
-
-- **WHEN** the historical-note correction is merged
-- **THEN** it MUST NOT move a release tag, publish an npm package, or change release automation behavior
-
-### Requirement: Release-As footer MUST enter Release PR reconciliation
-
-The protected-branch release resolver SHALL treat a commit with a syntactically non-empty, case-insensitive `Release-As: <version>` footer as release-worthy input for Release PR reconciliation. It MUST NOT require a feature, fix, performance, or breaking-change marker in addition to that footer.
-
-#### Scenario: Neutral commit requests an exact release
-
-- **WHEN** a successful protected-branch CI run covers a commit with `Release-As: <version>` and no other release-worthy conventional marker
-- **THEN** the resolver MUST select Release PR mode for that commit
-- **AND** release-please MUST remain responsible for interpreting the requested version
-
-#### Scenario: Neutral commit has no Release-As footer
-
-- **WHEN** a successful protected-branch CI run covers a `chore` or `docs` commit without a release-worthy conventional marker or a non-empty Release-As footer
-- **THEN** the resolver MUST continue to skip Release PR creation
-
-### Requirement: Generated changelogs MUST show intentional refactors
-
-Stable and beta release-please configuration SHALL render `refactor` conventional commits in a visible `Internal Improvements` changelog section. This presentation rule MUST NOT independently cause a version bump or Release PR.
-
-#### Scenario: Release includes a refactor entry
-
-- **WHEN** release-please generates notes for a release range containing an intentional `refactor` entry
-- **THEN** the generated changelog and GitHub Release body MUST include that entry under `Internal Improvements`
-
-#### Scenario: Refactor alone does not release
-
-- **WHEN** the newest successful protected-branch CI run covers only a non-breaking `refactor` commit without Release-As
-- **THEN** the repository resolver MUST NOT create a Release PR solely because the changelog type is visible
-
-### Requirement: Release sealing MUST configure an annotated-tag identity
-
-The stable and beta release sealing workflow MUST configure a deterministic repository-local Git committer identity before it creates an annotated immutable version tag.
-
-#### Scenario: immutable release tag does not yet exist
-
-- **WHEN** a validated protected-branch release commit has no corresponding `v<version>` tag
-- **THEN** `Seal Release` MUST configure its Git committer name and email before annotated tag creation
-- **AND** it MUST create and push the tag at the validated release commit
-
-#### Scenario: immutable release tag already exists
-
-- **WHEN** the corresponding `v<version>` tag already exists
-- **THEN** `Seal Release` MUST continue to verify that the tag resolves to the validated release commit
-- **AND** it MUST NOT move or recreate the tag
-
-### Requirement: Checkout-free publication MUST address its repository explicitly
-
-The release publication job MUST preserve its checkout-free artifact promotion boundary while providing an explicit repository context to GitHub CLI release operations.
-
-#### Scenario: publish job creates or recovers a GitHub Release
-
-- **WHEN** the publish job operates only on the downloaded exact release candidate and has no `.git` directory
-- **THEN** every `gh release` operation MUST target the workflow repository explicitly
-- **AND** publication MUST NOT add a source checkout to infer that repository

@@ -10,6 +10,7 @@ export interface PullRequestCommitMetadata {
 export interface PullRequestMergeCommitPolicyInput {
   body?: string
   commits: PullRequestCommitMetadata[]
+  headBranch?: string
 }
 
 const prohibitedTrailerPattern = /^co-authored-by:\s*/i
@@ -47,7 +48,7 @@ export function validatePullRequestMergeCommitPolicy(input: PullRequestMergeComm
     )
   }
 
-  if (commits.length > 1) {
+  if (commits.length > 1 && !isReleasePleasePullRequest(input.headBranch)) {
     issues.push(
       [
         `Pull request contains ${commits.length} commits; GitHub squash merge can synthesize Co-authored-by trailers from multi-commit contributor metadata.`,
@@ -74,7 +75,11 @@ export function validatePullRequestMergeCommitPolicy(input: PullRequestMergeComm
 
 if (import.meta.main) {
   const commits = parseCommits(process.argv.slice(2), process.env.PR_COMMITS_JSON)
-  const policyInput = { body: process.env.PR_BODY, commits }
+  const policyInput = {
+    body: process.env.PR_BODY,
+    commits,
+    headBranch: process.env.PR_HEAD_BRANCH,
+  }
   const issues = validatePullRequestMergeCommitPolicy(policyInput)
 
   if (issues.length > 0) {
@@ -139,4 +144,8 @@ function formatAuthor(commit: PullRequestCommitMetadata): string {
 
 function getReleaseAsVersion(value: string): string | undefined {
   return value.match(/^release-as:\s*(\S+)\s*$/im)?.[1]
+}
+
+function isReleasePleasePullRequest(headBranch: string | undefined): boolean {
+  return typeof headBranch === 'string' && headBranch.startsWith('release-please--branches--')
 }

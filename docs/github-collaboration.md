@@ -19,7 +19,7 @@ Use the repository for:
 - ADRs
 - runbooks
 - session summaries
-- archived OpenSpec change history
+- archived OpenSpec change history (git history; not retained in working tree)
 
 ## Recommended flow
 
@@ -90,52 +90,33 @@ Preferred naming:
 
 Clean up merged or abandoned worktrees with `git worktree remove <path>` and `git worktree prune` after confirming no unmerged commits remain.
 
-## Release under protected `main`
+## Release under protected `main` and `beta`
 
-Quantex uses release-please to keep publishing compatible with protected `main` and source-visible versions.
+Quantex uses release-please with automatic Release PR creation on push to protected branches.
 
-1. Merge one or more normal change PRs to `main` after required CI passes.
-2. A maintainer manually dispatches `Prepare Release` for `main` to let release-please create or refresh the Release PR.
-3. Re-author the generated Release PR as one maintainer-authored commit, then review and merge it manually. It updates `CHANGELOG.md`, `package.json`, `.release-please-manifest.json`, and `src/generated/build-meta.ts`.
-4. Wait for the exact merged `main` head to pass push CI, then manually dispatch `Seal Release` for `main`.
-5. Sealing creates or verifies the immutable version tag and explicitly dispatches `Release` at that tag. Release builds one candidate artifact, stages and verifies GitHub assets, publishes the exact npm tarball, and finally makes the GitHub Release public.
+1. Merge normal change PRs to `main` or `beta` after required CI passes.
+2. `release-please.yml` opens or updates the Release PR automatically on push.
+3. Review and merge the Release PR manually. It updates `CHANGELOG.md`, `package.json`, `.release-please-manifest.json`, and `src/generated/build-meta.ts`.
+4. Merging the Release PR creates a version tag; `release.yml` publishes npm and GitHub Release assets on tag push.
 
-This keeps normal product changes behind PR review while making the release version visible in the source tree at the tagged commit.
+Release notes: [CHANGELOG.md](../CHANGELOG.md), [docs/releases.md](./releases.md), GitHub Releases.
 
-Release notes are tracked in [CHANGELOG.md](../CHANGELOG.md), summarized in [docs/releases.md](./releases.md), and published on GitHub Releases.
+npm publish uses GitHub Actions OIDC trusted publishing (`.github/workflows/release.yml`). This repository does not synchronize the separate npm `quantex` package.
 
-The npm publish step uses GitHub Actions trusted publishing with OIDC rather than a long-lived `NPM_TOKEN`, so npm trusted publisher settings should point at `.github/workflows/release.yml`.
+Configure `RELEASE_APP_ID` and `RELEASE_APP_PRIVATE_KEY` for release-please GitHub App mutations.
 
-This repository does not publish, synchronize, notify, or coordinate updates for the separate npm `quantex` package. `quantex` package update and synchronization policy is owned entirely by the `quantex` project, not by `quantex-cli`.
+Release-worthy commit metadata:
 
-For releases, configure the release GitHub App secrets `RELEASE_APP_ID` and `RELEASE_APP_PRIVATE_KEY`. `Prepare Release` and `Release` use a short-lived installation token for Release PR and GitHub Release mutations; neither workflow enables auto-merge.
+- `feat:` → minor; `fix:` / `perf:` → patch; `BREAKING CHANGE:` or `!` → major
+- `docs:`, `test:`, `ci:`, `chore:` do not create releases unless metadata is changed
 
-Avoid using `GITHUB_TOKEN` as the normal release identity because GitHub suppresses many workflow events created by `GITHUB_TOKEN`, which can leave generated Release PR checks in `action_required`.
-
-Release PR creation relies on merged commit metadata. In practice that means:
-
-- `feat:` commits produce a minor release
-- `fix:` and `perf:` commits produce a patch release
-- `BREAKING CHANGE:` or `!` produces a major release
-- `docs:`, `test:`, `ci:`, and `chore:` do not create a release unless the commit metadata is explicitly changed to do so later
-
-The stable 0.x line is closed at `0.29.1`. The first post-redesign stable release is exactly `1.1.0`; burned `1.0.0`, later 0.x releases, and other pre-major graduation targets are rejected. The one-time graduation commit carries `Release-As: 1.1.0`, allowing release-please to generate the ordinary trusted Release PR without a permanent override or manual edits to version-controlled release outputs. After `1.1.0`, normal SemVer planning applies.
-
-Every Release PR is re-authored as one maintainer commit, reviewed, and merged manually after required checks finish. Prefer rebase merge for a locked reviewed head, with squash only when rebase is unavailable or unsafe and only after the bot-authored topology has been replaced.
-
-For PRs that only touch workflow, documentation, project-memory, or release-please configuration files, use `ci:`, `chore:`, or `docs:` titles. PR Governance blocks release-worthy metadata for those scopes so release-process changes do not accidentally create stable product Release PRs.
-
-Release preparation and sealing are explicit. Required CI remains the merge gate; a failed `main` or `beta` push CI must be fixed before a maintainer seals a release.
-
-The stable release-please config may include a temporary `last-release-sha` anchor after release-governance incidents. Treat it as a recovery boundary, not a permanent release policy; remove or advance it after the next intentional stable release lands.
+For workflow/docs-only PRs, use `ci:`, `chore:`, or `docs:` titles so PR governance does not treat them as product releases.
 
 ## Repository assets
 
-The repository now includes:
-
 - issue forms in `.github/ISSUE_TEMPLATE/`
-- a PR template in `.github/pull_request_template.md`
-- a PR body validation workflow in `.github/workflows/pr-governance.yml`
+- PR template in `.github/pull_request_template.md`
+- PR body validation in `.github/workflows/ci.yml` (governance job)
 - discussion forms in `.github/DISCUSSION_TEMPLATE/`
 
 ## Manual GitHub setup still required
@@ -156,11 +137,15 @@ The filenames in `.github/DISCUSSION_TEMPLATE/` already assume those slugs.
 
 ### Protect `main`
 
-Configure branch protection or rulesets so that `main` requires:
+Configure branch protection or rulesets so that `main` and `beta` require:
 
-- the main CI workflow
-- the `sandbox-tests` check context for lifecycle-sensitive pull requests
-- the `PR Governance` workflow
+- `lint`
+- `test (ubuntu-latest)`
+- `test (windows-latest)`
+- `test (macos-latest)`
+- `sandbox-tests`
+
+PR governance validation runs inside `ci.yml`; it is not a separate required ruleset context.
 
 ### Labels
 

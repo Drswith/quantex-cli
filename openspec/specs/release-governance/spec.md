@@ -1,7 +1,7 @@
 # release-governance Specification
 
 ## Purpose
-TBD - created by archiving change enforce-release-intent. Update Purpose after archive.
+Define PR release intent declaration, Release PR governance, and protected-branch ruleset alignment for merge gating.
 ## Requirements
 ### Requirement: PRs Must Declare Release Intent
 
@@ -128,7 +128,7 @@ Agents and contributors SHALL run the local PR body governance command before cr
 
 - **GIVEN** a pull request body is malformed or missing required governance sections
 - **WHEN** local preflight is skipped
-- **THEN** GitHub Actions PR Governance MUST still evaluate the same PR body policy and fail the pull request before merge
+- **THEN** GitHub Actions PR governance in `ci.yml` MUST still evaluate the same PR body policy and fail the pull request before merge
 
 ### Requirement: Pull request delivery MUST prefer linear history
 
@@ -150,7 +150,7 @@ For ordinary repository pull requests, maintainers and agents MUST select rebase
 
 ### Requirement: PR governance MUST validate release-summary input
 
-PR Governance SHALL use the shared locally executable body-policy command to validate the release-summary metadata required from release-source PRs.
+PR governance in `ci.yml` SHALL use the shared locally executable body-policy command to validate the release-summary metadata required from release-source PRs.
 
 #### Scenario: Contributor validates release-source metadata locally
 
@@ -159,7 +159,32 @@ PR Governance SHALL use the shared locally executable body-policy command to val
 
 #### Scenario: Remote governance validates release-source metadata
 
-- **WHEN** GitHub PR Governance evaluates a release-worthy source PR
+- **WHEN** GitHub PR governance in `ci.yml` evaluates a release-worthy source PR
 - **THEN** it MUST invoke the same body-policy validation
 - **AND** it MUST reject the PR if the release-summary requirement is not met
+
+### Requirement: Protected branches SHALL require aligned status check contexts
+
+`main` and `beta` protected branches SHALL require status check contexts that match the consolidated CI workflow job names: `lint`, `test (ubuntu-latest)`, `test (windows-latest)`, `test (macos-latest)`, and `sandbox-tests`. The `classify` job SHALL NOT be a required context.
+
+#### Scenario: main branch ruleset contexts
+
+- **WHEN** a maintainer inspects the `protect-main` ruleset
+- **THEN** required status checks MUST include `lint`, `test (ubuntu-latest)`, `test (windows-latest)`, `test (macos-latest)`, and `sandbox-tests`
+- **AND** `classify` MUST NOT appear as a required context
+
+#### Scenario: beta branch has matching protection
+
+- **WHEN** a maintainer inspects branch protection for `beta`
+- **THEN** it MUST require the same five status check contexts as `main`
+
+### Requirement: Skipped required checks SHALL not block merge
+
+When a required status check job is skipped (e.g., sandbox tests on non-sandbox changes, Windows test on pull requests), GitHub ruleset semantics SHALL treat the skipped check as passing and MUST NOT block merge.
+
+#### Scenario: skipped Windows test on pull request
+
+- **WHEN** a product-impacting pull request skips the Windows test job
+- **AND** other required checks pass
+- **THEN** the pull request MUST remain mergeable
 

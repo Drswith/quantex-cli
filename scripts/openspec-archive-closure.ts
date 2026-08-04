@@ -106,7 +106,7 @@ async function runArchiveClosure(options: ArchiveClosureOptions): Promise<void> 
   const body = createArchivePrBody(options.changeIds)
   const bodyIssues = validatePrBodyPolicy({
     body,
-    changedFiles: options.changeIds.map(changeId => `openspec/changes/archive/generated-${changeId}/tasks.md`),
+    changedFiles: options.changeIds.map(changeId => `openspec/specs/${changeId}/spec.md`),
     title: options.title,
   })
 
@@ -137,7 +137,7 @@ export function assertOpenSpecTasksComplete(changeName: string, progress: OpenSp
 type CommandRunner = (command: string, args: string[], options?: { capture?: boolean }) => string
 
 export function assertOpenSpecArchiveReady(changeId: string, run: CommandRunner = runChecked): void {
-  const result = run('bun', ['run', 'openspec:instructions', '--', 'apply', '--change', changeId], { capture: true })
+  const result = run('openspec', ['instructions', 'apply', '--change', changeId, '--json'], { capture: true })
   const instructions = parseOpenSpecApplyInstructions(result, changeId)
   assertOpenSpecTasksComplete(instructions.changeName, instructions.progress)
 }
@@ -171,10 +171,10 @@ export function parseOpenSpecApplyInstructions(output: string, changeId: string)
 }
 
 function archiveChange(changeId: string, applySpecs: boolean): void {
-  const args = ['run', 'openspec:archive', '--', changeId]
+  const args = ['archive', '--yes', changeId]
   if (!applySpecs) args.push('--skip-specs')
 
-  runChecked('bun', args)
+  runChecked('openspec', args)
 }
 
 function runChecked(command: string, args: string[], options: { capture?: boolean } = {}): string {

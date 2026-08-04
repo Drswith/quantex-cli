@@ -7,7 +7,7 @@ This page defines the review format and current live-doc handoff for Quantex age
 - `supported` entries come from validated per-agent catalog data in `src/agents/catalog/*.json` and can be verified with `bun run dev -- list --json`.
 - Provider, platform, target-kind, and probe coverage is generated from those normalized candidates in [`docs/generated/agent-provider-support.md`](generated/agent-provider-support.md); stale output fails catalog tests.
 - Unsupported-candidate triage lives in GitHub issue [#134](https://github.com/Drswith/quantex-cli/issues/134). Keep per-agent implementation work in dedicated issues and OpenSpec changes; keep `#134` as the top-level backlog index until a successor issue is explicitly declared.
-- Historical records under `openspec/changes/archive/`, `docs/sessions/`, `docs/postmortems/`, and `docs/archive/` remain point-in-time artifacts and should not be rewritten as the current support matrix.
+- Historical records recoverable from git history remain point-in-time artifacts and should not be rewritten as the current support matrix.
 
 ## Current Supported Canonical Slugs
 

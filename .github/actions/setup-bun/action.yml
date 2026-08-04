@@ -1,0 +1,19 @@
+name: Setup Bun
+description: Install Bun, restore cache, and install dependencies. Requires checkout before use.
+
+runs:
+  using: composite
+  steps:
+    - uses: oven-sh/setup-bun@v2
+      with:
+        bun-version: 1.3.11
+
+    - uses: actions/cache@v6
+      with:
+        path: .bun/install/cache
+        key: ${{ runner.os }}-bun-download-v1-${{ hashFiles('bun.lock', 'package.json', 'packages/*/package.json') }}
+        restore-keys: |
+          ${{ runner.os }}-bun-download-v1-
+
+    - run: bun install --frozen-lockfile --ignore-scripts --no-progress
+      shell: bash

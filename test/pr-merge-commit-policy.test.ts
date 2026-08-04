@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest'
 import { validatePullRequestMergeCommitPolicy } from '../scripts/pr-merge-commit-policy'
 
 const integrationBranch = 'codex/redesign-lifecycle-integration'
-const prGovernanceWorkflow = readFileSync('.github/workflows/pr-governance.yml', 'utf8')
+const ciWorkflow = readFileSync('.github/workflows/ci.yml', 'utf8')
 
 function extractNamedStep(workflow: string, stepName: string): string {
   const marker = `      - name: ${stepName}\n`
@@ -135,14 +135,20 @@ describe('pr merge commit policy', () => {
     expect(validatePullRequestMergeCommitPolicy({ body, commits })).toEqual([])
   })
 
-  it('removes temporary topology inputs from the workflow policy step', () => {
-    const policyStep = extractNamedStep(prGovernanceWorkflow, 'Validate PR merge commit policy')
+  it('allows multiple commits on release-please pull requests', () => {
+    const issues = validatePullRequestMergeCommitPolicy({
+      commits: cleanCommits,
+      headBranch: 'release-please--branches--main',
+    })
+
+    expect(issues).not.toContainEqual(expect.stringContaining('Pull request contains 2 commits'))
+  })
+
+  it('routes merge commit policy through the CI governance job', () => {
+    const policyStep = extractNamedStep(ciWorkflow, 'Validate PR merge commit policy')
 
     expect(policyStep).toContain('PR_COMMITS_JSON')
     expect(policyStep).toContain('PR_BODY')
-    expect(policyStep).not.toContain('PR_IS_VALIDATED_RELEASE_PR')
-    expect(policyStep).not.toContain('PR_BASE_BRANCH')
-    expect(policyStep).not.toContain('PR_HEAD_BRANCH')
-    expect(policyStep).not.toContain('PR_SAME_REPOSITORY')
+    expect(policyStep).toContain('PR_HEAD_BRANCH')
   })
 })

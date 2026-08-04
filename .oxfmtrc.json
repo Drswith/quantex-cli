@@ -33,8 +33,6 @@
     "**/*.mdx",
     "src/generated",
     "test/fixtures",
-    "openspec/changes/archive",
-    "docs/archive",
     "CHANGELOG.md",
     ".release-please-manifest.json",
     "release-please-config*.json",

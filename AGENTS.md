@@ -12,7 +12,7 @@
 1. 先读取 `skills/quantex-agent-runtime/SKILL.md`，再按其仓库内流程启动任务。
 2. 分类当前请求，判断是否触发 OpenSpec intake gate。
 3. 只要改动 observable behavior、durable workflow、project memory 或 product-facing docs，就先选择或创建 OpenSpec change。
-4. 用 `bun run openspec:status -- --change <id>` 和 `bun run openspec:instructions -- <artifact> --change <id>` 确认下一步。
+4. 用 `bun run openspec:status -- --change <id>` 和 `bunx openspec instructions <artifact> --change <id>` 确认下一步。
 5. 先做最小闭环实现，再同步更新相关 spec、ADR、session、issue 或 docs。
 6. 改完后至少跑 `bun run lint`、`bun run format:check` 和 `bun run typecheck`；如果动了行为，也跑 `bun run test`。
 7. 结束前报告 validation、OpenSpec、git、commit、push、PR、release、archive closure 状态。
@@ -88,34 +88,17 @@ bun run release:artifacts
 
 ## Delivery Closure Gate
 
-任何改过文件的回合，在宣称完成前都要检查并报告：
+完整 delivery closure 流程见 `skills/quantex-agent-runtime/SKILL.md`。宣称完成前至少检查：validation、OpenSpec、git、commit、push、PR、release、archive closure。
 
-- validation state
-- OpenSpec state
-- git state
-- commit state
-- remote state
-- PR state
-- release state
+PR body：基于 `.github/pull_request_template.md` 写 body 文件 → `bun run pr:body:check` → `gh pr create/edit --body-file`。不要新增 `pr:create` 等包装命令。
 
-创建或编辑 PR body 前，必须先基于 `.github/pull_request_template.md` 写入 body 文件，运行 `bun run pr:body:check -- --body-file <body-file> --title "<title>"`，再用 `gh pr create --body-file <body-file>` 或 `gh pr edit --body-file <body-file>`；不要手写 inline `gh pr create --body "$(cat <<EOF ...)"`，也不要新增 repo-local PR 创建包装命令。
-
-闭环层级：
-
-- local implementation：文件已改且本地验证通过
-- repository delivery：已提交且 working tree clean
-- PR delivery：分支已推送且 PR 已创建
-- merge delivery：PR 已合入目标分支
-- OpenSpec archive closure：spec delta 已同步且 change 已归档
-- release closure：需要发布时，发布自动化已完成
-
-如果用户要求“继续”或“闭环”，就推进到下一个可达层级，而不是停在本地实现。若受保护分支、必需检查、评审、发布流程或 archive follow-up 阻塞，要明确剩余 owner。
+- `openspec/changes/`：仅存活跃 change；归档通过 `openspec:archive-closure`，不在工作树保留 archive 目录。
 
 ## File-Scoped Red Lines
 
 - `AGENTS.md`：只保留 mission、gates、validation、red lines 和 trigger-based pointers；不要重新长成 README、架构转储或命令镜像。
 - `openspec/specs/`：写当前生效的行为/流程契约，不写临时实现笔记。
-- `openspec/changes/`：存活跃 change；只有合并后且 spec 已同步时才归档到 `openspec/changes/archive/`。
+- `openspec/changes/`：存活跃 change；归档通过 agent-driven `openspec:archive-closure`。
 - `docs/adr/`：只记录会持续影响未来决策的长期选择。
 - `docs/sessions/`：记录讨论摘要；稳定结论继续上升到 ADR、OpenSpec、runbook 或 issue。
 - `src/generated/build-meta.ts`、`dist/`、release artifacts：视为生成物或发布产物，除非任务明确需要，不手工当作 source of truth 改写。

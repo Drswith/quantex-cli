@@ -68,7 +68,7 @@ The oxfmt configuration SHALL enable `package.json` script sorting to minimize m
 
 ### Requirement: Pre-commit lint and format enforcement
 
-The repository SHALL enforce lint and format on staged files before each commit through `simple-git-hooks` and `lint-staged`. The pre-commit hook MUST run `oxfmt` only on staged files supported by the formatter in this repository configuration, and MUST run `oxlint --fix` only on staged JavaScript or TypeScript files after formatting, so that the linter sees post-formatter content without being invoked on unsupported file types.
+The repository SHALL enforce lint and format on staged files before each commit through `simple-git-hooks` and `lint-staged`. The pre-commit hook MUST run `oxfmt` only on staged files supported by the formatter in this repository configuration, and MUST run `oxlint --fix` only on staged JavaScript or TypeScript files after formatting, so that the linter sees post-formatter content without being invoked on unsupported file types. When every matched JavaScript or TypeScript path is excluded by oxlint configuration, the lint invocation MUST be a successful no-op; real diagnostics for matched files MUST remain commit-blocking.
 
 #### Scenario: Contributor commits a staged file
 
@@ -76,7 +76,14 @@ The repository SHALL enforce lint and format on staged files before each commit 
 - **WHEN** the pre-commit hook runs
 - **THEN** the hook invokes `oxfmt` on staged formatter-supported files to write formatting fixes
 - **AND** then invokes `oxlint --fix` on staged JavaScript or TypeScript files
-- **AND** if either step fails, the commit is aborted
+- **AND** if either step finds a real failure, the commit is aborted
+
+#### Scenario: All staged TypeScript files are ignored by oxlint
+
+- **GIVEN** every staged JavaScript or TypeScript file is excluded by oxlint configuration
+- **WHEN** the pre-commit hook runs
+- **THEN** oxlint completes successfully without selecting a file
+- **AND** the commit is not blocked solely because no lintable target remains
 
 #### Scenario: Contributor stages OpenSpec archive metadata
 
@@ -151,7 +158,8 @@ The repository SHALL enforce a `pre-push` hook through `simple-git-hooks` that r
 #### Scenario: Contributor pushes a branch
 
 - **WHEN** a contributor pushes commits from a clone with repository hooks installed
-- **THEN** the `pre-push` hook MUST run `bun run format:check`
+- **THEN** the `pre-push` hook MUST run `bun run lint`
+- **AND** it MUST run `bun run format:check`
 - **AND** it MUST run `bun run typecheck`
 - **AND** it MUST run `bun run openspec:validate`
 - **AND** it MUST run `bun run memory:check`
@@ -318,3 +326,4 @@ When lint-staged selects files deliberately excluded by the repository formatter
 - **THEN** supported files MUST still run through oxfmt
 - **AND** staged JavaScript and TypeScript MUST still run through `oxlint --fix` after formatting
 - **AND** any real formatter or linter failure MUST still abort the commit
+

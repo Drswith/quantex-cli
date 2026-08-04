@@ -12,7 +12,6 @@ export interface ReleaseIdentityInput {
   ciSha: string | null
   commitSha: string
   commitTitle: string
-  mode: 'publish' | 'seal'
   packageVersion: string
   requestedBranch: string
   requestedTag: string
@@ -42,7 +41,7 @@ export function validateReleaseIdentity(input: ReleaseIdentityInput): ReleaseIde
 
   if (input.requestedBranch !== targetBranch)
     throw new Error(
-      `Release ${input.packageVersion} must be sealed from ${targetBranch}, not ${input.requestedBranch}.`,
+      `Release ${input.packageVersion} must be published from ${targetBranch}, not ${input.requestedBranch}.`,
     )
   if (input.requestedTag !== expectedTag)
     throw new Error(`Release tag ${input.requestedTag} does not match package version ${input.packageVersion}.`)
@@ -50,15 +49,13 @@ export function validateReleaseIdentity(input: ReleaseIdentityInput): ReleaseIde
     throw new Error(`Release commit title must be exactly "${expectedTitle}", found "${input.commitTitle}".`)
   if (!input.branchContainsSha)
     throw new Error(`Release commit ${input.commitSha} is not reachable from ${targetBranch}.`)
-  if (input.mode === 'seal' && input.branchHeadSha !== input.commitSha)
+  if (input.branchHeadSha !== input.commitSha)
     throw new Error(
-      `Release sealing requires the exact ${targetBranch} head ${input.branchHeadSha}, found ${input.commitSha}.`,
+      `Publication requires the exact ${targetBranch} head ${input.branchHeadSha}, found ${input.commitSha}.`,
     )
   if (input.ciSha !== input.commitSha)
     throw new Error(`Release commit ${input.commitSha} lacks successful protected-branch push CI.`)
-  if (input.tagSha && input.tagSha !== input.commitSha)
-    throw new Error(`Existing tag ${expectedTag} points to ${input.tagSha}, not ${input.commitSha}.`)
-  if (input.mode === 'publish' && input.tagSha !== input.commitSha)
+  if (input.tagSha !== input.commitSha)
     throw new Error(`Publication requires ${expectedTag} to point to ${input.commitSha}.`)
 
   return {
@@ -73,22 +70,19 @@ export function validateReleaseIdentity(input: ReleaseIdentityInput): ReleaseIde
 }
 
 if (import.meta.main) {
-  const mode = process.argv[2]
-  if (mode !== 'seal' && mode !== 'publish') throw new Error('Usage: release-seal-contract.ts <seal|publish>')
-  const identity = await resolveReleaseIdentity(mode)
+  const identity = await resolveReleaseIdentity()
   await writeGithubOutputs(identity)
   console.log(JSON.stringify(identity))
 }
 
-async function resolveReleaseIdentity(mode: 'publish' | 'seal'): Promise<ReleaseIdentity> {
+async function resolveReleaseIdentity(): Promise<ReleaseIdentity> {
   const manifest = JSON.parse(await readFile(new URL('../package.json', import.meta.url), 'utf8')) as {
     version?: string
   }
   const packageVersion = manifest.version ?? ''
   const prerelease = packageVersion.includes('-')
-  const derivedBranch = prerelease ? 'beta' : 'main'
-  const requestedBranch = mode === 'seal' ? (process.env.RELEASE_TARGET_BRANCH ?? '') : derivedBranch
-  const requestedTag = mode === 'seal' ? `v${packageVersion}` : (process.env.GITHUB_REF_NAME ?? '')
+  const requestedBranch = prerelease ? 'beta' : 'main'
+  const requestedTag = process.env.GITHUB_REF_NAME ?? ''
   const commitSha = await git(['rev-parse', 'HEAD'])
   const branchHeadSha = await git(['rev-parse', `origin/${requestedBranch}`])
   const commitTitle = await git(['log', '-1', '--pretty=%s', commitSha])
@@ -102,7 +96,6 @@ async function resolveReleaseIdentity(mode: 'publish' | 'seal'): Promise<Release
     ciSha,
     commitSha,
     commitTitle,
-    mode,
     packageVersion,
     requestedBranch,
     requestedTag,
