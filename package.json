@@ -67,6 +67,7 @@
     "ci:pr-merge-commit-policy": "bun run scripts/pr-merge-commit-policy.ts",
     "ci:release-pr-policy": "bun run scripts/release-pr-policy.js",
     "ci:release-publish-contract": "bun run scripts/release-seal-contract.ts",
+    "ci:release-tag-backstop": "bun run scripts/release-tag-backstop.ts",
     "core-catalog:write": "bun run scripts/write-core-agent-catalog.ts",
     "dev": "bun run src/cli.ts",
     "format": "oxfmt",

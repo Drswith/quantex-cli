@@ -111,6 +111,8 @@ describe('workflow classification integration', () => {
   it('uses automatic release-please on protected-branch push', () => {
     expect(extractYamlList(extractEventBlock(releasePleaseWorkflow, 'push'), 'branches')).toEqual(['main', 'beta'])
     expect(releasePleaseWorkflow).toContain('skip-github-release: true')
+    expect(releasePleaseWorkflow).toContain('tag-release-backstop')
+    expect(releasePleaseWorkflow).toContain('ci:release-tag-backstop')
     expect(releasePleaseWorkflow).toContain('googleapis/release-please-action@45996ed1f6d02564a971a2fa1b5860e934307cf7')
     expect(releaseWorkflow).toContain('bun run ci:release-publish-contract')
     expect(releaseWorkflow).not.toContain('bun run test')

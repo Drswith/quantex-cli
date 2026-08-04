@@ -88,7 +88,7 @@ async function resolveReleaseIdentity(): Promise<ReleaseIdentity> {
   const commitTitle = await git(['log', '-1', '--pretty=%s', commitSha])
   const branchContainsSha = await isAncestor(commitSha, branchHeadSha)
   const tagSha = await readTagSha(requestedTag)
-  const ciSha = await findSuccessfulCiSha({ branch: requestedBranch, sha: commitSha })
+  const ciSha = await findSuccessfulProtectedBranchCiSha({ branch: requestedBranch, sha: commitSha })
 
   return validateReleaseIdentity({
     branchContainsSha,
@@ -103,7 +103,10 @@ async function resolveReleaseIdentity(): Promise<ReleaseIdentity> {
   })
 }
 
-async function findSuccessfulCiSha(input: { branch: string; sha: string }): Promise<string | null> {
+export async function findSuccessfulProtectedBranchCiSha(input: {
+  branch: string
+  sha: string
+}): Promise<string | null> {
   const repository = process.env.GITHUB_REPOSITORY
   const token = process.env.GITHUB_TOKEN ?? process.env.GH_TOKEN
   if (!repository) throw new Error('GITHUB_REPOSITORY is required.')
