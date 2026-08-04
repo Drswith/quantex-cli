@@ -2,6 +2,13 @@
 
 This changelog is maintained by release-please Release PRs.
 
+## [1.8.2](https://github.com/Drswith/quantex-cli/compare/v1.8.1...v1.8.2) (2026-08-04)
+
+
+### Bug Fixes
+
+* **release:** add tag backstop for manually merged Release PRs ([5bcf697](https://github.com/Drswith/quantex-cli/commit/5bcf69713d2d4bc35f24871583fdfdd7f2404829))
+
 ## [1.8.1](https://github.com/Drswith/quantex-cli/compare/v1.8.0...v1.8.1) (2026-08-03)
 
 
