@@ -333,17 +333,6 @@ Agents and contributors SHALL perform delivery closure checks before reporting i
 - **THEN** the agent MAY report the task as closed
 - **AND** the report MUST include the checked closure state rather than only a code-change summary
 
-### Requirement: Root markdown allowlist SHALL track canonical README entry points
-
-Repository-native project-memory checks MUST allow the current canonical root README files used for the product landing page and language switching.
-
-#### Scenario: Repository checks root markdown files
-
-- **WHEN** `bun run memory:check` evaluates root-level markdown files
-- **THEN** it allows `README.md` as the canonical English landing page
-- **AND** it allows `README.zh-CN.md` as the Simplified Chinese product entry point
-- **AND** it may continue allowing compatibility README aliases that remain intentionally present
-
 ### Requirement: Repository workflow scripts MUST remain guardrails instead of orchestration commands
 
 Repository scripts that support the agent workflow SHALL remain focused on validation, classification, generation of build or release artifacts, and other executable guardrails. The project MUST NOT add repo-local workflow wrapper commands when central runtime instructions plus official CLIs such as `gh`, `git`, and `openspec` can perform the action with the same reviewability.

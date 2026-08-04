@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest'
 import {
   compareReleaseVersions,
   validateReleasePrPolicy as validateReleasePrPolicyImplementation,
-} from '../scripts/release-pr-policy.js'
+} from '../scripts/release-pr-policy'
 
 type ReleasePrPolicyInput = Parameters<typeof validateReleasePrPolicyImplementation>[0]
 type TestReleasePrPolicyInput = Omit<ReleasePrPolicyInput, 'rootManifest'> &
@@ -204,6 +204,46 @@ describe('release PR policy', () => {
         changedFiles: validChangedFiles,
         headBranch: 'release-please--branches--main--components--quantex-cli',
         title: 'chore: release 1.1.1',
+      }),
+    ).toEqual([])
+  })
+
+  it('rejects an undeclared major bump on the stable line', () => {
+    const issues = validateReleasePrPolicy({
+      baseBranch: 'main',
+      baseVersion: '1.8.2',
+      body: validBody,
+      changedFiles: validChangedFiles,
+      headBranch: 'release-please--branches--main--components--quantex-cli',
+      title: 'chore: release 2.0.0',
+    })
+
+    expect(issues.join('\n')).toContain('major bump from "1.8.2"')
+    expect(issues.join('\n')).toContain('Release-As: 2.0.0')
+  })
+
+  it('accepts a major bump explicitly declared in the Release PR body', () => {
+    expect(
+      validateReleasePrPolicy({
+        baseBranch: 'main',
+        baseVersion: '1.8.2',
+        body: `${validBody}\nRelease-As: 2.0.0\n`,
+        changedFiles: validChangedFiles,
+        headBranch: 'release-please--branches--main--components--quantex-cli',
+        title: 'chore: release 2.0.0',
+      }),
+    ).toEqual([])
+  })
+
+  it('does not apply the major-bump gate to beta release lines', () => {
+    expect(
+      validateReleasePrPolicy({
+        baseBranch: 'beta',
+        baseVersion: '1.9.0-beta.1',
+        body: validBody,
+        changedFiles: validChangedFiles,
+        headBranch: 'release-please--branches--beta--components--quantex-cli',
+        title: 'chore: release 2.0.0-beta.1',
       }),
     ).toEqual([])
   })

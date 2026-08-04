@@ -39,25 +39,35 @@ function extractYamlList(block: string, key: string): string[] {
 }
 
 describe('workflow classification integration', () => {
-  it('routes CI scope classification through the shared taxonomy script', () => {
+  it('routes CI context collection and scope classification through shared scripts', () => {
+    expect(ciWorkflow).toContain('bun run ci:context')
     expect(ciWorkflow).toContain('bun run ci:path-taxonomy')
     expect(ciWorkflow).toContain('CHANGED_FILES_JSON')
     expect(ciWorkflow).not.toContain('const productImpactingPrefixes = [')
+    expect(ciWorkflow).not.toContain('actions/github-script')
   })
 
-  it('routes governance scope classification through the shared taxonomy script', () => {
+  it('routes governance scope classification through the shared taxonomy outputs', () => {
     expect(ciWorkflow).toContain('governance:')
+    expect(ciWorkflow).toContain('needs: classify')
     expect(ciWorkflow).toContain('bun run pr:body:check')
     expect(ciWorkflow).not.toContain("fileName.startsWith('src/')")
   })
 
-  it('routes sandbox workflow classification through the shared taxonomy script', () => {
+  it('routes sandbox workflow classification through the same shared scripts', () => {
+    expect(sandboxWorkflow).toContain('bun run ci:context')
     expect(sandboxWorkflow).toContain('bun run ci:path-taxonomy')
     expect(sandboxWorkflow).toContain('sandbox_relevant')
+    expect(sandboxWorkflow).toContain('trusted_pr')
+    expect(sandboxWorkflow).not.toContain('actions/github-script')
     expect(sandboxWorkflow).toContain(
       'QTX_ISOLATION_SCENARIOS=managed,deno-managed,uv-managed,adopt-preinstalled,ambiguous-multi-method,self-binary',
     )
-    expect(sandboxWorkflow).not.toContain("'src/self/**'")
+  })
+
+  it('marks sandbox tests as advisory rather than a required gate', () => {
+    expect(sandboxWorkflow).toContain('Advisory')
+    expect(sandboxWorkflow).toContain('NOT a required merge gate')
   })
 
   it('runs CI and sandbox only for main and beta', () => {
@@ -76,22 +86,22 @@ describe('workflow classification integration', () => {
     expect(ciWorkflow).toContain('bun run package:check')
   })
 
-  it('skips Windows test job for pull requests', () => {
+  it('runs Windows tests for product-impacting pull requests', () => {
     expect(ciWorkflow).toContain('name: test (windows-latest)')
-    expect(ciWorkflow).toContain("github.event_name != 'pull_request'")
+    expect(ciWorkflow).not.toContain("github.event_name != 'pull_request'")
   })
 
-  it('preserves the five live merge-gate contexts without classify', () => {
+  it('preserves the live merge-gate contexts without classify', () => {
     const requiredContexts = [
       'lint',
+      'governance',
       'test (ubuntu-latest)',
       'test (windows-latest)',
       'test (macos-latest)',
-      'sandbox-tests',
     ]
 
     for (const context of requiredContexts) {
-      expect(ciWorkflow + sandboxWorkflow).toContain(context)
+      expect(ciWorkflow).toContain(context)
     }
 
     expect(ciWorkflow).not.toContain('name: classify')
@@ -111,11 +121,20 @@ describe('workflow classification integration', () => {
   it('uses automatic release-please on protected-branch push', () => {
     expect(extractYamlList(extractEventBlock(releasePleaseWorkflow, 'push'), 'branches')).toEqual(['main', 'beta'])
     expect(releasePleaseWorkflow).toContain('skip-github-release: true')
-    expect(releasePleaseWorkflow).toContain('tag-release-backstop')
-    expect(releasePleaseWorkflow).toContain('ci:release-tag-backstop')
+    expect(releasePleaseWorkflow).toContain('tag-release')
+    expect(releasePleaseWorkflow).toContain('ci:tag-release')
     expect(releasePleaseWorkflow).toContain('./.github/actions/setup-bun')
     expect(releasePleaseWorkflow).toContain('googleapis/release-please-action@45996ed1f6d02564a971a2fa1b5860e934307cf7')
-    expect(releaseWorkflow).toContain('bun run ci:release-publish-contract')
+    expect(releasePleaseWorkflow).not.toContain('workflow_dispatch')
+  })
+
+  it('runs the release pipeline through testable scripts instead of inline heredocs', () => {
+    expect(releaseWorkflow).toContain('bun run release:candidate')
+    expect(releaseWorkflow).toContain('bun run scripts/verify-release-candidate.ts download-check')
+    expect(releaseWorkflow).toContain('bun run scripts/verify-release-candidate.ts npm-state')
+    expect(releaseWorkflow).toContain('bun run scripts/verify-release-candidate.ts assets-check')
+    expect(releaseWorkflow).toContain('bun run scripts/verify-release-candidate.ts registry-closure')
+    expect(releaseWorkflow).not.toContain('node --input-type=module')
     expect(releaseWorkflow).not.toContain('bun run test')
   })
 })

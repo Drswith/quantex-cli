@@ -120,10 +120,10 @@ Common symptoms and likely causes:
 
 ### 4. Inspect manifest and checksum consistency
 
-Canonical validator:
+Canonical validator (the artifact pipeline validates itself end to end):
 
 ```bash
-bun run scripts/verify-release-artifacts.ts
+bun run release:artifacts
 ```
 
 What this should guarantee:

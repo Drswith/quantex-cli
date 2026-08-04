@@ -9,8 +9,8 @@
 
 ## Agent Quickstart
 
-1. 先读取 `skills/quantex-agent-runtime/SKILL.md`，再按其仓库内流程启动任务。
-2. 分类当前请求，判断是否触发 OpenSpec intake gate。
+1. 先读取 `skills/quantex-agent-runtime/SKILL.md`，再按其仓库内流程启动任务。完整工作流（intake gate、validation routing、delivery/archive closure）只维护在那一份文件里。
+2. 分类当前请求，判断是否触发 OpenSpec intake gate（见下）。
 3. 只要改动 observable behavior、durable workflow、project memory 或 product-facing docs，就先选择或创建 OpenSpec change。
 4. 用 `bun run openspec:status -- --change <id>` 和 `bunx openspec instructions <artifact> --change <id>` 确认下一步。
 5. 先做最小闭环实现，再同步更新相关 spec、ADR、session、issue 或 docs。
@@ -41,6 +41,7 @@
 
 ```bash
 bun install
+bun run setup
 bun run lint
 bun run format
 bun run format:check
@@ -53,6 +54,7 @@ bun run memory:check
 bun run build
 bun run build:bin
 bun run release:artifacts
+bun run release:dry-run
 ```
 
 触发规则：
@@ -61,30 +63,17 @@ bun run release:artifacts
 - 改了 CLI 行为、结构化输出、契约或集成逻辑：再跑 `bun run test`
 - 改了 OpenSpec / docs / project memory 流程：跑 `bun run openspec:validate`，必要时跑 `bun run memory:check`
 - 改了构建、发布、自升级或 release artifacts：补跑 `bun run build`、`bun run build:bin`、`bun run release:artifacts`
+- 改了发布管线脚本或 `release.yml`：先跑 `bun run release:dry-run` 本地演练完整候选链
 - lint 由 `oxlint` 提供，format 由 `oxfmt` 提供（配置见 `.oxlintrc.json` / `.oxfmtrc.json`）；不要再引入 `eslint`、`@antfu/eslint-config` 或 `prettier`
+- `bunfig.toml` 的 `ignoreScripts=true` 会阻止 `prepare` 自动安装 git hooks；`bun install` 后必须跑一次 `bun run setup`，hooks 定义变更后重跑
 
 ## Work Intake Gate
 
-实现、续做、收尾、直接执行类请求都必须先分类。
+实现、续做、收尾、直接执行类请求都必须先分类。完整 gate 文本由 `skills/quantex-agent-runtime/SKILL.md` 唯一承载；此处只保留触发器：
 
-如果改动涉及以下任一项，先创建或选择 OpenSpec change：
+需要 OpenSpec change 的信号：observable CLI behavior、结构化输出/schema/命令目录、agent catalog 元数据、config/state/release/upgrade、架构边界、project memory 或 durable workflow、product-facing docs。
 
-- observable CLI behavior
-- stable structured output、schema、command catalog 或 machine-readable contract
-- agent registry/catalog fields、install methods、update strategy 或 version probing
-- configuration、state、cache、release、publishing 或 upgrade behavior
-- architecture boundaries，如 `core`、`surface`、services、package-manager、self-upgrade
-- project memory policy、durable workflow、OpenSpec rules、ADR/runbook process、GitHub collaboration flow
-- product-facing documentation that changes how users understand installation、commands、release 或 agent-facing usage
-
-只有这些情况可以不走 OpenSpec：
-
-- typo 或 formatting-only edits
-- 不改变产品/流程含义的小型 wording cleanup
-- 没有行为、契约或 durable-process 影响的机械维护
-- 不重定义预期行为的 test-only cleanup
-
-如果不走 OpenSpec，要先简短说明分类；拿不准时，优先走 OpenSpec。
+可以不走 OpenSpec 的信号：typo、formatting-only、无行为或流程含义的小型 cleanup、纯机械维护、不改变预期行为的 test-only 调整。不走 OpenSpec 时要先简短说明分类；拿不准时，优先走 OpenSpec。
 
 ## Delivery Closure Gate
 
@@ -117,6 +106,8 @@ PR body：基于 `.github/pull_request_template.md` 写 body 文件 → `bun run
   `README.md`、`README.zh-CN.md`、`README.en.md`、`openspec/specs/product-readme/spec.md`
 - 改 lint / format 工具链、IDE 推荐扩展、pre-commit 钩子：
   `.oxlintrc.json`、`.oxfmtrc.json`、`package.json` (`scripts`、`lint-staged`、`simple-git-hooks`)、`.vscode/extensions.json`、`.vscode/settings.json`、`openspec/specs/code-quality-tooling/spec.md`
+- 改发布流程、Release PR 治理、tag 与发布：
+  `openspec/specs/release-workflow/spec.md`、`scripts/tag-release.ts`、`scripts/release-candidate.ts`、`scripts/release-seal-contract.ts`、`docs/releases.md`、`docs/runbooks/releasing-quantex.md`
 - 需要真实类型或默认值时，不要复制片段；直接看源码：
   `src/agents/types.ts`、`src/self/types.ts`、`src/config/default.ts`
 

@@ -17,10 +17,10 @@ jobs:
       actions: read
       contents: read
     outputs:
-      npm_tag: ${{ steps.release.outputs.npm_tag }}
-      prerelease: ${{ steps.release.outputs.prerelease }}
-      tag: ${{ steps.release.outputs.tag }}
-      version: ${{ steps.release.outputs.version }}
+      npm_tag: ${{ steps.candidate.outputs.npm_tag }}
+      prerelease: ${{ steps.candidate.outputs.prerelease }}
+      tag: ${{ steps.candidate.outputs.tag }}
+      version: ${{ steps.candidate.outputs.version }}
     steps:
       - name: Require an immutable version tag
         run: |
@@ -59,40 +59,19 @@ jobs:
             "refs/heads/${target_branch}:refs/remotes/origin/${target_branch}" \
             --tags
 
-      - name: Validate immutable release identity
-        id: release
-        env:
-          GITHUB_TOKEN: ${{ github.token }}
-        run: bun run ci:release-publish-contract
-
       - name: Install dependencies
         run: bun install --frozen-lockfile
 
-      - name: Build package once
-        run: bun run build
-
-      - name: Build standalone binaries once
-        run: bun run build:bin
-
-      - name: Generate release artifacts
-        run: bun run release:artifacts
-
-      - name: Smoke check current runner release binary
-        run: bun run release:smoke
-
-      - name: Verify bundled Core package contents
-        run: bun run package:check:core
-
-      - name: Stage exact release candidate
-        run: bun run scripts/stage-release-candidate.ts release-candidate
-
-      - name: Verify exact candidate tarball contents
-        run: bun run scripts/verify-package-distribution.ts release-candidate/npm/*.tgz
+      - name: Build and stage exact release candidate
+        id: candidate
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: bun run release:candidate
 
       - name: Upload exact release candidate
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
-          name: release-candidate-${{ steps.release.outputs.tag }}
+          name: release-candidate-${{ steps.candidate.outputs.tag }}
           if-no-files-found: error
           path: release-candidate
           retention-days: 30
@@ -113,6 +92,16 @@ jobs:
           name: release-candidate-${{ needs.build-candidate.outputs.tag }}
           path: release-candidate
 
+      - name: Checkout exact release tag
+        uses: actions/checkout@v7
+        with:
+          ref: ${{ github.ref }}
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.3.11
+
       - name: Setup Node.js for trusted publishing
         uses: actions/setup-node@v7
         with:
@@ -130,49 +119,13 @@ jobs:
         env:
           RELEASE_TAG: ${{ needs.build-candidate.outputs.tag }}
           RELEASE_VERSION: ${{ needs.build-candidate.outputs.version }}
-        run: |
-          set -euo pipefail
-          node --input-type=module <<'NODE'
-          import { createHash } from 'node:crypto'
-          import { readFile, stat } from 'node:fs/promises'
-
-          const candidate = JSON.parse(await readFile('release-candidate/candidate.json', 'utf8'))
-          if (candidate.tag !== process.env.RELEASE_TAG || candidate.version !== process.env.RELEASE_VERSION) {
-            throw new Error('Downloaded candidate identity does not match validated job outputs.')
-          }
-          for (const [directory, files] of [
-            ['assets', candidate.assets],
-            ['npm', [candidate.npm]],
-            ['', [candidate.releaseNotes]],
-          ]) {
-            for (const file of files) {
-              const path = `release-candidate/${directory}/${file.name}`
-              const contents = await readFile(path)
-              const sha256 = createHash('sha256').update(contents).digest('hex')
-              if ((await stat(path)).size !== file.size || sha256 !== file.sha256) {
-                throw new Error(`Downloaded candidate file mismatch: ${file.name}`)
-              }
-            }
-          }
-          NODE
+        run: bun run scripts/verify-release-candidate.ts download-check
 
       - name: Resolve exact npm publication state
         id: npm
         env:
           RELEASE_VERSION: ${{ needs.build-candidate.outputs.version }}
-        run: |
-          set -euo pipefail
-          error_file="$(mktemp)"
-          if integrity="$(npm view "quantex-cli@${RELEASE_VERSION}" dist.integrity --json 2>"${error_file}")"; then
-            echo "published=true" >> "${GITHUB_OUTPUT}"
-            echo "integrity=$(printf '%s' "${integrity}" | tr -d '[:space:]\"')" >> "${GITHUB_OUTPUT}"
-          elif grep -Eq 'E404|404 Not Found' "${error_file}"; then
-            echo "published=false" >> "${GITHUB_OUTPUT}"
-          else
-            tr '\n' ' ' < "${error_file}"
-            exit 1
-          fi
-          rm -f "${error_file}"
+        run: bun run scripts/verify-release-candidate.ts npm-state
 
       - name: Verify existing npm candidate integrity
         if: ${{ steps.npm.outputs.published == 'true' }}
@@ -210,23 +163,7 @@ jobs:
         env:
           GH_TOKEN: ${{ steps.release-bot-token.outputs.token }}
           RELEASE_TAG: ${{ needs.build-candidate.outputs.tag }}
-        run: |
-          set -euo pipefail
-          gh release view "${RELEASE_TAG}" --json assets,tagName > release-candidate/github-release.json
-          node --input-type=module <<'NODE'
-          import { readFile } from 'node:fs/promises'
-
-          const candidate = JSON.parse(await readFile('release-candidate/candidate.json', 'utf8'))
-          const release = JSON.parse(await readFile('release-candidate/github-release.json', 'utf8'))
-          if (release.tagName !== candidate.tag) throw new Error('GitHub Release tag does not match the candidate.')
-          const assets = new Map(release.assets.map(asset => [asset.name, asset]))
-          for (const asset of candidate.assets) {
-            const uploaded = assets.get(asset.name)
-            if (uploaded?.size !== asset.size || uploaded.digest !== `sha256:${asset.sha256}`) {
-              throw new Error(`GitHub Release asset is missing or does not match: ${asset.name}`)
-            }
-          }
-          NODE
+        run: bun run scripts/verify-release-candidate.ts assets-check
 
       - name: Publish exact CLI candidate tarball
         if: ${{ steps.npm.outputs.published != 'true' }}
@@ -235,18 +172,7 @@ jobs:
       - name: Verify npm registry closure
         env:
           RELEASE_VERSION: ${{ needs.build-candidate.outputs.version }}
-        run: |
-          set -euo pipefail
-          candidate_integrity="$(node -p "require('./release-candidate/candidate.json').npm.integrity")"
-          for attempt in $(seq 1 12); do
-            registry_integrity="$(npm view "quantex-cli@${RELEASE_VERSION}" dist.integrity --json 2>/dev/null | tr -d '[:space:]\"' || true)"
-            if [ "${registry_integrity}" = "${candidate_integrity}" ]; then
-              exit 0
-            fi
-            if [ "${attempt}" -lt 12 ]; then sleep 5; fi
-          done
-          echo "npm registry integrity did not converge to the validated candidate."
-          exit 1
+        run: bun run scripts/verify-release-candidate.ts registry-closure
 
       - name: Publish recovered GitHub Release
         env:
