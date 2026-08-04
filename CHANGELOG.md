@@ -2,6 +2,13 @@
 
 This changelog is maintained by release-please Release PRs.
 
+## [1.8.2-beta](https://github.com/Drswith/quantex-cli/compare/v1.8.1...v1.8.2-beta) (2026-08-04)
+
+
+### Bug Fixes
+
+* **docs:** repair stale archive links after workflow redesign ([1b6ed99](https://github.com/Drswith/quantex-cli/commit/1b6ed9976346feb79858505ed019c722184534bb))
+
 ## [1.8.1](https://github.com/Drswith/quantex-cli/compare/v1.8.0...v1.8.1) (2026-08-03)
 
 
