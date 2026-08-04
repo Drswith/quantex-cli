@@ -37,6 +37,7 @@
     "quantex": "./dist/cli.mjs"
   },
   "workspaces": [
+    "apps/desktop",
     "packages/core"
   ],
   "files": [
@@ -62,6 +63,14 @@
     "build:cli": "bun run scripts/write-build-metadata.ts && tsdown --config tsdown.config.ts",
     "build:core": "bun run --cwd packages/core build",
     "core-catalog:write": "bun run scripts/write-core-agent-catalog.ts",
+    "desktop:build": "bun run --cwd apps/desktop tauri build",
+    "desktop:build:arm64": "bun run --cwd apps/desktop tauri build --target aarch64-apple-darwin",
+    "desktop:build:x64": "bun run --cwd apps/desktop tauri build --target x86_64-apple-darwin",
+    "desktop:dev": "bun run --cwd apps/desktop tauri dev",
+    "desktop:dev:web": "bun run --cwd apps/desktop dev",
+    "desktop:prepare-sidecars": "bun run scripts/prepare-desktop-sidecars.ts",
+    "desktop:test": "bun run --cwd apps/desktop test",
+    "desktop:typecheck": "bun run --cwd apps/desktop typecheck",
     "dev": "bun run src/cli.ts",
     "format": "oxfmt",
     "format:check": "oxfmt --check",
@@ -89,7 +98,7 @@
     "test:readonly-smoke": "vitest run test/read-only-lifecycle-smoke.test.ts test/read-only-lifecycle-timeout.test.ts test/read-only-lifecycle-provider-timeout.test.ts test/read-only-lifecycle-provider-signal.test.ts test/read-only-spawn-guard.test.ts",
     "test:sandbox": "bun run scripts/test-sandbox.ts",
     "test:watch": "vitest",
-    "typecheck": "bun run typecheck:cli && bun run typecheck:core",
+    "typecheck": "bun run typecheck:cli && bun run typecheck:core && bun run desktop:typecheck",
     "typecheck:cli": "tsc --noEmit",
     "typecheck:core": "tsc --noEmit --project packages/core/tsconfig.json"
   },

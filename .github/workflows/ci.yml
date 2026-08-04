@@ -219,3 +219,30 @@ jobs:
 
       - if: ${{ needs.classify.outputs.run_test_matrix == 'true' && runner.os != 'Windows' }}
         run: bun run test
+
+  desktop-macos:
+    needs: classify
+    if: ${{ needs.classify.outputs.run_test_matrix == 'true' }}
+    runs-on: macos-latest
+
+    steps:
+      - uses: actions/checkout@v7
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.3.11
+      - uses: actions/cache@v6
+        with:
+          path: .bun/install/cache
+          key: macos-bun-desktop-v1-${{ hashFiles('bun.lock', 'package.json', 'apps/desktop/package.json') }}
+          restore-keys: |
+            macos-bun-desktop-v1-
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: apps/desktop/src-tauri -> target
+      - run: bun install --frozen-lockfile --ignore-scripts --no-progress
+      - run: rustup target add aarch64-apple-darwin x86_64-apple-darwin
+      - run: bun run desktop:prepare-sidecars
+      - run: bun run desktop:test
+      - run: cargo test --manifest-path apps/desktop/src-tauri/Cargo.toml
+      - run: bun run desktop:build:arm64
+      - run: bun run desktop:build:x64
