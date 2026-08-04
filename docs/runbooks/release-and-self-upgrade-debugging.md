@@ -277,5 +277,5 @@ Stop and ask for human input when:
 - `openspec/specs/self-upgrade/spec.md`
 - `docs/adr/0002-keep-self-upgrade-and-agent-update-separate.md`
 - `docs/adr/0003-require-explicit-upgrade-invocation.md`
-- `openspec/changes/archive/qtx-0020-add-release-workflow-smoke-validation/proposal.md`
-- `openspec/changes/archive/qtx-0021-write-release-and-self-upgrade-debugging-runbook/proposal.md`
+- [qtx-0020 proposal (archived at ff65d61)](https://github.com/Drswith/quantex-cli/blob/ff65d61/openspec/changes/archive/qtx-0020-add-release-workflow-smoke-validation/proposal.md)
+- [qtx-0021 proposal (archived at ff65d61)](https://github.com/Drswith/quantex-cli/blob/ff65d61/openspec/changes/archive/qtx-0021-write-release-and-self-upgrade-debugging-runbook/proposal.md)

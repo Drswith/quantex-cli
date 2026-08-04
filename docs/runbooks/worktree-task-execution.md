@@ -63,5 +63,5 @@ Stop and ask for human input when:
 ## Related artifacts
 
 - [ADR 0004](../adr/0004-standardize-worktree-first-task-execution.md)
-- [qtx-0033 archive](../../openspec/changes/archive/qtx-0033-standardize-worktree-first-task-execution/proposal.md)
+- [qtx-0033 proposal (archived at ff65d61)](https://github.com/Drswith/quantex-cli/blob/ff65d61/openspec/changes/archive/qtx-0033-standardize-worktree-first-task-execution/proposal.md)
 - [GitHub Collaboration Flow](../github-collaboration.md)
