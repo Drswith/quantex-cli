@@ -171,7 +171,9 @@ async function dispatchReleaseWorkflow(input: { tag: string; token: string }): P
 
   const apiBaseUrl = process.env.GITHUB_API_URL ?? 'https://api.github.com'
   const dispatchUrl = new URL(`${apiBaseUrl}/repos/${repository}/actions/workflows/release.yml/dispatches`)
-  await githubApiFetch(dispatchUrl, input.token, {
+  // Use GITHUB_TOKEN for the dispatch because the GitHub App token may lack actions:write.
+  const dispatchToken = process.env.GITHUB_TOKEN ?? input.token
+  await githubApiFetch(dispatchUrl, dispatchToken, {
     method: 'POST',
     body: JSON.stringify({ ref: input.tag }),
   })
