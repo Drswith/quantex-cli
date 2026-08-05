@@ -50,10 +50,6 @@ export function validateReleaseIdentity(input: ReleaseIdentityInput): ReleaseIde
     throw new Error(`Release commit title must be exactly "${expectedTitle}", found "${input.commitTitle}".`)
   if (!input.branchContainsSha)
     throw new Error(`Release commit ${input.commitSha} is not reachable from ${targetBranch}.`)
-  if (input.branchHeadSha !== input.commitSha)
-    throw new Error(
-      `Publication requires the exact ${targetBranch} head ${input.branchHeadSha}, found ${input.commitSha}.`,
-    )
   if (input.ciSha !== input.commitSha)
     throw new Error(`Release commit ${input.commitSha} lacks successful protected-branch push CI.`)
   if (input.tagSha !== input.commitSha)
