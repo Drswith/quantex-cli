@@ -126,7 +126,7 @@
   "simple-git-hooks": {
     "commit-msg": "bun run scripts/ci/strip-cursor-coauthor.ts \"$1\"",
     "pre-commit": "bunx lint-staged",
-    "pre-push": "bun run lint && bun run format:check && bun run typecheck && bun run openspec:validate && bun run memory:check"
+    "pre-push": "bun run ci:commit-policy -- --mode local && bun run lint && bun run format:check && bun run typecheck && bun run openspec:validate && bun run memory:check"
   },
   "lint-staged": {
     "*.{js,mjs,cjs,jsx,ts,mts,cts,tsx}": [

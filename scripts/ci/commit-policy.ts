@@ -1,3 +1,4 @@
+import { spawnSync } from 'node:child_process'
 import process from 'node:process'
 
 export interface CommitMetadata {
@@ -17,7 +18,17 @@ export interface PullRequestMergeCommitPolicyInput {
   headBranch?: string
 }
 
-type CommitPolicyMode = 'push' | 'pr'
+type CommitPolicyMode = 'local' | 'push' | 'pr'
+
+// A commit message is multi-line, so neither newlines nor tabs can delimit git
+// log records safely; use the ASCII unit and record separators instead.
+const fieldSeparator = String.fromCharCode(0x1f)
+const recordSeparator = String.fromCharCode(0x1e)
+const gitLogFormat = '%H%x1f%an%x1f%ae%x1f%B%x1e'
+
+// Comparing against the branch point rather than the upstream ref keeps local
+// enforcement working after the first push, when upstream already equals HEAD.
+const defaultComparisonBases = ['origin/main', 'main'] as const
 
 const prohibitedTrailerPattern = /^co-authored-by:\s*/i
 const riskyAuthorPatterns = [/cursoragent@cursor\.com/i, /^cursor agent$/i, /\[bot\]@users\.noreply\.github\.com$/i]
@@ -36,6 +47,25 @@ export function validateCommitTrailerPolicy(input: CommitTrailerPolicyInput): st
     for (const line of offendingLines) {
       issues.push(`Commit ${sha.slice(0, 12)} contains prohibited trailer: ${line}`)
     }
+  }
+
+  return issues
+}
+
+export function validateCommitAuthorPolicy(input: CommitTrailerPolicyInput): string[] {
+  const issues: string[] = []
+
+  for (const commit of input.commits) {
+    const authorValues = [commit.authorEmail, commit.authorName].filter(Boolean) as string[]
+    if (!authorValues.some(value => riskyAuthorPatterns.some(pattern => pattern.test(value)))) continue
+
+    issues.push(
+      [
+        `Commit ${formatSha(commit.sha)} uses author metadata that can be re-emitted as a Co-authored-by trailer by GitHub squash merge.`,
+        `Author: ${formatAuthor(commit)}`,
+        'Re-author the commit to an allowed maintainer identity before merge.',
+      ].join('\n'),
+    )
   }
 
   return issues
@@ -77,24 +107,53 @@ export function validatePullRequestMergeCommitPolicy(input: PullRequestMergeComm
     )
   }
 
-  for (const commit of commits) {
-    const authorValues = [commit.authorEmail, commit.authorName].filter(Boolean) as string[]
-    if (!authorValues.some(value => riskyAuthorPatterns.some(pattern => pattern.test(value)))) continue
-
-    issues.push(
-      [
-        `Commit ${formatSha(commit.sha)} uses author metadata that can be re-emitted as a Co-authored-by trailer by GitHub squash merge.`,
-        `Author: ${formatAuthor(commit)}`,
-        'Re-author the commit to an allowed maintainer identity before merge.',
-      ].join('\n'),
-    )
-  }
+  issues.push(...validateCommitAuthorPolicy({ commits }))
 
   return issues
 }
 
+// Runs before a push, so it enforces only the rules that require rewriting
+// commits to fix: a prohibited trailer and a risky author identity. The
+// single-commit rule stays a merge-time gate, because blocking work-in-progress
+// pushes would only teach contributors to reach for --no-verify.
+export function validateLocalCommitPolicy(input: CommitTrailerPolicyInput): string[] {
+  return [...validateCommitTrailerPolicy(input), ...validateCommitAuthorPolicy(input)]
+}
+
+export function parseGitLogRecords(rawValue: string): CommitMetadata[] {
+  return rawValue
+    .split(recordSeparator)
+    .map(record => record.trim())
+    .filter(Boolean)
+    .map(record => {
+      const [sha = '', authorName = '', authorEmail = '', message = ''] = record.split(fieldSeparator)
+      return { authorEmail, authorName, message, sha }
+    })
+}
+
 if (import.meta.main) {
   const mode = parseMode(process.argv.slice(2))
+
+  if (mode === 'local') {
+    const localCommits = resolveLocalCommits(parseBase(process.argv.slice(2)))
+
+    if (!localCommits || localCommits.length === 0) {
+      console.log('Commit policy check (local mode) passed (no commits to validate).')
+      process.exit(0)
+    }
+
+    const localIssues = validateLocalCommitPolicy({ commits: localCommits })
+
+    if (localIssues.length > 0) {
+      console.error('Commit policy check (local mode) failed:\n')
+      for (const issue of localIssues) console.error(`- ${issue}`)
+      process.exit(1)
+    }
+
+    console.log(`Commit policy check (local mode) passed (${localCommits.length} commit(s)).`)
+    process.exit(0)
+  }
+
   const commits = parseCommits(
     process.argv.slice(2),
     mode === 'pr' ? process.env.PR_COMMITS_JSON : process.env.COMMITS_JSON,
@@ -117,15 +176,45 @@ if (import.meta.main) {
   console.log(`Commit policy check (${mode} mode) passed.`)
 }
 
+function runGit(args: string[]): string | undefined {
+  const result = spawnSync('git', args, { encoding: 'utf8' })
+  if (result.error || result.status !== 0) return undefined
+  return result.stdout
+}
+
+// Returns undefined when there is nothing meaningful to compare against. That
+// must stay a clean no-op: a fresh repository, a missing remote, or a detached
+// checkout is not a policy violation.
+function resolveLocalCommits(baseOverride: string | undefined): CommitMetadata[] | undefined {
+  const bases = baseOverride ? [baseOverride] : defaultComparisonBases
+  const base = bases.find(candidate => runGit(['rev-parse', '--verify', '--quiet', `${candidate}^{commit}`]))
+  if (!base) return undefined
+
+  const mergeBase = runGit(['merge-base', base, 'HEAD'])?.trim()
+  if (!mergeBase) return undefined
+
+  const log = runGit(['log', `${mergeBase}..HEAD`, `--format=${gitLogFormat}`])
+  if (log === undefined) return undefined
+
+  return parseGitLogRecords(log)
+}
+
 function parseMode(args: string[]): CommitPolicyMode {
   const modeIndex = args.indexOf('--mode')
   const mode = modeIndex >= 0 ? args[modeIndex + 1] : undefined
 
-  if (mode !== 'push' && mode !== 'pr') {
-    throw new Error('Usage: bun run scripts/ci/commit-policy.ts --mode <push|pr> [--commits-json <json>]')
+  if (mode !== 'local' && mode !== 'push' && mode !== 'pr') {
+    throw new Error(
+      'Usage: bun run scripts/ci/commit-policy.ts --mode <local|push|pr> [--commits-json <json>] [--base <ref>]',
+    )
   }
 
   return mode
+}
+
+function parseBase(args: string[]): string | undefined {
+  const baseIndex = args.indexOf('--base')
+  return baseIndex >= 0 ? args[baseIndex + 1] : undefined
 }
 
 function parseCommits(args: string[], commitsJsonEnv: string | undefined): CommitMetadata[] {

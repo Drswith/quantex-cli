@@ -1,5 +1,6 @@
 import { existsSync, readFileSync } from 'node:fs'
 import { describe, expect, it } from 'vitest'
+import { requiredPrBodyHeadings, validatePrBodyPolicy } from '../scripts/ci/pr-body-policy'
 
 const ciWorkflow = readFileSync('.github/workflows/ci.yml', 'utf8')
 const prTemplate = readFileSync('.github/pull_request_template.md', 'utf8')
@@ -102,5 +103,35 @@ describe('pr governance release intent', () => {
     expect(ciWorkflow).toContain('Validate release PR policy')
     expect(ciWorkflow).toContain('bun run ci:release-pr-policy')
     expect(ciWorkflow).toContain('PR_BASE_VERSION')
+  })
+})
+
+// Contributors are told to write PR bodies based on the shipped template, and
+// GitHub pre-populates it into every pull request. If the template cannot pass
+// the policy that guards it, following the documented process still fails CI.
+describe('pr template satisfies pr body governance', () => {
+  it('carries every heading the policy requires', () => {
+    for (const heading of requiredPrBodyHeadings) {
+      expect(prTemplate).toContain(heading)
+    }
+  })
+
+  it('passes the policy unmodified', () => {
+    expect(validatePrBodyPolicy({ body: prTemplate, title: 'chore: some change' })).toEqual([])
+  })
+
+  it('keeps generated release-please headers passing the same policy', () => {
+    for (const fileName of ['release-please-config.json', 'release-please-config.beta.json']) {
+      const config = JSON.parse(readFileSync(fileName, 'utf8')) as {
+        packages: { '.': { 'pull-request-header': string } }
+      }
+
+      expect(
+        validatePrBodyPolicy({
+          body: config.packages['.']['pull-request-header'],
+          title: 'chore: release 1.2.3',
+        }),
+      ).toEqual([])
+    }
   })
 })
