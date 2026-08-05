@@ -123,7 +123,7 @@ describe('ci-context', () => {
     expect(context.trustedPr).toBe(true)
   })
 
-  it('fails closed when gh api fails', async () => {
+  shimmedGh('fails closed when gh api fails', async () => {
     process.env.GITHUB_EVENT_NAME = 'pull_request'
     await writePayload({
       pull_request: {
