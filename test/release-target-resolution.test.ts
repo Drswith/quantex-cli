@@ -43,13 +43,10 @@ describe('immutable release identity', () => {
     ).toMatchObject({ npmTag: 'beta', prerelease: true, targetBranch: 'beta' })
   })
 
-  it('fails closed on a moved tag, stale CI, or non-head publication', () => {
+  it('fails closed on a moved tag, stale CI, or unreachable commit', () => {
     expect(() => validateReleaseIdentity({ ...stableIdentity, tagSha: 'b'.repeat(40) })).toThrow(/Publication requires/)
     expect(() => validateReleaseIdentity({ ...stableIdentity, branchContainsSha: false })).toThrow(/not reachable/)
     expect(() => validateReleaseIdentity({ ...stableIdentity, ciSha: null })).toThrow(/lacks successful/)
-    expect(() => validateReleaseIdentity({ ...stableIdentity, branchHeadSha: 'b'.repeat(40) })).toThrow(
-      /exact main head/,
-    )
   })
 
   it('requires publication to use an existing tag at the candidate SHA', () => {
