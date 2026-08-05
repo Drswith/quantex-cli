@@ -1,5 +1,13 @@
 # Changelog
 
+
+## [1.8.4](https://github.com/Drswith/quantex-cli/compare/v1.8.2...v1.8.4) (2026-08-05)
+
+
+### Bug Fixes
+
+* preserve downloaded release candidate across checkout and fix tag dispatch permissions ([0c2e2fc](https://github.com/Drswith/quantex-cli/commit/0c2e2fc22c89fd24c43c3ddd0524d55bcc7126d0))
+
 This changelog is maintained by release-please Release PRs.
 
 
