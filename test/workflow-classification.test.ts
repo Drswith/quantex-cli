@@ -130,10 +130,10 @@ describe('workflow classification integration', () => {
 
   it('runs the release pipeline through testable scripts instead of inline heredocs', () => {
     expect(releaseWorkflow).toContain('bun run release:candidate')
-    expect(releaseWorkflow).toContain('bun run scripts/verify-release-candidate.ts download-check')
-    expect(releaseWorkflow).toContain('bun run scripts/verify-release-candidate.ts npm-state')
-    expect(releaseWorkflow).toContain('bun run scripts/verify-release-candidate.ts assets-check')
-    expect(releaseWorkflow).toContain('bun run scripts/verify-release-candidate.ts registry-closure')
+    expect(releaseWorkflow).toContain('bun run scripts/release/verify-release-candidate.ts download-check')
+    expect(releaseWorkflow).toContain('bun run scripts/release/verify-release-candidate.ts npm-state')
+    expect(releaseWorkflow).toContain('bun run scripts/release/verify-release-candidate.ts assets-check')
+    expect(releaseWorkflow).toContain('bun run scripts/release/verify-release-candidate.ts registry-closure')
     expect(releaseWorkflow).not.toContain('node --input-type=module')
     expect(releaseWorkflow).not.toContain('bun run test')
   })

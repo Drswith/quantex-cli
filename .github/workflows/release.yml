@@ -119,13 +119,13 @@ jobs:
         env:
           RELEASE_TAG: ${{ needs.build-candidate.outputs.tag }}
           RELEASE_VERSION: ${{ needs.build-candidate.outputs.version }}
-        run: bun run scripts/verify-release-candidate.ts download-check
+        run: bun run scripts/release/verify-release-candidate.ts download-check
 
       - name: Resolve exact npm publication state
         id: npm
         env:
           RELEASE_VERSION: ${{ needs.build-candidate.outputs.version }}
-        run: bun run scripts/verify-release-candidate.ts npm-state
+        run: bun run scripts/release/verify-release-candidate.ts npm-state
 
       - name: Verify existing npm candidate integrity
         if: ${{ steps.npm.outputs.published == 'true' }}
@@ -163,7 +163,7 @@ jobs:
         env:
           GH_TOKEN: ${{ steps.release-bot-token.outputs.token }}
           RELEASE_TAG: ${{ needs.build-candidate.outputs.tag }}
-        run: bun run scripts/verify-release-candidate.ts assets-check
+        run: bun run scripts/release/verify-release-candidate.ts assets-check
 
       - name: Publish exact CLI candidate tarball
         if: ${{ steps.npm.outputs.published != 'true' }}
@@ -172,7 +172,7 @@ jobs:
       - name: Verify npm registry closure
         env:
           RELEASE_VERSION: ${{ needs.build-candidate.outputs.version }}
-        run: bun run scripts/verify-release-candidate.ts registry-closure
+        run: bun run scripts/release/verify-release-candidate.ts registry-closure
 
       - name: Publish recovered GitHub Release
         env:

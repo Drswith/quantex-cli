@@ -2,7 +2,7 @@ import type { CatalogSourceEntry, NormalizedInstallCandidate } from '../../src/a
 import { readFile } from 'node:fs/promises'
 import { join } from 'node:path'
 import { describe, expect, it } from 'vitest'
-import { projectCoreMutationRecipeCatalog } from '../../scripts/write-core-agent-catalog'
+import { projectCoreMutationRecipeCatalog } from '../../scripts/build/write-core-agent-catalog'
 import { catalogData } from '../../src/agents/generated/catalog-data'
 import { catalogSourceSchema } from '../../src/agents/schema'
 import { loadCoreMutationRecipeCatalog } from '../../src/core/mutation-recipe-catalog'

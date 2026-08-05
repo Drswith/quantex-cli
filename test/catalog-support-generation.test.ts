@@ -1,6 +1,6 @@
 import { readFile } from 'node:fs/promises'
 import { describe, expect, it } from 'vitest'
-import { buildAgentCatalogManifest } from '../scripts/write-agent-catalog-manifest'
+import { buildAgentCatalogManifest } from '../scripts/build/write-agent-catalog-manifest'
 
 describe('generated catalog support inputs', () => {
   it('derives provider, platform, target-kind, and probe coverage from normalized candidates', async () => {

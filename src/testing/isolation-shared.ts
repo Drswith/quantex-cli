@@ -58,6 +58,6 @@ function buildRemoteCommand(mountPath: string, smokeArgs: string[]): string {
     `cp -R ${quoteForShell(mountPath)} /tmp/quantex-work`,
     'cd /tmp/quantex-work',
     'bun install --frozen-lockfile --ignore-scripts --no-progress',
-    `bun run scripts/lifecycle-smoke.ts${quotedArgs ? ` ${quotedArgs}` : ''}`,
+    `bun run scripts/smoke/lifecycle-smoke.ts${quotedArgs ? ` ${quotedArgs}` : ''}`,
   ].join(' && ')
 }

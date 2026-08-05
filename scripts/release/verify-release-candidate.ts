@@ -18,7 +18,7 @@ export interface ReleaseAssetsPayload {
 }
 
 const usage =
-  'Usage: bun run scripts/verify-release-candidate.ts <download-check|npm-state|assets-check|registry-closure> [candidate-root]'
+  'Usage: bun run scripts/release/verify-release-candidate.ts <download-check|npm-state|assets-check|registry-closure> [candidate-root]'
 
 if (import.meta.main) {
   const [subcommand, candidateRoot = 'release-candidate'] = process.argv.slice(2)

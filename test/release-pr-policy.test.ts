@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest'
 import {
   compareReleaseVersions,
   validateReleasePrPolicy as validateReleasePrPolicyImplementation,
-} from '../scripts/release-pr-policy'
+} from '../scripts/ci/release-pr-policy'
 
 type ReleasePrPolicyInput = Parameters<typeof validateReleasePrPolicyImplementation>[0]
 type TestReleasePrPolicyInput = Omit<ReleasePrPolicyInput, 'rootManifest'> &

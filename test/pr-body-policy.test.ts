@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { validatePrBodyPolicy } from '../scripts/pr-body-policy'
+import { validatePrBodyPolicy } from '../scripts/ci/pr-body-policy'
 
 const validBody = `## Summary
 

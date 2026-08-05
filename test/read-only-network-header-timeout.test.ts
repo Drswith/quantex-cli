@@ -6,7 +6,7 @@ import { delimiter, dirname, join, relative } from 'node:path'
 import process from 'node:process'
 import { fileURLToPath } from 'node:url'
 import { describe, expect, it } from 'vitest'
-import { resolveExecutableFromPath } from '../scripts/resolve-executable'
+import { resolveExecutableFromPath } from '../scripts/lib/resolve-executable'
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..')
 const CLI_PATH = join(ROOT, 'src', 'cli.ts')

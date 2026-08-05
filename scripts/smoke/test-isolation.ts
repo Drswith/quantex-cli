@@ -1,16 +1,16 @@
 import process from 'node:process'
-import { buildContainerSandboxInvocation, getMissingDockerCliMessage } from '../src/testing/container-sandbox'
+import { buildContainerSandboxInvocation, getMissingDockerCliMessage } from '../../src/testing/container-sandbox'
 import {
   buildModalSandboxInvocation,
   getMissingModalCliMessage,
   parseModalRemoteExitCode,
-} from '../src/testing/modal-sandbox'
+} from '../../src/testing/modal-sandbox'
 
 type IsolationBackend = 'docker' | 'modal'
 
 const backend = process.argv[2] as IsolationBackend | undefined
 if (backend !== 'docker' && backend !== 'modal') {
-  throw new Error('Usage: bun run scripts/test-isolation.ts <docker|modal> [smoke-args...]')
+  throw new Error('Usage: bun run scripts/smoke/test-isolation.ts <docker|modal> [smoke-args...]')
 }
 
 const smokeArgs = process.argv.slice(3)

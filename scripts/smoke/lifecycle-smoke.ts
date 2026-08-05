@@ -2,15 +2,15 @@ import { access, chmod, cp, mkdir, mkdtemp, readFile, readdir, rm, writeFile } f
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import process from 'node:process'
-import { loadConfig } from '../src/config'
-import { resolveManagedSelfUpdateRegistry } from '../src/self'
-import { getStateFilePath } from '../src/state'
+import { loadConfig } from '../../src/config'
+import { resolveManagedSelfUpdateRegistry } from '../../src/self'
+import { getStateFilePath } from '../../src/state'
 import {
   buildSelfManagedRegistryMetadata,
   parsePackedTarballName,
   resolveBunGlobalBinaryPath,
   SEEDED_SELF_VERSION,
-} from '../src/testing/self-upgrade-sandbox'
+} from '../../src/testing/self-upgrade-sandbox'
 
 interface CommandOutput {
   exitCode: number
@@ -173,7 +173,7 @@ async function smokeUvManagedLifecycle(): Promise<void> {
   try {
     await installFakeUv(fakeBinDir, fakeUvLog)
     console.log('\n[uv] managed lifecycle')
-    await runText('uv managed lifecycle', ['bun', 'run', 'scripts/pm-lifecycle-smoke.ts', 'uv'], {
+    await runText('uv managed lifecycle', ['bun', 'run', 'scripts/smoke/pm-lifecycle-smoke.ts', 'uv'], {
       env: {
         PATH: `${fakeBinDir}:${process.env.PATH ?? ''}`,
         QTX_FAKE_UV_LOG: fakeUvLog,
@@ -211,7 +211,7 @@ async function smokeDenoManagedLifecycle(): Promise<void> {
   try {
     await installFakeDeno(fakeBinDir, fakeDenoLog)
     console.log('\n[deno] managed lifecycle')
-    await runText('deno managed lifecycle', ['bun', 'run', 'scripts/pm-lifecycle-smoke.ts', 'deno'], {
+    await runText('deno managed lifecycle', ['bun', 'run', 'scripts/smoke/pm-lifecycle-smoke.ts', 'deno'], {
       env: {
         PATH: `${fakeBinDir}:${process.env.PATH ?? ''}`,
         QTX_FAKE_DENO_LOG: fakeDenoLog,
@@ -248,7 +248,7 @@ async function smokeCargoManagedLifecycle(): Promise<void> {
   try {
     await installFakeCargo(fakeBinDir, fakeCargoLog)
     console.log('\n[cargo] managed lifecycle')
-    await runText('cargo managed lifecycle', ['bun', 'run', 'scripts/pm-lifecycle-smoke.ts', 'cargo'], {
+    await runText('cargo managed lifecycle', ['bun', 'run', 'scripts/smoke/pm-lifecycle-smoke.ts', 'cargo'], {
       env: {
         PATH: `${fakeBinDir}:${process.env.PATH ?? ''}`,
         QTX_FAKE_CARGO_LOG: fakeCargoLog,
@@ -280,7 +280,7 @@ async function smokeCargoRealAgentLifecycle(): Promise<void> {
   await ensureCargoRealSmokeDependencies(cargoPath)
 
   console.log(`[cargo:${agent}] managed lifecycle through catalog cargo method`)
-  await runText(`cargo real agent lifecycle ${agent}`, ['bun', 'run', 'scripts/pm-lifecycle-smoke.ts', 'cargo'], {
+  await runText(`cargo real agent lifecycle ${agent}`, ['bun', 'run', 'scripts/smoke/pm-lifecycle-smoke.ts', 'cargo'], {
     env: {
       PATH: cargoPath,
       QTX_CARGO_SMOKE_AGENT: agent,

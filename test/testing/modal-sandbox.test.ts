@@ -35,7 +35,7 @@ describe('buildModalSandboxInvocation', () => {
     ])
     expect(invocation.remoteCommand).toContain("cp -R '/mnt/quantex-cli' /tmp/quantex-work")
     expect(invocation.remoteCommand).toContain('bun install --frozen-lockfile --ignore-scripts --no-progress')
-    expect(invocation.remoteCommand).toContain('bun run scripts/lifecycle-smoke.ts')
+    expect(invocation.remoteCommand).toContain('bun run scripts/smoke/lifecycle-smoke.ts')
     expect(invocation.remoteCommand).toContain(MODAL_REMOTE_EXIT_CODE_MARKER)
   })
 
@@ -46,7 +46,7 @@ describe('buildModalSandboxInvocation', () => {
     })
 
     expect(invocation.smokeArgs).toEqual(['pi', 'opencode'])
-    expect(invocation.remoteCommand).toContain("bun run scripts/lifecycle-smoke.ts 'pi' 'opencode'")
+    expect(invocation.remoteCommand).toContain("bun run scripts/smoke/lifecycle-smoke.ts 'pi' 'opencode'")
   })
 })
 

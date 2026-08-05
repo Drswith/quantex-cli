@@ -73,7 +73,7 @@ if (import.meta.main) {
 }
 
 async function resolveReleaseIdentity(): Promise<ReleaseIdentity> {
-  const manifest = JSON.parse(await readFile(new URL('../package.json', import.meta.url), 'utf8')) as {
+  const manifest = JSON.parse(await readFile(new URL('../../package.json', import.meta.url), 'utf8')) as {
     version?: string
   }
   const packageVersion = manifest.version ?? ''

@@ -107,7 +107,7 @@ PR body：基于 `.github/pull_request_template.md` 写 body 文件 → `bun run
 - 改 lint / format 工具链、IDE 推荐扩展、pre-commit 钩子：
   `.oxlintrc.json`、`.oxfmtrc.json`、`package.json` (`scripts`、`lint-staged`、`simple-git-hooks`)、`.vscode/extensions.json`、`.vscode/settings.json`、`openspec/specs/code-quality-tooling/spec.md`
 - 改发布流程、Release PR 治理、tag 与发布：
-  `openspec/specs/release-workflow/spec.md`、`scripts/tag-release.ts`、`scripts/release-candidate.ts`、`scripts/release-seal-contract.ts`、`docs/releases.md`、`docs/runbooks/releasing-quantex.md`
+  `openspec/specs/release-workflow/spec.md`、`scripts/release/tag-release.ts`、`scripts/release/release-candidate.ts`、`scripts/release/release-seal-contract.ts`、`docs/releases.md`、`docs/runbooks/releasing-quantex.md`
 - 需要真实类型或默认值时，不要复制片段；直接看源码：
   `src/agents/types.ts`、`src/self/types.ts`、`src/config/default.ts`
 

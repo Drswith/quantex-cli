@@ -4,8 +4,8 @@ import {
   assertOpenSpecTasksComplete,
   createArchivePrBody,
   parseOpenSpecApplyInstructions,
-} from '../scripts/openspec-archive-closure'
-import { validatePrBodyPolicy } from '../scripts/pr-body-policy'
+} from '../scripts/ci/openspec-archive-closure'
+import { validatePrBodyPolicy } from '../scripts/ci/pr-body-policy'
 
 describe('OpenSpec archive closure helper', () => {
   it('generates a PR body accepted by local governance policy', () => {

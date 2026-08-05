@@ -5,7 +5,7 @@ import { tmpdir } from 'node:os'
 import { delimiter, join } from 'node:path'
 import process from 'node:process'
 import { afterEach, describe, expect, it } from 'vitest'
-import { resolveExecutableFromPath } from '../../scripts/resolve-executable'
+import { resolveExecutableFromPath } from '../../scripts/lib/resolve-executable'
 import { firstPartyProviderRegistry } from '../../src/providers'
 
 const availabilityProviders = [

@@ -4,7 +4,7 @@ import {
   isProcessOnlyPath,
   isProductImpactingPath,
   isSandboxRelevantPath,
-} from '../scripts/path-taxonomy'
+} from '../scripts/ci/path-taxonomy'
 
 describe('path taxonomy', () => {
   it('classifies process-only changes from docs and workflow paths', () => {
@@ -97,13 +97,13 @@ describe('path taxonomy', () => {
   })
 
   it('exposes stable product-impacting and process-only predicates', () => {
-    expect(isProductImpactingPath('scripts/path-taxonomy.ts')).toBe(true)
+    expect(isProductImpactingPath('scripts/ci/path-taxonomy.ts')).toBe(true)
     expect(isProductImpactingPath('docs/README.md')).toBe(false)
     expect(isProcessOnlyPath('.github/workflows/ci.yml')).toBe(true)
     expect(isProcessOnlyPath('src/index.ts')).toBe(false)
     expect(isSandboxRelevantPath('.github/workflows/sandbox-tests.yml')).toBe(true)
-    expect(isSandboxRelevantPath('scripts/pm-lifecycle-smoke.ts')).toBe(true)
-    expect(isSandboxRelevantPath('scripts/lifecycle-smoke.ts')).toBe(true)
+    expect(isSandboxRelevantPath('scripts/smoke/pm-lifecycle-smoke.ts')).toBe(true)
+    expect(isSandboxRelevantPath('scripts/smoke/lifecycle-smoke.ts')).toBe(true)
     expect(isProductImpactingPath('packages/core/src/client.ts')).toBe(true)
     expect(isSandboxRelevantPath('packages/core/src/client.ts')).toBe(true)
     expect(isSandboxRelevantPath('.github/workflows/ci.yml')).toBe(false)

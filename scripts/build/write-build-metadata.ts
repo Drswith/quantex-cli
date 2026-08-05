@@ -1,6 +1,6 @@
 import { writeFile } from 'node:fs/promises'
 
-const packageJson = (await Bun.file(new URL('../package.json', import.meta.url)).json()) as {
+const packageJson = (await Bun.file(new URL('../../package.json', import.meta.url)).json()) as {
   name?: string
   repository?: string | { url?: string }
   version?: string
@@ -15,7 +15,7 @@ const content = [
   '',
 ].join('\n')
 
-await writeFile(new URL('../src/generated/build-meta.ts', import.meta.url), content, 'utf8')
+await writeFile(new URL('../../src/generated/build-meta.ts', import.meta.url), content, 'utf8')
 
 function normalizeRepositoryUrl(inputUrl?: string): string | undefined {
   if (!inputUrl) return undefined

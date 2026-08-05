@@ -77,7 +77,7 @@ async function runReleaseTagging(): Promise<void> {
 
   const branchHeadSha = await git(['rev-parse', `origin/${branch}`])
   const commitTitle = await git(['log', '-1', '--pretty=%s', branchHeadSha])
-  const packageJson = JSON.parse(await readFile(new URL('../package.json', import.meta.url), 'utf8')) as {
+  const packageJson = JSON.parse(await readFile(new URL('../../package.json', import.meta.url), 'utf8')) as {
     version?: string
   }
   const packageVersion = packageJson.version ?? ''
