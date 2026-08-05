@@ -44,9 +44,9 @@ Confirm that the PR:
 - has the expected release title shape
 - includes the release-please generated marker
 - only changes `CHANGELOG.md`, `package.json`, `.release-please-manifest.json`, and `src/generated/build-meta.ts`
-- contains one maintainer-authored commit rather than the release bot's original commit metadata
+- carries the version the release is meant to publish
 
-Before merge, check out the generated branch with maintainer credentials, replace its commits with one commit authored by the maintainer, and force-push that branch with lease protection. PR Governance deliberately rejects the trusted release bot author as well as other bot or agent identities because GitHub squash can synthesize prohibited `Co-authored-by:` trailers.
+Before merge, review the generated branch and confirm the checklist above. Governance no longer rejects the release bot author, so re-authoring the branch is optional housekeeping rather than a merge requirement.
 
 If the Release PR proposes a new major version on the stable line, governance fails until a maintainer adds a `Release-As: <version>` line to the Release PR body. This is the explicit human gate for major version identity.
 

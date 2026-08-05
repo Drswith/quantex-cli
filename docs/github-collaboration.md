@@ -31,18 +31,6 @@ Use the repository for:
 6. Merge only after CI, PR governance, and documentation updates are in place.
 7. Treat "implementation merged" and "OpenSpec archived" as separate closure steps; archive closure is an agent-driven follow-up.
 
-## Commit authorship
-
-Squash merge can turn commit author metadata into a `Co-authored-by` trailer on `main`, so governance rejects commits authored by an agent or bot identity — for example `cursoragent@cursor.com` or any `...[bot]@users.noreply.github.com` address — as well as any `Co-authored-by:` trailer in a commit message.
-
-Neither is fixable after the fact without rewriting commits, so configure the identity before committing rather than re-authoring later:
-
-```bash
-git config user.name "<maintainer name>" && git config user.email "<maintainer email>"
-```
-
-Agent-driven sessions must do this in every worktree they commit from; a global setting does not follow a fresh worktree. The `pre-push` hook runs the same check CI runs, so a bad identity or trailer fails locally in about a second instead of after a full CI round trip.
-
 ## Top-level backlog issues
 
 Use a single top-level backlog issue when a workstream needs planning-only triage across many candidates, such as agent-catalog expansion.

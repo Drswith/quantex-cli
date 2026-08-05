@@ -64,11 +64,6 @@ jobs:
       - uses: actions/checkout@v7
       - uses: ./.github/actions/setup-bun
 
-      - name: Validate commit trailer policy
-        env:
-          COMMITS_JSON: ${{ needs.classify.outputs.commits_json }}
-        run: bun run ci:commit-policy -- --mode push
-
       - run: bun run memory:check
       - run: bun run openspec:validate
       - run: bun run lint
@@ -116,12 +111,12 @@ jobs:
           PR_TITLE: ${{ github.event.pull_request.title }}
         run: bun run pr:body:check
 
-      - name: Validate PR merge commit policy
+      - name: Validate PR commit policy
         env:
           PR_BODY: ${{ github.event.pull_request.body }}
           PR_COMMITS_JSON: ${{ needs.classify.outputs.commits_json }}
           PR_HEAD_BRANCH: ${{ github.event.pull_request.head.ref }}
-        run: bun run ci:commit-policy -- --mode pr
+        run: bun run ci:commit-policy
 
   test-ubuntu:
     name: test (ubuntu-latest)

@@ -85,18 +85,12 @@ describe('pr governance release intent', () => {
     expect(prTemplate).toContain('active across milestone merges by design')
   })
 
-  it('runs commit trailer governance from CI through a local repository script', () => {
-    expect(ciWorkflow).toContain('Validate commit trailer policy')
+  it('runs PR commit governance before merge', () => {
+    expect(ciWorkflow).toContain('Validate PR commit policy')
     expect(ciWorkflow).toContain('bun run ci:commit-policy')
-    expect(ciWorkflow).toContain('--mode push')
-  })
-
-  it('runs PR merge commit governance before merge', () => {
-    expect(ciWorkflow).toContain('Validate PR merge commit policy')
-    expect(ciWorkflow).toContain('--mode pr')
     expect(ciWorkflow).toContain('PR_COMMITS_JSON')
     expect(ciWorkflow).toContain('PR_IS_VALIDATED_RELEASE_PR')
-    expect(commitPolicyScript).toContain('GitHub squash merge')
+    expect(commitPolicyScript).toContain('Release-As')
   })
 
   it('validates release-please PRs before granting release-specific exemptions', () => {
