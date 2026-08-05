@@ -72,6 +72,7 @@ jobs:
       - name: Tag release when release-please left the merged Release PR untagged
         env:
           GH_TOKEN: ${{ steps.release-bot-token.outputs.token }}
+          GITHUB_TOKEN: ${{ github.token }}
           GITHUB_REPOSITORY: ${{ github.repository }}
           TARGET_BRANCH: ${{ github.ref_name }}
         run: bun run ci:tag-release
