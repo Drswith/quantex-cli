@@ -1,6 +1,16 @@
 # Changelog
 
 
+## [1.8.5](https://github.com/Drswith/quantex-cli/compare/v1.8.2...v1.8.5) (2026-08-05)
+
+
+### Bug Fixes
+
+* preserve downloaded release candidate across checkout and fix tag dispatch permissions ([0c2e2fc](https://github.com/Drswith/quantex-cli/commit/0c2e2fc22c89fd24c43c3ddd0524d55bcc7126d0))
+* handle squash-merge PR suffix in release title parsing ([d315ade](https://github.com/Drswith/quantex-cli/commit/d315adebb52eb861e48f871f22f4fedfde5bbef4))
+* allow release from any reachable commit not just exact branch head ([2c4ef7c](https://github.com/Drswith/quantex-cli/commit/2c4ef7c))
+
+
 ## [1.8.4](https://github.com/Drswith/quantex-cli/compare/v1.8.2...v1.8.4) (2026-08-05)
 
 
