@@ -52,6 +52,26 @@ describe('immutable release identity', () => {
   it('requires publication to use an existing tag at the candidate SHA', () => {
     expect(() => validateReleaseIdentity({ ...stableIdentity, tagSha: null })).toThrow(/Publication requires/)
   })
+
+  // A squash merge appends " (#NNN)" to the release commit title. Treating that
+  // as a title mismatch blocked v1.8.3 through v1.8.5 before the suffix was
+  // normalized, so keep every accepted and rejected shape covered.
+  it.each([
+    ['squash merge suffix', 'chore: release 1.8.0 (#580)'],
+    ['squash merge suffix with padding', 'chore: release 1.8.0  (#1234)  '],
+    ['no suffix', 'chore: release 1.8.0'],
+  ])('accepts a release commit title with a %s', (_, commitTitle) => {
+    expect(validateReleaseIdentity({ ...stableIdentity, commitTitle })).toMatchObject({ version: '1.8.0' })
+  })
+
+  it.each([
+    ['a different version', 'chore: release 1.8.1 (#580)'],
+    ['a non-release title', 'fix(docs): repair links (#580)'],
+    ['a trailing reference that is not a PR number', 'chore: release 1.8.0 (#abc)'],
+    ['an embedded rather than trailing suffix', 'chore: release 1.8.0 (#580) extra'],
+  ])('rejects a release commit title with %s', (_, commitTitle) => {
+    expect(() => validateReleaseIdentity({ ...stableIdentity, commitTitle })).toThrow(/Release commit title/)
+  })
 })
 
 describe('release candidate notes', () => {
