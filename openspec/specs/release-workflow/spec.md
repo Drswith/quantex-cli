@@ -166,38 +166,6 @@ A Release PR whose proposed stable version crosses to a new major from a non-zer
 - **AND** its body declares `Release-As: <proposed version>`
 - **THEN** the major-bump check passes
 
-### Requirement: Protected-branch CI MUST reject prohibited co-author trailers in new commits
-
-Repository CI SHALL reject newly introduced commits on pull requests and protected-branch pushes when their commit messages contain `Co-authored-by:` trailers. PR Governance SHALL also reject pull requests before merge when their commit metadata is likely to make GitHub synthesize prohibited co-author trailers into the final squash merge commit. The merge commit policy validator SHALL fail when no commit metadata is supplied so the check cannot pass silently. Release-please branches are exempt from the Release-As commit-footer consistency check because generated release commits never carry source-PR footers.
-
-#### Scenario: Pull request introduces co-author trailer
-
-- **WHEN** CI evaluates the commits introduced by a pull request targeting a protected branch
-- **AND** any of those commit messages contains a `Co-authored-by:` trailer
-- **THEN** CI fails before merge
-- **AND** it reports the offending commit SHA and trailer line
-
-#### Scenario: Pull request would generate co-author trailer on squash merge
-
-- **WHEN** PR Governance evaluates a pull request targeting a protected branch
-- **AND** its commit shape is unsafe for GitHub squash merge under the no-co-author-trailer policy
-- **THEN** PR Governance fails before merge
-- **AND** it explains how to pre-squash or re-author the pull request commits before retrying
-
-#### Scenario: PR merge commit policy receives no commit metadata
-
-- **WHEN** PR Governance runs the merge commit policy validator
-- **AND** no pull request commit metadata is supplied
-- **THEN** PR Governance fails before merge
-- **AND** it reports that the check cannot run without commit metadata
-
-#### Scenario: Protected-branch push introduces co-author trailer
-
-- **WHEN** CI evaluates the commits introduced by a direct push to a protected branch
-- **AND** any of those commit messages contains a `Co-authored-by:` trailer
-- **THEN** CI fails before downstream release automation treats the push as releasable history
-- **AND** it reports the offending commit SHA and trailer line
-
 ### Requirement: Pull request delivery MUST prefer linear history
 
 For ordinary repository pull requests, maintainers and agents MUST select rebase merge first and MAY use squash merge only when rebase is unavailable or unsafe. They MUST NOT select a merge commit or enable automatic merge merely to bypass explicit merge-time verification.
