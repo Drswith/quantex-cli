@@ -28,7 +28,7 @@ export interface ReleaseTagPlan {
 }
 
 export function parseReleaseVersionFromTitle(title: string): string | null {
-  const match = title.match(/^chore: release (.+)$/)
+  const match = title.match(/^chore: release (\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?)/)
   return match ? match[1].trim() : null
 }
 
