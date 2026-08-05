@@ -4,9 +4,14 @@ Describe the change and why it exists.
 
 ## Linked Artifacts
 
+Keep the lines that apply and delete the rest. At least one line must carry a
+real value: every PR either links a durable artifact or states why no OpenSpec
+change was required.
+
+- OpenSpec: <change-id>
+- OpenSpec: not required - <intake classification>
 - Issue:
 - ADR:
-- OpenSpec:
 - Discussion:
 
 ## Validation

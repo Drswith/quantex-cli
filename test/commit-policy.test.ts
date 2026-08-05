@@ -1,6 +1,11 @@
 import { readFileSync } from 'node:fs'
 import { describe, expect, it } from 'vitest'
-import { validateCommitTrailerPolicy, validatePullRequestMergeCommitPolicy } from '../scripts/ci/commit-policy'
+import {
+  parseGitLogRecords,
+  validateCommitTrailerPolicy,
+  validateLocalCommitPolicy,
+  validatePullRequestMergeCommitPolicy,
+} from '../scripts/ci/commit-policy'
 
 const integrationBranch = 'codex/redesign-lifecycle-integration'
 const ciWorkflow = readFileSync('.github/workflows/ci.yml', 'utf8')
@@ -193,5 +198,84 @@ describe('pr merge commit policy (pr mode)', () => {
     expect(policyStep).toContain('PR_COMMITS_JSON')
     expect(policyStep).toContain('PR_BODY')
     expect(policyStep).toContain('PR_HEAD_BRANCH')
+  })
+})
+
+describe('local commit policy', () => {
+  const fieldSeparator = String.fromCharCode(0x1f)
+  const recordSeparator = String.fromCharCode(0x1e)
+
+  function gitLog(...commits: Array<[sha: string, name: string, email: string, message: string]>): string {
+    return commits.map(fields => `${fields.join(fieldSeparator)}${recordSeparator}`).join('\n')
+  }
+
+  it('parses multi-line commit messages without losing fields', () => {
+    const parsed = parseGitLogRecords(
+      gitLog(
+        ['a'.repeat(40), 'Maintainer', 'maintainer@example.com', 'feat: one\n\nBody line.\n'],
+        ['b'.repeat(40), 'Other', 'other@example.com', 'fix: two\n'],
+      ),
+    )
+
+    expect(parsed).toHaveLength(2)
+    expect(parsed[0]).toMatchObject({ authorEmail: 'maintainer@example.com', authorName: 'Maintainer' })
+    expect(parsed[0].message).toContain('Body line.')
+    expect(parsed[1].sha).toBe('b'.repeat(40))
+  })
+
+  it('treats empty git output as nothing to validate', () => {
+    expect(parseGitLogRecords('')).toEqual([])
+    expect(validateLocalCommitPolicy({ commits: [] })).toEqual([])
+  })
+
+  it('rejects a prohibited trailer before the push', () => {
+    const issues = validateLocalCommitPolicy({
+      commits: [
+        {
+          authorEmail: 'maintainer@example.com',
+          authorName: 'Maintainer',
+          message: 'feat: thing\n\nCo-authored-by: Somebody <somebody@example.com>',
+          sha: 'a'.repeat(40),
+        },
+      ],
+    })
+
+    expect(issues).toContainEqual(expect.stringContaining('prohibited trailer'))
+  })
+
+  it('rejects an author identity squash merge can re-emit as a trailer', () => {
+    const issues = validateLocalCommitPolicy({
+      commits: [
+        {
+          authorEmail: 'cursoragent@cursor.com',
+          authorName: 'Cursor Agent',
+          message: 'feat: thing',
+          sha: 'a'.repeat(40),
+        },
+      ],
+    })
+
+    expect(issues).toContainEqual(expect.stringContaining('re-emitted as a Co-authored-by trailer'))
+  })
+
+  it('leaves the single-commit rule to merge-time governance', () => {
+    const commits = [
+      { authorEmail: 'maintainer@example.com', authorName: 'Maintainer', message: 'feat: one', sha: 'a'.repeat(40) },
+      { authorEmail: 'maintainer@example.com', authorName: 'Maintainer', message: 'feat: two', sha: 'b'.repeat(40) },
+    ]
+
+    expect(validateLocalCommitPolicy({ commits })).toEqual([])
+    expect(validatePullRequestMergeCommitPolicy({ commits })).toContainEqual(
+      expect.stringContaining('Squash the branch to one clean commit'),
+    )
+  })
+
+  it('runs from the pre-push hook so violations surface before a CI round trip', () => {
+    const manifest = JSON.parse(readFileSync('package.json', 'utf8')) as {
+      'simple-git-hooks': { 'pre-push': string }
+    }
+
+    expect(manifest['simple-git-hooks']['pre-push']).toContain('ci:commit-policy')
+    expect(manifest['simple-git-hooks']['pre-push']).toContain('--mode local')
   })
 })
