@@ -188,7 +188,7 @@ bun install --frozen-lockfile
 bun run release:dry-run
 ```
 
-This runs the same pipeline definition CI uses (`scripts/release-candidate.ts` in local mode): build, binary build, artifact generation, smoke verification, Core package checks, candidate staging, and candidate verification. Run it before changing any release script or workflow.
+This runs the same pipeline definition CI uses (`scripts/release/release-candidate.ts` in local mode): build, binary build, artifact generation, smoke verification, Core package checks, candidate staging, and candidate verification. Run it before changing any release script or workflow.
 
 `release:artifacts` must fail if the release manifest is missing any required platform archive. Each archive contains the corresponding executable:
 

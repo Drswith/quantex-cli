@@ -1,7 +1,7 @@
 import { readFileSync } from 'node:fs'
 import { describe, expect, it } from 'vitest'
-import { validateReleaseIdentity } from '../scripts/release-seal-contract.js'
-import { extractReleaseNotes } from '../scripts/stage-release-candidate.js'
+import { validateReleaseIdentity } from '../scripts/release/release-seal-contract.js'
+import { extractReleaseNotes } from '../scripts/release/stage-release-candidate.js'
 
 const releasePleaseWorkflow = readFileSync('.github/workflows/release-please.yml', 'utf8')
 const releaseWorkflow = readFileSync('.github/workflows/release.yml', 'utf8')
@@ -76,7 +76,7 @@ describe('release workflow closure', () => {
 
   it('builds one candidate artifact and promotes it without rebuild', () => {
     const publishJob = releaseWorkflow.slice(releaseWorkflow.indexOf('  publish:'))
-    const releaseCandidateScript = readFileSync('scripts/release-candidate.ts', 'utf8')
+    const releaseCandidateScript = readFileSync('scripts/release/release-candidate.ts', 'utf8')
     expect(releaseWorkflow).toContain("tags:\n      - 'v*'")
     expect(releaseWorkflow).toContain('bun run release:candidate')
     expect(releaseCandidateScript).toContain('ci:release-publish-contract')

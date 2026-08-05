@@ -1,4 +1,4 @@
-import type { createReleaseManifest } from '../src/release-artifacts'
+import type { createReleaseManifest } from '../../src/release-artifacts'
 import { createHash } from 'node:crypto'
 import { readdir, readFile, rm, stat, writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
@@ -13,7 +13,7 @@ import {
   parseChecksums,
   REQUIRED_RELEASE_BINARY_NAMES,
   validateReleaseManifest,
-} from '../src/release-artifacts'
+} from '../../src/release-artifacts'
 
 interface PackageJsonShape {
   name?: string
@@ -21,7 +21,7 @@ interface PackageJsonShape {
   version?: string
 }
 
-const binDir = fileURLToPath(new URL('../dist/bin/', import.meta.url))
+const binDir = fileURLToPath(new URL('../../dist/bin/', import.meta.url))
 const checksumsPath = join(binDir, 'SHA256SUMS.txt')
 const manifestPath = join(binDir, 'manifest.json')
 
@@ -62,7 +62,7 @@ async function writeChecksums(): Promise<void> {
 }
 
 async function writeManifest(): Promise<void> {
-  const packageJson = (await Bun.file(new URL('../package.json', import.meta.url)).json()) as PackageJsonShape
+  const packageJson = (await Bun.file(new URL('../../package.json', import.meta.url)).json()) as PackageJsonShape
   const version = packageJson.version ?? '0.0.0'
   const checksums = parseChecksums(await readFile(checksumsPath, 'utf8'))
   const binaryFiles = await Promise.all(

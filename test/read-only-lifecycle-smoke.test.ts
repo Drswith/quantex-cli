@@ -1,6 +1,6 @@
 import process from 'node:process'
 import { beforeAll, describe, expect, it } from 'vitest'
-import * as smoke from '../scripts/read-only-lifecycle-smoke'
+import * as smoke from '../scripts/smoke/read-only-lifecycle-smoke'
 
 type SmokeModule = typeof smoke & {
   READ_ONLY_LIFECYCLE_BASELINE?: unknown

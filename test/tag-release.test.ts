@@ -1,9 +1,9 @@
 import { readFileSync } from 'node:fs'
 import { describe, expect, it } from 'vitest'
-import { parseReleaseVersionFromTitle, resolveReleaseTagPlan } from '../scripts/tag-release'
+import { parseReleaseVersionFromTitle, resolveReleaseTagPlan } from '../scripts/release/tag-release'
 
 const headSha = 'a'.repeat(40)
-const tagReleaseScript = readFileSync('scripts/tag-release.ts', 'utf8')
+const tagReleaseScript = readFileSync('scripts/release/tag-release.ts', 'utf8')
 const releasePleaseWorkflow = readFileSync('.github/workflows/release-please.yml', 'utf8')
 
 describe('release tagging', () => {

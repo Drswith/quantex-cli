@@ -25,7 +25,7 @@ describe('managed installer cancellation e2e', () => {
       await mkdir(homeDir, { recursive: true })
       await installFakeCargo(fakeBinDir, fakeCargoLog)
 
-      const output = await runCommand(['bun', 'run', 'scripts/managed-installer-cancellation-smoke.ts'], {
+      const output = await runCommand(['bun', 'run', 'scripts/smoke/managed-installer-cancellation-smoke.ts'], {
         HOME: homeDir,
         PATH: `${fakeBinDir}${delimiter}${process.env.PATH ?? ''}`,
         QTX_CANCELLATION_SMOKE_TIMEOUT_MS: '10000',

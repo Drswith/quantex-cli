@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { stripCursorAttributionTrailers } from '../scripts/strip-cursor-coauthor'
+import { stripCursorAttributionTrailers } from '../scripts/ci/strip-cursor-coauthor'
 
 describe('stripCursorAttributionTrailers', () => {
   it('removes the Cursor co-author trailer', () => {

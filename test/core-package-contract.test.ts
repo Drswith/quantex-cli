@@ -4,7 +4,7 @@ import {
   assertCorePackageManifestContract,
   type CorePackageManifest,
   type RootPackageManifest,
-} from '../scripts/verify-core-package-distribution'
+} from '../scripts/release/verify-core-package-distribution'
 
 const rootManifest: RootPackageManifest = {
   devDependencies: { 'quantex-core': '0.1.0' },

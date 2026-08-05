@@ -122,7 +122,7 @@ function parseMode(args: string[]): CommitPolicyMode {
   const mode = modeIndex >= 0 ? args[modeIndex + 1] : undefined
 
   if (mode !== 'push' && mode !== 'pr') {
-    throw new Error('Usage: bun run scripts/commit-policy.ts --mode <push|pr> [--commits-json <json>]')
+    throw new Error('Usage: bun run scripts/ci/commit-policy.ts --mode <push|pr> [--commits-json <json>]')
   }
 
   return mode

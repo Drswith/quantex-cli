@@ -3,8 +3,8 @@ import { describe, expect, it } from 'vitest'
 
 const ciWorkflow = readFileSync('.github/workflows/ci.yml', 'utf8')
 const prTemplate = readFileSync('.github/pull_request_template.md', 'utf8')
-const prBodyPolicyScript = readFileSync('scripts/pr-body-policy.ts', 'utf8')
-const commitPolicyScript = readFileSync('scripts/commit-policy.ts', 'utf8')
+const prBodyPolicyScript = readFileSync('scripts/ci/pr-body-policy.ts', 'utf8')
+const commitPolicyScript = readFileSync('scripts/ci/commit-policy.ts', 'utf8')
 const collaborationGuide = readFileSync('docs/github-collaboration.md', 'utf8')
 const openspecReadme = readFileSync('openspec/README.md', 'utf8')
 const runtimeSkill = readFileSync('skills/quantex-agent-runtime/SKILL.md', 'utf8')

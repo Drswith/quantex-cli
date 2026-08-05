@@ -3,7 +3,7 @@ import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { describe, expect, it } from 'vitest'
-import { buildAgentCatalogManifest, readCatalogEntries } from '../scripts/write-agent-catalog-manifest'
+import { buildAgentCatalogManifest, readCatalogEntries } from '../scripts/build/write-agent-catalog-manifest'
 import * as agentExports from '../src/agents'
 import {
   auggie,

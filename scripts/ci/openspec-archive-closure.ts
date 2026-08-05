@@ -23,7 +23,7 @@ export interface OpenSpecTaskProgress {
   total: number
 }
 
-const rootDir = resolve(dirname(fileURLToPath(import.meta.url)), '..')
+const rootDir = resolve(dirname(fileURLToPath(import.meta.url)), '../..')
 
 export function createArchivePrBody(changeIds: string[]): string {
   const openSpecList = changeIds.map(changeId => `\`${changeId}\``).join(', ')

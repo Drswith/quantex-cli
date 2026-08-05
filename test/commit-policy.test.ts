@@ -1,6 +1,6 @@
 import { readFileSync } from 'node:fs'
 import { describe, expect, it } from 'vitest'
-import { validateCommitTrailerPolicy, validatePullRequestMergeCommitPolicy } from '../scripts/commit-policy'
+import { validateCommitTrailerPolicy, validatePullRequestMergeCommitPolicy } from '../scripts/ci/commit-policy'
 
 const integrationBranch = 'codex/redesign-lifecycle-integration'
 const ciWorkflow = readFileSync('.github/workflows/ci.yml', 'utf8')

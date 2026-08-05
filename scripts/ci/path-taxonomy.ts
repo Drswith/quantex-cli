@@ -51,9 +51,9 @@ export const sandboxRelevantFiles = new Set([
   '.github/workflows/sandbox-tests.yml',
   'bun.lock',
   'package.json',
-  'scripts/lifecycle-smoke.ts',
-  'scripts/pm-lifecycle-smoke.ts',
-  'scripts/test-isolation.ts',
+  'scripts/smoke/lifecycle-smoke.ts',
+  'scripts/smoke/pm-lifecycle-smoke.ts',
+  'scripts/smoke/test-isolation.ts',
   'test/agents.test.ts',
   'test/utils/install.test.ts',
 ])

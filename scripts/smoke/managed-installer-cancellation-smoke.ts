@@ -1,9 +1,9 @@
-import type { AgentDefinition } from '../src/agents'
-import { resetCliContext, setCliContext } from '../src/cli-context'
-import { executeCommandWithRuntime } from '../src/command-runtime'
-import { createErrorResult, createSuccessResult } from '../src/output'
-import { installAgentOutcome } from '../src/package-manager'
-import { getInstalledAgentState } from '../src/state'
+import type { AgentDefinition } from '../../src/agents'
+import { resetCliContext, setCliContext } from '../../src/cli-context'
+import { executeCommandWithRuntime } from '../../src/command-runtime'
+import { createErrorResult, createSuccessResult } from '../../src/output'
+import { installAgentOutcome } from '../../src/package-manager'
+import { getInstalledAgentState } from '../../src/state'
 
 const agent: AgentDefinition = {
   binaryName: 'cargo-cancel-smoke-agent',

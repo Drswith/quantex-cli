@@ -1,6 +1,6 @@
 import { EventEmitter } from 'node:events'
 import { describe, expect, it } from 'vitest'
-import * as smoke from '../scripts/read-only-lifecycle-smoke'
+import * as smoke from '../scripts/smoke/read-only-lifecycle-smoke'
 
 type WaitForChildExit = (
   child: EventEmitter & { kill(signal: NodeJS.Signals): boolean },

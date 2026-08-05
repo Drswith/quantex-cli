@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { planReleaseCandidateSteps } from '../scripts/release-candidate'
+import { planReleaseCandidateSteps } from '../scripts/release/release-candidate'
 
 describe('release candidate pipeline', () => {
   it('runs the seal contract before any build step in CI mode', () => {
@@ -21,7 +21,7 @@ describe('release candidate pipeline', () => {
       'bun run release:artifacts',
       'bun run release:smoke',
       'bun run package:check:core',
-      'bun run scripts/stage-release-candidate.ts release-candidate',
+      'bun run scripts/release/stage-release-candidate.ts release-candidate',
     ])
   })
 
@@ -30,7 +30,7 @@ describe('release candidate pipeline', () => {
       const commands = planReleaseCandidateSteps({ local }).map(step => step.command.join(' '))
       expect(commands.indexOf('bun run build')).toBeLessThan(commands.indexOf('bun run release:artifacts'))
       expect(commands.indexOf('bun run release:artifacts')).toBeLessThan(
-        commands.indexOf('bun run scripts/stage-release-candidate.ts release-candidate'),
+        commands.indexOf('bun run scripts/release/stage-release-candidate.ts release-candidate'),
       )
     }
   })

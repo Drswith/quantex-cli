@@ -1,8 +1,8 @@
 import { readFileSync } from 'node:fs'
 import { describe, expect, it } from 'vitest'
 
-const lifecycleSmoke = readFileSync('scripts/lifecycle-smoke.ts', 'utf8')
-const pmLifecycleSmoke = readFileSync('scripts/pm-lifecycle-smoke.ts', 'utf8')
+const lifecycleSmoke = readFileSync('scripts/smoke/lifecycle-smoke.ts', 'utf8')
+const pmLifecycleSmoke = readFileSync('scripts/smoke/pm-lifecycle-smoke.ts', 'utf8')
 
 describe('lifecycle smoke scenarios', () => {
   it('includes deno-managed coverage in the default scenario list', () => {
@@ -19,7 +19,7 @@ describe('lifecycle smoke scenarios', () => {
     )
     expect(lifecycleSmoke).toContain('deno uninstall --global deno-smoke-agent')
     expect(pmLifecycleSmoke).toContain('packages: {\n      deno: DENO_PACKAGE_NAME,')
-    expect(lifecycleSmoke).toContain("'scripts/pm-lifecycle-smoke.ts', 'deno'")
+    expect(lifecycleSmoke).toContain("'scripts/smoke/pm-lifecycle-smoke.ts', 'deno'")
   })
 
   it('includes uv-managed coverage in the default scenario list', () => {
@@ -33,11 +33,11 @@ describe('lifecycle smoke scenarios', () => {
     expect(lifecycleSmoke).toContain('uv tool uninstall uv-smoke-agent')
     expect(lifecycleSmoke).toContain('uv tool list')
     expect(pmLifecycleSmoke).toContain("getManagedInstalledPackageVersion('uv', UV_PACKAGE_NAME)")
-    expect(lifecycleSmoke).toContain("'scripts/pm-lifecycle-smoke.ts', 'uv'")
+    expect(lifecycleSmoke).toContain("'scripts/smoke/pm-lifecycle-smoke.ts', 'uv'")
   })
 
   it('routes cargo scenarios through the shared pm lifecycle smoke', () => {
-    expect(lifecycleSmoke).toContain("'scripts/pm-lifecycle-smoke.ts', 'cargo'")
+    expect(lifecycleSmoke).toContain("'scripts/smoke/pm-lifecycle-smoke.ts', 'cargo'")
     expect(pmLifecycleSmoke).toContain('QTX_CARGO_SMOKE_AGENT')
   })
 })

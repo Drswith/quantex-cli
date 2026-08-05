@@ -5,10 +5,10 @@ import { dirname, join } from 'node:path'
 import process from 'node:process'
 import { fileURLToPath } from 'node:url'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
-import { resolveExecutableFromPath } from '../scripts/resolve-executable'
+import { resolveExecutableFromPath } from '../scripts/lib/resolve-executable'
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..')
-const GUARD_PATH = join(ROOT, 'scripts', 'read-only-spawn-guard.ts')
+const GUARD_PATH = join(ROOT, 'scripts', 'lib', 'read-only-spawn-guard.ts')
 const BUN_PATH = resolveExecutableFromPath('bun')
 const SAFE_COMMANDS = ['bash', 'brew', 'bun', 'cargo', 'curl', 'deno', 'mise', 'npm', 'pip', 'sh', 'uv', 'winget']
 

@@ -2,7 +2,7 @@ import { readdir, readFile } from 'node:fs/promises'
 import { resolve } from 'node:path'
 import process from 'node:process'
 
-const rootDir = resolve(import.meta.dir, '..')
+const rootDir = resolve(import.meta.dir, '../..')
 const allowedRootMarkdownFiles = new Set(['AGENTS.md', 'CHANGELOG.md', 'README.en.md', 'README.md', 'README.zh-CN.md'])
 
 const runtimeStubTemplate = 'skills/quantex-agent-runtime/bootstrap-stub.md'

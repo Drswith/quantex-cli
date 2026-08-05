@@ -24,7 +24,7 @@ export function planReleaseCandidateSteps(options: { local: boolean }): ReleaseC
     { command: ['bun', 'run', 'release:smoke'], name: 'Smoke check current platform release binary' },
     { command: ['bun', 'run', 'package:check:core'], name: 'Verify bundled Core package contents' },
     {
-      command: ['bun', 'run', 'scripts/stage-release-candidate.ts', 'release-candidate'],
+      command: ['bun', 'run', 'scripts/release/stage-release-candidate.ts', 'release-candidate'],
       name: 'Stage exact release candidate',
     },
   )
@@ -43,7 +43,7 @@ if (import.meta.main) {
 
   const tarball = await findCandidateTarball('release-candidate/npm')
   console.log('\n==> Verify exact candidate tarball contents')
-  await runChecked(['bun', 'run', 'scripts/verify-package-distribution.ts', tarball])
+  await runChecked(['bun', 'run', 'scripts/release/verify-package-distribution.ts', tarball])
 
   console.log(`\nRelease candidate pipeline completed${local ? ' (local dry-run)' : ''}.`)
 }

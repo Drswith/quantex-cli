@@ -1,15 +1,15 @@
-import type { AgentDefinition } from '../src/agents'
-import { getAgentByNameOrAlias } from '../src/agents'
-import { getManagedInstalledPackageVersion, installAgent, uninstallAgent, updateAgent } from '../src/package-manager'
-import { getInstalledAgentState } from '../src/state'
-import { getPlatform } from '../src/utils/detect'
-import { getInstalledVersion } from '../src/utils/version'
+import type { AgentDefinition } from '../../src/agents'
+import { getAgentByNameOrAlias } from '../../src/agents'
+import { getManagedInstalledPackageVersion, installAgent, uninstallAgent, updateAgent } from '../../src/package-manager'
+import { getInstalledAgentState } from '../../src/state'
+import { getPlatform } from '../../src/utils/detect'
+import { getInstalledVersion } from '../../src/utils/version'
 
 type PackageManager = 'cargo' | 'deno' | 'uv'
 
 const manager = process.argv[2] as PackageManager | undefined
 if (manager !== 'cargo' && manager !== 'deno' && manager !== 'uv') {
-  throw new Error(`Usage: bun run scripts/pm-lifecycle-smoke.ts <cargo|deno|uv>`)
+  throw new Error(`Usage: bun run scripts/smoke/pm-lifecycle-smoke.ts <cargo|deno|uv>`)
 }
 
 const DENO_PACKAGE_NAME = 'jsr:@scope/deno-smoke-agent'

@@ -1,4 +1,4 @@
-import type { CommandResult } from '../src/output/types'
+import type { CommandResult } from '../../src/output/types'
 import { spawn } from 'node:child_process'
 import { existsSync } from 'node:fs'
 import { chmod, mkdir, mkdtemp, open, readFile, readdir, rm, writeFile } from 'node:fs/promises'
@@ -6,13 +6,13 @@ import { tmpdir } from 'node:os'
 import { dirname, join } from 'node:path'
 import process from 'node:process'
 import { fileURLToPath } from 'node:url'
-import { parseStateDocument } from '../src/state/schema'
-import { assertReadOnlyCommand } from './read-only-spawn-guard'
-import { resolveExecutableFromPath } from './resolve-executable'
+import { parseStateDocument } from '../../src/state/schema'
+import { assertReadOnlyCommand } from '../lib/read-only-spawn-guard'
+import { resolveExecutableFromPath } from '../lib/resolve-executable'
 
-const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..')
+const ROOT = join(dirname(fileURLToPath(import.meta.url)), '../..')
 const CLI_PATH = join(ROOT, 'src', 'cli.ts')
-const GUARD_PATH = join(ROOT, 'scripts', 'read-only-spawn-guard.ts')
+const GUARD_PATH = join(ROOT, 'scripts', 'lib', 'read-only-spawn-guard.ts')
 const BUN_PATH = resolveExecutableFromPath('bun')
 const CATALOG_SUPPORT_PATH = join(ROOT, 'src', 'agents', 'generated', 'catalog-support.json')
 const FIXTURE_ROOT = join(ROOT, 'test', 'fixtures', 'compatibility', 'v1', 'state')

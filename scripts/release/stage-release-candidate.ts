@@ -2,7 +2,7 @@ import { createHash } from 'node:crypto'
 import { cp, mkdir, readFile, stat, writeFile } from 'node:fs/promises'
 import { basename, join } from 'node:path'
 import process from 'node:process'
-import { REQUIRED_RELEASE_ASSET_NAMES } from '../src/release-artifacts'
+import { REQUIRED_RELEASE_ASSET_NAMES } from '../../src/release-artifacts'
 
 export interface CandidateFile {
   name: string
@@ -33,7 +33,7 @@ export function extractReleaseNotes(changelog: string, version: string): string 
 if (import.meta.main) await stageReleaseCandidate(process.argv[2] ?? 'release-candidate')
 
 async function stageReleaseCandidate(candidateRoot: string): Promise<void> {
-  const packageJson = (await Bun.file(new URL('../package.json', import.meta.url)).json()) as {
+  const packageJson = (await Bun.file(new URL('../../package.json', import.meta.url)).json()) as {
     name?: string
     version?: string
   }

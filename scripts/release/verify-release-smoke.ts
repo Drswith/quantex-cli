@@ -2,13 +2,13 @@ import { chmod, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import process from 'node:process'
-import { BUILD_VERSION } from '../src/generated/build-meta'
+import { BUILD_VERSION } from '../../src/generated/build-meta'
 import {
   extractReleaseArchive,
   getReleaseArchiveName,
   getReleaseBinaryName,
   parseChecksums,
-} from '../src/release-artifacts'
+} from '../../src/release-artifacts'
 
 interface ReleaseManifest {
   assets: Array<{
@@ -19,8 +19,8 @@ interface ReleaseManifest {
   version: string
 }
 
-const manifestContents = await readFile(new URL('../dist/bin/manifest.json', import.meta.url), 'utf8')
-const checksumContents = await readFile(new URL('../dist/bin/SHA256SUMS.txt', import.meta.url), 'utf8')
+const manifestContents = await readFile(new URL('../../dist/bin/manifest.json', import.meta.url), 'utf8')
+const checksumContents = await readFile(new URL('../../dist/bin/SHA256SUMS.txt', import.meta.url), 'utf8')
 
 const manifest = JSON.parse(manifestContents) as ReleaseManifest
 const checksums = parseChecksums(checksumContents)
@@ -45,7 +45,7 @@ const archiveEntryName = getReleaseBinaryName(currentAsset.name)
 if (!archiveEntryName || archiveEntryName !== currentExecutableName)
   throw new Error(`manifest.json executable name does not match the current runner asset "${currentAssetName}".`)
 
-const archive = await readFile(new URL(`../dist/bin/${currentAssetName}`, import.meta.url))
+const archive = await readFile(new URL(`../../dist/bin/${currentAssetName}`, import.meta.url))
 const tempDir = await mkdtemp(join(tmpdir(), 'quantex-release-smoke-'))
 const binaryPath = join(tempDir, archiveEntryName)
 await writeFile(binaryPath, extractReleaseArchive(archive, archiveEntryName))
