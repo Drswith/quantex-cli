@@ -2,6 +2,14 @@
 
 This changelog is maintained by release-please Release PRs.
 
+
+## [1.8.3](https://github.com/Drswith/quantex-cli/compare/v1.8.2...v1.8.3) (2026-08-05)
+
+
+### Bug Fixes
+
+* skip gh-shim ci-context test on Windows ([04ab970](https://github.com/Drswith/quantex-cli/commit/04ab9707f0347c956a08223b2bb549d17680c90f))
+
 ## [1.8.2](https://github.com/Drswith/quantex-cli/compare/v1.8.1...v1.8.2) (2026-08-04)
 
 
