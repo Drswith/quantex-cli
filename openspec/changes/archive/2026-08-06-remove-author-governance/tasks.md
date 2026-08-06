@@ -31,7 +31,7 @@
 
 ## 5. Validation and delivery
 
-- [ ] `bun run lint`, `bun run format:check`, `bun run typecheck`
-- [ ] `bun run test`
-- [ ] `bun run openspec:validate`, `bun run memory:check`
-- [ ] Commit, push, PR with a `pr:body:check`-validated body
+- [x] `bun run lint`, `bun run format:check`, `bun run typecheck`
+- [x] `bun run test`
+- [x] `bun run openspec:validate`, `bun run memory:check`
+- [x] Commit, push, PR with a `pr:body:check`-validated body (#588, merged)
