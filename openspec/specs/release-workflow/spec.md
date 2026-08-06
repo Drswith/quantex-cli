@@ -337,27 +337,20 @@ The agreement between the template and the governance check SHALL be enforced by
 - **WHEN** the release-please `pull-request-header` template is validated by PR body governance
 - **THEN** it MUST report no policy issues, so generated Release PRs pass the same gate as human pull requests
 
-### Requirement: Prereleases SHALL be cut from main and preview the next unreleased version
+### Requirement: A prerelease version SHALL never be published to the latest dist-tag
 
-A prerelease SHALL be produced from `main` by declaring `Release-As: <version>` with a prerelease suffix on a source PR, and SHALL name the next unreleased version rather than a version that has already shipped. The release identity contract SHALL resolve the target branch to `main` for every release regardless of version shape, and SHALL continue to derive the npm dist-tag from the version so that a prerelease publishes to `beta` and a stable release publishes to `latest`.
+There is no prerelease channel. If a version carrying a prerelease suffix is ever produced, publication SHALL route it to the `beta` npm dist-tag rather than `latest`, so that a preview build can never displace the current stable release for ordinary installs.
 
-Because a prerelease previews an unreleased version, the published `beta` dist-tag SHALL always resolve above `latest` by SemVer precedence. Cutting a prerelease of an already-published version is prohibited: such a version sorts below the release it names.
+This is a fail-safe rather than a feature: nothing in the repository is expected to produce such a version. It is stated so the version-to-dist-tag derivation in the release identity contract is not removed later as unreachable code.
 
-#### Scenario: prerelease is cut from main
+#### Scenario: Stable release publishes to latest
 
-- **WHEN** a source PR declares `Release-As: 1.9.0-beta.1` and merges to `main`
-- **THEN** release tagging MUST resolve the target branch to `main`
-- **AND** publication MUST use the `beta` npm dist-tag
-- **AND** the resulting version MUST sort above the current `latest`
+- **WHEN** a release commit for a version without a prerelease suffix is published
+- **THEN** publication MUST use the `latest` npm dist-tag
 
-#### Scenario: stable release is unaffected
+#### Scenario: A prerelease version is published defensively
 
-- **WHEN** a release commit for a version without a prerelease suffix merges to `main`
-- **THEN** release tagging MUST resolve the target branch to `main`
-- **AND** publication MUST use the `latest` npm dist-tag
-
-#### Scenario: Release PR title carries a prerelease version
-
-- **WHEN** release-please opens a Release PR on `main` for a prerelease version
-- **THEN** release PR governance MUST accept the prerelease title shape
+- **WHEN** a version carrying a prerelease suffix reaches publication
+- **THEN** publication MUST use the `beta` npm dist-tag
+- **AND** it MUST NOT be published to `latest`
 
