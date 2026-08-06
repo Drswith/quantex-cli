@@ -31,16 +31,21 @@ describe('immutable release identity', () => {
     })
   })
 
-  it('derives beta only from a prerelease version on beta', () => {
+  it('derives the beta dist-tag from a prerelease cut on main', () => {
     expect(
       validateReleaseIdentity({
         ...stableIdentity,
-        commitTitle: 'chore: release 1.8.0-beta.1',
-        packageVersion: '1.8.0-beta.1',
-        requestedBranch: 'beta',
-        requestedTag: 'v1.8.0-beta.1',
+        commitTitle: 'chore: release 1.9.0-beta.1',
+        packageVersion: '1.9.0-beta.1',
+        requestedTag: 'v1.9.0-beta.1',
       }),
-    ).toMatchObject({ npmTag: 'beta', prerelease: true, targetBranch: 'beta' })
+    ).toMatchObject({ channel: 'beta', npmTag: 'beta', prerelease: true, targetBranch: 'main' })
+  })
+
+  it('refuses to publish any release from a branch other than main', () => {
+    expect(() => validateReleaseIdentity({ ...stableIdentity, requestedBranch: 'beta' })).toThrow(
+      /must be published from main/,
+    )
   })
 
   it('fails closed on a moved tag, stale CI, or unreachable commit', () => {
@@ -85,7 +90,8 @@ describe('release candidate notes', () => {
 
 describe('release workflow closure', () => {
   it('opens Release PRs automatically on protected-branch push', () => {
-    expect(releasePleaseWorkflow).toContain('branches:\n      - main\n      - beta')
+    expect(releasePleaseWorkflow).toContain('branches:\n      - main')
+    expect(releasePleaseWorkflow).not.toContain('beta')
     expect(releasePleaseWorkflow).toContain('skip-github-release: true')
     expect(releasePleaseWorkflow).toContain(
       'googleapis/release-please-action@45996ed1f6d02564a971a2fa1b5860e934307cf7 # v5.0.0',

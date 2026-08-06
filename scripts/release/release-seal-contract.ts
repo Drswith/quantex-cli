@@ -24,7 +24,7 @@ export interface ReleaseIdentity {
   npmTag: 'beta' | 'latest'
   prerelease: boolean
   tag: string
-  targetBranch: 'beta' | 'main'
+  targetBranch: 'main'
   version: string
 }
 
@@ -32,8 +32,11 @@ export function validateReleaseIdentity(input: ReleaseIdentityInput): ReleaseIde
   if (!releaseVersionPattern.test(input.packageVersion))
     throw new Error(`Invalid release package version: ${input.packageVersion}.`)
 
+  // Every release is cut from main. Only the npm dist-tag varies, so a
+  // prerelease previews the next unreleased version and stays above latest,
+  // instead of forking a second branch that cannot hold its own version.
   const prerelease = input.packageVersion.includes('-')
-  const targetBranch = prerelease ? 'beta' : 'main'
+  const targetBranch = 'main'
   const channel = prerelease ? 'beta' : 'stable'
   const npmTag = prerelease ? 'beta' : 'latest'
   const expectedTag = `v${input.packageVersion}`
@@ -77,8 +80,7 @@ async function resolveReleaseIdentity(): Promise<ReleaseIdentity> {
     version?: string
   }
   const packageVersion = manifest.version ?? ''
-  const prerelease = packageVersion.includes('-')
-  const requestedBranch = prerelease ? 'beta' : 'main'
+  const requestedBranch = 'main'
   const requestedTag = process.env.GITHUB_REF_NAME ?? ''
   const commitSha = await git(['rev-parse', 'HEAD'])
   const branchHeadSha = await git(['rev-parse', `origin/${requestedBranch}`])

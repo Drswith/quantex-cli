@@ -1,24 +1,22 @@
 name: Sandbox Tests
 
 # Advisory signal only: this workflow is intentionally NOT a required merge gate.
-# Fork PRs skip the Modal-backed job (no secrets) and same-repo PRs run a reduced
-# scenario set; treat failures as investigation input, not as merge blockers.
+#
+# It no longer runs per pull request. It never gated anything there -- it is
+# advisory by design, fork PRs skipped it for lack of secrets, and its failures
+# were external Modal capacity rather than repository regressions -- so a full
+# run per pull request bought a signal nothing consumed. Schedule and manual
+# dispatch keep the coverage where it is actually read.
 
 on:
   workflow_dispatch:
 
-  pull_request:
-    branches:
-      - main
-      - beta
-
-  push:
-    branches:
-      - main
-      - beta
-
   schedule:
     - cron: '0 6 * * 2'
+
+concurrency:
+  group: sandbox-tests-${{ github.ref }}
+  cancel-in-progress: true
 
 env:
   CI: true
@@ -28,43 +26,10 @@ env:
 
 permissions:
   contents: read
-  pull-requests: read
 
 jobs:
-  classify:
-    runs-on: ubuntu-latest
-    outputs:
-      sandbox_relevant: ${{ steps.taxonomy.outputs.sandbox_relevant }}
-      sandbox_relevant_files: ${{ steps.taxonomy.outputs.sandbox_relevant_files }}
-      scope: ${{ steps.taxonomy.outputs.scope }}
-      trusted_pr: ${{ steps.context.outputs.trusted_pr }}
-    steps:
-      - uses: actions/checkout@v7
-      - uses: oven-sh/setup-bun@v2
-        with:
-          bun-version: 1.3.11
-
-      - name: Collect CI context
-        id: context
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: bun run ci:context
-
-      - name: Classify sandbox scope
-        id: taxonomy
-        env:
-          CHANGED_FILES_AVAILABLE: ${{ steps.context.outputs.changed_files_available }}
-          CHANGED_FILES_JSON: ${{ steps.context.outputs.changed_files }}
-        run: bun run ci:path-taxonomy
-
   sandbox-tests:
     name: sandbox-tests
-    needs: classify
-    if: >-
-      ${{
-        needs.classify.outputs.sandbox_relevant == 'true'
-        && (github.event_name != 'pull_request' || needs.classify.outputs.trusted_pr == 'true')
-      }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
@@ -83,9 +48,4 @@ jobs:
         env:
           MODAL_TOKEN_ID: ${{ secrets.MODAL_TOKEN_ID }}
           MODAL_TOKEN_SECRET: ${{ secrets.MODAL_TOKEN_SECRET }}
-        run: |
-          if [ "${GITHUB_EVENT_NAME}" = "pull_request" ]; then
-            export QTX_ISOLATION_SCENARIOS=managed,deno-managed,uv-managed,adopt-preinstalled,ambiguous-multi-method,self-binary
-          fi
-
-          bun run test:sandbox
+        run: bun run test:sandbox

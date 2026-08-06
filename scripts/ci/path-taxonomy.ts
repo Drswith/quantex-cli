@@ -24,11 +24,7 @@ export const productImpactingFiles = new Set([
   'tsdown.config.ts',
 ])
 
-export const processOnlyFiles = new Set([
-  'release-please-config.json',
-  'release-please-config.beta.json',
-  '.release-please-manifest.json',
-])
+export const processOnlyFiles = new Set(['release-please-config.json', '.release-please-manifest.json'])
 
 export const processOnlyPrefixes = ['.github/', 'docs/', 'openspec/'] as const
 

@@ -63,9 +63,9 @@ Suggested categories and slugs:
 
 The filenames in `.github/DISCUSSION_TEMPLATE/` already assume those slugs.
 
-### Protect `main` and `beta`
+### Protect `main`
 
-Configure branch protection or rulesets so that `main` and `beta` require exactly the checks that really run on every pull request:
+`main` is the only release channel. Configure branch protection or rulesets so that it requires exactly the checks that really run on every pull request:
 
 - `lint`
 - `governance`

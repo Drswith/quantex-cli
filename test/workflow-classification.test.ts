@@ -54,15 +54,14 @@ describe('workflow classification integration', () => {
     expect(ciWorkflow).not.toContain("fileName.startsWith('src/')")
   })
 
-  it('routes sandbox workflow classification through the same shared scripts', () => {
-    expect(sandboxWorkflow).toContain('bun run ci:context')
-    expect(sandboxWorkflow).toContain('bun run ci:path-taxonomy')
-    expect(sandboxWorkflow).toContain('sandbox_relevant')
-    expect(sandboxWorkflow).toContain('trusted_pr')
-    expect(sandboxWorkflow).not.toContain('actions/github-script')
-    expect(sandboxWorkflow).toContain(
-      'QTX_ISOLATION_SCENARIOS=managed,deno-managed,uv-managed,adopt-preinstalled,ambiguous-multi-method,self-binary',
-    )
+  it('keeps sandbox tests off pull requests so they cost nothing per PR', () => {
+    expect(sandboxWorkflow).not.toContain('pull_request')
+    expect(sandboxWorkflow).toContain('schedule:')
+    expect(sandboxWorkflow).toContain('workflow_dispatch:')
+    // Change classification only ever gated the per-PR run; scheduled runs
+    // always saw a null diff and ran the full set anyway.
+    expect(sandboxWorkflow).not.toContain('bun run ci:path-taxonomy')
+    expect(sandboxWorkflow).not.toContain('trusted_pr')
   })
 
   it('marks sandbox tests as advisory rather than a required gate', () => {
@@ -70,11 +69,20 @@ describe('workflow classification integration', () => {
     expect(sandboxWorkflow).toContain('NOT a required merge gate')
   })
 
-  it('runs CI and sandbox only for main and beta', () => {
-    expect(extractYamlList(extractEventBlock(ciWorkflow, 'pull_request'), 'branches')).toEqual(['main', 'beta'])
-    expect(extractYamlList(extractEventBlock(ciWorkflow, 'push'), 'branches')).toEqual(['main', 'beta'])
-    expect(extractYamlList(extractEventBlock(sandboxWorkflow, 'pull_request'), 'branches')).toEqual(['main', 'beta'])
-    expect(extractYamlList(extractEventBlock(sandboxWorkflow, 'push'), 'branches')).toEqual(['main', 'beta'])
+  it('runs CI for main only, because main is the only release channel', () => {
+    expect(extractYamlList(extractEventBlock(ciWorkflow, 'pull_request'), 'branches')).toEqual(['main'])
+    expect(extractYamlList(extractEventBlock(ciWorkflow, 'push'), 'branches')).toEqual(['main'])
+  })
+
+  it('cancels superseded CI and sandbox runs but never a release', () => {
+    for (const workflow of [ciWorkflow, sandboxWorkflow]) {
+      expect(workflow).toContain('concurrency:')
+      expect(workflow).toContain('cancel-in-progress: true')
+    }
+
+    for (const fileName of ['release.yml', 'release-please.yml', 'release-core.yml']) {
+      expect(readFileSync(`.github/workflows/${fileName}`, 'utf8')).toContain('cancel-in-progress: false')
+    }
   })
 
   it('uses Node 24 in test jobs and includes workspace manifests in cache keys', () => {
@@ -119,7 +127,8 @@ describe('workflow classification integration', () => {
   })
 
   it('uses automatic release-please on protected-branch push', () => {
-    expect(extractYamlList(extractEventBlock(releasePleaseWorkflow, 'push'), 'branches')).toEqual(['main', 'beta'])
+    expect(extractYamlList(extractEventBlock(releasePleaseWorkflow, 'push'), 'branches')).toEqual(['main'])
+    expect(releasePleaseWorkflow).toContain('config-file: release-please-config.json')
     expect(releasePleaseWorkflow).toContain('skip-github-release: true')
     expect(releasePleaseWorkflow).toContain('tag-release')
     expect(releasePleaseWorkflow).toContain('ci:tag-release')

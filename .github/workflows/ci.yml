@@ -4,7 +4,6 @@ on:
   push:
     branches:
       - main
-      - beta
 
   pull_request:
     types:
@@ -14,12 +13,17 @@ on:
       - synchronize
     branches:
       - main
-      - beta
 
   workflow_dispatch:
 
   schedule:
     - cron: '0 3 * * 1'
+
+# The edited activity type re-validates an edited PR body, so a burst of edits
+# would otherwise leave several superseded three-platform matrices running.
+concurrency:
+  group: ci-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
 
 env:
   CI: true
