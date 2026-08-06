@@ -1,15 +1,22 @@
 import { spawnSync } from 'node:child_process'
+import { existsSync } from 'node:fs'
 import { mkdir, writeFile } from 'node:fs/promises'
 import { dirname, resolve } from 'node:path'
 import process from 'node:process'
 import { fileURLToPath } from 'node:url'
 import { validatePrBodyPolicy } from './pr-body-policy'
 
-interface ArchiveClosureOptions {
+export interface ArchiveClosureOptions {
   applySpecs: boolean
   bodyFile?: string
   changeIds: string[]
   title: string
+}
+
+export interface ArchiveClosureDeps {
+  changeDirExists?: ChangeDirChecker
+  emitBody?: BodyEmitter
+  run?: CommandRunner
 }
 
 export interface OpenSpecApplyInstructions {
@@ -88,20 +95,23 @@ if (import.meta.main) {
   await runArchiveClosure(options)
 }
 
-async function runArchiveClosure(options: ArchiveClosureOptions): Promise<void> {
+export async function runArchiveClosure(options: ArchiveClosureOptions, deps: ArchiveClosureDeps = {}): Promise<void> {
+  const run = deps.run ?? runChecked
+  const emitBody = deps.emitBody ?? writeArchivePrBody
+
   if (options.changeIds.length === 0) {
     throw new Error('At least one OpenSpec change id is required.')
   }
 
   for (const changeId of options.changeIds) {
-    assertOpenSpecArchiveReady(changeId)
+    assertOpenSpecArchiveReady(changeId, run)
   }
 
   for (const changeId of options.changeIds) {
-    archiveChange(changeId, options.applySpecs)
+    archiveChange(changeId, options.applySpecs, deps)
   }
 
-  runChecked('bun', ['run', 'openspec:validate'])
+  run('bun', ['run', 'openspec:validate'])
 
   const body = createArchivePrBody(options.changeIds)
   const bodyIssues = validatePrBodyPolicy({
@@ -114,14 +124,19 @@ async function runArchiveClosure(options: ArchiveClosureOptions): Promise<void> 
     throw new Error(`Generated archive PR body failed policy validation:\n${bodyIssues.join('\n')}`)
   }
 
-  if (options.bodyFile) {
-    const outputPath = resolve(rootDir, options.bodyFile)
-    await mkdir(dirname(outputPath), { recursive: true })
-    await writeFile(outputPath, body)
-    console.log(`Archive PR body written to ${options.bodyFile}`)
-  } else {
+  await emitBody(body, options.bodyFile)
+}
+
+async function writeArchivePrBody(body: string, bodyFile?: string): Promise<void> {
+  if (!bodyFile) {
     console.log(body)
+    return
   }
+
+  const outputPath = resolve(rootDir, bodyFile)
+  await mkdir(dirname(outputPath), { recursive: true })
+  await writeFile(outputPath, body)
+  console.log(`Archive PR body written to ${bodyFile}`)
 }
 
 export function assertOpenSpecTasksComplete(changeName: string, progress: OpenSpecTaskProgress): void {
@@ -133,6 +148,10 @@ export function assertOpenSpecTasksComplete(changeName: string, progress: OpenSp
     )
   }
 }
+
+type BodyEmitter = (body: string, bodyFile?: string) => Promise<void>
+
+type ChangeDirChecker = (changeId: string) => boolean
 
 type CommandRunner = (command: string, args: string[], options?: { capture?: boolean }) => string
 
@@ -170,11 +189,52 @@ export function parseOpenSpecApplyInstructions(output: string, changeId: string)
   return instructions
 }
 
-function archiveChange(changeId: string, applySpecs: boolean): void {
+function archiveChange(changeId: string, applySpecs: boolean, deps: ArchiveClosureDeps = {}): void {
+  const run = deps.run ?? runChecked
+  const changeDirExists = deps.changeDirExists ?? openSpecChangeDirExists
+
   const args = ['archive', '--yes', changeId]
   if (!applySpecs) args.push('--skip-specs')
 
-  runChecked('openspec', args)
+  const output = run('openspec', args)
+  assertChangeArchived(changeId, output, changeDirExists)
+}
+
+/**
+ * `openspec archive` exits 0 when it aborts gracefully (for example when a spec
+ * delta header no longer matches), so the exit code alone cannot prove the
+ * change was archived. Verify the outcome instead, and surface the underlying
+ * reason so the operator sees which change failed and why.
+ */
+export function assertChangeArchived(
+  changeId: string,
+  output: string,
+  changeDirExists: ChangeDirChecker = openSpecChangeDirExists,
+): void {
+  const abortReasons = findArchiveAbortReasons(output)
+  const stillActive = changeDirExists(changeId)
+
+  if (!stillActive && abortReasons.length === 0) return
+
+  const cause = stillActive
+    ? `\`openspec archive\` left \`openspec/changes/${changeId}\` in place`
+    : '`openspec archive` reported an aborted run'
+  const details = abortReasons.length > 0 ? `\n${abortReasons.join('\n')}` : ''
+
+  throw new Error(
+    `OpenSpec change "${changeId}" was not archived: ${cause}. Resolve the underlying archive failure and rerun archive closure.${details}`,
+  )
+}
+
+function findArchiveAbortReasons(output: string): string[] {
+  return output
+    .split('\n')
+    .map(line => line.trim())
+    .filter(line => line.startsWith('Aborted.') || line.includes(' failed for '))
+}
+
+function openSpecChangeDirExists(changeId: string): boolean {
+  return existsSync(resolve(rootDir, 'openspec/changes', changeId))
 }
 
 function runChecked(command: string, args: string[], options: { capture?: boolean } = {}): string {

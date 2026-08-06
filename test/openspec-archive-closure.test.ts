@@ -1,11 +1,18 @@
 import { describe, expect, it } from 'vitest'
 import {
+  assertChangeArchived,
   assertOpenSpecArchiveReady,
   assertOpenSpecTasksComplete,
   createArchivePrBody,
   parseOpenSpecApplyInstructions,
+  runArchiveClosure,
 } from '../scripts/ci/openspec-archive-closure'
 import { validatePrBodyPolicy } from '../scripts/ci/pr-body-policy'
+
+const abortedArchiveOutput = `Specs to update:
+  code-quality-tooling: update
+code-quality-tooling REMOVED failed for header "### Requirement: Local commit-msg hook MUST remove Cursor attribution trailers before commit creation" - not found
+Aborted. No files were changed.`
 
 describe('OpenSpec archive closure helper', () => {
   it('generates a PR body accepted by local governance policy', () => {
@@ -108,5 +115,124 @@ describe('OpenSpec archive closure helper', () => {
     ).toThrow(
       'OpenSpec apply instructions change mismatch: requested "incomplete-change", received "completed-change".',
     )
+  })
+
+  it('accepts an archive run that removed the change directory', () => {
+    expect(() =>
+      assertChangeArchived(
+        'archived-change',
+        "Change 'archived-change' archived as '2026-08-06-archived-change'.",
+        () => false,
+      ),
+    ).not.toThrow()
+  })
+
+  it('rejects an archive run that exited zero but left the change active', () => {
+    expect(() => assertChangeArchived('aborted-change', abortedArchiveOutput, () => true)).toThrow(
+      'OpenSpec change "aborted-change" was not archived: `openspec archive` left `openspec/changes/aborted-change` in place.',
+    )
+  })
+
+  it('surfaces the underlying archive failure so the operator can repair it', () => {
+    expect(() => assertChangeArchived('aborted-change', abortedArchiveOutput, () => true)).toThrow(
+      /code-quality-tooling REMOVED failed for header .* - not found/,
+    )
+  })
+
+  it('rejects an aborted archive run even when the change directory is already gone', () => {
+    expect(() => assertChangeArchived('aborted-change', abortedArchiveOutput, () => false)).toThrow(
+      'OpenSpec change "aborted-change" was not archived: `openspec archive` reported an aborted run.',
+    )
+  })
+})
+
+describe('OpenSpec archive closure run', () => {
+  it('fails closure and emits no PR body when a later change aborts its archive', async () => {
+    const commands: string[][] = []
+    const emittedBodies: string[] = []
+    const activeChangeIds = new Set(['first-change', 'aborted-change'])
+
+    const run = (command: string, args: string[]): string => {
+      commands.push([command, ...args])
+
+      if (command === 'openspec' && args[0] === 'instructions') {
+        const changeId = args[3]
+        return JSON.stringify({
+          changeName: changeId,
+          progress: { complete: 12, remaining: 0, total: 12 },
+        })
+      }
+
+      if (command === 'openspec' && args[0] === 'archive') {
+        const changeId = args[2]
+        if (changeId === 'aborted-change') return abortedArchiveOutput
+
+        activeChangeIds.delete(changeId)
+        return `Change '${changeId}' archived as '2026-08-06-${changeId}'.`
+      }
+
+      return ''
+    }
+
+    await expect(
+      runArchiveClosure(
+        {
+          applySpecs: true,
+          bodyFile: '.tmp/archive-pr-body.md',
+          changeIds: ['first-change', 'aborted-change'],
+          title: 'docs(openspec): archive completed changes',
+        },
+        {
+          changeDirExists: changeId => activeChangeIds.has(changeId),
+          emitBody: async body => {
+            emittedBodies.push(body)
+          },
+          run,
+        },
+      ),
+    ).rejects.toThrow('OpenSpec change "aborted-change" was not archived')
+
+    expect(emittedBodies).toEqual([])
+    expect(commands).not.toContainEqual(['bun', 'run', 'openspec:validate'])
+  })
+
+  it('emits the PR body once every requested change is archived', async () => {
+    const emittedBodies: string[] = []
+    const activeChangeIds = new Set(['first-change', 'second-change'])
+
+    const run = (command: string, args: string[]): string => {
+      if (command === 'openspec' && args[0] === 'instructions') {
+        return JSON.stringify({
+          changeName: args[3],
+          progress: { complete: 12, remaining: 0, total: 12 },
+        })
+      }
+
+      if (command === 'openspec' && args[0] === 'archive') {
+        activeChangeIds.delete(args[2])
+        return `Change '${args[2]}' archived as '2026-08-06-${args[2]}'.`
+      }
+
+      return ''
+    }
+
+    await runArchiveClosure(
+      {
+        applySpecs: true,
+        bodyFile: '.tmp/archive-pr-body.md',
+        changeIds: ['first-change', 'second-change'],
+        title: 'docs(openspec): archive completed changes',
+      },
+      {
+        changeDirExists: changeId => activeChangeIds.has(changeId),
+        emitBody: async body => {
+          emittedBodies.push(body)
+        },
+        run,
+      },
+    )
+
+    expect(emittedBodies).toHaveLength(1)
+    expect(emittedBodies[0]).toContain('`first-change`, `second-change`')
   })
 })
