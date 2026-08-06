@@ -19,11 +19,16 @@ on:
   schedule:
     - cron: '0 3 * * 1'
 
-# The edited activity type re-validates an edited PR body, so a burst of edits
-# would otherwise leave several superseded three-platform matrices running.
+# Cancel superseded pull request runs only. The edited activity type re-validates
+# an edited PR body, so a burst of edits would otherwise leave several superseded
+# three-platform matrices running.
+#
+# Push runs are keyed by commit and never cancelled: tag-release will only tag a
+# release commit whose exact SHA has a successful ci.yml run, so cancelling a
+# push run can silently cost a release when two merges land back to back.
 concurrency:
-  group: ci-${{ github.event.pull_request.number || github.ref }}
-  cancel-in-progress: true
+  group: ci-${{ github.event.pull_request.number || github.sha }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 env:
   CI: true

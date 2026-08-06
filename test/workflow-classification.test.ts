@@ -77,12 +77,20 @@ describe('workflow classification integration', () => {
   it('cancels superseded CI and sandbox runs but never a release', () => {
     for (const workflow of [ciWorkflow, sandboxWorkflow]) {
       expect(workflow).toContain('concurrency:')
-      expect(workflow).toContain('cancel-in-progress: true')
     }
 
     for (const fileName of ['release.yml', 'release-please.yml', 'release-core.yml']) {
       expect(readFileSync(`.github/workflows/${fileName}`, 'utf8')).toContain('cancel-in-progress: false')
     }
+  })
+
+  // A push run cancelled by a later merge leaves that SHA permanently without a
+  // successful ci.yml run, which is exactly what tag-release requires before it
+  // will tag a release. Keying push runs by commit keeps them from colliding.
+  it('never cancels a CI push run, so a back-to-back merge cannot cost a release', () => {
+    expect(ciWorkflow).toContain('group: ci-${{ github.event.pull_request.number || github.sha }}')
+    expect(ciWorkflow).toContain("cancel-in-progress: ${{ github.event_name == 'pull_request' }}")
+    expect(ciWorkflow).not.toContain('github.event.pull_request.number || github.ref')
   })
 
   it('uses Node 24 in test jobs and includes workspace manifests in cache keys', () => {

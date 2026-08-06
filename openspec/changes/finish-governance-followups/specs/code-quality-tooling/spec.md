@@ -4,7 +4,9 @@
 
 ### Requirement: Merge-gating and advisory workflows SHALL cancel superseded runs
 
-`ci.yml` and `sandbox-tests.yml` SHALL each declare a concurrency group keyed on the pull request number when the event is a pull request and on the ref otherwise, and SHALL cancel in-progress runs in that group. `ci.yml` triggers on the `edited` pull request activity type so that PR body governance re-validates an edited description; without a concurrency group, a burst of edits leaves several full three-platform matrices running against superseded content.
+`ci.yml` and `sandbox-tests.yml` SHALL each declare a concurrency group that cancels superseded **pull request** runs. `ci.yml` triggers on the `edited` pull request activity type so that PR body governance re-validates an edited description; without a concurrency group, a burst of edits leaves several full three-platform matrices running against superseded content.
+
+Push runs SHALL NOT be cancelled. Release tagging only tags a release commit whose exact SHA has a successful `ci.yml` run, so a push run cancelled by a later merge leaves that SHA permanently without a successful run — and if the cancelled push was a Release PR merge, the release silently never happens. Keying push runs by commit rather than by ref keeps them from colliding at all.
 
 Release workflows are excluded from this requirement: they already declare non-cancelling groups, because cancelling a publication mid-flight is not safe.
 
@@ -13,6 +15,12 @@ Release workflows are excluded from this requirement: they already declare non-c
 - **WHEN** a contributor edits a pull request title or body while a CI run is in progress
 - **THEN** the superseded run MUST be cancelled
 - **AND** only the newest run MUST remain
+
+#### Scenario: Two merges land back to back
+
+- **WHEN** a push to `main` starts a CI run and a second merge lands before it finishes
+- **THEN** the first run MUST NOT be cancelled
+- **AND** both commits MUST end with their own CI conclusion, so release tagging can find a successful run at either SHA
 
 #### Scenario: Release runs are not cancelled
 
