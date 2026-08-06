@@ -43,4 +43,4 @@
 - [x] `bun run test`
 - [x] `bun run openspec:validate`, `bun run memory:check`
 - [x] `bun run release:dry-run`
-- [ ] Commit, push, PR with a `pr:body:check`-validated body
+- [x] Commit, push, PR with a `pr:body:check`-validated body (#591, merged; concurrency defect corrected by #593)
