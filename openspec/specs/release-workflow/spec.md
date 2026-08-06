@@ -3,9 +3,7 @@
 ## Purpose
 
 Define the complete release contract for `quantex-cli` and `quantex-core`: release-please Release PRs on protected branches, PR release intent and note input, deterministic tag creation after manually merged Release PRs, tag-triggered publication, protected-branch gate alignment, and independent Core package publication.
-
 ## Requirements
-
 ### Requirement: Release-please SHALL run automatically on protected-branch push
 
 On push to `main` or `beta`, a `release-please` workflow SHALL open or update the Release PR using the branch-appropriate config file (`release-please-config.json` for `main`, `release-please-config.beta.json` for `beta`).
@@ -326,3 +324,26 @@ When a CLI release depends on a new `quantex-core` version, the maintainer SHALL
 - **WHEN** `package.json` pins a `quantex-core` version that is not yet on npm
 - **THEN** the maintainer MUST dispatch the Core release first
 - **AND** the CLI release candidate pipeline MUST NOT be expected to succeed before Core is published
+
+### Requirement: The shipped PR template MUST satisfy PR body governance
+
+Because contributors and agents are required to write PR bodies based on `.github/pull_request_template.md`, that template SHALL itself pass the repository PR body governance check without modification. The template SHALL present every section required by PR body governance, and SHALL present its `Linked Artifacts` section so that an unmodified template already declares at least one meaningful artifact line, following the same option-list convention the template uses for release intent.
+
+The agreement between the template and the governance check SHALL be enforced by automated regression coverage, so that editing either side without the other fails the test suite rather than surfacing later as a rejected pull request.
+
+#### Scenario: Shipped template is validated directly
+
+- **WHEN** the repository PR body governance command runs against `.github/pull_request_template.md`
+- **THEN** it MUST report no policy issues
+
+#### Scenario: Required sections drift apart
+
+- **WHEN** a required PR body heading is added to or removed from PR body governance
+- **AND** `.github/pull_request_template.md` is not updated to match
+- **THEN** the repository test suite MUST fail
+
+#### Scenario: Generated Release PR headers stay covered
+
+- **WHEN** the release-please stable or beta `pull-request-header` template is validated by PR body governance
+- **THEN** it MUST report no policy issues, so generated Release PRs pass the same gate as human pull requests
+
