@@ -1,6 +1,13 @@
 # Changelog
 
 
+## [1.8.8](https://github.com/Drswith/quantex-cli/compare/v1.8.7...v1.8.8) (2026-08-06)
+
+
+### Bug Fixes
+
+* **uninstall:** stop re-adding state when another copy stays on PATH ([09fb060](https://github.com/Drswith/quantex-cli/commit/09fb060658ef6f8830ddcd28694d9256b3980125))
+
 ## [1.8.7](https://github.com/Drswith/quantex-cli/compare/v1.8.6...v1.8.7) (2026-08-06)
 
 
