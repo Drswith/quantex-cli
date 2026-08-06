@@ -1,6 +1,13 @@
 # Changelog
 
 
+## [1.8.7](https://github.com/Drswith/quantex-cli/compare/v1.8.6...v1.8.7) (2026-08-06)
+
+
+### Bug Fixes
+
+* **install:** stop install.sh from discarding or tearing state.json ([a85a6ae](https://github.com/Drswith/quantex-cli/commit/a85a6ae673a41a1a159225863832c9ff1e99d715))
+
 ## [1.8.6](https://github.com/Drswith/quantex-cli/compare/v1.8.2...v1.8.6) (2026-08-05)
 
 
