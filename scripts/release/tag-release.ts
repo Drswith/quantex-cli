@@ -32,17 +32,30 @@ export function parseReleaseVersionFromTitle(title: string): string | null {
   return match ? match[1].trim() : null
 }
 
-export function resolveReleaseTagPlan(input: ReleaseTagInput): ReleaseTagPlan {
+// Decides from the branch head alone, without any network call, whether tagging
+// could apply at all. The runner checks this before waiting on CI: the wait can
+// last 15 minutes, and spending it on an ordinary push that can never be tagged
+// also blocks the next release-please run behind a non-cancelling group.
+export function findNonReleaseHeadReason(input: { commitTitle: string; packageVersion: string }): string | null {
   const version = input.packageVersion.trim()
   if (!releaseVersionPattern.test(version)) {
-    return { action: 'noop', reason: `package version is not a release version: ${version}` }
+    return `package version is not a release version: ${version}`
   }
 
-  const titleVersion = parseReleaseVersionFromTitle(input.commitTitle)
-  if (titleVersion !== version) {
-    return { action: 'noop', reason: 'branch head is not a release commit' }
+  if (parseReleaseVersionFromTitle(input.commitTitle) !== version) {
+    return 'branch head is not a release commit'
   }
 
+  return null
+}
+
+export function resolveReleaseTagPlan(input: ReleaseTagInput): ReleaseTagPlan {
+  const nonReleaseHeadReason = findNonReleaseHeadReason(input)
+  if (nonReleaseHeadReason) {
+    return { action: 'noop', reason: nonReleaseHeadReason }
+  }
+
+  const version = input.packageVersion.trim()
   const tag = `v${version}`
   if (input.tagSha === input.branchHeadSha) {
     return { action: 'relabel-only', reason: 'release tag already points at branch head', tag, version }
@@ -81,6 +94,14 @@ async function runReleaseTagging(): Promise<void> {
     version?: string
   }
   const packageVersion = packageJson.version ?? ''
+
+  // Answer the free question before the expensive one.
+  const nonReleaseHeadReason = findNonReleaseHeadReason({ commitTitle, packageVersion })
+  if (nonReleaseHeadReason) {
+    console.log(`Release tag plan: noop (${nonReleaseHeadReason})`)
+    return
+  }
+
   const tag = packageVersion ? `v${packageVersion}` : ''
   const tagSha = tag ? await readTagSha(tag) : null
   const ciSha = await waitForSuccessfulCi({ branch, sha: branchHeadSha, token })
