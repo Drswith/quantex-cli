@@ -198,7 +198,7 @@ When a non-trivial change is tracked in OpenSpec, the project SHALL treat implem
 
 #### Scenario: Completed change lands on a protected branch
 
-- **WHEN** an OpenSpec-backed implementation PR merges to a protected branch such as `main` or `beta`
+- **WHEN** an OpenSpec-backed implementation PR merges to the protected `main` branch
 - **THEN** the project keeps the merged code as implemented work
 - **AND** an agent using the Quantex runtime follows up by syncing accepted spec deltas and archiving the completed change
 - **AND** the agent reports whether archive closure is complete or still pending
@@ -451,4 +451,3 @@ Restating the full validation matrix and the full intake signal list in both fil
 - **WHEN** the project memory check runs
 - **THEN** it MUST verify that `skills/quantex-agent-runtime/SKILL.md` carries the validation commands and intake signals that `AGENTS.md` points at
 - **AND** it MUST fail when the runtime skill no longer carries them
-

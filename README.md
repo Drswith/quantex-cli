@@ -179,8 +179,9 @@ Upgrade Quantex itself:
 ```bash
 qtx upgrade
 qtx upgrade --check
-qtx upgrade --channel beta
 ```
+
+Stable is the normal Quantex release line. The CLI still accepts `qtx upgrade --channel beta` for an explicitly published prerelease, but this repository does not maintain a beta release channel, so that selector may have no matching release.
 
 Note: `qtx upgrade` follows the registry actually used by the current Bun/npm self-upgrade path. If you use a mirror and it lags behind npm, the newest upstream release may not be installable from that registry yet. In that case, retry later or set `selfUpdateRegistry` / `QTX_SELF_UPDATE_REGISTRY` so Quantex self-upgrade uses a different registry without affecting your other projects.
 
@@ -204,6 +205,8 @@ Note: `qtx upgrade` follows the registry actually used by the current Bun/npm se
 | `qtx schema` | `quantex schema` | Show structured output schemas |
 | `qtx config` | `quantex config` | Manage configuration |
 | `qtx doctor` | `quantex doctor` | Diagnose environment and recovery guidance |
+
+`qtx rm` / `quantex uninstall` acts on the install source recorded by Quantex. It does not remove an independently installed copy that remains on `PATH`; if the managed package is gone but another copy remains, Quantex reports a conflicting source. Use `qtx inspect <agent> --json` and `qtx resolve <agent> --json`, then remove or reinstall the remaining copy through its actual owner.
 
 ## Supported Agents
 

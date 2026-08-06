@@ -70,7 +70,7 @@ Publication identity still requires all of these values to agree before `release
 - `chore: release <version>` commit title
 - root `package.json` version
 - `v<version>` tag at the same SHA
-- the npm dist-tag: `latest` for a stable version, `beta` for a prerelease
+- the npm dist-tag: `latest` for a stable version; `beta` only if a prerelease is deliberately published as a defensive mapping. The repository does not maintain a beta release line.
 
 An existing tag is accepted only when it already points to the exact validated commit. The workflow never moves a version tag.
 

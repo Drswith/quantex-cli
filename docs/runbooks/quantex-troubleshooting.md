@@ -134,6 +134,21 @@ What to do:
 - reinstall the agent through Quantex if you want tracked lifecycle management
 - keep manual or self-updating installs only when that tradeoff is intentional
 
+### `uninstall` reports a conflicting source after managed removal
+
+Symptoms:
+
+- the uninstall result says that the managed package was removed but another copy remains on `PATH`
+- structured output reports `UNINSTALL_FAILED` with `details.lifecycle` set to `conflicting-source`
+
+What to do:
+
+- run `quantex inspect <agent> --json` and `quantex resolve <agent> --json` to identify the executable that remains
+- remove or update that copy through the package manager or installer that owns it
+- if you want Quantex to manage the agent again, reinstall it through Quantex after the independent copy is removed
+
+Quantex intentionally does not restore managed state after the bound provider has conclusively removed its package. The remaining executable is treated as externally owned or untracked, so retrying uninstall without resolving the second copy will not make Quantex claim it.
+
 ### Data looks stale
 
 Symptoms:

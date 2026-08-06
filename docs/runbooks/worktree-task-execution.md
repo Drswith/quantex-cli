@@ -58,7 +58,7 @@ Stop and ask for human input when:
 
 - the worktree contains unmerged or unpushed commits you did not create
 - the work appears to require in-place edits inside the user's active workspace
-- you need to reuse protected or automation-managed branches such as `main`, `beta`, or `release-please...`
+- you need to reuse protected or automation-managed branches such as `main` or `release-please...`
 
 ## Related artifacts
 
