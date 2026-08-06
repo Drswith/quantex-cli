@@ -1,6 +1,6 @@
 # Session: 2026-04-23 Project Memory Bootstrap
 
-> Superseded note: The `autonomy/` task queue created in this session was migrated into `openspec/changes/archive/` on 2026-04-27.
+> Superseded note: The `autonomy/` task queue was migrated into OpenSpec archived changes on 2026-04-27; the in-tree archive was removed in [ADR 0008](../adr/0008-workflow-redesign.md). Last in-repo snapshot: commit `ff65d61`.
 
 ## Context
 
