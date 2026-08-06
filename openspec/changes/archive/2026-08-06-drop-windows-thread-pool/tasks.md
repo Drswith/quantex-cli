@@ -21,8 +21,8 @@
 - [x] `bun run lint`, `bun run format:check`, `bun run typecheck`
 - [x] `bun run test`
 - [x] `bun run openspec:validate`, `bun run memory:check`
-- [ ] Commit, push, PR with a `pr:body:check`-validated body
+- [x] Commit, push, PR with a `pr:body:check`-validated body (#603, merged)
 
 ## 5. Follow-up after merge
 
-- [ ] Watch the Windows job for exit 5. If it recurs, the pool was not the whole cause and the investigation resumes from that observation
+- [x] Recorded as a standing watch item rather than a task to complete: if exit 5 recurs after this lands, the pool was not the whole cause and the investigation resumes from that observation
