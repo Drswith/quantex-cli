@@ -27,7 +27,7 @@
 ## 4. AGENTS.md routing parity (P2)
 
 - [x] Compress the `AGENTS.md` validation block to triggers pointing at the runtime skill
-- [x] Compress the intake-signal block the same way
+- [x] Intake-signal block: **no change needed**. It already opens with a pointer to the runtime skill and carries only trigger keywords, so the audit finding was overstated for this block; the validation matrix was the only genuine restatement
 - [x] Extend `scripts/ci/check-project-memory.ts` to verify the runtime skill carries the deferred detail
 - [x] Guard is exercised by `bun run memory:check` in pre-push and the CI lint job
 
