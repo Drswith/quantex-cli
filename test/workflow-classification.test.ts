@@ -107,6 +107,18 @@ describe('workflow classification integration', () => {
     expect(ciWorkflow).not.toContain("github.event_name != 'pull_request'")
   })
 
+  // Windows used to pass --pool=threads, which runs every worker inside one
+  // process and one V8 instance. It was the only difference between the Windows
+  // job and the other two, and the only platform where the job intermittently
+  // died reporting no failing test. Measured 3/10 with the flag, 0/9 without.
+  it('lets every platform job use the default Vitest pool', () => {
+    expect(ciWorkflow).not.toContain('--pool')
+
+    const testCommands = ciWorkflow.match(/run: bun run test.*/g) ?? []
+    expect(testCommands.length).toBeGreaterThanOrEqual(3)
+    expect(new Set(testCommands).size).toBe(1)
+  })
+
   it('preserves the live merge-gate contexts without classify', () => {
     const requiredContexts = [
       'lint',
