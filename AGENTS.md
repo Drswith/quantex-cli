@@ -57,15 +57,11 @@ bun run release:artifacts
 bun run release:dry-run
 ```
 
-触发规则：
+完整的 command→trigger 路由表由 `skills/quantex-agent-runtime/SKILL.md` 的 Validation Routing 唯一承载；此处只保留触发器：
 
-- 改了任意文件：跑 `bun run lint`、`bun run format:check` 和 `bun run typecheck`；本地修复用 `bun run lint:fix` 与 `bun run format`
-- 改了 CLI 行为、结构化输出、契约或集成逻辑：再跑 `bun run test`
-- 改了 OpenSpec / docs / project memory 流程：跑 `bun run openspec:validate`，必要时跑 `bun run memory:check`
-- 改了构建、发布、自升级或 release artifacts：补跑 `bun run build`、`bun run build:bin`、`bun run release:artifacts`
-- 改了发布管线脚本或 `release.yml`：先跑 `bun run release:dry-run` 本地演练完整候选链
-- lint 由 `oxlint` 提供，format 由 `oxfmt` 提供（配置见 `.oxlintrc.json` / `.oxfmtrc.json`）；不要再引入 `eslint`、`@antfu/eslint-config` 或 `prettier`
-- `bunfig.toml` 的 `ignoreScripts=true` 会阻止 `prepare` 自动安装 git hooks；`bun install` 后必须跑一次 `bun run setup`，hooks 定义变更后重跑
+改了任意文件 → lint / format:check / typecheck。此外按改动性质追加：CLI 行为、结构化输出、契约、集成逻辑 → test；OpenSpec / docs / project memory → openspec:validate、memory:check；构建、发布、自升级、release artifacts → build、build:bin、release:artifacts；发布管线脚本或 `release.yml` → 先跑 release:dry-run。
+
+两条不会漂移的工具链约束：lint 由 `oxlint`、format 由 `oxfmt` 提供（配置见 `.oxlintrc.json` / `.oxfmtrc.json`），不要引入 `eslint`、`@antfu/eslint-config` 或 `prettier`；`bunfig.toml` 的 `ignoreScripts=true` 会阻止 `prepare` 自动安装 git hooks，`bun install` 后必须跑一次 `bun run setup`，hooks 定义变更后重跑。
 
 ## Work Intake Gate
 

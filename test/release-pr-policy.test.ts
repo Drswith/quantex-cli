@@ -10,7 +10,6 @@ type TestReleasePrPolicyInput = Omit<ReleasePrPolicyInput, 'rootManifest'> &
   Partial<Pick<ReleasePrPolicyInput, 'rootManifest'>>
 
 const stableReleaseConfig = JSON.parse(readFileSync('release-please-config.json', 'utf8'))
-const betaReleaseConfig = JSON.parse(readFileSync('release-please-config.beta.json', 'utf8'))
 
 const validBody = `## Summary
 
@@ -52,20 +51,20 @@ describe('release PR policy', () => {
     ).toEqual([])
   })
 
-  it('accepts a valid beta CLI release PR', () => {
+  it('accepts a prerelease CLI release PR cut from main', () => {
     expect(
       validateReleasePrPolicy({
-        baseBranch: 'beta',
-        baseVersion: '1.2.0-beta.1',
+        baseBranch: 'main',
+        baseVersion: '1.8.6',
         body: validBody,
         changedFiles: validChangedFiles,
-        headBranch: 'release-please--branches--beta--components--quantex-cli',
-        title: 'chore: release 1.2.0-beta.2',
+        headBranch: 'release-please--branches--main--components--quantex-cli',
+        title: 'chore: release 1.9.0-beta.1',
       }),
     ).toEqual([])
   })
 
-  it('rejects release targets outside main and beta', () => {
+  it('rejects release targets outside main', () => {
     const issues = validateReleasePrPolicy({
       baseBranch: 'codex/simplify-core-sdk-integration',
       baseVersion: '1.1.3',
@@ -75,7 +74,7 @@ describe('release PR policy', () => {
       title: 'chore: release 1.1.4',
     })
 
-    expect(issues.join('\n')).toContain('is not allowed; expected main or beta')
+    expect(issues.join('\n')).toContain('is not allowed; expected main')
   })
 
   it('rejects a missing base package version', () => {
@@ -235,14 +234,14 @@ describe('release PR policy', () => {
     ).toEqual([])
   })
 
-  it('does not apply the major-bump gate to beta release lines', () => {
+  it('does not apply the major-bump gate to prerelease lines', () => {
     expect(
       validateReleasePrPolicy({
-        baseBranch: 'beta',
+        baseBranch: 'main',
         baseVersion: '1.9.0-beta.1',
         body: validBody,
         changedFiles: validChangedFiles,
-        headBranch: 'release-please--branches--beta--components--quantex-cli',
+        headBranch: 'release-please--branches--main--components--quantex-cli',
         title: 'chore: release 2.0.0-beta.1',
       }),
     ).toEqual([])
@@ -298,10 +297,8 @@ describe('release PR policy', () => {
     )
   })
 
-  it.each([
-    ['stable', stableReleaseConfig],
-    ['beta', betaReleaseConfig],
-  ])('keeps the %s channel on one CLI release component', (_, config) => {
+  it('keeps the single release channel on one CLI release component', () => {
+    const config = stableReleaseConfig
     expect(Object.keys(config.packages)).toEqual(['.'])
     expect(config.packages['.']['package-name']).toBe('quantex-cli')
     expect(config.packages['.']['include-component-in-tag']).toBe(false)

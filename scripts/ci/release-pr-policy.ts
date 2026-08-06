@@ -26,13 +26,14 @@ interface ReleaseVersion {
   prerelease: { tag: string; number: number } | null
 }
 
-const stableTitlePattern = /^chore: release (\d+\.\d+\.\d+)$/
-const betaTitlePattern = /^chore: release (\d+\.\d+\.\d+-beta(?:\.\d+)?)$/
+// main is the only release channel, so one pattern covers both shapes: a
+// stable version, or a prerelease previewing the next unreleased version.
+const releaseTitlePattern = /^chore: release (\d+\.\d+\.\d+(?:-beta(?:\.\d+)?)?)$/
 const generatedMarker = 'This PR was generated with [Release Please]'
 const finalZeroMajorVersion = '0.29.1'
 const firstPostRedesignVersion = '1.1.0'
 const burnedStableReleaseVersions = new Set(['1.0.0'])
-const releaseBranches = new Set(['main', 'beta'])
+const releaseBranches = new Set(['main'])
 
 const allowedFiles = new Set([
   '.release-please-manifest.json',
@@ -57,7 +58,7 @@ export function validateReleasePrPolicy(input: ReleasePrPolicyInput): string[] {
   const rootVersion = readString(rootManifest?.version)
 
   if (!releaseBranches.has(baseBranch)) {
-    issues.push(`Release PR base branch "${baseBranch}" is not allowed; expected main or beta.`)
+    issues.push(`Release PR base branch "${baseBranch}" is not allowed; expected main.`)
   }
 
   if (!baseVersion) {
@@ -69,10 +70,9 @@ export function validateReleasePrPolicy(input: ReleasePrPolicyInput): string[] {
     issues.push(`Unexpected release-please branch "${headBranch}". Expected "${expectedHeadBranch}".`)
   }
 
-  const titlePattern = baseBranch === 'beta' ? betaTitlePattern : stableTitlePattern
-  const versionMatch = title.match(titlePattern)
+  const versionMatch = title.match(releaseTitlePattern)
   if (!versionMatch) {
-    issues.push(`Release PR title "${title}" does not match the expected ${baseBranch} release pattern.`)
+    issues.push(`Release PR title "${title}" does not match the expected release pattern.`)
   }
 
   if (!body.includes(generatedMarker)) {

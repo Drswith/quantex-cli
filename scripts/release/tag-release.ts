@@ -65,7 +65,7 @@ if (import.meta.main) {
 
 async function runReleaseTagging(): Promise<void> {
   const branch = process.env.TARGET_BRANCH ?? process.env.GITHUB_REF_NAME ?? ''
-  if (branch !== 'main' && branch !== 'beta') {
+  if (branch !== 'main') {
     console.log(`Release tagging skipped for branch ${branch || '<unknown>'}.`)
     return
   }

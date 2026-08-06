@@ -47,16 +47,10 @@ jobs:
           node-version: 24
           registry-url: https://registry.npmjs.org
 
-      - name: Fetch protected branches and tags
+      - name: Fetch the release branch and tags
         run: |
-          release_version="$(node -p "require('./package.json').version")"
-          if [[ "${release_version}" == *-* ]]; then
-            target_branch=beta
-          else
-            target_branch=main
-          fi
           git fetch --force origin \
-            "refs/heads/${target_branch}:refs/remotes/origin/${target_branch}" \
+            "refs/heads/main:refs/remotes/origin/main" \
             --tags
 
       - name: Install dependencies

@@ -24,7 +24,7 @@ Normal feature, fix, or maintenance work lands through standard PRs.
 
 ### 2. release-please maintains the Release PR automatically
 
-On every push to `main` or `beta`, `release-please.yml` runs release-please with the branch-appropriate config and opens or updates the Release PR when a version bump is warranted. No manual dispatch is involved.
+On every push to `main`, `release-please.yml` runs release-please with `release-please-config.json` and opens or updates the Release PR when a version bump is warranted. No manual dispatch is involved.
 
 The Release PR materializes the pending version in:
 
@@ -40,7 +40,7 @@ The Release PR is the review point for the exact version and changelog that will
 Confirm that the PR:
 
 - comes from this repository
-- uses the expected release-please branch for `main` or `beta`
+- uses the expected release-please branch for `main`
 - has the expected release title shape
 - includes the release-please generated marker
 - only changes `CHANGELOG.md`, `package.json`, `.release-please-manifest.json`, and `src/generated/build-meta.ts`
@@ -54,7 +54,7 @@ Merge the locked reviewed head manually; prefer rebase and use squash only when 
 
 ### 4. Deterministic tag after push CI
 
-After the Release PR merges, push CI on the exact `main` or `beta` head must succeed. The `tag-release` job in `release-please.yml` then:
+After the Release PR merges, push CI on the exact `main` head must succeed. The `tag-release` job in `release-please.yml` then:
 
 - waits for a successful `ci.yml` push run on the branch head;
 - pushes `v<version>` with `git push` under the release GitHub App token when the head is `chore: release <version>` and the tag is still missing (the normal case, because maintainers re-author Release PR branches and release-please runs with `skip-github-release: true`);
@@ -70,7 +70,7 @@ Publication identity still requires all of these values to agree before `release
 - `chore: release <version>` commit title
 - root `package.json` version
 - `v<version>` tag at the same SHA
-- stable `main`/`latest` or prerelease `beta`/`beta` channel
+- the npm dist-tag: `latest` for a stable version, `beta` for a prerelease
 
 An existing tag is accepted only when it already points to the exact validated commit. The workflow never moves a version tag.
 

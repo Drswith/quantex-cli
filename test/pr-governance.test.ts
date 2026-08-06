@@ -32,7 +32,7 @@ describe('pr governance release intent', () => {
   })
 
   it('keeps release-please PR bodies compatible with required governance headings', () => {
-    for (const fileName of ['release-please-config.json', 'release-please-config.beta.json']) {
+    for (const fileName of ['release-please-config.json']) {
       const config = JSON.parse(readFileSync(fileName, 'utf8')) as {
         packages: {
           '.': {
@@ -115,7 +115,7 @@ describe('pr template satisfies pr body governance', () => {
   })
 
   it('keeps generated release-please headers passing the same policy', () => {
-    for (const fileName of ['release-please-config.json', 'release-please-config.beta.json']) {
+    for (const fileName of ['release-please-config.json']) {
       const config = JSON.parse(readFileSync(fileName, 'utf8')) as {
         packages: { '.': { 'pull-request-header': string } }
       }

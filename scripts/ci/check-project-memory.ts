@@ -12,10 +12,25 @@ const runtimeStubPaths = [
   '.github/skills/quantex-agent-runtime/SKILL.md',
 ]
 
+// AGENTS.md inlines only triggers and points at the runtime skill for the full
+// routing detail. A pointer is only worth as much as its target, so verify the
+// skill still carries what the handbook stopped restating.
+const runtimeSkillPath = 'skills/quantex-agent-runtime/SKILL.md'
+const deferredRoutingMarkers = [
+  'bun run lint',
+  'bun run format:check',
+  'bun run typecheck',
+  'bun run test',
+  'bun run openspec:validate',
+  'bun run memory:check',
+  'bun run release:dry-run',
+]
+
 const issues: string[] = []
 
 await checkRootMarkdownWhitelist()
 await checkRuntimeStubParity()
+await checkDeferredRoutingDetail()
 
 if (issues.length > 0) {
   console.error('Project memory check failed:\n')
@@ -59,5 +74,22 @@ async function checkRuntimeStubParity() {
         `runtime bootstrap stub "${stubPath}" drifted from ${runtimeStubTemplate}. Resync the file byte-for-byte.`,
       )
     }
+  }
+}
+
+async function checkDeferredRoutingDetail() {
+  let runtimeSkill: string
+  try {
+    runtimeSkill = await readFile(resolve(rootDir, runtimeSkillPath), 'utf8')
+  } catch {
+    issues.push(`missing runtime skill "${runtimeSkillPath}", which AGENTS.md defers validation routing to.`)
+    return
+  }
+
+  const missing = deferredRoutingMarkers.filter(marker => !runtimeSkill.includes(marker))
+  if (missing.length > 0) {
+    issues.push(
+      `runtime skill "${runtimeSkillPath}" no longer documents ${missing.join(', ')}. AGENTS.md points at it for validation routing, so either restore the detail there or stop deferring to it.`,
+    )
   }
 }
