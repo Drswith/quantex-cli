@@ -104,11 +104,11 @@ Because `bunfig.toml` sets `ignoreScripts=true` for supply-chain safety, the `pr
 
 ### Requirement: CI lint and format gate
 
-CI workflows that gate merges to `main` or `beta` (such as `ci.yml` and the manually dispatched `release.yml`) SHALL run both `bun run lint` and `bun run format:check`. CI MUST fail when either command exits non-zero.
+CI workflows that gate merges to `main` (such as `ci.yml` and the manually dispatched `release.yml`) SHALL run both `bun run lint` and `bun run format:check`. CI MUST fail when either command exits non-zero.
 
 #### Scenario: Pull request CI runs lint and format checks
 
-- **WHEN** a pull request targets `main` or `beta`
+- **WHEN** a pull request targets `main`
 - **THEN** CI executes `bun run lint`
 - **AND** CI executes `bun run format:check`
 - **AND** the workflow status is `failure` if either command exits non-zero
@@ -119,7 +119,7 @@ Merge-gating workflows SHALL collect changed-file and commit metadata through th
 
 #### Scenario: pull request context is computed once
 
-- **WHEN** a pull request targets `main` or `beta`
+- **WHEN** a pull request targets `main`
 - **THEN** the `classify` job computes changed files, commits, and pull request trust exactly once
 - **AND** lint, governance, and test jobs consume those outputs through job dependencies
 - **AND** no workflow duplicates the file- or commit-listing logic inline in YAML
@@ -130,7 +130,7 @@ Lint, governance, and test jobs SHALL be defined in a consolidated `ci.yml` work
 
 #### Scenario: single CI workflow for merge gates
 
-- **WHEN** a PR targets `main` or `beta`
+- **WHEN** a PR targets `main`
 - **THEN** `ci.yml` MUST provide lint, test matrix, and PR governance validation jobs
 - **AND** `pr-governance.yml` MUST NOT exist as a separate workflow
 
@@ -205,9 +205,9 @@ The merge-gating CI workflow SHALL classify pull requests and protected-branch p
 - **AND** it runs `bun run build` on Ubuntu as a minimal execution guard
 - **AND** the `test (ubuntu-latest)`, `test (macos-latest)`, and `test (windows-latest)` contexts are reported without running the full cross-platform test workload
 
-#### Scenario: Product-impacting pull request targets beta
+#### Scenario: Product-impacting pull request targets main
 
-- **WHEN** a pull request targeting `beta` changes product-impacting files such as `src/**`, install surfaces, package metadata, or runtime scripts
+- **WHEN** a pull request targeting `main` changes product-impacting files such as `src/**`, install surfaces, package metadata, or runtime scripts
 - **THEN** merge-gating CI runs the required test jobs for Ubuntu, macOS, and Windows
 - **AND** any failing platform context blocks merge through the existing ruleset
 
@@ -374,4 +374,3 @@ Release workflows are excluded from this requirement: they already declare non-c
 
 - **WHEN** a release workflow is running
 - **THEN** its concurrency group MUST NOT cancel in-progress runs
-

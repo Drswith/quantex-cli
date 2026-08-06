@@ -20,13 +20,12 @@ Two audits ran: a six-dimension repository audit, and a failure audit over ~130 
 
 ## Open Questions
 
-- Whether any consumer depends on the npm `beta` dist-tag today, which affects how the frozen `1.8.2-beta` tag is retired.
 - Whether branch protection lists the always-on `test (ubuntu-latest)` rather than the conditional Windows and macOS contexts, since the skip semantics rely on a skipped required check counting as passing. Not verifiable from the repository.
 - Whether `release-workflow` should keep preferring rebase merge, given that squash produces better attribution and cleaner changelog entries, and that merge commits are now disabled.
 
 ## Follow-up
 
-- **Resolved, but not as decided here**: the beta branch was retired, and the prerelease-from-main model recorded above was then disproved in practice — `Release-As` with a prerelease suffix produces a stable version, because release-please emits prereleases only from a config declaring them. The channel was dropped rather than rebuilt: the 1.x line had produced exactly one prerelease in 102 published versions. The npm `beta` dist-tag still points at `1.8.2-beta` until a maintainer removes it.
+- **Resolved, but not as decided here**: the beta branch was retired, and the prerelease-from-main model recorded above was then disproved in practice — `Release-As` with a prerelease suffix produces a stable version, because release-please emits prereleases only from a config declaring them. The channel was dropped rather than rebuilt: the 1.x line had produced exactly one prerelease in 102 published versions. The maintainer subsequently removed the npm `beta` dist-tag, so no beta dist-tag is currently maintained.
 - **Open**: `ci.yml` and `sandbox-tests.yml` declare no concurrency group, so a burst of PR edits leaves overlapping full-matrix runs.
 - **Open**: `sandbox-tests` is advisory and has never failed in recent runs; moving it off per-PR triggering would cut cost without losing signal.
 - **Open**: `AGENTS.md` restates the validation-routing matrix and OpenSpec intake signals that the runtime skill already carries in full, with no parity guard.

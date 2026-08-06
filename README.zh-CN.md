@@ -179,8 +179,9 @@ qtx update --all
 ```bash
 qtx upgrade
 qtx upgrade --check
-qtx upgrade --channel beta
 ```
+
+稳定版是 Quantex 的常规发布线。CLI 仍接受 `qtx upgrade --channel beta`，用于明确存在的 prerelease；但本仓库不再维护 beta 发布渠道，因此该选择器可能没有可用的对应版本。
 
 提示：`qtx upgrade` 会跟随当前 Bun/npm 自升级实际使用的 registry。若你使用镜像源，镜像未同步最新发布时，当前源可安装版本可能会暂时落后于官方 npm。此时可稍后重试，或单独设置 `selfUpdateRegistry` / `QTX_SELF_UPDATE_REGISTRY` 让 Quantex 自升级使用不同的 registry，而不影响其他项目。
 
@@ -204,6 +205,8 @@ qtx upgrade --channel beta
 | `qtx schema` | `quantex schema` | 查看结构化输出 schema |
 | `qtx config` | `quantex config` | 管理配置 |
 | `qtx doctor` | `quantex doctor` | 检查环境和恢复建议 |
+
+`qtx rm` / `quantex uninstall` 只处理 Quantex 记录的安装来源，不会删除仍在 `PATH` 中、由其他来源独立安装的副本。如果 managed package 已移除但仍有其他副本留在 `PATH`，Quantex 会报告 conflicting source。请使用 `qtx inspect <agent> --json` 和 `qtx resolve <agent> --json` 确认路径，再通过该副本的实际所有者删除或重新安装。
 
 ## 支持的 Agent
 

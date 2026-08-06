@@ -32,9 +32,9 @@ export function validateReleaseIdentity(input: ReleaseIdentityInput): ReleaseIde
   if (!releaseVersionPattern.test(input.packageVersion))
     throw new Error(`Invalid release package version: ${input.packageVersion}.`)
 
-  // Every release is cut from main. Only the npm dist-tag varies, so a
-  // prerelease previews the next unreleased version and stays above latest,
-  // instead of forking a second branch that cannot hold its own version.
+  // Every release is cut from main. A prerelease suffix only changes the
+  // defensive npm dist-tag mapping; the repository does not maintain a
+  // preview channel or fork a second branch.
   const prerelease = input.packageVersion.includes('-')
   const targetBranch = 'main'
   const channel = prerelease ? 'beta' : 'stable'

@@ -124,7 +124,7 @@ Use explicit closure labels:
 
 For a CLI release:
 
-1. Merge normal change PRs to `main` or `beta`; `release-please.yml` opens or updates the Release PR on push.
+1. Merge normal change PRs to `main`; `release-please.yml` opens or updates the Release PR on push.
 2. Review and merge the Release PR after required CI passes.
 3. Tag push triggers `release.yml` for npm and GitHub Release publication.
 
