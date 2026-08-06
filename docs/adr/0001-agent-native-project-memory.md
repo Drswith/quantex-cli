@@ -25,7 +25,7 @@ Quantex adopts a repo-native project memory system with explicit layers:
 - `docs/postmortems/` for incident and failure analysis
 - `docs/sessions/` for concise discussion summaries
 - GitHub issues for agent-executable work
-- `openspec/changes/archive/` for migrated historical task contracts
+- git history for archived OpenSpec changes (in-tree archive removed; see [ADR 0008](./0008-workflow-redesign.md))
 
 Legacy root markdown files remain as transitional references, but new knowledge should be written into the new structure first.
 
@@ -45,7 +45,7 @@ Legacy root markdown files remain as transitional references, but new knowledge 
 
 ## Follow-up
 
-- Preserve migrated backlog task history under `openspec/changes/archive/`.
+- Reference archived change archaeology via git history (last in-tree snapshot: `ff65d61`).
 - Establish current OpenSpec source-of-truth specs for major product areas.
 - Promote durable guidance from legacy scope documents into additional ADRs.
 - Migrate troubleshooting guidance into `docs/runbooks/`.

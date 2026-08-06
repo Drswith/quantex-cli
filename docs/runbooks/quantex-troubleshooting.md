@@ -222,4 +222,4 @@ Stop and ask for human input when:
 
 - `docs/adr/0001-agent-native-project-memory.md`
 - `skills/quantex-cli/references/output-contracts.md`
-- `openspec/changes/archive/qtx-0001-migrate-troubleshooting-into-runbooks/proposal.md`
+- [qtx-0001 proposal (archived at ff65d61)](https://github.com/Drswith/quantex-cli/blob/ff65d61/openspec/changes/archive/qtx-0001-migrate-troubleshooting-into-runbooks/proposal.md)
