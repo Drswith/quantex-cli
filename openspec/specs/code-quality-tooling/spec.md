@@ -273,26 +273,20 @@ The repository SHALL expose `bun run test:sandbox` and `bun run test:container` 
 
 ### Requirement: Modal-backed isolation workflow remains separate from merge-gating CI
 
-The repository SHALL keep Modal-backed isolation validation in a dedicated GitHub Actions workflow instead of adding it to the merge-gating `ci.yml` workflow.
+Modal-backed isolation coverage SHALL run on a schedule and on manual dispatch, and SHALL NOT run on pull requests. It SHALL remain advisory and SHALL NOT be a required status check.
 
-#### Scenario: Documentation-only merge reaches a protected branch
+Per-pull-request execution was removed because the workflow never gated anything: it is advisory by design, fork pull requests skip it for lack of secrets, and its observed failures were external Modal capacity rather than repository regressions. Running it on every pull request paid a full run for a signal nothing consumed.
 
-- **WHEN** a merge to `main` or `beta` changes only documentation or OpenSpec archive files
-- **THEN** the dedicated Modal sandbox workflow does not run automatically from the protected-branch push
-- **AND** maintainers can still start the sandbox workflow manually
+#### Scenario: Pull request does not trigger sandbox tests
 
-#### Scenario: Lifecycle-sensitive repository pull request targets main
+- **WHEN** a pull request is opened or updated
+- **THEN** the Modal-backed isolation workflow MUST NOT run
 
-- **WHEN** a pull request from a branch in the repository changes agent definitions, lifecycle commands, install or update helpers, sandbox scripts, package metadata, or the sandbox workflow itself
-- **THEN** the dedicated sandbox workflow runs a scoped Modal merge-gating profile before merge
-- **AND** that profile covers stable lifecycle scenarios such as `managed`, `uv-managed`, `adopt-preinstalled`, `ambiguous-multi-method`, and `self-binary`
-- **AND** a failing `sandbox-tests` context blocks merge through the active ruleset
+#### Scenario: Scheduled and dispatched runs still provide coverage
 
-#### Scenario: Lifecycle-sensitive merge reaches a protected branch
-
-- **WHEN** a merge to `main` or `beta` changes agent definitions, lifecycle commands, install/update helpers, sandbox scripts, package metadata, or the sandbox workflow itself
-- **THEN** the dedicated Modal sandbox workflow runs automatically from the protected-branch push
-- **AND** the protected-branch default scenario set includes `uv-managed`
+- **WHEN** the schedule fires, or a maintainer dispatches the workflow manually
+- **THEN** the Modal-backed isolation coverage MUST run
+- **AND** its result MUST remain advisory
 
 ### Requirement: Repository editor and line-ending defaults
 
@@ -355,4 +349,29 @@ When lint-staged selects files deliberately excluded by the repository formatter
 - **THEN** supported files MUST still run through oxfmt
 - **AND** staged JavaScript and TypeScript MUST still run through `oxlint --fix` after formatting
 - **AND** any real formatter or linter failure MUST still abort the commit
+
+### Requirement: Merge-gating and advisory workflows SHALL cancel superseded runs
+
+`ci.yml` and `sandbox-tests.yml` SHALL each declare a concurrency group that cancels superseded **pull request** runs. `ci.yml` triggers on the `edited` pull request activity type so that PR body governance re-validates an edited description; without a concurrency group, a burst of edits leaves several full three-platform matrices running against superseded content.
+
+Push runs SHALL NOT be cancelled. Release tagging only tags a release commit whose exact SHA has a successful `ci.yml` run, so a push run cancelled by a later merge leaves that SHA permanently without a successful run — and if the cancelled push was a Release PR merge, the release silently never happens. Keying push runs by commit rather than by ref keeps them from colliding at all.
+
+Release workflows are excluded from this requirement: they already declare non-cancelling groups, because cancelling a publication mid-flight is not safe.
+
+#### Scenario: Pull request is edited repeatedly
+
+- **WHEN** a contributor edits a pull request title or body while a CI run is in progress
+- **THEN** the superseded run MUST be cancelled
+- **AND** only the newest run MUST remain
+
+#### Scenario: Two merges land back to back
+
+- **WHEN** a push to `main` starts a CI run and a second merge lands before it finishes
+- **THEN** the first run MUST NOT be cancelled
+- **AND** both commits MUST end with their own CI conclusion, so release tagging can find a successful run at either SHA
+
+#### Scenario: Release runs are not cancelled
+
+- **WHEN** a release workflow is running
+- **THEN** its concurrency group MUST NOT cancel in-progress runs
 

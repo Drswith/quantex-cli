@@ -22,6 +22,8 @@ On push to `main`, a `release-please` workflow SHALL open or update the Release 
 
 The `main` protected branch SHALL require status check contexts that match the consolidated CI workflow job names and actually run on pull requests: `lint`, `governance`, `test (ubuntu-latest)`, `test (windows-latest)`, and `test (macos-latest)`. The `classify` job SHALL NOT be a required context. The `sandbox-tests` workflow SHALL remain advisory and SHALL NOT be a required context.
 
+There is no second protected release branch to mirror: `beta` ceased to be a release channel under the prerelease-from-main requirement above. The frozen `v1.8.2-beta` tag and the npm `beta` dist-tag pointing at it are registry state rather than repository state; repointing that dist-tag is a separate maintainer action.
+
 #### Scenario: main branch protection matches CI job names
 
 - **WHEN** a maintainer inspects branch protection for `main`
@@ -53,11 +55,3 @@ Because a prerelease previews an unreleased version, the published `beta` dist-t
 
 - **WHEN** release-please opens a Release PR on `main` for a prerelease version
 - **THEN** release PR governance MUST accept the prerelease title shape
-
-## REMOVED Requirements
-
-### Requirement: Beta branch protection SHALL mirror main
-
-**Reason**: `beta` is no longer a release channel, so there is no second protected branch whose protection must match.
-
-**Migration**: Prereleases are cut from `main` under the prerelease-from-main requirement above. The frozen `v1.8.2-beta` tag and the npm `beta` dist-tag pointing at it are registry state, not repository state; repointing or removing that dist-tag is a separate maintainer action.
