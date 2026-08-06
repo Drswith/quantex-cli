@@ -167,7 +167,7 @@ jobs:
           node-version: 24
 
       - run: bun run build
-      - run: bun run test -- --pool=threads
+      - run: bun run test
 
   test-macos:
     name: test (macos-latest)
