@@ -26,7 +26,7 @@ Two audits ran: a six-dimension repository audit, and a failure audit over ~130 
 
 ## Follow-up
 
-- **Open (P0)**: the beta channel is frozen at `1.8.2-beta` while `main` is past `1.8.6`, so `@beta` on npm is older than `@latest`. Decided model: retire the standing `beta` branch and publish prerelease-from-main snapshots of the next version, so a preview always leads the release. Needs its own OpenSpec change.
+- **Resolved, but not as decided here**: the beta branch was retired, and the prerelease-from-main model recorded above was then disproved in practice — `Release-As` with a prerelease suffix produces a stable version, because release-please emits prereleases only from a config declaring them. The channel was dropped rather than rebuilt: the 1.x line had produced exactly one prerelease in 102 published versions. The npm `beta` dist-tag still points at `1.8.2-beta` until a maintainer removes it.
 - **Open**: `ci.yml` and `sandbox-tests.yml` declare no concurrency group, so a burst of PR edits leaves overlapping full-matrix runs.
 - **Open**: `sandbox-tests` is advisory and has never failed in recent runs; moving it off per-PR triggering would cut cost without losing signal.
 - **Open**: `AGENTS.md` restates the validation-routing matrix and OpenSpec intake signals that the runtime skill already carries in full, with no parity guard.

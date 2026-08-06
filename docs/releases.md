@@ -13,11 +13,7 @@ The repository keeps a source-controlled [CHANGELOG.md](../CHANGELOG.md). A Rele
 
 The full build-candidate chain is exercisable locally without a tag via `bun run release:dry-run`.
 
-## Prereleases
-
-`main` is the only release channel; there is no standing beta branch. A preview is cut by declaring `Release-As: <next-version>-beta.N` on a source PR, so it names the **next unreleased** version. Publication derives the npm dist-tag from the version, so that release publishes to `beta` while stable releases publish to `latest`.
-
-Naming a version that has already shipped is prohibited: SemVer sorts a prerelease below the release it names, which is how the retired beta branch ended up publishing `@beta` older than `@latest`.
+`main` is the only release line and publishes to the `latest` npm dist-tag. There is no prerelease channel: the beta branch was retired, and no mechanism replaced it. Publication still routes a version carrying a prerelease suffix to the `beta` dist-tag, but that is a fail-safe so such a build can never displace `latest`, not a supported way to ship previews.
 
 A Release PR that proposes a new major version on the stable line is rejected by governance unless a maintainer adds `Release-As: <version>` to the Release PR body before merge.
 
