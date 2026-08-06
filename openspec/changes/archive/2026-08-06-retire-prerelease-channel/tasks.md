@@ -21,8 +21,8 @@
 - [x] `bun run lint`, `bun run format:check`, `bun run typecheck`
 - [x] `bun run test`
 - [x] `bun run openspec:validate`, `bun run memory:check`
-- [ ] Commit, push, PR with a `pr:body:check`-validated body
+- [x] Commit, push, PR with a `pr:body:check`-validated body (#598, merged)
 
 ## 5. Maintainer action, outside this change
 
-- [ ] `npm dist-tag rm quantex-cli beta` — registry state, needs publish credentials
+- [x] `npm dist-tag rm quantex-cli beta` — done by the maintainer; `dist-tags` is now `{ latest: 1.8.7 }` and `@beta` resolves to nothing
