@@ -25,6 +25,6 @@
 
 ## 5. Delivery closure
 
-- [ ] Commit on `claude/skills-symlink-location-0588e2` and push
-- [ ] Open the PR with a `pr:body:check`-validated body file
-- [ ] Report validation, OpenSpec, git, commit, remote, PR, release, and archive-closure state
+- [x] Commit on `claude/skills-symlink-location-0588e2` and push
+- [x] Open the PR with a `pr:body:check`-validated body file (#612)
+- [x] Report validation, OpenSpec, git, commit, remote, PR, release, and archive-closure state
