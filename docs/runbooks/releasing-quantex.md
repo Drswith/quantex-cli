@@ -58,7 +58,7 @@ After the Release PR merges, push CI on the exact `main` head must succeed. The 
 
 - waits for a successful `ci.yml` push run on the branch head;
 - pushes `v<version>` with `git push` under the release GitHub App token when the head is `chore: release <version>` and the tag is still missing (the normal case, because maintainers re-author Release PR branches and release-please runs with `skip-github-release: true`);
-- confirms the tag event triggered `release.yml`, dispatching it only as a fallback so publication starts exactly once;
+- dispatches `release.yml` at the pushed tag, because the tag event itself does not start publication for the bot (see the automation note below);
 - relabels the merged release PR from `autorelease: pending` to `autorelease: tagged` so release-please is not blocked on the next cycle.
 
 If the tag already points at the branch head, tag-release only relabels.
@@ -147,7 +147,9 @@ When a CLI release pins a new `quantex-core` version in `package.json`, publish 
 
 Do not assume a workflow-created tag or GitHub Release should trigger a second publish workflow.
 
-GitHub's documented behavior is that events created by `GITHUB_TOKEN` do not start another workflow run, except for `workflow_dispatch` and `repository_dispatch`. The release bot pushes tags through the `tag-release` job using a GitHub App token, which does fire the `on: push: tags` trigger. To stay deterministic even if GitHub suppresses a follow-on run, tag-release polls for the Release workflow run after tagging and dispatches `release.yml` only when nothing started — publication begins exactly once, never twice.
+GitHub's documented behavior is that events created by `GITHUB_TOKEN` do not start another workflow run, except for `workflow_dispatch` and `repository_dispatch`. A GitHub App token is exempt from that rule, but the bot's tag push does not benefit from the exemption: `actions/checkout` persists the default `GITHUB_TOKEN` into `.git/config` as an `http.https://github.com/.extraheader` credential, git sends that header on the first request, and the App token embedded in the push URL is only consulted after a `401` that never arrives. GitHub therefore attributes the tag push to `GITHUB_TOKEN` and starts nothing.
+
+So `tag-release` dispatches `release.yml` itself right after pushing the tag. Every `release.yml` run since automation took over tagging has in fact been a `workflow_dispatch` run; the earlier polling grace period was waiting for a run that could not appear and expired in full on every release. `release.yml` keeps its `on: push: tags` trigger for tags a maintainer pushes by hand. If both paths ever fire for one tag, the non-cancelling per-tag concurrency group serialises them and the second run finds the exact version already published.
 
 ## Repository settings
 

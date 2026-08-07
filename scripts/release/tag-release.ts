@@ -126,7 +126,7 @@ async function runReleaseTagging(): Promise<void> {
     const remoteUrl = `https://x-access-token:${token}@github.com/${repository}.git`
     await execFileAsync('git', ['push', remoteUrl, `refs/tags/${plan.tag}`])
     console.log(`Pushed tag ${plan.tag} at ${branchHeadSha}.`)
-    await ensureReleaseWorkflowTriggered({ tag: plan.tag, sha: branchHeadSha, token })
+    await dispatchReleaseWorkflow({ tag: plan.tag, token })
   }
 
   await relabelPendingReleasePullRequest({ branch, token })
@@ -153,39 +153,12 @@ async function waitForSuccessfulCi(input: { branch: string; sha: string; token: 
   }
 }
 
-async function ensureReleaseWorkflowTriggered(input: { tag: string; sha: string; token: string }): Promise<void> {
-  const graceMs = Number.parseInt(process.env.RELEASE_TAG_DISPATCH_GRACE_MS ?? '120000', 10)
-  const pollIntervalMs = Number.parseInt(process.env.RELEASE_TAG_POLL_MS ?? '30000', 10)
-
-  const startedAt = Date.now()
-  while (Date.now() - startedAt <= graceMs) {
-    if (await findReleaseWorkflowRun(input)) {
-      console.log(`Release workflow already triggered for ${input.tag}.`)
-      return
-    }
-    await sleep(Math.min(pollIntervalMs, 15000))
-  }
-
-  await dispatchReleaseWorkflow({ tag: input.tag, token: input.token })
-}
-
-async function findReleaseWorkflowRun(input: { tag: string; sha: string; token: string }): Promise<boolean> {
-  const repository = process.env.GITHUB_REPOSITORY
-  if (!repository) throw new Error('GITHUB_REPOSITORY is required.')
-
-  const apiBaseUrl = process.env.GITHUB_API_URL ?? 'https://api.github.com'
-  const runsUrl = new URL(`${apiBaseUrl}/repos/${repository}/actions/workflows/release.yml/runs`)
-  runsUrl.searchParams.set('event', 'push')
-  runsUrl.searchParams.set('per_page', '10')
-
-  const response = await githubApiFetch(runsUrl, input.token)
-  const payload = (await response.json()) as {
-    workflow_runs?: Array<{ head_branch?: string; head_sha?: string }>
-  }
-
-  return (payload.workflow_runs ?? []).some(run => run.head_branch === input.tag && run.head_sha === input.sha)
-}
-
+// The tag push cannot start publication on its own, so this dispatch is the
+// release trigger rather than a fallback. actions/checkout persists the default
+// GITHUB_TOKEN as an http.<url>.extraheader credential, which authenticates the
+// push before the App token in the push URL is ever consulted, and GitHub does
+// not start workflow runs for GITHUB_TOKEN events. Polling for the tag-event run
+// only ever burned its full grace period.
 async function dispatchReleaseWorkflow(input: { tag: string; token: string }): Promise<void> {
   const repository = process.env.GITHUB_REPOSITORY
   if (!repository) throw new Error('GITHUB_REPOSITORY is required.')
