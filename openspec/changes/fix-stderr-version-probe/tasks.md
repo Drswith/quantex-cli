@@ -16,6 +16,6 @@
 
 ## 4. Repository and PR delivery
 
-- [ ] 4.1 Commit the implementation and OpenSpec change on the dedicated `codex/fix-stderr-version-probe` branch.
+- [x] 4.1 Commit the implementation and OpenSpec change on the dedicated `codex/fix-stderr-version-probe` branch.
 - [ ] 4.2 Push the branch and create a PR using the repository template plus `bun run pr:body:check`.
 - [ ] 4.3 Inspect the PR checks and report local implementation, repository delivery, PR delivery, merge delivery, release closure, and OpenSpec archive closure separately.
