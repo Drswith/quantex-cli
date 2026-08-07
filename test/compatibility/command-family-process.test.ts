@@ -229,7 +229,7 @@ function normalizeOutput(stdout: string, mode: OutputMode): string {
     .join('\n')
 }
 
-function normalizeJson(value: unknown, key?: string): unknown {
+function normalizeJson(value: unknown, key?: string, rootAction?: string): unknown {
   if (Array.isArray(value)) {
     const items =
       key === 'installMethods'
@@ -247,9 +247,18 @@ function normalizeJson(value: unknown, key?: string): unknown {
                 String((item as { code?: unknown }).code) !== 'NO_MANAGED_INSTALLER',
             )
           : value
-    return items.map(item => normalizeJson(item))
+    return items.map(item => normalizeJson(item, undefined, rootAction))
   }
   if (value && typeof value === 'object') {
+    const objectValue = value as Record<string, unknown>
+    const action = rootAction ?? (typeof objectValue.action === 'string' ? objectValue.action : undefined)
+    const isSelfUpgradeData =
+      action === 'upgrade' &&
+      key === 'data' &&
+      typeof objectValue.currentVersion === 'string' &&
+      typeof objectValue.installSource === 'string' &&
+      typeof objectValue.status === 'string'
+    const isSelfUpgradeMeta = action === 'upgrade' && key === 'meta'
     if (key === 'installers') {
       return Object.fromEntries(
         Object.keys(value)
@@ -258,7 +267,13 @@ function normalizeJson(value: unknown, key?: string): unknown {
       )
     }
     return Object.fromEntries(
-      Object.entries(value).map(([childKey, childValue]) => [childKey, normalizeJson(childValue, childKey)]),
+      Object.entries(value)
+        .filter(
+          ([childKey]) =>
+            !(isSelfUpgradeData && childKey === 'latestVersion') &&
+            !(isSelfUpgradeMeta && ['fetchedAt', 'source', 'staleAfter'].includes(childKey)),
+        )
+        .map(([childKey, childValue]) => [childKey, normalizeJson(childValue, childKey, action)]),
     )
   }
   if (typeof value !== 'string') return value

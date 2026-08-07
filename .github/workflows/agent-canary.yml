@@ -1,0 +1,91 @@
+name: Agent Canaries
+
+# Advisory real-agent signal. This workflow intentionally is not a required
+# merge gate: upstream registries and installers are external dependencies.
+# GitHub-hosted jobs provide the disposable HOME that local development cannot.
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'src/**'
+      - 'scripts/ci/agent-canary-matrix.ts'
+      - 'scripts/smoke/lifecycle-smoke.ts'
+      - '.github/workflows/agent-canary.yml'
+      - 'package.json'
+      - 'bun.lock'
+
+  workflow_dispatch:
+    inputs:
+      scope:
+        description: Canary scope to run
+        required: true
+        default: quick
+        type: choice
+        options:
+          - quick
+          - full
+
+  schedule:
+    - cron: '0 6 * * 6'
+
+concurrency:
+  group: agent-canary-${{ github.event.pull_request.number || github.ref || github.run_id }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+permissions:
+  contents: read
+
+jobs:
+  resolve:
+    name: Resolve canary matrix
+    runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.matrix.outputs.matrix }}
+    env:
+      QTX_CANARY_SCOPE: ${{ github.event_name == 'schedule' && 'full' || github.event_name == 'workflow_dispatch' && inputs.scope || 'quick' }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: ./.github/actions/setup-bun
+      - id: matrix
+        name: Generate catalog matrix
+        shell: bash
+        run: |
+          # Use Bun directly so the machine-readable matrix is not prefixed by
+          # the package-script banner that `bun run` writes to stdout.
+          matrix="$(bun scripts/ci/agent-canary-matrix.ts --scope "$QTX_CANARY_SCOPE")"
+          echo "matrix=$matrix" >> "$GITHUB_OUTPUT"
+          echo "$matrix"
+
+  canary:
+    name: Canary (${{ matrix.agent }})
+    needs: resolve
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      max-parallel: 8
+      matrix: ${{ fromJSON(needs.resolve.outputs.matrix) }}
+    env:
+      # Never use the runner user's persistent home for an agent install.
+      # Each matrix entry gets a fresh Linux runner, so /tmp is isolated per job.
+      HOME: /tmp/quantex-home
+      BUN_INSTALL: /tmp/quantex-home/.bun
+      BUN_INSTALL_CACHE_DIR: .bun/install/cache
+      QTX_ISOLATION_AGENTS: ${{ matrix.agent }}
+      QTX_ISOLATION_SCENARIOS: probe
+      QTX_CANARY_REQUIRE_VERSION: ${{ matrix.requireVersion }}
+      QTX_ISOLATION_COMMAND_TIMEOUT_MS: 600000
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: ./.github/actions/setup-bun
+      - name: Prepare disposable home
+        run: |
+          mkdir -p "$HOME" "$BUN_INSTALL"
+          echo "$BUN_INSTALL/bin" >> "$GITHUB_PATH"
+      - name: Run focused lifecycle probe
+        run: bun run scripts/smoke/lifecycle-smoke.ts "$QTX_ISOLATION_AGENTS"

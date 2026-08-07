@@ -5,6 +5,7 @@ const ciWorkflow = readFileSync('.github/workflows/ci.yml', 'utf8')
 const releasePleaseWorkflow = readFileSync('.github/workflows/release-please.yml', 'utf8')
 const releaseWorkflow = readFileSync('.github/workflows/release.yml', 'utf8')
 const sandboxWorkflow = readFileSync('.github/workflows/sandbox-tests.yml', 'utf8')
+const agentCanaryWorkflow = readFileSync('.github/workflows/agent-canary.yml', 'utf8')
 
 function extractEventBlock(workflow: string, eventName: string): string {
   const lines = workflow.split(/\r?\n/)
@@ -69,13 +70,29 @@ describe('workflow classification integration', () => {
     expect(sandboxWorkflow).toContain('NOT a required merge gate')
   })
 
+  it('runs quick real-agent canaries on relevant PRs and full coverage on schedule/manual dispatch', () => {
+    expect(agentCanaryWorkflow).toContain('pull_request:')
+    expect(agentCanaryWorkflow).toContain('workflow_dispatch:')
+    expect(agentCanaryWorkflow).toContain('schedule:')
+    expect(agentCanaryWorkflow).toContain('bun scripts/ci/agent-canary-matrix.ts')
+    expect(agentCanaryWorkflow).toContain('QTX_ISOLATION_SCENARIOS: probe')
+    expect(agentCanaryWorkflow).toContain('HOME: /tmp/quantex-home')
+    expect(agentCanaryWorkflow).toContain('QTX_CANARY_REQUIRE_VERSION')
+    expect(agentCanaryWorkflow).not.toContain('MODAL_TOKEN')
+  })
+
+  it('keeps canary workflow advisory and cancels only superseded PR runs', () => {
+    expect(agentCanaryWorkflow).toContain('not a required')
+    expect(agentCanaryWorkflow).toContain("cancel-in-progress: ${{ github.event_name == 'pull_request' }}")
+  })
+
   it('runs CI for main only, because main is the only release channel', () => {
     expect(extractYamlList(extractEventBlock(ciWorkflow, 'pull_request'), 'branches')).toEqual(['main'])
     expect(extractYamlList(extractEventBlock(ciWorkflow, 'push'), 'branches')).toEqual(['main'])
   })
 
   it('cancels superseded CI and sandbox runs but never a release', () => {
-    for (const workflow of [ciWorkflow, sandboxWorkflow]) {
+    for (const workflow of [ciWorkflow, sandboxWorkflow, agentCanaryWorkflow]) {
       expect(workflow).toContain('concurrency:')
     }
 

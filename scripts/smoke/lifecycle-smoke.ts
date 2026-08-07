@@ -60,6 +60,17 @@ try {
     }
   }
 
+  if (scenarios.includes('probe')) {
+    for (const agent of agents) {
+      installedAgents.push(agent)
+      try {
+        await smokeAgentVersionProbe(agent)
+      } finally {
+        installedAgents.pop()
+      }
+    }
+  }
+
   if (scenarios.includes('cargo-managed')) await smokeCargoManagedLifecycle()
   if (scenarios.includes('cargo-real-agent')) await smokeCargoRealAgentLifecycle()
   if (scenarios.includes('deno-managed')) await smokeDenoManagedLifecycle()
@@ -162,6 +173,70 @@ async function smokeManagedAgentLifecycle(agent: string): Promise<void> {
     afterUninstall,
     result => result.data?.inspection?.installed === false,
     `${agent} should be uninstalled after lifecycle smoke`,
+  )
+}
+
+async function smokeAgentVersionProbe(agent: string): Promise<void> {
+  const requireVersion = process.env.QTX_CANARY_REQUIRE_VERSION !== 'false'
+
+  console.log(`\n[${agent}] canary inspect before install`)
+  const beforeInstall = await runJson(`probe inspect ${agent} before install`, [...cli, 'inspect', agent])
+  assertResult(
+    beforeInstall,
+    result => result.data?.inspection?.installed === false,
+    `${agent} canary should start uninstalled`,
+  )
+
+  console.log(`[${agent}] canary install`)
+  const install = await runJson(`probe install ${agent}`, [...cli, 'install', agent])
+  assertResult(install, result => result.data?.installed === true, `${agent} canary install should succeed`)
+
+  console.log(`[${agent}] canary inspect after install`)
+  const afterInstall = await runJson(`probe inspect ${agent} after install`, [...cli, 'inspect', agent, '--refresh'])
+  assertResult(
+    afterInstall,
+    result => result.data?.inspection?.installed === true,
+    `${agent} canary should be installed`,
+  )
+  assertResult(
+    afterInstall,
+    result => result.data?.inspection?.lifecycle === 'managed',
+    `${agent} canary should be managed`,
+  )
+
+  const installedVersion = afterInstall.data?.inspection?.installedVersion
+  if (requireVersion && (!installedVersion || typeof installedVersion !== 'string')) {
+    throw new Error(`${agent} canary inspection must expose installedVersion after installation`)
+  }
+
+  console.log(`[${agent}] canary list`)
+  const list = await runJson('probe list', [...cli, 'list', '--refresh'])
+  const listRow = Array.isArray(list.data?.agents)
+    ? list.data.agents.find((candidate: { name?: unknown }) => candidate.name === agent)
+    : undefined
+  assertResult(list, () => Boolean(listRow?.installed), `${agent} canary list should mark the agent installed`)
+  if (requireVersion && listRow?.installedVersion !== installedVersion) {
+    throw new Error(`${agent} canary list and inspect versions must agree`)
+  }
+
+  console.log(`[${agent}] canary uninstall`)
+  const uninstall = await runJson(`probe uninstall ${agent}`, [...cli, 'uninstall', agent])
+  assertResult(
+    uninstall,
+    result => result.data?.changed === true,
+    `${agent} canary uninstall should report changed=true`,
+  )
+
+  const afterUninstall = await runJson(`probe inspect ${agent} after uninstall`, [
+    ...cli,
+    'inspect',
+    agent,
+    '--refresh',
+  ])
+  assertResult(
+    afterUninstall,
+    result => result.data?.inspection?.installed === false,
+    `${agent} canary should be uninstalled after probing`,
   )
 }
 

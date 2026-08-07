@@ -334,6 +334,16 @@ bun run build
 
 `bun run test:container` 是本地隔离验证的首选路径，适合在不安装 Modal 的情况下，用干净 Linux 环境验证对宿主机敏感的生命周期检查。它运行的是 Quantex 针对所选 agent 的真实 CLI lifecycle smoke flow，包括采用已预装 agent 和 Quantex 独立二进制自检，不是单元测试套件。`bun run test:sandbox` 会通过 Modal 运行同一套 smoke flow，适合验证远程传输或专用 GitHub Actions workflow。
 
+如果要高频验证真实上游 agent、又不想污染日常的全局 agent 状态，可以使用一次性的 HOME 运行 focused probe：
+
+```bash
+canary_home="$(mktemp -d)"
+trap 'rm -rf "$canary_home"' EXIT
+HOME="$canary_home" BUN_INSTALL="$canary_home/.bun" PATH="$canary_home/.bun/bin:$PATH" QTX_ISOLATION_SCENARIOS=probe QTX_CANARY_REQUIRE_VERSION=true QTX_ISOLATION_AGENTS=pi bun run scripts/smoke/lifecycle-smoke.ts
+```
+
+advisory 的 `Agent Canaries` GitHub Actions workflow 会在相关 pull request 上运行 quick anchor，并在定时或手动触发时运行完整 catalog。范围和排障顺序见[隔离测试 runbook](./docs/runbooks/modal-sandbox-testing.md)。
+
 ## License
 
 Apache-2.0
