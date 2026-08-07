@@ -23,6 +23,11 @@ describe('standalone install scripts', () => {
     expect(installSh).toMatch(/except Exception(?: as error)?:/)
   })
 
+  // Both spawning cases carry an explicit timeout because the first python3
+  // spawn on a Windows runner costs seconds, not milliseconds: the same file
+  // took 98ms on ubuntu, 1091ms on one windows run, and 8971ms on the next.
+  // Vitest's 5s default sits inside that spread, so whichever case spawns first
+  // fails at random and takes a required check down with it.
   it('leaves corrupt state.json untouched when recording installSource', () => {
     const home = mkdtempSync(join(tmpdir(), 'quantex-install-sh-'))
     const stateDir = join(home, '.quantex')
@@ -40,7 +45,7 @@ describe('standalone install scripts', () => {
     expect(result.status).toBe(0)
     expect(readFileSync(statePath, 'utf8')).toBe(corrupt)
     expect(result.stderr).toContain('leaving existing state.json untouched')
-  })
+  }, 30_000)
 
   it('atomically records installSource while preserving installed agents', () => {
     const home = mkdtempSync(join(tmpdir(), 'quantex-install-sh-'))
@@ -85,5 +90,5 @@ describe('standalone install scripts', () => {
     expect(updated.lifecycleReceipts).toEqual(original.lifecycleReceipts)
     expect(updated.schemaVersion).toBe(2)
     expect(updated.self.installSource).toBe('binary')
-  })
+  }, 30_000)
 })
