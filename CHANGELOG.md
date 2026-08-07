@@ -1,6 +1,13 @@
 # Changelog
 
 
+## [1.8.10](https://github.com/Drswith/quantex-cli/compare/v1.8.9...v1.8.10) (2026-08-07)
+
+
+### Bug Fixes
+
+* parse successful stderr-only agent version probes ([d313ffd](https://github.com/Drswith/quantex-cli/commit/d313ffdfb229167357de6f36899d77d6764c78b6))
+
 ## [1.8.9](https://github.com/Drswith/quantex-cli/compare/v1.8.8...v1.8.9) (2026-08-07)
 
 
