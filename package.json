@@ -61,6 +61,7 @@
     "build:cli": "bun run build:meta && tsdown --config tsdown.config.ts",
     "build:core": "bun run --cwd packages/core build",
     "build:meta": "bun run scripts/build/write-build-metadata.ts",
+    "ci:agent-canary-matrix": "bun run scripts/ci/agent-canary-matrix.ts",
     "ci:commit-policy": "bun run scripts/ci/commit-policy.ts",
     "ci:context": "bun run scripts/ci/ci-context.ts",
     "ci:path-taxonomy": "bun run scripts/ci/path-taxonomy.ts",

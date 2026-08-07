@@ -44,12 +44,14 @@ export const sandboxRelevantPrefixes = [
 ] as const
 
 export const sandboxRelevantFiles = new Set([
+  '.github/workflows/agent-canary.yml',
   '.github/workflows/sandbox-tests.yml',
   'bun.lock',
   'package.json',
   'scripts/smoke/lifecycle-smoke.ts',
   'scripts/smoke/pm-lifecycle-smoke.ts',
   'scripts/smoke/test-isolation.ts',
+  'scripts/ci/agent-canary-matrix.ts',
   'test/agents.test.ts',
   'test/utils/install.test.ts',
 ])

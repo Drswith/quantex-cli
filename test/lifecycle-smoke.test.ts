@@ -27,6 +27,13 @@ describe('lifecycle smoke scenarios', () => {
     expect(lifecycleSmoke).toContain("scenarios.includes('uv-managed')")
   })
 
+  it('includes a focused real-agent probe with version assertions', () => {
+    expect(lifecycleSmoke).toContain("scenarios.includes('probe')")
+    expect(lifecycleSmoke).toContain('QTX_CANARY_REQUIRE_VERSION')
+    expect(lifecycleSmoke).toContain('installedVersion')
+    expect(lifecycleSmoke).toContain("'list', '--refresh'")
+  })
+
   it('asserts uv tool lifecycle commands in the fake uv scenario', () => {
     expect(lifecycleSmoke).toContain('uv tool install uv-smoke-agent --python 3.12')
     expect(lifecycleSmoke).toContain('uv tool upgrade uv-smoke-agent --python 3.12')

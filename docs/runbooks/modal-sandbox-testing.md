@@ -15,6 +15,7 @@ Provide the repeatable flow for validating Quantex's real agent lifecycle behavi
 - `bun run test`
 - `bun run test:container`
 - `bun run test:sandbox`
+- `bun run scripts/smoke/lifecycle-smoke.ts`
 - Docker or Modal availability on the current machine
 
 ## Prerequisites
@@ -37,6 +38,7 @@ The default local lifecycle smoke agents are `pi,qoder`.
 Default scenarios:
 
 - `managed`: Quantex installs, inspects, resolves, ensures, updates, uninstalls, and re-inspects the agent.
+- `probe`: a focused real-agent check that installs, refreshes `inspect` and `list`, verifies installed-version evidence when the catalog declares it, and uninstalls the agent.
 - `deno-managed`: the sandbox places a fake `deno` executable in PATH, then verifies Quantex routes a Deno-managed test agent through `deno install --global`, `deno install --global --force`, and `deno uninstall --global` while preserving executable name and package install arguments.
 - `uv-managed`: the sandbox places a fake `uv` executable in PATH, then verifies Quantex routes a uv-managed test agent through `uv tool install`, `uv tool list`, `uv tool upgrade`, and `uv tool uninstall` while preserving package install arguments.
 - `adopt-preinstalled`: the sandbox preinstalls the agent outside Quantex first, then verifies `quantex install <agent>` adopts and tracks that existing install.
@@ -86,6 +88,7 @@ QTX_ISOLATION_SCENARIOS=uv-managed bun run test:container
 QTX_ISOLATION_SCENARIOS=self-binary bun run test:container
 QTX_ISOLATION_SCENARIOS=self-managed bun run test:container
 QTX_ISOLATION_SCENARIOS=managed QTX_ISOLATION_AGENTS=qoder bun run test:container
+QTX_ISOLATION_SCENARIOS=probe QTX_CANARY_REQUIRE_VERSION=true QTX_ISOLATION_AGENTS=pi bun run test:container
 ```
 
 Individual lifecycle commands time out after `QTX_ISOLATION_COMMAND_TIMEOUT_MS` milliseconds, defaulting to 300 seconds. Broader real-agent runs may need a higher timeout when upstream packages are slow.
@@ -96,11 +99,26 @@ For local broad-agent coverage without the slower upstream install path, `qoder`
 QTX_ISOLATION_SCENARIOS=managed QTX_ISOLATION_AGENTS=qoder bun run test:container
 ```
 
-The dedicated GitHub Actions workflow runs the Modal path with `QTX_ISOLATION_AGENTS=pi,opencode` and a longer command timeout so remote validation covers the lightweight baseline plus opencode under better network conditions. Pull requests and protected-branch pushes always publish the `sandbox-tests` check context, but the workflow only starts Modal when lifecycle-sensitive files changed. Docs-only and OpenSpec archive-only changes return a fast success result without starting Modal.
+## Real-agent canary workflow
 
-For merge-gating pull requests, the workflow narrows `QTX_ISOLATION_SCENARIOS` to `managed,deno-managed,uv-managed,adopt-preinstalled,ambiguous-multi-method,self-binary` so the required check stays focused on stable lifecycle coverage. Full Modal coverage, including `self-managed`, still runs on protected-branch pushes, schedule, and manual dispatch.
+The repository also has an advisory GitHub Actions workflow at `.github/workflows/agent-canary.yml`. It is the high-frequency real-agent signal and does not require Modal credentials:
 
-For pull requests from forks, the required `sandbox-tests` context downgrades to a documented success placeholder because GitHub does not expose Modal secrets to forked `pull_request` workflows. Maintainers must rerun equivalent sandbox validation from a trusted repository branch before merging lifecycle-sensitive fork contributions.
+- Relevant pull requests run a quick matrix containing the maintained anchors `codex`, `opencode`, `pi`, and `qoder`.
+- The weekly schedule and manual dispatch can run the full catalog-driven Linux matrix. Each job uses a fresh `ubuntu-latest` runner, a runner-temporary `HOME`/`BUN_INSTALL`, one agent, and `QTX_ISOLATION_SCENARIOS=probe`.
+- Matrix entries carry the catalog provider and installed-version probe capability, so unsupported version assertions are not invented in workflow YAML.
+- The workflow is intentionally not a required branch-protection context. A registry or upstream installer outage remains visible as advisory evidence while deterministic provider tests continue to gate merges.
+
+To exercise the same focused probe locally without using your normal Quantex state or global agent directory, use a disposable HOME:
+
+```bash
+canary_home="$(mktemp -d)"
+trap 'rm -rf "$canary_home"' EXIT
+HOME="$canary_home" BUN_INSTALL="$canary_home/.bun" PATH="$canary_home/.bun/bin:$PATH" \
+  QTX_ISOLATION_SCENARIOS=probe QTX_CANARY_REQUIRE_VERSION=true \
+  QTX_ISOLATION_AGENTS=pi bun run scripts/smoke/lifecycle-smoke.ts
+```
+
+Use `bun run test:container` or `bun run test:sandbox` when you need the broader fake-provider, self-upgrade, filesystem, or transport scenarios. The two layers complement each other: canaries catch real upstream CLI stream and packaging behavior; isolation runs exercise Quantex's provider and sandbox contracts deterministically.
 
 ## Triage order
 
@@ -115,10 +133,10 @@ For pull requests from forks, the required `sandbox-tests` context downgrades to
 
 2. Run `bun run test:container` when the change is sensitive to HOME, PATH, global tools, or filesystem isolation and you want a local fallback that does not require Modal.
    For self-upgrade regressions, start with `QTX_ISOLATION_SCENARIOS=self-managed bun run test:container`.
-3. Run `bun run test:sandbox` when you also want to validate the Modal transport or reproduce the dedicated GitHub Actions workflow.
-   If the contribution originated from a fork and changed sandbox-relevant files, do this rerun from a trusted branch before merge.
-4. If an isolated run fails, compare whether the failure is code-related or environment-related by rerunning the same agent list locally.
-5. If Modal setup is missing, install or repair the local Modal CLI before treating the failure as a product regression.
+3. Let the advisory `Agent Canaries` workflow provide the quick real-agent signal; use its matrix entry `(agent, provider)` when triaging a failure.
+4. Run `bun run test:sandbox` when you also want to validate the Modal transport or broad sandbox scenarios.
+5. If an isolated run fails, compare whether the failure is code-related or environment-related by rerunning the same agent list in a disposable HOME.
+6. If Modal setup is missing, install or repair the local Modal CLI only when the Modal transport itself is in scope.
 
 ## Recovery
 

@@ -334,6 +334,16 @@ bun run build
 
 `bun run test:container` is the preferred local isolation pass for host-sensitive lifecycle checks when you want a clean Linux environment without installing Modal locally. It runs Quantex's real CLI lifecycle smoke flow for selected agents, including preinstalled-agent adoption and Quantex standalone-binary self checks, not the unit test suite. `bun run test:sandbox` runs the same smoke flow through Modal and is intended for validating the remote transport or the dedicated GitHub Actions workflow.
 
+For a fast real-upstream check without touching your normal global agent state, run the focused probe in a disposable HOME:
+
+```bash
+canary_home="$(mktemp -d)"
+trap 'rm -rf "$canary_home"' EXIT
+HOME="$canary_home" BUN_INSTALL="$canary_home/.bun" PATH="$canary_home/.bun/bin:$PATH" QTX_ISOLATION_SCENARIOS=probe QTX_CANARY_REQUIRE_VERSION=true QTX_ISOLATION_AGENTS=pi bun run scripts/smoke/lifecycle-smoke.ts
+```
+
+The advisory `Agent Canaries` GitHub Actions workflow runs this probe for quick anchors on relevant pull requests and for the full catalog on a schedule or manual dispatch. See [the isolation runbook](./docs/runbooks/modal-sandbox-testing.md) for scope and triage guidance.
+
 ## License
 
 Apache-2.0

@@ -10,6 +10,37 @@ import { createProductionCoreReadPorts } from '../../src/core/production-observa
 import { createEmptyStateDocument } from '../../src/state/schema'
 
 describe('production Core observation', () => {
+  it.skipIf(process.platform === 'win32')('reads an installed version emitted on stderr', async () => {
+    const root = await mkdtemp(join(tmpdir(), 'quantex-core-version-stderr-'))
+    const binDir = join(root, 'bin')
+    const target = join(root, 'pi-target')
+    const configDir = join(root, 'config')
+    const previousPath = process.env.PATH
+
+    try {
+      await mkdir(binDir, { recursive: true })
+      await mkdir(configDir, { recursive: true })
+      await writeFile(target, '#!/bin/sh\necho 0.73.1 >&2\n')
+      await chmod(target, 0o755)
+      await symlink(target, join(binDir, 'pi'))
+      process.env.PATH = `${binDir}:${previousPath ?? ''}`
+
+      const ports = createProductionCoreReadPorts({ providerRegistry: bunRegistry(undefined) })
+      const outcome = await runCoreInvocation(undefined, context => ports.inspectAgent('pi', { ...context, configDir }))
+
+      expect(outcome).toMatchObject({
+        kind: 'success',
+        value: {
+          executable: { present: true, version: '0.73.1' },
+          pathExecutable: { present: true, version: '0.73.1' },
+        },
+      })
+    } finally {
+      process.env.PATH = previousPath
+      await rm(root, { force: true, recursive: true })
+    }
+  })
+
   it.skipIf(process.platform === 'win32')(
     'canonicalizes a PATH symlink before comparing it with a recorded executable path',
     async () => {
@@ -122,7 +153,7 @@ describe('production Core observation', () => {
   )
 })
 
-function bunRegistry(): ProviderRegistry {
+function bunRegistry(version: string | undefined = '0.73.1'): ProviderRegistry {
   const adapter = {
     async availability() {
       return { kind: 'success' as const, value: { executable: 'bun' } }
@@ -135,7 +166,7 @@ function bunRegistry(): ProviderRegistry {
           evidence: [],
           kind: 'present' as const,
           target: request.target,
-          version: '0.73.1',
+          ...(version ? { version } : {}),
         },
       }
     },
