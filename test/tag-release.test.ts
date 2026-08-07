@@ -9,6 +9,7 @@ import {
 const headSha = 'a'.repeat(40)
 const tagReleaseScript = readFileSync('scripts/release/tag-release.ts', 'utf8')
 const releasePleaseWorkflow = readFileSync('.github/workflows/release-please.yml', 'utf8')
+const releaseWorkflow = readFileSync('.github/workflows/release.yml', 'utf8')
 
 describe('release tagging', () => {
   it('parses release commit titles', () => {
@@ -95,10 +96,19 @@ describe('release tagging', () => {
     expect(tagReleaseScript).toContain("'push', remoteUrl, `refs/tags/${plan.tag}`")
   })
 
-  it('dispatches the release workflow only as a fallback when the tag event did not fire', () => {
-    expect(tagReleaseScript).toContain('ensureReleaseWorkflowTriggered')
-    expect(tagReleaseScript).toContain('findReleaseWorkflowRun')
+  // The bot's tag push is attributed to GITHUB_TOKEN and never starts release.yml,
+  // so polling for that run only ever expired its grace period. Dispatch is the
+  // trigger now; a reintroduced wait would silently cost two minutes per release.
+  it('dispatches the release workflow directly after the tag push', () => {
+    expect(tagReleaseScript).toContain('dispatchReleaseWorkflow')
+    expect(tagReleaseScript).not.toContain('ensureReleaseWorkflowTriggered')
+    expect(tagReleaseScript).not.toContain('RELEASE_TAG_DISPATCH_GRACE_MS')
     expect(releasePleaseWorkflow).not.toContain('workflow_dispatch')
+  })
+
+  it('keeps the tag trigger available for maintainer-pushed tags', () => {
+    expect(releaseWorkflow).toContain('tags:')
+    expect(releaseWorkflow).toContain("- 'v*'")
   })
 
   it('recognises a head that can never be tagged, without any network call', () => {
