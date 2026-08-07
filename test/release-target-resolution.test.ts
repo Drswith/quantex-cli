@@ -96,7 +96,7 @@ describe('release workflow closure', () => {
     expect(releasePleaseWorkflow).toContain(
       'googleapis/release-please-action@45996ed1f6d02564a971a2fa1b5860e934307cf7 # v5.0.0',
     )
-    expect(releasePleaseWorkflow).toContain('client-id: ${{ secrets.RELEASE_APP_ID }}')
+    expect(releasePleaseWorkflow).toContain('client-id: ${{ secrets.RELEASE_APP_CLIENT_ID }}')
     expect(releasePleaseWorkflow).not.toContain('npm publish')
   })
 

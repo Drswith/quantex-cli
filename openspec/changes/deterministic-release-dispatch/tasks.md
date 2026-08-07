@@ -10,6 +10,7 @@
 ## 3. Workflow hygiene
 
 - [x] 3.1 Replace the deprecated `app-id` input with `client-id` in `release-please.yml` and `release.yml`.
+- [x] 3.2 Point that input at the pre-existing `RELEASE_APP_CLIENT_ID` secret instead of `RELEASE_APP_ID`, and record in the runbook which secret is authoritative.
 
 ## 4. Documentation and validation
 
