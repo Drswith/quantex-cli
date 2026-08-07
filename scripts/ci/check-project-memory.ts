@@ -1,5 +1,6 @@
-import { readdir, readFile } from 'node:fs/promises'
-import { resolve } from 'node:path'
+import type { Stats } from 'node:fs'
+import { lstat, readdir, readFile } from 'node:fs/promises'
+import { dirname, resolve } from 'node:path'
 import process from 'node:process'
 
 const rootDir = resolve(import.meta.dir, '../..')
@@ -8,6 +9,7 @@ const allowedRootMarkdownFiles = new Set(['AGENTS.md', 'CHANGELOG.md', 'README.e
 const runtimeStubTemplate = 'skills/quantex-agent-runtime/bootstrap-stub.md'
 const runtimeStubPaths = [
   '.agents/skills/quantex-agent-runtime/SKILL.md',
+  '.claude/skills/quantex-agent-runtime/SKILL.md',
   '.codex/skills/quantex-agent-runtime/SKILL.md',
   '.github/skills/quantex-agent-runtime/SKILL.md',
 ]
@@ -61,6 +63,8 @@ async function checkRuntimeStubParity() {
   const template = await readFile(resolve(rootDir, runtimeStubTemplate), 'utf8')
 
   for (const stubPath of runtimeStubPaths) {
+    await checkStubIsRegularFile(stubPath)
+
     let stub: string
     try {
       stub = await readFile(resolve(rootDir, stubPath), 'utf8')
@@ -72,6 +76,26 @@ async function checkRuntimeStubParity() {
     if (stub !== template) {
       issues.push(
         `runtime bootstrap stub "${stubPath}" drifted from ${runtimeStubTemplate}. Resync the file byte-for-byte.`,
+      )
+    }
+  }
+}
+
+// A symlinked stub — or a symlinked skill directory above it — reads back as the
+// central runtime on a POSIX checkout and as a one-line path on a checkout
+// without symlink support, so parity alone would not notice it.
+async function checkStubIsRegularFile(stubPath: string) {
+  for (const candidate of [stubPath, dirname(stubPath)]) {
+    let stats: Stats
+    try {
+      stats = await lstat(resolve(rootDir, candidate))
+    } catch {
+      continue
+    }
+
+    if (stats.isSymbolicLink()) {
+      issues.push(
+        `runtime bootstrap path "${candidate}" is a symlink. Agent bootstrap entries must be regular files copied from ${runtimeStubTemplate} so every checkout resolves them identically.`,
       )
     }
   }
