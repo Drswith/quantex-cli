@@ -1,6 +1,15 @@
 # Changelog
 
 
+## [1.8.9](https://github.com/Drswith/quantex-cli/compare/v1.8.8...v1.8.9) (2026-08-07)
+
+
+### Bug Fixes
+
+* detect installed agent versions emitted on stderr ([d24a994](https://github.com/Drswith/quantex-cli/commit/d24a9945829493a5d22425ed86e0c3fcbc7ad39f))
+* detect installed agent versions emitted on stderr ([3c94c70](https://github.com/Drswith/quantex-cli/commit/3c94c70bdaf2e8895a5d65c076bb9e371f606460))
+* detect installed agent versions emitted on stderr ([0441b2b](https://github.com/Drswith/quantex-cli/commit/0441b2b12b19c0dab1e31f79c0fb6db9608b0295))
+
 ## [1.8.8](https://github.com/Drswith/quantex-cli/compare/v1.8.7...v1.8.8) (2026-08-06)
 
 
