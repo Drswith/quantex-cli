@@ -42,7 +42,7 @@ afterEach(() => {
   if (existsSync(tempConfigDir)) rmSync(tempConfigDir, { recursive: true, force: true })
 })
 
-function createMockProcess(exitCode: number, stdout = '') {
+function createMockProcess(exitCode: number, stdout = '', stderr = '') {
   return {
     exited: Promise.resolve(),
     exitCode,
@@ -54,6 +54,7 @@ function createMockProcess(exitCode: number, stdout = '') {
     }),
     stderr: new ReadableStream({
       start(controller) {
+        if (stderr) controller.enqueue(new TextEncoder().encode(stderr))
         controller.close()
       },
     }),
@@ -100,6 +101,24 @@ describe('getInstalledVersion', () => {
     expect(version).toBe('1.0.20')
   })
 
+  it('falls back to stderr when stdout is empty', async () => {
+    const { getInstalledVersion } = await import('../../src/utils/version')
+    mockSpawn.mockReturnValue(createMockProcess(0, '', '0.73.1\n'))
+
+    const version = await getInstalledVersion('pi')
+
+    expect(version).toBe('0.73.1')
+  })
+
+  it('prefers stdout when both streams contain versions', async () => {
+    const { getInstalledVersion } = await import('../../src/utils/version')
+    mockSpawn.mockReturnValue(createMockProcess(0, '1.2.3\n', '9.9.9\n'))
+
+    const version = await getInstalledVersion('agent')
+
+    expect(version).toBe('1.2.3')
+  })
+
   it('extracts calendar version format', async () => {
     const { getInstalledVersion } = await import('../../src/utils/version')
     mockSpawn.mockReturnValue(createMockProcess(0, '2026.03.30-a5d3e17\n'))
@@ -133,9 +152,19 @@ describe('getInstalledVersion', () => {
     expect(version).toBe('2026.04.01')
   })
 
+  it('supports custom version parsers on stderr fallback', async () => {
+    const { getInstalledVersion } = await import('../../src/utils/version')
+    mockSpawn.mockReturnValue(createMockProcess(0, '', 'release=2026.04.01\n'))
+    const version = await getInstalledVersion('agent', {
+      parser: output => output.split('\n')[0]?.split('=')[1],
+    })
+
+    expect(version).toBe('2026.04.01')
+  })
+
   it('returns undefined on non-zero exit', async () => {
     const { getInstalledVersion } = await import('../../src/utils/version')
-    mockSpawn.mockReturnValue(createMockProcess(1, ''))
+    mockSpawn.mockReturnValue(createMockProcess(1, '', '1.2.3\n'))
     const version = await getInstalledVersion('claude')
     expect(version).toBeUndefined()
   })

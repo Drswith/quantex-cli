@@ -42,12 +42,14 @@ export async function getInstalledVersion(
 
   try {
     const proc = spawnCommand(command, { detached: context !== undefined && process.platform !== 'win32' })
-    const { exitCode, stdout } = context
+    const { exitCode, stderr, stdout } = context
       ? await readProcessOutputWithContext(proc, context)
       : await readProcessOutput(proc)
     if (exitCode !== 0) return undefined
-    const text = stdout
-    return parseInstalledVersionOutput(text, versionProbe?.parser)
+    return (
+      parseInstalledVersionOutput(stdout, versionProbe?.parser) ??
+      parseInstalledVersionOutput(stderr, versionProbe?.parser)
+    )
   } catch (error) {
     if (isProcessInterruptionError(error)) throw error
     return undefined

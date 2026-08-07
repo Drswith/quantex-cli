@@ -163,7 +163,10 @@ async function inspectVersion(
   try {
     const result = await runReadOnlyCommand(command, context)
     if (result.exitCode !== 0) return undefined
-    return parseVersionOutput(result.stdout, agent.versionProbe?.parser)
+    return (
+      parseVersionOutput(result.stdout, agent.versionProbe?.parser) ??
+      parseVersionOutput(result.stderr, agent.versionProbe?.parser)
+    )
   } catch (error) {
     if (error instanceof CoreProcessInterruptionError) throw error
     return undefined
