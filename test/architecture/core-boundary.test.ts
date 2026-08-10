@@ -60,6 +60,7 @@ describe('Core package boundary', () => {
       'src/providers/types.ts',
       'src/state/schema.ts',
       'src/utils/compare-versions.ts',
+      'src/utils/executable-search-paths.ts',
     ])
     const violations = [...closure]
       .map(repositoryPath)

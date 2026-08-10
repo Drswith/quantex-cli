@@ -94,9 +94,13 @@ export async function executeAgentLifecycle(
       : { kind: 'interaction-required', observed }
   }
 
-  const argv = [observed.agent.binaryName, ...input.args]
+  // Launch the resolved path so an agent that lives outside the inherited PATH
+  // actually starts instead of failing the spawn Quantex just reported as ready.
+  // Read from `observed` at launch time: an install-and-launch run only learns
+  // the path from the post-install refresh below.
+  const buildArgv = () => [observed.executable.path ?? observed.agent.binaryName, ...input.args]
   if (planned.decision === 'dry-run') {
-    return { argv, kind: 'dry-run', observed, wouldInstall: !observed.executable.present }
+    return { argv: buildArgv(), kind: 'dry-run', observed, wouldInstall: !observed.executable.present }
   }
 
   if (planned.decision === 'prompt-install' && !(await ports.confirmInstall(observed))) {
@@ -119,7 +123,7 @@ export async function executeAgentLifecycle(
   }
 
   const processOutcome = await ports.process.run({
-    argv,
+    argv: buildArgv(),
     signal: ports.signal,
     stdio: ports.outputMode === 'human' ? ['inherit', 'inherit', 'inherit'] : ['ignore', 'pipe', 'pipe'],
     timeoutMs: ports.timeoutMs,

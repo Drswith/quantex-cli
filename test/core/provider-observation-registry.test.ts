@@ -69,6 +69,28 @@ describe('Core provider observation registry', () => {
     )
   })
 
+  it.each(['binary', 'script'] as const)('resolves a %s source that installed outside the inherited PATH', async id => {
+    const access = vi.fn(async (path: string) =>
+      path === join('/fixture-home', '.local', 'bin', 'fixture') ? undefined : Promise.reject(new Error('ENOENT')),
+    )
+    const runCommand = vi.fn(async () => ({ exitCode: 1, stderr: '', stdout: '' }))
+    const registry = createCoreProviderObservationRegistry(dependencies({ access, runCommand }))
+
+    const outcome = await registry.get(id)!.observe({ context: context(), target: targets[id] })
+
+    expect(outcome).toMatchObject({ kind: 'success', value: { kind: 'present' } })
+  })
+
+  it.each(['binary', 'script'] as const)('reports a %s source absent when nothing resolves', async id => {
+    const access = vi.fn(async () => Promise.reject(new Error('ENOENT')))
+    const runCommand = vi.fn(async () => ({ exitCode: 1, stderr: '', stdout: '' }))
+    const registry = createCoreProviderObservationRegistry(dependencies({ access, runCommand }))
+
+    const outcome = await registry.get(id)!.observe({ context: context(), target: targets[id] })
+
+    expect(outcome).toMatchObject({ kind: 'success', value: { kind: 'absent' } })
+  })
+
   it('fails closed when a package probe cannot establish presence', async () => {
     const registry = createCoreProviderObservationRegistry(
       dependencies({ runCommand: async () => ({ exitCode: 1, stderr: 'unexpected', stdout: '' }) }),

@@ -21,6 +21,7 @@ import * as lifecycleUpdateProduction from '../../src/services/lifecycle-updates
 import * as stateStore from '../../src/state'
 import { loadState, StateFileError } from '../../src/state'
 import * as detect from '../../src/utils/detect'
+import * as executableResolution from '../../src/utils/executable-resolution'
 import * as resourceLock from '../../src/utils/lock'
 import * as version from '../../src/utils/version'
 
@@ -361,6 +362,9 @@ async function captureUpdateCompatibility(
     vi.spyOn(agents, 'getAgentByNameOrAlias').mockReturnValue(agent),
     vi.spyOn(agents, 'getAllAgents').mockReturnValue([agent]),
     vi.spyOn(detect, 'isBinaryInPath').mockResolvedValue(true),
+    vi
+      .spyOn(executableResolution, 'resolveAgentExecutablePath')
+      .mockResolvedValue(`/usr/local/bin/${agent.binaryName}`),
     vi.spyOn(detect, 'isBunAvailable').mockResolvedValue(true),
     installedVersionSpy,
     vi.spyOn(version, 'getLatestVersion').mockResolvedValue('1.10.0'),

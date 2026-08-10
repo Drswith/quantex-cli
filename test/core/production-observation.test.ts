@@ -42,6 +42,44 @@ describe('production Core observation', () => {
   })
 
   it.skipIf(process.platform === 'win32')(
+    'observes an agent installed into a known directory that PATH does not reach',
+    async () => {
+      const root = await mkdtemp(join(tmpdir(), 'quantex-core-known-dir-'))
+      const home = join(root, 'home')
+      const localBin = join(home, '.local', 'bin')
+      const configDir = join(root, 'config')
+      const previousPath = process.env.PATH
+      const previousHome = process.env.HOME
+
+      try {
+        await mkdir(localBin, { recursive: true })
+        await mkdir(configDir, { recursive: true })
+        const executable = join(localBin, 'pi')
+        await writeFile(executable, '#!/bin/sh\necho 0.73.1\n')
+        await chmod(executable, 0o755)
+        // An empty PATH is the disposable-HOME situation: the installer wrote the
+        // executable somewhere this process never learned about.
+        process.env.PATH = join(root, 'empty')
+        process.env.HOME = home
+
+        const ports = createProductionCoreReadPorts({ providerRegistry: bunRegistry(undefined) })
+        const outcome = await runCoreInvocation(undefined, context =>
+          ports.inspectAgent('pi', { ...context, configDir }),
+        )
+
+        expect(outcome).toMatchObject({
+          kind: 'success',
+          value: { pathExecutable: { path: await realpath(executable), present: true, version: '0.73.1' } },
+        })
+      } finally {
+        process.env.PATH = previousPath
+        process.env.HOME = previousHome
+        await rm(root, { force: true, recursive: true })
+      }
+    },
+  )
+
+  it.skipIf(process.platform === 'win32')(
     'canonicalizes a PATH symlink before comparing it with a recorded executable path',
     async () => {
       const root = await mkdtemp(join(tmpdir(), 'quantex-core-observation-'))

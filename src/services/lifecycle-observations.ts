@@ -14,9 +14,10 @@ import { getOrderedInstallMethods } from '../package-manager'
 import { firstPartyProviderRegistry } from '../providers'
 import { createCliOperationContext } from '../runtime/cli-operation-context'
 import { getInstalledAgentState, getLifecycleReceipt } from '../state'
-import { getPlatform, isBinaryInPath } from '../utils/detect'
+import { getPlatform } from '../utils/detect'
+import { resolveAgentExecutablePath } from '../utils/executable-resolution'
 import { getLatestVersionPackage } from '../utils/install'
-import { getBinaryPath, getInstalledVersion, getLatestVersion, getResolvedBinaryPath } from '../utils/version'
+import { getLatestVersion, getResolvedBinaryPath, probeInstalledVersion } from '../utils/version'
 
 export interface ResolvedAgentObservation extends AgentLifecycleObservationResult {
   readonly agent: AgentDefinition
@@ -168,23 +169,23 @@ async function inspectExecutable(
   installedState: InstalledAgentState | undefined,
   context?: ProviderOperationContext,
 ): Promise<AgentExecutableObservation> {
-  const present = await isBinaryInPath(agent.binaryName, context)
-  if (!present) return { present: false }
+  // One resolution decides presence and feeds the version probe, so an agent
+  // outside the inherited PATH is probed through the path it actually occupies.
+  const binaryPath = await resolveAgentExecutablePath(agent.binaryName, context)
+  if (!binaryPath) return { present: false }
 
-  const [binaryPath, version] = await Promise.all([
-    getBinaryPath(agent.binaryName, context),
-    getObservedInstalledVersion(agent, installedState, context),
-  ])
+  const version = await getObservedInstalledVersion(agent, installedState, context, binaryPath)
   const path = (await getResolvedBinaryPath(binaryPath, context)) ?? binaryPath
-  return { path, present, version }
+  return { path, present: true, version }
 }
 
 async function getObservedInstalledVersion(
   agent: AgentDefinition,
   _installedState: InstalledAgentState | undefined,
   context?: ProviderOperationContext,
+  executablePath?: string,
 ): Promise<string | undefined> {
-  return getInstalledVersion(agent.binaryName, agent.versionProbe, context)
+  return probeInstalledVersion(agent.binaryName, agent.versionProbe, context, executablePath)
 }
 
 async function resolveLatestVersion(
