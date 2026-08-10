@@ -172,8 +172,9 @@ Release PRs are created by the configured release GitHub App. If GitHub marks a 
 
 For the non-interactive release flow, configure a dedicated GitHub App installation token:
 
-- `RELEASE_APP_ID` stores the GitHub App numeric application ID.
+- `RELEASE_APP_CLIENT_ID` stores the GitHub App client ID and is the `client-id` input both release workflows pass to `actions/create-github-app-token`.
 - `RELEASE_APP_PRIVATE_KEY` stores the GitHub App private key PEM.
+- `RELEASE_APP_ID` stores the GitHub App numeric application ID. It is unused: the action's `app-id` input is deprecated, and GitHub treats the application ID as a legacy JWT issuer.
 - `.github/workflows/release-please.yml` uses `actions/create-github-app-token` to create or update Release PRs on push.
 - `.github/workflows/release.yml` uses `actions/create-github-app-token` to create or recover releases and upload artifacts.
 

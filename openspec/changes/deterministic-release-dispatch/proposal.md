@@ -19,7 +19,7 @@ This is a durable release-process contract change and therefore carries an OpenS
 - Remove `ensureReleaseWorkflowTriggered`, `findReleaseWorkflowRun`, and `RELEASE_TAG_DISPATCH_GRACE_MS`.
 - Amend the release-workflow contract so workflow dispatch is the declared release trigger rather than a fallback, and record why the tag event does not fire for the release bot.
 - Keep `on: push: tags` in `release.yml` as the maintainer path; a duplicate run is already safe under the non-cancelling per-tag concurrency group and the existing already-published checks.
-- Replace the deprecated `app-id` input of `actions/create-github-app-token` with `client-id` in `release-please.yml` and `release.yml` (mechanical: the action resolves `client-id || app-id` into the same JWT issuer, and the existing `RELEASE_APP_ID` secret keeps working).
+- Restore `client-id: ${{ secrets.RELEASE_APP_CLIENT_ID }}` in `release-please.yml` and `release.yml`, replacing the deprecated `app-id` input. That secret has existed since `e0ad361` (2026-04-27) and was the configured identity until the 2026-08-03/08-04 workflow rewrites incidentally reverted both call sites to `app-id: ${{ secrets.RELEASE_APP_ID }}`, which now emits a runner deprecation warning on every release job.
 
 ## Capabilities
 
