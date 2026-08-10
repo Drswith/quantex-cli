@@ -125,12 +125,12 @@ What to do:
 Symptoms:
 
 - Quantex says it was installed through `bun` or `npm`, but that package manager is no longer available
-- an agent is visible in PATH, but Quantex treats it as unmanaged
+- an agent's executable is present, but Quantex treats it as unmanaged
 
 What to do:
 
 - if Quantex itself lost its package manager, restore that package manager or reinstall Quantex from a supported source
-- if an agent is only detected in PATH, run `quantex inspect <agent> --json` to confirm the source
+- if an agent is only detected on disk, run `quantex inspect <agent> --json` to confirm the source; the reported `binaryPath` shows where it resolved, which may be a known install directory rather than a PATH entry
 - reinstall the agent through Quantex if you want tracked lifecycle management
 - keep manual or self-updating installs only when that tradeoff is intentional
 

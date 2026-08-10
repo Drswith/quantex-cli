@@ -57,7 +57,7 @@ describe('v1 agent inspection projection', () => {
         latestVersion: '2.0.0',
         lifecycle: 'unmanaged',
         resolvedBinaryPath: '/opt/test/bin/test-bin',
-        sourceLabel: 'detected in PATH',
+        sourceLabel: 'detected on disk',
         updateLabel: 'manual update',
       },
       name: 'untracked',
@@ -96,7 +96,7 @@ describe('v1 agent inspection projection', () => {
         latestVersion: '2.0.0',
         lifecycle: 'unmanaged',
         resolvedBinaryPath: '/opt/test/bin/test-bin',
-        sourceLabel: 'detected in PATH',
+        sourceLabel: 'detected on disk',
         updateLabel: 'manual update',
       },
       name: 'indeterminate',
@@ -126,6 +126,28 @@ describe('v1 agent inspection projection', () => {
     expect(inspection).not.toHaveProperty('receipt')
     expect(inspection).not.toHaveProperty('binding')
     expect(inspection).not.toHaveProperty('capabilities')
+  })
+
+  // Executable resolution consults PATH first and then a known install directory,
+  // so the untracked source label must not name either route.
+  it('reports one route-independent source label for an untracked install', () => {
+    const viaPath = projectObservationToV1Inspection(
+      resolved(present({ kind: 'untracked' }), undefined, {
+        path: '/usr/local/bin/test-bin',
+        present: true,
+        version: '1.2.3',
+      }),
+    )
+    const viaKnownDirectory = projectObservationToV1Inspection(
+      resolved(present({ kind: 'untracked' }), undefined, {
+        path: '/home/agent/.local/bin/test-bin',
+        present: true,
+        version: '1.2.3',
+      }),
+    )
+
+    expect(viaKnownDirectory.sourceLabel).toBe(viaPath.sourceLabel)
+    expect(viaKnownDirectory.sourceLabel).not.toMatch(/PATH/iu)
   })
 })
 

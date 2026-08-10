@@ -6,7 +6,7 @@ export function getManualAgentUpdateMessage(agent: Pick<AgentDefinition, 'displa
 }
 
 export function getUntrackedPathAgentUpdateMessage(agent: Pick<AgentDefinition, 'displayName' | 'name'>): string {
-  return `${agent.displayName} is detected in PATH but not tracked as a Quantex-managed install. Use \`quantex inspect ${agent.name} --json\` to confirm the source, then reinstall through Quantex if you want \`quantex update --all\` to manage it.`
+  return `${agent.displayName} is detected on disk but not tracked as a Quantex-managed install. Use \`quantex inspect ${agent.name} --json\` to confirm the source, then reinstall through Quantex if you want \`quantex update --all\` to manage it.`
 }
 
 export function getAgentUpdateFailureHint(

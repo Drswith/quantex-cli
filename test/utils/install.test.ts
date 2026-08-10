@@ -1,5 +1,36 @@
 import { describe, expect, it } from 'vitest'
-import { formatInstallMethodCommand, getAdoptableExistingInstallMethod } from '../../src/utils/install'
+import { getUntrackedPathAgentUpdateMessage } from '../../src/agent-update/messages'
+import {
+  formatInstalledSource,
+  formatInstallMethodCommand,
+  getAdoptableExistingInstallMethod,
+} from '../../src/utils/install'
+
+describe('formatInstalledSource', () => {
+  it('describes an untracked install without naming a resolution mechanism', () => {
+    expect(formatInstalledSource(undefined)).toBe('detected on disk')
+  })
+
+  it.each([
+    { expected: 'managed via bun (test-pkg)', state: { installType: 'bun' as const, packageName: 'test-pkg' } },
+    { expected: 'script installer', state: { installType: 'script' as const } },
+    { expected: 'binary installer', state: { installType: 'binary' as const } },
+  ])('keeps the tracked label $expected', ({ expected, state }) => {
+    expect(formatInstalledSource(state)).toBe(expected)
+  })
+
+  it('claims PATH membership in no source label or untracked-agent hint', () => {
+    const claims = [
+      formatInstalledSource(undefined),
+      formatInstalledSource({ installType: 'bun', packageName: 'test-pkg' }),
+      formatInstalledSource({ installType: 'script' }),
+      formatInstalledSource({ installType: 'binary' }),
+      getUntrackedPathAgentUpdateMessage({ displayName: 'Test Agent', name: 'test-agent' }),
+    ]
+
+    for (const claim of claims) expect(claim).not.toMatch(/\bPATH\b/iu)
+  })
+})
 
 describe('getAdoptableExistingInstallMethod', () => {
   it('adopts a Bun-managed existing install when the binary path identifies Bun global bin', () => {

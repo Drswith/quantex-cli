@@ -88,7 +88,7 @@ export const READ_ONLY_LIFECYCLE_BASELINE: ReadOnlyLifecycleEvidence = {
   absent: fixtureBaseline(null, false, {
     info: observationBaseline(false, 'unmanaged'),
     inspect: observationBaseline(false, 'unmanaged', undefined, 'command update'),
-    list: observationBaseline(false, 'unmanaged', 'detected in PATH', 'command update'),
+    list: observationBaseline(false, 'unmanaged', 'detected on disk', 'command update'),
     resolve: resolveBaseline(false),
   }),
   ghost: fixtureBaseline('npm', false, {
@@ -104,10 +104,10 @@ export const READ_ONLY_LIFECYCLE_BASELINE: ReadOnlyLifecycleEvidence = {
     resolve: resolveBaseline(true, 'managed', 'managed via bun (@openai/codex)', 'bun'),
   }),
   untracked: fixtureBaseline(null, true, {
-    info: observationBaseline(true, 'unmanaged', 'detected in PATH'),
-    inspect: observationBaseline(true, 'unmanaged', 'detected in PATH', 'command update'),
-    list: observationBaseline(true, 'unmanaged', 'detected in PATH', 'command update'),
-    resolve: resolveBaseline(true, 'unmanaged', 'detected in PATH', 'detected-in-path'),
+    info: observationBaseline(true, 'unmanaged', 'detected on disk'),
+    inspect: observationBaseline(true, 'unmanaged', 'detected on disk', 'command update'),
+    list: observationBaseline(true, 'unmanaged', 'detected on disk', 'command update'),
+    resolve: resolveBaseline(true, 'unmanaged', 'detected on disk', 'detected-in-path'),
   }),
 }
 
@@ -640,7 +640,7 @@ function fixtureBaseline(
   const source = recordedInstallType
     ? `managed via ${recordedInstallType} (@openai/codex)`
     : installed
-      ? 'detected in PATH'
+      ? 'detected on disk'
       : undefined
   const installedHuman = installed ? ['Installed: yes'] : ['Installed: no']
   const inspectHuman = [
