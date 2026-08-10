@@ -2,7 +2,7 @@ import type { AgentDefinition, InstallMethod } from '../agents/types'
 import type { InstalledAgentState } from '../state'
 import { getManagedInstalledPackageVersion, getOrderedInstallMethods } from '../package-manager'
 import { getInstalledAgentState } from '../state'
-import { isBinaryInPath } from '../utils/detect'
+import { resolveAgentExecutablePath } from '../utils/executable-resolution'
 import {
   formatInstalledSource,
   formatUpdateManagement,
@@ -10,7 +10,7 @@ import {
   getLatestVersionPackage,
   isManagedInstallType,
 } from '../utils/install'
-import { getBinaryPath, getInstalledVersion, getLatestVersion, getResolvedBinaryPath } from '../utils/version'
+import { getLatestVersion, getResolvedBinaryPath, probeInstalledVersion } from '../utils/version'
 
 export interface AgentInspection {
   agent: AgentDefinition
@@ -27,15 +27,17 @@ export interface AgentInspection {
 }
 
 export async function inspectAgent(agent: AgentDefinition): Promise<AgentInspection> {
-  const [methods, installedState, inPath] = await Promise.all([
+  // One resolution feeds presence, the reported path, and the version probe, so
+  // an agent outside the inherited PATH stays consistent across all three.
+  const [methods, installedState, binaryPath] = await Promise.all([
     getOrderedInstallMethods(agent),
     getInstalledAgentState(agent.name),
-    isBinaryInPath(agent.binaryName),
+    resolveAgentExecutablePath(agent.binaryName),
   ])
+  const inPath = binaryPath !== undefined
 
-  const [installedVersion, binaryPath, latestVersion] = await Promise.all([
-    inPath ? getAgentInstalledVersion(agent, installedState) : Promise.resolve(undefined),
-    inPath ? getBinaryPath(agent.binaryName) : Promise.resolve(undefined),
+  const [installedVersion, latestVersion] = await Promise.all([
+    inPath ? getAgentInstalledVersion(agent, installedState, binaryPath) : Promise.resolve(undefined),
     getLatestVersionForAgent(agent, installedState, methods),
   ])
   const resolvedBinaryPath = await getResolvedBinaryPath(binaryPath)
@@ -62,6 +64,7 @@ export async function inspectAllAgents(agents: AgentDefinition[]): Promise<Agent
 async function getAgentInstalledVersion(
   agent: AgentDefinition,
   installedState: InstalledAgentState | undefined,
+  executablePath?: string,
 ): Promise<string | undefined> {
   if (installedState && isManagedInstallType(installedState.installType) && installedState.packageName) {
     const managedPackageVersion = await getManagedInstalledPackageVersion(
@@ -73,7 +76,7 @@ async function getAgentInstalledVersion(
     if (managedPackageVersion) return managedPackageVersion
   }
 
-  return getInstalledVersion(agent.binaryName, agent.versionProbe)
+  return probeInstalledVersion(agent.binaryName, agent.versionProbe, undefined, executablePath)
 }
 
 async function getLatestVersionForAgent(

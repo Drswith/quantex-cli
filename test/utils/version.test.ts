@@ -143,6 +143,32 @@ describe('getInstalledVersion', () => {
     expect(mockSpawn).toHaveBeenCalledWith(['agent', 'version'], expect.any(Object))
   })
 
+  it('probes through a supplied resolved path', async () => {
+    const { probeInstalledVersion } = await import('../../src/utils/version')
+    mockSpawn.mockReturnValue(createMockProcess(0, '1.2.3\n'))
+
+    expect(await probeInstalledVersion('agy', undefined, undefined, '/home/agent/.local/bin/agy')).toBe('1.2.3')
+    expect(mockSpawn).toHaveBeenCalledWith(['/home/agent/.local/bin/agy', '--version'], expect.any(Object))
+  })
+
+  it('substitutes the resolved path into a custom probe command', async () => {
+    const { probeInstalledVersion } = await import('../../src/utils/version')
+    mockSpawn.mockReturnValue(createMockProcess(0, '1.2.3\n'))
+
+    await probeInstalledVersion('agy', { command: ['agy', 'version'] }, undefined, '/home/agent/.local/bin/agy')
+
+    expect(mockSpawn).toHaveBeenCalledWith(['/home/agent/.local/bin/agy', 'version'], expect.any(Object))
+  })
+
+  it('leaves a probe command that does not lead with the executable untouched', async () => {
+    const { probeInstalledVersion } = await import('../../src/utils/version')
+    mockSpawn.mockReturnValue(createMockProcess(0, '1.2.3\n'))
+
+    await probeInstalledVersion('agy', { command: ['python', '-m', 'agy', '--version'] }, undefined, '/opt/bin/agy')
+
+    expect(mockSpawn).toHaveBeenCalledWith(['python', '-m', 'agy', '--version'], expect.any(Object))
+  })
+
   it('supports custom version parsers', async () => {
     const { getInstalledVersion } = await import('../../src/utils/version')
     mockSpawn.mockReturnValue(createMockProcess(0, 'release=2026.04.01\nbuild=abc\n'))

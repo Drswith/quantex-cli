@@ -1,8 +1,10 @@
+import type { InstallType } from '../../src/agents'
 import { access, chmod, cp, mkdir, mkdtemp, readFile, readdir, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import process from 'node:process'
 import { loadConfig } from '../../src/config'
+import { getInstallLifecycle } from '../../src/package-manager/capabilities'
 import { resolveManagedSelfUpdateRegistry } from '../../src/self'
 import { getStateFilePath } from '../../src/state'
 import {
@@ -176,6 +178,17 @@ async function smokeManagedAgentLifecycle(agent: string): Promise<void> {
   )
 }
 
+/**
+ * The canary job carries the provider the matrix selected. Without it the probe
+ * cannot know which lifecycle to expect, so the assertion is skipped rather than
+ * guessed.
+ */
+function resolveExpectedCanaryLifecycle(): 'managed' | 'unmanaged' | undefined {
+  const provider = process.env.QTX_CANARY_PROVIDER?.trim()
+  if (!provider) return undefined
+  return getInstallLifecycle(provider as InstallType)
+}
+
 async function smokeAgentVersionProbe(agent: string): Promise<void> {
   const requireVersion = process.env.QTX_CANARY_REQUIRE_VERSION !== 'false'
 
@@ -198,11 +211,16 @@ async function smokeAgentVersionProbe(agent: string): Promise<void> {
     result => result.data?.inspection?.installed === true,
     `${agent} canary should be installed`,
   )
-  assertResult(
-    afterInstall,
-    result => result.data?.inspection?.lifecycle === 'managed',
-    `${agent} canary should be managed`,
-  )
+  // Script- and binary-provider agents are unmanaged by construction, so the
+  // expected classification comes from the provider the matrix selected.
+  const expectedLifecycle = resolveExpectedCanaryLifecycle()
+  if (expectedLifecycle) {
+    assertResult(
+      afterInstall,
+      result => result.data?.inspection?.lifecycle === expectedLifecycle,
+      `${agent} canary should be ${expectedLifecycle}`,
+    )
+  }
 
   const installedVersion = afterInstall.data?.inspection?.installedVersion
   if (requireVersion && (!installedVersion || typeof installedVersion !== 'string')) {

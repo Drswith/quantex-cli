@@ -11,6 +11,7 @@ import {
   spawnCommand,
 } from './child-process'
 import { compareVersions } from './compare-versions'
+import { resolveAgentExecutablePath } from './executable-resolution'
 import { fetchJsonWithCache } from './network'
 import { buildRegistryPackageVersionUrl, OFFICIAL_NPM_REGISTRY, normalizeRegistryUrl } from './registry'
 
@@ -33,12 +34,45 @@ export function isVersionNewer(candidate: string, current: string): boolean {
   return compareVersions(candidate, current) === 1
 }
 
+/**
+ * Substitutes an already-resolved absolute path for the probe's leading argument
+ * so an agent that lives outside the inherited PATH can still be version-probed.
+ * A catalog command that leads with something other than the agent executable is
+ * a deliberate choice and is invoked unchanged.
+ *
+ * The path is supplied by the caller rather than resolved here: the observation
+ * surfaces already resolve it, and resolving again would add a `which` spawn per
+ * agent to every `list`.
+ */
+function resolveProbeCommand(
+  binaryName: string,
+  versionProbe: AgentVersionProbe | undefined,
+  executablePath: string | undefined,
+): string[] {
+  const command = versionProbe?.command ?? [binaryName, '--version']
+  if (!executablePath || command[0] !== binaryName) return [...command]
+  return [executablePath, ...command.slice(1)]
+}
+
+// Kept at its exact v1 signature: the packaged root declaration is a byte-pinned
+// compatibility contract, so the resolved-path argument lives on
+// `probeInstalledVersion` instead of widening this export. Line comments, not JSDoc,
+// for the same reason.
 export async function getInstalledVersion(
   binaryName: string,
   versionProbe?: AgentVersionProbe,
   context?: ProviderOperationContext,
 ): Promise<string | undefined> {
-  const command = versionProbe?.command ?? [binaryName, '--version']
+  return probeInstalledVersion(binaryName, versionProbe, context)
+}
+
+export async function probeInstalledVersion(
+  binaryName: string,
+  versionProbe?: AgentVersionProbe,
+  context?: ProviderOperationContext,
+  executablePath?: string,
+): Promise<string | undefined> {
+  const command = resolveProbeCommand(binaryName, versionProbe, executablePath)
 
   try {
     const proc = spawnCommand(command, { detached: context !== undefined && process.platform !== 'win32' })
@@ -90,25 +124,14 @@ export async function getLatestVersionWithCacheMode(
   }
 }
 
+// Kept for the v1 compatibility export surface; resolution is PATH-first with a
+// known-install-directory fallback. Line comments, not JSDoc: the packaged root
+// declaration is a byte-pinned contract.
 export async function getBinaryPath(
   binaryName: string,
   context?: ProviderOperationContext,
 ): Promise<string | undefined> {
-  try {
-    const cmd = process.platform === 'win32' ? 'where' : 'which'
-    const proc = spawnCommand([cmd, binaryName], {
-      detached: context !== undefined && process.platform !== 'win32',
-    })
-    const { exitCode, stdout } = context
-      ? await readProcessOutputWithContext(proc, context)
-      : await readProcessOutput(proc)
-    if (exitCode !== 0) return undefined
-    const text = stdout
-    return text.trim().split('\n')[0]
-  } catch (error) {
-    if (isProcessInterruptionError(error)) throw error
-    return undefined
-  }
+  return resolveAgentExecutablePath(binaryName, context)
 }
 
 export async function getResolvedBinaryPath(

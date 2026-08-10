@@ -37,7 +37,7 @@ describe('createProductionLifecycleExecutionService', () => {
       route: 'install',
     })
     expect(dependencies.createProcessPort().run).toHaveBeenCalledWith(
-      expect.objectContaining({ argv: ['test-bin', '--help'] }),
+      expect.objectContaining({ argv: ['/path/test-bin', '--help'] }),
     )
     service.dispose()
   })

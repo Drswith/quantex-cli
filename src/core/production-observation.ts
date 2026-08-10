@@ -5,13 +5,15 @@ import type { ProviderRegistry } from '../providers/registry'
 import type { ProviderOperationContext } from '../providers/types'
 import type { VersionedQuantexState } from '../state/schema'
 import type { CoreInvocationContext } from './invocation'
-import { readFile, realpath } from 'node:fs/promises'
+import { constants } from 'node:fs'
+import { access, readFile, realpath } from 'node:fs/promises'
 import { homedir } from 'node:os'
 import { isAbsolute, join, resolve } from 'node:path'
 import process from 'node:process'
 import { observeAgentLifecycle } from '../lifecycle/agent-observation'
 import { resolveInstallMethodProviderBinding } from '../lifecycle/provider-binding'
 import { createEmptyStateDocument, parseStateDocument, StateSchemaError } from '../state/schema'
+import { getExecutableCandidateNames, getKnownAgentInstallDirectories } from '../utils/executable-search-paths'
 import { getCoreAgentByNameOrAlias, getCoreAgents } from './agent-catalog'
 import { createCoreProviderObservationRegistry } from './provider-observation-registry'
 import { CoreProcessInterruptionError, runReadOnlyCommand } from './read-only-process'
@@ -145,12 +147,33 @@ async function inspectExecutable(
 async function findExecutable(binaryName: string, context: ProviderOperationContext): Promise<string | undefined> {
   try {
     const result = await runReadOnlyCommand([process.platform === 'win32' ? 'where' : 'which', binaryName], context)
-    if (result.exitCode !== 0) return undefined
-    return result.stdout.trim().split(/\r?\n/u)[0] || undefined
+    if (result.exitCode === 0) {
+      const fromPath = result.stdout.trim().split(/\r?\n/u)[0]
+      if (fromPath) return fromPath
+    }
   } catch (error) {
     if (error instanceof CoreProcessInterruptionError) throw error
-    return undefined
   }
+  // An installer that writes into a directory it also appends to a shell profile
+  // is invisible to the PATH of this already-running process.
+  return findInKnownInstallDirectories(binaryName)
+}
+
+async function findInKnownInstallDirectories(binaryName: string): Promise<string | undefined> {
+  const inputs = { env: process.env, homeDir: homedir(), platform: process.platform }
+  const candidates = getExecutableCandidateNames(binaryName, inputs)
+  for (const directory of getKnownAgentInstallDirectories(inputs)) {
+    for (const candidate of candidates) {
+      const path = join(directory, candidate)
+      try {
+        await access(path, constants.X_OK)
+        return path
+      } catch {
+        // Continue through the remaining known directories.
+      }
+    }
+  }
+  return undefined
 }
 
 async function inspectVersion(

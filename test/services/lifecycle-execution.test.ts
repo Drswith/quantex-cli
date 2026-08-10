@@ -25,11 +25,34 @@ describe('executeAgentLifecycle', () => {
       kind: 'exited',
     })
     expect(ports.process.run).toHaveBeenCalledWith({
-      argv: ['test-bin', '--help'],
+      argv: ['/tmp/test-bin', '--help'],
       signal: controller.signal,
       stdio: ['inherit', 'inherit', 'inherit'],
       timeoutMs: 5_000,
     })
+  })
+
+  it('falls back to the executable name when the observation carries no resolved path', async () => {
+    const withoutPath = observed(true)
+    const ports = fakePorts({
+      observations: [{ ...withoutPath, executable: { present: true, version: '1.0.0' } }],
+      processResult: success({ exitCode: 0 }),
+    })
+
+    await executeAgentLifecycle(request({ args: ['--help'] }), ports)
+
+    expect(ports.process.run).toHaveBeenCalledWith(expect.objectContaining({ argv: ['test-bin', '--help'] }))
+  })
+
+  it('launches the path resolved by the post-install refresh', async () => {
+    const ports = fakePorts({
+      observations: [observed(false), observed(true)],
+      processResult: success({ exitCode: 0 }),
+    })
+
+    await executeAgentLifecycle(request({ args: ['--help'], installPolicy: 'always' }), ports)
+
+    expect(ports.process.run).toHaveBeenCalledWith(expect.objectContaining({ argv: ['/tmp/test-bin', '--help'] }))
   })
 
   it('reserves stdout for structured output', async () => {

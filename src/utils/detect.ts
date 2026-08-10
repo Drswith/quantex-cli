@@ -7,6 +7,7 @@ import {
   readProcessOutputWithContext,
   spawnCommand,
 } from './child-process'
+import { isAgentExecutableAvailable } from './executable-resolution'
 
 export function getPlatform(): Platform {
   switch (process.platform) {
@@ -93,16 +94,10 @@ async function isPythonModulePipAvailable(context?: ProviderOperationContext): P
   }
 }
 
+// Kept for the v1 compatibility export surface. Resolution is PATH-first and then
+// falls back to the known agent install directories, so this can report an
+// executable that the inherited PATH does not reach; see `resolveAgentExecutablePath`.
+// Line comments, not JSDoc: the packaged root declaration is a byte-pinned contract.
 export async function isBinaryInPath(binaryName: string, context?: ProviderOperationContext): Promise<boolean> {
-  try {
-    const cmd = process.platform === 'win32' ? 'where' : 'which'
-    const proc = spawnCommand([cmd, binaryName], {
-      detached: context !== undefined && process.platform !== 'win32',
-    })
-    const { exitCode } = context ? await readProcessOutputWithContext(proc, context) : await readProcessOutput(proc)
-    return exitCode === 0
-  } catch (error) {
-    if (isProcessInterruptionError(error)) throw error
-    return false
-  }
+  return isAgentExecutableAvailable(binaryName, context)
 }

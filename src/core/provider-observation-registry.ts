@@ -11,6 +11,7 @@ import { access, readFile } from 'node:fs/promises'
 import { homedir } from 'node:os'
 import { join } from 'node:path'
 import process from 'node:process'
+import { getExecutableCandidateNames, getKnownAgentInstallDirectories } from '../utils/executable-search-paths'
 import { CoreProcessInterruptionError, runReadOnlyCommand } from './read-only-process'
 
 type PackagePresence = 'absent' | 'present' | 'unknown'
@@ -144,13 +145,40 @@ function createExecutableAdapter<Id extends 'binary' | 'script'>(
           retryable: true,
         }
       }
+      // An installer that writes into a directory it also appends to a shell
+      // profile is invisible to the PATH of this already-running process, so an
+      // unresolved lookup falls back to the shared known-directory rule.
+      const present = result.exitCode === 0 || (await existsInKnownInstallDirectory(binaryName, dependencies))
       return success({
         evidence: [{ kind: 'executable', value: binaryName }],
-        kind: result.exitCode === 0 ? ('present' as const) : ('absent' as const),
+        kind: present ? ('present' as const) : ('absent' as const),
         target: request.target,
       })
     },
   }
+}
+
+async function existsInKnownInstallDirectory(
+  binaryName: string,
+  dependencies: CoreProviderObservationDependencies,
+): Promise<boolean> {
+  const inputs = {
+    env: dependencies.env,
+    homeDir: dependencies.homeDir(),
+    platform: dependencies.platform,
+  }
+  const candidates = getExecutableCandidateNames(binaryName, inputs)
+  for (const directory of getKnownAgentInstallDirectories(inputs)) {
+    for (const candidate of candidates) {
+      try {
+        await dependencies.access(join(directory, candidate))
+        return true
+      } catch {
+        // Continue through the remaining known directories.
+      }
+    }
+  }
+  return false
 }
 
 async function observeAvailability(

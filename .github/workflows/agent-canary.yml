@@ -77,6 +77,7 @@ jobs:
       QTX_ISOLATION_AGENTS: ${{ matrix.agent }}
       QTX_ISOLATION_SCENARIOS: probe
       QTX_CANARY_REQUIRE_VERSION: ${{ matrix.requireVersion }}
+      QTX_CANARY_PROVIDER: ${{ matrix.provider }}
       QTX_ISOLATION_COMMAND_TIMEOUT_MS: 600000
     steps:
       - uses: actions/checkout@v7
