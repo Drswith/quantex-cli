@@ -506,7 +506,7 @@ describe('updateCommand', () => {
         expect(result.ok).toBe(true)
         expect(result.data?.results).toEqual([
           expect.objectContaining({
-            message: expect.stringContaining('detected in PATH but not tracked'),
+            message: expect.stringContaining('detected on disk but not tracked'),
             name: 'alpha',
             status: 'manual-required',
           }),
@@ -518,7 +518,7 @@ describe('updateCommand', () => {
         } else {
           const output = logSpy.mock.calls.map((call: unknown[]) => String(call[0])).join('\n')
           expect(output).toContain('manual-required')
-          expect(output).toContain('detected in PATH but not tracked')
+          expect(output).toContain('detected on disk but not tracked')
         }
       } finally {
         batchSpy.mockRestore()
@@ -536,7 +536,7 @@ describe('updateCommand', () => {
     expect(result.ok).toBe(true)
     expect(result.data?.results).toEqual([
       expect.objectContaining({
-        message: expect.stringContaining('detected in PATH but not tracked'),
+        message: expect.stringContaining('detected on disk but not tracked'),
         name: 'alpha',
         status: 'manual-required',
       }),

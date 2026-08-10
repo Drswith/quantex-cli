@@ -74,7 +74,9 @@ export function formatInstallMethodLabel(
 export function formatInstalledSource(
   state?: Pick<InstalledAgentState, 'installType' | 'packageName' | 'packageTargetKind'>,
 ): string {
-  if (!state) return 'detected in PATH'
+  // Names no resolution mechanism on purpose: executables resolve through PATH
+  // or through a known install directory, and this branch cannot tell which.
+  if (!state) return 'detected on disk'
 
   if (isManagedInstallType(state.installType))
     return `managed via ${state.installType}${formatPackageTarget(state.packageName, state.packageTargetKind)}`

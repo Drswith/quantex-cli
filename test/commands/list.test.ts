@@ -71,7 +71,7 @@ describe('listCommand', () => {
         latestVersion: '4.0.0',
         lifecycle: 'unmanaged',
         name: 'second-agent',
-        sourceLabel: 'detected in PATH',
+        sourceLabel: 'detected on disk',
         updateLabel: 'manual update',
       },
     ])
@@ -98,13 +98,13 @@ describe('listCommand', () => {
     expect(output).toContain('Available')
     expect(output).toContain('unknown')
     expect(output).toContain('bun')
-    expect(output).toContain('PATH')
+    expect(output).toContain('detected')
     expect(output).toContain('managed')
     expect(output).toContain('command')
     expect(output).toContain('2 installed · 1 not installed')
     expect(output).toContain('Details: qtx inspect <agent>')
     expect(output).not.toContain('managed via bun (test-pkg)')
-    expect(output).not.toContain('detected in PATH')
+    expect(output).not.toContain('detected on disk')
   })
 
   it('shows a version as available only when it is semantically newer', async () => {
@@ -167,9 +167,9 @@ describe('listCommand', () => {
     expect(output).toContain('npm')
     expect(output).toContain('script')
     expect(output).toContain('binary')
-    expect(output).toContain('PATH')
+    expect(output).toContain('detected')
     expect(output).not.toContain('managed via bun (test-pkg)')
-    expect(output).not.toContain('detected in PATH')
+    expect(output).not.toContain('detected on disk')
   })
 
   it('drops optional columns before terminal wrapping in a narrow terminal', async () => {

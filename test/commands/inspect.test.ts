@@ -125,7 +125,7 @@ describe('inspectCommand', () => {
       installedVersion: '1.2.3',
       latestVersion: '2.0.0',
       lifecycle: 'unmanaged',
-      sourceLabel: 'detected in PATH',
+      sourceLabel: 'detected on disk',
       updateLabel: 'command update',
     })
     expect(result.data?.capabilities).toEqual({

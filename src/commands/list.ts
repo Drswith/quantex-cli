@@ -119,7 +119,7 @@ function formatListSource(label: string): string {
 
   if (label === 'script installer') return 'script'
   if (label === 'binary installer') return 'binary'
-  if (label === 'detected in PATH') return 'PATH'
+  if (label === 'detected on disk') return 'detected'
 
   return '—'
 }

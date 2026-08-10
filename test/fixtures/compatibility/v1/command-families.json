@@ -176,8 +176,8 @@
       },
       "goldens": {
         "human": "2716b10a673a74da4c79343dc2f5cff312747cca84f901c5226ea04d435db0f8",
-        "json": "9c6b17a1114796536f084106ca7f7bca3e9495f66e2e087a8cf4f642af3fb64b",
-        "ndjson": "ed7d1beae589fa715e3581b29fd4191bcf33ae20cf8a5688f6b4d34fb9e17f93"
+        "json": "5189893357057be8434f1af18788069c68eb90f17792594f842d07a778546216",
+        "ndjson": "976b015d02268b08d97b21d52d54109a48fe866fb306776cc1799f3fa0d8c2c0"
       }
     },
     {
@@ -290,7 +290,7 @@
         "ls"
       ],
       "canonicalName": "list",
-      "golden": "9c6b17a1114796536f084106ca7f7bca3e9495f66e2e087a8cf4f642af3fb64b"
+      "golden": "5189893357057be8434f1af18788069c68eb90f17792594f842d07a778546216"
     },
     {
       "args": [

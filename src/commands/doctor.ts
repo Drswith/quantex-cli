@@ -201,7 +201,7 @@ export async function doctorCommand(): Promise<CommandResult<DoctorData>> {
         category: 'agent',
         code: 'AGENT_UNTRACKED_IN_PATH',
         docsRef: troubleshootingDocsRef,
-        message: `${inspection.agent.displayName} is available in PATH but not tracked as a managed Quantex install. Use \`quantex inspect ${inspection.agent.name} --json\` to confirm the source, then reinstall through Quantex if you want managed lifecycle operations.`,
+        message: `${inspection.agent.displayName} is detected on disk but not tracked as a managed Quantex install. Use \`quantex inspect ${inspection.agent.name} --json\` to confirm the source, then reinstall through Quantex if you want managed lifecycle operations.`,
         severity: 'warning',
         subject: { kind: 'agent', name: inspection.agent.name },
         suggestedAction: 'inspect-agent-install-source',

@@ -359,7 +359,7 @@ describe('doctorCommand', () => {
     expect(normalizedOutput).toContain('Reinstall via bun, npm, or the standalone binary')
   })
 
-  it('warns when an agent is only detected in PATH and not managed by Quantex', async () => {
+  it('warns when an agent is only detected on disk and not managed by Quantex', async () => {
     setProviderAvailability({ bun: true, npm: true })
     allAgentsSpy.mockReturnValue([testAgent])
     binaryInPathSpy.mockResolvedValue(true)
@@ -371,7 +371,7 @@ describe('doctorCommand', () => {
 
     const output = logSpy.mock.calls.map((c: any[]) => c[0]).join('\n')
     const normalizedOutput = output.replace(/\s+/gu, ' ')
-    expect(normalizedOutput).toContain('available in PATH but not tracked as a managed Quantex install')
+    expect(normalizedOutput).toContain('detected on disk but not tracked as a managed Quantex install')
     expect(normalizedOutput).toContain('quantex inspect test-agent --json')
   })
 

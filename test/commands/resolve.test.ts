@@ -97,7 +97,7 @@ describe('resolveCommand', () => {
       installSource: 'detected-in-path',
       installedVersion: '1.2.3',
       lifecycle: 'unmanaged',
-      sourceLabel: 'detected in PATH',
+      sourceLabel: 'detected on disk',
       suggestedLaunchCommand: ['/usr/bin/test-bin'],
     })
   })
