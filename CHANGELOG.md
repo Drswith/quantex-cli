@@ -1,6 +1,13 @@
 # Changelog
 
 
+## [1.8.12](https://github.com/Drswith/quantex-cli/compare/v1.8.11...v1.8.12) (2026-08-10)
+
+
+### Bug Fixes
+
+* tell you why an install failed instead of only that it failed ([960c085](https://github.com/Drswith/quantex-cli/commit/960c085c4c9909c10e6abacdd7305af416cc549a))
+
 ## [1.8.11](https://github.com/Drswith/quantex-cli/compare/v1.8.10...v1.8.11) (2026-08-10)
 
 
