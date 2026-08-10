@@ -11,6 +11,7 @@ import type {
 import type { CoreInvocationOutcome } from '../core/invocation'
 import type { CoreAgentObservation } from '../core/production-observation'
 import type { CommandError, CommandResult } from '../output/types'
+import type { MutationFailureDiagnostics } from './installation-failure-diagnostics'
 import type { InstallationOperation } from './installation-routing'
 import process from 'node:process'
 import { getCliContext, registerCliCancellationHandler } from '../cli-context'
@@ -24,6 +25,12 @@ import { StateSchemaError } from '../state/schema'
 import { getAdoptableExistingInstallMethod } from '../utils/install'
 import { createResourceLockedError, createStateReadError } from '../utils/lifecycle-errors'
 import { isResourceLockError, type ResourceLockError } from '../utils/lock'
+import {
+  appendFailureReason,
+  buildInstallationFailureDetails,
+  isProviderUnavailableReason,
+  PROVIDER_UNAVAILABLE_LIFECYCLE,
+} from './installation-failure-diagnostics'
 
 export interface CoreInstallationCommandData {
   agent: {
@@ -230,18 +237,41 @@ function projectMutationFailure(
 
   const agent = resolveAgent(input)
   const effectiveCode = failure.code === 'compensation-failed' ? (failure.originCode ?? failure.code) : failure.code
+  const displayName = agent?.displayName ?? input
+  const diagnostics: MutationFailureDiagnostics = {
+    reason: failure.reason,
+    ...(failure.remediation ? { remediation: failure.remediation } : {}),
+  }
   const error: CommandError =
     effectiveCode === 'recording-failed'
       ? {
           code: 'INSTALL_FAILED',
-          details: { lifecycle: 'state-write-failed' },
-          message: `Failed to record verified state for ${agent?.displayName ?? input}.`,
+          details: buildInstallationFailureDetails(diagnostics, 'state-write-failed')!,
+          message: `Failed to record verified state for ${displayName}.`,
         }
-      : effectiveCode === 'decision-conflict' ||
-          effectiveCode === 'decision-indeterminate' ||
-          effectiveCode === 'verification-failed'
-        ? verificationError(operation, agent ?? fallbackAgent(input))
-        : { code: 'INSTALL_FAILED', message: `Failed to install ${agent?.displayName ?? input}.` }
+      : effectiveCode === 'verification-failed'
+        ? verificationError(operation, agent ?? fallbackAgent(input), diagnostics)
+        : // A decide-phase outcome ran no install and no verification, so it must not
+          // claim the agent could not be verified after installation. Conflict and
+          // indeterminate share one lifecycle value because the legacy engine cannot
+          // tell them apart, and the differential gate requires the engines to agree.
+          effectiveCode === 'decision-conflict' || effectiveCode === 'decision-indeterminate'
+          ? {
+              code: 'INSTALL_FAILED',
+              details: buildInstallationFailureDetails(diagnostics, 'decision-indeterminate')!,
+              message: appendFailureReason(
+                `Quantex could not determine the installed state of ${displayName}.`,
+                failure.reason,
+              ),
+            }
+          : {
+              code: 'INSTALL_FAILED',
+              details: buildInstallationFailureDetails(
+                diagnostics,
+                isProviderUnavailableReason(failure.reason) ? PROVIDER_UNAVAILABLE_LIFECYCLE : undefined,
+              )!,
+              message: appendFailureReason(`Failed to install ${displayName}.`, failure.reason),
+            }
 
   return createErrorResult({
     action: operation,
@@ -431,10 +461,11 @@ function fallbackAgent(input: string): Pick<AgentDefinition, 'displayName' | 'na
 function verificationError(
   operation: InstallationOperation,
   agent: Pick<AgentDefinition, 'displayName'>,
+  diagnostics: MutationFailureDiagnostics = {},
 ): CommandError {
   return {
     code: 'INSTALL_FAILED',
-    details: { lifecycle: 'verification-failed' },
+    details: buildInstallationFailureDetails(diagnostics, 'verification-failed')!,
     message:
       operation === 'ensure'
         ? `${agent.displayName} could not be verified after ensure completed.`

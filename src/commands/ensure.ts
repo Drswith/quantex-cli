@@ -16,6 +16,13 @@ import { getAdoptableExistingInstallMethod } from '../utils/install'
 import { createResourceLockedError } from '../utils/lifecycle-errors'
 import { isResourceLockError } from '../utils/lock'
 import { isDryRunEnabled, printError, printInfo, printWarn } from '../utils/user-output'
+import {
+  appendFailureReason,
+  buildInstallationFailureDetails,
+  isProviderUnavailableReason,
+  type MutationFailureDiagnostics,
+  PROVIDER_UNAVAILABLE_LIFECYCLE,
+} from './installation-failure-diagnostics'
 import { reportInstallationEngineRoute, selectInstallationEngineRoute } from './installation-routing'
 import { resolveUnmanagedExternalAgent } from './unmanaged-install-compatibility'
 
@@ -245,22 +252,44 @@ function mapEnsureOutcome(
     })
   }
 
+  const diagnostics: MutationFailureDiagnostics =
+    'reason' in outcome && outcome.reason ? { reason: outcome.reason } : {}
+  // The legacy engine reports both a blocked plan and an inconclusive post-ensure
+  // verification as `indeterminate`. Only the latter followed a real mutation, and
+  // the reason suffix is the existing signal for it.
+  const verifiedAfterEnsure = 'reason' in outcome && Boolean(outcome.reason?.endsWith('-after-ensure'))
   const error: CommandError =
     outcome.kind === 'cancelled'
       ? { code: 'CANCELLED', message: 'Ensure was cancelled before tracking could complete.' }
       : outcome.kind === 'failed' && outcome.reason === 'receipt-write-failed'
         ? {
             code: 'INSTALL_FAILED',
-            details: { lifecycle: 'state-write-failed' },
+            details: buildInstallationFailureDetails(diagnostics, 'state-write-failed')!,
             message: `Failed to record verified state for ${agent.displayName}.`,
           }
-        : (outcome.kind === 'failed' && outcome.reason.endsWith('-after-ensure')) || outcome.kind === 'indeterminate'
+        : verifiedAfterEnsure && (outcome.kind === 'failed' || outcome.kind === 'indeterminate')
           ? {
               code: 'INSTALL_FAILED',
-              details: { lifecycle: 'verification-failed' },
+              details: buildInstallationFailureDetails(diagnostics, 'verification-failed')!,
               message: `${agent.displayName} could not be verified after ensure completed.`,
             }
-          : { code: 'INSTALL_FAILED', message: `Failed to install ${agent.displayName}.` }
+          : outcome.kind === 'indeterminate'
+            ? {
+                code: 'INSTALL_FAILED',
+                details: buildInstallationFailureDetails(diagnostics, 'decision-indeterminate')!,
+                message: appendFailureReason(
+                  `Quantex could not determine the installed state of ${agent.displayName}.`,
+                  diagnostics.reason,
+                ),
+              }
+            : {
+                code: 'INSTALL_FAILED',
+                details: buildInstallationFailureDetails(
+                  diagnostics,
+                  isProviderUnavailableReason(diagnostics.reason) ? PROVIDER_UNAVAILABLE_LIFECYCLE : undefined,
+                )!,
+                message: appendFailureReason(`Failed to install ${agent.displayName}.`, diagnostics.reason),
+              }
 
   return createErrorResult({
     action: 'ensure',

@@ -209,7 +209,90 @@ describe('Core installation v1 projector', () => {
       details: { lifecycle: 'state-write-failed' },
     })
     expect(providerTimeout.error).toMatchObject({ code: 'INSTALL_FAILED' })
-    expect(recipeUnavailable.error).toEqual({ code: 'INSTALL_FAILED', message: 'Failed to install fixture-agent.' })
+    expect(recipeUnavailable.error).toEqual({
+      code: 'INSTALL_FAILED',
+      details: { reason: 'no available recipe' },
+      message: 'Failed to install fixture-agent: no available recipe',
+    })
+  })
+
+  it('marks an all-providers-unavailable failure so consumers need not match prose', () => {
+    const result = projectCoreInstallationOutcome(
+      'install',
+      agent.name,
+      domainFailure({
+        code: 'recipe-unavailable',
+        phase: 'decide',
+        reason: 'No installation provider is currently available: deno: deno executable is unavailable',
+        retryable: true,
+        sideEffect: 'none',
+      }),
+    )
+
+    expect(result.error).toEqual({
+      code: 'INSTALL_FAILED',
+      details: {
+        lifecycle: 'provider-unavailable',
+        reason: 'No installation provider is currently available: deno: deno executable is unavailable',
+      },
+      message:
+        'Failed to install fixture-agent: No installation provider is currently available: deno: deno executable is unavailable',
+    })
+  })
+
+  it('does not report a decide-phase outcome as a post-install verification failure', () => {
+    const indeterminate = projectCoreInstallationOutcome(
+      'install',
+      agent.name,
+      domainFailure({
+        code: 'decision-indeterminate',
+        phase: 'decide',
+        reason: 'Live evidence is inconclusive.',
+        retryable: false,
+        sideEffect: 'none',
+      }),
+    )
+
+    expect(indeterminate.error?.details).toMatchObject({ lifecycle: 'decision-indeterminate' })
+    expect(indeterminate.error?.message).not.toContain('could not be verified')
+  })
+
+  it('keeps a genuine post-mutation verification failure unchanged', () => {
+    const verification = projectCoreInstallationOutcome(
+      'install',
+      agent.name,
+      domainFailure({
+        code: 'verification-failed',
+        phase: 'verify',
+        reason: 'Fresh post-mutation observation did not confirm the selected provider source.',
+        retryable: false,
+        sideEffect: 'compensated',
+      }),
+    )
+
+    expect(verification.error?.code).toBe('INSTALL_FAILED')
+    expect(verification.error?.details).toMatchObject({ lifecycle: 'verification-failed' })
+    expect(verification.error?.message).toBe('fixture-agent could not be verified after installation.')
+  })
+
+  it('carries provider remediation to the caller', () => {
+    const withRemediation = projectCoreInstallationOutcome(
+      'install',
+      agent.name,
+      domainFailure({
+        code: 'execution-failed',
+        phase: 'execute',
+        reason: 'install effect failed with exit code 1',
+        remediation: 'Re-run with a reachable registry.',
+        retryable: false,
+        sideEffect: 'may-remain',
+      }),
+    )
+
+    expect(withRemediation.error?.details).toMatchObject({
+      reason: 'install effect failed with exit code 1',
+      remediation: 'Re-run with a reachable registry.',
+    })
   })
 })
 
