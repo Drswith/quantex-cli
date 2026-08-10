@@ -1,6 +1,14 @@
 # Changelog
 
 
+## [1.8.11](https://github.com/Drswith/quantex-cli/compare/v1.8.10...v1.8.11) (2026-08-10)
+
+
+### Bug Fixes
+
+* find agents installed to standard locations that are not yet on your PATH ([fbe17d4](https://github.com/Drswith/quantex-cli/commit/fbe17d42234700393d7302fe693aaecdb616aa94))
+* **output:** report untracked agents as detected on disk instead of detected in PATH ([19d0b07](https://github.com/Drswith/quantex-cli/commit/19d0b0785ed6de9af98190411f162d9b41a21da5))
+
 ## [1.8.10](https://github.com/Drswith/quantex-cli/compare/v1.8.9...v1.8.10) (2026-08-07)
 
 
