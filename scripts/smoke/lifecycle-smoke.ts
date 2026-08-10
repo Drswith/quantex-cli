@@ -3,6 +3,7 @@ import { access, chmod, cp, mkdir, mkdtemp, readFile, readdir, rm, writeFile } f
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import process from 'node:process'
+import { PROVIDER_UNAVAILABLE_LIFECYCLE } from '../../src/commands/installation-failure-diagnostics'
 import { loadConfig } from '../../src/config'
 import { getInstallLifecycle } from '../../src/package-manager/capabilities'
 import { resolveManagedSelfUpdateRegistry } from '../../src/self'
@@ -23,7 +24,7 @@ interface CommandOutput {
 interface JsonResult {
   action?: string
   data?: any
-  error?: { code?: string; message?: string } | null
+  error?: { code?: string; details?: Record<string, unknown>; message?: string } | null
   ok?: boolean
   warnings?: Array<{ code?: string; message?: string }>
 }
@@ -52,6 +53,13 @@ console.log(`Lifecycle smoke scenarios: ${scenarios.join(', ')}`)
 await runJson('config set defaultPackageManager bun', [...cli, 'config', 'set', 'defaultPackageManager', 'bun'])
 
 const installedAgents: string[] = []
+/** Entries the runner could not exercise, kept distinct from entries that passed. */
+const skippedAgents: Array<{ agent: string; reason: string }> = []
+
+function recordCanarySkip(agent: string, reason: string): void {
+  skippedAgents.push({ agent, reason })
+  console.log(`[${agent}] canary SKIPPED: ${reason}`)
+}
 
 try {
   if (scenarios.includes('managed')) {
@@ -95,7 +103,18 @@ try {
     })
 }
 
-console.log('Lifecycle smoke completed successfully.')
+// Report skips by name so a run that quietly degrades into all-skips is visible
+// rather than reading as a clean pass.
+if (skippedAgents.length > 0) {
+  console.log(`Lifecycle smoke skipped ${skippedAgents.length} agent(s):`)
+  for (const { agent, reason } of skippedAgents) console.log(`  - ${agent}: ${reason}`)
+}
+
+console.log(
+  skippedAgents.length > 0
+    ? `Lifecycle smoke completed with ${skippedAgents.length} skipped agent(s).`
+    : 'Lifecycle smoke completed successfully.',
+)
 
 async function smokeManagedAgentLifecycle(agent: string): Promise<void> {
   console.log(`\n[${agent}] inspect before install`)
@@ -201,7 +220,20 @@ async function smokeAgentVersionProbe(agent: string): Promise<void> {
   )
 
   console.log(`[${agent}] canary install`)
-  const install = await runJson(`probe install ${agent}`, [...cli, 'install', agent])
+  // The canary reports on Quantex and on upstream installers. Which toolchains a
+  // runner image happens to ship is neither, so an entry with no available
+  // provider is skipped instead of failing the job. The marker is typed; do not
+  // re-match the human message here.
+  const install = await runJson(`probe install ${agent}`, [...cli, 'install', agent], { allowFailure: true })
+  if (install.ok !== true) {
+    if (install.error?.details?.lifecycle === PROVIDER_UNAVAILABLE_LIFECYCLE) {
+      recordCanarySkip(agent, String(install.error.details.reason ?? install.error.message ?? 'no provider available'))
+      return
+    }
+    throw new Error(
+      `probe install ${agent} returned ok=false: ${install.error?.code ?? 'UNKNOWN'} ${install.error?.message ?? ''}`,
+    )
+  }
   assertResult(install, result => result.data?.installed === true, `${agent} canary install should succeed`)
 
   console.log(`[${agent}] canary inspect after install`)

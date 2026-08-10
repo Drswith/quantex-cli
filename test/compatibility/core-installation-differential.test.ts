@@ -397,6 +397,8 @@ describe.each(['install', 'ensure'] as const)('legacy/Core %s differential gate'
     expect(core.cli).toEqual(legacy.cli)
 
     expect(legacy.incomparableFields).toEqual([
+      'error.details.reason (free-form engine-specific diagnostic)',
+      'error.details.remediation (free-form engine-specific diagnostic)',
       'receipt.verifiedAt (engine-local clock)',
       'recordWrites (implementation-only; semantic state delta compared)',
       'typedOutcome.phase (not reported by v1)',
@@ -1021,8 +1023,8 @@ function normalizeCliResult(result: CommandResult<unknown>): NormalizedCliProjec
     error: result.error
       ? {
           code: result.error.code,
-          ...(result.error.details === undefined ? {} : { details: clone(result.error.details) }),
-          message: result.error.message,
+          ...(result.error.details === undefined ? {} : { details: withoutDiagnosticReason(result.error.details) }),
+          message: stripDiagnosticReason(result.error.message),
         }
       : null,
     exitCode: getExitCodeForResult(result),
@@ -1038,8 +1040,27 @@ function normalizeCliResult(result: CommandResult<unknown>): NormalizedCliProjec
   }
 }
 
+/**
+ * The diagnostic reason is free-form provider evidence, and the two engines
+ * describe the same failure in their own vocabularies — v1 emits reason codes
+ * like `provider-binding-unresolved-after-install`, Core emits prose. It is
+ * explicitly not a stable contract and nothing may branch on it, so the gate
+ * compares everything around it instead of forcing the two texts to converge.
+ */
+function withoutDiagnosticReason(details: Record<string, unknown>): Record<string, unknown> {
+  const { reason: _reason, remediation: _remediation, ...rest } = clone(details)
+  return rest
+}
+
+function stripDiagnosticReason(message: string): string {
+  const [head] = message.split(': ')
+  return head === undefined || head === message ? message : `${head}.`
+}
+
 function incomparableV1Fields(): readonly string[] {
   return [
+    'error.details.reason (free-form engine-specific diagnostic)',
+    'error.details.remediation (free-form engine-specific diagnostic)',
     'receipt.verifiedAt (engine-local clock)',
     'recordWrites (implementation-only; semantic state delta compared)',
     'typedOutcome.phase (not reported by v1)',
