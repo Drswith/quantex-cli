@@ -10,15 +10,20 @@ import { gzipSync } from 'node:zlib'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { getWindowsStandaloneBinaryPeerPath, upgradeStandaloneBinary } from '../src/self/binary'
 
+const spawnMock = vi.hoisted(() => vi.fn())
 const originalFetch = globalThis.fetch
 const originalPlatform = process.platform
 const originalArch = process.arch
-const originalSpawn = Bun.spawn
 const encoder = new TextEncoder()
+
+vi.mock('cross-spawn', async () => {
+  const { createCrossSpawnMock } = await import('./helpers/cross-spawn-mock')
+  return { default: createCrossSpawnMock(spawnMock) }
+})
 
 afterEach(() => {
   globalThis.fetch = originalFetch
-  Bun.spawn = originalSpawn
+  spawnMock.mockReset()
   Object.defineProperty(process, 'platform', { value: originalPlatform })
   Object.defineProperty(process, 'arch', { value: originalArch })
   vi.restoreAllMocks()
@@ -34,13 +39,12 @@ describe('upgradeStandaloneBinary', () => {
   it('schedules delayed replacement on Windows', async () => {
     const tempRoot = await mkdtemp(join(tmpdir(), 'quantex-binary-win-'))
     const executablePath = join(tempRoot, 'qtx.exe')
-    const mockSpawn = vi.fn().mockReturnValue({
+    spawnMock.mockReturnValue({
       exitCode: 0,
       exited: Promise.resolve(0),
       unref: vi.fn(),
     })
 
-    Bun.spawn = mockSpawn as typeof Bun.spawn
     Object.defineProperty(process, 'platform', { value: 'win32' })
 
     await writeFile(executablePath, 'old-binary', 'utf8')
@@ -54,7 +58,7 @@ describe('upgradeStandaloneBinary', () => {
         success: true,
       })
 
-      const [command, options] = mockSpawn.mock.calls[0] as [string[], Record<string, unknown>]
+      const [command, options] = spawnMock.mock.calls[0] as [string[], Record<string, unknown>]
       expect(command[0]).toBe('powershell.exe')
       expect(command).toContain('-Command')
       expect(command[command.length - 1]).toContain('Move-Item -LiteralPath')
@@ -76,13 +80,12 @@ describe('upgradeStandaloneBinary', () => {
     const tempRoot = await mkdtemp(join(tmpdir(), 'quantex-binary-win-escape-'))
     const escapedDirectory = join(tempRoot, "release's bin")
     const executablePath = join(escapedDirectory, 'qtx.exe')
-    const mockSpawn = vi.fn().mockReturnValue({
+    spawnMock.mockReturnValue({
       exitCode: 0,
       exited: Promise.resolve(0),
       unref: vi.fn(),
     })
 
-    Bun.spawn = mockSpawn as typeof Bun.spawn
     Object.defineProperty(process, 'platform', { value: 'win32' })
     await mkdir(escapedDirectory)
     await writeFile(executablePath, 'old-binary', 'utf8')
@@ -96,7 +99,7 @@ describe('upgradeStandaloneBinary', () => {
         success: true,
       })
 
-      const [command] = mockSpawn.mock.calls[0] as [string[], Record<string, unknown>]
+      const [command] = spawnMock.mock.calls[0] as [string[], Record<string, unknown>]
       const script = command[command.length - 1] as string
       expect(script).toContain("release''s bin")
       expect(script).not.toContain("$targetPath = '" + executablePath + "'")
@@ -109,7 +112,6 @@ describe('upgradeStandaloneBinary', () => {
     const tempRoot = await mkdtemp(join(tmpdir(), 'quantex-binary-win-cancel-'))
     const executablePath = join(tempRoot, 'qtx.exe')
     const controller = new AbortController()
-    const mockSpawn = vi.fn()
     const binary = new TextEncoder().encode('new-binary')
     const networkPort: NetworkPort = {
       request: async () => {
@@ -118,7 +120,6 @@ describe('upgradeStandaloneBinary', () => {
       },
     }
 
-    Bun.spawn = mockSpawn as typeof Bun.spawn
     Object.defineProperty(process, 'platform', { value: 'win32' })
     await writeFile(executablePath, 'old-binary', 'utf8')
 
@@ -133,7 +134,7 @@ describe('upgradeStandaloneBinary', () => {
           { networkPort, signal: controller.signal },
         ),
       ).rejects.toMatchObject({ kind: 'cancelled' })
-      expect(mockSpawn).not.toHaveBeenCalled()
+      expect(spawnMock).not.toHaveBeenCalled()
       expect(await readFile(executablePath, 'utf8')).toBe('old-binary')
       expect(await readdir(tempRoot)).toEqual(['qtx.exe'])
     } finally {
@@ -144,13 +145,12 @@ describe('upgradeStandaloneBinary', () => {
   it('restores the backup when the Windows delayed swap move fails', async () => {
     const tempRoot = await mkdtemp(join(tmpdir(), 'quantex-binary-win-swap-rollback-'))
     const executablePath = join(tempRoot, 'qtx.exe')
-    const mockSpawn = vi.fn().mockReturnValue({
+    spawnMock.mockReturnValue({
       exitCode: 0,
       exited: Promise.resolve(0),
       unref: vi.fn(),
     })
 
-    Bun.spawn = mockSpawn as typeof Bun.spawn
     Object.defineProperty(process, 'platform', { value: 'win32' })
 
     await writeFile(executablePath, 'old-binary', 'utf8')
@@ -164,7 +164,7 @@ describe('upgradeStandaloneBinary', () => {
         success: true,
       })
 
-      const [command] = mockSpawn.mock.calls[0] as [string[], Record<string, unknown>]
+      const [command] = spawnMock.mock.calls[0] as [string[], Record<string, unknown>]
       const script = command[command.length - 1] as string
       expect(script).toContain('try {')
       expect(script).toContain('Move-Item -LiteralPath $tempPath -Destination $targetPath -Force')
@@ -187,13 +187,12 @@ describe('upgradeStandaloneBinary', () => {
   it('aborts Windows delayed replacement when backup creation never succeeds', async () => {
     const tempRoot = await mkdtemp(join(tmpdir(), 'quantex-binary-win-backup-'))
     const executablePath = join(tempRoot, 'qtx.exe')
-    const mockSpawn = vi.fn().mockReturnValue({
+    spawnMock.mockReturnValue({
       exitCode: 0,
       exited: Promise.resolve(0),
       unref: vi.fn(),
     })
 
-    Bun.spawn = mockSpawn as typeof Bun.spawn
     Object.defineProperty(process, 'platform', { value: 'win32' })
 
     await writeFile(executablePath, 'old-binary', 'utf8')
@@ -207,7 +206,7 @@ describe('upgradeStandaloneBinary', () => {
         success: true,
       })
 
-      const [command] = mockSpawn.mock.calls[0] as [string[], Record<string, unknown>]
+      const [command] = spawnMock.mock.calls[0] as [string[], Record<string, unknown>]
       const script = command[command.length - 1] as string
       expect(script).toContain('$backupReady = $false')
       expect(script).toContain('$backupReady = $true')
@@ -225,13 +224,12 @@ describe('upgradeStandaloneBinary', () => {
   it('schedules peer alias replacement when launched from quantex.exe on Windows', async () => {
     const tempRoot = await mkdtemp(join(tmpdir(), 'quantex-binary-win-long-'))
     const executablePath = join(tempRoot, 'quantex.exe')
-    const mockSpawn = vi.fn().mockReturnValue({
+    spawnMock.mockReturnValue({
       exitCode: 0,
       exited: Promise.resolve(0),
       unref: vi.fn(),
     })
 
-    Bun.spawn = mockSpawn as typeof Bun.spawn
     Object.defineProperty(process, 'platform', { value: 'win32' })
 
     await writeFile(executablePath, 'old-binary', 'utf8')
@@ -245,7 +243,7 @@ describe('upgradeStandaloneBinary', () => {
         success: true,
       })
 
-      const [command] = mockSpawn.mock.calls[0] as [string[], Record<string, unknown>]
+      const [command] = spawnMock.mock.calls[0] as [string[], Record<string, unknown>]
       const peerPath = getWindowsStandaloneBinaryPeerPath(executablePath)
       expect(peerPath).toBeTruthy()
       expect(command[command.length - 1]).toContain(`$peerPath = '${peerPath!.replaceAll("'", "''")}'`)
@@ -258,13 +256,12 @@ describe('upgradeStandaloneBinary', () => {
   it('does not infer a peer alias for custom Windows executable names', async () => {
     const tempRoot = await mkdtemp(join(tmpdir(), 'quantex-binary-win-custom-'))
     const executablePath = join(tempRoot, 'custom.exe')
-    const mockSpawn = vi.fn().mockReturnValue({
+    spawnMock.mockReturnValue({
       exitCode: 0,
       exited: Promise.resolve(0),
       unref: vi.fn(),
     })
 
-    Bun.spawn = mockSpawn as typeof Bun.spawn
     Object.defineProperty(process, 'platform', { value: 'win32' })
 
     await writeFile(executablePath, 'old-binary', 'utf8')
@@ -278,7 +275,7 @@ describe('upgradeStandaloneBinary', () => {
         success: true,
       })
 
-      const [command] = mockSpawn.mock.calls[0] as [string[], Record<string, unknown>]
+      const [command] = spawnMock.mock.calls[0] as [string[], Record<string, unknown>]
       expect(command[command.length - 1]).toContain(`$peerPath = ''`)
       expect(command[command.length - 1]).toContain("if ($peerPath -ne '')")
     } finally {
@@ -327,7 +324,7 @@ describe('upgradeStandaloneBinary', () => {
     const tempRoot = await mkdtemp(join(tmpdir(), 'quantex-binary-verify-success-'))
     const executablePath = join(tempRoot, 'qtx')
     const replacement = '#!/bin/sh\necho 1.1.0\n'
-    const mockSpawn = vi.fn().mockReturnValue({
+    spawnMock.mockReturnValue({
       exitCode: 0,
       exited: Promise.resolve(0),
       stdout: createByteStream('1.1.0\n'),
@@ -338,7 +335,6 @@ describe('upgradeStandaloneBinary', () => {
     await writeFile(executablePath, '#!/bin/sh\necho old\n', 'utf8')
     await chmod(executablePath, 0o755)
 
-    Bun.spawn = mockSpawn as typeof Bun.spawn
     globalThis.fetch = vi
       .fn()
       .mockResolvedValue(new Response(Buffer.from(replacement), { status: 200 })) as unknown as typeof fetch
@@ -446,7 +442,7 @@ describe('upgradeStandaloneBinary', () => {
     const executablePath = join(tempRoot, 'qtx')
     const original = '#!/bin/sh\necho old\n'
     const replacement = '#!/bin/sh\nexit 1\n'
-    const mockSpawn = vi.fn().mockReturnValue({
+    spawnMock.mockReturnValue({
       exitCode: 1,
       exited: Promise.resolve(1),
       stdout: createByteStream(''),
@@ -456,7 +452,6 @@ describe('upgradeStandaloneBinary', () => {
 
     await writeFile(executablePath, original, 'utf8')
     await chmod(executablePath, 0o755)
-    Bun.spawn = mockSpawn as typeof Bun.spawn
     globalThis.fetch = vi
       .fn()
       .mockResolvedValue(new Response(Buffer.from(replacement), { status: 200 })) as unknown as typeof fetch

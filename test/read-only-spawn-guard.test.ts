@@ -1,4 +1,5 @@
 import { spawnSync } from 'node:child_process'
+import { existsSync, readFileSync } from 'node:fs'
 import { chmod, mkdtemp, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { dirname, join } from 'node:path'
@@ -13,6 +14,7 @@ const BUN_PATH = resolveExecutableFromPath('bun')
 const SAFE_COMMANDS = ['bash', 'brew', 'bun', 'cargo', 'curl', 'deno', 'mise', 'npm', 'pip', 'sh', 'uv', 'winget']
 
 let sentinelDir: string
+let probeId = 0
 
 beforeAll(async () => {
   sentinelDir = await mkdtemp(join(tmpdir(), 'quantex-readonly-guard-'))
@@ -61,13 +63,37 @@ describe('read-only child-process guard preload', () => {
 
       expect(result.status).toBe(0)
       expect(result.stderr).not.toContain('READ_ONLY_MUTATION_BLOCKED')
+      expect(result.recorded).toContainEqual(command)
     },
     15_000,
   )
+
+  it('rejects mutations through the Node-compatible application process path', () => {
+    const result = runProbe(['npm', 'install', '--global', '@openai/codex'], 'cross-spawn')
+
+    expect(result.status).not.toBe(0)
+    expect(result.stderr).toContain('READ_ONLY_MUTATION_BLOCKED')
+  })
+
+  it('allows and records observations through the Node-compatible application process path', () => {
+    const command = ['bun', '--version']
+    const result = runProbe(command, 'cross-spawn')
+
+    expect(result.status).toBe(0)
+    expect(result.stderr).not.toContain('READ_ONLY_MUTATION_BLOCKED')
+    expect(result.recorded).toContainEqual(command)
+  })
 })
 
-function runProbe(command: string[]): { status: number; stderr: string } {
-  const script = `const child = Bun.spawn(${JSON.stringify(command)}, { stdout: 'ignore', stderr: 'ignore' }); await child.exited; process.exit(child.exitCode ?? 1)`
+function runProbe(
+  command: string[],
+  family: 'bun' | 'cross-spawn' = 'bun',
+): { recorded: string[][]; status: number; stderr: string } {
+  const guardLog = join(sentinelDir, `guard-${probeId++}.jsonl`)
+  const script =
+    family === 'bun'
+      ? `const child = Bun.spawn(${JSON.stringify(command)}, { stdout: 'ignore', stderr: 'ignore' }); await child.exited; process.exit(child.exitCode ?? 1)`
+      : `const [file, ...args] = ${JSON.stringify(command)}; const { default: spawn } = await import('cross-spawn'); const child = spawn(file, args, { stdio: 'ignore' }); const status = await new Promise((resolve, reject) => { child.once('close', resolve); child.once('error', reject) }); process.exit(status ?? 1)`
   const result = spawnSync(BUN_PATH, ['--preload', GUARD_PATH, '-e', script], {
     cwd: ROOT,
     env: {
@@ -75,11 +101,18 @@ function runProbe(command: string[]): { status: number; stderr: string } {
       HOME: sentinelDir,
       PATH: sentinelDir,
       QUANTEX_READ_ONLY_GUARD: '1',
+      QUANTEX_READ_ONLY_GUARD_LOG: guardLog,
     },
     encoding: 'utf8',
   })
 
   return {
+    recorded: existsSync(guardLog)
+      ? readFileSync(guardLog, 'utf8')
+          .split('\n')
+          .filter(Boolean)
+          .map(line => JSON.parse(line) as string[])
+      : [],
     status: result.status ?? 1,
     stderr: result.stderr,
   }

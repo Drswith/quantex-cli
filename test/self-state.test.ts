@@ -1,4 +1,4 @@
-import { existsSync, mkdirSync, readFileSync, rmSync } from 'node:fs'
+import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterAll, afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
@@ -33,7 +33,7 @@ describe('self state reconciliation', () => {
   it('refreshes stored self install source when runtime detection disagrees', async () => {
     const stateFilePath = join(tempDir, 'state.json')
     mkdirSync(tempDir, { recursive: true })
-    await Bun.write(
+    writeFileSync(
       stateFilePath,
       `${JSON.stringify(
         {

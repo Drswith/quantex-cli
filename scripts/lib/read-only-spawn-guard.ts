@@ -1,3 +1,4 @@
+import childProcess from 'node:child_process'
 import { appendFileSync } from 'node:fs'
 import { basename } from 'node:path'
 import process from 'node:process'
@@ -58,7 +59,7 @@ function record(command: readonly string[]): void {
   if (logPath) appendFileSync(logPath, `${JSON.stringify(command)}\n`)
 }
 
-function normalizeCommand(value: unknown): string[] {
+function normalizeBunCommand(value: unknown): string[] {
   if (Array.isArray(value) && value.every(argument => typeof argument === 'string')) return value
   if (
     typeof value === 'object' &&
@@ -72,21 +73,45 @@ function normalizeCommand(value: unknown): string[] {
   throw blocked([], 'unsupported Bun spawn input')
 }
 
+function normalizeNodeCommand(file: unknown, argsOrOptions: unknown): string[] {
+  if (typeof file !== 'string') throw blocked([], 'unsupported Node spawn executable')
+  if (argsOrOptions === undefined || !Array.isArray(argsOrOptions)) return [file]
+  if (!argsOrOptions.every(argument => typeof argument === 'string')) {
+    throw blocked([file], 'unsupported Node spawn arguments')
+  }
+  return [file, ...argsOrOptions]
+}
+
+function guard(command: readonly string[]): void {
+  assertReadOnlyCommand(command)
+  record(command)
+}
+
 if (process.env.QUANTEX_READ_ONLY_GUARD === '1') {
+  const originalNodeSpawn = childProcess.spawn.bind(childProcess)
+  childProcess.spawn = ((file: unknown, argsOrOptions?: unknown, options?: unknown) => {
+    guard(normalizeNodeCommand(file, argsOrOptions))
+    return Reflect.apply(originalNodeSpawn, childProcess, [file, argsOrOptions, options])
+  }) as typeof childProcess.spawn
+
+  const originalNodeSpawnSync = childProcess.spawnSync.bind(childProcess)
+  childProcess.spawnSync = ((file: unknown, argsOrOptions?: unknown, options?: unknown) => {
+    guard(normalizeNodeCommand(file, argsOrOptions))
+    return Reflect.apply(originalNodeSpawnSync, childProcess, [file, argsOrOptions, options])
+  }) as typeof childProcess.spawnSync
+
   const originalSpawn = Bun.spawn.bind(Bun)
   Bun.spawn = ((commandOrOptions: unknown, options?: unknown) => {
-    const command = normalizeCommand(commandOrOptions)
-    assertReadOnlyCommand(command)
-    record(command)
+    const command = normalizeBunCommand(commandOrOptions)
+    guard(command)
     return originalSpawn(commandOrOptions as never, options as never)
   }) as typeof Bun.spawn
 
   if (typeof Bun.spawnSync === 'function') {
     const originalSpawnSync = Bun.spawnSync.bind(Bun)
     Bun.spawnSync = ((commandOrOptions: unknown, options?: unknown) => {
-      const command = normalizeCommand(commandOrOptions)
-      assertReadOnlyCommand(command)
-      record(command)
+      const command = normalizeBunCommand(commandOrOptions)
+      guard(command)
       return originalSpawnSync(commandOrOptions as never, options as never)
     }) as typeof Bun.spawnSync
   }

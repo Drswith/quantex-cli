@@ -3,7 +3,6 @@ import { parseBrewInstalledVersion } from '../../src/package-manager/brew'
 
 const mockSpawn = vi.hoisted(() => vi.fn())
 const mutationRun = vi.hoisted(() => vi.fn())
-let originalSpawn: typeof Bun.spawn
 
 vi.mock('cross-spawn', async () => {
   const { createCrossSpawnMock } = await import('../helpers/cross-spawn-mock')
@@ -30,13 +29,10 @@ vi.mock('../../src/package-manager/context-mutation', async importOriginal => {
 })
 
 beforeEach(() => {
-  originalSpawn = Bun.spawn
-  Bun.spawn = mockSpawn as any
   mutationRun.mockImplementation(runMutation)
 })
 
 afterEach(() => {
-  Bun.spawn = originalSpawn
   mockSpawn.mockClear()
   mutationRun.mockClear()
 })
