@@ -78,12 +78,25 @@ jobs:
       QTX_ISOLATION_SCENARIOS: probe
       QTX_CANARY_REQUIRE_VERSION: ${{ matrix.requireVersion }}
       QTX_CANARY_PROVIDER: ${{ matrix.provider }}
+      QTX_CANARY_SKIP_REASON: ${{ matrix.skipReason }}
       QTX_ISOLATION_COMMAND_TIMEOUT_MS: 600000
     steps:
       - uses: actions/checkout@v7
         with:
           persist-credentials: false
       - uses: ./.github/actions/setup-bun
+        with:
+          # Real agents may require a newer Bun than Quantex's reproducible
+          # build pin. Keep this override scoped to the advisory canary.
+          bun-version: 1.3.14
+      - name: Set up Deno provider
+        if: matrix.provider == 'deno'
+        uses: denoland/setup-deno@22d081ff2d3a40755e97629de92e3bcbfa7cf2ed # v2.0.5
+        with:
+          deno-version: latest
+      - name: Set up uv provider
+        if: matrix.provider == 'uv'
+        uses: astral-sh/setup-uv@c771a70e6277c0a99b617c7a806ffedaca235ff9 # v9.0.0
       - name: Prepare disposable home
         run: |
           mkdir -p "$HOME" "$BUN_INSTALL"

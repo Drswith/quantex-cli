@@ -25,13 +25,21 @@ The change therefore adds a small real-agent canary layer on disposable GitHub-h
 
 ### Catalog-driven matrix with two scopes
 
-`agent-canary-matrix.ts` reads the checked-in catalog and emits stable JSON entries containing the agent name, the method selected by the smoke's Bun-preferred ordering, and whether that candidate declares an installed-version probe. The quick scope contains a small maintained anchor set including Pi; the full scope contains every catalog agent with a Linux candidate. The script fails if an anchor disappears or has no candidate, so the fast path cannot silently lose its regression target.
+`agent-canary-matrix.ts` reads the checked-in catalog and emits stable JSON entries containing the agent name, selected provider, installed-version requirement, and any explicit unsupported-runner reason. The quick scope contains a small maintained anchor set including Pi; the full scope contains every catalog agent with a Linux candidate. The script fails if an anchor disappears or has no candidate, so the fast path cannot silently lose its regression target.
+
+The selector prefers CI-ready managed providers in the deterministic order Bun, npm, Deno, then uv before falling back to the catalog's first Linux candidate. This keeps the maintained Bun anchors, but avoids choosing install-only scripts for Kimi, MiMo, and Vibe when their catalog entries already expose a managed package candidate. Cargo and Brew remain catalog-order fallbacks because compiling a real Cargo package or installing Homebrew is not a low-cost default for this workflow.
+
+Amp and Junie carry checked-in provider overrides. Amp uses its npm candidate because the current Bun package delegates to a nested postinstall that Quantex's deliberately narrow global trust flow does not auto-trust. Junie uses its official script because its Bun/npm packages install a second shim outside the package-manager root, so those nominally managed providers cannot guarantee physical removal. The overrides are validated against the catalog at matrix-generation time, and the quick anchors retain Bun integration coverage.
+
+An explicit unsupported-runner policy is limited to an agent whose only practical Linux candidate requires credentials, a login wizard, or a terminal device that the credential-free non-interactive runner deliberately does not provide. The entry remains in the full matrix and reports its reason as a skip; it is not deleted from coverage or counted as a pass. This policy is checked in next to the matrix resolver rather than added to product-facing catalog metadata because it describes this runner contract, not whether the agent supports Linux.
 
 The resolver is a script rather than a workflow-local list so catalog additions are automatically included in scheduled coverage and the same selection can be unit-tested locally. Provider conformance remains the place for exhaustive typed provider behavior; real canaries validate the integration with actual upstream packages.
 
 ### Focused `probe` smoke scenario
 
-The existing lifecycle smoke process gains a `probe` scenario. It installs each selected agent, refreshes `inspect`, refreshes `list`, and requires a non-empty installed version whenever the matrix entry marks the candidate as version-probed. It always records the selected agent for the existing cleanup trap, and the scenario performs no update or self-upgrade work. The full `managed` scenario remains unchanged for deeper lifecycle coverage.
+The existing lifecycle smoke process gains a `probe` scenario. It installs each selected agent, refreshes `inspect`, refreshes `list`, and requires a non-empty installed version whenever the matrix entry marks the candidate as version-probed. It keeps the selected agent in the in-flight cleanup stack until the probe has completed, so an assertion failure reaches the outer cleanup trap. The scenario performs no update or self-upgrade work. The full `managed` scenario remains unchanged for deeper lifecycle coverage.
+
+The selected provider also defines cleanup semantics. When the provider supports uninstall, the probe requires `uninstall` to report a change and refreshed inspection to report the executable absent. For script or binary providers without uninstall capability, Quantex can only clear its tracking record; the probe asserts that operation but does not claim that the upstream binary was physically removed. The fresh hosted runner is then destroyed, which is the only honest physical cleanup boundary for an install-only provider.
 
 ### Stderr fallback in both observation paths
 
@@ -39,7 +47,7 @@ The legacy version utility and Core production observation use the same preceden
 
 ### GitHub-hosted runner as the default real environment
 
-The new workflow runs the quick matrix for relevant pull-request paths and the full matrix on a weekly schedule or manual dispatch. Each matrix job gets a fresh `ubuntu-latest` runner, a temporary HOME/Bun install root, and no external credentials. The workflow is advisory and is not added to required branch protection. Modal remains in `sandbox-tests.yml` for explicit remote transport and sandbox scenarios rather than being invoked on every edit.
+The new workflow runs the quick matrix for relevant pull-request paths and the full matrix on a weekly schedule or manual dispatch. Each matrix job gets a fresh `ubuntu-latest` runner, a temporary HOME/Bun install root, and no external credentials. The selected provider is made effective as the probe's default package manager, uv and Deno are provisioned only for entries that select them, and the canary can use a newer Bun than the repository build pin when a current real-agent package declares that runtime minimum. The workflow is advisory and is not added to required branch protection. Modal remains in `sandbox-tests.yml` for explicit remote transport and sandbox scenarios rather than being invoked on every edit.
 
 ### Documentation and taxonomy stay executable
 
@@ -51,6 +59,8 @@ The path taxonomy marks the canary script and workflow as sandbox-relevant. Work
 - [Full Linux sweep is slow or flaky] -> Run jobs in parallel with a bounded timeout and reserve the full scope for schedule/manual dispatch; pull requests use only anchors.
 - [Catalog provider ordering changes] -> Emit provider metadata in the matrix and test deterministic output; treat provider ordering as catalog-owned behavior rather than duplicating it in YAML.
 - [An agent does not support a version command] -> Carry the catalog probe capability into the matrix and only require a version for entries that declare it; still assert installation and cleanup for every entry.
+- [An official installer requires login or a TTY] -> Keep the agent in the matrix with a checked-in skip reason; do not inject credentials or a pseudo-terminal into the credential-free canary.
+- [An install-only provider cannot remove its binary] -> Assert Quantex untracking, keep failure cleanup best-effort, and let runner destruction provide physical isolation instead of asserting a capability the provider does not have.
 - [Runner state leaks between steps] -> Set HOME and BUN_INSTALL to runner-temporary paths and run one agent per job; the smoke `finally` block performs best-effort uninstall cleanup.
 
 ## Migration Plan

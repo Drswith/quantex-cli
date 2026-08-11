@@ -38,7 +38,7 @@ The default local lifecycle smoke agents are `pi,qoder`.
 Default scenarios:
 
 - `managed`: Quantex installs, inspects, resolves, ensures, updates, uninstalls, and re-inspects the agent.
-- `probe`: a focused real-agent check that installs, refreshes `inspect` and `list`, verifies installed-version evidence when the catalog declares it, and uninstalls the agent.
+- `probe`: a focused real-agent check that installs, refreshes `inspect` and `list`, and verifies installed-version evidence when the catalog declares it. It verifies physical removal for providers that support uninstall; for install-only providers it clears Quantex tracking and relies on disposable-runner teardown for physical cleanup.
 - `deno-managed`: the sandbox places a fake `deno` executable in PATH, then verifies Quantex routes a Deno-managed test agent through `deno install --global`, `deno install --global --force`, and `deno uninstall --global` while preserving executable name and package install arguments.
 - `uv-managed`: the sandbox places a fake `uv` executable in PATH, then verifies Quantex routes a uv-managed test agent through `uv tool install`, `uv tool list`, `uv tool upgrade`, and `uv tool uninstall` while preserving package install arguments.
 - `adopt-preinstalled`: the sandbox preinstalls the agent outside Quantex first, then verifies `quantex install <agent>` adopts and tracks that existing install.
@@ -105,7 +105,9 @@ The repository also has an advisory GitHub Actions workflow at `.github/workflow
 
 - Relevant pull requests run a quick matrix containing the maintained anchors `codex`, `opencode`, `pi`, and `qoder`.
 - The weekly schedule and manual dispatch can run the full catalog-driven Linux matrix. Each job uses a fresh `ubuntu-latest` runner, a runner-temporary `HOME`/`BUN_INSTALL`, one agent, and `QTX_ISOLATION_SCENARIOS=probe`.
-- Matrix entries carry the catalog provider and installed-version probe capability, so unsupported version assertions are not invented in workflow YAML.
+- Matrix entries carry the selected catalog provider, installed-version probe capability, and any explicit reason the credential-free non-interactive runner cannot exercise the installer. Those entries remain visible as named skips instead of disappearing from the matrix or failing as false product regressions.
+- Candidate selection prefers the CI-ready managed providers Bun, npm, Deno, and uv before falling back to catalog order. The workflow provisions Deno or uv only for entries that select them and makes that provider the probe's default package manager.
+- The canary uses its own compatible Bun version for current real-agent packages; Quantex build and release jobs retain the repository's reproducible Bun pin.
 - The workflow is intentionally not a required branch-protection context. A registry or upstream installer outage remains visible as advisory evidence while deterministic provider tests continue to gate merges.
 
 To exercise the same focused probe locally without using your normal Quantex state or global agent directory, use a disposable HOME:
@@ -133,7 +135,7 @@ Use `bun run test:container` or `bun run test:sandbox` when you need the broader
 
 2. Run `bun run test:container` when the change is sensitive to HOME, PATH, global tools, or filesystem isolation and you want a local fallback that does not require Modal.
    For self-upgrade regressions, start with `QTX_ISOLATION_SCENARIOS=self-managed bun run test:container`.
-3. Let the advisory `Agent Canaries` workflow provide the quick real-agent signal; use its matrix entry `(agent, provider)` when triaging a failure.
+3. Let the advisory `Agent Canaries` workflow provide the quick real-agent signal; use its matrix entry `(agent, provider)` when triaging an outcome. A named skip means the checked-in runner policy cannot exercise an interactive or credentialed installer. A red entry means a runnable provider, Quantex assertion, or upstream operation failed and still requires diagnosis.
 4. Run `bun run test:sandbox` when you also want to validate the Modal transport or broad sandbox scenarios.
 5. If an isolated run fails, compare whether the failure is code-related or environment-related by rerunning the same agent list in a disposable HOME.
 6. If Modal setup is missing, install or repair the local Modal CLI only when the Modal transport itself is in scope.
