@@ -79,6 +79,7 @@ jobs:
       QTX_CANARY_REQUIRE_VERSION: ${{ matrix.requireVersion }}
       QTX_CANARY_PROVIDER: ${{ matrix.provider }}
       QTX_CANARY_SKIP_REASON: ${{ matrix.skipReason }}
+      QTX_CANARY_CLEANUP_SKIP_REASON: ${{ matrix.cleanupSkipReason }}
       QTX_ISOLATION_COMMAND_TIMEOUT_MS: 600000
     steps:
       - uses: actions/checkout@v7

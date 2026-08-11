@@ -6,11 +6,11 @@ This implementation request is classified as a durable test and CI workflow chan
 
 ## What Changes
 
-- Add a deterministic canary-matrix resolver with a quick scope for pull requests and a full scope for scheduled or manually dispatched runs. The full selector prefers CI-ready managed candidates over script installers when the catalog offers both and carries explicit unsupported-runner reasons instead of discovering known TTY or login requirements as red jobs.
+- Add a deterministic canary-matrix resolver with a quick scope for pull requests and a full scope for scheduled or manually dispatched runs. The full selector prefers only CI-ready providers that the existing product configuration can actually select, otherwise retains catalog order, and carries explicit unsupported-runner reasons instead of discovering known TTY, login, or installer-process limitations as red jobs.
 - Add a focused lifecycle-smoke `probe` scenario that installs a selected agent in a disposable HOME, verifies inspection and list version evidence, and cleans up the installation.
 - Make the version probe read stderr when a successful agent emits no stdout, with regression coverage for both the legacy and Core observation paths.
 - Run the quick canary matrix on relevant pull requests and the full catalog matrix on a schedule or manual dispatch using fresh GitHub-hosted runners. Provision the provider toolchain selected by the matrix, use a canary Bun version that satisfies current real-agent engine requirements, and keep Modal/Docker for explicit isolation transport validation.
-- Align cleanup assertions with provider capabilities: managed providers must remove their executable, while install-only script providers must clear Quantex tracking and rely on destruction of the disposable runner for physical cleanup. Preserve the in-flight agent for best-effort cleanup when any assertion fails.
+- Align cleanup assertions with provider capabilities: managed providers must remove their executable, while install-only script providers must clear Quantex tracking and rely on destruction of the disposable runner for physical cleanup. A reviewed, typed post-uninstall source conflict remains distinct from a pass and is reported as a cleanup-stage skip. Preserve the in-flight agent for best-effort cleanup when any assertion fails.
 - Align path taxonomy, workflow tests, and the isolation runbook with the new split between fast real canaries and slower broad isolation runs.
 
 ## Capabilities

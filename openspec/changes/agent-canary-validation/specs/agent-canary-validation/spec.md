@@ -2,7 +2,7 @@
 
 ### Requirement: Canary matrix selection MUST be catalog-driven and deterministic
 
-The canary selector MUST read the checked-in agent catalog and emit JSON matrix entries containing an agent name, the provider selected by a deterministic CI-ready preference, whether the selected catalog candidate declares an installed-version probe, and any explicit reason the credential-free non-interactive runner cannot exercise that entry. The quick scope MUST include the Pi agent and the full scope MUST include every catalog agent with a Linux candidate, including explicitly unsupported entries. The selector MUST reject an unknown scope, a missing quick-scope anchor, or an invalid provider override instead of silently returning an incomplete matrix.
+The canary selector MUST read the checked-in agent catalog and emit JSON matrix entries containing an agent name, the provider selected by a deterministic production-representable preference, whether the selected catalog candidate declares an installed-version probe, any explicit reason the credential-free non-interactive runner cannot exercise that entry, and any reviewed cleanup-stage exception. The selector MUST prefer only providers that the existing product configuration can reorder and MUST otherwise retain catalog order. The quick scope MUST include the Pi agent and the full scope MUST include every catalog agent with a Linux candidate, including explicitly unsupported entries. The selector MUST reject an unknown scope, a missing quick-scope anchor, or an invalid provider override instead of silently returning an incomplete matrix.
 
 #### Scenario: Quick scope includes the Pi regression target
 
@@ -14,11 +14,17 @@ The canary selector MUST read the checked-in agent catalog and emit JSON matrix 
 - **WHEN** the selector is invoked with the full scope
 - **THEN** it emits one entry for each catalog agent that has a Linux install candidate and includes the selected provider metadata
 
-#### Scenario: Managed candidate avoids an install-only script
+#### Scenario: Configurable managed candidate avoids an install-only script
 
-- **GIVEN** a Linux catalog entry exposes a CI-ready managed provider as well as a script installer
+- **GIVEN** a Linux catalog entry exposes a CI-ready managed provider that `defaultPackageManager` can select as well as a script installer
 - **WHEN** the full selector chooses that entry's canary candidate
 - **THEN** it selects the managed provider and derives version requirements from that exact candidate
+
+#### Scenario: Non-configurable provider retains production catalog order
+
+- **GIVEN** a Linux catalog entry has no CI-ready provider that the current product preference can select
+- **WHEN** the full selector chooses that entry's canary candidate
+- **THEN** it selects the first catalog candidate instead of emitting metadata for a provider the CLI will not use
 
 #### Scenario: Non-interactive runner incompatibility remains visible
 
@@ -33,7 +39,7 @@ The canary selector MUST read the checked-in agent catalog and emit JSON matrix 
 
 ### Requirement: Real lifecycle canaries MUST run in a disposable environment
 
-The real-agent canary workflow MUST run one selected agent per fresh GitHub-hosted runner job, set HOME and the Bun install root beneath the runner temporary directory, and prepare the toolchain required by the selected managed provider. A provider with uninstall capability MUST remove the selected installation in a cleanup path. A provider without uninstall capability MUST clear Quantex tracking and rely on destruction of the fresh runner for physical removal. The workflow MUST NOT require agent credentials, Modal credentials, or mutate a developer workstation.
+The real-agent canary workflow MUST run one selected agent per fresh GitHub-hosted runner job, set HOME and the Bun install root beneath the runner temporary directory, and prepare the toolchain required by the selected managed provider. A provider with uninstall capability MUST remove the selected installation in a cleanup path unless a reviewed cleanup exception matches the exact structured source-conflict outcome after removal. A provider without uninstall capability MUST clear Quantex tracking and rely on destruction of the fresh runner for physical removal. The workflow MUST NOT require agent credentials, Modal credentials, or mutate a developer workstation.
 
 #### Scenario: Pull request canary
 
@@ -51,9 +57,16 @@ The real-agent canary workflow MUST run one selected agent per fresh GitHub-host
 - **WHEN** its install, inspect, and list assertions succeed
 - **THEN** the probe clears Quantex tracking without asserting physical binary absence and the disposable runner teardown removes the remaining files
 
+#### Scenario: Reviewed cleanup source conflict remains distinct from pass
+
+- **GIVEN** a matrix entry carries a reviewed cleanup-stage reason
+- **WHEN** semantic install assertions pass, provider removal runs, and uninstall returns `UNINSTALL_FAILED` with lifecycle `conflicting-source`
+- **THEN** the probe reports that cleanup stage as skipped and relies on disposable-runner teardown for the remaining copy
+- **AND** any other uninstall failure remains a canary failure
+
 ### Requirement: The probe scenario MUST verify installed-version evidence
 
-The lifecycle smoke `probe` scenario MUST install each runnable selected agent, refresh `inspect` and `list`, and require a non-empty installed version for matrix entries whose candidate declares an installed-version probe. It MUST fail when required version evidence is absent and MUST preserve the selected agent in the in-flight cleanup stack when any assertion fails. An explicit unsupported-runner entry MUST be reported by name and reason before installation and MUST NOT be counted as a pass.
+The lifecycle smoke `probe` scenario MUST install each runnable selected agent, refresh `inspect` and `list`, and require a non-empty installed version for matrix entries whose candidate declares an installed-version probe. It MUST fail when required version evidence is absent and MUST preserve the selected agent in the in-flight cleanup stack when any assertion fails. An explicit unsupported-runner entry MUST be reported by name and reason before installation and MUST NOT be counted as a pass. A cleanup-stage exception MUST be evaluated only after the semantic assertions and exact structured uninstall result are available.
 
 #### Scenario: Version is exposed after installation
 

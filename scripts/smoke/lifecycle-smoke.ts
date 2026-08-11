@@ -4,12 +4,8 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import process from 'node:process'
 import { PROVIDER_UNAVAILABLE_LIFECYCLE } from '../../src/commands/installation-failure-diagnostics'
-import { loadConfig } from '../../src/config'
-import {
-  canUninstallInstallType,
-  getInstallLifecycle,
-  isManagedInstallType,
-} from '../../src/package-manager/capabilities'
+import { type DefaultPackageManager, loadConfig } from '../../src/config'
+import { canUninstallInstallType, getInstallLifecycle } from '../../src/package-manager/capabilities'
 import { resolveManagedSelfUpdateRegistry } from '../../src/self'
 import { getStateFilePath } from '../../src/state'
 import {
@@ -221,9 +217,13 @@ function resolveCanaryProvider(): InstallType | undefined {
   return provider ? (provider as InstallType) : undefined
 }
 
-function resolveCanaryDefaultPackageManager(): InstallType {
+function resolveCanaryDefaultPackageManager(): DefaultPackageManager {
   const provider = resolveCanaryProvider()
-  return scenarios.includes('probe') && provider && isManagedInstallType(provider) ? provider : 'bun'
+  return scenarios.includes('probe') && isCanaryDefaultPackageManager(provider) ? provider : 'bun'
+}
+
+function isCanaryDefaultPackageManager(provider: InstallType | undefined): provider is DefaultPackageManager {
+  return provider === 'bun' || provider === 'mise' || provider === 'npm'
 }
 
 function resolveCanaryUninstallCapability(): boolean | undefined {
@@ -302,7 +302,24 @@ async function smokeAgentVersionProbe(agent: string): Promise<void> {
 
   const canUninstall = resolveCanaryUninstallCapability()
   console.log(`[${agent}] canary ${canUninstall === false ? 'untrack' : 'uninstall'}`)
-  const uninstall = await runJson(`probe uninstall ${agent}`, [...cli, 'uninstall', agent])
+  const cleanupSkipReason = process.env.QTX_CANARY_CLEANUP_SKIP_REASON?.trim()
+  const uninstall = await runJson(`probe uninstall ${agent}`, [...cli, 'uninstall', agent], {
+    allowFailure: Boolean(cleanupSkipReason),
+  })
+  if (uninstall.ok !== true) {
+    if (
+      cleanupSkipReason &&
+      uninstall.error?.code === 'UNINSTALL_FAILED' &&
+      uninstall.error.details?.lifecycle === 'conflicting-source'
+    ) {
+      recordCanarySkip(agent, `cleanup: ${cleanupSkipReason}`)
+      console.log(`[${agent}] remaining files are confined to the disposable runner`)
+      return
+    }
+    throw new Error(
+      `probe uninstall ${agent} returned ok=false: ${uninstall.error?.code ?? 'UNKNOWN'} ${uninstall.error?.message ?? ''}`,
+    )
+  }
   assertResult(
     uninstall,
     result => result.data?.changed === true,

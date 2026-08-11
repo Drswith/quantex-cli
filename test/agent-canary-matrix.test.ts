@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import {
+  CANARY_CLEANUP_RUNNER_REASONS,
   CANARY_UNSUPPORTED_RUNNER_REASONS,
   QUICK_CANARY_AGENTS,
   resolveCanaryMatrix,
@@ -12,6 +13,7 @@ describe('agent canary matrix', () => {
 
     expect(matrix.include.map(entry => entry.agent)).toEqual([...QUICK_CANARY_AGENTS].sort())
     expect(matrix.include.find(entry => entry.agent === 'pi')).toMatchObject({
+      cleanupSkipReason: '',
       provider: 'bun',
       requireVersion: true,
       skipReason: '',
@@ -30,16 +32,18 @@ describe('agent canary matrix', () => {
     expect(matrix.include.every(entry => entry.agent && entry.provider)).toBe(true)
   })
 
-  it('prefers CI-ready managed candidates over script installers', async () => {
+  it('selects providers the production CLI can actually prefer', async () => {
     const matrix = await resolveCanaryMatrix('full')
     const byAgent = new Map(matrix.include.map(entry => [entry.agent, entry]))
 
     expect(byAgent.get('amp')?.provider).toBe('npm')
-    expect(byAgent.get('junie')?.provider).toBe('script')
+    expect(byAgent.get('junie')?.provider).toBe('bun')
     expect(byAgent.get('kimi')?.provider).toBe('npm')
     expect(byAgent.get('mimo')?.provider).toBe('npm')
-    expect(byAgent.get('vibe')?.provider).toBe('uv')
-    expect(byAgent.get('vibe')?.requireVersion).toBe(true)
+    expect(byAgent.get('genie')?.provider).toBe('deno')
+    expect(byAgent.get('openhands')?.provider).toBe('uv')
+    expect(byAgent.get('vibe')?.provider).toBe('script')
+    expect(byAgent.get('vibe')?.requireVersion).toBe(false)
     expect(byAgent.get('vtcode')?.provider).toBe('script')
   })
 
@@ -53,6 +57,20 @@ describe('agent canary matrix', () => {
     }
     expect(matrix.include.filter(entry => entry.skipReason)).toHaveLength(
       Object.keys(CANARY_UNSUPPORTED_RUNNER_REASONS).length,
+    )
+  })
+
+  it('keeps reviewed cleanup-only incompatibilities distinct from pre-install skips', async () => {
+    const matrix = await resolveCanaryMatrix('full')
+    const byAgent = new Map(matrix.include.map(entry => [entry.agent, entry]))
+
+    for (const [agent, reason] of Object.entries(CANARY_CLEANUP_RUNNER_REASONS)) {
+      expect(reason).toBeTruthy()
+      expect(byAgent.get(agent)?.cleanupSkipReason).toBe(reason)
+      expect(byAgent.get(agent)?.skipReason).toBe('')
+    }
+    expect(matrix.include.filter(entry => entry.cleanupSkipReason)).toHaveLength(
+      Object.keys(CANARY_CLEANUP_RUNNER_REASONS).length,
     )
   })
 

@@ -29,6 +29,7 @@
 - [x] 5.5 Make the probe select the matrix provider, preserve failed installs for outer cleanup, and assert physical removal only when the provider supports uninstall.
 - [x] 5.6 Add deterministic matrix, smoke-policy, workflow, and regression coverage for the repaired behavior.
 - [x] 5.7 Update the isolation runbook with pass/fail/skip and provider-capability semantics.
+- [x] 5.8 Align matrix metadata with production-selectable provider ordering and distinguish pre-install skips from exact cleanup-stage source conflicts.
 
 ## 6. Follow-up validation and delivery
 
