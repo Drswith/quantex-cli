@@ -10,6 +10,33 @@ import { createProductionCoreReadPorts } from '../../src/core/production-observa
 import { createEmptyStateDocument } from '../../src/state/schema'
 
 describe('production Core observation', () => {
+  it.skipIf(process.platform === 'win32')('orders uv first when the Core config prefers uv', async () => {
+    const root = await mkdtemp(join(tmpdir(), 'quantex-core-uv-preference-'))
+    const configDir = join(root, 'config')
+    const previousHome = process.env.HOME
+    const previousPath = process.env.PATH
+
+    try {
+      await mkdir(configDir, { recursive: true })
+      await writeFile(join(configDir, 'config.json'), JSON.stringify({ defaultPackageManager: 'uv' }))
+      process.env.HOME = join(root, 'home')
+      process.env.PATH = join(root, 'empty-bin')
+
+      const ports = createProductionCoreReadPorts({ providerRegistry: bunRegistry(undefined) })
+      const outcome = await runCoreInvocation(undefined, context =>
+        ports.inspectAgent('vibe', { ...context, configDir }),
+      )
+
+      expect(outcome.kind).toBe('success')
+      const observation = outcome.kind === 'success' ? outcome.value : undefined
+      expect(observation?.methods[0]).toMatchObject({ type: 'uv' })
+    } finally {
+      process.env.HOME = previousHome
+      process.env.PATH = previousPath
+      await rm(root, { force: true, recursive: true })
+    }
+  })
+
   it.skipIf(process.platform === 'win32')('reads an installed version emitted on stderr', async () => {
     const root = await mkdtemp(join(tmpdir(), 'quantex-core-version-stderr-'))
     const binDir = join(root, 'bin')

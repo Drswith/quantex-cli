@@ -248,7 +248,7 @@ describe('agent definitions', () => {
     const agent = getAgentByNameOrAlias('junie')
     expect(agent).toBeDefined()
     expect(agent!.displayName).toBe('Junie CLI')
-    expect(agent!.packages?.npm).toBe('@jetbrains/junie')
+    expect(agent!.packages?.npm).toBeUndefined()
     expect(agent!.binaryName).toBe('junie')
   })
 

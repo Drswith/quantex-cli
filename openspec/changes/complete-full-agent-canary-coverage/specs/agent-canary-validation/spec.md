@@ -2,7 +2,7 @@
 
 ### Requirement: Canary matrix selection MUST be catalog-driven and deterministic
 
-The canary selector MUST read the checked-in agent catalog and emit JSON matrix entries containing an agent name, the selected catalog provider, whether that candidate declares an installed-version probe, an explicit lifecycle coverage mode, the installer setup policy, whether upstream updates are disabled, and whether to run a deliberate source-conflict probe. The selector MUST prefer CI-ready providers that the product configuration can reorder, while any reviewed provider override MUST reference an actual candidate for that agent and expose the selected provider in the matrix. The quick scope MUST include the Pi agent and the full scope MUST include every catalog agent with a Linux candidate. The selector MUST NOT emit an agent-level pre-install skip or cleanup-skip policy. It MUST reject an unknown scope, a missing quick-scope anchor, or an invalid provider override instead of silently returning an incomplete matrix.
+The canary selector MUST read the checked-in agent catalog and emit JSON matrix entries containing an agent name, the selected catalog provider, whether that candidate declares an installed-version probe, an explicit lifecycle coverage mode, the installer setup policy, whether upstream updates are disabled, and whether to run a deliberate source-conflict probe. The selector MUST prefer CI-ready providers that the product configuration can reorder, while any reviewed provider override MUST reference an actual candidate that production ordering can select and expose the selected provider in the matrix. The quick scope MUST include the Pi agent and the full scope MUST include every catalog agent with a Linux candidate. The selector MUST NOT emit an agent-level pre-install skip or cleanup-skip policy. It MUST reject an unknown scope, a missing quick-scope anchor, or an invalid provider override instead of silently returning an incomplete matrix.
 
 #### Scenario: Quick scope includes the Pi regression target
 
@@ -21,11 +21,12 @@ The canary selector MUST read the checked-in agent catalog and emit JSON matrix 
 - **WHEN** the full selector chooses that entry's canary candidate
 - **THEN** it selects the managed provider and derives version requirements from that exact candidate
 
-#### Scenario: Reviewed official installer override remains explicit
+#### Scenario: Matrix provider matches the runtime-selected source
 
-- **GIVEN** an agent's default managed candidate cannot satisfy exact provider-source verification but another official credential-free catalog candidate can run
-- **WHEN** the selector applies a reviewed override
-- **THEN** the matrix names the official selected provider and runs that lifecycle instead of skipping the agent or weakening source verification
+- **GIVEN** a matrix entry names a selected provider
+- **WHEN** the probe applies the corresponding production configuration and installs the agent
+- **THEN** the runtime-selected source matches the matrix provider
+- **AND** the canary does not claim a provider that the production ordering path ignored
 
 #### Scenario: Credential-bound setup is a coverage boundary
 
@@ -60,7 +61,7 @@ The real-agent canary workflow MUST run one selected agent per fresh GitHub-host
 
 #### Scenario: Claude single-source cleanup
 
-- **GIVEN** Claude updates and installer migration are disabled for the Bun lifecycle
+- **GIVEN** Claude updates and installer migration are disabled for the Bun lifecycle and the disposable PATH is asserted free of any preinstalled Claude executable
 - **WHEN** the normal probe installs, versions, and uninstalls Claude
 - **THEN** the Bun package and Claude executable are absent and the job does not use a cleanup exception
 

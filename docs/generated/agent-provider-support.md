@@ -4,8 +4,8 @@
 
 | Provider | Agents | Platforms | Target kinds | Declared probes |
 | --- | ---: | --- | --- | --- |
-| `bun` | 18 | `linux`, `macos`, `windows` | `package` | `executable-presence`, `installed-version`, `package-presence`, `target-version` |
-| `npm` | 23 | `linux`, `macos`, `windows` | `package` | `executable-presence`, `installed-version`, `package-presence`, `target-version` |
+| `bun` | 17 | `linux`, `macos`, `windows` | `package` | `executable-presence`, `installed-version`, `package-presence`, `target-version` |
+| `npm` | 22 | `linux`, `macos`, `windows` | `package` | `executable-presence`, `installed-version`, `package-presence`, `target-version` |
 | `brew` | 14 | `linux`, `macos` | `cask`, `formula` | `executable-presence` |
 | `cargo` | 2 | `linux`, `macos`, `windows` | `package` | `executable-presence` |
 | `deno` | 1 | `linux`, `macos`, `windows` | `tool` | `executable-presence` |

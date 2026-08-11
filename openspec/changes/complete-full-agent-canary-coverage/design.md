@@ -31,9 +31,9 @@ Alternative considered: retain skips but add clearer summaries. Rejected because
 
 ### Use reviewed supported routes rather than forcing one provider shape
 
-The selector will prefer production-selectable Bun, npm, and uv candidates. Junie will use an explicit reviewed override to its official script because the current Bun package emits a shim outside the package-manager root and therefore cannot satisfy exact provider-source verification. Goose will retain its official script with interactive configuration disabled. Vibe will select uv after uv becomes a supported `defaultPackageManager` value.
+The selector will prefer production-selectable Bun, npm, and uv candidates. Junie's Bun/npm package is only a bootstrap wrapper: its postinstall downloads a distinct native version, writes the durable shim under `~/.local/bin`, and package removal leaves that external installation behind. The catalog will therefore stop advertising those wrappers as managed sources and retain the official script as the credential-free Linux route. Goose will retain its official script with interactive configuration disabled. Vibe will select uv after uv becomes a supported `defaultPackageManager` value in the Core ordering path as well as config validation.
 
-Alternative considered: weaken provider-source verification for Junie's external shim. Rejected for this change because attributing package-owned external files safely requires a broader ownership model; the official script already provides a supported credential-free lifecycle route.
+Alternative considered: weaken provider-source verification for Junie's external shim or keep the wrapper and call package removal a successful uninstall. Rejected because both would misstate ownership: the wrapper's removal does not remove the runnable Junie installation. The official script route exposes the honest install/inspect/list/version/untrack boundary.
 
 ### Model Devin as binary lifecycle plus deferred account setup
 
@@ -43,13 +43,13 @@ Alternative considered: delete the final installer line or reproduce the manifes
 
 ### Split Claude clean ownership from conflict detection
 
-The normal Claude job will set both current update-disable environment variables, install through Bun, require version evidence, uninstall through Bun, and assert that Claude is absent. The same full job will then reinstall Claude, add a controlled fallback executable after the Bun path, require uninstall to return the exact `UNINSTALL_FAILED` plus `conflicting-source` outcome, remove the fixture, and finish cleanup. No part of either scenario is recorded as skipped.
+The normal Claude job will set both current update-disable environment variables, construct a canary PATH that contains only the disposable tool roots plus system utilities, assert that no Claude executable is present, install through Bun, require version evidence, uninstall through Bun, and assert that Claude is absent. The same full job will then reinstall Claude, add a controlled fallback executable after the Bun path, require uninstall to return the exact `UNINSTALL_FAILED` plus `conflicting-source` outcome, remove the fixture, and finish cleanup. No part of either scenario is recorded as skipped. The PATH boundary excludes an unrelated Claude executable preinstalled on the hosted runner; it does not suppress any lifecycle step.
 
 Alternative considered: accept the observed second executable as a cleanup exception. Rejected because it leaves the single-source cleanup postcondition unverified and conflates an upstream side effect with the intentional multi-source contract.
 
 ### Treat uv as a public managed-installer preference
 
-`defaultPackageManager` will accept `uv`, ordering an existing uv catalog candidate ahead of other methods without installing uv automatically. The workflow will provision uv explicitly and add the disposable local bin directory to PATH before running the probe.
+`defaultPackageManager` will accept `uv`, and both legacy and Core install-method ordering will place an existing uv catalog candidate ahead of other methods without installing uv automatically. The workflow will provision uv explicitly and add the disposable local bin directory to PATH before running the probe.
 
 Alternative considered: add a canary-only hidden uv reorder. Rejected because it would validate a route users cannot select through the production configuration surface.
 
@@ -57,7 +57,7 @@ Alternative considered: add a canary-only hidden uv reorder. Rejected because it
 
 - [Upstream installer flags or paths drift] -> Keep routes visible in the catalog-driven matrix and let the advisory job fail with the upstream output instead of falling back to a skip.
 - [Devin installer creates a binary and later fails for a reason unrelated to authentication] -> Require a successful direct version command and all Quantex semantic assertions, and label only account setup as deferred rather than claiming installer completion.
-- [Junie script installations cannot be physically uninstalled by Quantex] -> Require Quantex untracking and rely on destruction of the dedicated runner for files owned by the install-only provider.
+- [Junie script installations cannot be physically uninstalled by Quantex] -> Require Quantex untracking and rely on destruction of the dedicated runner for files owned by the install-only provider; do not retain Bun/npm candidates whose removal leaves the same files behind.
 - [Claude update-disable variables change upstream] -> The clean lifecycle fails, exposing the drift; the workflow does not restore a cleanup exception automatically.
 - [Local Docker architecture or proxy differs from GitHub Linux] -> Use Docker only for safe local investigation and make the dispatched GitHub full sweep the acceptance evidence.
 

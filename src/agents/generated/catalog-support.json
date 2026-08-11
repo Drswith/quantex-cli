@@ -1066,18 +1066,6 @@
       "platforms": {
         "linux": [
           {
-            "probes": ["executable-presence", "installed-version", "package-presence", "target-version"],
-            "provider": "bun",
-            "targetId": "@jetbrains/junie",
-            "targetKind": "package"
-          },
-          {
-            "probes": ["executable-presence", "installed-version", "package-presence", "target-version"],
-            "provider": "npm",
-            "targetId": "@jetbrains/junie",
-            "targetKind": "package"
-          },
-          {
             "probes": ["executable-presence", "installed-version"],
             "provider": "script",
             "targetId": "https://junie.jetbrains.com/install.sh",
@@ -1092,18 +1080,6 @@
         ],
         "macos": [
           {
-            "probes": ["executable-presence", "installed-version", "package-presence", "target-version"],
-            "provider": "bun",
-            "targetId": "@jetbrains/junie",
-            "targetKind": "package"
-          },
-          {
-            "probes": ["executable-presence", "installed-version", "package-presence", "target-version"],
-            "provider": "npm",
-            "targetId": "@jetbrains/junie",
-            "targetKind": "package"
-          },
-          {
             "probes": ["executable-presence", "installed-version"],
             "provider": "script",
             "targetId": "https://junie.jetbrains.com/install.sh",
@@ -1117,18 +1093,6 @@
           }
         ],
         "windows": [
-          {
-            "probes": ["executable-presence", "installed-version", "package-presence", "target-version"],
-            "provider": "bun",
-            "targetId": "@jetbrains/junie",
-            "targetKind": "package"
-          },
-          {
-            "probes": ["executable-presence", "installed-version", "package-presence", "target-version"],
-            "provider": "npm",
-            "targetId": "@jetbrains/junie",
-            "targetKind": "package"
-          },
           {
             "probes": ["executable-presence", "installed-version"],
             "provider": "script",
@@ -1888,7 +1852,6 @@
         "droid",
         "forgecode",
         "gemini",
-        "junie",
         "kilo",
         "omp",
         "openclaw",
@@ -1916,7 +1879,6 @@
         "droid",
         "forgecode",
         "gemini",
-        "junie",
         "kilo",
         "kimi",
         "mimo",

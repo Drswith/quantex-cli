@@ -33,10 +33,6 @@ const CANARY_PROVIDER_OVERRIDES: Readonly<Partial<Record<string, InstallType>>> 
   // trust flow. npm is an existing product-supported preference, and the quick
   // anchors retain real Bun coverage.
   amp: 'npm',
-  // Junie's managed package emits a shim outside the package-manager root.
-  // Keep exact source verification strict and exercise the official script
-  // candidate instead of skipping the agent or weakening provider ownership.
-  junie: 'script',
 })
 
 const CANARY_COVERAGE_OVERRIDES: Readonly<Partial<Record<string, CanaryCoverage>>> = Object.freeze({

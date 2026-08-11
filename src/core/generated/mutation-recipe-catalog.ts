@@ -1475,22 +1475,6 @@ export const coreMutationRecipeCatalog = [
     platforms: {
       linux: [
         {
-          probes: ['executable-presence', 'installed-version', 'package-presence', 'target-version'],
-          provider: 'bun',
-          target: {
-            id: '@jetbrains/junie',
-            kind: 'package',
-          },
-        },
-        {
-          probes: ['executable-presence', 'installed-version', 'package-presence', 'target-version'],
-          provider: 'npm',
-          target: {
-            id: '@jetbrains/junie',
-            kind: 'package',
-          },
-        },
-        {
           probes: ['executable-presence', 'installed-version'],
           provider: 'script',
           target: {
@@ -1513,22 +1497,6 @@ export const coreMutationRecipeCatalog = [
       ],
       macos: [
         {
-          probes: ['executable-presence', 'installed-version', 'package-presence', 'target-version'],
-          provider: 'bun',
-          target: {
-            id: '@jetbrains/junie',
-            kind: 'package',
-          },
-        },
-        {
-          probes: ['executable-presence', 'installed-version', 'package-presence', 'target-version'],
-          provider: 'npm',
-          target: {
-            id: '@jetbrains/junie',
-            kind: 'package',
-          },
-        },
-        {
           probes: ['executable-presence', 'installed-version'],
           provider: 'script',
           target: {
@@ -1550,22 +1518,6 @@ export const coreMutationRecipeCatalog = [
         },
       ],
       windows: [
-        {
-          probes: ['executable-presence', 'installed-version', 'package-presence', 'target-version'],
-          provider: 'bun',
-          target: {
-            id: '@jetbrains/junie',
-            kind: 'package',
-          },
-        },
-        {
-          probes: ['executable-presence', 'installed-version', 'package-presence', 'target-version'],
-          provider: 'npm',
-          target: {
-            id: '@jetbrains/junie',
-            kind: 'package',
-          },
-        },
         {
           probes: ['executable-presence', 'installed-version'],
           provider: 'script',

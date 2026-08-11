@@ -222,7 +222,10 @@ async function getOrderedMethods(
   ]
 }
 
-async function readPreferredInstallType(configDir: string, signal: AbortSignal): Promise<'bun' | 'mise' | 'npm'> {
+async function readPreferredInstallType(
+  configDir: string,
+  signal: AbortSignal,
+): Promise<'bun' | 'mise' | 'npm' | 'uv'> {
   throwIfAborted(signal)
   try {
     const raw = await readFile(join(configDir, 'config.json'), 'utf8')
@@ -251,8 +254,8 @@ function getPlatform(): Platform {
   return 'linux'
 }
 
-function isPreferredInstallType(value: unknown): value is 'bun' | 'mise' | 'npm' {
-  return value === 'bun' || value === 'mise' || value === 'npm'
+function isPreferredInstallType(value: unknown): value is 'bun' | 'mise' | 'npm' | 'uv' {
+  return value === 'bun' || value === 'mise' || value === 'npm' || value === 'uv'
 }
 
 function isPlainObject(value: unknown): value is Record<string, unknown> {

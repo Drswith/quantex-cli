@@ -9,22 +9,6 @@
   "platforms": {
     "windows": [
       {
-        "probes": ["executable-presence", "installed-version", "package-presence", "target-version"],
-        "provider": "bun",
-        "target": {
-          "id": "@jetbrains/junie",
-          "kind": "package"
-        }
-      },
-      {
-        "probes": ["executable-presence", "installed-version", "package-presence", "target-version"],
-        "provider": "npm",
-        "target": {
-          "id": "@jetbrains/junie",
-          "kind": "package"
-        }
-      },
-      {
         "probes": ["executable-presence", "installed-version"],
         "provider": "script",
         "target": {
@@ -38,22 +22,6 @@
       }
     ],
     "macos": [
-      {
-        "probes": ["executable-presence", "installed-version", "package-presence", "target-version"],
-        "provider": "bun",
-        "target": {
-          "id": "@jetbrains/junie",
-          "kind": "package"
-        }
-      },
-      {
-        "probes": ["executable-presence", "installed-version", "package-presence", "target-version"],
-        "provider": "npm",
-        "target": {
-          "id": "@jetbrains/junie",
-          "kind": "package"
-        }
-      },
       {
         "probes": ["executable-presence", "installed-version"],
         "provider": "script",
@@ -76,22 +44,6 @@
       }
     ],
     "linux": [
-      {
-        "probes": ["executable-presence", "installed-version", "package-presence", "target-version"],
-        "provider": "bun",
-        "target": {
-          "id": "@jetbrains/junie",
-          "kind": "package"
-        }
-      },
-      {
-        "probes": ["executable-presence", "installed-version", "package-presence", "target-version"],
-        "provider": "npm",
-        "target": {
-          "id": "@jetbrains/junie",
-          "kind": "package"
-        }
-      },
       {
         "probes": ["executable-presence", "installed-version"],
         "provider": "script",

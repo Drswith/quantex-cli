@@ -889,17 +889,8 @@ export const coreAgentCatalog: readonly AgentDefinition[] = [
     displayName: 'Junie CLI',
     homepage: 'https://junie.jetbrains.com/docs/junie-cli.html',
     name: 'junie',
-    packages: {
-      npm: '@jetbrains/junie',
-    },
     platforms: {
       linux: [
-        {
-          type: 'bun',
-        },
-        {
-          type: 'npm',
-        },
         {
           command: 'curl -fsSL https://junie.jetbrains.com/install.sh | bash',
           type: 'script',
@@ -911,12 +902,6 @@ export const coreAgentCatalog: readonly AgentDefinition[] = [
       ],
       macos: [
         {
-          type: 'bun',
-        },
-        {
-          type: 'npm',
-        },
-        {
           command: 'curl -fsSL https://junie.jetbrains.com/install.sh | bash',
           type: 'script',
         },
@@ -926,12 +911,6 @@ export const coreAgentCatalog: readonly AgentDefinition[] = [
         },
       ],
       windows: [
-        {
-          type: 'bun',
-        },
-        {
-          type: 'npm',
-        },
         {
           command: "iex (irm 'https://junie.jetbrains.com/install.ps1')",
           type: 'script',

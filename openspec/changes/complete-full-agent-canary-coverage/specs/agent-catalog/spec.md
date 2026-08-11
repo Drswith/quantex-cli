@@ -18,3 +18,14 @@ Catalog candidates selected for credential-free Goose, Junie, and Devin lifecycl
 
 - **WHEN** the official Devin installer has acquired the executable and account setup is deferred
 - **THEN** its catalog probes require `devin version` evidence before Quantex reports the binary lifecycle as verified
+
+### Requirement: Junie catalog ownership MUST match the durable installation
+
+The Junie catalog MUST NOT advertise Bun or npm as managed installation sources while those packages delegate to an external native installation that remains after package removal. Linux and macOS MUST retain the official install script as an install-only source, and Windows MUST retain the official PowerShell installer.
+
+#### Scenario: Junie package wrapper is not treated as managed
+
+- **GIVEN** the Junie package postinstall writes its durable shim and native payload outside the package-manager root
+- **WHEN** Quantex resolves Junie installation candidates
+- **THEN** it does not select Bun or npm as a managed source
+- **AND** the official script source remains available for automated install, inspect, list, version, and untracking coverage
