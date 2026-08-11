@@ -1,5 +1,10 @@
-## ADDED Requirements
+# agent-canary-validation Specification
 
+## Purpose
+
+Define the repository contract for catalog-driven real-agent canary selection, disposable lifecycle execution, semantic version assertions, cleanup classification, and separation from broader Docker or Modal isolation testing.
+
+## Requirements
 ### Requirement: Canary matrix selection MUST be catalog-driven and deterministic
 
 The canary selector MUST read the checked-in agent catalog and emit JSON matrix entries containing an agent name, the provider selected by a deterministic production-representable preference, whether the selected catalog candidate declares an installed-version probe, any explicit reason the credential-free non-interactive runner cannot exercise that entry, and any reviewed cleanup-stage exception. The selector MUST prefer only providers that the existing product configuration can reorder and MUST otherwise retain catalog order. The quick scope MUST include the Pi agent and the full scope MUST include every catalog agent with a Linux candidate, including explicitly unsupported entries. The selector MUST reject an unknown scope, a missing quick-scope anchor, or an invalid provider override instead of silently returning an incomplete matrix.
