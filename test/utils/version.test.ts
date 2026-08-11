@@ -6,7 +6,6 @@ import { getCliContext, setCliContext } from '../../src/cli-context'
 import * as config from '../../src/config'
 
 const mockSpawn = vi.hoisted(() => vi.fn())
-let originalSpawn: typeof Bun.spawn
 const originalFetch = globalThis.fetch
 const mockFetch = vi.fn()
 const getConfigDirSpy = vi.spyOn(config, 'getConfigDir')
@@ -19,8 +18,6 @@ vi.mock('cross-spawn', async () => {
 })
 
 beforeEach(() => {
-  originalSpawn = Bun.spawn
-  Bun.spawn = mockSpawn as any
   globalThis.fetch = mockFetch as any
   getConfigDirSpy.mockReturnValue(tempConfigDir)
   loadConfigSpy.mockResolvedValue({
@@ -34,7 +31,6 @@ beforeEach(() => {
 })
 
 afterEach(() => {
-  Bun.spawn = originalSpawn
   globalThis.fetch = originalFetch
   mockSpawn.mockClear()
   mockFetch.mockClear()

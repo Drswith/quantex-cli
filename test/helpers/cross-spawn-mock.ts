@@ -1,7 +1,7 @@
 import type { ChildProcess } from 'node:child_process'
 import { EventEmitter } from 'node:events'
 
-interface BunStyleMockProcess {
+interface MockSpawnProcess {
   exitCode: number | null
   exited: Promise<unknown>
   kill?: (signal?: NodeJS.Signals | number) => boolean
@@ -11,9 +11,9 @@ interface BunStyleMockProcess {
   unref?: () => void
 }
 
-type BunStyleSpawnMock = (command: string[], options: unknown) => BunStyleMockProcess
+type SpawnMock = (command: string[], options: unknown) => MockSpawnProcess
 
-export function createCrossSpawnMock(spawn: BunStyleSpawnMock): typeof import('cross-spawn') {
+export function createCrossSpawnMock(spawn: SpawnMock): typeof import('cross-spawn') {
   return ((file: string, args: readonly string[] = [], options: unknown = {}) => {
     const proc = spawn([file, ...args], options)
     const child = new EventEmitter() as ChildProcess

@@ -2,24 +2,17 @@ import { chmod, mkdir, mkdtemp, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import process from 'node:process'
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 import { getExecutableCandidateNames, getKnownAgentInstallDirectories } from '../../src/utils/executable-search-paths'
 
 const mockSpawn = vi.hoisted(() => vi.fn())
-let originalSpawn: typeof Bun.spawn
 
 vi.mock('cross-spawn', async () => {
   const { createCrossSpawnMock } = await import('../helpers/cross-spawn-mock')
   return { default: createCrossSpawnMock(mockSpawn) }
 })
 
-beforeEach(() => {
-  originalSpawn = Bun.spawn
-  Bun.spawn = mockSpawn as any
-})
-
 afterEach(() => {
-  Bun.spawn = originalSpawn
   mockSpawn.mockClear()
   vi.unstubAllEnvs()
 })

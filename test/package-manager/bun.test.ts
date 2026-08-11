@@ -1,7 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 const { mockSpawn, mutationRun } = vi.hoisted(() => ({ mockSpawn: vi.fn(), mutationRun: vi.fn() }))
-let originalSpawn: typeof Bun.spawn
 
 vi.mock('../../src/utils/child-process', async importOriginal => {
   const actual = await importOriginal<typeof import('../../src/utils/child-process')>()
@@ -48,13 +47,10 @@ function createProc(exitCode: number, stdout = '', stderr = '') {
 }
 
 beforeEach(() => {
-  originalSpawn = Bun.spawn
-  Bun.spawn = mockSpawn as any
   mutationRun.mockImplementation(runMutation)
 })
 
 afterEach(() => {
-  Bun.spawn = originalSpawn
   mockSpawn.mockReset()
   mutationRun.mockReset()
 })

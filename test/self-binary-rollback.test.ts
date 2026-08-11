@@ -13,6 +13,12 @@ const fsMocks = vi.hoisted(() => ({
   bakRmCalls: 0,
   failSecondNonRecursiveBakRm: false,
 }))
+const spawnMock = vi.hoisted(() => vi.fn())
+
+vi.mock('cross-spawn', async () => {
+  const { createCrossSpawnMock } = await import('./helpers/cross-spawn-mock')
+  return { default: createCrossSpawnMock(spawnMock) }
+})
 
 vi.mock('node:fs/promises', async importOriginal => {
   const actual = await importOriginal<typeof import('node:fs/promises')>()
@@ -43,12 +49,11 @@ import { upgradeStandaloneBinary } from '../src/self/binary'
 
 const originalFetch = globalThis.fetch
 const originalPlatform = process.platform
-const originalSpawn = Bun.spawn
 const encoder = new TextEncoder()
 
 afterEach(() => {
   globalThis.fetch = originalFetch
-  Bun.spawn = originalSpawn
+  spawnMock.mockReset()
   Object.defineProperty(process, 'platform', { value: originalPlatform })
   fsMocks.renameCalls = 0
   fsMocks.failOnSecondRename = false
@@ -92,11 +97,11 @@ describe('upgradeStandaloneBinary rollback after backup swap', () => {
     Object.defineProperty(process, 'platform', { value: 'linux' })
     fsMocks.failSecondNonRecursiveBakRm = true
 
-    Bun.spawn = vi.fn().mockReturnValue({
+    spawnMock.mockReturnValue({
       exitCode: 0,
       exited: Promise.resolve(0),
       stdout: createByteStream('1.1.0\n'),
-    }) as typeof Bun.spawn
+    })
 
     await writeFile(executablePath, '#!/bin/sh\necho old\n', 'utf8')
     await chmod(executablePath, 0o755)

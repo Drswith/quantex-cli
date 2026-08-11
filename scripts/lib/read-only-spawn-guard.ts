@@ -1,3 +1,4 @@
+import childProcess from 'node:child_process'
 import { appendFileSync } from 'node:fs'
 import { basename } from 'node:path'
 import process from 'node:process'
@@ -58,7 +59,7 @@ function record(command: readonly string[]): void {
   if (logPath) appendFileSync(logPath, `${JSON.stringify(command)}\n`)
 }
 
-function normalizeCommand(value: unknown): string[] {
+function normalizeBunCommand(value: unknown): string[] {
   if (Array.isArray(value) && value.every(argument => typeof argument === 'string')) return value
   if (
     typeof value === 'object' &&
@@ -72,21 +73,134 @@ function normalizeCommand(value: unknown): string[] {
   throw blocked([], 'unsupported Bun spawn input')
 }
 
+export function normalizeNodeCommand(file: unknown, argsOrOptions: unknown): string[] {
+  if (typeof file !== 'string') throw blocked([], 'unsupported Node spawn executable')
+  if (argsOrOptions === undefined || !Array.isArray(argsOrOptions)) return [file]
+  if (!argsOrOptions.every(argument => typeof argument === 'string')) {
+    throw blocked([file], 'unsupported Node spawn arguments')
+  }
+  const command = [file, ...argsOrOptions]
+  return unwrapCrossSpawnWindowsShell(command) ?? command
+}
+
+function unwrapCrossSpawnWindowsShell(command: string[]): string[] | undefined {
+  const [file, ...args] = command
+  if (!file || !['cmd', 'cmd.exe'].includes(basename(file).toLowerCase())) return undefined
+  if (
+    args.length !== 4 ||
+    args[0]?.toLowerCase() !== '/d' ||
+    args[1]?.toLowerCase() !== '/s' ||
+    args[2]?.toLowerCase() !== '/c'
+  ) {
+    throw blocked(command, 'unsupported Windows command-shell wrapper')
+  }
+
+  const shellCommand = args[3]
+  if (!shellCommand?.startsWith('"') || !shellCommand.endsWith('"')) {
+    throw blocked(command, 'unsupported Windows command-shell payload')
+  }
+  const encodedTokens = splitCrossSpawnShellTokens(shellCommand.slice(1, -1))
+  const [encodedFile, ...encodedArgs] = encodedTokens
+  if (!encodedFile) throw blocked(command, 'empty Windows command-shell payload')
+
+  const decodedFile = decodeCaretEscapes(encodedFile)
+  if (decodedFile.includes('"')) throw blocked(command, 'unsupported Windows executable quoting')
+  return [decodedFile, ...encodedArgs.map(argument => decodeCrossSpawnArgument(argument, command))]
+}
+
+function splitCrossSpawnShellTokens(value: string): string[] {
+  const tokens: string[] = []
+  let token = ''
+  for (const character of value) {
+    if (character === ' ' && trailingCaretCount(token) % 2 === 0) {
+      if (!token) throw blocked([], 'empty Windows command-shell token')
+      tokens.push(token)
+      token = ''
+    } else {
+      token += character
+    }
+  }
+  if (token) tokens.push(token)
+  return tokens
+}
+
+function trailingCaretCount(value: string): number {
+  let count = 0
+  for (let index = value.length - 1; index >= 0 && value[index] === '^'; index -= 1) count += 1
+  return count
+}
+
+function decodeCrossSpawnArgument(value: string, command: readonly string[]): string {
+  let decoded = decodeCaretEscapes(value)
+  if (decoded.startsWith('^"') && decoded.endsWith('^"')) decoded = decodeCaretEscapes(decoded)
+  if (!decoded.startsWith('"') || !decoded.endsWith('"')) {
+    throw blocked(command, 'unsupported Windows command-shell argument')
+  }
+  const argument = decoded.slice(1, -1)
+  if (argument.includes('"')) throw blocked(command, 'unsupported Windows argument quoting')
+  return argument
+}
+
+function decodeCaretEscapes(value: string): string {
+  let decoded = ''
+  for (let index = 0; index < value.length; index += 1) {
+    const character = value[index]
+    if (character !== '^') {
+      decoded += character
+      continue
+    }
+    const escaped = value[index + 1]
+    if (escaped === undefined) throw blocked([], 'dangling Windows command-shell escape')
+    decoded += escaped
+    index += 1
+  }
+  return decoded
+}
+
+function guard(command: readonly string[]): void {
+  assertReadOnlyCommand(command)
+  record(command)
+}
+
 if (process.env.QUANTEX_READ_ONLY_GUARD === '1') {
+  let nodeSpawnDelegationDepth = 0
+
+  const originalNodeSpawn = childProcess.spawn.bind(childProcess)
+  childProcess.spawn = ((file: unknown, argsOrOptions?: unknown, options?: unknown) => {
+    guard(normalizeNodeCommand(file, argsOrOptions))
+    nodeSpawnDelegationDepth += 1
+    try {
+      return Reflect.apply(originalNodeSpawn, childProcess, [file, argsOrOptions, options])
+    } finally {
+      nodeSpawnDelegationDepth -= 1
+    }
+  }) as typeof childProcess.spawn
+
+  const originalNodeSpawnSync = childProcess.spawnSync.bind(childProcess)
+  childProcess.spawnSync = ((file: unknown, argsOrOptions?: unknown, options?: unknown) => {
+    guard(normalizeNodeCommand(file, argsOrOptions))
+    nodeSpawnDelegationDepth += 1
+    try {
+      return Reflect.apply(originalNodeSpawnSync, childProcess, [file, argsOrOptions, options])
+    } finally {
+      nodeSpawnDelegationDepth -= 1
+    }
+  }) as typeof childProcess.spawnSync
+
   const originalSpawn = Bun.spawn.bind(Bun)
   Bun.spawn = ((commandOrOptions: unknown, options?: unknown) => {
-    const command = normalizeCommand(commandOrOptions)
-    assertReadOnlyCommand(command)
-    record(command)
+    if (nodeSpawnDelegationDepth > 0) return originalSpawn(commandOrOptions as never, options as never)
+    const command = normalizeBunCommand(commandOrOptions)
+    guard(command)
     return originalSpawn(commandOrOptions as never, options as never)
   }) as typeof Bun.spawn
 
   if (typeof Bun.spawnSync === 'function') {
     const originalSpawnSync = Bun.spawnSync.bind(Bun)
     Bun.spawnSync = ((commandOrOptions: unknown, options?: unknown) => {
-      const command = normalizeCommand(commandOrOptions)
-      assertReadOnlyCommand(command)
-      record(command)
+      if (nodeSpawnDelegationDepth > 0) return originalSpawnSync(commandOrOptions as never, options as never)
+      const command = normalizeBunCommand(commandOrOptions)
+      guard(command)
       return originalSpawnSync(commandOrOptions as never, options as never)
     }) as typeof Bun.spawnSync
   }

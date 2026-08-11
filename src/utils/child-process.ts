@@ -14,16 +14,6 @@ export type SpawnOptions = Omit<NodeSpawnOptions, 'shell' | 'stdio'> & {
   stdio?: [SpawnStdio, SpawnStdio, SpawnStdio]
 }
 
-interface BunSpawnLike {
-  exitCode: number | null
-  exited: Promise<unknown>
-  kill?: (signal?: NodeJS.Signals | number) => boolean
-  pid?: number
-  stderr?: unknown
-  stdout?: unknown
-  unref?: () => void
-}
-
 export interface SpawnedProcessHandle {
   readonly exitCode: number | null
   readonly pid?: number
@@ -157,11 +147,7 @@ export function spawnCommand(command: SpawnCommand, options: SpawnOptions = {}):
     throw new Error('spawnCommand requires a non-empty command array.')
   }
 
-  const useCrossSpawn = shouldUseCrossSpawnOnWindows(file)
-  const bunSpawn = options.detached || useCrossSpawn ? undefined : getBunSpawn()
-  if (bunSpawn) return spawnWithBun([file, ...args], { ...options, env: options.env ?? process.env }, bunSpawn)
-
-  const child = (useCrossSpawn ? crossSpawn : spawn)(file, args, {
+  const child = crossSpawn(file, args, {
     ...options,
     env: options.env ?? process.env,
   })
@@ -291,40 +277,6 @@ async function readStreamText(stream: unknown): Promise<string> {
     return new Response(stream as unknown as ReadableStream).text()
   }
   return readText(stream as NodeJS.ReadableStream)
-}
-
-export function shouldUseCrossSpawnOnWindows(file: string, platform: NodeJS.Platform = process.platform): boolean {
-  if (platform !== 'win32') return false
-  if (/\.(?:bat|cmd)$/i.test(file)) return true
-  if (file.includes('/') || file.includes('\\')) return false
-  return !/\.[a-z0-9]+$/i.test(file)
-}
-
-function getBunSpawn(): ((command: string[], options?: SpawnOptions) => BunSpawnLike) | undefined {
-  const candidate = (globalThis as { Bun?: { spawn?: unknown } }).Bun?.spawn
-  return typeof candidate === 'function'
-    ? (candidate as (command: string[], options?: SpawnOptions) => BunSpawnLike)
-    : undefined
-}
-
-function spawnWithBun(
-  command: SpawnCommand,
-  options: SpawnOptions,
-  bunSpawn: (command: string[], options?: SpawnOptions) => BunSpawnLike,
-): SpawnedProcessHandle {
-  const proc = bunSpawn([...command], options)
-
-  return {
-    get exitCode() {
-      return proc.exitCode
-    },
-    pid: proc.pid,
-    stderr: proc.stderr as ChildProcess['stderr'],
-    stdout: proc.stdout as ChildProcess['stdout'],
-    exited: proc.exited.then(() => (typeof proc.exitCode === 'number' ? proc.exitCode : 1)),
-    kill: signal => proc.kill?.(signal) ?? false,
-    unref: () => proc.unref?.(),
-  }
 }
 
 export async function terminateProcessTree(proc: SpawnedProcessHandle, requestedGraceMs?: number): Promise<void> {

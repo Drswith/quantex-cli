@@ -10,7 +10,6 @@ import {
   readProcessOutputWithContext,
   readProcessOutput,
   runCommandWithContext,
-  shouldUseCrossSpawnOnWindows,
   spawnCommand,
   terminateWindowsProcessTree,
 } from '../../src/utils/child-process'
@@ -18,7 +17,6 @@ import { spawnWithQuantexStdio, waitForSpawnedCommand } from '../../src/utils/cl
 
 const mockSpawn = vi.fn()
 const crossSpawnOverride = vi.hoisted(() => vi.fn())
-let originalSpawn: typeof Bun.spawn
 
 vi.mock('cross-spawn', async importOriginal => {
   const actual = await importOriginal<unknown>()
@@ -31,15 +29,7 @@ vi.mock('cross-spawn', async importOriginal => {
   }
 })
 
-describe('Windows shim selection', () => {
-  it('routes extensionless PATH commands and explicit command shims through cross-spawn', () => {
-    expect(shouldUseCrossSpawnOnWindows('npm', 'win32')).toBe(true)
-    expect(shouldUseCrossSpawnOnWindows('npm.cmd', 'win32')).toBe(true)
-    expect(shouldUseCrossSpawnOnWindows('C:\\tools\\npm.cmd', 'win32')).toBe(true)
-    expect(shouldUseCrossSpawnOnWindows('npm.exe', 'win32')).toBe(false)
-    expect(shouldUseCrossSpawnOnWindows('npm', 'linux')).toBe(false)
-  })
-
+describe('cross-platform process launching', () => {
   it.skipIf(process.platform !== 'win32')('preserves metacharacter arguments without executing them', async () => {
     const root = await mkdtemp(join(tmpdir(), 'quantex-windows-shim-'))
     const capture = join(root, 'capture.cjs')
@@ -68,14 +58,11 @@ describe('spawnWithQuantexStdio', () => {
   let stderrWriteSpy: ReturnType<typeof vi.spyOn>
 
   beforeEach(() => {
-    originalSpawn = Bun.spawn
-    Bun.spawn = mockSpawn as any
     crossSpawnOverride.mockImplementation(mockSpawn)
     stderrWriteSpy = vi.spyOn(process.stderr, 'write').mockReturnValue(true)
   })
 
   afterEach(() => {
-    Bun.spawn = originalSpawn
     stderrWriteSpy.mockRestore()
     mockSpawn.mockReset()
     crossSpawnOverride.mockReset()
