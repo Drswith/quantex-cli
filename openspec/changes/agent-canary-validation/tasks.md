@@ -35,5 +35,5 @@
 ## 6. Follow-up validation and delivery
 
 - [x] 6.1 Run focused tests, lint, format check, typecheck, the full test suite, OpenSpec validation, and memory validation.
-- [ ] 6.2 Push the repair branch and dispatch a full canary run against the branch; triage any remaining failures without weakening semantic assertions.
+- [x] 6.2 Push the repair branch and dispatch a full canary run against the branch; triage any remaining failures without weakening semantic assertions.
 - [ ] 6.3 Deliver the repair through PR and report validation, merge, release, and archive-closure states separately.
