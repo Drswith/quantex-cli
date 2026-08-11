@@ -120,7 +120,7 @@ describe('workflow classification integration', () => {
 
     expect(ciWorkflow).toContain('node-version: 24')
     expect(setupBunAction).toContain('bun-version: ${{ inputs.bun-version }}')
-    expect(setupBunAction).toContain('default: 1.3.11')
+    expect(setupBunAction).toContain('default: 1.3.14')
     expect(setupBunAction).toContain("hashFiles('bun.lock', 'package.json', 'packages/*/package.json')")
     expect(sandboxWorkflow).toContain('./.github/actions/setup-bun')
     expect(ciWorkflow).toContain('bun run package:check')
