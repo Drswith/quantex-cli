@@ -140,6 +140,18 @@ describe('probePackagePresence', () => {
     expect(await probePackagePresence('mistral-vibe')).toBe('absent')
   })
 
+  it('returns absent when uv reports a successful empty tool inventory', async () => {
+    const { probePackagePresence } = await import('../../src/package-manager/uv')
+    mockSpawn.mockReturnValue({
+      exited: Promise.resolve(),
+      exitCode: 0,
+      stderr: 'No tools installed\n',
+      stdout: '',
+    })
+
+    expect(await probePackagePresence('mistral-vibe')).toBe('absent')
+  })
+
   it('returns unknown when uv tool list output is empty', async () => {
     const { probePackagePresence } = await import('../../src/package-manager/uv')
     mockSpawn.mockReturnValue({

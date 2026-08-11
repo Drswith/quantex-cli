@@ -101,6 +101,30 @@ describe('Core provider observation registry', () => {
     expect(outcome).toMatchObject({ kind: 'indeterminate', reason: expect.stringContaining('could not determine') })
   })
 
+  it('treats uv successful empty-tool output as conclusive absence', async () => {
+    const registry = createCoreProviderObservationRegistry(
+      dependencies({
+        runCommand: async () => ({ exitCode: 0, stderr: 'No tools installed\n', stdout: '' }),
+      }),
+    )
+
+    const outcome = await registry.get('uv')!.observe({ context: context(), target: targets.uv })
+
+    expect(outcome).toMatchObject({ kind: 'success', value: { kind: 'absent', target: targets.uv } })
+  })
+
+  it('keeps unexpected empty uv output indeterminate', async () => {
+    const registry = createCoreProviderObservationRegistry(
+      dependencies({
+        runCommand: async () => ({ exitCode: 0, stderr: 'unexpected warning\n', stdout: '' }),
+      }),
+    )
+
+    const outcome = await registry.get('uv')!.observe({ context: context(), target: targets.uv })
+
+    expect(outcome).toMatchObject({ kind: 'indeterminate', reason: expect.stringContaining('could not determine') })
+  })
+
   it('uses the Bun global manifest when a supported Bun list format omits the package@version token', async () => {
     const target: ProviderTarget = { id: '@scope/fixture', kind: 'package' }
     const readFile = vi.fn(async () => JSON.stringify({ dependencies: { '@scope/fixture': '1.2.3' } }))

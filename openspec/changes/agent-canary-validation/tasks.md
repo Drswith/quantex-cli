@@ -30,6 +30,7 @@
 - [x] 5.6 Add deterministic matrix, smoke-policy, workflow, and regression coverage for the repaired behavior.
 - [x] 5.7 Update the isolation runbook with pass/fail/skip and provider-capability semantics.
 - [x] 5.8 Align matrix metadata with production-selectable provider ordering and distinguish pre-install skips from exact cleanup-stage source conflicts.
+- [x] 5.9 Make legacy and Core uv probes classify the successful explicit empty-tool inventory as absent while preserving fail-closed unknown output.
 
 ## 6. Follow-up validation and delivery
 

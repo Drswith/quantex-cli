@@ -94,9 +94,11 @@ async function readPackagePresence(
   try {
     const proc = spawnCommand(['uv', 'tool', 'list'], {
       detached: context !== undefined && process.platform !== 'win32',
-      stdio: ['ignore', 'pipe', 'ignore'],
+      stdio: ['ignore', 'pipe', 'pipe'],
     })
-    const { stdout } = context ? await readProcessOutputWithContext(proc, context) : await readProcessOutput(proc)
+    const result = context ? await readProcessOutputWithContext(proc, context) : await readProcessOutput(proc)
+    const { stdout } = result
+    if (isUvEmptyToolInventory(result)) return { presence: 'absent' }
     if (!stdout.trim()) return { presence: 'unknown' }
 
     const version = parseToolListVersion(stdout, packageName)
@@ -126,6 +128,15 @@ export async function getInstalledVersion(
 
 function hasUvToolEntries(output: string): boolean {
   return output.split(/\r?\n/).some(line => /^\S+\s+v[^\s]+/.test(line.trim()))
+}
+
+function isUvEmptyToolInventory(result: { exitCode: number | null; stderr: string; stdout: string }): boolean {
+  if (result.exitCode !== 0) return false
+  const messages = `${result.stdout}\n${result.stderr}`
+    .split(/\r?\n/)
+    .map(line => line.trim())
+    .filter(Boolean)
+  return messages.length === 1 && /^no tools installed\.?$/i.test(messages[0]!)
 }
 
 export function parseToolListVersion(output: string, packageName: string): string | undefined {

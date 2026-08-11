@@ -11,6 +11,7 @@ This implementation request is classified as a durable test and CI workflow chan
 - Make the version probe read stderr when a successful agent emits no stdout, with regression coverage for both the legacy and Core observation paths.
 - Run the quick canary matrix on relevant pull requests and the full catalog matrix on a schedule or manual dispatch using fresh GitHub-hosted runners. Provision the provider toolchain selected by the matrix, use a canary Bun version that satisfies current real-agent engine requirements, and keep Modal/Docker for explicit isolation transport validation.
 - Align cleanup assertions with provider capabilities: managed providers must remove their executable, while install-only script providers must clear Quantex tracking and rely on destruction of the disposable runner for physical cleanup. A reviewed, typed post-uninstall source conflict remains distinct from a pass and is reported as a cleanup-stage skip. Preserve the in-flight agent for best-effort cleanup when any assertion fails.
+- Treat uv's successful `No tools installed` result as conclusive package absence in both legacy and Core observation, while keeping unexplained empty output indeterminate.
 - Align path taxonomy, workflow tests, and the isolation runbook with the new split between fast real canaries and slower broad isolation runs.
 
 ## Capabilities
@@ -21,11 +22,11 @@ This implementation request is classified as a durable test and CI workflow chan
 
 ### Modified Capabilities
 
-- None. Existing Modal/Docker isolation behavior remains available; the new canary capability adds a separate validation layer.
+- `agent-update`: Align legacy and Core uv package-presence observation for a successful empty tool inventory.
 
 ## Impact
 
-- Affected code: `scripts/smoke/lifecycle-smoke.ts`, `scripts/ci/agent-canary-matrix.ts`, version observation code, and focused Vitest coverage.
+- Affected code: `scripts/smoke/lifecycle-smoke.ts`, `scripts/ci/agent-canary-matrix.ts`, version and uv package-presence observation code, and focused Vitest coverage.
 - Affected workflow: a new GitHub Actions canary workflow and path-taxonomy/test fixtures.
 - Affected documentation: the Modal sandbox runbook and contributor-facing validation guidance.
 - No product CLI flags, persisted state formats, or agent catalog entries are changed.

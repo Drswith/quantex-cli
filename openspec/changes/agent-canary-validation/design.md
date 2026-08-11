@@ -47,6 +47,10 @@ The selected provider also defines cleanup semantics. When the provider supports
 
 The legacy version utility and Core production observation use the same precedence rule: parse stdout when it contains output; otherwise parse stderr; preserve the existing parser and non-zero-exit behavior. This is intentionally generic instead of a Pi-only catalog exception, because a CLI's output stream is an integration detail shared by future agents.
 
+### Successful empty uv inventory is absent
+
+`uv tool list` exits zero on a fresh tool directory, writes no tool entries to stdout, and emits `No tools installed` on stderr. Treating every empty stdout as unknown prevents a safe fresh install before the upstream package is even contacted. Both the legacy package-manager probe and Core's read-only provider registry therefore classify only that exact successful empty-inventory marker as absent. A non-zero command, an unexpected warning, or empty output without the marker remains unknown or indeterminate; the change does not broaden mutation authority from ambiguous evidence.
+
 ### GitHub-hosted runner as the default real environment
 
 The new workflow runs the quick matrix for relevant pull-request paths and the full matrix on a weekly schedule or manual dispatch. Each matrix job gets a fresh `ubuntu-latest` runner, a temporary HOME/Bun install root, and no external credentials. Bun/npm selections are made effective through the existing default-package-manager contract; catalog-first uv and Deno entries receive their required toolchain without writing unsupported values into product config. The canary can use a newer Bun than the repository build pin when a current real-agent package declares that runtime minimum. The workflow is advisory and is not added to required branch protection. Modal remains in `sandbox-tests.yml` for explicit remote transport and sandbox scenarios rather than being invoked on every edit.
@@ -66,6 +70,7 @@ The path taxonomy marks the canary script and workflow as sandbox-relevant. Work
 - [A managed provider removes its package but leaves another executable] -> Accept only the reviewed structured source-conflict outcome after semantic assertions and report the cleanup phase as skipped.
 - [An install-only provider cannot remove its binary] -> Assert Quantex untracking, keep failure cleanup best-effort, and let runner destruction provide physical isolation instead of asserting a capability the provider does not have.
 - [Runner state leaks between steps] -> Set HOME and BUN_INSTALL to runner-temporary paths and run one agent per job; the smoke `finally` block performs best-effort uninstall cleanup.
+- [uv changes its empty-inventory output] -> Match only the successful explicit marker and keep every unrecognized empty result indeterminate until the contract is reviewed.
 
 ## Migration Plan
 
