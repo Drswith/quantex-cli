@@ -73,13 +73,88 @@ function normalizeBunCommand(value: unknown): string[] {
   throw blocked([], 'unsupported Bun spawn input')
 }
 
-function normalizeNodeCommand(file: unknown, argsOrOptions: unknown): string[] {
+export function normalizeNodeCommand(file: unknown, argsOrOptions: unknown): string[] {
   if (typeof file !== 'string') throw blocked([], 'unsupported Node spawn executable')
   if (argsOrOptions === undefined || !Array.isArray(argsOrOptions)) return [file]
   if (!argsOrOptions.every(argument => typeof argument === 'string')) {
     throw blocked([file], 'unsupported Node spawn arguments')
   }
-  return [file, ...argsOrOptions]
+  const command = [file, ...argsOrOptions]
+  return unwrapCrossSpawnWindowsShell(command) ?? command
+}
+
+function unwrapCrossSpawnWindowsShell(command: string[]): string[] | undefined {
+  const [file, ...args] = command
+  if (!file || !['cmd', 'cmd.exe'].includes(basename(file).toLowerCase())) return undefined
+  if (
+    args.length !== 4 ||
+    args[0]?.toLowerCase() !== '/d' ||
+    args[1]?.toLowerCase() !== '/s' ||
+    args[2]?.toLowerCase() !== '/c'
+  ) {
+    throw blocked(command, 'unsupported Windows command-shell wrapper')
+  }
+
+  const shellCommand = args[3]
+  if (!shellCommand?.startsWith('"') || !shellCommand.endsWith('"')) {
+    throw blocked(command, 'unsupported Windows command-shell payload')
+  }
+  const encodedTokens = splitCrossSpawnShellTokens(shellCommand.slice(1, -1))
+  const [encodedFile, ...encodedArgs] = encodedTokens
+  if (!encodedFile) throw blocked(command, 'empty Windows command-shell payload')
+
+  const decodedFile = decodeCaretEscapes(encodedFile)
+  if (decodedFile.includes('"')) throw blocked(command, 'unsupported Windows executable quoting')
+  return [decodedFile, ...encodedArgs.map(argument => decodeCrossSpawnArgument(argument, command))]
+}
+
+function splitCrossSpawnShellTokens(value: string): string[] {
+  const tokens: string[] = []
+  let token = ''
+  for (const character of value) {
+    if (character === ' ' && trailingCaretCount(token) % 2 === 0) {
+      if (!token) throw blocked([], 'empty Windows command-shell token')
+      tokens.push(token)
+      token = ''
+    } else {
+      token += character
+    }
+  }
+  if (token) tokens.push(token)
+  return tokens
+}
+
+function trailingCaretCount(value: string): number {
+  let count = 0
+  for (let index = value.length - 1; index >= 0 && value[index] === '^'; index -= 1) count += 1
+  return count
+}
+
+function decodeCrossSpawnArgument(value: string, command: readonly string[]): string {
+  let decoded = decodeCaretEscapes(value)
+  if (decoded.startsWith('^"') && decoded.endsWith('^"')) decoded = decodeCaretEscapes(decoded)
+  if (!decoded.startsWith('"') || !decoded.endsWith('"')) {
+    throw blocked(command, 'unsupported Windows command-shell argument')
+  }
+  const argument = decoded.slice(1, -1)
+  if (argument.includes('"')) throw blocked(command, 'unsupported Windows argument quoting')
+  return argument
+}
+
+function decodeCaretEscapes(value: string): string {
+  let decoded = ''
+  for (let index = 0; index < value.length; index += 1) {
+    const character = value[index]
+    if (character !== '^') {
+      decoded += character
+      continue
+    }
+    const escaped = value[index + 1]
+    if (escaped === undefined) throw blocked([], 'dangling Windows command-shell escape')
+    decoded += escaped
+    index += 1
+  }
+  return decoded
 }
 
 function guard(command: readonly string[]): void {

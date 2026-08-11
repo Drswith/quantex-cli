@@ -6,6 +6,7 @@ import { dirname, join } from 'node:path'
 import process from 'node:process'
 import { fileURLToPath } from 'node:url'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
+import { normalizeNodeCommand } from '../scripts/lib/read-only-spawn-guard'
 import { resolveExecutableFromPath } from '../scripts/lib/resolve-executable'
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..')
@@ -30,6 +31,13 @@ afterAll(async () => {
 })
 
 describe('read-only child-process guard preload', () => {
+  it('unwraps the command-shell form emitted by cross-spawn on Windows', () => {
+    expect(normalizeNodeCommand('cmd.exe', ['/d', '/s', '/c', '"bun ^"--version^""'])).toEqual(['bun', '--version'])
+    expect(
+      normalizeNodeCommand('cmd.exe', ['/d', '/s', '/c', '"npm ^^^"view^^^" ^^^"@scope/pkg^^^" ^^^"version^^^""']),
+    ).toEqual(['npm', 'view', '@scope/pkg', 'version'])
+  })
+
   it.each([
     ['npm install', ['npm', 'install', '--global', '@openai/codex']],
     ['bun add', ['bun', 'add', '--global', '@openai/codex']],

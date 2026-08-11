@@ -53,7 +53,7 @@ Alternative considered: retain a reduced fake Bun global for compatibility. Reje
 
 ### Guard both process families in read-only smoke runs
 
-The Bun preload will continue wrapping `Bun.spawn` and `Bun.spawnSync` for Bun-native repository scripts. It will additionally wrap the mutable `node:child_process` default export before application modules load, so `cross-spawn` calls are checked by the same allowlist and recorded in the same guard log.
+The Bun preload will continue wrapping `Bun.spawn` and `Bun.spawnSync` for Bun-native repository scripts. It will additionally wrap the mutable `node:child_process` default export before application modules load, so `cross-spawn` calls are checked by the same allowlist and recorded in the same guard log. On Windows, the guard will conservatively unwrap the exact `cmd.exe /d /s /c` encoding produced by `cross-spawn` for command shims before classifying and recording the logical provider command; unsupported shell forms remain blocked.
 
 Alternative considered: move the guard into `src/**`. Rejected because the guard is smoke infrastructure, not a user-facing application policy, and should not ship as product behavior.
 
