@@ -5,7 +5,7 @@ export const DEFAULT_ISOLATION_IMAGE =
   process.env.QTX_ISOLATION_IMAGE ||
   process.env.QTX_MODAL_IMAGE ||
   process.env.MODAL_SANDBOX_IMAGE ||
-  'docker.io/oven/bun:1.3.11'
+  'docker.io/oven/bun:1.3.14'
 
 export const DEFAULT_ISOLATION_SMOKE_ARGS: string[] = []
 

@@ -322,7 +322,7 @@ async function installProcessSentinels(binDir: string, logPath: string, codexPre
   for (const command of observedCommands) {
     await writeExecutable(
       join(binDir, command),
-      `#!/bin/sh\nprintf '%s\\n' '${command} '"$@" >> '${logPath}'\nif [ "$1" = "--version" ]; then\n  ${command === 'bun' ? "printf '%s\\n' '1.3.11'; exit 0" : 'exit 127'}\nfi\nexit 127\n`,
+      `#!/bin/sh\nprintf '%s\\n' '${command} '"$@" >> '${logPath}'\nif [ "$1" = "--version" ]; then\n  ${command === 'bun' ? "printf '%s\\n' '1.3.14'; exit 0" : 'exit 127'}\nfi\nexit 127\n`,
     )
   }
 

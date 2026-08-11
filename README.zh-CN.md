@@ -362,7 +362,7 @@ Apache-2.0
 [release-downloads-href]: https://github.com/Drswith/quantex-cli/releases
 [node-src]: https://img.shields.io/badge/node-%3E%3D20-339933?style=flat-square&logo=node.js&logoColor=white
 [node-href]: https://nodejs.org/
-[bun-src]: https://img.shields.io/badge/bun-1.3.11-fbf0df?style=flat-square&logo=bun&logoColor=000
+[bun-src]: https://img.shields.io/badge/bun-1.3.14-fbf0df?style=flat-square&logo=bun&logoColor=000
 [bun-href]: https://bun.sh/
 [platforms-src]: https://img.shields.io/badge/platform-macOS%20%7C%20Linux%20%7C%20Windows-555?style=flat-square
 [license-src]: https://img.shields.io/npm/l/quantex-cli?style=flat-square

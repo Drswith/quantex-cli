@@ -12,7 +12,7 @@ describe('workspace package-manager contract', () => {
     const bunVersion = manifest.packageManager?.replace(/^bun@/u, '')
 
     expect(bunfig).toMatch(/^\[install\]\nignoreScripts = true\n$/u)
-    expect(bunVersion).toBe('1.3.11')
+    expect(bunVersion).toBe('1.3.14')
     expect(manifest.devDependencies?.['bun-types']).toBe(bunVersion)
   })
 })
