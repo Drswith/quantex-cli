@@ -1,5 +1,10 @@
-## ADDED Requirements
+# runtime-boundaries Specification
 
+## Purpose
+
+Define the stable separation between Bun-powered repository and distribution tooling, runtime-neutral application code, external Bun provider operations, and the Node/standalone execution targets.
+
+## Requirements
 ### Requirement: Application runtime SHALL remain independent of the in-process Bun global
 
 Quantex application source under `src/**` SHALL NOT read, call, replace, or type against the process-wide `Bun` global. Generic process execution SHALL use a runtime-neutral boundary that works for both the Node 20 JavaScript distribution and standalone compiled binaries.
