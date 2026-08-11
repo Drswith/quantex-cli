@@ -4,8 +4,8 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import process from 'node:process'
 import { PROVIDER_UNAVAILABLE_LIFECYCLE } from '../../src/commands/installation-failure-diagnostics'
-import { loadConfig } from '../../src/config'
-import { getInstallLifecycle } from '../../src/package-manager/capabilities'
+import { type DefaultPackageManager, loadConfig } from '../../src/config'
+import { canUninstallInstallType, getInstallLifecycle } from '../../src/package-manager/capabilities'
 import { resolveManagedSelfUpdateRegistry } from '../../src/self'
 import { getStateFilePath } from '../../src/state'
 import {
@@ -50,7 +50,14 @@ const cli = ['bun', 'run', 'src/cli.ts', '--json', '--non-interactive', '--yes',
 console.log(`Lifecycle smoke agents: ${agents.join(', ')}`)
 console.log(`Lifecycle smoke scenarios: ${scenarios.join(', ')}`)
 
-await runJson('config set defaultPackageManager bun', [...cli, 'config', 'set', 'defaultPackageManager', 'bun'])
+const defaultPackageManager = resolveCanaryDefaultPackageManager()
+await runJson(`config set defaultPackageManager ${defaultPackageManager}`, [
+  ...cli,
+  'config',
+  'set',
+  'defaultPackageManager',
+  defaultPackageManager,
+])
 
 const installedAgents: string[] = []
 /** Entries the runner could not exercise, kept distinct from entries that passed. */
@@ -73,11 +80,8 @@ try {
   if (scenarios.includes('probe')) {
     for (const agent of agents) {
       installedAgents.push(agent)
-      try {
-        await smokeAgentVersionProbe(agent)
-      } finally {
-        installedAgents.pop()
-      }
+      await smokeAgentVersionProbe(agent)
+      installedAgents.pop()
     }
   }
 
@@ -203,12 +207,37 @@ async function smokeManagedAgentLifecycle(agent: string): Promise<void> {
  * guessed.
  */
 function resolveExpectedCanaryLifecycle(): 'managed' | 'unmanaged' | undefined {
-  const provider = process.env.QTX_CANARY_PROVIDER?.trim()
+  const provider = resolveCanaryProvider()
   if (!provider) return undefined
-  return getInstallLifecycle(provider as InstallType)
+  return getInstallLifecycle(provider)
+}
+
+function resolveCanaryProvider(): InstallType | undefined {
+  const provider = process.env.QTX_CANARY_PROVIDER?.trim()
+  return provider ? (provider as InstallType) : undefined
+}
+
+function resolveCanaryDefaultPackageManager(): DefaultPackageManager {
+  const provider = resolveCanaryProvider()
+  return scenarios.includes('probe') && isCanaryDefaultPackageManager(provider) ? provider : 'bun'
+}
+
+function isCanaryDefaultPackageManager(provider: InstallType | undefined): provider is DefaultPackageManager {
+  return provider === 'bun' || provider === 'mise' || provider === 'npm'
+}
+
+function resolveCanaryUninstallCapability(): boolean | undefined {
+  const provider = resolveCanaryProvider()
+  return provider ? canUninstallInstallType(provider) : undefined
 }
 
 async function smokeAgentVersionProbe(agent: string): Promise<void> {
+  const skipReason = process.env.QTX_CANARY_SKIP_REASON?.trim()
+  if (skipReason) {
+    recordCanarySkip(agent, skipReason)
+    return
+  }
+
   const requireVersion = process.env.QTX_CANARY_REQUIRE_VERSION !== 'false'
 
   console.log(`\n[${agent}] canary inspect before install`)
@@ -230,8 +259,10 @@ async function smokeAgentVersionProbe(agent: string): Promise<void> {
       recordCanarySkip(agent, String(install.error.details.reason ?? install.error.message ?? 'no provider available'))
       return
     }
+    const reason = install.error?.details?.reason
+    const reasonSuffix = typeof reason === 'string' && reason.trim() ? ` (${reason.trim()})` : ''
     throw new Error(
-      `probe install ${agent} returned ok=false: ${install.error?.code ?? 'UNKNOWN'} ${install.error?.message ?? ''}`,
+      `probe install ${agent} returned ok=false: ${install.error?.code ?? 'UNKNOWN'} ${install.error?.message ?? ''}${reasonSuffix}`,
     )
   }
   assertResult(install, result => result.data?.installed === true, `${agent} canary install should succeed`)
@@ -269,13 +300,38 @@ async function smokeAgentVersionProbe(agent: string): Promise<void> {
     throw new Error(`${agent} canary list and inspect versions must agree`)
   }
 
-  console.log(`[${agent}] canary uninstall`)
-  const uninstall = await runJson(`probe uninstall ${agent}`, [...cli, 'uninstall', agent])
+  const canUninstall = resolveCanaryUninstallCapability()
+  console.log(`[${agent}] canary ${canUninstall === false ? 'untrack' : 'uninstall'}`)
+  const cleanupSkipReason = process.env.QTX_CANARY_CLEANUP_SKIP_REASON?.trim()
+  const uninstall = await runJson(`probe uninstall ${agent}`, [...cli, 'uninstall', agent], {
+    allowFailure: Boolean(cleanupSkipReason),
+  })
+  if (uninstall.ok !== true) {
+    if (
+      cleanupSkipReason &&
+      uninstall.error?.code === 'UNINSTALL_FAILED' &&
+      uninstall.error.details?.lifecycle === 'conflicting-source'
+    ) {
+      recordCanarySkip(agent, `cleanup: ${cleanupSkipReason}`)
+      console.log(`[${agent}] remaining files are confined to the disposable runner`)
+      return
+    }
+    throw new Error(
+      `probe uninstall ${agent} returned ok=false: ${uninstall.error?.code ?? 'UNKNOWN'} ${uninstall.error?.message ?? ''}`,
+    )
+  }
   assertResult(
     uninstall,
     result => result.data?.changed === true,
     `${agent} canary uninstall should report changed=true`,
   )
+
+  if (canUninstall === false) {
+    console.log(
+      `[${agent}] physical cleanup delegated to disposable runner because ${resolveCanaryProvider()} cannot uninstall`,
+    )
+    return
+  }
 
   const afterUninstall = await runJson(`probe inspect ${agent} after uninstall`, [
     ...cli,

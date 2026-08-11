@@ -377,6 +377,7 @@ async function probeUv(
   dependencies: CoreProviderObservationDependencies,
 ): Promise<PackageProbe> {
   const result = await safelyRun(['uv', 'tool', 'list'], context, dependencies)
+  if (result && isUvEmptyToolInventory(result)) return { presence: 'absent' }
   if (!result?.stdout.trim()) return { presence: 'unknown' }
   const expected = normalizePythonName(packageName)
   let hasEntries = false
@@ -387,6 +388,15 @@ async function probeUv(
     if (normalizePythonName(match[1]!) === expected) return { presence: 'present', version: match[2] }
   }
   return hasEntries ? { presence: 'absent' } : { presence: 'unknown' }
+}
+
+function isUvEmptyToolInventory(result: ReadOnlyCommandResult): boolean {
+  if (result.exitCode !== 0) return false
+  const messages = `${result.stdout}\n${result.stderr}`
+    .split(/\r?\n/u)
+    .map(line => line.trim())
+    .filter(Boolean)
+  return messages.length === 1 && /^no tools installed\.?$/iu.test(messages[0]!)
 }
 
 async function probeWinget(

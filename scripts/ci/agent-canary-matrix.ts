@@ -1,4 +1,4 @@
-import type { AgentDefinition, Platform } from '../../src/agents'
+import type { AgentDefinition, InstallMethod, InstallType, Platform } from '../../src/agents'
 import { readFile } from 'node:fs/promises'
 import { fileURLToPath } from 'node:url'
 import { getAllAgents } from '../../src/agents'
@@ -7,8 +7,10 @@ export type CanaryScope = 'full' | 'quick'
 
 export interface CanaryMatrixEntry {
   readonly agent: string
-  readonly provider: string
+  readonly cleanupSkipReason: string
+  readonly provider: InstallType
   readonly requireVersion: boolean
+  readonly skipReason: string
 }
 
 export interface CanaryMatrix {
@@ -16,6 +18,30 @@ export interface CanaryMatrix {
 }
 
 export const QUICK_CANARY_AGENTS = ['codex', 'opencode', 'pi', 'qoder'] as const
+
+// Core can only reorder these providers through defaultPackageManager. When an
+// agent exposes neither, retain catalog order so the matrix describes the same
+// provider that the production CLI will actually select.
+const CI_CONFIGURABLE_PROVIDER_PREFERENCE = ['bun', 'npm'] as const satisfies readonly InstallType[]
+
+const CANARY_PROVIDER_OVERRIDES: Readonly<Partial<Record<string, InstallType>>> = Object.freeze({
+  // Amp's nested postinstall is blocked by Bun's deliberately narrow global
+  // trust flow. npm is an existing product-supported preference, and the quick
+  // anchors retain real Bun coverage.
+  amp: 'npm',
+})
+
+export const CANARY_UNSUPPORTED_RUNNER_REASONS: Readonly<Partial<Record<string, string>>> = Object.freeze({
+  devin: 'the official installer starts an interactive login flow after downloading the CLI',
+  goose: 'the official installer opens /dev/tty during interactive configuration',
+  junie:
+    'the current managed package writes its executable outside the package-manager root, so provider-source verification cannot complete',
+  vibe: 'the catalog-preferred installer updates PATH only for a future shell and exits non-zero in the current non-interactive job',
+})
+
+export const CANARY_CLEANUP_RUNNER_REASONS: Readonly<Partial<Record<string, string>>> = Object.freeze({
+  claude: 'Bun removes the managed package, but a second Claude executable remains on PATH after the version probe',
+})
 
 const CATALOG_DIRECTORY = fileURLToPath(new URL('../../src/agents/catalog/', import.meta.url))
 
@@ -38,8 +64,8 @@ export async function resolveCanaryMatrix(scope: CanaryScope, platform: Platform
 
   for (const agent of agents) {
     const methods = agent.platforms[platform] ?? []
-    const selectedMethodIndex = methods.findIndex(method => method.type === 'bun')
-    const selectedMethod = methods[selectedMethodIndex >= 0 ? selectedMethodIndex : 0]
+    const selectedMethodIndex = selectCanaryMethodIndex(agent, methods)
+    const selectedMethod = methods[selectedMethodIndex]
     if (!selectedMethod) {
       if (scope === 'quick') {
         throw new Error(`Quick canary agent "${agent.name}" has no ${platform} install candidate.`)
@@ -56,13 +82,33 @@ export async function resolveCanaryMatrix(scope: CanaryScope, platform: Platform
 
     entries.push({
       agent: agent.name,
+      cleanupSkipReason: CANARY_CLEANUP_RUNNER_REASONS[agent.name] ?? '',
       provider: selectedMethod.type,
       requireVersion: hasInstalledVersionProbe(rawCandidate.probes),
+      skipReason: CANARY_UNSUPPORTED_RUNNER_REASONS[agent.name] ?? '',
     })
   }
 
   entries.sort((left, right) => left.agent.localeCompare(right.agent))
   return { include: entries }
+}
+
+function selectCanaryMethodIndex(agent: AgentDefinition, methods: readonly InstallMethod[]): number {
+  const override = CANARY_PROVIDER_OVERRIDES[agent.name]
+  if (override) {
+    const overrideIndex = methods.findIndex(method => method.type === override)
+    if (overrideIndex === -1) {
+      throw new Error(`Canary provider override for "${agent.name}" references missing ${override} candidate.`)
+    }
+    return overrideIndex
+  }
+
+  for (const provider of CI_CONFIGURABLE_PROVIDER_PREFERENCE) {
+    const providerIndex = methods.findIndex(method => method.type === provider)
+    if (providerIndex !== -1) return providerIndex
+  }
+
+  return 0
 }
 
 function resolveQuickAgents(catalogAgents: AgentDefinition[], platform: Platform): AgentDefinition[] {

@@ -78,6 +78,11 @@ describe('workflow classification integration', () => {
     expect(agentCanaryWorkflow).toContain('QTX_ISOLATION_SCENARIOS: probe')
     expect(agentCanaryWorkflow).toContain('HOME: /tmp/quantex-home')
     expect(agentCanaryWorkflow).toContain('QTX_CANARY_REQUIRE_VERSION')
+    expect(agentCanaryWorkflow).toContain('QTX_CANARY_SKIP_REASON')
+    expect(agentCanaryWorkflow).toContain('QTX_CANARY_CLEANUP_SKIP_REASON')
+    expect(agentCanaryWorkflow).toContain('denoland/setup-deno@22d081ff2d3a40755e97629de92e3bcbfa7cf2ed')
+    expect(agentCanaryWorkflow).toContain('astral-sh/setup-uv@c771a70e6277c0a99b617c7a806ffedaca235ff9')
+    expect(agentCanaryWorkflow).toContain('bun-version: 1.3.14')
     expect(agentCanaryWorkflow).not.toContain('MODAL_TOKEN')
   })
 
@@ -114,6 +119,8 @@ describe('workflow classification integration', () => {
     const setupBunAction = readFileSync('.github/actions/setup-bun/action.yml', 'utf8')
 
     expect(ciWorkflow).toContain('node-version: 24')
+    expect(setupBunAction).toContain('bun-version: ${{ inputs.bun-version }}')
+    expect(setupBunAction).toContain('default: 1.3.14')
     expect(setupBunAction).toContain("hashFiles('bun.lock', 'package.json', 'packages/*/package.json')")
     expect(sandboxWorkflow).toContain('./.github/actions/setup-bun')
     expect(ciWorkflow).toContain('bun run package:check')

@@ -19,3 +19,21 @@
 - [x] 4.1 Update the isolation runbook and contributor guidance to distinguish quick real canaries, full scheduled sweeps, and Modal/Docker transport checks.
 - [x] 4.2 Run lint, format check, typecheck, test, OpenSpec validation, and memory validation; record any external-runner limitations.
 - [x] 4.3 Mark completed tasks and report local, repository, PR, release, and archive-closure status.
+
+## 5. Full-scope failure repair
+
+- [x] 5.1 Compare the scheduled run `31244555662` with manual full run `31449277089` and classify every stable failure by provider capability, installer precondition, toolchain, or semantic assertion.
+- [x] 5.2 Amend the canary contract so provider selection, explicit runner incompatibilities, failure cleanup, and install-only cleanup are represented honestly.
+- [x] 5.3 Make full-scope provider selection prefer CI-ready managed candidates while retaining every Linux catalog agent and explicit skip reasons in the matrix.
+- [x] 5.4 Provision selected uv and Deno toolchains and allow the canary to use the current compatible Bun release without changing the repository build/release pin.
+- [x] 5.5 Make the probe select the matrix provider, preserve failed installs for outer cleanup, and assert physical removal only when the provider supports uninstall.
+- [x] 5.6 Add deterministic matrix, smoke-policy, workflow, and regression coverage for the repaired behavior.
+- [x] 5.7 Update the isolation runbook with pass/fail/skip and provider-capability semantics.
+- [x] 5.8 Align matrix metadata with production-selectable provider ordering and distinguish pre-install skips from exact cleanup-stage source conflicts.
+- [x] 5.9 Make legacy and Core uv probes classify the successful explicit empty-tool inventory as absent while preserving fail-closed unknown output.
+
+## 6. Follow-up validation and delivery
+
+- [x] 6.1 Run focused tests, lint, format check, typecheck, the full test suite, OpenSpec validation, and memory validation.
+- [x] 6.2 Push the repair branch and dispatch a full canary run against the branch; triage any remaining failures without weakening semantic assertions.
+- [x] 6.3 Deliver the repair through PR and report validation, merge, release, and archive-closure states separately.
