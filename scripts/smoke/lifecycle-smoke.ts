@@ -3,7 +3,7 @@ import { access, chmod, cp, mkdir, mkdtemp, readFile, readdir, rm, writeFile } f
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import process from 'node:process'
-import { PROVIDER_UNAVAILABLE_LIFECYCLE } from '../../src/commands/installation-failure-diagnostics'
+import { getAgentByNameOrAlias } from '../../src/agents'
 import { type DefaultPackageManager, loadConfig } from '../../src/config'
 import { canUninstallInstallType, getInstallLifecycle } from '../../src/package-manager/capabilities'
 import { resolveManagedSelfUpdateRegistry } from '../../src/self'
@@ -60,13 +60,7 @@ await runJson(`config set defaultPackageManager ${defaultPackageManager}`, [
 ])
 
 const installedAgents: string[] = []
-/** Entries the runner could not exercise, kept distinct from entries that passed. */
-const skippedAgents: Array<{ agent: string; reason: string }> = []
-
-function recordCanarySkip(agent: string, reason: string): void {
-  skippedAgents.push({ agent, reason })
-  console.log(`[${agent}] canary SKIPPED: ${reason}`)
-}
+const deferredSetups: string[] = []
 
 try {
   if (scenarios.includes('managed')) {
@@ -107,18 +101,12 @@ try {
     })
 }
 
-// Report skips by name so a run that quietly degrades into all-skips is visible
-// rather than reading as a clean pass.
-if (skippedAgents.length > 0) {
-  console.log(`Lifecycle smoke skipped ${skippedAgents.length} agent(s):`)
-  for (const { agent, reason } of skippedAgents) console.log(`  - ${agent}: ${reason}`)
+if (deferredSetups.length > 0) {
+  console.log(`Lifecycle smoke completed binary validation with ${deferredSetups.length} deferred account setup(s):`)
+  for (const agent of deferredSetups) console.log(`  - ${agent}: account authentication not exercised`)
 }
 
-console.log(
-  skippedAgents.length > 0
-    ? `Lifecycle smoke completed with ${skippedAgents.length} skipped agent(s).`
-    : 'Lifecycle smoke completed successfully.',
-)
+console.log('Lifecycle smoke completed successfully.')
 
 async function smokeManagedAgentLifecycle(agent: string): Promise<void> {
   console.log(`\n[${agent}] inspect before install`)
@@ -223,7 +211,7 @@ function resolveCanaryDefaultPackageManager(): DefaultPackageManager {
 }
 
 function isCanaryDefaultPackageManager(provider: InstallType | undefined): provider is DefaultPackageManager {
-  return provider === 'bun' || provider === 'mise' || provider === 'npm'
+  return provider === 'bun' || provider === 'mise' || provider === 'npm' || provider === 'uv'
 }
 
 function resolveCanaryUninstallCapability(): boolean | undefined {
@@ -232,40 +220,37 @@ function resolveCanaryUninstallCapability(): boolean | undefined {
 }
 
 async function smokeAgentVersionProbe(agent: string): Promise<void> {
-  const skipReason = process.env.QTX_CANARY_SKIP_REASON?.trim()
-  if (skipReason) {
-    recordCanarySkip(agent, skipReason)
-    return
-  }
-
   const requireVersion = process.env.QTX_CANARY_REQUIRE_VERSION !== 'false'
+  const binaryLifecycle = process.env.QTX_CANARY_COVERAGE === 'binary-lifecycle'
 
   console.log(`\n[${agent}] canary inspect before install`)
   const beforeInstall = await runJson(`probe inspect ${agent} before install`, [...cli, 'inspect', agent])
-  assertResult(
-    beforeInstall,
-    result => result.data?.inspection?.installed === false,
-    `${agent} canary should start uninstalled`,
-  )
-
-  console.log(`[${agent}] canary install`)
-  // The canary reports on Quantex and on upstream installers. Which toolchains a
-  // runner image happens to ship is neither, so an entry with no available
-  // provider is skipped instead of failing the job. The marker is typed; do not
-  // re-match the human message here.
-  const install = await runJson(`probe install ${agent}`, [...cli, 'install', agent], { allowFailure: true })
-  if (install.ok !== true) {
-    if (install.error?.details?.lifecycle === PROVIDER_UNAVAILABLE_LIFECYCLE) {
-      recordCanarySkip(agent, String(install.error.details.reason ?? install.error.message ?? 'no provider available'))
-      return
-    }
-    const reason = install.error?.details?.reason
-    const reasonSuffix = typeof reason === 'string' && reason.trim() ? ` (${reason.trim()})` : ''
-    throw new Error(
-      `probe install ${agent} returned ok=false: ${install.error?.code ?? 'UNKNOWN'} ${install.error?.message ?? ''}${reasonSuffix}`,
+  if (binaryLifecycle) {
+    assertResult(
+      beforeInstall,
+      result => result.data?.inspection?.installed === true && result.data?.inspection?.lifecycle === 'unmanaged',
+      `${agent} binary-lifecycle canary should start with an untracked executable`,
+    )
+    deferredSetups.push(agent)
+    console.log(`[${agent}] account setup DEFERRED: binary lifecycle is credential-free; authentication is not`)
+  } else {
+    assertResult(
+      beforeInstall,
+      result => result.data?.inspection?.installed === false,
+      `${agent} canary should start uninstalled`,
     )
   }
+
+  console.log(`[${agent}] canary ${binaryLifecycle ? 'adopt preinstalled binary' : 'install'}`)
+  const install = await runJson(`probe install ${agent}`, [...cli, 'install', agent])
   assertResult(install, result => result.data?.installed === true, `${agent} canary install should succeed`)
+  if (binaryLifecycle) {
+    assertResult(
+      install,
+      result => result.warnings?.some(warning => warning.code === 'TRACKED_EXISTING_INSTALL') === true,
+      `${agent} binary-lifecycle canary should adopt the supported existing source`,
+    )
+  }
 
   console.log(`[${agent}] canary inspect after install`)
   const afterInstall = await runJson(`probe inspect ${agent} after install`, [...cli, 'inspect', agent, '--refresh'])
@@ -302,24 +287,7 @@ async function smokeAgentVersionProbe(agent: string): Promise<void> {
 
   const canUninstall = resolveCanaryUninstallCapability()
   console.log(`[${agent}] canary ${canUninstall === false ? 'untrack' : 'uninstall'}`)
-  const cleanupSkipReason = process.env.QTX_CANARY_CLEANUP_SKIP_REASON?.trim()
-  const uninstall = await runJson(`probe uninstall ${agent}`, [...cli, 'uninstall', agent], {
-    allowFailure: Boolean(cleanupSkipReason),
-  })
-  if (uninstall.ok !== true) {
-    if (
-      cleanupSkipReason &&
-      uninstall.error?.code === 'UNINSTALL_FAILED' &&
-      uninstall.error.details?.lifecycle === 'conflicting-source'
-    ) {
-      recordCanarySkip(agent, `cleanup: ${cleanupSkipReason}`)
-      console.log(`[${agent}] remaining files are confined to the disposable runner`)
-      return
-    }
-    throw new Error(
-      `probe uninstall ${agent} returned ok=false: ${uninstall.error?.code ?? 'UNKNOWN'} ${uninstall.error?.message ?? ''}`,
-    )
-  }
+  const uninstall = await runJson(`probe uninstall ${agent}`, [...cli, 'uninstall', agent])
   assertResult(
     uninstall,
     result => result.data?.changed === true,
@@ -343,6 +311,56 @@ async function smokeAgentVersionProbe(agent: string): Promise<void> {
     afterUninstall,
     result => result.data?.inspection?.installed === false,
     `${agent} canary should be uninstalled after probing`,
+  )
+
+  if (process.env.QTX_CANARY_SOURCE_CONFLICT === 'true') {
+    await smokeAgentSourceConflict(agent)
+  }
+}
+
+async function smokeAgentSourceConflict(agent: string): Promise<void> {
+  const definition = getAgentByNameOrAlias(agent)
+  if (!definition) throw new Error(`Cannot run source-conflict canary for unknown agent ${agent}`)
+
+  console.log(`\n[${agent}] deliberate alternate-source conflict`)
+  const install = await runJson(`conflict install ${agent}`, [...cli, 'install', agent])
+  assertResult(install, result => result.data?.installed === true, `${agent} conflict fixture install should succeed`)
+
+  const fixtureDir = join(tmpdir(), `quantex-${agent}-source-conflict`)
+  const fixturePath = join(fixtureDir, definition.binaryName)
+  const conflictEnv = { PATH: `${process.env.PATH ?? ''}:${fixtureDir}` }
+  await mkdir(fixtureDir, { recursive: true })
+  await writeFile(
+    fixturePath,
+    `#!/usr/bin/env sh\nprintf '%s\\n' '${definition.displayName} 0.0.0 conflict-fixture'\n`,
+    'utf8',
+  )
+  await chmod(fixturePath, 0o755)
+
+  try {
+    const uninstall = await runJson(`conflict uninstall ${agent}`, [...cli, 'uninstall', agent], {
+      allowFailure: true,
+      env: conflictEnv,
+    })
+    assertResult(
+      uninstall,
+      result =>
+        result.ok === false &&
+        result.error?.code === 'UNINSTALL_FAILED' &&
+        result.error.details?.lifecycle === 'conflicting-source',
+      `${agent} alternate-source probe should return the typed conflicting-source failure`,
+    )
+  } finally {
+    await rm(fixtureDir, { force: true, recursive: true })
+  }
+
+  const cleanup = await runJson(`conflict final cleanup ${agent}`, [...cli, 'uninstall', agent])
+  assertResult(cleanup, result => result.data?.changed === true, `${agent} conflict fixture should clean final state`)
+  const afterCleanup = await runJson(`conflict inspect ${agent} after cleanup`, [...cli, 'inspect', agent, '--refresh'])
+  assertResult(
+    afterCleanup,
+    result => result.data?.inspection?.installed === false,
+    `${agent} conflict probe should finish fully uninstalled`,
   )
 }
 

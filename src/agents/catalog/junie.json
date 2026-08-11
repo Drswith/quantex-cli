@@ -25,7 +25,7 @@
         }
       },
       {
-        "probes": ["executable-presence"],
+        "probes": ["executable-presence", "installed-version"],
         "provider": "script",
         "target": {
           "id": "https://junie.jetbrains.com/install.ps1",
@@ -55,7 +55,7 @@
         }
       },
       {
-        "probes": ["executable-presence"],
+        "probes": ["executable-presence", "installed-version"],
         "provider": "script",
         "target": {
           "id": "https://junie.jetbrains.com/install.sh",
@@ -93,7 +93,7 @@
         }
       },
       {
-        "probes": ["executable-presence"],
+        "probes": ["executable-presence", "installed-version"],
         "provider": "script",
         "target": {
           "id": "https://junie.jetbrains.com/install.sh",

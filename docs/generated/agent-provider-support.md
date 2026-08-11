@@ -13,5 +13,5 @@
 | `pip` | 1 | `linux`, `macos`, `windows` | `package` | `executable-presence` |
 | `uv` | 2 | `linux`, `macos`, `windows` | `tool` | `executable-presence`, `installed-version`, `package-presence` |
 | `winget` | 3 | `windows` | `id` | `executable-presence` |
-| `script` | 25 | `linux`, `macos`, `windows` | `script` | `executable-presence` |
+| `script` | 25 | `linux`, `macos`, `windows` | `script` | `executable-presence`, `installed-version` |
 | `binary` | 0 | — | — | — |

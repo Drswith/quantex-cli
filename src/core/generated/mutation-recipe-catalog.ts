@@ -884,7 +884,7 @@ export const coreMutationRecipeCatalog = [
     platforms: {
       linux: [
         {
-          probes: ['executable-presence'],
+          probes: ['executable-presence', 'installed-version'],
           provider: 'script',
           target: {
             effect: {
@@ -898,7 +898,7 @@ export const coreMutationRecipeCatalog = [
       ],
       macos: [
         {
-          probes: ['executable-presence'],
+          probes: ['executable-presence', 'installed-version'],
           provider: 'script',
           target: {
             effect: {
@@ -912,7 +912,7 @@ export const coreMutationRecipeCatalog = [
       ],
       windows: [
         {
-          probes: ['executable-presence'],
+          probes: ['executable-presence', 'installed-version'],
           provider: 'script',
           target: {
             effect: {
@@ -1250,7 +1250,7 @@ export const coreMutationRecipeCatalog = [
     platforms: {
       linux: [
         {
-          probes: ['executable-presence'],
+          probes: ['executable-presence', 'installed-version'],
           provider: 'script',
           target: {
             effect: {
@@ -1272,7 +1272,7 @@ export const coreMutationRecipeCatalog = [
       ],
       macos: [
         {
-          probes: ['executable-presence'],
+          probes: ['executable-presence', 'installed-version'],
           provider: 'script',
           target: {
             effect: {
@@ -1294,7 +1294,7 @@ export const coreMutationRecipeCatalog = [
       ],
       windows: [
         {
-          probes: ['executable-presence'],
+          probes: ['executable-presence', 'installed-version'],
           provider: 'script',
           target: {
             effect: {
@@ -1306,7 +1306,7 @@ export const coreMutationRecipeCatalog = [
           },
         },
         {
-          probes: ['executable-presence'],
+          probes: ['executable-presence', 'installed-version'],
           provider: 'script',
           target: {
             effect: {
@@ -1491,7 +1491,7 @@ export const coreMutationRecipeCatalog = [
           },
         },
         {
-          probes: ['executable-presence'],
+          probes: ['executable-presence', 'installed-version'],
           provider: 'script',
           target: {
             effect: {
@@ -1529,7 +1529,7 @@ export const coreMutationRecipeCatalog = [
           },
         },
         {
-          probes: ['executable-presence'],
+          probes: ['executable-presence', 'installed-version'],
           provider: 'script',
           target: {
             effect: {
@@ -1567,7 +1567,7 @@ export const coreMutationRecipeCatalog = [
           },
         },
         {
-          probes: ['executable-presence'],
+          probes: ['executable-presence', 'installed-version'],
           provider: 'script',
           target: {
             effect: {

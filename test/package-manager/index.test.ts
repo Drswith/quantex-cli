@@ -590,6 +590,39 @@ describe('installAgent', () => {
     expect(miseInstallSpy).toHaveBeenCalledWith('npm:@openai/codex')
     expect(bunInstallSpy).not.toHaveBeenCalled()
   })
+
+  it('prefers uv when defaultPackageManager is uv and the agent exposes uv', async () => {
+    const multiMethodAgent = {
+      ...testAgent,
+      packages: { npm: 'mistral-vibe', uv: 'mistral-vibe' },
+      platforms: {
+        linux: [{ type: 'bun' as const }, { type: 'uv' as const }],
+      },
+    }
+
+    loadConfigSpy.mockResolvedValue({
+      defaultPackageManager: 'uv',
+      networkRetries: 2,
+      networkTimeoutMs: 10000,
+      npmBunUpdateStrategy: 'latest-major',
+      selfUpdateChannel: 'stable',
+      versionCacheTtlHours: 6,
+    })
+    isUvSpy.mockResolvedValue(true)
+    uvInstallSpy.mockResolvedValue(true)
+    setInstalledAgentStateSpy.mockResolvedValue()
+
+    expect(await installAgent(multiMethodAgent)).toEqual({
+      success: true,
+      installedState: {
+        agentName: 'test-agent',
+        installType: 'uv',
+        packageName: 'mistral-vibe',
+      },
+    })
+    expect(uvInstallSpy).toHaveBeenCalledWith('mistral-vibe', undefined)
+    expect(bunInstallSpy).not.toHaveBeenCalled()
+  })
 })
 
 describe('trackInstalledAgent', () => {

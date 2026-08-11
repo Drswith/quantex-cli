@@ -91,7 +91,7 @@ export async function configCommand(
             action: 'config',
             error: {
               code: 'INVALID_ARGUMENT',
-              message: 'defaultPackageManager must be bun, npm, or mise',
+              message: 'defaultPackageManager must be bun, npm, mise, or uv',
             },
             target: {
               kind: 'config',

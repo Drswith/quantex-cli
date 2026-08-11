@@ -16,7 +16,11 @@ describe('normalized script and standalone-binary catalog entries', () => {
           expect(candidate.target.id).toMatch(/^https?:\/\//)
           expect(candidate.target.effect.kind).toBe('shell-script')
           expect(candidate.target.effect.command).toContain(candidate.target.id)
-          expect(candidate.probes).toEqual(['executable-presence'])
+          expect(candidate.probes).toContain('executable-presence')
+          expect(
+            candidate.probes.every((probe: string) => ['executable-presence', 'installed-version'].includes(probe)),
+          ).toBe(true)
+          if (candidate.probes.includes('installed-version')) expect(rawEntry.versionProbe).toBeDefined()
         }
       }
     }

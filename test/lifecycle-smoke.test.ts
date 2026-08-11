@@ -30,10 +30,14 @@ describe('lifecycle smoke scenarios', () => {
   it('includes a focused real-agent probe with version assertions', () => {
     expect(lifecycleSmoke).toContain("scenarios.includes('probe')")
     expect(lifecycleSmoke).toContain('QTX_CANARY_REQUIRE_VERSION')
-    expect(lifecycleSmoke).toContain('QTX_CANARY_SKIP_REASON')
-    expect(lifecycleSmoke).toContain('QTX_CANARY_CLEANUP_SKIP_REASON')
+    expect(lifecycleSmoke).toContain("QTX_CANARY_COVERAGE === 'binary-lifecycle'")
+    expect(lifecycleSmoke).not.toContain('QTX_CANARY_SKIP_REASON')
+    expect(lifecycleSmoke).not.toContain('QTX_CANARY_CLEANUP_SKIP_REASON')
+    expect(lifecycleSmoke).not.toContain('recordCanarySkip')
     expect(lifecycleSmoke).toContain('canUninstallInstallType')
-    expect(lifecycleSmoke).toContain("uninstall.error.details?.lifecycle === 'conflicting-source'")
+    expect(lifecycleSmoke).toContain("result.error.details?.lifecycle === 'conflicting-source'")
+    expect(lifecycleSmoke).toContain('smokeAgentSourceConflict(agent)')
+    expect(lifecycleSmoke).toContain("warning.code === 'TRACKED_EXISTING_INSTALL'")
     expect(lifecycleSmoke).toContain('physical cleanup delegated to disposable runner')
     expect(lifecycleSmoke).toContain('installedVersion')
     expect(lifecycleSmoke).toContain("'list', '--refresh'")
@@ -44,7 +48,9 @@ describe('lifecycle smoke scenarios', () => {
   })
 
   it('only writes product-supported default package-manager values', () => {
-    expect(lifecycleSmoke).toContain("provider === 'bun' || provider === 'mise' || provider === 'npm'")
+    expect(lifecycleSmoke).toContain(
+      "provider === 'bun' || provider === 'mise' || provider === 'npm' || provider === 'uv'",
+    )
     expect(lifecycleSmoke).not.toContain('isManagedInstallType(provider) ? provider')
   })
 

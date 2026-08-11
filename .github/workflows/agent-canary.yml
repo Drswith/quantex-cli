@@ -60,7 +60,7 @@ jobs:
           echo "$matrix"
 
   canary:
-    name: Canary (${{ matrix.agent }})
+    name: Canary (${{ matrix.agent }}, ${{ matrix.coverage }})
     needs: resolve
     runs-on: ubuntu-latest
     timeout-minutes: 20
@@ -74,12 +74,16 @@ jobs:
       HOME: /tmp/quantex-home
       BUN_INSTALL: /tmp/quantex-home/.bun
       BUN_INSTALL_CACHE_DIR: .bun/install/cache
+      CONFIGURE: ${{ matrix.setup == 'skip-interactive-configuration' && 'false' || '' }}
+      DISABLE_AUTOUPDATER: ${{ matrix.disableUpdates && '1' || '' }}
+      DISABLE_UPDATES: ${{ matrix.disableUpdates && '1' || '' }}
       QTX_ISOLATION_AGENTS: ${{ matrix.agent }}
       QTX_ISOLATION_SCENARIOS: probe
+      QTX_CANARY_COVERAGE: ${{ matrix.coverage }}
       QTX_CANARY_REQUIRE_VERSION: ${{ matrix.requireVersion }}
       QTX_CANARY_PROVIDER: ${{ matrix.provider }}
-      QTX_CANARY_SKIP_REASON: ${{ matrix.skipReason }}
-      QTX_CANARY_CLEANUP_SKIP_REASON: ${{ matrix.cleanupSkipReason }}
+      QTX_CANARY_SETUP: ${{ matrix.setup }}
+      QTX_CANARY_SOURCE_CONFLICT: ${{ matrix.sourceConflictProbe }}
       QTX_ISOLATION_COMMAND_TIMEOUT_MS: 600000
     steps:
       - uses: actions/checkout@v7
@@ -100,7 +104,36 @@ jobs:
         uses: astral-sh/setup-uv@c771a70e6277c0a99b617c7a806ffedaca235ff9 # v9.0.0
       - name: Prepare disposable home
         run: |
-          mkdir -p "$HOME" "$BUN_INSTALL"
+          mkdir -p "$HOME" "$BUN_INSTALL" "$HOME/.local/bin"
           echo "$BUN_INSTALL/bin" >> "$GITHUB_PATH"
+          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+      - name: Acquire Devin binary without account setup
+        if: matrix.coverage == 'binary-lifecycle'
+        shell: bash
+        run: |
+          set -euo pipefail
+          set +e
+          timeout --signal=TERM --kill-after=10s 180s \
+            bash -o pipefail -c 'curl -fsSL https://cli.devin.ai/install.sh | bash' </dev/null
+          installer_status=$?
+          set -e
+
+          if [[ ! -x "$HOME/.local/bin/devin" ]]; then
+            echo "The official installer did not acquire the Devin executable (exit $installer_status)." >&2
+            exit 1
+          fi
+
+          "$HOME/.local/bin/devin" version
+          {
+            echo '### Devin credential-free coverage'
+            echo '- Binary acquisition and version: verified'
+            echo '- Quantex adoption, inspect, list, and version: pending lifecycle probe'
+            echo '- Account setup and authentication: deferred; requires a credentialed test identity'
+            echo "- Official installer status after entering setup: $installer_status"
+          } >> "$GITHUB_STEP_SUMMARY"
       - name: Run focused lifecycle probe
         run: bun run scripts/smoke/lifecycle-smoke.ts "$QTX_ISOLATION_AGENTS"
+      - name: Record Devin binary lifecycle result
+        if: success() && matrix.coverage == 'binary-lifecycle'
+        run: |
+          echo '- Quantex adoption, inspect, list, version, and untracking: verified' >> "$GITHUB_STEP_SUMMARY"

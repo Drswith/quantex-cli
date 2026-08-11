@@ -658,7 +658,7 @@
       "platforms": {
         "linux": [
           {
-            "probes": ["executable-presence"],
+            "probes": ["executable-presence", "installed-version"],
             "provider": "script",
             "targetId": "https://cli.devin.ai/install.sh",
             "targetKind": "script"
@@ -666,7 +666,7 @@
         ],
         "macos": [
           {
-            "probes": ["executable-presence"],
+            "probes": ["executable-presence", "installed-version"],
             "provider": "script",
             "targetId": "https://cli.devin.ai/install.sh",
             "targetKind": "script"
@@ -674,7 +674,7 @@
         ],
         "windows": [
           {
-            "probes": ["executable-presence"],
+            "probes": ["executable-presence", "installed-version"],
             "provider": "script",
             "targetId": "https://static.devin.ai/cli/setup.ps1",
             "targetKind": "script"
@@ -922,7 +922,7 @@
       "platforms": {
         "linux": [
           {
-            "probes": ["executable-presence"],
+            "probes": ["executable-presence", "installed-version"],
             "provider": "script",
             "targetId": "https://github.com/aaif-goose/goose/releases/download/stable/download_cli.sh",
             "targetKind": "script"
@@ -936,7 +936,7 @@
         ],
         "macos": [
           {
-            "probes": ["executable-presence"],
+            "probes": ["executable-presence", "installed-version"],
             "provider": "script",
             "targetId": "https://github.com/aaif-goose/goose/releases/download/stable/download_cli.sh",
             "targetKind": "script"
@@ -950,13 +950,13 @@
         ],
         "windows": [
           {
-            "probes": ["executable-presence"],
+            "probes": ["executable-presence", "installed-version"],
             "provider": "script",
             "targetId": "https://github.com/aaif-goose/goose/releases/download/stable/download_cli.sh",
             "targetKind": "script"
           },
           {
-            "probes": ["executable-presence"],
+            "probes": ["executable-presence", "installed-version"],
             "provider": "script",
             "targetId": "https://raw.githubusercontent.com/aaif-goose/goose/main/download_cli.ps1",
             "targetKind": "script"
@@ -1078,7 +1078,7 @@
             "targetKind": "package"
           },
           {
-            "probes": ["executable-presence"],
+            "probes": ["executable-presence", "installed-version"],
             "provider": "script",
             "targetId": "https://junie.jetbrains.com/install.sh",
             "targetKind": "script"
@@ -1104,7 +1104,7 @@
             "targetKind": "package"
           },
           {
-            "probes": ["executable-presence"],
+            "probes": ["executable-presence", "installed-version"],
             "provider": "script",
             "targetId": "https://junie.jetbrains.com/install.sh",
             "targetKind": "script"
@@ -1130,7 +1130,7 @@
             "targetKind": "package"
           },
           {
-            "probes": ["executable-presence"],
+            "probes": ["executable-presence", "installed-version"],
             "provider": "script",
             "targetId": "https://junie.jetbrains.com/install.ps1",
             "targetKind": "script"
@@ -2017,7 +2017,7 @@
         "vtcode"
       ],
       "platforms": ["linux", "macos", "windows"],
-      "probes": ["executable-presence"],
+      "probes": ["executable-presence", "installed-version"],
       "targetKinds": ["script"]
     },
     "binary": {
