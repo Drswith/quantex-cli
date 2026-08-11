@@ -57,6 +57,11 @@ function registryUpdateArguments(args: unknown[]): unknown[] {
     : trimTrailingUndefined([packageName, strategy, distTag, registry])
 }
 
+function bunUninstallArguments(args: unknown[]): unknown[] {
+  const [packageName, , binaryName] = args
+  return trimTrailingUndefined([packageName, binaryName])
+}
+
 function trimTrailingUndefined(args: unknown[]): unknown[] {
   const trimmed = [...args]
   while (trimmed.at(-1) === undefined) trimmed.pop()
@@ -66,7 +71,7 @@ function trimTrailingUndefined(args: unknown[]): unknown[] {
 const bunInstallSpy = projectMutationSpy(vi.spyOn(bunPm, 'installOutcome'))
 const bunUpdateSpy = projectMutationSpy(vi.spyOn(bunPm, 'updateOutcome'), registryUpdateArguments)
 const bunUpdateManySpy = projectMutationSpy(vi.spyOn(bunPm, 'updateManyOutcome'))
-const bunUninstallSpy = projectMutationSpy(vi.spyOn(bunPm, 'uninstallOutcome'))
+const bunUninstallSpy = projectMutationSpy(vi.spyOn(bunPm, 'uninstallOutcome'), bunUninstallArguments)
 const bunGetInstalledVersionSpy = vi.spyOn(bunPm, 'getInstalledVersion')
 const bunProbePackagePresenceSpy = vi.spyOn(bunPm, 'probePackagePresence')
 const cargoInstallSpy = projectMutationSpy(
@@ -302,7 +307,7 @@ describe('installAgent', () => {
 
     await expect(installAgent(testAgent)).rejects.toBeInstanceOf(StateFileError)
     expect(bunInstallSpy).toHaveBeenCalledWith('test-pkg')
-    expect(bunUninstallSpy).toHaveBeenCalledWith('test-pkg')
+    expect(bunUninstallSpy).toHaveBeenCalledWith('test-pkg', 'test-bin')
   })
 
   it('does not persist installed state when CLI context is already cancelled', async () => {
@@ -338,7 +343,7 @@ describe('installAgent', () => {
 
     expect(await installAgent(testAgent)).toEqual({ success: false })
     expect(setInstalledAgentStateSpy).not.toHaveBeenCalled()
-    expect(bunUninstallSpy).toHaveBeenCalledWith('test-pkg')
+    expect(bunUninstallSpy).toHaveBeenCalledWith('test-pkg', 'test-bin')
     resetCliContext()
   })
 
@@ -358,7 +363,7 @@ describe('installAgent', () => {
     expect(await installAgent(testAgent)).toEqual({ success: false })
     expect(setInstalledAgentStateSpy).toHaveBeenCalled()
     expect(removeInstalledAgentStateSpy).toHaveBeenCalledWith('test-agent')
-    expect(bunUninstallSpy).toHaveBeenCalledWith('test-pkg')
+    expect(bunUninstallSpy).toHaveBeenCalledWith('test-pkg', 'test-bin')
     resetCliContext()
   })
 
@@ -390,7 +395,7 @@ describe('installAgent', () => {
 
     expect(await installAgent(testAgent)).toEqual({ success: false })
     expect(bunInstallSpy).toHaveBeenCalledWith('test-pkg')
-    expect(bunUninstallSpy).toHaveBeenCalledWith('test-pkg')
+    expect(bunUninstallSpy).toHaveBeenCalledWith('test-pkg', 'test-bin')
     expect(npmInstallSpy).not.toHaveBeenCalled()
     expect(setInstalledAgentStateSpy).not.toHaveBeenCalled()
     resetCliContext()
@@ -1096,7 +1101,7 @@ describe('uninstallAgent', () => {
     bunUninstallSpy.mockResolvedValue(true)
 
     expect(await uninstallAgent(testAgent)).toBe(true)
-    expect(bunUninstallSpy).toHaveBeenCalledWith('test-pkg')
+    expect(bunUninstallSpy).toHaveBeenCalledWith('test-pkg', 'test-bin')
     expect(removeInstalledAgentStateSpy).toHaveBeenCalledWith('test-agent')
   })
 
@@ -1109,7 +1114,7 @@ describe('uninstallAgent', () => {
     isBunSpy.mockResolvedValue(true)
     bunUninstallSpy.mockResolvedValue(true)
     expect(await uninstallAgent(testAgent)).toBe(true)
-    expect(bunUninstallSpy).toHaveBeenCalledWith('test-pkg')
+    expect(bunUninstallSpy).toHaveBeenCalledWith('test-pkg', 'test-bin')
     expect(npmUninstallSpy).not.toHaveBeenCalled()
     expect(removeInstalledAgentStateSpy).toHaveBeenCalledWith('test-agent')
   })
@@ -1211,7 +1216,7 @@ describe('uninstallAgent', () => {
     bunProbePackagePresenceSpy.mockResolvedValue('absent')
 
     expect(await uninstallAgent(testAgent)).toBe(true)
-    expect(bunUninstallSpy).toHaveBeenCalledWith('test-pkg')
+    expect(bunUninstallSpy).toHaveBeenCalledWith('test-pkg', 'test-bin')
     expect(bunProbePackagePresenceSpy).toHaveBeenCalledWith('test-pkg')
     expect(removeInstalledAgentStateSpy).toHaveBeenCalledWith('test-agent')
   })

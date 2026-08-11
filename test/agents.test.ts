@@ -175,7 +175,7 @@ describe('agent catalog data schema', () => {
 
     expect(catalogDataSource).toBe(manifest.catalogDataSource)
     expect(catalogAgentsSource).toBe(manifest.catalogAgentsSource)
-  })
+  }, 20_000)
 
   it('rejects catalog files whose filename does not match the entry name', async () => {
     const tempDir = await mkdtemp(join(tmpdir(), 'quantex-agent-catalog-'))

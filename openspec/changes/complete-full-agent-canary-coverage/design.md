@@ -47,6 +47,12 @@ The normal Claude job will set both current update-disable environment variables
 
 Alternative considered: accept the observed second executable as a cleanup exception. Rejected because it leaves the single-source cleanup postcondition unverified and conflates an upstream side effect with the intentional multi-source contract.
 
+### Reconcile only a proven stale Bun global-bin link
+
+Bun 1.3.14 can remove the top-level Claude package while retaining its platform optional dependencies and the original global-bin symlink to that dependency. Before Bun removal, Quantex will capture a link only when the target package manifest declares the requested binary, the path is a symbolic link inside Bun's reported global bin directory, and the link target belongs to that package or a declared runtime dependency. After Bun reports success and its package probe reports the top-level package absent, Quantex will unlink only if the same device, inode, and link target remain. The dependency payload is not recursively deleted because another package may still reference it.
+
+Alternative considered: delete whichever `claude` is still found after uninstall. Rejected because it would erase a real alternate source and defeat the `conflicting-source` safety contract. Switching the canary to npm was also rejected because it would stop validating the Bun lifecycle that exposed the product defect.
+
 ### Treat uv as a public managed-installer preference
 
 `defaultPackageManager` will accept `uv`, and both legacy and Core install-method ordering will place an existing uv catalog candidate ahead of other methods without installing uv automatically. The workflow will provision uv explicitly and add the disposable local bin directory to PATH before running the probe.
@@ -59,6 +65,7 @@ Alternative considered: add a canary-only hidden uv reorder. Rejected because it
 - [Devin installer creates a binary and later fails for a reason unrelated to authentication] -> Require a successful direct version command and all Quantex semantic assertions, and label only account setup as deferred rather than claiming installer completion.
 - [Junie script installations cannot be physically uninstalled by Quantex] -> Require Quantex untracking and rely on destruction of the dedicated runner for files owned by the install-only provider; do not retain Bun/npm candidates whose removal leaves the same files behind.
 - [Claude update-disable variables change upstream] -> The clean lifecycle fails, exposing the drift; the workflow does not restore a cleanup exception automatically.
+- [Bun changes its global-link layout] -> Ownership capture fails closed and the existing postcondition reports the remaining executable; Quantex never deletes a regular file or a changed/unproven link.
 - [Local Docker architecture or proxy differs from GitHub Linux] -> Use Docker only for safe local investigation and make the dispatched GitHub full sweep the acceptance evidence.
 
 ## Migration Plan

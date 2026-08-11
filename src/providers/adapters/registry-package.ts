@@ -41,7 +41,11 @@ export interface RegistryPackageAdapterDependencies {
     distTag: string,
     registry?: string,
   ) => Promise<string | undefined>
-  readonly uninstall: (packageName: string, context: ProviderOperationContext) => Promise<ProviderOutcome<void>>
+  readonly uninstall: (
+    packageName: string,
+    context: ProviderOperationContext,
+    target?: ProviderTarget,
+  ) => Promise<ProviderOutcome<void>>
   readonly update: (
     packageName: string,
     strategy: RegistryPackageUpdateStrategy,
@@ -178,7 +182,7 @@ export function createRegistryPackageAdapter<Id extends Extract<ProviderId, 'bun
     uninstall: request => {
       const command = config.commands.uninstall(request.target)
       return mutate(config, request.context, request.target, command, dependencies.contextualMutation, () =>
-        dependencies.uninstall(request.target.id, request.context),
+        dependencies.uninstall(request.target.id, request.context, request.target),
       )
     },
     update: request => {

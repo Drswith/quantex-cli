@@ -14,6 +14,7 @@ import {
   resolveBunGlobalBinaryPath,
   SEEDED_SELF_VERSION,
 } from '../../src/testing/self-upgrade-sandbox'
+import { resolveAgentExecutablePath } from '../../src/utils/executable-resolution'
 
 interface CommandOutput {
   exitCode: number
@@ -287,10 +288,17 @@ async function smokeAgentVersionProbe(agent: string): Promise<void> {
 
   const canUninstall = resolveCanaryUninstallCapability()
   console.log(`[${agent}] canary ${canUninstall === false ? 'untrack' : 'uninstall'}`)
-  const uninstall = await runJson(`probe uninstall ${agent}`, [...cli, 'uninstall', agent])
+  const uninstall = await runJson(`probe uninstall ${agent}`, [...cli, 'uninstall', agent], {
+    allowFailure: true,
+  })
+  if (uninstall.ok === false) {
+    const definition = getAgentByNameOrAlias(agent)
+    const remainingPath = definition ? await resolveAgentExecutablePath(definition.binaryName) : undefined
+    console.error(`[${agent}] executable after failed cleanup: ${remainingPath ?? 'not resolved'}`)
+  }
   assertResult(
     uninstall,
-    result => result.data?.changed === true,
+    result => result.ok === true && result.data?.changed === true,
     `${agent} canary uninstall should report changed=true`,
   )
 
@@ -354,8 +362,6 @@ async function smokeAgentSourceConflict(agent: string): Promise<void> {
     await rm(fixtureDir, { force: true, recursive: true })
   }
 
-  const cleanup = await runJson(`conflict final cleanup ${agent}`, [...cli, 'uninstall', agent])
-  assertResult(cleanup, result => result.data?.changed === true, `${agent} conflict fixture should clean final state`)
   const afterCleanup = await runJson(`conflict inspect ${agent} after cleanup`, [...cli, 'inspect', agent, '--refresh'])
   assertResult(
     afterCleanup,

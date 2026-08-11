@@ -42,7 +42,7 @@ const defaultDependencies: BunProviderDependencies = {
   probePackagePresence: (packageName, context) => bunPm.probePackagePresence(packageName, undefined, context),
   resolveLatestVersion: (packageName, distTag, registry) =>
     versionUtils.getLatestVersion(packageName, distTag, { registry }),
-  uninstall: (packageName, context) => bunPm.uninstallOutcome(packageName, context),
+  uninstall: (packageName, context, target) => bunPm.uninstallOutcome(packageName, context, target?.binaryName),
   update: (packageName, strategy, distTag, registry, context) =>
     bunPm.updateOutcome(packageName, strategy, distTag, registry, context),
   updateMany: (packageNames, strategy, context) => bunPm.updateManyOutcome(packageNames, strategy, context),

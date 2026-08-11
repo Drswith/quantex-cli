@@ -70,11 +70,11 @@ The real-agent canary workflow MUST run one selected agent per fresh GitHub-host
 - **GIVEN** the conflict probe adds a controlled alternate Claude executable after a verified Bun installation
 - **WHEN** Quantex removes the Bun source
 - **THEN** uninstall returns `UNINSTALL_FAILED` with lifecycle `conflicting-source`
-- **AND** the probe removes the fixture and completes final cleanup without recording a skip
+- **AND** the probe removes the fixture and verifies the already-removed Bun source is absent without issuing a redundant second uninstall or recording a skip
 
 ### Requirement: The probe scenario MUST verify installed-version evidence
 
-The lifecycle smoke `probe` scenario MUST install or adopt each selected agent according to its named coverage mode, refresh `inspect` and `list`, and require a non-empty installed version for matrix entries whose candidate declares an installed-version probe. It MUST fail when required version evidence is absent, when a selected provider is unavailable, or when an installer or cleanup outcome differs from its exact policy. It MUST preserve the selected agent in the in-flight cleanup stack when any assertion fails. Deferred credentialed setup MUST be reported separately from the binary lifecycle and MUST NOT be counted as a skipped agent.
+The lifecycle smoke `probe` scenario MUST install or adopt each selected agent according to its named coverage mode, refresh `inspect` and `list`, and require a non-empty installed version for matrix entries whose candidate declares an installed-version probe. It MUST fail when required version evidence is absent, when a selected provider is unavailable, or when an installer or cleanup outcome differs from its exact policy. A failed cleanup MUST report the executable path that Quantex can still resolve so source ownership can be diagnosed without weakening the assertion. It MUST preserve the selected agent in the in-flight cleanup stack when any assertion fails. Deferred credentialed setup MUST be reported separately from the binary lifecycle and MUST NOT be counted as a skipped agent.
 
 #### Scenario: Version is exposed after installation
 
@@ -90,6 +90,11 @@ The lifecycle smoke `probe` scenario MUST install or adopt each selected agent a
 
 - **WHEN** a probe assertion fails after installation or adoption
 - **THEN** the smoke process attempts to uninstall or untrack the selected agent before exiting
+
+#### Scenario: Failed cleanup exposes the remaining executable
+
+- **WHEN** a provider reports successful removal but the agent executable remains resolvable
+- **THEN** the probe fails and prints the remaining resolved executable path for source diagnosis
 
 #### Scenario: Devin binary lifecycle remains explicit
 

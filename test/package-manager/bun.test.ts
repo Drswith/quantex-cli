@@ -1,3 +1,6 @@
+import { access, mkdir, mkdtemp, readlink, rm, symlink, unlink, writeFile } from 'node:fs/promises'
+import { tmpdir } from 'node:os'
+import { dirname, join } from 'node:path'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 const { mockSpawn, mutationRun } = vi.hoisted(() => ({ mockSpawn: vi.fn(), mutationRun: vi.fn() }))
@@ -53,6 +56,7 @@ beforeEach(() => {
 afterEach(() => {
   mockSpawn.mockReset()
   mutationRun.mockReset()
+  vi.unstubAllEnvs()
 })
 
 async function runMutation(command: readonly string[], _context: unknown, description: string) {
@@ -405,4 +409,81 @@ describe('bun uninstall', () => {
     mockSpawn.mockReturnValue(createProc(1))
     expect(await uninstall('some-package')).toBe(false)
   })
+
+  it('removes an unchanged stale global-bin link owned by the removed package', async () => {
+    if (process.platform === 'win32') return
+
+    const sandbox = await createOwnedBinaryLinkSandbox()
+    try {
+      vi.stubEnv('BUN_INSTALL_GLOBAL_DIR', sandbox.globalDirectory)
+      mockSpawn
+        .mockReturnValueOnce(createProc(0, `${sandbox.binDirectory}\n`))
+        .mockReturnValueOnce(createProc(0))
+        .mockReturnValueOnce(createProc(1, '', 'error: Lockfile not found\n'))
+
+      const { uninstallOutcome } = await import('../../src/package-manager/bun')
+      await expect(
+        uninstallOutcome('@example/agent', { signal: new AbortController().signal, timeoutMs: 5_000 }, 'agent'),
+      ).resolves.toEqual({ kind: 'success', value: undefined })
+
+      await expect(access(sandbox.linkPath)).rejects.toMatchObject({ code: 'ENOENT' })
+      await expect(access(sandbox.targetPath)).resolves.toBeUndefined()
+      expect(mockSpawn).toHaveBeenNthCalledWith(1, ['bun', 'pm', 'bin', '-g'], expect.any(Object))
+      expect(mockSpawn).toHaveBeenNthCalledWith(2, ['bun', 'remove', '-g', '@example/agent'], expect.any(Object))
+      expect(mockSpawn).toHaveBeenNthCalledWith(3, ['bun', 'pm', '-g', 'ls'], expect.any(Object))
+    } finally {
+      await rm(sandbox.root, { force: true, recursive: true })
+    }
+  })
+
+  it('preserves a global-bin link that changes during package removal', async () => {
+    if (process.platform === 'win32') return
+
+    const sandbox = await createOwnedBinaryLinkSandbox()
+    const replacementTarget = join(sandbox.globalDirectory, 'node_modules', '@other', 'agent', 'agent')
+    try {
+      await mkdir(dirname(replacementTarget), { recursive: true })
+      await writeFile(replacementTarget, '#!/bin/sh\n')
+      vi.stubEnv('BUN_INSTALL_GLOBAL_DIR', sandbox.globalDirectory)
+      mockSpawn
+        .mockReturnValueOnce(createProc(0, `${sandbox.binDirectory}\n`))
+        .mockReturnValueOnce(createProc(1, '', 'error: Lockfile not found\n'))
+      mutationRun.mockImplementationOnce(async () => {
+        await unlink(sandbox.linkPath)
+        await symlink(replacementTarget, sandbox.linkPath)
+        return { kind: 'success', value: undefined }
+      })
+
+      const { uninstallOutcome } = await import('../../src/package-manager/bun')
+      await uninstallOutcome('@example/agent', { signal: new AbortController().signal }, 'agent')
+
+      await expect(readlink(sandbox.linkPath)).resolves.toBe(replacementTarget)
+    } finally {
+      await rm(sandbox.root, { force: true, recursive: true })
+    }
+  })
 })
+
+async function createOwnedBinaryLinkSandbox() {
+  const root = await mkdtemp(join(tmpdir(), 'qtx-bun-uninstall-'))
+  const globalDirectory = join(root, 'global')
+  const binDirectory = join(root, 'bin')
+  const packageDirectory = join(globalDirectory, 'node_modules', '@example', 'agent')
+  const dependencyDirectory = join(globalDirectory, 'node_modules', '@example', 'agent-linux-x64')
+  const targetPath = join(dependencyDirectory, 'agent')
+  const linkPath = join(binDirectory, 'agent')
+  await mkdir(packageDirectory, { recursive: true })
+  await mkdir(dependencyDirectory, { recursive: true })
+  await mkdir(binDirectory, { recursive: true })
+  await writeFile(
+    join(packageDirectory, 'package.json'),
+    JSON.stringify({
+      bin: { agent: 'bin/agent' },
+      optionalDependencies: { '@example/agent-linux-x64': '1.0.0' },
+    }),
+  )
+  await writeFile(join(globalDirectory, 'package.json'), '{}')
+  await writeFile(targetPath, '#!/bin/sh\n')
+  await symlink(targetPath, linkPath)
+  return { binDirectory, globalDirectory, linkPath, root, targetPath }
+}
