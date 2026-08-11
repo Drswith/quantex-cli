@@ -87,9 +87,9 @@ describe('read-only child-process guard preload', () => {
     const command = ['bun', '--version']
     const result = runProbe(command, 'cross-spawn')
 
-    expect(result.status).toBe(0)
+    expect(result.status, result.stderr).toBe(0)
     expect(result.stderr).not.toContain('READ_ONLY_MUTATION_BLOCKED')
-    expect(result.recorded).toContainEqual(command)
+    expect(result.recorded).toEqual([command])
   })
 })
 

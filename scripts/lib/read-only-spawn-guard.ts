@@ -163,20 +163,33 @@ function guard(command: readonly string[]): void {
 }
 
 if (process.env.QUANTEX_READ_ONLY_GUARD === '1') {
+  let nodeSpawnDelegationDepth = 0
+
   const originalNodeSpawn = childProcess.spawn.bind(childProcess)
   childProcess.spawn = ((file: unknown, argsOrOptions?: unknown, options?: unknown) => {
     guard(normalizeNodeCommand(file, argsOrOptions))
-    return Reflect.apply(originalNodeSpawn, childProcess, [file, argsOrOptions, options])
+    nodeSpawnDelegationDepth += 1
+    try {
+      return Reflect.apply(originalNodeSpawn, childProcess, [file, argsOrOptions, options])
+    } finally {
+      nodeSpawnDelegationDepth -= 1
+    }
   }) as typeof childProcess.spawn
 
   const originalNodeSpawnSync = childProcess.spawnSync.bind(childProcess)
   childProcess.spawnSync = ((file: unknown, argsOrOptions?: unknown, options?: unknown) => {
     guard(normalizeNodeCommand(file, argsOrOptions))
-    return Reflect.apply(originalNodeSpawnSync, childProcess, [file, argsOrOptions, options])
+    nodeSpawnDelegationDepth += 1
+    try {
+      return Reflect.apply(originalNodeSpawnSync, childProcess, [file, argsOrOptions, options])
+    } finally {
+      nodeSpawnDelegationDepth -= 1
+    }
   }) as typeof childProcess.spawnSync
 
   const originalSpawn = Bun.spawn.bind(Bun)
   Bun.spawn = ((commandOrOptions: unknown, options?: unknown) => {
+    if (nodeSpawnDelegationDepth > 0) return originalSpawn(commandOrOptions as never, options as never)
     const command = normalizeBunCommand(commandOrOptions)
     guard(command)
     return originalSpawn(commandOrOptions as never, options as never)
@@ -185,6 +198,7 @@ if (process.env.QUANTEX_READ_ONLY_GUARD === '1') {
   if (typeof Bun.spawnSync === 'function') {
     const originalSpawnSync = Bun.spawnSync.bind(Bun)
     Bun.spawnSync = ((commandOrOptions: unknown, options?: unknown) => {
+      if (nodeSpawnDelegationDepth > 0) return originalSpawnSync(commandOrOptions as never, options as never)
       const command = normalizeBunCommand(commandOrOptions)
       guard(command)
       return originalSpawnSync(commandOrOptions as never, options as never)
