@@ -10,5 +10,5 @@
 
 ## 3. Delivery
 
-- [ ] 3.1 Commit and push the dedicated branch, create a policy-validated PR, and confirm its applicable checks pass.
-- [ ] 3.2 Dispatch the full agent canary from the branch and confirm the OpenHands and Vibe jobs complete without the missing dependency-cache annotation.
+- [x] 3.1 Commit and push the dedicated branch, create a policy-validated PR, and confirm its applicable checks pass.
+- [x] 3.2 Dispatch the full agent canary from the branch and confirm the OpenHands and Vibe jobs complete without the missing dependency-cache annotation.
