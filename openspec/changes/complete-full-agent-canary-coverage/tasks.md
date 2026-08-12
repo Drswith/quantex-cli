@@ -25,5 +25,5 @@
 
 - [x] 4.1 Run focused tests, lint, format check, typecheck, the full test suite, OpenSpec validation, and memory validation.
 - [x] 4.2 Run any local real-installer checks only in disposable Docker containers and record local transport limitations separately from agent outcomes.
-- [ ] 4.3 Commit and push the follow-up branch, create a validated PR, dispatch the full GitHub canary, and triage every remaining failure without restoring agent-level skips.
-- [ ] 4.4 Report implementation, PR, merge, release, and OpenSpec archive-closure states separately.
+- [x] 4.3 Commit and push the follow-up branch, create a validated PR, dispatch the full GitHub canary, and triage every remaining failure without restoring agent-level skips.
+- [x] 4.4 Report implementation, PR, merge, release, and OpenSpec archive-closure states separately.
