@@ -94,7 +94,12 @@ describe('workflow classification integration', () => {
     expect(agentCanaryWorkflow).not.toContain('QTX_CANARY_SKIP_REASON')
     expect(agentCanaryWorkflow).not.toContain('QTX_CANARY_CLEANUP_SKIP_REASON')
     expect(agentCanaryWorkflow).toContain('denoland/setup-deno@22d081ff2d3a40755e97629de92e3bcbfa7cf2ed')
-    expect(agentCanaryWorkflow).toContain('astral-sh/setup-uv@c771a70e6277c0a99b617c7a806ffedaca235ff9')
+    expect(agentCanaryWorkflow).toContain(`      - name: Set up uv provider
+        if: matrix.provider == 'uv'
+        uses: astral-sh/setup-uv@c771a70e6277c0a99b617c7a806ffedaca235ff9 # v9.0.0
+        with:
+          enable-cache: false`)
+    expect(agentCanaryWorkflow).not.toContain('ignore-nothing-to-cache')
     expect(agentCanaryWorkflow).toContain('Set up Node for Autohand npm lifecycle')
     expect(agentCanaryWorkflow).toContain("matrix.agent == 'autohand' && matrix.provider == 'npm'")
     expect(agentCanaryWorkflow).toContain('actions/setup-node@v7')
