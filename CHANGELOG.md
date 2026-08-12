@@ -1,6 +1,18 @@
 # Changelog
 
 
+## [1.9.0](https://github.com/Drswith/quantex-cli/compare/v1.8.12...v1.9.0) (2026-08-12)
+
+
+### Features
+
+* add uv installer preference and complete agent canary coverage ([524198c](https://github.com/Drswith/quantex-cli/commit/524198cc3329d659236a496c39177abbee999869))
+
+
+### Bug Fixes
+
+* allow fresh uv-managed agent installs and stabilize full catalog canaries ([920a853](https://github.com/Drswith/quantex-cli/commit/920a853ab1249e5e8351cb26877b67d619ba9d96))
+
 ## [1.8.12](https://github.com/Drswith/quantex-cli/compare/v1.8.11...v1.8.12) (2026-08-10)
 
 
