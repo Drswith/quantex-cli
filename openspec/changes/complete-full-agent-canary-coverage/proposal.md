@@ -9,6 +9,7 @@ The full real-agent canary was stabilized by marking Claude cleanup and four run
 - Exercise Devin as an explicitly labelled binary-lifecycle canary: the official installer acquires the verified binary, Quantex adopts and probes it, and account authentication remains a separately reported credentialed setup boundary.
 - Disable Claude update and migration paths during the single-source lifecycle probe, require a clean Bun uninstall, and add a deliberate second-source conflict probe that must produce the typed `conflicting-source` result before final cleanup.
 - Reconcile Bun's stale global-bin symlink only when Quantex proves that the unchanged link was declared by the removed package and points into that package or one of its declared dependencies.
+- Retain Autohand's official script installer while adding its official npm package as a managed alternative, so the full canary can verify a deterministic package-owned lifecycle when a mutable native release asset fails its own startup probe.
 - Add `uv` as a supported `defaultPackageManager` preference in both configuration validation and Core method ordering, and document the expanded configuration surface.
 - Strengthen catalog probe metadata so the selected Goose, Junie, and Devin routes must expose version evidence in `inspect` and `list`.
 

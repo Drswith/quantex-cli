@@ -11,6 +11,7 @@
 - [x] 2.3 Update English and Simplified Chinese configuration guidance for uv without promising implicit toolchain installation.
 - [x] 2.4 Remove Junie package-wrapper candidates that cannot own physical uninstall, retaining the official script lifecycle.
 - [x] 2.5 Reconcile an unchanged Bun-owned global-bin symlink after conclusive package removal without deleting alternate sources.
+- [x] 2.6 Add Autohand's official npm package as a managed alternative to its mutable native installer asset.
 
 ## 3. Workflow and Regression Coverage
 
@@ -18,6 +19,7 @@
 - [x] 3.2 Add deterministic matrix, lifecycle-smoke policy, configuration, catalog, README, and workflow regression tests.
 - [x] 3.3 Update the isolation runbook to explain full lifecycle, binary-lifecycle/deferred setup, deliberate source conflict, and Docker-only local real-installer testing.
 - [x] 3.4 Add Bun link-ownership, changed-link preservation, failed-cleanup diagnostics, package-contract, and Windows timing regression coverage.
+- [x] 3.5 Route the Autohand full canary through Node 24 and verify its npm-managed lifecycle in Docker.
 
 ## 4. Validation and Delivery
 

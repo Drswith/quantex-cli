@@ -53,6 +53,12 @@ Bun 1.3.14 can remove the top-level Claude package while retaining its platform 
 
 Alternative considered: delete whichever `claude` is still found after uninstall. Rejected because it would erase a real alternate source and defeat the `conflicting-source` safety contract. Switching the canary to npm was also rejected because it would stop validating the Bun lifecycle that exposed the product defect.
 
+### Prefer Autohand's official managed package for full canaries
+
+Autohand's stable native download URL is mutable: the same v0.9.5 release first installed with an unknown version and later failed its installer startup probe because the compiled binary could not load its bundled model catalog. The catalog will retain that official script as the default source and add the equally official `autohand-cli` npm package as a managed alternative. The full canary will select npm through the same `defaultPackageManager` ordering available to users, provision Node 24 as required by the package, require package-backed installed-version evidence, and verify physical uninstall instead of untracking an install-only script.
+
+Alternative considered: pin the native installer to v0.9.4 or inject a model catalog into v0.9.5. Rejected because the former stops validating a current supported source and the latter hides a broken upstream release asset behind canary-only state. The npm package is a documented production source with package ownership and uninstall semantics.
+
 ### Treat uv as a public managed-installer preference
 
 `defaultPackageManager` will accept `uv`, and both legacy and Core install-method ordering will place an existing uv catalog candidate ahead of other methods without installing uv automatically. The workflow will provision uv explicitly and add the disposable local bin directory to PATH before running the probe.

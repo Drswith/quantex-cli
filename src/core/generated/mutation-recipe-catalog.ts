@@ -166,6 +166,14 @@ export const coreMutationRecipeCatalog = [
             kind: 'script',
           },
         },
+        {
+          probes: ['executable-presence', 'installed-version', 'package-presence', 'target-version'],
+          provider: 'npm',
+          target: {
+            id: 'autohand-cli',
+            kind: 'package',
+          },
+        },
       ],
       macos: [
         {
@@ -180,6 +188,14 @@ export const coreMutationRecipeCatalog = [
             kind: 'script',
           },
         },
+        {
+          probes: ['executable-presence', 'installed-version', 'package-presence', 'target-version'],
+          provider: 'npm',
+          target: {
+            id: 'autohand-cli',
+            kind: 'package',
+          },
+        },
       ],
       windows: [
         {
@@ -192,6 +208,14 @@ export const coreMutationRecipeCatalog = [
             },
             id: 'https://autohand.ai/install.ps1',
             kind: 'script',
+          },
+        },
+        {
+          probes: ['executable-presence', 'installed-version', 'package-presence', 'target-version'],
+          provider: 'npm',
+          target: {
+            id: 'autohand-cli',
+            kind: 'package',
           },
         },
       ],

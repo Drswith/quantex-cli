@@ -29,3 +29,14 @@ The Junie catalog MUST NOT advertise Bun or npm as managed installation sources 
 - **WHEN** Quantex resolves Junie installation candidates
 - **THEN** it does not select Bun or npm as a managed source
 - **AND** the official script source remains available for automated install, inspect, list, version, and untracking coverage
+
+### Requirement: Autohand MUST expose its official npm lifecycle without removing the script source
+
+The Autohand catalog MUST retain its official native script installer and MUST also expose the official `autohand-cli` npm package as a managed candidate on supported platforms. The npm candidate MUST declare executable, installed-version, package-presence, and target-version probes.
+
+#### Scenario: Full canary selects the managed Autohand source
+
+- **GIVEN** the mutable native release asset fails its own startup probe
+- **WHEN** the full canary configures npm as the production-selectable package-manager preference
+- **THEN** Quantex installs `autohand-cli` through npm
+- **AND** inspect, list, package version, uninstall, and physical absence are verified without a skip

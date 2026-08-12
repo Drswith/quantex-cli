@@ -122,6 +122,12 @@
             "provider": "script",
             "targetId": "https://autohand.ai/install.sh",
             "targetKind": "script"
+          },
+          {
+            "probes": ["executable-presence", "installed-version", "package-presence", "target-version"],
+            "provider": "npm",
+            "targetId": "autohand-cli",
+            "targetKind": "package"
           }
         ],
         "macos": [
@@ -130,6 +136,12 @@
             "provider": "script",
             "targetId": "https://autohand.ai/install.sh",
             "targetKind": "script"
+          },
+          {
+            "probes": ["executable-presence", "installed-version", "package-presence", "target-version"],
+            "provider": "npm",
+            "targetId": "autohand-cli",
+            "targetKind": "package"
           }
         ],
         "windows": [
@@ -138,6 +150,12 @@
             "provider": "script",
             "targetId": "https://autohand.ai/install.ps1",
             "targetKind": "script"
+          },
+          {
+            "probes": ["executable-presence", "installed-version", "package-presence", "target-version"],
+            "provider": "npm",
+            "targetId": "autohand-cli",
+            "targetKind": "package"
           }
         ]
       }
@@ -1868,6 +1886,7 @@
       "agents": [
         "amp",
         "auggie",
+        "autohand",
         "claude",
         "codebuddy",
         "codewhale",

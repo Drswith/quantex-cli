@@ -116,17 +116,26 @@ export const coreAgentCatalog: readonly AgentDefinition[] = [
           command: 'curl -fsSL https://autohand.ai/install.sh | bash',
           type: 'script',
         },
+        {
+          type: 'npm',
+        },
       ],
       macos: [
         {
           command: 'curl -fsSL https://autohand.ai/install.sh | bash',
           type: 'script',
         },
+        {
+          type: 'npm',
+        },
       ],
       windows: [
         {
           command: 'iwr -useb https://autohand.ai/install.ps1 | iex',
           type: 'script',
+        },
+        {
+          type: 'npm',
         },
       ],
     },

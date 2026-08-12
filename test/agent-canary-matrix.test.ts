@@ -34,6 +34,7 @@ describe('agent canary matrix', () => {
     const byAgent = new Map(matrix.include.map(entry => [entry.agent, entry]))
 
     expect(byAgent.get('amp')?.provider).toBe('npm')
+    expect(byAgent.get('autohand')).toMatchObject({ provider: 'npm', requireVersion: true })
     expect(byAgent.get('junie')?.provider).toBe('script')
     expect(byAgent.get('kimi')?.provider).toBe('npm')
     expect(byAgent.get('mimo')?.provider).toBe('npm')

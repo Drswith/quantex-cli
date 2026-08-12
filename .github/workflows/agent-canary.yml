@@ -94,6 +94,18 @@ jobs:
           # Real agents may require a newer Bun than Quantex's reproducible
           # build pin. Keep this override scoped to the advisory canary.
           bun-version: 1.3.14
+      - name: Set up Node for Autohand npm lifecycle
+        if: matrix.agent == 'autohand' && matrix.provider == 'npm'
+        uses: actions/setup-node@v7
+        with:
+          node-version: 24
+      - name: Verify Autohand npm build requirements
+        if: matrix.agent == 'autohand' && matrix.provider == 'npm'
+        shell: bash
+        run: |
+          command -v python3
+          command -v make
+          command -v g++
       - name: Set up Deno provider
         if: matrix.provider == 'deno'
         uses: denoland/setup-deno@22d081ff2d3a40755e97629de92e3bcbfa7cf2ed # v2.0.5

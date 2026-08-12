@@ -21,6 +21,12 @@ The canary selector MUST read the checked-in agent catalog and emit JSON matrix 
 - **WHEN** the full selector chooses that entry's canary candidate
 - **THEN** it selects the managed provider and derives version requirements from that exact candidate
 
+#### Scenario: Autohand uses its official npm lifecycle
+
+- **GIVEN** Autohand exposes both its official native script and official npm package
+- **WHEN** the full selector resolves its Linux canary entry
+- **THEN** it selects npm, requires installed-version evidence, and leaves the script source available to normal product ordering
+
 #### Scenario: Matrix provider matches the runtime-selected source
 
 - **GIVEN** a matrix entry names a selected provider
