@@ -164,6 +164,9 @@ async function runCli(
       cwd: repositoryRoot,
       env: {
         ...process.env,
+        BUN_INSTALL: join(tempHome, '.bun'),
+        CARGO_HOME: join(tempHome, '.cargo'),
+        DENO_INSTALL_ROOT: join(tempHome, '.deno'),
         HOME: tempHome,
         NO_COLOR: '1',
         PATH: '',

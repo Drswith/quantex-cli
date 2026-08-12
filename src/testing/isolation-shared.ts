@@ -9,6 +9,20 @@ export const DEFAULT_ISOLATION_IMAGE =
 
 export const DEFAULT_ISOLATION_SMOKE_ARGS: string[] = []
 
+const FORWARDED_ISOLATION_ENV = [
+  'CONFIGURE',
+  'DISABLE_AUTOUPDATER',
+  'DISABLE_UPDATES',
+  'QTX_CANARY_COVERAGE',
+  'QTX_CANARY_PROVIDER',
+  'QTX_CANARY_REQUIRE_VERSION',
+  'QTX_CANARY_SETUP',
+  'QTX_CANARY_SOURCE_CONFLICT',
+  'QTX_ISOLATION_AGENTS',
+  'QTX_ISOLATION_COMMAND_TIMEOUT_MS',
+  'QTX_ISOLATION_SCENARIOS',
+] as const
+
 export interface IsolationExecutionPlan {
   image: string
   mountPath: string
@@ -50,9 +64,8 @@ function buildRemoteCommand(mountPath: string, smokeArgs: string[]): string {
     'set -euo pipefail',
     'export HOME=/tmp/quantex-home',
     'export BUN_INSTALL="$HOME/.bun"',
-    'export PATH="$BUN_INSTALL/bin:$PATH"',
-    `export QTX_ISOLATION_AGENTS=${quoteForShell(process.env.QTX_ISOLATION_AGENTS ?? '')}`,
-    `export QTX_ISOLATION_SCENARIOS=${quoteForShell(process.env.QTX_ISOLATION_SCENARIOS ?? '')}`,
+    'export PATH="$BUN_INSTALL/bin:$HOME/.local/bin:$PATH"',
+    ...FORWARDED_ISOLATION_ENV.map(name => `export ${name}=${quoteForShell(process.env[name] ?? '')}`),
     'mkdir -p "$HOME"',
     'rm -rf /tmp/quantex-work',
     `cp -R ${quoteForShell(mountPath)} /tmp/quantex-work`,

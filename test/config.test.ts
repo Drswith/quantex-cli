@@ -99,6 +99,16 @@ describe('loadConfig', () => {
     expect(config.defaultPackageManager).toBe('mise')
   })
 
+  it('normalizes uv as a supported defaultPackageManager', async () => {
+    mkdirSync(configDir, { recursive: true })
+    writeFileSync(configPath, `${JSON.stringify({ defaultPackageManager: 'uv' })}\n`)
+
+    const { loadConfig } = await import('../src/config/index')
+    const config = await loadConfig()
+
+    expect(config.defaultPackageManager).toBe('uv')
+  })
+
   it('falls back to bun for unsupported defaultPackageManager values', async () => {
     mkdirSync(configDir, { recursive: true })
     writeFileSync(configPath, `${JSON.stringify({ defaultPackageManager: 'cargo' })}\n`)

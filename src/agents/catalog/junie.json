@@ -9,23 +9,7 @@
   "platforms": {
     "windows": [
       {
-        "probes": ["executable-presence", "installed-version", "package-presence", "target-version"],
-        "provider": "bun",
-        "target": {
-          "id": "@jetbrains/junie",
-          "kind": "package"
-        }
-      },
-      {
-        "probes": ["executable-presence", "installed-version", "package-presence", "target-version"],
-        "provider": "npm",
-        "target": {
-          "id": "@jetbrains/junie",
-          "kind": "package"
-        }
-      },
-      {
-        "probes": ["executable-presence"],
+        "probes": ["executable-presence", "installed-version"],
         "provider": "script",
         "target": {
           "id": "https://junie.jetbrains.com/install.ps1",
@@ -39,23 +23,7 @@
     ],
     "macos": [
       {
-        "probes": ["executable-presence", "installed-version", "package-presence", "target-version"],
-        "provider": "bun",
-        "target": {
-          "id": "@jetbrains/junie",
-          "kind": "package"
-        }
-      },
-      {
-        "probes": ["executable-presence", "installed-version", "package-presence", "target-version"],
-        "provider": "npm",
-        "target": {
-          "id": "@jetbrains/junie",
-          "kind": "package"
-        }
-      },
-      {
-        "probes": ["executable-presence"],
+        "probes": ["executable-presence", "installed-version"],
         "provider": "script",
         "target": {
           "id": "https://junie.jetbrains.com/install.sh",
@@ -77,23 +45,7 @@
     ],
     "linux": [
       {
-        "probes": ["executable-presence", "installed-version", "package-presence", "target-version"],
-        "provider": "bun",
-        "target": {
-          "id": "@jetbrains/junie",
-          "kind": "package"
-        }
-      },
-      {
-        "probes": ["executable-presence", "installed-version", "package-presence", "target-version"],
-        "provider": "npm",
-        "target": {
-          "id": "@jetbrains/junie",
-          "kind": "package"
-        }
-      },
-      {
-        "probes": ["executable-presence"],
+        "probes": ["executable-presence", "installed-version"],
         "provider": "script",
         "target": {
           "id": "https://junie.jetbrains.com/install.sh",

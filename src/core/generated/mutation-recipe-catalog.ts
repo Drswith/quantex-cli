@@ -166,6 +166,14 @@ export const coreMutationRecipeCatalog = [
             kind: 'script',
           },
         },
+        {
+          probes: ['executable-presence', 'installed-version', 'package-presence', 'target-version'],
+          provider: 'npm',
+          target: {
+            id: 'autohand-cli',
+            kind: 'package',
+          },
+        },
       ],
       macos: [
         {
@@ -180,6 +188,14 @@ export const coreMutationRecipeCatalog = [
             kind: 'script',
           },
         },
+        {
+          probes: ['executable-presence', 'installed-version', 'package-presence', 'target-version'],
+          provider: 'npm',
+          target: {
+            id: 'autohand-cli',
+            kind: 'package',
+          },
+        },
       ],
       windows: [
         {
@@ -192,6 +208,14 @@ export const coreMutationRecipeCatalog = [
             },
             id: 'https://autohand.ai/install.ps1',
             kind: 'script',
+          },
+        },
+        {
+          probes: ['executable-presence', 'installed-version', 'package-presence', 'target-version'],
+          provider: 'npm',
+          target: {
+            id: 'autohand-cli',
+            kind: 'package',
           },
         },
       ],
@@ -884,7 +908,7 @@ export const coreMutationRecipeCatalog = [
     platforms: {
       linux: [
         {
-          probes: ['executable-presence'],
+          probes: ['executable-presence', 'installed-version'],
           provider: 'script',
           target: {
             effect: {
@@ -898,7 +922,7 @@ export const coreMutationRecipeCatalog = [
       ],
       macos: [
         {
-          probes: ['executable-presence'],
+          probes: ['executable-presence', 'installed-version'],
           provider: 'script',
           target: {
             effect: {
@@ -912,7 +936,7 @@ export const coreMutationRecipeCatalog = [
       ],
       windows: [
         {
-          probes: ['executable-presence'],
+          probes: ['executable-presence', 'installed-version'],
           provider: 'script',
           target: {
             effect: {
@@ -1250,7 +1274,7 @@ export const coreMutationRecipeCatalog = [
     platforms: {
       linux: [
         {
-          probes: ['executable-presence'],
+          probes: ['executable-presence', 'installed-version'],
           provider: 'script',
           target: {
             effect: {
@@ -1272,7 +1296,7 @@ export const coreMutationRecipeCatalog = [
       ],
       macos: [
         {
-          probes: ['executable-presence'],
+          probes: ['executable-presence', 'installed-version'],
           provider: 'script',
           target: {
             effect: {
@@ -1294,7 +1318,7 @@ export const coreMutationRecipeCatalog = [
       ],
       windows: [
         {
-          probes: ['executable-presence'],
+          probes: ['executable-presence', 'installed-version'],
           provider: 'script',
           target: {
             effect: {
@@ -1306,7 +1330,7 @@ export const coreMutationRecipeCatalog = [
           },
         },
         {
-          probes: ['executable-presence'],
+          probes: ['executable-presence', 'installed-version'],
           provider: 'script',
           target: {
             effect: {
@@ -1475,23 +1499,7 @@ export const coreMutationRecipeCatalog = [
     platforms: {
       linux: [
         {
-          probes: ['executable-presence', 'installed-version', 'package-presence', 'target-version'],
-          provider: 'bun',
-          target: {
-            id: '@jetbrains/junie',
-            kind: 'package',
-          },
-        },
-        {
-          probes: ['executable-presence', 'installed-version', 'package-presence', 'target-version'],
-          provider: 'npm',
-          target: {
-            id: '@jetbrains/junie',
-            kind: 'package',
-          },
-        },
-        {
-          probes: ['executable-presence'],
+          probes: ['executable-presence', 'installed-version'],
           provider: 'script',
           target: {
             effect: {
@@ -1513,23 +1521,7 @@ export const coreMutationRecipeCatalog = [
       ],
       macos: [
         {
-          probes: ['executable-presence', 'installed-version', 'package-presence', 'target-version'],
-          provider: 'bun',
-          target: {
-            id: '@jetbrains/junie',
-            kind: 'package',
-          },
-        },
-        {
-          probes: ['executable-presence', 'installed-version', 'package-presence', 'target-version'],
-          provider: 'npm',
-          target: {
-            id: '@jetbrains/junie',
-            kind: 'package',
-          },
-        },
-        {
-          probes: ['executable-presence'],
+          probes: ['executable-presence', 'installed-version'],
           provider: 'script',
           target: {
             effect: {
@@ -1551,23 +1543,7 @@ export const coreMutationRecipeCatalog = [
       ],
       windows: [
         {
-          probes: ['executable-presence', 'installed-version', 'package-presence', 'target-version'],
-          provider: 'bun',
-          target: {
-            id: '@jetbrains/junie',
-            kind: 'package',
-          },
-        },
-        {
-          probes: ['executable-presence', 'installed-version', 'package-presence', 'target-version'],
-          provider: 'npm',
-          target: {
-            id: '@jetbrains/junie',
-            kind: 'package',
-          },
-        },
-        {
-          probes: ['executable-presence'],
+          probes: ['executable-presence', 'installed-version'],
           provider: 'script',
           target: {
             effect: {

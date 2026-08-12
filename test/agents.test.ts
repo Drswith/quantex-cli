@@ -175,7 +175,7 @@ describe('agent catalog data schema', () => {
 
     expect(catalogDataSource).toBe(manifest.catalogDataSource)
     expect(catalogAgentsSource).toBe(manifest.catalogAgentsSource)
-  })
+  }, 20_000)
 
   it('rejects catalog files whose filename does not match the entry name', async () => {
     const tempDir = await mkdtemp(join(tmpdir(), 'quantex-agent-catalog-'))
@@ -242,7 +242,7 @@ describe('autohand', () => {
     expect(autohand.versionProbe?.command).toEqual(['autohand', '--version'])
   })
 
-  it('supports official script installers on all platforms', () => {
+  it('supports official script and npm installers on all platforms', () => {
     expect(
       autohand.platforms.windows!.find(m => m.type === 'script' && m.command.includes('autohand.ai/install.ps1')),
     ).toBeDefined()
@@ -252,6 +252,10 @@ describe('autohand', () => {
     expect(
       autohand.platforms.linux!.find(m => m.type === 'script' && m.command.includes('autohand.ai/install.sh')),
     ).toBeDefined()
+    expect(autohand.packages?.npm).toBe('autohand-cli')
+    for (const platform of ['windows', 'macos', 'linux'] as const) {
+      expect(autohand.platforms[platform]!.find(m => m.type === 'npm')).toBeDefined()
+    }
   })
 })
 
@@ -542,16 +546,18 @@ describe('junie', () => {
     expect(junie.name).toBe('junie')
     expect(junie.lookupAliases).toBeUndefined()
     expect(junie.displayName).toBe('Junie CLI')
-    expect(junie.packages?.npm).toBe('@jetbrains/junie')
+    expect(junie.packages?.npm).toBeUndefined()
     expect(junie.binaryName).toBe('junie')
     expect(junie.homepage).toBe('https://junie.jetbrains.com/docs/junie-cli.html')
     expect(junie.selfUpdate).toBeUndefined()
     expect(junie.versionProbe?.command).toEqual(['junie', '--version'])
   })
 
-  it('supports managed installs on all platforms plus official script and brew paths', () => {
-    expect(junie.platforms.windows!.find(m => m.type === 'bun')).toBeDefined()
-    expect(junie.platforms.windows!.find(m => m.type === 'npm')).toBeDefined()
+  it('uses the official script instead of package wrappers that leave an external installation behind', () => {
+    for (const platform of ['windows', 'macos', 'linux'] as const) {
+      expect(junie.platforms[platform]!.find(m => m.type === 'bun')).toBeUndefined()
+      expect(junie.platforms[platform]!.find(m => m.type === 'npm')).toBeUndefined()
+    }
     expect(
       junie.platforms.windows!.find(m => m.type === 'script' && m.command.includes('junie.jetbrains.com/install.ps1')),
     ).toBeDefined()

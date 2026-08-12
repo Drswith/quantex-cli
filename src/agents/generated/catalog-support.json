@@ -122,6 +122,12 @@
             "provider": "script",
             "targetId": "https://autohand.ai/install.sh",
             "targetKind": "script"
+          },
+          {
+            "probes": ["executable-presence", "installed-version", "package-presence", "target-version"],
+            "provider": "npm",
+            "targetId": "autohand-cli",
+            "targetKind": "package"
           }
         ],
         "macos": [
@@ -130,6 +136,12 @@
             "provider": "script",
             "targetId": "https://autohand.ai/install.sh",
             "targetKind": "script"
+          },
+          {
+            "probes": ["executable-presence", "installed-version", "package-presence", "target-version"],
+            "provider": "npm",
+            "targetId": "autohand-cli",
+            "targetKind": "package"
           }
         ],
         "windows": [
@@ -138,6 +150,12 @@
             "provider": "script",
             "targetId": "https://autohand.ai/install.ps1",
             "targetKind": "script"
+          },
+          {
+            "probes": ["executable-presence", "installed-version", "package-presence", "target-version"],
+            "provider": "npm",
+            "targetId": "autohand-cli",
+            "targetKind": "package"
           }
         ]
       }
@@ -658,7 +676,7 @@
       "platforms": {
         "linux": [
           {
-            "probes": ["executable-presence"],
+            "probes": ["executable-presence", "installed-version"],
             "provider": "script",
             "targetId": "https://cli.devin.ai/install.sh",
             "targetKind": "script"
@@ -666,7 +684,7 @@
         ],
         "macos": [
           {
-            "probes": ["executable-presence"],
+            "probes": ["executable-presence", "installed-version"],
             "provider": "script",
             "targetId": "https://cli.devin.ai/install.sh",
             "targetKind": "script"
@@ -674,7 +692,7 @@
         ],
         "windows": [
           {
-            "probes": ["executable-presence"],
+            "probes": ["executable-presence", "installed-version"],
             "provider": "script",
             "targetId": "https://static.devin.ai/cli/setup.ps1",
             "targetKind": "script"
@@ -922,7 +940,7 @@
       "platforms": {
         "linux": [
           {
-            "probes": ["executable-presence"],
+            "probes": ["executable-presence", "installed-version"],
             "provider": "script",
             "targetId": "https://github.com/aaif-goose/goose/releases/download/stable/download_cli.sh",
             "targetKind": "script"
@@ -936,7 +954,7 @@
         ],
         "macos": [
           {
-            "probes": ["executable-presence"],
+            "probes": ["executable-presence", "installed-version"],
             "provider": "script",
             "targetId": "https://github.com/aaif-goose/goose/releases/download/stable/download_cli.sh",
             "targetKind": "script"
@@ -950,13 +968,13 @@
         ],
         "windows": [
           {
-            "probes": ["executable-presence"],
+            "probes": ["executable-presence", "installed-version"],
             "provider": "script",
             "targetId": "https://github.com/aaif-goose/goose/releases/download/stable/download_cli.sh",
             "targetKind": "script"
           },
           {
-            "probes": ["executable-presence"],
+            "probes": ["executable-presence", "installed-version"],
             "provider": "script",
             "targetId": "https://raw.githubusercontent.com/aaif-goose/goose/main/download_cli.ps1",
             "targetKind": "script"
@@ -1066,19 +1084,7 @@
       "platforms": {
         "linux": [
           {
-            "probes": ["executable-presence", "installed-version", "package-presence", "target-version"],
-            "provider": "bun",
-            "targetId": "@jetbrains/junie",
-            "targetKind": "package"
-          },
-          {
-            "probes": ["executable-presence", "installed-version", "package-presence", "target-version"],
-            "provider": "npm",
-            "targetId": "@jetbrains/junie",
-            "targetKind": "package"
-          },
-          {
-            "probes": ["executable-presence"],
+            "probes": ["executable-presence", "installed-version"],
             "provider": "script",
             "targetId": "https://junie.jetbrains.com/install.sh",
             "targetKind": "script"
@@ -1092,19 +1098,7 @@
         ],
         "macos": [
           {
-            "probes": ["executable-presence", "installed-version", "package-presence", "target-version"],
-            "provider": "bun",
-            "targetId": "@jetbrains/junie",
-            "targetKind": "package"
-          },
-          {
-            "probes": ["executable-presence", "installed-version", "package-presence", "target-version"],
-            "provider": "npm",
-            "targetId": "@jetbrains/junie",
-            "targetKind": "package"
-          },
-          {
-            "probes": ["executable-presence"],
+            "probes": ["executable-presence", "installed-version"],
             "provider": "script",
             "targetId": "https://junie.jetbrains.com/install.sh",
             "targetKind": "script"
@@ -1118,19 +1112,7 @@
         ],
         "windows": [
           {
-            "probes": ["executable-presence", "installed-version", "package-presence", "target-version"],
-            "provider": "bun",
-            "targetId": "@jetbrains/junie",
-            "targetKind": "package"
-          },
-          {
-            "probes": ["executable-presence", "installed-version", "package-presence", "target-version"],
-            "provider": "npm",
-            "targetId": "@jetbrains/junie",
-            "targetKind": "package"
-          },
-          {
-            "probes": ["executable-presence"],
+            "probes": ["executable-presence", "installed-version"],
             "provider": "script",
             "targetId": "https://junie.jetbrains.com/install.ps1",
             "targetKind": "script"
@@ -1888,7 +1870,6 @@
         "droid",
         "forgecode",
         "gemini",
-        "junie",
         "kilo",
         "omp",
         "openclaw",
@@ -1905,6 +1886,7 @@
       "agents": [
         "amp",
         "auggie",
+        "autohand",
         "claude",
         "codebuddy",
         "codewhale",
@@ -1916,7 +1898,6 @@
         "droid",
         "forgecode",
         "gemini",
-        "junie",
         "kilo",
         "kimi",
         "mimo",
@@ -2017,7 +1998,7 @@
         "vtcode"
       ],
       "platforms": ["linux", "macos", "windows"],
-      "probes": ["executable-presence"],
+      "probes": ["executable-presence", "installed-version"],
       "targetKinds": ["script"]
     },
     "binary": {

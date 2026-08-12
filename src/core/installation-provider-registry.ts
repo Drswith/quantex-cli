@@ -61,7 +61,7 @@ const packageMutationDrivers = {
       const target = request.options?.distTag ? `${request.target.id}@${request.options.distTag}` : request.target.id
       return ['bun', 'add', '-g', ...(registry ? ['--registry', registry] : []), target]
     },
-    uninstall: request => uninstallBun(request.target.id, request.context),
+    uninstall: request => uninstallBun(request.target.id, request.context, request.target.binaryName),
     uninstallCommand: request => ['bun', 'remove', '-g', request.target.id],
   },
   brew: {

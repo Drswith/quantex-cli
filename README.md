@@ -293,7 +293,7 @@ User configuration lives at `~/.quantex/config.json`:
 }
 ```
 
-`defaultPackageManager` can be `bun`, `npm`, or `mise`. It only changes agent install-method ordering when the selected agent exposes that managed installer; it does not make Quantex install missing package managers for you.
+`defaultPackageManager` can be `bun`, `npm`, `mise`, or `uv`. It only changes agent install-method ordering when the selected agent exposes that managed installer; the corresponding package-manager executable must already be available because Quantex does not install it for you.
 
 `selfUpdateRegistry` is unset by default. When unset, Quantex follows the active Bun/npm registry for self-upgrade. If you set `selfUpdateRegistry`, it only affects the registry used when Quantex upgrades itself through Bun/npm and does not change the default install source for your other projects. For a one-off override, use the `QTX_SELF_UPDATE_REGISTRY` environment variable.
 

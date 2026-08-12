@@ -6,7 +6,7 @@ import process from 'node:process'
 import { normalizeRegistryUrl } from '../utils/registry'
 import { defaultConfig } from './default'
 
-export type DefaultPackageManager = 'bun' | 'mise' | 'npm'
+export type DefaultPackageManager = 'bun' | 'mise' | 'npm' | 'uv'
 export type NpmBunUpdateStrategy = 'latest-major' | 'respect-semver'
 
 export interface QuantexConfig {
@@ -53,7 +53,7 @@ export async function loadConfig(): Promise<QuantexConfig> {
 }
 
 export function isDefaultPackageManager(value: unknown): value is DefaultPackageManager {
-  return value === 'bun' || value === 'mise' || value === 'npm'
+  return value === 'bun' || value === 'mise' || value === 'npm' || value === 'uv'
 }
 
 export function isNpmBunUpdateStrategy(value: string): value is NpmBunUpdateStrategy {

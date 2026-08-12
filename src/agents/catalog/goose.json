@@ -12,7 +12,7 @@
   "platforms": {
     "windows": [
       {
-        "probes": ["executable-presence"],
+        "probes": ["executable-presence", "installed-version"],
         "provider": "script",
         "target": {
           "id": "https://github.com/aaif-goose/goose/releases/download/stable/download_cli.sh",
@@ -24,7 +24,7 @@
         }
       },
       {
-        "probes": ["executable-presence"],
+        "probes": ["executable-presence", "installed-version"],
         "provider": "script",
         "target": {
           "id": "https://raw.githubusercontent.com/aaif-goose/goose/main/download_cli.ps1",
@@ -38,7 +38,7 @@
     ],
     "macos": [
       {
-        "probes": ["executable-presence"],
+        "probes": ["executable-presence", "installed-version"],
         "provider": "script",
         "target": {
           "id": "https://github.com/aaif-goose/goose/releases/download/stable/download_cli.sh",
@@ -60,7 +60,7 @@
     ],
     "linux": [
       {
-        "probes": ["executable-presence"],
+        "probes": ["executable-presence", "installed-version"],
         "provider": "script",
         "target": {
           "id": "https://github.com/aaif-goose/goose/releases/download/stable/download_cli.sh",

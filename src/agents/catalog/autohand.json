@@ -3,9 +3,6 @@
   "lookupAliases": ["autohand-cli"],
   "displayName": "Autohand Code CLI",
   "homepage": "https://autohand.ai/cli/",
-  "packages": {
-    "npm": "autohand-cli"
-  },
   "binaryName": "autohand",
   "versionProbe": {
     "command": ["autohand", "--version"]
@@ -23,6 +20,14 @@
             "kind": "shell-script"
           }
         }
+      },
+      {
+        "probes": ["executable-presence", "installed-version", "package-presence", "target-version"],
+        "provider": "npm",
+        "target": {
+          "id": "autohand-cli",
+          "kind": "package"
+        }
       }
     ],
     "macos": [
@@ -37,6 +42,14 @@
             "kind": "shell-script"
           }
         }
+      },
+      {
+        "probes": ["executable-presence", "installed-version", "package-presence", "target-version"],
+        "provider": "npm",
+        "target": {
+          "id": "autohand-cli",
+          "kind": "package"
+        }
       }
     ],
     "linux": [
@@ -50,6 +63,14 @@
             "command": "curl -fsSL https://autohand.ai/install.sh | bash",
             "kind": "shell-script"
           }
+        }
+      },
+      {
+        "probes": ["executable-presence", "installed-version", "package-presence", "target-version"],
+        "provider": "npm",
+        "target": {
+          "id": "autohand-cli",
+          "kind": "package"
         }
       }
     ]

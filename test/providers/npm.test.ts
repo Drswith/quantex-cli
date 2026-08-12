@@ -189,7 +189,7 @@ describe('npm provider adapter', () => {
         target,
       },
     })
-    expect(dependencies.uninstall).toHaveBeenCalledWith(target.id, context)
+    expect(dependencies.uninstall).toHaveBeenCalledWith(target.id, context, target)
   })
 
   it('preserves dist-tag and normalized registry inputs while resolving the latest version', async () => {

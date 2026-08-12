@@ -36,6 +36,11 @@ describe('buildModalSandboxInvocation', () => {
     expect(invocation.remoteCommand).toContain("cp -R '/mnt/quantex-cli' /tmp/quantex-work")
     expect(invocation.remoteCommand).toContain('bun install --frozen-lockfile --ignore-scripts --no-progress')
     expect(invocation.remoteCommand).toContain('bun run scripts/smoke/lifecycle-smoke.ts')
+    expect(invocation.remoteCommand).toContain('export PATH="$BUN_INSTALL/bin:$HOME/.local/bin:$PATH"')
+    expect(invocation.remoteCommand).toContain("export QTX_CANARY_REQUIRE_VERSION=''")
+    expect(invocation.remoteCommand).toContain("export QTX_CANARY_SOURCE_CONFLICT=''")
+    expect(invocation.remoteCommand).toContain("export CONFIGURE=''")
+    expect(invocation.remoteCommand).toContain("export DISABLE_UPDATES=''")
     expect(invocation.remoteCommand).toContain(MODAL_REMOTE_EXIT_CODE_MARKER)
   })
 

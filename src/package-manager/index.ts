@@ -184,7 +184,7 @@ async function executeInstalledState(
   state: InstalledAgentState,
   action: 'install' | 'update' | 'uninstall',
   options?: {
-    agent?: Pick<AgentDefinition, 'packages'>
+    agent?: Pick<AgentDefinition, 'binaryName' | 'packages'>
     updateStrategy?: NpmBunUpdateStrategy
   },
 ): Promise<ManagedMutationOutcome> {
@@ -197,7 +197,7 @@ async function executeInstalledState(
     return executeManagedMethod(
       state.installType,
       packageName,
-      state.binaryName,
+      state.binaryName ?? options?.agent?.binaryName,
       state.packageInstallArgs,
       state.packageTargetKind,
       action,
@@ -533,7 +533,7 @@ export async function rollbackInstalledAgentInstallation(
   await executeManagedMethod(
     installedState.installType,
     packageName,
-    installedState.binaryName,
+    installedState.binaryName ?? agent.binaryName,
     installedState.packageInstallArgs,
     installedState.packageTargetKind,
     'uninstall',

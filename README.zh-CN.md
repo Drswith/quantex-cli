@@ -293,7 +293,7 @@ quantex schema --json
 }
 ```
 
-`defaultPackageManager` 可以是 `bun`、`npm` 或 `mise`。它只会在目标 agent 暴露对应 managed installer 时调整 agent 安装方式排序，不会让 Quantex 自动替你安装缺失的 package manager。
+`defaultPackageManager` 可以是 `bun`、`npm`、`mise` 或 `uv`。它只会在目标 agent 暴露对应 managed installer 时调整 agent 安装方式排序；对应的 package manager 可执行文件必须已经存在，Quantex 不会自动替你安装。
 
 `selfUpdateRegistry` 默认不设置。未设置时，Quantex 自升级会跟随当前 Bun/npm 实际使用的 registry。设置 `selfUpdateRegistry` 后，它只影响 Quantex 自身通过 Bun/npm 执行 `qtx upgrade` 的 registry 选择，不会修改你其他项目的默认安装源。一次性覆盖可使用环境变量 `QTX_SELF_UPDATE_REGISTRY`。
 

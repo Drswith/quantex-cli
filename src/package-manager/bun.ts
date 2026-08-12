@@ -1,8 +1,8 @@
 import type { ProviderOperationContext, ProviderOutcome } from '../providers'
 import type { PackageMutationOutcome } from './context-mutation'
-import { readFile } from 'node:fs/promises'
+import { lstat, readFile, readlink, unlink } from 'node:fs/promises'
 import { homedir } from 'node:os'
-import { join } from 'node:path'
+import { basename, dirname, isAbsolute, join, relative, resolve, sep } from 'node:path'
 import process from 'node:process'
 import {
   readProcessOutput,
@@ -94,8 +94,141 @@ export async function uninstall(packageName: string): Promise<boolean> {
 export function uninstallOutcome(
   packageName: string,
   context: ProviderOperationContext,
+  binaryName?: string,
 ): Promise<PackageMutationOutcome> {
-  return runPackageMutationOutcome(['bun', 'remove', '-g', packageName], context, 'bun uninstall failed')
+  return uninstallWithOwnedLinkCleanup(packageName, context, binaryName)
+}
+
+interface BunOwnedBinaryLink {
+  readonly device: number
+  readonly inode: number
+  readonly linkPath: string
+  readonly linkTarget: string
+}
+
+async function uninstallWithOwnedLinkCleanup(
+  packageName: string,
+  context: ProviderOperationContext,
+  binaryName?: string,
+): Promise<PackageMutationOutcome> {
+  const ownedLink = binaryName ? await captureOwnedBunBinaryLink(packageName, binaryName, context) : undefined
+  const outcome = await runPackageMutationOutcome(['bun', 'remove', '-g', packageName], context, 'bun uninstall failed')
+  if (outcome.kind === 'success' && ownedLink) {
+    const presence = await probePackagePresence(packageName, undefined, context).catch(() => 'unknown' as const)
+    if (presence === 'absent') await removeUnchangedOwnedBunBinaryLink(ownedLink)
+  }
+  return outcome
+}
+
+async function captureOwnedBunBinaryLink(
+  packageName: string,
+  binaryName: string,
+  context: ProviderOperationContext,
+): Promise<BunOwnedBinaryLink | undefined> {
+  if (process.platform === 'win32' || !isSafeBinaryName(binaryName)) return undefined
+
+  try {
+    const globalBinDirectory = await resolveBunGlobalBinDirectory(context)
+    if (!globalBinDirectory) return undefined
+
+    const globalDirectory = process.env.BUN_INSTALL_GLOBAL_DIR ?? join(homedir(), '.bun', 'install', 'global')
+    const packageDirectory = resolvePackageDirectory(globalDirectory, packageName)
+    if (!packageDirectory) return undefined
+
+    const manifest = parsePackageManifest(await readFile(join(packageDirectory, 'package.json'), 'utf8'))
+    if (!manifest || !manifestDeclaresBinary(manifest, packageName, binaryName)) return undefined
+
+    const linkPath = join(globalBinDirectory, binaryName)
+    const stats = await lstat(linkPath)
+    if (!stats.isSymbolicLink()) return undefined
+
+    const linkTarget = await readlink(linkPath)
+    const absoluteTarget = resolve(dirname(linkPath), linkTarget)
+    const dependencyName = resolveTargetPackageName(globalDirectory, absoluteTarget)
+    if (!dependencyName || !manifestOwnsDependency(manifest, packageName, dependencyName)) return undefined
+
+    return { device: stats.dev, inode: stats.ino, linkPath, linkTarget }
+  } catch {
+    return undefined
+  }
+}
+
+async function removeUnchangedOwnedBunBinaryLink(link: BunOwnedBinaryLink): Promise<void> {
+  try {
+    const stats = await lstat(link.linkPath)
+    if (!stats.isSymbolicLink() || stats.dev !== link.device || stats.ino !== link.inode) return
+    if ((await readlink(link.linkPath)) !== link.linkTarget) return
+    await unlink(link.linkPath)
+  } catch {
+    // Absence is already the desired state. Other failures remain visible to the
+    // command-level executable postcondition instead of deleting an uncertain path.
+  }
+}
+
+async function resolveBunGlobalBinDirectory(context: ProviderOperationContext): Promise<string | undefined> {
+  try {
+    const proc = spawnCommand(['bun', 'pm', 'bin', '-g'], {
+      detached: process.platform !== 'win32',
+      stdio: createPipedStdio(),
+    })
+    const { exitCode, stdout } = await readProcessOutputWithContext(proc, context)
+    if (exitCode !== 0) return undefined
+    const directory = stdout.trim().split('\n')[0]?.trim()
+    return directory && isAbsolute(directory) ? directory : undefined
+  } catch {
+    return undefined
+  }
+}
+
+function resolvePackageDirectory(globalDirectory: string, packageName: string): string | undefined {
+  const segments = packageName.split('/')
+  const validShape = packageName.startsWith('@') ? segments.length === 2 : segments.length === 1
+  if (!validShape || segments.some(segment => !segment || segment === '.' || segment === '..')) return undefined
+  return join(globalDirectory, 'node_modules', ...segments)
+}
+
+function resolveTargetPackageName(globalDirectory: string, targetPath: string): string | undefined {
+  const nodeModulesDirectory = join(globalDirectory, 'node_modules')
+  const targetRelativePath = relative(nodeModulesDirectory, targetPath)
+  if (!targetRelativePath || isAbsolute(targetRelativePath) || targetRelativePath.startsWith(`..${sep}`)) {
+    return undefined
+  }
+
+  const segments = targetRelativePath.split(sep)
+  if (segments[0]?.startsWith('@')) return segments[1] ? `${segments[0]}/${segments[1]}` : undefined
+  return segments[0]
+}
+
+function parsePackageManifest(raw: string): Record<string, unknown> | undefined {
+  const value = JSON.parse(raw) as unknown
+  return typeof value === 'object' && value !== null && !Array.isArray(value)
+    ? (value as Record<string, unknown>)
+    : undefined
+}
+
+function manifestDeclaresBinary(manifest: Record<string, unknown>, packageName: string, binaryName: string): boolean {
+  if (typeof manifest.bin === 'string') return packageName.split('/').at(-1) === binaryName
+  return isPlainRecord(manifest.bin) && typeof manifest.bin[binaryName] === 'string'
+}
+
+function manifestOwnsDependency(
+  manifest: Record<string, unknown>,
+  packageName: string,
+  dependencyName: string,
+): boolean {
+  if (dependencyName === packageName) return true
+  return ['dependencies', 'optionalDependencies'].some(field => {
+    const dependencies = manifest[field]
+    return isPlainRecord(dependencies) && Object.hasOwn(dependencies, dependencyName)
+  })
+}
+
+function isPlainRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value)
+}
+
+function isSafeBinaryName(binaryName: string): boolean {
+  return binaryName.length > 0 && binaryName === basename(binaryName) && binaryName !== '.' && binaryName !== '..'
 }
 
 export type PackagePresenceProbe = 'present' | 'absent' | 'unknown'

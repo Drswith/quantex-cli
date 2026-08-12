@@ -60,7 +60,7 @@ jobs:
           echo "$matrix"
 
   canary:
-    name: Canary (${{ matrix.agent }})
+    name: Canary (${{ matrix.agent }}, ${{ matrix.coverage }})
     needs: resolve
     runs-on: ubuntu-latest
     timeout-minutes: 20
@@ -74,12 +74,16 @@ jobs:
       HOME: /tmp/quantex-home
       BUN_INSTALL: /tmp/quantex-home/.bun
       BUN_INSTALL_CACHE_DIR: .bun/install/cache
+      CONFIGURE: ${{ matrix.setup == 'skip-interactive-configuration' && 'false' || '' }}
+      DISABLE_AUTOUPDATER: ${{ matrix.disableUpdates && '1' || '' }}
+      DISABLE_UPDATES: ${{ matrix.disableUpdates && '1' || '' }}
       QTX_ISOLATION_AGENTS: ${{ matrix.agent }}
       QTX_ISOLATION_SCENARIOS: probe
+      QTX_CANARY_COVERAGE: ${{ matrix.coverage }}
       QTX_CANARY_REQUIRE_VERSION: ${{ matrix.requireVersion }}
       QTX_CANARY_PROVIDER: ${{ matrix.provider }}
-      QTX_CANARY_SKIP_REASON: ${{ matrix.skipReason }}
-      QTX_CANARY_CLEANUP_SKIP_REASON: ${{ matrix.cleanupSkipReason }}
+      QTX_CANARY_SETUP: ${{ matrix.setup }}
+      QTX_CANARY_SOURCE_CONFLICT: ${{ matrix.sourceConflictProbe }}
       QTX_ISOLATION_COMMAND_TIMEOUT_MS: 600000
     steps:
       - uses: actions/checkout@v7
@@ -90,6 +94,18 @@ jobs:
           # Real agents may require a newer Bun than Quantex's reproducible
           # build pin. Keep this override scoped to the advisory canary.
           bun-version: 1.3.14
+      - name: Set up Node for Autohand npm lifecycle
+        if: matrix.agent == 'autohand' && matrix.provider == 'npm'
+        uses: actions/setup-node@v7
+        with:
+          node-version: 24
+      - name: Verify Autohand npm build requirements
+        if: matrix.agent == 'autohand' && matrix.provider == 'npm'
+        shell: bash
+        run: |
+          command -v python3
+          command -v make
+          command -v g++
       - name: Set up Deno provider
         if: matrix.provider == 'deno'
         uses: denoland/setup-deno@22d081ff2d3a40755e97629de92e3bcbfa7cf2ed # v2.0.5
@@ -99,8 +115,51 @@ jobs:
         if: matrix.provider == 'uv'
         uses: astral-sh/setup-uv@c771a70e6277c0a99b617c7a806ffedaca235ff9 # v9.0.0
       - name: Prepare disposable home
+        shell: bash
         run: |
-          mkdir -p "$HOME" "$BUN_INSTALL"
+          mkdir -p "$HOME" "$BUN_INSTALL" "$HOME/.local/bin"
           echo "$BUN_INSTALL/bin" >> "$GITHUB_PATH"
+          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+
+          if [[ "$QTX_ISOLATION_AGENTS" == 'claude' ]]; then
+            # ubuntu-latest currently carries an unrelated Claude executable.
+            # The first scenario needs a genuinely single-source PATH; the smoke
+            # then adds its own controlled second source for the conflict oracle.
+            isolated_path="$BUN_INSTALL/bin:$HOME/.local/bin:/usr/bin:/bin"
+            echo "PATH=$isolated_path" >> "$GITHUB_ENV"
+            if PATH="$isolated_path" command -v claude >/dev/null 2>&1; then
+              echo 'Claude clean-lifecycle PATH still contains an unmanaged executable.' >&2
+              PATH="$isolated_path" type -a claude >&2 || true
+              exit 1
+            fi
+          fi
+      - name: Acquire Devin binary without account setup
+        if: matrix.coverage == 'binary-lifecycle'
+        shell: bash
+        run: |
+          set -euo pipefail
+          set +e
+          timeout --signal=TERM --kill-after=10s 180s \
+            bash -o pipefail -c 'curl -fsSL https://cli.devin.ai/install.sh | bash' </dev/null
+          installer_status=$?
+          set -e
+
+          if [[ ! -x "$HOME/.local/bin/devin" ]]; then
+            echo "The official installer did not acquire the Devin executable (exit $installer_status)." >&2
+            exit 1
+          fi
+
+          "$HOME/.local/bin/devin" version
+          {
+            echo '### Devin credential-free coverage'
+            echo '- Binary acquisition and version: verified'
+            echo '- Quantex adoption, inspect, list, and version: pending lifecycle probe'
+            echo '- Account setup and authentication: deferred; requires a credentialed test identity'
+            echo "- Official installer status after entering setup: $installer_status"
+          } >> "$GITHUB_STEP_SUMMARY"
       - name: Run focused lifecycle probe
         run: bun run scripts/smoke/lifecycle-smoke.ts "$QTX_ISOLATION_AGENTS"
+      - name: Record Devin binary lifecycle result
+        if: success() && matrix.coverage == 'binary-lifecycle'
+        run: |
+          echo '- Quantex adoption, inspect, list, version, and untracking: verified' >> "$GITHUB_STEP_SUMMARY"

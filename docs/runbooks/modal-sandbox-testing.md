@@ -105,21 +105,22 @@ The repository also has an advisory GitHub Actions workflow at `.github/workflow
 
 - Relevant pull requests run a quick matrix containing the maintained anchors `codex`, `opencode`, `pi`, and `qoder`.
 - The weekly schedule and manual dispatch can run the full catalog-driven Linux matrix. Each job uses a fresh `ubuntu-latest` runner, a runner-temporary `HOME`/`BUN_INSTALL`, one agent, and `QTX_ISOLATION_SCENARIOS=probe`.
-- Matrix entries carry the selected catalog provider, installed-version probe capability, any explicit reason the credential-free non-interactive runner cannot exercise the installer, and any reviewed cleanup-stage exception. Those entries remain visible as named skips instead of disappearing from the matrix or failing as false product regressions.
-- Candidate selection prefers Bun and then npm because those are the CI-ready providers the existing product configuration can reorder. When neither exists, the matrix retains catalog order so its provider matches production routing. The workflow provisions Deno or uv only when a catalog-first entry selects them; it never writes those unsupported values into `defaultPackageManager`.
-- A pre-install skip does not invoke the upstream installer. A cleanup-stage skip is narrower: install, refreshed `inspect`/`list`, and required version assertions must pass first, provider removal must run, and only a reviewed structured `conflicting-source` result is accepted. Any other uninstall failure remains red.
+- Matrix entries carry the selected catalog provider, installed-version requirement, lifecycle coverage mode, installer setup policy, update-isolation policy, and deliberate source-conflict flag. Full-scope entries do not carry an agent-level installation or cleanup skip.
+- Candidate selection prefers Bun, npm, and uv because those are CI-ready providers the product configuration can reorder. Junie explicitly uses its official script candidate so the canary keeps provider-source verification strict instead of accepting the managed package's external shim. The workflow provisions Deno or uv when selected.
+- Goose runs its official installer with `CONFIGURE=false`. Vibe runs through uv with the disposable local bin directory already on PATH. A provider or installer that cannot execute makes that advisory agent job red.
+- Devin uses `binary-lifecycle` coverage: the bounded official installer step must acquire a working version-reporting executable, then Quantex must adopt, inspect, list, version, and untrack it. The job summary states that account setup and authentication are deferred; it does not call that layer passed or skipped.
+- Claude disables upstream update and migration paths for the ordinary Bun lifecycle and must finish absent after uninstall. Its separate deliberate conflict probe adds a controlled fallback executable, requires the exact structured `conflicting-source` failure, removes the fixture, and completes final cleanup.
 - A fresh uv tool directory reports `No tools installed` with exit zero. Quantex treats that explicit result as conclusive absence so catalog-first uv agents can install; unexplained empty uv output remains indeterminate and red.
 - The canary uses its own compatible Bun version for current real-agent packages; Quantex build and release jobs retain the repository's reproducible Bun pin.
 - The workflow is intentionally not a required branch-protection context. A registry or upstream installer outage remains visible as advisory evidence while deterministic provider tests continue to gate merges.
 
-To exercise the same focused probe locally without using your normal Quantex state or global agent directory, use a disposable HOME:
+Do not run real-agent installation probes directly against a developer workstation. Use the Docker transport so HOME, PATH, package-manager roots, and installed agents remain inside the disposable container:
 
 ```bash
-canary_home="$(mktemp -d)"
-trap 'rm -rf "$canary_home"' EXIT
-HOME="$canary_home" BUN_INSTALL="$canary_home/.bun" PATH="$canary_home/.bun/bin:$PATH" \
-  QTX_ISOLATION_SCENARIOS=probe QTX_CANARY_REQUIRE_VERSION=true \
-  QTX_ISOLATION_AGENTS=pi bun run scripts/smoke/lifecycle-smoke.ts
+QTX_ISOLATION_SCENARIOS=probe \
+  QTX_CANARY_REQUIRE_VERSION=true \
+  QTX_ISOLATION_AGENTS=pi \
+  bun run test:container
 ```
 
 Use `bun run test:container` or `bun run test:sandbox` when you need the broader fake-provider, self-upgrade, filesystem, or transport scenarios. The two layers complement each other: canaries catch real upstream CLI stream and packaging behavior; isolation runs exercise Quantex's provider and sandbox contracts deterministically.
@@ -137,9 +138,9 @@ Use `bun run test:container` or `bun run test:sandbox` when you need the broader
 
 2. Run `bun run test:container` when the change is sensitive to HOME, PATH, global tools, or filesystem isolation and you want a local fallback that does not require Modal.
    For self-upgrade regressions, start with `QTX_ISOLATION_SCENARIOS=self-managed bun run test:container`.
-3. Let the advisory `Agent Canaries` workflow provide the quick real-agent signal; use its matrix entry `(agent, provider)` when triaging an outcome. A named pre-install skip means the checked-in runner policy cannot exercise the production-selected installer. A cleanup-stage skip means semantic checks and provider removal ran, but a reviewed second executable remained on the disposable runner. A red entry means a runnable provider, Quantex assertion, unexpected cleanup result, or upstream operation failed and still requires diagnosis.
+3. Let the advisory `Agent Canaries` workflow provide the quick real-agent signal; use its matrix entry `(agent, provider, coverage)` when triaging an outcome. `full-lifecycle` requires the selected install/inspect/list/version/cleanup contract. `binary-lifecycle` verifies the same binary semantics while naming the credentialed setup boundary separately. A red entry means the selected provider, installer, semantic assertion, or cleanup contract failed and requires diagnosis.
 4. Run `bun run test:sandbox` when you also want to validate the Modal transport or broad sandbox scenarios.
-5. If an isolated run fails, compare whether the failure is code-related or environment-related by rerunning the same agent list in a disposable HOME.
+5. If an isolated run fails, compare whether the failure is code-related or environment-related by rerunning the same agent list through Docker; never reproduce a real installer directly in the host HOME.
 6. If Modal setup is missing, install or repair the local Modal CLI only when the Modal transport itself is in scope.
 
 ## Recovery
