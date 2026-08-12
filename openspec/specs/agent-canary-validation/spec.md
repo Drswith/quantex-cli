@@ -3,7 +3,6 @@
 ## Purpose
 
 Define the repository contract for catalog-driven real-agent canary selection, disposable lifecycle execution, semantic version assertions, cleanup classification, and separation from broader Docker or Modal isolation testing.
-
 ## Requirements
 ### Requirement: Canary matrix selection MUST be catalog-driven and deterministic
 
@@ -151,3 +150,14 @@ The canary workflow MUST run on relevant pull requests and scheduled/manual even
 
 - **WHEN** a contributor needs remote transport or broad sandbox scenarios
 - **THEN** the contributor can still invoke the existing Modal isolation command independently of the canary matrix
+
+### Requirement: uv-backed disposable canaries MUST disable a non-invalidating package cache
+
+The real-agent canary workflow MUST disable `setup-uv`'s persisted package cache when the repository has no checked-in Python dependency manifest capable of invalidating that cache. It MUST continue to install uv and execute the selected agent lifecycle, and it MUST NOT merely suppress the missing-dependency warning while retaining a `no-dependency-glob` cache.
+
+#### Scenario: uv provider has no repository dependency manifest
+
+- **GIVEN** a canary matrix entry uses uv and the repository contains no matching Python dependency or lock file
+- **WHEN** the workflow prepares the uv provider on a GitHub-hosted runner
+- **THEN** setup-uv dependency caching is explicitly disabled
+- **AND** the agent install, inspection, version, list, and cleanup lifecycle still executes
