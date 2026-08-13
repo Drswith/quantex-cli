@@ -1,6 +1,13 @@
 # Changelog
 
 
+## [1.9.1](https://github.com/Drswith/quantex-cli/compare/v1.9.0...v1.9.1) (2026-08-13)
+
+
+### Bug Fixes
+
+* **release:** publish Windows binaries as ZIP ([2602707](https://github.com/Drswith/quantex-cli/commit/26027075b3b54d073be95157d44ca9a451b487f0))
+
 ## [1.9.0](https://github.com/Drswith/quantex-cli/compare/v1.8.12...v1.9.0) (2026-08-12)
 
 
