@@ -3,6 +3,7 @@ import type { CommandResult } from '../output/types'
 import { getCliContext } from '../cli-context'
 import {
   observeLifecycleProvider,
+  providerBindingsEqual,
   resolveReceiptProviderBinding,
   resolveStateProviderBinding,
   type LifecycleProviderBinding,
@@ -79,7 +80,10 @@ export async function uninstallCommand(agentName: string): Promise<CommandResult
           renderUninstallHuman,
         )
       }
-      if (stateBinding && receiptBinding && !providerBindingsMatch(stateBinding, receiptBinding)) {
+      // The agent's binary name is the default both records fall back to: state bindings omit the
+      // executable name for package providers, while receipts written by update always carry it.
+      // Without that default, evidence that differs only by the default reads as a source conflict.
+      if (stateBinding && receiptBinding && !providerBindingsEqual(stateBinding, receiptBinding, agent.binaryName)) {
         return emitCommandResult(
           createUninstallFailure(agent, 'conflicting-source', `Recorded sources disagree for ${agent.displayName}.`),
           renderUninstallHuman,
@@ -270,15 +274,6 @@ export async function uninstallCommand(agentName: string): Promise<CommandResult
     }
     throw error
   }
-}
-
-function providerBindingsMatch(left: LifecycleProviderBinding, right: LifecycleProviderBinding): boolean {
-  return (
-    left.providerId === right.providerId &&
-    left.target.id === right.target.id &&
-    left.target.kind === right.target.kind &&
-    left.target.binaryName === right.target.binaryName
-  )
 }
 
 async function observeBoundProvider(binding: LifecycleProviderBinding) {
