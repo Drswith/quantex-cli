@@ -282,7 +282,7 @@ describe('self helpers', () => {
     const { upgradeSelf } = await import('../src/self')
     Object.defineProperty(process, 'platform', { value: 'win32' })
     Object.defineProperty(process, 'arch', { value: 'x64' })
-    const downloadUrl = 'https://example.com/releases/download/v1.1.0/quantex-windows-x64.exe.tar.gz'
+    const downloadUrl = 'https://example.com/releases/download/v1.1.0/quantex-windows-x64.exe.zip'
 
     releaseManifestSpy.mockResolvedValue({
       assets: [
@@ -290,7 +290,7 @@ describe('self helpers', () => {
           arch: 'x64',
           checksum: 'abc123',
           downloadUrl,
-          name: 'quantex-windows-x64.exe.tar.gz',
+          name: 'quantex-windows-x64.exe.zip',
           platform: 'win32',
         },
       ],

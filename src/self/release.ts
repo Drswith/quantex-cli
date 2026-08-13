@@ -4,6 +4,7 @@ import type { SelfUpdateChannel } from './types'
 import { basename } from 'node:path'
 import process from 'node:process'
 import { BUILD_REPOSITORY_URL } from '../generated/build-meta'
+import { getReleaseArchiveName } from '../release-artifacts'
 import { fetchJsonWithCache, fetchTextWithCache } from '../utils/network'
 
 type MetadataCacheMode = 'default' | 'no-cache' | 'refresh'
@@ -40,7 +41,7 @@ export function normalizePath(path: string): string {
 
 export function getBinaryReleaseAssetName(executablePath: string = process.execPath): string | undefined {
   const executableName = getBinaryReleaseExecutableName(executablePath)
-  return executableName ? `${executableName}.tar.gz` : undefined
+  return executableName ? getReleaseArchiveName(executableName) : undefined
 }
 
 export function getBinaryReleaseExecutableName(executablePath: string = process.execPath): string | undefined {
