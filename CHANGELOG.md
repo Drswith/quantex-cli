@@ -1,6 +1,13 @@
 # Changelog
 
 
+## [1.9.2](https://github.com/Drswith/quantex-cli/compare/v1.9.1...v1.9.2) (2026-08-13)
+
+
+### Bug Fixes
+
+* **uninstall:** stop reporting a source conflict for agents that were updated ([83fa533](https://github.com/Drswith/quantex-cli/commit/83fa53341eb7c192c2314a81ca3125b91f4117e1))
+
 ## [1.9.1](https://github.com/Drswith/quantex-cli/compare/v1.9.0...v1.9.1) (2026-08-13)
 
 
