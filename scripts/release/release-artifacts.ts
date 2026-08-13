@@ -2,9 +2,9 @@ import type { createReleaseManifest } from '../../src/release-artifacts'
 import { createHash } from 'node:crypto'
 import { readdir, readFile, rm, stat, writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
-import process from 'node:process'
 import { fileURLToPath } from 'node:url'
 import {
+  createReleaseArchive,
   createReleaseManifest as buildReleaseManifest,
   formatChecksums,
   getReleaseArchiveName,
@@ -38,7 +38,7 @@ async function compressBinaries(): Promise<void> {
 
     const archivePath = join(binDir, getReleaseArchiveName(binaryName))
     await rm(archivePath, { force: true })
-    await runChecked(['tar', '--format=ustar', '-czf', archivePath, '-C', binDir, binaryName])
+    await writeFile(archivePath, createReleaseArchive(binaryName, await readFile(join(binDir, binaryName))))
   }
 }
 
@@ -90,14 +90,4 @@ async function verifyArtifacts(): Promise<void> {
   const manifest = JSON.parse(await readFile(manifestPath, 'utf8')) as ReturnType<typeof createReleaseManifest>
 
   validateReleaseManifest(manifest, checksums)
-}
-
-async function runChecked(command: string[]): Promise<void> {
-  const child = Bun.spawn(command, {
-    env: { ...process.env, COPYFILE_DISABLE: '1' },
-    stderr: 'inherit',
-    stdout: 'inherit',
-  })
-  const exitCode = await child.exited
-  if (exitCode !== 0) throw new Error(`Command failed with exit code ${exitCode}: ${command.join(' ')}`)
 }

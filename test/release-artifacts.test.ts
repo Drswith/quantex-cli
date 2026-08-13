@@ -1,9 +1,11 @@
 import { gzipSync } from 'node:zlib'
 import { describe, expect, it } from 'vitest'
 import {
+  createReleaseArchive,
   createReleaseManifest,
   extractReleaseArchive,
   formatChecksums,
+  getReleaseArchiveFormat,
   getReleaseArchiveName,
   getReleaseBinaryName,
   normalizeRepositoryUrl,
@@ -28,13 +30,17 @@ describe('release artifacts helpers', () => {
   it('parses binary targets from release filenames', () => {
     expect(parseBinaryTarget('quantex-darwin-arm64.tar.gz')).toEqual({ arch: 'arm64', platform: 'darwin' })
     expect(parseBinaryTarget('quantex-linux-x64.tar.gz')).toEqual({ arch: 'x64', platform: 'linux' })
-    expect(parseBinaryTarget('quantex-windows-x64.exe.tar.gz')).toEqual({ arch: 'x64', platform: 'win32' })
+    expect(parseBinaryTarget('quantex-windows-x64.exe.zip')).toEqual({ arch: 'x64', platform: 'win32' })
+    expect(parseBinaryTarget('quantex-windows-x64.exe.tar.gz')).toBeUndefined()
     expect(parseBinaryTarget('manifest.json')).toBeUndefined()
   })
 
   it('maps compressed release assets to their executable names', () => {
     expect(getReleaseArchiveName('quantex-linux-x64')).toBe('quantex-linux-x64.tar.gz')
-    expect(getReleaseBinaryName('quantex-windows-x64.exe.tar.gz')).toBe('quantex-windows-x64.exe')
+    expect(getReleaseArchiveFormat('quantex-windows-x64.exe')).toBe('zip')
+    expect(getReleaseArchiveName('quantex-windows-x64.exe')).toBe('quantex-windows-x64.exe.zip')
+    expect(getReleaseBinaryName('quantex-windows-x64.exe.zip')).toBe('quantex-windows-x64.exe')
+    expect(getReleaseBinaryName('quantex-windows-x64.exe.tar.gz')).toBeUndefined()
     expect(getReleaseBinaryName('quantex-linux-x64')).toBeUndefined()
   })
 
@@ -150,6 +156,29 @@ describe('release artifacts helpers', () => {
       'Release archive must contain exactly quantex-linux-x64.',
     )
   })
+
+  it('creates and extracts a Windows ZIP archive with integrity checks', () => {
+    const binary = new TextEncoder().encode('binary'.repeat(100))
+    const archive = createReleaseArchive('quantex-windows-x64.exe', binary)
+
+    expect(Array.from(archive.subarray(0, 2))).toEqual([0x50, 0x4b])
+    expect(Array.from(extractReleaseArchive(archive, 'quantex-windows-x64.exe'))).toEqual(Array.from(binary))
+
+    const corrupted = archive.slice()
+    corrupted[30 + 'quantex-windows-x64.exe'.length] ^= 0xff
+    expect(() => extractReleaseArchive(corrupted, 'quantex-windows-x64.exe')).toThrow(
+      'Release archive contains an invalid zip entry.',
+    )
+
+    const duplicateEntry = createReleaseArchive(
+      'quantex-windows-x64.exe',
+      new TextEncoder().encode('other'.repeat(100)),
+    )
+    const withExtraEntry = appendZipLocalEntry(archive, duplicateEntry)
+    expect(() => extractReleaseArchive(withExtraEntry, 'quantex-windows-x64.exe')).toThrow(
+      'Release archive must contain exactly quantex-windows-x64.exe.',
+    )
+  })
 })
 
 function createRequiredChecksums(): Map<string, string> {
@@ -176,4 +205,20 @@ function createTarArchive(name: string, contents: string): Uint8Array {
   tar.set(header, 0)
   tar.set(padding, 512)
   return gzipSync(tar)
+}
+
+function appendZipLocalEntry(archive: Uint8Array, extraArchive: Uint8Array): Uint8Array {
+  const firstEntryLength = getZipLocalEntryLength(archive)
+  const extraEntryLength = getZipLocalEntryLength(extraArchive)
+  const result = new Uint8Array(archive.length + extraEntryLength)
+
+  result.set(archive.subarray(0, firstEntryLength), 0)
+  result.set(extraArchive.subarray(0, extraEntryLength), firstEntryLength)
+  result.set(archive.subarray(firstEntryLength), firstEntryLength + extraEntryLength)
+  return result
+}
+
+function getZipLocalEntryLength(archive: Uint8Array): number {
+  const view = new DataView(archive.buffer, archive.byteOffset, archive.byteLength)
+  return 30 + view.getUint16(26, true) + view.getUint16(28, true) + view.getUint32(18, true)
 }
