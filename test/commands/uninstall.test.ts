@@ -391,6 +391,70 @@ describe('uninstallCommand', () => {
     expect(removeReceiptSpy).not.toHaveBeenCalled()
   })
 
+  it('reconciles a receipt naming the default executable with state that omits it', async () => {
+    agentSpy.mockReturnValue(testAgent)
+    installedStateSpy.mockResolvedValue(managedInstalledState)
+    getReceiptSpy.mockResolvedValue({ ...managedReceipt, executableName: testAgent.binaryName })
+    binaryInPathSpy.mockResolvedValueOnce(true).mockResolvedValueOnce(false)
+    observeProviderSpy
+      .mockImplementationOnce(async binding => ({
+        kind: 'success',
+        value: { kind: 'present', target: binding.target },
+      }))
+      .mockImplementationOnce(async binding => ({
+        kind: 'success',
+        value: { kind: 'absent', target: binding.target },
+      }))
+    uninstallSpy.mockResolvedValue(true)
+
+    const result = await uninstallCommand('test-agent')
+
+    expect(result.ok).toBe(true)
+    expect(uninstallSpy).toHaveBeenCalledWith(testAgent, managedInstalledState)
+    expect(removeReceiptSpy).toHaveBeenCalledWith('test-agent')
+  })
+
+  it('reconciles state naming the default executable with a receipt that omits it', async () => {
+    const namedInstalledState = { ...managedInstalledState, binaryName: testAgent.binaryName }
+    const { executableName: _omitted, ...receiptWithoutExecutableName } = managedReceipt
+    agentSpy.mockReturnValue(testAgent)
+    installedStateSpy.mockResolvedValue(namedInstalledState)
+    getReceiptSpy.mockResolvedValue(receiptWithoutExecutableName)
+    binaryInPathSpy.mockResolvedValueOnce(true).mockResolvedValueOnce(false)
+    observeProviderSpy
+      .mockImplementationOnce(async binding => ({
+        kind: 'success',
+        value: { kind: 'present', target: binding.target },
+      }))
+      .mockImplementationOnce(async binding => ({
+        kind: 'success',
+        value: { kind: 'absent', target: binding.target },
+      }))
+    uninstallSpy.mockResolvedValue(true)
+
+    const result = await uninstallCommand('test-agent')
+
+    expect(result.ok).toBe(true)
+    expect(uninstallSpy).toHaveBeenCalledWith(testAgent, namedInstalledState)
+    expect(removeReceiptSpy).toHaveBeenCalledWith('test-agent')
+  })
+
+  it('rejects a package receipt naming an executable the agent does not declare', async () => {
+    agentSpy.mockReturnValue(testAgent)
+    installedStateSpy.mockResolvedValue(managedInstalledState)
+    getReceiptSpy.mockResolvedValue({ ...managedReceipt, executableName: 'different-bin' })
+    binaryInPathSpy.mockResolvedValue(true)
+
+    const result = await uninstallCommand('test-agent')
+
+    expect(result.error).toMatchObject({
+      code: 'UNINSTALL_FAILED',
+      details: { lifecycle: 'conflicting-source' },
+    })
+    expect(uninstallSpy).not.toHaveBeenCalled()
+    expect(removeReceiptSpy).not.toHaveBeenCalled()
+  })
+
   it('rejects a Brew receipt whose target kind differs from installed state', async () => {
     agentSpy.mockReturnValue(testAgent)
     installedStateSpy.mockResolvedValue({
@@ -545,7 +609,10 @@ describe('uninstallCommand', () => {
   })
 })
 
+// `qtx update` always records the agent's binary name, while package-provider installed state never
+// does. The receipt fixture carries it so these cases exercise the shape that reaches real disks.
 const managedReceipt = {
+  executableName: 'test-bin',
   kind: 'lifecycle-receipt' as const,
   providerId: 'bun',
   providerTargetId: 'test-pkg',
