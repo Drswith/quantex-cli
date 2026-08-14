@@ -191,3 +191,117 @@ jobs:
         run: |
           set -euo pipefail
           test "$(gh release view "${RELEASE_TAG}" --json isDraft --jq .isDraft)" = "false"
+
+  verify-installers:
+    name: Verify ${{ matrix.installer }} on ${{ matrix.os }}
+    needs: [publish, build-candidate]
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            installer: install.sh
+          - os: macos-latest
+            installer: install.sh
+          - os: windows-latest
+            installer: install.ps1
+    runs-on: ${{ matrix.os }}
+    permissions:
+      contents: read
+    env:
+      QUANTEX_INSTALL_DIR: ${{ runner.temp }}/quantex-install
+      QUANTEX_REPO: ${{ github.repository }}
+      QUANTEX_VERSION: ${{ needs.build-candidate.outputs.tag }}
+    steps:
+      - name: Checkout exact installer source
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 1
+          ref: ${{ needs.build-candidate.outputs.tag }}
+
+      - name: Run install.sh against the public release
+        if: matrix.installer == 'install.sh'
+        shell: bash
+        env:
+          HOME: ${{ runner.temp }}/quantex-home
+        run: |
+          set -euo pipefail
+          mkdir -p "${HOME}"
+
+          fail() {
+            echo "::error title=install.sh installer smoke failed::$1" >&2
+            exit 1
+          }
+
+          if ! bash ./install.sh; then
+            fail "install.sh could not install ${QUANTEX_VERSION} on ${RUNNER_OS}."
+          fi
+
+          expected_version="${QUANTEX_VERSION#v}"
+          installed_path="${QUANTEX_INSTALL_DIR}/quantex"
+          alias_path="${QUANTEX_INSTALL_DIR}/qtx"
+
+          if [ ! -x "${installed_path}" ]; then
+            fail "install.sh did not create an executable at ${installed_path}."
+          fi
+          if [ ! -L "${alias_path}" ]; then
+            fail "install.sh did not create the qtx alias at ${alias_path}."
+          fi
+
+          assert_version() {
+            target_path="$1"
+            if ! output="$("${target_path}" --version 2>&1)"; then
+              fail "install.sh installed ${target_path}, but --version failed."
+            fi
+            if ! printf '%s\n' "${output}" | grep -F -- "${expected_version}" >/dev/null; then
+              fail "install.sh installed ${target_path}, but --version did not report ${expected_version}."
+            fi
+          }
+
+          assert_version "${installed_path}"
+          assert_version "${alias_path}"
+          echo "install.sh installer smoke passed on ${RUNNER_OS} for ${QUANTEX_VERSION}."
+
+      - name: Run install.ps1 against the public release
+        if: matrix.installer == 'install.ps1'
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+
+          function Fail([string] $Message) {
+            Write-Error "::error title=install.ps1 installer smoke failed::$Message"
+            exit 1
+          }
+
+          try {
+            & ./install.ps1
+          }
+          catch {
+            Fail "install.ps1 could not install $env:QUANTEX_VERSION on $env:RUNNER_OS: $($_.Exception.Message)"
+          }
+
+          $expectedVersion = $env:QUANTEX_VERSION -replace '^v', ''
+          $installedPath = Join-Path $env:QUANTEX_INSTALL_DIR 'quantex.exe'
+          $aliasPath = Join-Path $env:QUANTEX_INSTALL_DIR 'qtx.exe'
+
+          if (-not (Test-Path -LiteralPath $installedPath -PathType Leaf)) {
+            Fail "install.ps1 did not create $installedPath."
+          }
+          if (-not (Test-Path -LiteralPath $aliasPath -PathType Leaf)) {
+            Fail "install.ps1 did not create $aliasPath."
+          }
+
+          function Assert-Version([string] $TargetPath) {
+            $output = & $TargetPath --version 2>&1
+            if ($LASTEXITCODE -ne 0) {
+              Fail "install.ps1 installed $TargetPath, but --version failed."
+            }
+            $text = $output | Out-String
+            if (-not $text.Contains($expectedVersion)) {
+              Fail "install.ps1 installed $TargetPath, but --version did not report $expectedVersion."
+            }
+          }
+
+          Assert-Version $installedPath
+          Assert-Version $aliasPath
+          Write-Host "install.ps1 installer smoke passed on $env:RUNNER_OS for $env:QUANTEX_VERSION."

@@ -86,6 +86,10 @@ The build-candidate job runs `bun run release:candidate`, the same pipeline defi
 4. verify npm registry closure;
 5. make the GitHub Release public.
 
+After the public-release check, the `verify-installers` matrix checks the same immutable tag on `ubuntu-latest`, `macos-latest`, and `windows-latest`. It checks out the tagged `install.sh` or `install.ps1`, passes the exact repository and tag through `QUANTEX_REPO` and `QUANTEX_VERSION`, installs into `runner.temp`, and runs both documented entry points with `--version`. The matrix uses `fail-fast: false`, so a multi-platform regression reports every affected installer.
+
+This is a post-publish gate because the installers must use public `releases/download/<tag>` URLs. A failed installer leg makes the Release workflow fail and means installer verification is incomplete, but it does not delete, move, or retag the already-public GitHub Release, tag, or npm version. Inspect the named installer and runner first; if the failure is transient, rerun `Release` at the same `v<version>` tag, and if it identifies an asset or installer defect, land the corrective change before publishing a new version. Never hide the failure by moving an existing tag.
+
 Regular source merges never publish by themselves. Only the immutable tag triggers publication.
 
 ## Version rules
@@ -120,7 +124,7 @@ The Release workflow pins `googleapis/release-please-action` to a repository-ver
 
 release-please owns Release PR preparation. The `tag-release` job creates missing tags after CI and guarantees exactly one Release workflow trigger; `release.yml` publishes on tag push and does not ask release-please to create a GitHub Release.
 
-If release-please fails to open a Release PR, check for stale `autorelease: pending` labels or an untagged merged Release PR. If tag creation fails, fix the protected-branch or CI mismatch and rerun `Release Please` on the branch. If publish fails after the tag exists, rerun `Release` at the same tag or dispatch `release.yml` with `--ref v<version>`. Never create a replacement version commit merely to recover incomplete npm or GitHub assets.
+If release-please fails to open a Release PR, check for stale `autorelease: pending` labels or an untagged merged Release PR. If tag creation fails, fix the protected-branch or CI mismatch and rerun `Release Please` on the branch. If publish or the post-publish installer gate fails after the tag exists, rerun `Release` at the same tag or dispatch `release.yml` with `--ref v<version>` after inspecting the failure. Never create a replacement version commit merely to recover incomplete npm, GitHub, or installer verification closure, and never move an existing version tag.
 
 ## npm trusted publishing
 
