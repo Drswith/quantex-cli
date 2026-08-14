@@ -208,10 +208,6 @@ jobs:
     runs-on: ${{ matrix.os }}
     permissions:
       contents: read
-    env:
-      QUANTEX_INSTALL_DIR: ${{ runner.temp }}/quantex-install
-      QUANTEX_REPO: ${{ github.repository }}
-      QUANTEX_VERSION: ${{ needs.build-candidate.outputs.tag }}
     steps:
       - name: Checkout exact installer source
         uses: actions/checkout@v7
@@ -224,6 +220,9 @@ jobs:
         shell: bash
         env:
           HOME: ${{ runner.temp }}/quantex-home
+          QUANTEX_INSTALL_DIR: ${{ runner.temp }}/quantex-install
+          QUANTEX_REPO: ${{ github.repository }}
+          QUANTEX_VERSION: ${{ needs.build-candidate.outputs.tag }}
         run: |
           set -euo pipefail
           mkdir -p "${HOME}"
@@ -265,6 +264,10 @@ jobs:
       - name: Run install.ps1 against the public release
         if: matrix.installer == 'install.ps1'
         shell: pwsh
+        env:
+          QUANTEX_INSTALL_DIR: ${{ runner.temp }}/quantex-install
+          QUANTEX_REPO: ${{ github.repository }}
+          QUANTEX_VERSION: ${{ needs.build-candidate.outputs.tag }}
         run: |
           $ErrorActionPreference = 'Stop'
 
