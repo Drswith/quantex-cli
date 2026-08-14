@@ -9,11 +9,16 @@ const releaseVersionPattern = /^\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?$/
 const pendingAutoreleaseLabel = 'autorelease: pending'
 const taggedAutoreleaseLabel = 'autorelease: tagged'
 
+// How far back on the protected branch a release commit may be found. The
+// release commit for the *current* manifest version is always recent; anything
+// older was released long ago and is settled by the tag check first. This is a
+// guard against walking forever on a hand-edited manifest, not a tuning knob.
+const releaseSearchDepth = 200
+
 export interface ReleaseTagInput {
   branch: string
-  branchHeadSha: string
-  commitTitle: string
   packageVersion: string
+  releaseSha: string | null
   tagSha: string | null
   ciSha: string | null
 }
@@ -32,44 +37,71 @@ export function parseReleaseVersionFromTitle(title: string): string | null {
   return match ? match[1].trim() : null
 }
 
-// Decides from the branch head alone, without any network call, whether tagging
+// Answers from the manifest alone, without any network call, whether tagging
 // could apply at all. The runner checks this before waiting on CI: the wait can
 // last 15 minutes, and spending it on an ordinary push that can never be tagged
 // also blocks the next release-please run behind a non-cancelling group.
-export function findNonReleaseHeadReason(input: { commitTitle: string; packageVersion: string }): string | null {
+export function findUntaggableReason(input: { packageVersion: string; releaseSha: string | null }): string | null {
   const version = input.packageVersion.trim()
   if (!releaseVersionPattern.test(version)) {
     return `package version is not a release version: ${version}`
   }
 
-  if (parseReleaseVersionFromTitle(input.commitTitle) !== version) {
-    return 'branch head is not a release commit'
+  if (!input.releaseSha) {
+    return `no release commit for ${version} in recent branch history`
   }
 
   return null
 }
 
 export function resolveReleaseTagPlan(input: ReleaseTagInput): ReleaseTagPlan {
-  const nonReleaseHeadReason = findNonReleaseHeadReason(input)
-  if (nonReleaseHeadReason) {
-    return { action: 'noop', reason: nonReleaseHeadReason }
+  const untaggableReason = findUntaggableReason(input)
+  if (untaggableReason) {
+    return { action: 'noop', reason: untaggableReason }
   }
 
   const version = input.packageVersion.trim()
   const tag = `v${version}`
-  if (input.tagSha === input.branchHeadSha) {
-    return { action: 'relabel-only', reason: 'release tag already points at branch head', tag, version }
+  const releaseSha = input.releaseSha!
+  if (input.tagSha === releaseSha) {
+    return { action: 'relabel-only', reason: 'release tag already points at the release commit', tag, version }
   }
 
   if (input.tagSha) {
-    throw new Error(`Tag ${tag} points at ${input.tagSha}, but branch head is ${input.branchHeadSha}.`)
+    throw new Error(`Tag ${tag} points at ${input.tagSha}, but the release commit is ${releaseSha}.`)
   }
 
-  if (input.ciSha !== input.branchHeadSha) {
-    throw new Error(`Release commit ${input.branchHeadSha} lacks successful protected-branch push CI.`)
+  if (input.ciSha !== releaseSha) {
+    throw new Error(`Release commit ${releaseSha} lacks successful protected-branch push CI.`)
   }
 
   return { action: 'tag', reason: 'release tag missing for validated release commit', tag, version }
+}
+
+/**
+ * Finds the release commit for `version` on the branch.
+ *
+ * The release commit is not necessarily the branch head: anything merged
+ * between the Release PR merge and this job's evaluation sits on top of it.
+ * Keying off the head instead stranded v1.9.3, because release-please never
+ * tags and every later push re-asked the same head question.
+ *
+ * `--first-parent` keeps the walk on the protected branch's own history rather
+ * than descending into merged side branches, which is the history the release
+ * contract reasons about. The match is unique in practice: the manifest version
+ * advances only at release commits, so taking the most recent match is exact.
+ */
+export function findReleaseCommitShaFromLog(input: { log: string; version: string }): string | null {
+  const version = input.version.trim()
+  for (const line of input.log.split('\n')) {
+    const separator = line.indexOf(' ')
+    if (separator === -1) continue
+    const sha = line.slice(0, separator)
+    const title = line.slice(separator + 1)
+    if (sha && parseReleaseVersionFromTitle(title) === version) return sha
+  }
+
+  return null
 }
 
 if (import.meta.main) {
@@ -88,31 +120,30 @@ async function runReleaseTagging(): Promise<void> {
 
   await git(['fetch', '--force', 'origin', branch, '--tags'])
 
-  const branchHeadSha = await git(['rev-parse', `origin/${branch}`])
-  const commitTitle = await git(['log', '-1', '--pretty=%s', branchHeadSha])
   const packageJson = JSON.parse(await readFile(new URL('../../package.json', import.meta.url), 'utf8')) as {
     version?: string
   }
   const packageVersion = packageJson.version ?? ''
+  const releaseSha = await findReleaseCommitSha({ branch, version: packageVersion })
 
-  // Answer the free question before the expensive one.
-  const nonReleaseHeadReason = findNonReleaseHeadReason({ commitTitle, packageVersion })
-  if (nonReleaseHeadReason) {
-    console.log(`Release tag plan: noop (${nonReleaseHeadReason})`)
+  // Answer the free questions before the expensive one: an ordinary push after
+  // the release was tagged settles here, without the CI wait.
+  const untaggableReason = findUntaggableReason({ packageVersion, releaseSha })
+  if (untaggableReason) {
+    console.log(`Release tag plan: noop (${untaggableReason})`)
     return
   }
 
-  const tag = packageVersion ? `v${packageVersion}` : ''
-  const tagSha = tag ? await readTagSha(tag) : null
-  const ciSha = await waitForSuccessfulCi({ branch, sha: branchHeadSha, token })
+  const tag = `v${packageVersion}`
+  const tagSha = await readTagSha(tag)
+  const ciSha = tagSha ? null : await waitForSuccessfulCi({ branch, sha: releaseSha!, token })
 
   const plan = resolveReleaseTagPlan({
     branch,
-    branchHeadSha,
-    commitTitle,
-    packageVersion,
-    tagSha,
     ciSha,
+    packageVersion,
+    releaseSha,
+    tagSha,
   })
 
   console.log(`Release tag plan: ${plan.action} (${plan.reason})`)
@@ -120,12 +151,12 @@ async function runReleaseTagging(): Promise<void> {
   if (plan.action === 'noop') return
 
   if (plan.action === 'tag' && plan.tag) {
-    await git(['tag', plan.tag, branchHeadSha])
+    await git(['tag', plan.tag, releaseSha!])
     const repository = process.env.GITHUB_REPOSITORY
     if (!repository) throw new Error('GITHUB_REPOSITORY is required.')
     const remoteUrl = `https://x-access-token:${token}@github.com/${repository}.git`
     await execFileAsync('git', ['push', remoteUrl, `refs/tags/${plan.tag}`])
-    console.log(`Pushed tag ${plan.tag} at ${branchHeadSha}.`)
+    console.log(`Pushed tag ${plan.tag} at ${releaseSha}.`)
     await dispatchReleaseWorkflow({ tag: plan.tag, token })
   }
 
@@ -226,6 +257,19 @@ async function relabelPendingReleasePullRequest(input: { branch: string; token: 
   }
 
   console.log(`Relabeled release PR #${pendingPull.number} to ${taggedAutoreleaseLabel}.`)
+}
+
+async function findReleaseCommitSha(input: { branch: string; version: string }): Promise<string | null> {
+  if (!releaseVersionPattern.test(input.version.trim())) return null
+
+  const log = await git([
+    'log',
+    '--first-parent',
+    `--max-count=${releaseSearchDepth}`,
+    '--pretty=%H %s',
+    `origin/${input.branch}`,
+  ])
+  return findReleaseCommitShaFromLog({ log, version: input.version })
 }
 
 async function readTagSha(tag: string): Promise<string | null> {
