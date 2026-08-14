@@ -134,6 +134,12 @@ describe('release workflow closure', () => {
     const installerJobIndex = releaseWorkflow.indexOf('  verify-installers:')
     const installerJob = releaseWorkflow.slice(installerJobIndex)
     const publicClosureIndex = releaseWorkflow.indexOf('Verify public release closure')
+    const jobStepsIndex = installerJob.indexOf('\n    steps:')
+    const jobLevelEnvIndex = installerJob.indexOf('\n    env:')
+    const jobLevelEnv =
+      jobLevelEnvIndex >= 0 && jobLevelEnvIndex < jobStepsIndex
+        ? installerJob.slice(jobLevelEnvIndex, jobStepsIndex)
+        : ''
 
     expect(installerJobIndex).toBeGreaterThan(publicClosureIndex)
     expect(installerJob).toContain('needs: [publish, build-candidate]')
@@ -147,6 +153,13 @@ describe('release workflow closure', () => {
     expect(installerJob).toContain('QUANTEX_REPO: ${{ github.repository }}')
     expect(installerJob).toContain('QUANTEX_VERSION: ${{ needs.build-candidate.outputs.tag }}')
     expect(installerJob).toContain('QUANTEX_INSTALL_DIR: ${{ runner.temp }}/quantex-install')
+    expect(jobLevelEnv).not.toContain('runner.temp')
+    expect(installerJob).toContain(
+      '        env:\n          HOME: ${{ runner.temp }}/quantex-home\n          QUANTEX_INSTALL_DIR: ${{ runner.temp }}/quantex-install',
+    )
+    expect(installerJob).toContain(
+      '        env:\n          QUANTEX_INSTALL_DIR: ${{ runner.temp }}/quantex-install\n          QUANTEX_REPO: ${{ github.repository }}',
+    )
     expect(installerJob).toContain('bash ./install.sh')
     expect(installerJob).toContain('& ./install.ps1')
     expect(installerJob).toContain('install.sh installer smoke failed')
