@@ -27,34 +27,97 @@ case "$uname_arch" in
     ;;
 esac
 
-asset="quantex-$platform-$arch"
+# Releases publish compressed archives; the archive entry is the binary name.
+binary="quantex-$platform-$arch"
+asset="$binary.tar.gz"
 
 if [ "$VERSION" = "latest" ]; then
-  download_url="https://github.com/$REPO/releases/latest/download/$asset"
+  release_url="https://github.com/$REPO/releases/latest/download"
 else
-  download_url="https://github.com/$REPO/releases/download/$VERSION/$asset"
+  release_url="https://github.com/$REPO/releases/download/$VERSION"
 fi
+
+# Resolve every required tool before downloading, so a missing one fails with its
+# own message instead of surfacing as an empty checksum or an extraction error.
+if command -v curl >/dev/null 2>&1; then
+  downloader="curl"
+elif command -v wget >/dev/null 2>&1; then
+  downloader="wget"
+else
+  echo "curl or wget is required to install quantex-cli" >&2
+  exit 1
+fi
+
+if command -v sha256sum >/dev/null 2>&1; then
+  sha256_tool="sha256sum"
+elif command -v shasum >/dev/null 2>&1; then
+  sha256_tool="shasum"
+elif command -v openssl >/dev/null 2>&1; then
+  sha256_tool="openssl"
+else
+  echo "sha256sum, shasum, or openssl is required to verify the quantex-cli download" >&2
+  exit 1
+fi
+
+if ! command -v tar >/dev/null 2>&1; then
+  echo "tar is required to extract the quantex-cli release archive" >&2
+  exit 1
+fi
+
+download() {
+  case "$downloader" in
+    curl) curl -fsSL "$1" -o "$2" ;;
+    wget) wget -qO "$2" "$1" ;;
+  esac
+}
+
+file_sha256() {
+  case "$sha256_tool" in
+    sha256sum) sha256sum "$1" | awk '{ print $1 }' ;;
+    shasum) shasum -a 256 "$1" | awk '{ print $1 }' ;;
+    openssl) openssl dgst -sha256 "$1" | awk '{ print $NF }' ;;
+  esac
+}
 
 mkdir -p "$INSTALL_DIR"
 
 tmp_dir="$(mktemp -d)"
 trap 'rm -rf "$tmp_dir"' EXIT INT TERM
 
-tmp_file="$tmp_dir/quantex"
+tmp_archive="$tmp_dir/$asset"
+tmp_checksums="$tmp_dir/SHA256SUMS.txt"
 state_dir="$HOME/.quantex"
 state_file="$state_dir/state.json"
 
-if command -v curl >/dev/null 2>&1; then
-  curl -fsSL "$download_url" -o "$tmp_file"
-elif command -v wget >/dev/null 2>&1; then
-  wget -qO "$tmp_file" "$download_url"
-else
-  echo "curl or wget is required to install quantex-cli" >&2
+download "$release_url/$asset" "$tmp_archive"
+download "$release_url/SHA256SUMS.txt" "$tmp_checksums"
+
+# SHA256SUMS.txt lists archive names; a leading "*" marks binary mode.
+expected_checksum="$(awk -v name="$asset" '{ sub(/^\*/, "", $2); if ($2 == name) print $1 }' "$tmp_checksums")"
+if [ -z "$expected_checksum" ]; then
+  echo "SHA256SUMS.txt does not list $asset" >&2
   exit 1
 fi
 
-chmod +x "$tmp_file"
-mv "$tmp_file" "$INSTALL_DIR/quantex"
+actual_checksum="$(file_sha256 "$tmp_archive")"
+if [ "$actual_checksum" != "$expected_checksum" ]; then
+  echo "Checksum mismatch for $asset" >&2
+  echo "  expected $expected_checksum" >&2
+  echo "  actual   $actual_checksum" >&2
+  echo "Re-run the installer; a release published mid-download can cause this." >&2
+  exit 1
+fi
+
+# Naming the member keeps extraction limited to the expected executable entry.
+tar -xzf "$tmp_archive" -C "$tmp_dir" "$binary"
+
+if [ ! -f "$tmp_dir/$binary" ]; then
+  echo "Release archive did not contain $binary" >&2
+  exit 1
+fi
+
+chmod +x "$tmp_dir/$binary"
+mv "$tmp_dir/$binary" "$INSTALL_DIR/quantex"
 ln -sf "$INSTALL_DIR/quantex" "$INSTALL_DIR/qtx"
 
 mkdir -p "$state_dir"
