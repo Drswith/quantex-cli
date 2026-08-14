@@ -1,6 +1,13 @@
 # Changelog
 
 
+## [1.9.3](https://github.com/Drswith/quantex-cli/compare/v1.9.2...v1.9.3) (2026-08-14)
+
+
+### Bug Fixes
+
+* **update:** keep updating agents whose installer moves the executable each release ([e55dab0](https://github.com/Drswith/quantex-cli/commit/e55dab0be7fdb3f5199f3cd224eaa875f8fa1db1))
+
 ## [1.9.2](https://github.com/Drswith/quantex-cli/compare/v1.9.1...v1.9.2) (2026-08-13)
 
 
