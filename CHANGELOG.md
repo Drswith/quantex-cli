@@ -1,6 +1,14 @@
 # Changelog
 
 
+## [1.9.4](https://github.com/Drswith/quantex-cli/compare/v1.9.3...v1.9.4) (2026-08-14)
+
+
+### Bug Fixes
+
+* **release:** stop a release from being stranded when other commits land right after it ([d9c562b](https://github.com/Drswith/quantex-cli/commit/d9c562b0cb0f8f010e57841c5963c98b7c54dc8d))
+* **update:** preserve recorded install arguments beside receipts ([959c962](https://github.com/Drswith/quantex-cli/commit/959c9622ae808b2f1681e54984356747d1c00205))
+
 ## [1.9.3](https://github.com/Drswith/quantex-cli/compare/v1.9.2...v1.9.3) (2026-08-14)
 
 
