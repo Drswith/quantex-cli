@@ -1,6 +1,8 @@
 export type CheckFrequency = '6h' | 'daily' | 'disabled' | 'weekly'
+export type AppearancePreference = 'dark' | 'light' | 'system'
 
 export interface DesktopPreferences {
+  appearance: AppearancePreference
   checkFrequency: CheckFrequency
   launchAtLogin: boolean
   notificationsEnabled: boolean
