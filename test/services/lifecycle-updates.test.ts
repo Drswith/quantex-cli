@@ -726,6 +726,39 @@ describe('single-agent lifecycle update application service', () => {
     expect(result).toMatchObject({ kind: 'provider-failed', providerOutcome: { kind: 'failed' } })
     expect(harness.writeReceipt).not.toHaveBeenCalled()
   })
+
+  it('plans and heals a self-updating install whose recorded path is a previous release directory', async () => {
+    const harness = createVersionedScriptInstallHarness({ installedVersion: '2.0.0', receiptVersion: '1.0.0' })
+
+    const planned = await requirePlanned(harness.ports)
+    const result = await executeSingleAgentLifecycleUpdate(planned, harness.ports)
+
+    expect(planned).toMatchObject({ beforeVersion: '2.0.0', commands: [['alpha', 'update']], strategy: 'self-update' })
+    expect(result).toMatchObject({ kind: 'up-to-date' })
+    expect(harness.writeReceipt).toHaveBeenCalledOnce()
+    expect(harness.writtenReceipt()).toMatchObject({
+      executablePath: '/opt/alpha/versions/2.0.0/alpha',
+      version: '2.0.0',
+    })
+  })
+
+  it('records the relocated executable when a self-update installs a new release directory', async () => {
+    const harness = createVersionedScriptInstallHarness({
+      installedVersion: '2.0.0',
+      receiptVersion: '2.0.0',
+      selfUpdateTo: '3.0.0',
+    })
+
+    const planned = await requirePlanned(harness.ports)
+    const result = await executeSingleAgentLifecycleUpdate(planned, harness.ports)
+
+    expect(result).toMatchObject({ kind: 'updated' })
+    expect(harness.executeSelfUpdate).toHaveBeenCalledOnce()
+    expect(harness.writtenReceipt()).toMatchObject({
+      executablePath: '/opt/alpha/versions/3.0.0/alpha',
+      version: '3.0.0',
+    })
+  })
 })
 
 async function requirePlanned(ports: LifecycleUpdateServicePorts): Promise<SingleAgentLifecycleUpdatePlan> {
@@ -801,6 +834,94 @@ function createHarness(
     writeReceipt,
   }
   return { observe, ports, resolveLatestVersion, update, writeReceipt }
+}
+
+function versionedReleasePath(version: string): string {
+  return `/opt/alpha/versions/${version}/alpha`
+}
+
+/**
+ * Wires the real observation into the update service for an installer that gives every release its
+ * own directory, so planning, verification, and receipt refresh are exercised against live drift
+ * classification rather than a hand-written observation.
+ */
+function createVersionedScriptInstallHarness(options: {
+  readonly installedVersion: string
+  readonly receiptVersion: string
+  readonly selfUpdateTo?: string
+}) {
+  const installCommand = 'curl https://example.com/alpha | bash'
+  const agent = {
+    binaryName: 'alpha',
+    displayName: 'Alpha',
+    homepage: 'https://example.com',
+    name: 'alpha',
+    platforms: { linux: [{ command: installCommand, type: 'script' as const }] },
+    selfUpdate: { command: ['alpha', 'update'] },
+  } satisfies AgentDefinition
+  let installedVersion = options.installedVersion
+  let receipt: LifecycleReceipt = {
+    executableName: 'alpha',
+    executablePath: versionedReleasePath(options.receiptVersion),
+    kind: 'lifecycle-receipt',
+    providerId: 'script',
+    providerTargetId: installCommand,
+    providerTargetKind: 'script',
+    schemaVersion: 1,
+    targetId: 'alpha',
+    verifiedAt: '2026-08-04T06:13:52.389Z',
+    version: options.receiptVersion,
+  }
+
+  // Matches the shipped script adapter: presence only, with no path or version evidence.
+  const adapter: ProviderAdapter = {
+    availability: async () => ({ kind: 'success', value: { executable: 'sh' } }),
+    id: 'script',
+    observe: async request => ({ kind: 'success', value: { kind: 'present', target: request.target } }),
+  }
+  const providerRegistry: ProviderRegistry = {
+    get: id => (id === 'script' ? adapter : undefined),
+    getCapabilities: id => (id === 'script' ? ['availability', 'observe'] : []),
+    list: () => [adapter],
+  }
+  const executeSelfUpdate = vi.fn(async () => {
+    installedVersion = options.selfUpdateTo ?? installedVersion
+    return {
+      kind: 'success' as const,
+      value: { evidence: [], target: { id: installCommand, kind: 'script' as const } },
+    }
+  })
+  const writeReceipt = vi.fn(async (next: LifecycleReceipt) => {
+    receipt = next
+  })
+  const ports: LifecycleUpdateServicePorts = {
+    clock: () => '2026-08-14T01:30:00.000Z',
+    dryRun: false,
+    executeSelfUpdate,
+    observe: async () => {
+      const observed = await observeAgentLifecycle(agent, {
+        clock: () => '2026-08-14T01:30:00.000Z',
+        inspectExecutable: async () => ({
+          path: versionedReleasePath(installedVersion),
+          present: true,
+          version: installedVersion,
+        }),
+        platform: 'linux',
+        providerRegistry,
+        readInstalledState: async () => ({ agentName: 'alpha', command: installCommand, installType: 'script' }),
+        readReceipt: async () => receipt,
+        resolveExecutablePath: async path => path,
+        signal: new AbortController().signal,
+      })
+      return { agent, ...observed, methods: agent.platforms.linux }
+    },
+    planLifecycleUpdate,
+    providerRegistry,
+    signal: new AbortController().signal,
+    writeReceipt,
+  }
+
+  return { executeSelfUpdate, ports, writeReceipt, writtenReceipt: () => receipt }
 }
 
 function createSelfUpdateHarness(options: { afterVersion: string; executeOutcome?: ProviderOutcome<never> }) {

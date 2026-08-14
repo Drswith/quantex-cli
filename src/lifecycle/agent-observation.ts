@@ -142,11 +142,20 @@ export async function observeAgentLifecycle(
       }
     }
 
+    // A receipt's executable path is evidence for the version that receipt recorded. An installer
+    // that gives every release its own directory relocates the executable on each upgrade, so once
+    // the live version has moved on the recorded path is stale by construction and comparing it
+    // would report a successful update as source drift. Provider-reported and live paths are both
+    // live evidence and stay compared regardless of version.
+    const liveVersion =
+      executable.version ?? (providerObservation.kind === 'present' ? providerObservation.version : undefined)
     const [providerPathConflicts, receiptPathConflicts] = await Promise.all([
       providerObservation.kind === 'present'
         ? executablePathsConflict(providerObservation.executablePath, executable.path, ports)
         : false,
-      executablePathsConflict(receipt?.executablePath, executable.path, ports),
+      versionsConflict(receipt?.version, liveVersion)
+        ? false
+        : executablePathsConflict(receipt?.executablePath, executable.path, ports),
     ])
     const evidenceConflicts =
       providerObservation.kind !== (executable.present ? 'present' : 'absent') ||

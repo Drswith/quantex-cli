@@ -28,6 +28,7 @@ import {
 import { pc } from '../utils/color'
 import { isResourceLockError } from '../utils/lock'
 import { printError, printInfo, printWarn } from '../utils/user-output'
+import { appendFailureReason } from './installation-failure-diagnostics'
 
 type UpdateStatus = 'failed' | 'locked' | 'manual-required' | 'planned' | 'up-to-date' | 'updated'
 
@@ -655,7 +656,7 @@ function renderUpdateHuman(result: {
             `Updating ${item.displayName}${item.strategy ? ` via ${item.strategy}` : ''}...${getVersionHint(item.installedVersion, item.latestVersion)}`,
           ),
         )
-        printError(pc.red(`Failed to update ${item.displayName}.`))
+        printError(pc.red(appendFailureReason(`Failed to update ${item.displayName}.`, item.message)))
         if (item.hint) printWarn(pc.cyan(`Next step: ${item.hint}`))
         break
       case 'locked':

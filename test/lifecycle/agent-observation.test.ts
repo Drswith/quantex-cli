@@ -74,6 +74,32 @@ const receipt: LifecycleReceipt = {
   version: '1.2.3',
 }
 
+/** Mirrors a script installer that gives every release its own directory. */
+const versionedScriptReceipt: LifecycleReceipt = {
+  executableName: 'test-bin',
+  executablePath: '/opt/test-agent/versions/1.2.3/test-bin',
+  kind: 'lifecycle-receipt',
+  providerId: 'script',
+  providerTargetId: 'install-script',
+  providerTargetKind: 'script',
+  schemaVersion: 1,
+  targetId: 'test-agent',
+  verifiedAt: '2026-07-12T03:00:00.000Z',
+  version: '1.2.3',
+}
+
+const scriptState: InstalledAgentState = {
+  agentName: 'test-agent',
+  command: 'install-script',
+  installType: 'script',
+}
+
+/** The real script adapter reports presence only: no executable path, no version. */
+const presentScriptWithoutPathEvidence: ObservationOutcome = {
+  kind: 'success',
+  value: { kind: 'present', target: { id: 'install-script', kind: 'script' } },
+}
+
 const scenarios: readonly Scenario[] = [
   {
     expected: { drift: 'none', kind: 'absent' },
@@ -298,6 +324,53 @@ const scenarios: readonly Scenario[] = [
     receipt: { ...receipt, executablePath: '/old/test-bin' },
     resolvedPaths: { '/old/test-bin': '/other/test-bin' },
     state: legacyState,
+  },
+  {
+    executable: { path: '/opt/test-agent/versions/1.3.0/test-bin', present: true, version: '1.3.0' },
+    expected: {
+      binding: { providerId: 'script', target: { id: 'install-script', kind: 'script' } },
+      capabilities: ['availability', 'observe'],
+      drift: 'none',
+      kind: 'present',
+      path: '/opt/test-agent/versions/1.3.0/test-bin',
+      providerId: 'script',
+      version: '1.3.0',
+    },
+    name: 'accepts a relocated executable when the live version moved past the recorded receipt',
+    outcomes: { script: presentScriptWithoutPathEvidence },
+    receipt: versionedScriptReceipt,
+    state: scriptState,
+  },
+  {
+    executable: { path: '/opt/test-agent/versions/1.3.0/test-bin', present: true, version: '1.2.3' },
+    expected: {
+      binding: { providerId: 'script', target: { id: 'install-script', kind: 'script' } },
+      capabilities: ['availability', 'observe'],
+      drift: 'conflicting-source',
+      kind: 'present',
+      path: '/opt/test-agent/versions/1.3.0/test-bin',
+      providerId: 'script',
+      version: '1.2.3',
+    },
+    name: 'reports a relocated executable at the recorded version as conflicting source evidence',
+    outcomes: { script: presentScriptWithoutPathEvidence },
+    receipt: versionedScriptReceipt,
+    state: scriptState,
+  },
+  {
+    executable: { path: '/opt/test-agent/versions/1.3.0/test-bin', present: true },
+    expected: {
+      binding: { providerId: 'script', target: { id: 'install-script', kind: 'script' } },
+      capabilities: ['availability', 'observe'],
+      drift: 'conflicting-source',
+      kind: 'present',
+      path: '/opt/test-agent/versions/1.3.0/test-bin',
+      providerId: 'script',
+    },
+    name: 'keeps the recorded path comparison when the live version is unknown',
+    outcomes: { script: presentScriptWithoutPathEvidence },
+    receipt: versionedScriptReceipt,
+    state: scriptState,
   },
   {
     executable: { path: '/bin/test-bin', present: true },
