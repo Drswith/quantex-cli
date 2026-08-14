@@ -435,6 +435,51 @@ describe('single-agent lifecycle update application service', () => {
     expect(writeReceipt).not.toHaveBeenCalled()
   })
 
+  it('retains recorded install arguments on the planned managed update binding', async () => {
+    const bindingWithArgs = {
+      providerId: 'npm' as const,
+      target: {
+        arguments: ['--legacy-peer-deps'],
+        binaryName: 'alpha',
+        id: '@scope/alpha',
+        kind: 'package' as const,
+      },
+    }
+    const harness = createHarness()
+    harness.observe.mockResolvedValue({
+      ...observationResult(),
+      binding: bindingWithArgs,
+      persistedBinding: bindingWithArgs,
+    })
+
+    const result = await planSingleAgentLifecycleUpdate('alpha', harness.ports)
+
+    expect(result.kind).toBe('planned')
+    if (result.kind !== 'planned') return
+    expect(result.planned.binding.target.arguments).toEqual(['--legacy-peer-deps'])
+    expect(harness.resolveLatestVersion).toHaveBeenCalledWith(
+      expect.objectContaining({
+        target: expect.objectContaining({ arguments: ['--legacy-peer-deps'], id: '@scope/alpha' }),
+      }),
+    )
+
+    const after = observationResult({ executableVersion: '2.0.0' })
+    harness.observe.mockResolvedValue({
+      ...after,
+      binding: bindingWithArgs,
+      persistedBinding: bindingWithArgs,
+      executable: { ...after.executable, version: '2.0.0' },
+      observation: presentObservation({ version: '2.0.0' }),
+    })
+    const executed = await executeSingleAgentLifecycleUpdate(result.planned, harness.ports)
+    expect(executed.kind).toBe('updated')
+    expect(harness.update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        target: expect.objectContaining({ arguments: ['--legacy-peer-deps'], id: '@scope/alpha' }),
+      }),
+    )
+  })
+
   it('blocks conflicting provider evidence before resolving or mutating', async () => {
     const harness = createHarness({ observation: presentObservation({ drift: { kind: 'conflicting-source' } }) })
 
