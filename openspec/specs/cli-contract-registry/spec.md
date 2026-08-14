@@ -3,9 +3,7 @@
 ## Purpose
 
 Define one authoritative command contract for executable registration, discovery, schemas, effects, and validation without expanding Quantex into workflow orchestration.
-
 ## Requirements
-
 ### Requirement: CommandSpec is the authoritative command contract
 
 Quantex MUST define every public command and global option through exactly one authoritative `CommandSpec` registry entry that supplies executable registration, command discovery, machine-readable schema, and effect metadata.
@@ -56,3 +54,17 @@ The `CommandSpec` registry SHALL describe independently invocable Quantex comman
 - **GIVEN** the lifecycle engine and command registry redesign is active
 - **WHEN** a consumer inspects the command schema
 - **THEN** the schema describes command invocation contracts without adding workflow dependencies, scheduling, or background orchestration semantics
+
+### Requirement: Update discovery MUST describe the managed batch scope
+
+The command registry SHALL expose the `--managed` update option and the
+structured update result SHALL identify managed-only batch output with
+`data.scope: "managed"`.
+
+#### Scenario: Machine consumer discovers managed update mode
+
+- **WHEN** a consumer inspects the update command contract or runs a managed
+  batch update in JSON mode
+- **THEN** the option metadata declares its all-batch constraint
+- **AND** the result identifies the managed scope without changing existing
+  `all` or `single` values

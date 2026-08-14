@@ -21,4 +21,4 @@
 - [x] 3.1 Run CLI, desktop, OpenSpec, lint, formatting, typecheck, build, binary, and release-artifact validation.
 - [x] 3.2 Commit, push, open the implementation PR, and report merge, release, and archive-closure status.
 - [x] 3.3 Visually verify the complete browser mock at desktop dimensions and attach an up-to-date screenshot.
-- [ ] 3.4 Re-run repository and Desktop validation, refresh the single PR commit, push, and observe required CI.
+- [x] 3.4 Re-run repository and Desktop validation, refresh the single PR commit, push, and observe required CI.
