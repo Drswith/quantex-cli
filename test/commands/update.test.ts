@@ -526,6 +526,60 @@ describe('updateCommand', () => {
     },
   )
 
+  it('reports why a blocked update failed in human mode', async () => {
+    setCliContext({ interactive: false, outputMode: 'human', runId: 'batch-blocked-reason' })
+    mockBatchCommandAgents(['beta'])
+    const beta = createBatchCommandPlanningFailure('beta')
+    const batchRoot = requireLifecycleBatchRoot()
+    const batchSpy = vi.spyOn(lifecycleUpdateProduction, batchRoot).mockResolvedValue({
+      cancellationRemainder: [],
+      kind: 'lifecycle-update-batch-outcome',
+      plan: createBatchCommandPlan([beta.target]),
+      results: [beta.result],
+      success: false,
+    } as never)
+
+    try {
+      const result = await updateCommand(undefined, true)
+      const output = stdoutWriteSpy.mock.calls.map((call: unknown[]) => String(call[0])).join('\n')
+
+      expect(result.data?.results).toEqual([
+        expect.objectContaining({ message: 'beta live source evidence is unsafe', name: 'beta', status: 'failed' }),
+      ])
+      expect(output).toContain('Failed to update BETA: beta live source evidence is unsafe')
+    } finally {
+      batchSpy.mockRestore()
+    }
+  })
+
+  it('keeps the plain failure line when a failed update carries no reason', async () => {
+    setCliContext({ interactive: false, outputMode: 'human', runId: 'batch-blocked-no-reason' })
+    mockBatchCommandAgents(['beta'])
+    const beta = createBatchCommandPlanningFailure('beta')
+    const withoutReason = {
+      ...beta,
+      result: { ...beta.result, planning: { ...beta.result.planning, reason: '' } },
+    }
+    const batchRoot = requireLifecycleBatchRoot()
+    const batchSpy = vi.spyOn(lifecycleUpdateProduction, batchRoot).mockResolvedValue({
+      cancellationRemainder: [],
+      kind: 'lifecycle-update-batch-outcome',
+      plan: createBatchCommandPlan([withoutReason.target]),
+      results: [withoutReason.result],
+      success: false,
+    } as never)
+
+    try {
+      await updateCommand(undefined, true)
+      const output = stdoutWriteSpy.mock.calls.map((call: unknown[]) => String(call[0])).join('\n')
+
+      expect(output).toContain('Failed to update BETA.')
+      expect(output).not.toContain('Failed to update BETA:')
+    } finally {
+      batchSpy.mockRestore()
+    }
+  })
+
   it('projects the same blocked untracked PATH outcome as manual-required in single scope', async () => {
     const alpha = createBatchCommandUntrackedTarget('alpha')
     agentSpy.mockReturnValue(alpha.agent)
