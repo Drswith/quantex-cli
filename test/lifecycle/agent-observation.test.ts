@@ -627,6 +627,48 @@ describe('observeAgentLifecycle', () => {
     expect(result.observation).toMatchObject({ drift: { kind: 'conflicting-source' }, kind: 'present' })
     expect(result.binding).toBeUndefined()
   })
+
+  it('preserves recorded Cargo install arguments when a matching receipt is also present', async () => {
+    const cargoState: InstalledAgentState = {
+      agentName: 'test-agent',
+      installType: 'cargo',
+      packageInstallArgs: ['--locked'],
+      packageName: 'test-cargo',
+    }
+    const cargoReceipt: LifecycleReceipt = {
+      executableName: 'test-bin',
+      executablePath: '/bin/test-bin',
+      kind: 'lifecycle-receipt',
+      providerId: 'cargo',
+      providerTargetId: 'test-cargo',
+      providerTargetKind: 'package',
+      schemaVersion: 1,
+      targetId: 'test-agent',
+      verifiedAt: '2026-07-12T03:00:00.000Z',
+      version: '2.0.0',
+    }
+    const result = await observeAgentLifecycle(agent, {
+      clock: () => '2026-07-12T04:00:00.000Z',
+      inspectExecutable: async () => ({ path: '/bin/test-bin', present: true, version: '2.0.0' }),
+      platform: 'linux',
+      providerRegistry: createRegistry({ cargo: present('cargo') }),
+      readInstalledState: async () => cargoState,
+      readReceipt: async () => cargoReceipt,
+      signal: new AbortController().signal,
+    })
+
+    expect(result.observation).toMatchObject({ drift: { kind: 'none' }, kind: 'present', providerId: 'cargo' })
+    expect(result.binding).toEqual({
+      providerId: 'cargo',
+      target: {
+        arguments: ['--locked'],
+        binaryName: 'test-bin',
+        id: 'test-cargo',
+        kind: 'package',
+      },
+    })
+    expect(result.persistedBinding).toEqual(result.binding)
+  })
 })
 
 function createRegistry(

@@ -54,6 +54,7 @@ export {
   providerBindingsEqual,
   resolveCatalogProviderBindings,
   resolveCatalogProviderEvidence,
+  resolvePersistedProviderBinding,
   resolveReceiptProviderBinding,
   resolveStateProviderBinding,
 } from './provider-evidence'
