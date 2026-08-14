@@ -1,6 +1,19 @@
 # Changelog
 
 
+## [1.10.0](https://github.com/Drswith/quantex-cli/compare/v1.9.4...v1.10.0) (2026-08-14)
+
+
+### Features
+
+* add a macOS desktop app for managing agents, diagnostics, configuration, and confirmed updates ([bb9dcbf](https://github.com/Drswith/quantex-cli/commit/bb9dcbffd37f7290f677b9e90ef3c9a1654073e1))
+* **desktop:** support automatic, light, and dark appearance modes ([fb0cb3d](https://github.com/Drswith/quantex-cli/commit/fb0cb3d935deb5eb63c29f6053b6a58dc94a08b1))
+
+
+### Bug Fixes
+
+* **install:** install from published release archives with checksum verification ([4bf9db8](https://github.com/Drswith/quantex-cli/commit/4bf9db8eda44cc8f6fdccabb0955213e73e2cb59))
+
 ## [1.9.4](https://github.com/Drswith/quantex-cli/compare/v1.9.3...v1.9.4) (2026-08-14)
 
 
