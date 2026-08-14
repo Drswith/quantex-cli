@@ -24,8 +24,8 @@
       "exitCode": 0,
       "goldens": {
         "human": "2e2b68c406ad0f508df1b367bdef79c50a3dbe731659641f2586d489131c0b9c",
-        "json": "9af88b958e00e69f827204b36327668b0f8418089a2b72ad83b7e250e8181a31",
-        "ndjson": "f596f54ab37f7a138fed828b1aedfd962fb7c6f3d98c9ad0c57f3ae8b34ff1ed"
+        "json": "58ab72b68c681cc6134e1f117d8ee84fda430d59e6036a68abbaf8ee55e85bd0",
+        "ndjson": "eb9c51206d779dfa657347894b6d63d87e4e67ae3f8c40fa7c7aa4760abe382d"
       },
       "name": "commands",
       "ok": true,
