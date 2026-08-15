@@ -17,5 +17,5 @@
 - [x] 3.2 Run `bun run lint`, `bun run format:check`, `bun run typecheck`, and `bun run test`
 - [x] 3.3 Run `bun run openspec:validate` and `bun run memory:check`
 - [x] 3.4 Commit the explicit Revert changes and OpenSpec removal change on the dedicated branch
-- [ ] 3.5 Push the branch, validate the PR body, and open the rollback PR against protected `main`
+- [x] 3.5 Push the branch, validate the PR body, and open the rollback PR against protected `main`
 - [ ] 3.6 Review remote CI and report PR, merge, release, and archive-closure state separately
