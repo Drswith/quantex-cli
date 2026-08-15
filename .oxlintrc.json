@@ -9,15 +9,7 @@
     "node": true,
     "es2024": true
   },
-  "ignorePatterns": [
-    "dist",
-    "node_modules",
-    ".bun",
-    "src/generated",
-    "test/fixtures",
-    "apps/desktop/src-tauri/gen",
-    "apps/desktop/src-tauri/target"
-  ],
+  "ignorePatterns": ["dist", "node_modules", ".bun", "src/generated", "test/fixtures"],
   "rules": {
     "no-console": ["error", { "allow": ["warn", "error"] }],
     "typescript/ban-ts-comment": [

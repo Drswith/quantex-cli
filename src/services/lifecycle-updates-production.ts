@@ -15,7 +15,6 @@ import { withAgentLifecycleLock } from '../package-manager'
 import { firstPartyProviderRegistry } from '../providers'
 import { createCliOperationContext } from '../runtime/cli-operation-context'
 import { lifecycleReceiptStore } from '../state'
-import { loadState } from '../state'
 import { isResourceLockError } from '../utils/lock'
 import { isDryRunEnabled } from '../utils/user-output'
 import { createProductionLifecycleObservationService } from './lifecycle-observations'
@@ -58,16 +57,6 @@ export async function runLifecycleUpdateBatch(): Promise<RunLifecycleUpdateBatch
 }
 
 export function createLifecycleUpdateBatchInvocation(): LifecycleUpdateBatchInvocation {
-  return createLifecycleUpdateBatchInvocationFor(() => getAllAgents().map(agent => agent.name))
-}
-
-export function createManagedLifecycleUpdateBatchInvocation(): LifecycleUpdateBatchInvocation {
-  return createLifecycleUpdateBatchInvocationFor(async () => Object.keys((await loadState()).installedAgents))
-}
-
-function createLifecycleUpdateBatchInvocationFor(
-  listRegisteredAgentNames: LifecycleUpdateBatchPlanningPorts['listRegisteredAgentNames'],
-): LifecycleUpdateBatchInvocation {
   const operation = createCliOperationContext()
   let activeOperations = 0
   let disposed = false
@@ -103,7 +92,7 @@ function createLifecycleUpdateBatchInvocationFor(
         clock: () => new Date().toISOString(),
         dryRun: isDryRunEnabled(),
         executeSelfUpdate: executeAgentSelfUpdate,
-        listRegisteredAgentNames,
+        listRegisteredAgentNames: () => getAllAgents().map(agent => agent.name),
         observe: observationService.resolveAgentObservation,
         planLifecycleUpdate,
         providerRegistry: firstPartyProviderRegistry,

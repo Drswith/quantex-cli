@@ -153,15 +153,6 @@ describe('workflow classification integration', () => {
     expect(ciWorkflow).not.toContain("github.event_name != 'pull_request'")
   })
 
-  it('tests and builds both macOS Desktop architectures', () => {
-    expect(ciWorkflow).toContain('desktop-macos:')
-    expect(ciWorkflow).toContain('bun run desktop:prepare-sidecars')
-    expect(ciWorkflow).toContain('bun run desktop:test')
-    expect(ciWorkflow).toContain('cargo test --manifest-path apps/desktop/src-tauri/Cargo.toml')
-    expect(ciWorkflow).toContain('bun run desktop:build:arm64')
-    expect(ciWorkflow).toContain('bun run desktop:build:x64')
-  })
-
   // Windows used to pass --pool=threads, which runs every worker inside one
   // process and one V8 instance. It was the only difference between the Windows
   // job and the other two, and the only platform where the job intermittently
@@ -181,7 +172,6 @@ describe('workflow classification integration', () => {
       'test (ubuntu-latest)',
       'test (windows-latest)',
       'test (macos-latest)',
-      'desktop-macos',
     ]
 
     for (const context of requiredContexts) {

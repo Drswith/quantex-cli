@@ -158,46 +158,6 @@ describe('updateCommand', () => {
     }
   })
 
-  it('uses the managed batch invocation and identifies its structured scope', async () => {
-    const outcome = {
-      cancellationRemainder: [],
-      kind: 'lifecycle-update-batch-outcome',
-      plan: {
-        id: 'managed-plan',
-        kind: 'lifecycle-update-batch-plan',
-        providerBuckets: [],
-        resolvedPlanId: 'managed-plan',
-        targets: [],
-      },
-      results: [],
-      success: true,
-    } as never
-    const managedBatch = vi.fn(async () => outcome)
-    const catalogBatch = vi.fn(async () => outcome)
-
-    const result = await updateCommand(
-      undefined,
-      true,
-      {
-        runBatch: catalogBatch,
-        runManagedBatch: managedBatch,
-        runSingle: runSingleAgentLifecycleUpdate,
-      },
-      true,
-    )
-
-    expect(managedBatch).toHaveBeenCalledOnce()
-    expect(catalogBatch).not.toHaveBeenCalled()
-    expect(result.data?.scope).toBe('managed')
-  })
-
-  it('rejects managed update mode without an all batch', async () => {
-    const result = await updateCommand(undefined, false, undefined, true)
-
-    expect(result.ok).toBe(false)
-    expect(result.error?.code).toBe('INVALID_ARGUMENT')
-  })
-
   it('maps provider success with a stale postcondition to UPDATE_FAILED', async () => {
     agentSpy.mockReturnValue(testAgent)
     lifecycleUpdateSpy.mockResolvedValue({
