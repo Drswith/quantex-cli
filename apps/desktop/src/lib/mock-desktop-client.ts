@@ -12,7 +12,6 @@ import type {
 } from './types'
 
 let preferences: DesktopPreferences = {
-  appearance: 'system',
   checkFrequency: 'daily',
   launchAtLogin: false,
   notificationsEnabled: true,

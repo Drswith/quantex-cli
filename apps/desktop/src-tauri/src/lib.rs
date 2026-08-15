@@ -36,8 +36,6 @@ struct AppState {
 #[derive(Clone, Debug, Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]
 struct DesktopPreferences {
-    #[serde(default)]
-    appearance: AppearancePreference,
     check_frequency: CheckFrequency,
     launch_at_login: bool,
     notifications_enabled: bool,
@@ -46,21 +44,11 @@ struct DesktopPreferences {
 impl Default for DesktopPreferences {
     fn default() -> Self {
         Self {
-            appearance: AppearancePreference::System,
             check_frequency: CheckFrequency::Daily,
             launch_at_login: false,
             notifications_enabled: true,
         }
     }
-}
-
-#[derive(Clone, Debug, Default, Deserialize, Serialize)]
-#[serde(rename_all = "lowercase")]
-enum AppearancePreference {
-    Dark,
-    Light,
-    #[default]
-    System,
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
@@ -1182,26 +1170,6 @@ mod tests {
         assert_eq!(
             CheckFrequency::Daily.interval(),
             Some(Duration::from_secs(24 * 60 * 60))
-        );
-    }
-
-    #[test]
-    fn legacy_desktop_preferences_default_to_system_appearance() {
-        let preferences: DesktopPreferences = serde_json::from_value(serde_json::json!({
-            "checkFrequency": "daily",
-            "launchAtLogin": false,
-            "notificationsEnabled": true
-        }))
-        .expect("legacy Desktop preferences should remain readable");
-
-        assert!(matches!(
-            preferences.appearance,
-            AppearancePreference::System
-        ));
-        assert_eq!(
-            serde_json::to_value(DesktopPreferences::default())
-                .expect("default preferences should serialize")["appearance"],
-            "system"
         );
     }
 

@@ -44,14 +44,4 @@ describe('browser mock desktop client', () => {
     expect(snapshot.results.find(result => result.name === 'codex')).toMatchObject({ status: 'updated' })
     expect(snapshot.results.find(result => result.name === 'cursor')).toMatchObject({ status: 'planned' })
   })
-
-  it('persists automatic, light, and dark appearance preferences without Tauri', async () => {
-    const current = await mockDesktopClient.getPreferences()
-
-    for (const appearance of ['system', 'light', 'dark'] as const) {
-      const saved = await mockDesktopClient.updatePreferences({ ...current, appearance })
-      expect(saved.appearance).toBe(appearance)
-      expect((await mockDesktopClient.getPreferences()).appearance).toBe(appearance)
-    }
-  })
 })

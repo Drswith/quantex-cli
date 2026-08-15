@@ -1,7 +1,6 @@
 import type {
   AgentDetails,
   AgentSummary,
-  AppearancePreference,
   DesktopPreferences,
   DesktopSnapshot,
   DiagnosticsSnapshot,
@@ -9,7 +8,6 @@ import type {
   LifecycleExecution,
   QuantexConfig,
 } from './lib/types'
-import { setTheme as setNativeTheme } from '@tauri-apps/api/app'
 import { useEffect, useState } from 'react'
 import { ActivityPage } from './components/activity-page'
 import { AgentsPage } from './components/agents-page'
@@ -33,10 +31,8 @@ import { SidebarInset, SidebarProvider } from './components/ui/sidebar'
 import { TooltipProvider } from './components/ui/tooltip'
 import { UpdatesPage } from './components/updates-page'
 import { desktopClient, isBrowserPreview } from './lib/desktop-client'
-import { observeAppearance } from './lib/theme'
 
 const initialPreferences: DesktopPreferences = {
-  appearance: 'system',
   checkFrequency: 'daily',
   launchAtLogin: false,
   notificationsEnabled: true,
@@ -89,14 +85,6 @@ export function App() {
       })
       .catch(error => setMessage(error instanceof Error ? error.message : 'Unable to load Quantex Desktop.'))
   }, [])
-
-  useEffect(() => {
-    const stopObserving = observeAppearance(preferences.appearance)
-    if (!isBrowserPreview) {
-      void setNativeTheme(preferences.appearance === 'system' ? null : preferences.appearance).catch(() => undefined)
-    }
-    return stopObserving
-  }, [preferences.appearance])
 
   useEffect(() => {
     if (activePage === 'diagnostics' && !diagnostics) void loadDiagnostics()
@@ -204,21 +192,6 @@ export function App() {
     }
   }
 
-  const savePreferences = async (next: DesktopPreferences) => {
-    const previous = preferences
-    setPreferences(next)
-    try {
-      setPreferences(await desktopClient.updatePreferences(next))
-    } catch (error) {
-      setPreferences(previous)
-      setMessage(error instanceof Error ? error.message : 'Unable to save Desktop preferences.')
-    }
-  }
-
-  const setAppearance = (appearance: AppearancePreference) => {
-    void savePreferences({ ...preferences, appearance })
-  }
-
   const content = (() => {
     switch (activePage) {
       case 'overview':
@@ -255,7 +228,7 @@ export function App() {
           <SettingsPage
             busy={busy}
             config={config}
-            onPreferencesChange={next => void savePreferences(next)}
+            onPreferencesChange={next => void desktopClient.updatePreferences(next).then(setPreferences)}
             onResetConfig={() => void desktopClient.resetQuantexConfig().then(setConfig)}
             onSaveConfig={next => void saveConfig(next)}
             preferences={preferences}
@@ -269,12 +242,7 @@ export function App() {
       <SidebarProvider>
         <AppSidebar activePage={activePage} browserPreview={isBrowserPreview} onNavigate={setActivePage} />
         <SidebarInset>
-          <SiteHeader
-            appearance={preferences.appearance}
-            browserPreview={isBrowserPreview}
-            onAppearanceChange={setAppearance}
-            title={pageTitles[activePage]}
-          />
+          <SiteHeader browserPreview={isBrowserPreview} title={pageTitles[activePage]} />
           <main className="grid gap-4 p-6">
             {message ? (
               <Alert>

@@ -16,27 +16,11 @@ export function SettingsPanel({
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Desktop preferences</CardTitle>
+        <CardTitle>Background checks</CardTitle>
         <CardDescription>These preferences are stored by Desktop, not Quantex CLI.</CardDescription>
       </CardHeader>
       <CardContent>
         <div className="grid gap-4">
-          <div className="grid gap-2">
-            <Label htmlFor="appearance">Appearance</Label>
-            <Select
-              onValueChange={appearance => update({ appearance: appearance as DesktopPreferences['appearance'] })}
-              value={preferences.appearance}
-            >
-              <SelectTrigger id="appearance">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="system">Automatic</SelectItem>
-                <SelectItem value="light">Light</SelectItem>
-                <SelectItem value="dark">Dark</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
           <div className="grid gap-2">
             <Label htmlFor="check-frequency">Frequency</Label>
             <Select

@@ -11,8 +11,6 @@ the bundled CLI. The app itself owns only UI, Desktop preferences, tray
 behavior, notification de-duplication, and scheduling. Its layout is based on
 the official shadcn `dashboard-01` block and composes unmodified generated UI
 primitives with the default theme.
-Desktop appearance can follow macOS automatically or remain fixed to the
-default shadcn light or dark mode.
 
 ## Local development
 
