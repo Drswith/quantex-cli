@@ -19,5 +19,5 @@
     "skipDefaultLibCheck": true,
     "skipLibCheck": true
   },
-  "exclude": ["apps/desktop", "packages/core", "test/fixtures/compatibility/v1/downstream/consumer.ts"]
+  "exclude": ["packages/core", "test/fixtures/compatibility/v1/downstream/consumer.ts"]
 }

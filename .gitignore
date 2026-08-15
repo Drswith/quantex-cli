@@ -14,5 +14,3 @@ tmp
 temp
 # Claude Code local worktree state (the tracked skill entry lives at .claude/skills/)
 .claude/worktrees/
-apps/desktop/src-tauri/gen/
-apps/desktop/src-tauri/target/

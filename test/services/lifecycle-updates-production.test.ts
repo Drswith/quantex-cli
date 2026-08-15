@@ -5,16 +5,12 @@ const production = vi.hoisted(() => {
   let scriptAdapter: { id: string; resolveLatestVersion?: unknown } | undefined
   const absent = new Set<string>()
   const manualScripts = new Set<string>()
-  let managedAgentNames = ['beta']
   const upgraded = new Set<string>()
   const untracked = new Set<string>()
   const calls: string[] = []
   const writeReceipt = vi.fn(async (receipt: { targetId: string }) => {
     calls.push(`receipt:${receipt.targetId}`)
   })
-  const loadState = vi.fn(async () => ({
-    installedAgents: Object.fromEntries(managedAgentNames.map(name => [name, {}])),
-  }))
   const update = vi.fn(async ({ target }: { target: { id: string } }) => {
     const agentName = target.id.replace('@scope/', '')
     calls.push(`update:${agentName}`)
@@ -172,7 +168,6 @@ const production = vi.hoisted(() => {
     createCliOperationContext,
     createProductionLifecycleObservationService,
     isUpgraded: (agentName: string) => upgraded.has(agentName),
-    loadState,
     markAbsent: (agentName: string) => absent.add(agentName),
     markManualScript: (agentName: string) => manualScripts.add(agentName),
     markUntracked: (agentName: string) => untracked.add(agentName),
@@ -183,7 +178,6 @@ const production = vi.hoisted(() => {
       lockDepth = 0
       absent.clear()
       manualScripts.clear()
-      managedAgentNames = ['beta']
       upgraded.clear()
       untracked.clear()
       createCliOperationContext.mockClear()
@@ -193,13 +187,9 @@ const production = vi.hoisted(() => {
       update.mockClear()
       withAgentLifecycleLock.mockClear()
       writeReceipt.mockClear()
-      loadState.mockClear()
     },
     setScriptAdapter(value: { id: string; resolveLatestVersion?: unknown }) {
       scriptAdapter = value
-    },
-    setManagedAgents(names: string[]) {
-      managedAgentNames = names
     },
     update,
     withAgentLifecycleLock,
@@ -229,7 +219,6 @@ vi.mock('../../src/runtime/cli-operation-context', () => ({
 }))
 vi.mock('../../src/state', () => ({
   lifecycleReceiptStore: { write: production.writeReceipt },
-  loadState: production.loadState,
 }))
 vi.mock('../../src/utils/user-output', () => ({
   isDryRunEnabled: () => false,
@@ -241,7 +230,6 @@ vi.mock('../../src/services/lifecycle-observations', () => ({
 
 import {
   createLifecycleUpdateBatchInvocation,
-  createManagedLifecycleUpdateBatchInvocation,
   createSingleAgentLifecycleUpdateInvocation,
   runLifecycleUpdateBatch,
   runSingleAgentLifecycleUpdate,
@@ -268,17 +256,6 @@ describe('lifecycle update production composition', () => {
 
     invocation.dispose()
     expect(production.createCliOperationContext.mock.results[0]?.value.dispose).toHaveBeenCalledOnce()
-  })
-
-  it('plans a managed batch from persisted agent state instead of the catalog', async () => {
-    production.setManagedAgents(['beta'])
-    const invocation = createManagedLifecycleUpdateBatchInvocation()
-
-    const plan = await invocation.prepare()
-
-    expect(production.loadState).toHaveBeenCalledOnce()
-    expect(plan.targets.map(target => target.agentName)).toEqual(['beta'])
-    expect(production.calls).not.toContain('observe:alpha:initial')
   })
 
   it('makes a disposed batch invocation terminal without interrupting an active preparation', async () => {

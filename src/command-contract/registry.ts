@@ -305,7 +305,6 @@ const commandContracts: readonly CommandContract[] = [
     globalOptions: [
       'json',
       'output',
-      'nonInteractive',
       'quiet',
       'color',
       'logLevel',
@@ -316,15 +315,7 @@ const commandContracts: readonly CommandContract[] = [
       'idempotencyKey',
     ],
     name: 'update',
-    options: [
-      { description: 'Update all installed agents', flags: '--all', id: 'all', value: 'boolean' },
-      {
-        description: 'With --all, limit the batch to persisted Quantex-managed agents',
-        flags: '--managed',
-        id: 'managed',
-        value: 'boolean',
-      },
-    ],
+    options: [{ description: 'Update all installed agents', flags: '--all', id: 'all', value: 'boolean' }],
     summary: 'Update one or all agents',
   }),
   defineCommandContract({
