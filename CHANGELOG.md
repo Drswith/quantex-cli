@@ -1,6 +1,17 @@
 # Changelog
 
 
+## [2.0.0](https://github.com/Drswith/quantex-cli/compare/v1.10.0...v2.0.0) (2026-08-16)
+
+
+### ⚠ BREAKING CHANGES
+
+* remove the macOS desktop client and restore the CLI-only product boundary
+
+### Reverts
+
+* remove the macOS desktop client and restore the CLI-only product boundary ([d92c7bc](https://github.com/Drswith/quantex-cli/commit/d92c7bc6c871146ca4796b5e5e4d3e8fbde1689b))
+
 ## [1.10.0](https://github.com/Drswith/quantex-cli/compare/v1.9.4...v1.10.0) (2026-08-14)
 
 
