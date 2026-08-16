@@ -14,5 +14,5 @@
 
 - [x] 3.1 Document the active release freeze, 90-day requirement, and future lift procedure.
 - [x] 3.2 Run release-workflow validation, OpenSpec validation, and the release dry run.
-- [ ] 3.3 Commit, push, and update PR #560 as the active delivery artifact.
+- [x] 3.3 Commit, push, and update PR #560 as the active delivery artifact.
 - [ ] 3.4 Obtain required CI, merge the gate, verify no v2 Release PR is recreated, and complete OpenSpec archive closure.
