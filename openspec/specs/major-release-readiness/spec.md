@@ -1,5 +1,10 @@
-## ADDED Requirements
+# major-release-readiness Specification
 
+## Purpose
+
+Define the deny-by-default readiness contract that prevents stable v2 preparation, tagging, and publication until the required refactor has completed at least 90 days of stabilization and a reviewed OpenSpec change records that evidence.
+
+## Requirements
 ### Requirement: Stable v2 SHALL remain deferred until explicit readiness evidence exists
 
 The repository SHALL treat every stable `2.x` version as ineligible until a future reviewed OpenSpec change records the completed required v2 refactor and evidence that at least 90 days have elapsed since that refactor merged. A generic major-version declaration SHALL NOT satisfy this temporary readiness requirement.
