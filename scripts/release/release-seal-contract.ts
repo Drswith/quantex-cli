@@ -2,6 +2,7 @@ import { execFile } from 'node:child_process'
 import { appendFile, readFile } from 'node:fs/promises'
 import process from 'node:process'
 import { promisify } from 'node:util'
+import { assertStableReleaseReady } from './release-readiness'
 
 const execFileAsync = promisify(execFile)
 const releaseVersionPattern = /^\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?$/
@@ -31,6 +32,8 @@ export interface ReleaseIdentity {
 export function validateReleaseIdentity(input: ReleaseIdentityInput): ReleaseIdentity {
   if (!releaseVersionPattern.test(input.packageVersion))
     throw new Error(`Invalid release package version: ${input.packageVersion}.`)
+
+  assertStableReleaseReady(input.packageVersion)
 
   // Every release is cut from main. A prerelease suffix only changes the
   // defensive npm dist-tag mapping; the repository does not maintain a

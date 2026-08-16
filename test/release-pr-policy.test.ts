@@ -221,15 +221,30 @@ describe('release PR policy', () => {
     expect(issues.join('\n')).toContain('Release-As: 2.0.0')
   })
 
-  it('accepts a major bump explicitly declared in the Release PR body', () => {
+  it('does not let a body declaration override the deferred stable v2 gate', () => {
+    const issues = validateReleasePrPolicy({
+      baseBranch: 'main',
+      baseVersion: '1.8.2',
+      body: `${validBody}\nRelease-As: 2.0.0\n`,
+      changedFiles: validChangedFiles,
+      headBranch: 'release-please--branches--main--components--quantex-cli',
+      title: 'chore: release 2.0.0',
+    })
+
+    expect(issues).toEqual([
+      expect.stringContaining('Stable 2.x releases are deferred until the required v2 refactor has merged'),
+    ])
+  })
+
+  it('accepts an eligible major bump explicitly declared in the Release PR body', () => {
     expect(
       validateReleasePrPolicy({
         baseBranch: 'main',
-        baseVersion: '1.8.2',
-        body: `${validBody}\nRelease-As: 2.0.0\n`,
+        baseVersion: '2.8.2',
+        body: `${validBody}\nRelease-As: 3.0.0\n`,
         changedFiles: validChangedFiles,
         headBranch: 'release-please--branches--main--components--quantex-cli',
-        title: 'chore: release 2.0.0',
+        title: 'chore: release 3.0.0',
       }),
     ).toEqual([])
   })

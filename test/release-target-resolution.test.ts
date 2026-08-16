@@ -42,6 +42,28 @@ describe('immutable release identity', () => {
     ).toMatchObject({ channel: 'beta', npmTag: 'beta', prerelease: true, targetBranch: 'main' })
   })
 
+  it('rejects deferred stable v2 publication before candidate build', () => {
+    expect(() =>
+      validateReleaseIdentity({
+        ...stableIdentity,
+        commitTitle: 'chore: release 2.0.0',
+        packageVersion: '2.0.0',
+        requestedTag: 'v2.0.0',
+      }),
+    ).toThrow(/Stable 2\.x releases are deferred until the required v2 refactor has merged/)
+  })
+
+  it('does not apply the stable v2 gate to a prerelease identity', () => {
+    expect(
+      validateReleaseIdentity({
+        ...stableIdentity,
+        commitTitle: 'chore: release 2.0.0-beta.1',
+        packageVersion: '2.0.0-beta.1',
+        requestedTag: 'v2.0.0-beta.1',
+      }),
+    ).toMatchObject({ channel: 'beta', prerelease: true, version: '2.0.0-beta.1' })
+  })
+
   it('refuses to publish any release from a branch other than main', () => {
     expect(() => validateReleaseIdentity({ ...stableIdentity, requestedBranch: 'beta' })).toThrow(
       /must be published from main/,
@@ -89,10 +111,11 @@ describe('release candidate notes', () => {
 })
 
 describe('release workflow closure', () => {
-  it('opens Release PRs automatically on protected-branch push', () => {
+  it('runs on protected-branch push while the temporary v2 gate pauses Release PR creation', () => {
     expect(releasePleaseWorkflow).toContain('branches:\n      - main')
     expect(releasePleaseWorkflow).not.toContain('beta')
     expect(releasePleaseWorkflow).toContain('skip-github-release: true')
+    expect(releasePleaseWorkflow).toContain('skip-github-pull-request: true')
     expect(releasePleaseWorkflow).toContain(
       'googleapis/release-please-action@45996ed1f6d02564a971a2fa1b5860e934307cf7 # v5.0.0',
     )
