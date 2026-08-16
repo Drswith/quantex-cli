@@ -1,5 +1,6 @@
 import { readFileSync } from 'node:fs'
 import process from 'node:process'
+import { getStableReleaseReadinessIssue } from '../release/release-readiness'
 
 export interface ReleasePrManifest {
   version?: string
@@ -142,6 +143,9 @@ export function validateReleasePrPolicy(input: ReleasePrPolicyInput): string[] {
 
   if (versionMatch && baseBranch === 'main') {
     const proposedVersion = versionMatch[1]!
+    const readinessIssue = getStableReleaseReadinessIssue(proposedVersion)
+    if (readinessIssue) issues.push(readinessIssue)
+
     if (burnedStableReleaseVersions.has(proposedVersion)) {
       issues.push(
         `Release PR version "${proposedVersion}" is a burned stable release version and must not be published again.`,

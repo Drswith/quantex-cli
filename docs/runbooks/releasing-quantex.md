@@ -24,7 +24,9 @@ Normal feature, fix, or maintenance work lands through standard PRs.
 
 ### 2. release-please maintains the Release PR automatically
 
-On every push to `main`, `release-please.yml` runs release-please with `release-please-config.json` and opens or updates the Release PR when a version bump is warranted. No manual dispatch is involved.
+On every push to `main`, `release-please.yml` runs release-please with `release-please-config.json` and normally opens or updates the Release PR when a version bump is warranted. No manual dispatch is involved.
+
+Stable v2 is temporarily deferred until the required refactor has merged and completed at least 90 days of stabilization. While that gate is active, the workflow passes `skip-github-pull-request: true`, so a push does not create or update any Release PR. The separate tag-recovery job still runs so an already merged eligible 1.x release commit cannot be stranded.
 
 The Release PR materializes the pending version in:
 
@@ -48,7 +50,7 @@ Confirm that the PR:
 
 Before merge, review the generated branch and confirm the checklist above. Governance no longer rejects the release bot author, so re-authoring the branch is optional housekeeping rather than a merge requirement.
 
-If the Release PR proposes a new major version on the stable line, governance fails until a maintainer adds a `Release-As: <version>` line to the Release PR body. This is the explicit human gate for major version identity.
+If the Release PR proposes a new major version on the stable line, governance fails until a maintainer adds a `Release-As: <version>` line to the Release PR body. This is the generic human gate for major version identity, but it cannot override a separate deferred-major readiness gate. In particular, stable `2.x` remains blocked even if `Release-As: 2.x.y` is added.
 
 Merge the locked reviewed head manually; prefer rebase and use squash only when rebase is unavailable or unsafe.
 
@@ -112,19 +114,19 @@ END_COMMIT_OVERRIDE
 
 `refactor:` entries appear in the generated `Internal Improvements` section but do not independently trigger a version bump. When an exact one-shot version is needed, carry `Release-As: <version>` in the merged commit and repeat the same footer in the source PR's Release Summary. The protected-branch resolver recognizes that footer as a Release PR trigger, so do not add `!` or a false `BREAKING CHANGE` marker merely to start release automation.
 
-A breaking-change marker (`!` or `BREAKING CHANGE:`) feeds release-please a major bump. On the stable line the generated major Release PR is rejected by governance until a maintainer adds `Release-As: <version>` to its body, so a major can never ship by accident.
+A breaking-change marker (`!` or `BREAKING CHANGE:`) feeds release-please a major bump. On the stable line the generated major Release PR is rejected by governance until a maintainer adds `Release-As: <version>` to its body, so an undeclared major cannot ship. A deferred-major readiness gate is stronger and remains blocking after that declaration.
+
+The current stable-v2 gate is deny-by-default. Release PR preparation is paused, generated stable-v2 PRs are rejected, deterministic tag planning fails before creating `v2.x.y`, and publication identity validation fails before candidate build. Lift all layers together only through a future reviewed OpenSpec change that identifies the completed v2 refactor and records at least 90 elapsed days since it merged; there is no date-only automatic unlock.
 
 The stable 0.x line ends at `0.29.1`. The completed lifecycle redesign graduates through the exact transition `0.29.1 -> 1.1.0`; `1.0.0` remains burned and MUST NOT be reused. Do not persist `release-as` in release-please configuration and do not manually edit the version manifest, package version, changelog, or generated build metadata to imitate the generated Release PR.
 
 Release automation, documentation, and project-memory-only PRs must use non-release-worthy titles such as `ci:`, `chore:`, or `docs:`. PR Governance rejects release-worthy titles for PRs that only change `.github/`, `docs/`, `openspec/`, or release-please configuration files, because those changes should not create stable product releases by themselves.
 
-The stable release-please config currently includes a temporary `last-release-sha` anchor to exclude a historical release-process `feat(release)` commit from stable release calculation. Remove or advance that anchor after the next intentional stable Release PR is merged, because release-please treats `last-release-sha` as an explicit scan boundary until it is changed.
-
 The Release workflow pins `googleapis/release-please-action` to a repository-verified tag instead of floating on the major `v4` tag. Before changing that pin, run a dry run against the repository and confirm it can prepare the expected Release PR without GitHub GraphQL errors.
 
 release-please owns Release PR preparation. The `tag-release` job creates missing tags after CI and guarantees exactly one Release workflow trigger; `release.yml` publishes on tag push and does not ask release-please to create a GitHub Release.
 
-If release-please fails to open a Release PR, check for stale `autorelease: pending` labels or an untagged merged Release PR. If tag creation fails, fix the protected-branch or CI mismatch and rerun `Release Please` on the branch. If publish or the post-publish installer gate fails after the tag exists, rerun `Release` at the same tag or dispatch `release.yml` with `--ref v<version>` after inspecting the failure. Never create a replacement version commit merely to recover incomplete npm, GitHub, or installer verification closure, and never move an existing version tag.
+If release-please fails to open a Release PR while no readiness gate is active, check for stale `autorelease: pending` labels or an untagged merged Release PR. While the stable-v2 gate is active, absence of a Release PR is expected and must not be treated as an automation failure. If tag creation fails, fix the protected-branch, readiness, or CI mismatch and rerun `Release Please` on the branch. If publish or the post-publish installer gate fails after an eligible tag exists, rerun `Release` at the same tag or dispatch `release.yml` with `--ref v<version>` after inspecting the failure. Never create a replacement version commit merely to recover incomplete npm, GitHub, or installer verification closure, and never move an existing version tag.
 
 ## npm trusted publishing
 

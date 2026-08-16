@@ -2,6 +2,7 @@ import { execFile } from 'node:child_process'
 import { readFile } from 'node:fs/promises'
 import process from 'node:process'
 import { promisify } from 'node:util'
+import { assertStableReleaseReady } from './release-readiness'
 import { findSuccessfulProtectedBranchCiSha } from './release-seal-contract'
 
 const execFileAsync = promisify(execFile)
@@ -61,6 +62,8 @@ export function resolveReleaseTagPlan(input: ReleaseTagInput): ReleaseTagPlan {
   }
 
   const version = input.packageVersion.trim()
+  assertStableReleaseReady(version)
+
   const tag = `v${version}`
   const releaseSha = input.releaseSha!
   if (input.tagSha === releaseSha) {

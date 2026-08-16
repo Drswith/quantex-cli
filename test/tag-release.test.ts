@@ -68,6 +68,30 @@ describe('release tagging', () => {
     })
   })
 
+  it('rejects deferred stable v2 before tag creation', () => {
+    expect(() =>
+      resolveReleaseTagPlan({
+        branch: 'main',
+        ciSha: releaseSha,
+        packageVersion: '2.0.0',
+        releaseSha,
+        tagSha: null,
+      }),
+    ).toThrow(/Stable 2\.x releases are deferred until the required v2 refactor has merged/)
+  })
+
+  it('keeps prerelease tag planning outside the stable v2 gate', () => {
+    expect(
+      resolveReleaseTagPlan({
+        branch: 'main',
+        ciSha: releaseSha,
+        packageVersion: '2.0.0-beta.1',
+        releaseSha,
+        tagSha: null,
+      }),
+    ).toMatchObject({ action: 'tag', tag: 'v2.0.0-beta.1' })
+  })
+
   it('relabels only when tag already points at the release commit', () => {
     expect(
       resolveReleaseTagPlan({
