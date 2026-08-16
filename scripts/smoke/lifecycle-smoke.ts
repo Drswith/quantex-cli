@@ -15,6 +15,8 @@ import {
   SEEDED_SELF_VERSION,
 } from '../../src/testing/self-upgrade-sandbox'
 import { resolveAgentExecutablePath } from '../../src/utils/executable-resolution'
+import { OFFICIAL_NPM_REGISTRY } from '../../src/utils/registry'
+import { compareVersions } from '../../src/utils/version'
 
 interface CommandOutput {
   exitCode: number
@@ -44,6 +46,7 @@ const DEFAULT_SMOKE_SCENARIOS = [
 const DEFAULT_COMMAND_TIMEOUT_MS = Number(process.env.QTX_ISOLATION_COMMAND_TIMEOUT_MS ?? 300_000)
 const ROOT_PACKAGE_JSON_PATH = 'package.json'
 const DIST_DIR = 'dist'
+const RECEIPT_VALIDATION_AGENT = 'opencode'
 const agents = resolveSmokeAgents()
 const scenarios = resolveSmokeScenarios()
 const cli = ['bun', 'run', 'src/cli.ts', '--json', '--non-interactive', '--yes', '--color', 'never']
@@ -242,6 +245,19 @@ async function smokeAgentVersionProbe(agent: string): Promise<void> {
     )
   }
 
+  const receiptValidationSeed = await resolveReceiptValidationSeed(agent, binaryLifecycle)
+  if (receiptValidationSeed) {
+    console.log(
+      `[${agent}] seed ${receiptValidationSeed.packageName}@${receiptValidationSeed.seededVersion} before Quantex adoption`,
+    )
+    await runText('seed receipt-validation package', [
+      'bun',
+      'add',
+      '-g',
+      `${receiptValidationSeed.packageName}@${receiptValidationSeed.seededVersion}`,
+    ])
+  }
+
   console.log(`[${agent}] canary ${binaryLifecycle ? 'adopt preinstalled binary' : 'install'}`)
   const install = await runJson(`probe install ${agent}`, [...cli, 'install', agent])
   assertResult(install, result => result.data?.installed === true, `${agent} canary install should succeed`)
@@ -286,6 +302,8 @@ async function smokeAgentVersionProbe(agent: string): Promise<void> {
     throw new Error(`${agent} canary list and inspect versions must agree`)
   }
 
+  if (receiptValidationSeed) await smokeReceiptValidationUpdate(agent, receiptValidationSeed, installedVersion)
+
   const canUninstall = resolveCanaryUninstallCapability()
   console.log(`[${agent}] canary ${canUninstall === false ? 'untrack' : 'uninstall'}`)
   const uninstall = await runJson(`probe uninstall ${agent}`, [...cli, 'uninstall', agent], {
@@ -324,6 +342,123 @@ async function smokeAgentVersionProbe(agent: string): Promise<void> {
   if (process.env.QTX_CANARY_SOURCE_CONFLICT === 'true') {
     await smokeAgentSourceConflict(agent)
   }
+}
+
+interface ReceiptValidationSeed {
+  latestVersion: string
+  packageName: string
+  seededVersion: string
+}
+
+interface NpmPackageMetadata {
+  'dist-tags'?: Record<string, unknown>
+  versions?: Record<string, unknown>
+}
+
+async function resolveReceiptValidationSeed(
+  agent: string,
+  binaryLifecycle: boolean,
+): Promise<ReceiptValidationSeed | undefined> {
+  if (agent !== RECEIPT_VALIDATION_AGENT || binaryLifecycle || resolveCanaryProvider() !== 'bun') return undefined
+
+  const definition = getAgentByNameOrAlias(agent)
+  const packageName = definition?.packages?.npm
+  if (!packageName) throw new Error(`Cannot resolve the npm package for receipt-validation agent ${agent}.`)
+
+  const metadataUrl = `${OFFICIAL_NPM_REGISTRY}/${encodeURIComponent(packageName)}`
+  let response: Response
+  try {
+    response = await fetch(metadataUrl, {
+      headers: { accept: 'application/json' },
+      signal: AbortSignal.timeout(DEFAULT_COMMAND_TIMEOUT_MS),
+    })
+  } catch (error) {
+    throw new Error(
+      `Cannot read npm metadata for ${packageName} from ${OFFICIAL_NPM_REGISTRY}: ${error instanceof Error ? error.message : String(error)}`,
+      { cause: error },
+    )
+  }
+  if (!response.ok) {
+    throw new Error(
+      `Cannot read npm metadata for ${packageName} from ${OFFICIAL_NPM_REGISTRY}: HTTP ${response.status}.`,
+    )
+  }
+
+  const metadata = (await response.json()) as NpmPackageMetadata
+  const latestVersion = metadata['dist-tags']?.latest
+  if (
+    typeof latestVersion !== 'string' ||
+    !/^\d+\.\d+\.\d+$/u.test(latestVersion) ||
+    compareVersions(latestVersion, latestVersion) === undefined
+  ) {
+    throw new Error(`npm metadata for ${packageName} does not expose a valid latest stable version.`)
+  }
+
+  const seededVersion = Object.keys(metadata.versions ?? {})
+    .filter(version => /^\d+\.\d+\.\d+$/u.test(version))
+    .filter(version => compareVersions(version, latestVersion) === -1)
+    .sort((left, right) => compareVersions(right, left) ?? 0)[0]
+
+  if (!seededVersion) {
+    throw new Error(
+      `npm metadata for ${packageName} has no stable version lower than latest ${latestVersion}; real update coverage cannot run.`,
+    )
+  }
+
+  return { latestVersion, packageName, seededVersion }
+}
+
+async function smokeReceiptValidationUpdate(
+  agent: string,
+  seed: ReceiptValidationSeed,
+  installedVersion: unknown,
+): Promise<void> {
+  if (installedVersion !== seed.seededVersion) {
+    throw new Error(
+      `${agent} receipt-validation seed was not adopted at ${seed.seededVersion}; received ${String(installedVersion) || '(empty)'}.`,
+    )
+  }
+
+  console.log(`[${agent}] canary real update from ${seed.seededVersion} to ${seed.latestVersion}`)
+  const update = await runJson(`receipt-validation update ${agent}`, [...cli, '--refresh', 'update', agent])
+  assertResult(
+    update,
+    result =>
+      Array.isArray(result.data?.results) &&
+      result.data.results.some(
+        (candidate: { name?: unknown; status?: unknown }) => candidate.name === agent && candidate.status === 'updated',
+      ),
+    `${agent} receipt-validation update must report status=updated`,
+  )
+
+  const state = JSON.parse(await readFile(getStateFilePath(), 'utf8')) as {
+    lifecycleReceipts?: Record<string, { executableName?: unknown; version?: unknown }>
+  }
+  const receipt = state.lifecycleReceipts?.[agent]
+  const definition = getAgentByNameOrAlias(agent)
+  if (receipt?.executableName !== definition?.binaryName) {
+    throw new Error(
+      `${agent} receipt-validation update must persist executableName=${definition?.binaryName ?? '(unknown)'}; received ${String(receipt?.executableName) || '(empty)'}.`,
+    )
+  }
+  if (!receipt) throw new Error(`${agent} receipt-validation update did not persist a lifecycle receipt.`)
+  if (receipt.version !== seed.latestVersion) {
+    throw new Error(
+      `${agent} receipt-validation update must persist version=${seed.latestVersion}; received ${String(receipt.version) || '(empty)'}.`,
+    )
+  }
+
+  const afterUpdate = await runJson(`receipt-validation inspect ${agent} after update`, [
+    ...cli,
+    'inspect',
+    agent,
+    '--refresh',
+  ])
+  assertResult(
+    afterUpdate,
+    result => result.data?.inspection?.installedVersion === seed.latestVersion,
+    `${agent} receipt-validation inspect should expose the upgraded latest version`,
+  )
 }
 
 async function smokeAgentSourceConflict(agent: string): Promise<void> {

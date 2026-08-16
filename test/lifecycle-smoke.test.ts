@@ -44,6 +44,14 @@ describe('lifecycle smoke scenarios', () => {
     expect(lifecycleSmoke).toContain('physical cleanup delegated to disposable runner')
     expect(lifecycleSmoke).toContain('installedVersion')
     expect(lifecycleSmoke).toContain("'list', '--refresh'")
+    expect(lifecycleSmoke).toContain("const RECEIPT_VALIDATION_AGENT = 'opencode'")
+    expect(lifecycleSmoke).toContain("resolveCanaryProvider() !== 'bun'")
+    expect(lifecycleSmoke).toContain("'bun',\n      'add',\n      '-g'")
+    expect(lifecycleSmoke).toContain("[...cli, '--refresh', 'update', agent]")
+    expect(lifecycleSmoke).toContain("candidate.status === 'updated'")
+    expect(lifecycleSmoke).toContain('lifecycleReceipts')
+    expect(lifecycleSmoke).toContain('real update coverage cannot run')
+    expect(lifecycleSmoke).toContain('receipt-validation update must persist executableName')
     expect(lifecycleSmoke).toContain(
       'installedAgents.push(agent)\n      await smokeAgentVersionProbe(agent)\n      installedAgents.pop()',
     )
