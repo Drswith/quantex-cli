@@ -32,16 +32,12 @@ export {
   copilot,
   crush,
   cursor,
-  deepcode,
   devin,
   droid,
-  forgecode,
   gemini,
-  genie,
   goose,
   grok,
   hermes,
-  jcode,
   junie,
   kilo,
   kimi,
@@ -56,9 +52,10 @@ export {
   qwen,
   reasonix,
   vibe,
-  vtcode,
 } from './generated/catalog-agents'
 export { agentCatalogJsonSchema, getCatalogAgent, getCatalogAgents } from './catalog'
+// Withdrawn from the catalog, retained as v1 root exports only. Not catalog members.
+export { deepcode, genie, jcode, vtcode } from './withdrawn'
 export { agentCatalogEntrySchema, agentCatalogSchema } from './schema'
 export type { AgentCatalogData, AgentCatalogEntry } from './schema'
 export type {

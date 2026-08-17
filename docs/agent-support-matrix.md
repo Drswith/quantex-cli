@@ -11,7 +11,7 @@ This page defines the review format and current live-doc handoff for Quantex age
 
 ## Current Supported Canonical Slugs
 
-`amp`, `antigravity`, `auggie`, `autohand`, `claude`, `codebuddy`, `codewhale`, `codex`, `commandcode`, `copilot`, `crush`, `cursor`, `deepcode`, `devin`, `droid`, `forgecode`, `gemini`, `genie`, `goose`, `grok`, `hermes`, `jcode`, `junie`, `kilo`, `kimi`, `kiro`, `mimo`, `omp`, `openclaw`, `opencode`, `openhands`, `pi`, `qoder`, `qwen`, `reasonix`, `vibe`, `vtcode`
+`amp`, `antigravity`, `auggie`, `autohand`, `claude`, `codebuddy`, `codewhale`, `codex`, `commandcode`, `copilot`, `crush`, `cursor`, `devin`, `droid`, `gemini`, `goose`, `grok`, `hermes`, `junie`, `kilo`, `kimi`, `kiro`, `mimo`, `omp`, `openclaw`, `opencode`, `openhands`, `pi`, `qoder`, `qwen`, `reasonix`, `vibe`
 
 ## Required Fields
 

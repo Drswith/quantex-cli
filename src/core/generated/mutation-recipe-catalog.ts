@@ -818,41 +818,6 @@ export const coreMutationRecipeCatalog = [
     },
   },
   {
-    name: 'deepcode',
-    platforms: {
-      linux: [
-        {
-          probes: ['executable-presence', 'installed-version', 'package-presence', 'target-version'],
-          provider: 'npm',
-          target: {
-            id: '@vegamo/deepcode-cli',
-            kind: 'package',
-          },
-        },
-      ],
-      macos: [
-        {
-          probes: ['executable-presence', 'installed-version', 'package-presence', 'target-version'],
-          provider: 'npm',
-          target: {
-            id: '@vegamo/deepcode-cli',
-            kind: 'package',
-          },
-        },
-      ],
-      windows: [
-        {
-          probes: ['executable-presence', 'installed-version', 'package-presence', 'target-version'],
-          provider: 'npm',
-          target: {
-            id: '@vegamo/deepcode-cli',
-            kind: 'package',
-          },
-        },
-      ],
-    },
-  },
-  {
     name: 'devin',
     platforms: {
       linux: [
@@ -1011,101 +976,6 @@ export const coreMutationRecipeCatalog = [
     },
   },
   {
-    name: 'forgecode',
-    platforms: {
-      linux: [
-        {
-          probes: ['executable-presence', 'installed-version', 'package-presence', 'target-version'],
-          provider: 'bun',
-          target: {
-            id: 'forgecode',
-            kind: 'package',
-          },
-        },
-        {
-          probes: ['executable-presence', 'installed-version', 'package-presence', 'target-version'],
-          provider: 'npm',
-          target: {
-            id: 'forgecode',
-            kind: 'package',
-          },
-        },
-        {
-          probes: ['executable-presence'],
-          provider: 'script',
-          target: {
-            effect: {
-              command: 'curl -fsSL https://forgecode.dev/cli | sh',
-              kind: 'shell-script',
-            },
-            id: 'https://forgecode.dev/cli',
-            kind: 'script',
-          },
-        },
-      ],
-      macos: [
-        {
-          probes: ['executable-presence', 'installed-version', 'package-presence', 'target-version'],
-          provider: 'bun',
-          target: {
-            id: 'forgecode',
-            kind: 'package',
-          },
-        },
-        {
-          probes: ['executable-presence', 'installed-version', 'package-presence', 'target-version'],
-          provider: 'npm',
-          target: {
-            id: 'forgecode',
-            kind: 'package',
-          },
-        },
-        {
-          probes: ['executable-presence'],
-          provider: 'script',
-          target: {
-            effect: {
-              command: 'curl -fsSL https://forgecode.dev/cli | sh',
-              kind: 'shell-script',
-            },
-            id: 'https://forgecode.dev/cli',
-            kind: 'script',
-          },
-        },
-      ],
-      windows: [
-        {
-          probes: ['executable-presence', 'installed-version', 'package-presence', 'target-version'],
-          provider: 'bun',
-          target: {
-            id: 'forgecode',
-            kind: 'package',
-          },
-        },
-        {
-          probes: ['executable-presence', 'installed-version', 'package-presence', 'target-version'],
-          provider: 'npm',
-          target: {
-            id: 'forgecode',
-            kind: 'package',
-          },
-        },
-        {
-          probes: ['executable-presence'],
-          provider: 'script',
-          target: {
-            effect: {
-              command: 'irm https://forgecode.dev/cli | iex',
-              kind: 'shell-script',
-            },
-            id: 'https://forgecode.dev/cli',
-            kind: 'script',
-          },
-        },
-      ],
-    },
-  },
-  {
     name: 'gemini',
     platforms: {
       linux: [
@@ -1175,44 +1045,6 @@ export const coreMutationRecipeCatalog = [
           target: {
             id: '@google/gemini-cli',
             kind: 'package',
-          },
-        },
-      ],
-    },
-  },
-  {
-    name: 'genie',
-    platforms: {
-      linux: [
-        {
-          probes: ['executable-presence'],
-          provider: 'deno',
-          target: {
-            arguments: ['-A'],
-            id: 'jsr:@nicorio/genie',
-            kind: 'tool',
-          },
-        },
-      ],
-      macos: [
-        {
-          probes: ['executable-presence'],
-          provider: 'deno',
-          target: {
-            arguments: ['-A'],
-            id: 'jsr:@nicorio/genie',
-            kind: 'tool',
-          },
-        },
-      ],
-      windows: [
-        {
-          probes: ['executable-presence'],
-          provider: 'deno',
-          target: {
-            arguments: ['-A'],
-            id: 'jsr:@nicorio/genie',
-            kind: 'tool',
           },
         },
       ],
@@ -1382,61 +1214,6 @@ export const coreMutationRecipeCatalog = [
               kind: 'shell-script',
             },
             id: 'https://hermes-agent.nousresearch.com/install.ps1',
-            kind: 'script',
-          },
-        },
-      ],
-    },
-  },
-  {
-    name: 'jcode',
-    platforms: {
-      linux: [
-        {
-          probes: ['executable-presence'],
-          provider: 'script',
-          target: {
-            effect: {
-              command: 'curl -fsSL https://raw.githubusercontent.com/1jehuang/jcode/master/scripts/install.sh | bash',
-              kind: 'shell-script',
-            },
-            id: 'https://raw.githubusercontent.com/1jehuang/jcode/master/scripts/install.sh',
-            kind: 'script',
-          },
-        },
-      ],
-      macos: [
-        {
-          probes: ['executable-presence'],
-          provider: 'brew',
-          target: {
-            id: '1jehuang/jcode/jcode',
-            kind: 'formula',
-          },
-        },
-        {
-          probes: ['executable-presence'],
-          provider: 'script',
-          target: {
-            effect: {
-              command: 'curl -fsSL https://raw.githubusercontent.com/1jehuang/jcode/master/scripts/install.sh | bash',
-              kind: 'shell-script',
-            },
-            id: 'https://raw.githubusercontent.com/1jehuang/jcode/master/scripts/install.sh',
-            kind: 'script',
-          },
-        },
-      ],
-      windows: [
-        {
-          probes: ['executable-presence'],
-          provider: 'script',
-          target: {
-            effect: {
-              command: 'irm https://raw.githubusercontent.com/1jehuang/jcode/master/scripts/install.ps1 | iex',
-              kind: 'shell-script',
-            },
-            id: 'https://raw.githubusercontent.com/1jehuang/jcode/master/scripts/install.ps1',
             kind: 'script',
           },
         },
@@ -2374,69 +2151,6 @@ export const coreMutationRecipeCatalog = [
               kind: 'shell-script',
             },
             id: 'https://mistral.ai/vibe/install.sh',
-            kind: 'script',
-          },
-        },
-      ],
-    },
-  },
-  {
-    name: 'vtcode',
-    platforms: {
-      linux: [
-        {
-          probes: ['executable-presence'],
-          provider: 'script',
-          target: {
-            effect: {
-              command: 'curl -fsSL https://raw.githubusercontent.com/vinhnx/vtcode/main/scripts/install.sh | bash',
-              kind: 'shell-script',
-            },
-            id: 'https://raw.githubusercontent.com/vinhnx/vtcode/main/scripts/install.sh',
-            kind: 'script',
-          },
-        },
-        {
-          probes: ['executable-presence'],
-          provider: 'brew',
-          target: {
-            id: 'vtcode',
-            kind: 'formula',
-          },
-        },
-      ],
-      macos: [
-        {
-          probes: ['executable-presence'],
-          provider: 'script',
-          target: {
-            effect: {
-              command: 'curl -fsSL https://raw.githubusercontent.com/vinhnx/vtcode/main/scripts/install.sh | bash',
-              kind: 'shell-script',
-            },
-            id: 'https://raw.githubusercontent.com/vinhnx/vtcode/main/scripts/install.sh',
-            kind: 'script',
-          },
-        },
-        {
-          probes: ['executable-presence'],
-          provider: 'brew',
-          target: {
-            id: 'vtcode',
-            kind: 'formula',
-          },
-        },
-      ],
-      windows: [
-        {
-          probes: ['executable-presence'],
-          provider: 'script',
-          target: {
-            effect: {
-              command: 'irm https://raw.githubusercontent.com/vinhnx/vtcode/main/scripts/install.ps1 | iex',
-              kind: 'shell-script',
-            },
-            id: 'https://raw.githubusercontent.com/vinhnx/vtcode/main/scripts/install.ps1',
             kind: 'script',
           },
         },

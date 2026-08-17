@@ -38,12 +38,10 @@ describe('agent canary matrix', () => {
     expect(byAgent.get('junie')?.provider).toBe('script')
     expect(byAgent.get('kimi')?.provider).toBe('npm')
     expect(byAgent.get('mimo')?.provider).toBe('npm')
-    expect(byAgent.get('genie')?.provider).toBe('deno')
     expect(byAgent.get('openhands')?.provider).toBe('script')
     expect(byAgent.get('openhands')?.requireVersion).toBe(true)
     expect(byAgent.get('vibe')?.provider).toBe('script')
     expect(byAgent.get('vibe')?.requireVersion).toBe(true)
-    expect(byAgent.get('vtcode')?.provider).toBe('script')
   })
 
   it('uses explicit credential-free coverage policies instead of agent-level skips', async () => {

@@ -6,15 +6,12 @@ import {
   codex,
   copilot,
   createUpdatePlan,
-  deepcode,
   cursor,
   devin,
   droid,
   gemini,
-  genie,
   grok,
   hermes,
-  jcode,
   getAgentByLookupName,
   getAgentByNameOrAlias,
   getAllAgents,
@@ -29,7 +26,6 @@ import {
   pi,
   qoder,
   reasonix,
-  vtcode,
 } from '../src/index'
 
 describe('agent registry', () => {
@@ -87,13 +83,6 @@ describe('agent registry', () => {
     expect(agent!.binaryName).toBe('omp')
   })
 
-  it('finds jcode by name', () => {
-    const agent = getAgentByNameOrAlias('jcode')
-    expect(agent).toBeDefined()
-    expect(agent!.name).toBe('jcode')
-    expect(agent!.binaryName).toBe('jcode')
-  })
-
   it('resolves CodeBuddy by package-style alias', () => {
     const agent = getAgentByLookupName('codebuddy-code')
     expect(agent?.name).toBe('codebuddy')
@@ -119,13 +108,6 @@ describe('agent registry', () => {
     expect(agent?.name).toBe('reasonix')
   })
 
-  it('finds VTCode by name', () => {
-    const agent = getAgentByNameOrAlias('vtcode')
-    expect(agent).toBeDefined()
-    expect(agent!.name).toBe('vtcode')
-    expect(agent!.binaryName).toBe('vtcode')
-  })
-
   it('finds Hermes Agent by name and resolves by alias', () => {
     const agent = getAgentByNameOrAlias('hermes')
     expect(agent).toBeDefined()
@@ -140,13 +122,6 @@ describe('agent registry', () => {
     expect(agent).toBe(openclaw)
     expect(agent!.name).toBe('openclaw')
     expect(agent!.binaryName).toBe('openclaw')
-  })
-
-  it('finds Genie by name', () => {
-    const agent = getAgentByNameOrAlias('genie')
-    expect(agent).toBeDefined()
-    expect(agent!.name).toBe('genie')
-    expect(agent!.binaryName).toBe('genie')
   })
 
   it('resolves MiMoCode by product-style aliases', () => {
@@ -218,14 +193,6 @@ describe('agent definitions', () => {
     expect(agent!.homepage).toBe('https://docs.openhands.dev/openhands/usage/cli/installation')
   })
 
-  it('genie has correct Deno-managed structure', () => {
-    const agent = getAgentByNameOrAlias('genie')
-    expect(agent).toBe(genie)
-    expect(agent!.displayName).toBe('Genie')
-    expect(agent!.packages?.deno).toBe('jsr:@nicorio/genie')
-    expect(agent!.platforms.linux!.find(method => method.type === 'deno')).toBeDefined()
-  })
-
   it('kilo has correct structure', () => {
     const agent = getAgentByNameOrAlias('kilo')
     expect(agent).toBeDefined()
@@ -270,15 +237,6 @@ describe('agent definitions', () => {
     expect(agent!.selfUpdate?.command).toEqual(['grok', 'update'])
   })
 
-  it('jcode has correct structure', () => {
-    const agent = getAgentByNameOrAlias('jcode')
-    expect(agent).toBeDefined()
-    expect(agent!.displayName).toBe('JCode')
-    expect(agent!.binaryName).toBe('jcode')
-    expect(agent!.homepage).toBe('https://github.com/1jehuang/jcode')
-    expect(agent!.selfUpdate).toBeUndefined()
-  })
-
   it('codewhale has correct structure', () => {
     const agent = getAgentByNameOrAlias('codewhale')
     expect(agent).toBeDefined()
@@ -287,15 +245,6 @@ describe('agent definitions', () => {
     expect(agent!.binaryName).toBe('codewhale')
     expect(getAgentByNameOrAlias('deepseek')).toBeUndefined()
     expect(getAgentByNameOrAlias('deepseek-tui')).toBeUndefined()
-  })
-
-  it('deepcode has correct structure', () => {
-    const agent = getAgentByNameOrAlias('deepcode')
-    expect(agent).toBeDefined()
-    expect(agent!.displayName).toBe('Deep Code CLI')
-    expect(agent!.packages?.npm).toBe('@vegamo/deepcode-cli')
-    expect(agent!.binaryName).toBe('deepcode')
-    expect(agent!.versionProbe?.command).toEqual(['deepcode', '--version'])
   })
 
   it('qoder has correct structure', () => {
@@ -315,27 +264,17 @@ describe('agent definitions', () => {
     expect(agent!.homepage).toBe('https://github.com/esengine/DeepSeek-Reasonix')
   })
 
-  it('vtcode has correct structure', () => {
-    const agent = getAgentByNameOrAlias('vtcode')
-    expect(agent).toBeDefined()
-    expect(agent!.displayName).toBe('VTCode')
-    expect(agent!.binaryName).toBe('vtcode')
-    expect(agent!.homepage).toBe('https://github.com/vinhnx/vtcode')
-  })
-
   it('re-exports all built-in agents from root index', () => {
     expect(autohand.name).toBe('autohand')
     expect(codebuddy.name).toBe('codebuddy')
     expect(codex.name).toBe('codex')
     expect(copilot.name).toBe('copilot')
     expect(codewhale.name).toBe('codewhale')
-    expect(deepcode.name).toBe('deepcode')
     expect(cursor.name).toBe('cursor')
     expect(devin.name).toBe('devin')
     expect(droid.name).toBe('droid')
     expect(gemini.name).toBe('gemini')
     expect(grok.name).toBe('grok')
-    expect(jcode.name).toBe('jcode')
     expect(junie.name).toBe('junie')
     expect(kilo.name).toBe('kilo')
     expect(mimo.name).toBe('mimo')
@@ -345,7 +284,6 @@ describe('agent definitions', () => {
     expect(pi.name).toBe('pi')
     expect(qoder.name).toBe('qoder')
     expect(reasonix.name).toBe('reasonix')
-    expect(vtcode.name).toBe('vtcode')
   })
 })
 

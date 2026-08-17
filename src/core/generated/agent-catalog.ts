@@ -498,35 +498,6 @@ export const coreAgentCatalog: readonly AgentDefinition[] = [
     },
   },
   {
-    binaryName: 'deepcode',
-    displayName: 'Deep Code CLI',
-    homepage: 'https://github.com/lessweb/deepcode-cli',
-    name: 'deepcode',
-    packages: {
-      npm: '@vegamo/deepcode-cli',
-    },
-    platforms: {
-      linux: [
-        {
-          type: 'npm',
-        },
-      ],
-      macos: [
-        {
-          type: 'npm',
-        },
-      ],
-      windows: [
-        {
-          type: 'npm',
-        },
-      ],
-    },
-    versionProbe: {
-      command: ['deepcode', '--version'],
-    },
-  },
-  {
     binaryName: 'devin',
     displayName: 'Devin for Terminal',
     homepage: 'https://cli.devin.ai/',
@@ -613,57 +584,6 @@ export const coreAgentCatalog: readonly AgentDefinition[] = [
     },
   },
   {
-    binaryName: 'forge',
-    displayName: 'ForgeCode',
-    homepage: 'https://forgecode.dev',
-    lookupAliases: ['forge'],
-    name: 'forgecode',
-    packages: {
-      npm: 'forgecode',
-    },
-    platforms: {
-      linux: [
-        {
-          type: 'bun',
-        },
-        {
-          type: 'npm',
-        },
-        {
-          command: 'curl -fsSL https://forgecode.dev/cli | sh',
-          type: 'script',
-        },
-      ],
-      macos: [
-        {
-          type: 'bun',
-        },
-        {
-          type: 'npm',
-        },
-        {
-          command: 'curl -fsSL https://forgecode.dev/cli | sh',
-          type: 'script',
-        },
-      ],
-      windows: [
-        {
-          type: 'bun',
-        },
-        {
-          type: 'npm',
-        },
-        {
-          command: 'irm https://forgecode.dev/cli | iex',
-          type: 'script',
-        },
-      ],
-    },
-    versionProbe: {
-      command: ['forge', '--version'],
-    },
-  },
-  {
     binaryName: 'gemini',
     displayName: 'Gemini CLI',
     homepage: 'https://google-gemini.github.io/gemini-cli/docs/',
@@ -702,35 +622,6 @@ export const coreAgentCatalog: readonly AgentDefinition[] = [
         },
         {
           type: 'npm',
-        },
-      ],
-    },
-  },
-  {
-    binaryName: 'genie',
-    displayName: 'Genie',
-    homepage: 'https://jsr.io/@nicorio/genie',
-    name: 'genie',
-    packages: {
-      deno: 'jsr:@nicorio/genie',
-    },
-    platforms: {
-      linux: [
-        {
-          packageInstallArgs: ['-A'],
-          type: 'deno',
-        },
-      ],
-      macos: [
-        {
-          packageInstallArgs: ['-A'],
-          type: 'deno',
-        },
-      ],
-      windows: [
-        {
-          packageInstallArgs: ['-A'],
-          type: 'deno',
         },
       ],
     },
@@ -835,39 +726,6 @@ export const coreAgentCatalog: readonly AgentDefinition[] = [
     },
     versionProbe: {
       command: ['hermes', '--version'],
-    },
-  },
-  {
-    binaryName: 'jcode',
-    displayName: 'JCode',
-    homepage: 'https://github.com/1jehuang/jcode',
-    name: 'jcode',
-    platforms: {
-      linux: [
-        {
-          command: 'curl -fsSL https://raw.githubusercontent.com/1jehuang/jcode/master/scripts/install.sh | bash',
-          type: 'script',
-        },
-      ],
-      macos: [
-        {
-          packageName: '1jehuang/jcode/jcode',
-          type: 'brew',
-        },
-        {
-          command: 'curl -fsSL https://raw.githubusercontent.com/1jehuang/jcode/master/scripts/install.sh | bash',
-          type: 'script',
-        },
-      ],
-      windows: [
-        {
-          command: 'irm https://raw.githubusercontent.com/1jehuang/jcode/master/scripts/install.ps1 | iex',
-          type: 'script',
-        },
-      ],
-    },
-    versionProbe: {
-      command: ['jcode', '--version'],
     },
   },
   {
@@ -1416,43 +1274,6 @@ export const coreAgentCatalog: readonly AgentDefinition[] = [
     },
     versionProbe: {
       command: ['vibe', '--version'],
-    },
-  },
-  {
-    binaryName: 'vtcode',
-    displayName: 'VTCode',
-    homepage: 'https://github.com/vinhnx/vtcode',
-    name: 'vtcode',
-    platforms: {
-      linux: [
-        {
-          command: 'curl -fsSL https://raw.githubusercontent.com/vinhnx/vtcode/main/scripts/install.sh | bash',
-          type: 'script',
-        },
-        {
-          packageName: 'vtcode',
-          type: 'brew',
-        },
-      ],
-      macos: [
-        {
-          command: 'curl -fsSL https://raw.githubusercontent.com/vinhnx/vtcode/main/scripts/install.sh | bash',
-          type: 'script',
-        },
-        {
-          packageName: 'vtcode',
-          type: 'brew',
-        },
-      ],
-      windows: [
-        {
-          command: 'irm https://raw.githubusercontent.com/vinhnx/vtcode/main/scripts/install.ps1 | iex',
-          type: 'script',
-        },
-      ],
-    },
-    versionProbe: {
-      command: ['vtcode', '--version'],
     },
   },
 ]

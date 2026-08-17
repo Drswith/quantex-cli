@@ -20,6 +20,7 @@ import {
   devin,
   droid,
   gemini,
+  genie,
   getAgentByLookupName,
   getAgentByNameOrAlias,
   getAllAgents,
@@ -44,6 +45,7 @@ import {
 import catalogSchemaFile from '../src/agents/catalog.schema.json'
 import { catalogData } from '../src/agents/generated/catalog-data'
 import { agentCatalogJsonSchema, catalogSourceSchema } from '../src/agents/schema'
+import { withdrawnAgentNames } from '../src/agents/withdrawn'
 import { formatInstallMethodCommand } from '../src/utils/install'
 
 describe('agent registry', () => {
@@ -609,74 +611,6 @@ describe('codewhale', () => {
   })
 })
 
-describe('deepcode', () => {
-  it('is registered for lookup by canonical name', () => {
-    expect(getAgentByNameOrAlias('deepcode')).toBe(deepcode)
-  })
-
-  it('has valid structure', () => {
-    validateAgent(deepcode)
-    expect(deepcode.name).toBe('deepcode')
-    expect(deepcode.displayName).toBe('Deep Code CLI')
-    expect(deepcode.packages?.npm).toBe('@vegamo/deepcode-cli')
-    expect(deepcode.binaryName).toBe('deepcode')
-    expect(deepcode.homepage).toBe('https://github.com/lessweb/deepcode-cli')
-    expect(deepcode.selfUpdate).toBeUndefined()
-    expect(deepcode.versionProbe?.command).toEqual(['deepcode', '--version'])
-  })
-
-  it('exposes npm install on all supported platforms', () => {
-    expect(deepcode.platforms.windows!.find(m => m.type === 'npm')).toBeDefined()
-    expect(deepcode.platforms.macos!.find(m => m.type === 'npm')).toBeDefined()
-    expect(deepcode.platforms.linux!.find(m => m.type === 'npm')).toBeDefined()
-  })
-})
-
-describe('jcode', () => {
-  it('is registered for lookup by canonical name', () => {
-    expect(getAgentByNameOrAlias('jcode')).toBe(jcode)
-  })
-
-  it('has valid structure', () => {
-    validateAgent(jcode)
-    expect(jcode.name).toBe('jcode')
-    expect(jcode.lookupAliases).toBeUndefined()
-    expect(jcode.displayName).toBe('JCode')
-    expect(jcode.packages).toBeUndefined()
-    expect(jcode.binaryName).toBe('jcode')
-    expect(jcode.homepage).toBe('https://github.com/1jehuang/jcode')
-    expect(jcode.selfUpdate).toBeUndefined()
-    expect(jcode.versionProbe?.command).toEqual(['jcode', '--version'])
-  })
-
-  it('supports official Homebrew and script installers without inventing update metadata', () => {
-    expect(jcode.platforms.windows).toEqual([
-      {
-        command: 'irm https://raw.githubusercontent.com/1jehuang/jcode/master/scripts/install.ps1 | iex',
-        type: 'script',
-      },
-    ])
-    expect(
-      jcode.platforms.macos!.find(m => m.type === 'brew' && m.packageName === '1jehuang/jcode/jcode'),
-    ).toBeDefined()
-    expect(
-      jcode.platforms.macos!.find(
-        m =>
-          m.type === 'script' &&
-          m.command.includes('raw.githubusercontent.com/1jehuang/jcode/master/scripts/install.sh'),
-      ),
-    ).toBeDefined()
-    expect(
-      jcode.platforms.linux!.find(
-        m =>
-          m.type === 'script' &&
-          m.command.includes('raw.githubusercontent.com/1jehuang/jcode/master/scripts/install.sh'),
-      ),
-    ).toBeDefined()
-    expect(jcode.selfUpdate).toBeUndefined()
-  })
-})
-
 describe('opencode', () => {
   it('has valid structure', () => {
     validateAgent(opencode)
@@ -1062,50 +996,6 @@ describe('vibe', () => {
   })
 })
 
-describe('vtcode', () => {
-  it('is registered for lookup by canonical name', () => {
-    expect(getAgentByNameOrAlias('vtcode')).toBe(vtcode)
-  })
-
-  it('has valid structure', () => {
-    validateAgent(vtcode)
-    expect(vtcode.name).toBe('vtcode')
-    expect(vtcode.lookupAliases).toBeUndefined()
-    expect(vtcode.displayName).toBe('VTCode')
-    expect(vtcode.binaryName).toBe('vtcode')
-    expect(vtcode.homepage).toBe('https://github.com/vinhnx/vtcode')
-    expect(vtcode.selfUpdate?.command).toEqual(['vtcode', 'update'])
-    expect(vtcode.versionProbe?.command).toEqual(['vtcode', '--version'])
-  })
-
-  it('exposes official install methods per platform', () => {
-    expect(vtcode.platforms.windows!.map(m => m.type)).toEqual(['script'])
-    expect(
-      vtcode.platforms.windows!.find(
-        m =>
-          m.type === 'script' && m.command.includes('raw.githubusercontent.com/vinhnx/vtcode/main/scripts/install.ps1'),
-      ),
-    ).toBeDefined()
-
-    for (const methods of [vtcode.platforms.windows!, vtcode.platforms.macos!, vtcode.platforms.linux!]) {
-      expect(methods.find(m => m.type === 'cargo')).toBeUndefined()
-    }
-
-    for (const methods of [vtcode.platforms.macos!, vtcode.platforms.linux!]) {
-      expect(
-        methods.find(
-          m =>
-            m.type === 'script' &&
-            m.command.includes('raw.githubusercontent.com/vinhnx/vtcode/main/scripts/install.sh'),
-        ),
-      ).toBeDefined()
-      expect(methods.find(m => m.type === 'brew' && m.packageName === 'vtcode')).toBeDefined()
-    }
-
-    expect(vtcode.platforms.windows!.find(m => m.type === 'brew')).toBeUndefined()
-  })
-})
-
 describe('hermes', () => {
   it('is registered for lookup by canonical name and alias', () => {
     expect(getAgentByNameOrAlias('hermes')).toBe(hermes)
@@ -1193,6 +1083,38 @@ describe('openclaw', () => {
       expect(methods.find(m => m.type === 'pip')).toBeUndefined()
       expect(methods.find(m => m.type === 'winget')).toBeUndefined()
     }
+  })
+})
+
+describe('withdrawn agents', () => {
+  const withdrawn = { deepcode, genie, jcode, vtcode }
+
+  it('keeps every withdrawn agent importable from the package root', () => {
+    for (const [name, agent] of Object.entries(withdrawn)) {
+      expect(agent).toBeDefined()
+      expect(agent.name).toBe(name)
+      validateAgent(agent)
+    }
+  })
+
+  it('keeps withdrawn agents out of the catalog and every lookup path', () => {
+    const catalogNames = new Set(getAllAgents().map(agent => agent.name))
+
+    for (const name of Object.keys(withdrawn)) {
+      expect(catalogNames.has(name)).toBe(false)
+      expect(getAgentByNameOrAlias(name)).toBeUndefined()
+      expect(getAgentByLookupName(name)).toBeUndefined()
+    }
+  })
+
+  it('keeps the withdrawn definitions frozen rather than aliasing a catalog entry', () => {
+    for (const agent of Object.values(withdrawn)) {
+      expect(getAllAgents()).not.toContain(agent)
+    }
+  })
+
+  it('matches the withdrawn name list the compatibility module publishes', () => {
+    expect([...withdrawnAgentNames]).toEqual(Object.keys(withdrawn).sort())
   })
 })
 
