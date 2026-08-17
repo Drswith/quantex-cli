@@ -605,36 +605,6 @@
       }
     },
     {
-      "binaryName": "deepcode",
-      "name": "deepcode",
-      "platforms": {
-        "linux": [
-          {
-            "probes": ["executable-presence", "installed-version", "package-presence", "target-version"],
-            "provider": "npm",
-            "targetId": "@vegamo/deepcode-cli",
-            "targetKind": "package"
-          }
-        ],
-        "macos": [
-          {
-            "probes": ["executable-presence", "installed-version", "package-presence", "target-version"],
-            "provider": "npm",
-            "targetId": "@vegamo/deepcode-cli",
-            "targetKind": "package"
-          }
-        ],
-        "windows": [
-          {
-            "probes": ["executable-presence", "installed-version", "package-presence", "target-version"],
-            "provider": "npm",
-            "targetId": "@vegamo/deepcode-cli",
-            "targetKind": "package"
-          }
-        ]
-      }
-    },
-    {
       "binaryName": "devin",
       "name": "devin",
       "platforms": {
@@ -743,72 +713,6 @@
       }
     },
     {
-      "binaryName": "forge",
-      "name": "forgecode",
-      "platforms": {
-        "linux": [
-          {
-            "probes": ["executable-presence", "installed-version", "package-presence", "target-version"],
-            "provider": "bun",
-            "targetId": "forgecode",
-            "targetKind": "package"
-          },
-          {
-            "probes": ["executable-presence", "installed-version", "package-presence", "target-version"],
-            "provider": "npm",
-            "targetId": "forgecode",
-            "targetKind": "package"
-          },
-          {
-            "probes": ["executable-presence"],
-            "provider": "script",
-            "targetId": "https://forgecode.dev/cli",
-            "targetKind": "script"
-          }
-        ],
-        "macos": [
-          {
-            "probes": ["executable-presence", "installed-version", "package-presence", "target-version"],
-            "provider": "bun",
-            "targetId": "forgecode",
-            "targetKind": "package"
-          },
-          {
-            "probes": ["executable-presence", "installed-version", "package-presence", "target-version"],
-            "provider": "npm",
-            "targetId": "forgecode",
-            "targetKind": "package"
-          },
-          {
-            "probes": ["executable-presence"],
-            "provider": "script",
-            "targetId": "https://forgecode.dev/cli",
-            "targetKind": "script"
-          }
-        ],
-        "windows": [
-          {
-            "probes": ["executable-presence", "installed-version", "package-presence", "target-version"],
-            "provider": "bun",
-            "targetId": "forgecode",
-            "targetKind": "package"
-          },
-          {
-            "probes": ["executable-presence", "installed-version", "package-presence", "target-version"],
-            "provider": "npm",
-            "targetId": "forgecode",
-            "targetKind": "package"
-          },
-          {
-            "probes": ["executable-presence"],
-            "provider": "script",
-            "targetId": "https://forgecode.dev/cli",
-            "targetKind": "script"
-          }
-        ]
-      }
-    },
-    {
       "binaryName": "gemini",
       "name": "gemini",
       "platforms": {
@@ -864,36 +768,6 @@
             "provider": "npm",
             "targetId": "@google/gemini-cli",
             "targetKind": "package"
-          }
-        ]
-      }
-    },
-    {
-      "binaryName": "genie",
-      "name": "genie",
-      "platforms": {
-        "linux": [
-          {
-            "probes": ["executable-presence"],
-            "provider": "deno",
-            "targetId": "jsr:@nicorio/genie",
-            "targetKind": "tool"
-          }
-        ],
-        "macos": [
-          {
-            "probes": ["executable-presence"],
-            "provider": "deno",
-            "targetId": "jsr:@nicorio/genie",
-            "targetKind": "tool"
-          }
-        ],
-        "windows": [
-          {
-            "probes": ["executable-presence"],
-            "provider": "deno",
-            "targetId": "jsr:@nicorio/genie",
-            "targetKind": "tool"
           }
         ]
       }
@@ -1001,42 +875,6 @@
             "probes": ["executable-presence"],
             "provider": "script",
             "targetId": "https://hermes-agent.nousresearch.com/install.ps1",
-            "targetKind": "script"
-          }
-        ]
-      }
-    },
-    {
-      "binaryName": "jcode",
-      "name": "jcode",
-      "platforms": {
-        "linux": [
-          {
-            "probes": ["executable-presence"],
-            "provider": "script",
-            "targetId": "https://raw.githubusercontent.com/1jehuang/jcode/master/scripts/install.sh",
-            "targetKind": "script"
-          }
-        ],
-        "macos": [
-          {
-            "probes": ["executable-presence"],
-            "provider": "brew",
-            "targetId": "1jehuang/jcode/jcode",
-            "targetKind": "formula"
-          },
-          {
-            "probes": ["executable-presence"],
-            "provider": "script",
-            "targetId": "https://raw.githubusercontent.com/1jehuang/jcode/master/scripts/install.sh",
-            "targetKind": "script"
-          }
-        ],
-        "windows": [
-          {
-            "probes": ["executable-presence"],
-            "provider": "script",
-            "targetId": "https://raw.githubusercontent.com/1jehuang/jcode/master/scripts/install.ps1",
             "targetKind": "script"
           }
         ]
@@ -1709,48 +1547,6 @@
           }
         ]
       }
-    },
-    {
-      "binaryName": "vtcode",
-      "name": "vtcode",
-      "platforms": {
-        "linux": [
-          {
-            "probes": ["executable-presence"],
-            "provider": "script",
-            "targetId": "https://raw.githubusercontent.com/vinhnx/vtcode/main/scripts/install.sh",
-            "targetKind": "script"
-          },
-          {
-            "probes": ["executable-presence"],
-            "provider": "brew",
-            "targetId": "vtcode",
-            "targetKind": "formula"
-          }
-        ],
-        "macos": [
-          {
-            "probes": ["executable-presence"],
-            "provider": "script",
-            "targetId": "https://raw.githubusercontent.com/vinhnx/vtcode/main/scripts/install.sh",
-            "targetKind": "script"
-          },
-          {
-            "probes": ["executable-presence"],
-            "provider": "brew",
-            "targetId": "vtcode",
-            "targetKind": "formula"
-          }
-        ],
-        "windows": [
-          {
-            "probes": ["executable-presence"],
-            "provider": "script",
-            "targetId": "https://raw.githubusercontent.com/vinhnx/vtcode/main/scripts/install.ps1",
-            "targetKind": "script"
-          }
-        ]
-      }
     }
   ],
   "providers": {
@@ -1764,7 +1560,6 @@
         "copilot",
         "crush",
         "droid",
-        "forgecode",
         "gemini",
         "kilo",
         "omp",
@@ -1790,9 +1585,7 @@
         "commandcode",
         "copilot",
         "crush",
-        "deepcode",
         "droid",
-        "forgecode",
         "gemini",
         "kilo",
         "kimi",
@@ -1818,12 +1611,10 @@
         "droid",
         "gemini",
         "goose",
-        "jcode",
         "junie",
         "opencode",
         "qoder",
-        "qwen",
-        "vtcode"
+        "qwen"
       ],
       "platforms": ["linux", "macos"],
       "probes": ["executable-presence"],
@@ -1836,10 +1627,10 @@
       "targetKinds": []
     },
     "deno": {
-      "agents": ["genie"],
-      "platforms": ["linux", "macos", "windows"],
-      "probes": ["executable-presence"],
-      "targetKinds": ["tool"]
+      "agents": [],
+      "platforms": [],
+      "probes": [],
+      "targetKinds": []
     },
     "mise": {
       "agents": [],
@@ -1875,11 +1666,9 @@
         "cursor",
         "devin",
         "droid",
-        "forgecode",
         "goose",
         "grok",
         "hermes",
-        "jcode",
         "junie",
         "kimi",
         "kiro",
@@ -1890,8 +1679,7 @@
         "openhands",
         "qoder",
         "qwen",
-        "vibe",
-        "vtcode"
+        "vibe"
       ],
       "platforms": ["linux", "macos", "windows"],
       "probes": ["executable-presence", "installed-version"],

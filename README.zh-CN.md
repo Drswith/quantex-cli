@@ -222,18 +222,14 @@ qtx upgrade --check
 | Command Code | `qtx commandcode` | Command Code AI 编程助手 CLI |
 | Crush | `qtx crush` | Charmbracelet 终端 AI 编程 Agent CLI |
 | Cursor CLI | `qtx cursor` | Cursor AI 编程助手命令行工具 |
-| Deep Code CLI | `qtx deepcode` | Deep Code 终端编程 Agent CLI |
 | CodeWhale | `qtx codewhale` | DeepSeek 优先的终端编程 Agent |
 | Devin for Terminal | `qtx devin` | Cognition 本地编程 Agent CLI |
 | Droid | `qtx droid` | Factory AI 软件工程 Agent CLI |
-| ForgeCode | `qtx forgecode` | Antinomy AI 编程助手 CLI |
 | Gemini CLI | `qtx gemini` | Google 开源 AI 编程助手 CLI |
-| Genie | `qtx genie` | 通过 Deno 分发的终端 LLM agent |
 | GitHub Copilot CLI | `qtx copilot` | GitHub Copilot 命令行工具 |
 | Goose | `qtx goose` | Block 开源可扩展 AI Agent CLI |
 | Grok Build | `qtx grok` | xAI 终端编程 Agent CLI |
 | Hermes Agent | `qtx hermes` | Nous Research 自我进化的 AI Agent CLI |
-| JCode | `qtx jcode` | 面向多 session 工作流的高性能编程 Agent harness |
 | Junie CLI | `qtx junie` | JetBrains 官方 AI 编程 Agent CLI |
 | Kilo CLI | `qtx kilo` | Kilo 官方 AI 编程助手 CLI |
 | Kimi Code | `qtx kimi` | Moonshot AI 编程助手 CLI |
@@ -248,7 +244,6 @@ qtx upgrade --check
 | Qoder CLI | `qtx qoder` | Qoder 官方 AI 编程助手 CLI |
 | Qwen Code | `qtx qwen` | Qwen AI 编程助手 CLI |
 | Reasonix | `qtx reasonix` | DeepSeek 原生终端编程 Agent |
-| VTCode | `qtx vtcode` | 开源终端编程 Agent，提供稳健 shell 安全能力 |
 
 如果你更偏好显式长命令，上表里的 `qtx` 都可以直接替换成 `quantex`。
 

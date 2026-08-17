@@ -4,14 +4,14 @@
 
 | Provider | Agents | Platforms | Target kinds | Declared probes |
 | --- | ---: | --- | --- | --- |
-| `bun` | 17 | `linux`, `macos`, `windows` | `package` | `executable-presence`, `installed-version`, `package-presence`, `target-version` |
-| `npm` | 23 | `linux`, `macos`, `windows` | `package` | `executable-presence`, `installed-version`, `package-presence`, `target-version` |
-| `brew` | 14 | `linux`, `macos` | `cask`, `formula` | `executable-presence` |
+| `bun` | 16 | `linux`, `macos`, `windows` | `package` | `executable-presence`, `installed-version`, `package-presence`, `target-version` |
+| `npm` | 21 | `linux`, `macos`, `windows` | `package` | `executable-presence`, `installed-version`, `package-presence`, `target-version` |
+| `brew` | 12 | `linux`, `macos` | `cask`, `formula` | `executable-presence` |
 | `cargo` | 0 | — | — | — |
-| `deno` | 1 | `linux`, `macos`, `windows` | `tool` | `executable-presence` |
+| `deno` | 0 | — | — | — |
 | `mise` | 0 | — | — | — |
 | `pip` | 0 | — | — | — |
 | `uv` | 0 | — | — | — |
 | `winget` | 3 | `windows` | `id` | `executable-presence` |
-| `script` | 25 | `linux`, `macos`, `windows` | `script` | `executable-presence`, `installed-version` |
+| `script` | 22 | `linux`, `macos`, `windows` | `script` | `executable-presence`, `installed-version` |
 | `binary` | 0 | — | — | — |

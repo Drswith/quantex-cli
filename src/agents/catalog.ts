@@ -26,7 +26,10 @@ export function getCatalogAgent(name: string): AgentDefinition {
   return agent
 }
 
-function toAgentDefinition(entry: CatalogSourceEntry): AgentDefinition {
+// Exported for the withdrawn-agent compatibility exports, which project frozen entries
+// through the same normalization without joining the catalog. Not re-exported from
+// src/agents/index.ts, so it stays off the v1 root surface.
+export function toAgentDefinition(entry: CatalogSourceEntry): AgentDefinition {
   const behavior = behaviorExtensions[entry.name]
   const versionProbe = mergeVersionProbe(entry.versionProbe, behavior)
   const packages = projectLegacyPackages(entry)

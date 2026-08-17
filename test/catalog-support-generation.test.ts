@@ -8,7 +8,7 @@ describe('generated catalog support inputs', () => {
     const support = JSON.parse(manifest.catalogSupportSource)
 
     expect(support.schemaVersion).toBe(1)
-    expect(support.agents).toHaveLength(37)
+    expect(support.agents).toHaveLength(32)
     expect(support.providers.npm.platforms).toEqual(['linux', 'macos', 'windows'])
     expect(support.providers.npm.targetKinds).toEqual(['package'])
     expect(support.providers.npm.probes).toEqual([

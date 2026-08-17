@@ -25,13 +25,6 @@ describe('normalized Cargo, Deno, pip, and uv catalog entries', () => {
     }
   })
 
-  it('preserves Deno arguments in the legacy projection', () => {
-    expect(getCatalogAgent('genie').platforms.linux?.find(method => method.type === 'deno')).toEqual({
-      packageInstallArgs: ['-A'],
-      type: 'deno',
-    })
-  })
-
   it('projects no cargo, mise, pip, or uv method, because those providers are ineligible', () => {
     for (const agent of getAllAgents()) {
       for (const methods of Object.values(agent.platforms)) {

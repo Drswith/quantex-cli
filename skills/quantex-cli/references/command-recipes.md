@@ -18,16 +18,12 @@ This skill snapshot knows about these Quantex agent names:
 - `copilot`
 - `crush`
 - `cursor`
-- `deepcode`
 - `devin`
 - `droid`
-- `forgecode`
 - `gemini`
-- `genie`
 - `goose`
 - `grok`
 - `hermes`
-- `jcode`
 - `junie`
 - `kilo`
 - `kimi`
@@ -42,7 +38,6 @@ This skill snapshot knows about these Quantex agent names:
 - `qwen`
 - `reasonix`
 - `vibe`
-- `vtcode`
 
 The running binary remains the source of truth. If you are unsure whether the current binary supports a specific agent, command, flag, or output shape, run:
 
