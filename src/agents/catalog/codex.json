@@ -23,14 +23,6 @@
           "id": "@openai/codex",
           "kind": "package"
         }
-      },
-      {
-        "probes": ["executable-presence", "installed-version", "package-presence"],
-        "provider": "mise",
-        "target": {
-          "id": "npm:@openai/codex",
-          "kind": "tool"
-        }
       }
     ],
     "macos": [
@@ -48,14 +40,6 @@
         "target": {
           "id": "@openai/codex",
           "kind": "package"
-        }
-      },
-      {
-        "probes": ["executable-presence", "installed-version", "package-presence"],
-        "provider": "mise",
-        "target": {
-          "id": "npm:@openai/codex",
-          "kind": "tool"
         }
       },
       {
@@ -82,14 +66,6 @@
         "target": {
           "id": "@openai/codex",
           "kind": "package"
-        }
-      },
-      {
-        "probes": ["executable-presence", "installed-version", "package-presence"],
-        "provider": "mise",
-        "target": {
-          "id": "npm:@openai/codex",
-          "kind": "tool"
         }
       },
       {

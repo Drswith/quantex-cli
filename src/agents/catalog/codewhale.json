@@ -18,15 +18,6 @@
           "id": "codewhale",
           "kind": "package"
         }
-      },
-      {
-        "provider": "cargo",
-        "target": {
-          "id": "codewhale-cli",
-          "kind": "package",
-          "arguments": ["--locked"]
-        },
-        "probes": ["executable-presence"]
       }
     ],
     "macos": [
@@ -37,15 +28,6 @@
           "id": "codewhale",
           "kind": "package"
         }
-      },
-      {
-        "provider": "cargo",
-        "target": {
-          "id": "codewhale-cli",
-          "kind": "package",
-          "arguments": ["--locked"]
-        },
-        "probes": ["executable-presence"]
       }
     ],
     "linux": [
@@ -56,15 +38,6 @@
           "id": "codewhale",
           "kind": "package"
         }
-      },
-      {
-        "provider": "cargo",
-        "target": {
-          "id": "codewhale-cli",
-          "kind": "package",
-          "arguments": ["--locked"]
-        },
-        "probes": ["executable-presence"]
       }
     ]
   }

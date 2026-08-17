@@ -29,7 +29,7 @@ Quantex is a `human-friendly + agent-friendly` lifecycle CLI for AI coding assis
 - Manage multiple AI coding assistant CLIs from one lifecycle command: install, ensure, inspect, update, uninstall, and run.
 - Designed for scripts and coding agents: stable `--json`, `--output ndjson`, `--non-interactive`, and `--dry-run` contracts for machine-readable automation.
 - Tracks real install sources: `update --all` groups updates by recorded source instead of guessing from PATH alone.
-- Supports managed agent installs through available Bun, npm, Homebrew, Cargo, Deno, mise, pip, uv, and winget providers.
+- Supports managed agent installs through available Bun, npm, Homebrew, Deno, and winget providers, plus official install scripts. Cargo, mise, pip, and uv stay supported for installations already recorded in state, but are no longer offered for new catalog installs.
 - Supports Quantex self-upgrade across Bun, npm, and standalone binary installs.
 
 ## Lifecycle and compatibility guarantees
@@ -293,7 +293,7 @@ User configuration lives at `~/.quantex/config.json`:
 }
 ```
 
-`defaultPackageManager` can be `bun`, `npm`, `mise`, or `uv`. It only changes agent install-method ordering when the selected agent exposes that managed installer; the corresponding package-manager executable must already be available because Quantex does not install it for you.
+`defaultPackageManager` can be `bun`, `npm`, `mise`, or `uv`. It only changes agent install-method ordering when the selected agent exposes that managed installer; the corresponding package-manager executable must already be available because Quantex does not install it for you. No catalog agent declares a mise or uv install method today, so those two preferences currently change no ordering.
 
 `selfUpdateRegistry` is unset by default. When unset, Quantex follows the active Bun/npm registry for self-upgrade. If you set `selfUpdateRegistry`, it only affects the registry used when Quantex upgrades itself through Bun/npm and does not change the default install source for your other projects. For a one-off override, use the `QTX_SELF_UPDATE_REGISTRY` environment variable.
 

@@ -3,25 +3,13 @@
   "displayName": "OpenHands CLI",
   "homepage": "https://docs.openhands.dev/openhands/usage/cli/installation",
   "binaryName": "openhands",
-  "selfUpdate": {
-    "command": ["uv", "tool", "upgrade", "openhands", "--python", "3.12"]
-  },
   "versionProbe": {
     "command": ["openhands", "--version"]
   },
   "platforms": {
     "macos": [
       {
-        "provider": "uv",
-        "target": {
-          "id": "openhands",
-          "kind": "tool",
-          "arguments": ["--python", "3.12"]
-        },
-        "probes": ["executable-presence", "installed-version", "package-presence"]
-      },
-      {
-        "probes": ["executable-presence"],
+        "probes": ["executable-presence", "installed-version"],
         "provider": "script",
         "target": {
           "id": "https://install.openhands.dev/install.sh",
@@ -35,16 +23,7 @@
     ],
     "linux": [
       {
-        "provider": "uv",
-        "target": {
-          "id": "openhands",
-          "kind": "tool",
-          "arguments": ["--python", "3.12"]
-        },
-        "probes": ["executable-presence", "installed-version", "package-presence"]
-      },
-      {
-        "probes": ["executable-presence"],
+        "probes": ["executable-presence", "installed-version"],
         "provider": "script",
         "target": {
           "id": "https://install.openhands.dev/install.sh",

@@ -296,7 +296,6 @@ describe('codex', () => {
     validateAgent(codex)
     expect(codex.name).toBe('codex')
     expect(codex.displayName).toBe('Codex CLI')
-    expect(codex.packages?.mise).toBe('npm:@openai/codex')
     expect(codex.packages?.npm).toBe('@openai/codex')
     expect(codex.binaryName).toBe('codex')
     expect(codex.homepage).toBe('https://developers.openai.com/codex/cli')
@@ -306,9 +305,9 @@ describe('codex', () => {
   it('binary command returns correct strings per platform', () => {
     expect(codex.platforms.macos!.find(m => m.type === 'brew' && m.packageName === 'codex')).toBeDefined()
     expect(codex.platforms.linux!.find(m => m.type === 'brew' && m.packageName === 'codex')).toBeDefined()
-    expect(codex.platforms.windows!.find(m => m.type === 'mise')).toBeDefined()
-    expect(codex.platforms.macos!.find(m => m.type === 'mise')).toBeDefined()
-    expect(codex.platforms.linux!.find(m => m.type === 'mise')).toBeDefined()
+    expect(codex.platforms.windows!.find(m => m.type === 'mise')).toBeUndefined()
+    expect(codex.platforms.macos!.find(m => m.type === 'mise')).toBeUndefined()
+    expect(codex.platforms.linux!.find(m => m.type === 'mise')).toBeUndefined()
     expect(codex.platforms.windows!.find(m => m.type === 'brew')).toBeUndefined()
   })
 })
@@ -589,7 +588,6 @@ describe('codewhale', () => {
     expect(codewhale.name).toBe('codewhale')
     expect(codewhale.lookupAliases).toBeUndefined()
     expect(codewhale.displayName).toBe('CodeWhale')
-    expect(codewhale.packages?.cargo).toBe('codewhale-cli')
     expect(codewhale.packages?.npm).toBe('codewhale')
     expect(codewhale.binaryName).toBe('codewhale')
     expect(codewhale.homepage).toBe('https://github.com/Hmbown/CodeWhale')
@@ -603,17 +601,11 @@ describe('codewhale', () => {
     expect(codewhale.platforms.linux!.find(m => m.type === 'npm')).toBeDefined()
   })
 
-  it('exposes locked cargo install on all supported platforms', () => {
+  it('no longer exposes the ineligible cargo install method', () => {
     for (const methods of [codewhale.platforms.windows!, codewhale.platforms.macos!, codewhale.platforms.linux!]) {
-      expect(
-        methods.find(
-          method =>
-            method.type === 'cargo' &&
-            method.packageName === undefined &&
-            method.packageInstallArgs?.join(' ') === '--locked',
-        ),
-      ).toBeDefined()
+      expect(methods.find(method => method.type === 'cargo')).toBeUndefined()
     }
+    expect(codewhale.packages?.cargo).toBeUndefined()
   })
 })
 
@@ -727,19 +719,14 @@ describe('openhands', () => {
     expect(openhands.lookupAliases).toBeUndefined()
     expect(openhands.displayName).toBe('OpenHands CLI')
     expect(openhands.binaryName).toBe('openhands')
-    expect(openhands.packages?.uv).toBe('openhands')
     expect(openhands.homepage).toBe('https://docs.openhands.dev/openhands/usage/cli/installation')
-    expect(openhands.selfUpdate?.command).toEqual(['uv', 'tool', 'upgrade', 'openhands', '--python', '3.12'])
+    expect(openhands.selfUpdate).toBeUndefined()
     expect(openhands.versionProbe?.command).toEqual(['openhands', '--version'])
   })
 
-  it('supports official uv and install-script methods on macOS and Linux only', () => {
+  it('supports the official install script on macOS and Linux only', () => {
     for (const methods of [openhands.platforms.macos, openhands.platforms.linux]) {
-      expect(
-        methods!.find(
-          m => m.type === 'uv' && m.packageName === undefined && m.packageInstallArgs?.join(' ') === '--python 3.12',
-        ),
-      ).toBeDefined()
+      expect(methods!.find(m => m.type === 'uv')).toBeUndefined()
       expect(
         methods!.find(
           m => m.type === 'script' && m.command === 'curl -fsSL https://install.openhands.dev/install.sh | sh',
@@ -1051,8 +1038,6 @@ describe('vibe', () => {
     expect(vibe.lookupAliases).toEqual(['mistral-vibe'])
     expect(vibe.displayName).toBe('Mistral Vibe')
     expect(vibe.binaryName).toBe('vibe')
-    expect(vibe.packages?.pip).toBe('mistral-vibe')
-    expect(vibe.packages?.uv).toBe('mistral-vibe')
     expect(vibe.homepage).toBe('https://docs.mistral.ai/mistral-vibe/terminal/install')
     expect(vibe.versionProbe?.command).toEqual(['vibe', '--version'])
     expect(vibe.selfUpdate).toBeUndefined()
@@ -1067,11 +1052,13 @@ describe('vibe', () => {
     ).toBeDefined()
 
     for (const methods of Object.values(vibe.platforms)) {
-      expect(methods!.find(m => m.type === 'uv' && m.packageName === 'mistral-vibe')).toBeDefined()
-      expect(methods!.find(m => m.type === 'pip' && m.packageName === 'mistral-vibe')).toBeDefined()
+      expect(methods!.find(m => m.type === 'uv')).toBeUndefined()
+      expect(methods!.find(m => m.type === 'pip')).toBeUndefined()
     }
 
-    expect(vibe.platforms.windows!.find(m => m.type === 'script')).toBeUndefined()
+    expect(vibe.packages?.uv).toBeUndefined()
+    expect(vibe.packages?.pip).toBeUndefined()
+    expect(vibe.platforms.windows).toBeUndefined()
   })
 })
 
@@ -1085,7 +1072,6 @@ describe('vtcode', () => {
     expect(vtcode.name).toBe('vtcode')
     expect(vtcode.lookupAliases).toBeUndefined()
     expect(vtcode.displayName).toBe('VTCode')
-    expect(vtcode.packages?.cargo).toBe('vtcode')
     expect(vtcode.binaryName).toBe('vtcode')
     expect(vtcode.homepage).toBe('https://github.com/vinhnx/vtcode')
     expect(vtcode.selfUpdate?.command).toEqual(['vtcode', 'update'])
@@ -1093,7 +1079,7 @@ describe('vtcode', () => {
   })
 
   it('exposes official install methods per platform', () => {
-    expect(vtcode.platforms.windows!.map(m => m.type)).toEqual(['cargo', 'script'])
+    expect(vtcode.platforms.windows!.map(m => m.type)).toEqual(['script'])
     expect(
       vtcode.platforms.windows!.find(
         m =>
@@ -1102,7 +1088,7 @@ describe('vtcode', () => {
     ).toBeDefined()
 
     for (const methods of [vtcode.platforms.windows!, vtcode.platforms.macos!, vtcode.platforms.linux!]) {
-      expect(methods.find(m => m.type === 'cargo')).toBeDefined()
+      expect(methods.find(m => m.type === 'cargo')).toBeUndefined()
     }
 
     for (const methods of [vtcode.platforms.macos!, vtcode.platforms.linux!]) {
@@ -1213,9 +1199,6 @@ describe('openclaw', () => {
 describe('install command formatting', () => {
   it('renders managed install commands from structured methods', () => {
     expect(formatInstallMethodCommand(codex, codex.platforms.macos![0]!)).toBe('bun add -g @openai/codex')
-    expect(formatInstallMethodCommand(codex, codex.platforms.macos!.find(m => m.type === 'mise')!)).toBe(
-      'mise use --global npm:@openai/codex',
-    )
     expect(formatInstallMethodCommand(codex, codex.platforms.macos!.find(m => m.type === 'brew')!)).toBe(
       'brew install codex',
     )

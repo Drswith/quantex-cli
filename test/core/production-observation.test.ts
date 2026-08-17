@@ -10,32 +10,37 @@ import { createProductionCoreReadPorts } from '../../src/core/production-observa
 import { createEmptyStateDocument } from '../../src/state/schema'
 
 describe('production Core observation', () => {
-  it.skipIf(process.platform === 'win32')('orders uv first when the Core config prefers uv', async () => {
-    const root = await mkdtemp(join(tmpdir(), 'quantex-core-uv-preference-'))
-    const configDir = join(root, 'config')
-    const previousHome = process.env.HOME
-    const previousPath = process.env.PATH
+  it.skipIf(process.platform === 'win32')(
+    'leaves ordering untouched when the Core config prefers a provider the agent does not expose',
+    async () => {
+      const root = await mkdtemp(join(tmpdir(), 'quantex-core-uv-preference-'))
+      const configDir = join(root, 'config')
+      const previousHome = process.env.HOME
+      const previousPath = process.env.PATH
 
-    try {
-      await mkdir(configDir, { recursive: true })
-      await writeFile(join(configDir, 'config.json'), JSON.stringify({ defaultPackageManager: 'uv' }))
-      process.env.HOME = join(root, 'home')
-      process.env.PATH = join(root, 'empty-bin')
+      try {
+        await mkdir(configDir, { recursive: true })
+        await writeFile(join(configDir, 'config.json'), JSON.stringify({ defaultPackageManager: 'uv' }))
+        process.env.HOME = join(root, 'home')
+        process.env.PATH = join(root, 'empty-bin')
 
-      const ports = createProductionCoreReadPorts({ providerRegistry: bunRegistry(undefined) })
-      const outcome = await runCoreInvocation(undefined, context =>
-        ports.inspectAgent('vibe', { ...context, configDir }),
-      )
+        const ports = createProductionCoreReadPorts({ providerRegistry: bunRegistry(undefined) })
+        const outcome = await runCoreInvocation(undefined, context =>
+          ports.inspectAgent('vibe', { ...context, configDir }),
+        )
 
-      expect(outcome.kind).toBe('success')
-      const observation = outcome.kind === 'success' ? outcome.value : undefined
-      expect(observation?.methods[0]).toMatchObject({ type: 'uv' })
-    } finally {
-      process.env.HOME = previousHome
-      process.env.PATH = previousPath
-      await rm(root, { force: true, recursive: true })
-    }
-  })
+        expect(outcome.kind).toBe('success')
+        const observation = outcome.kind === 'success' ? outcome.value : undefined
+        // No catalog entry declares a uv method, so a uv preference must not disturb candidate order.
+        expect(observation?.methods.some(method => method.type === 'uv')).toBe(false)
+        expect(observation?.methods[0]).toMatchObject({ type: 'script' })
+      } finally {
+        process.env.HOME = previousHome
+        process.env.PATH = previousPath
+        await rm(root, { force: true, recursive: true })
+      }
+    },
+  )
 
   it.skipIf(process.platform === 'win32')('reads an installed version emitted on stderr', async () => {
     const root = await mkdtemp(join(tmpdir(), 'quantex-core-version-stderr-'))
