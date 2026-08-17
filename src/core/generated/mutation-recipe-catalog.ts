@@ -463,15 +463,6 @@ export const coreMutationRecipeCatalog = [
             kind: 'package',
           },
         },
-        {
-          probes: ['executable-presence'],
-          provider: 'cargo',
-          target: {
-            arguments: ['--locked'],
-            id: 'codewhale-cli',
-            kind: 'package',
-          },
-        },
       ],
       macos: [
         {
@@ -482,15 +473,6 @@ export const coreMutationRecipeCatalog = [
             kind: 'package',
           },
         },
-        {
-          probes: ['executable-presence'],
-          provider: 'cargo',
-          target: {
-            arguments: ['--locked'],
-            id: 'codewhale-cli',
-            kind: 'package',
-          },
-        },
       ],
       windows: [
         {
@@ -498,15 +480,6 @@ export const coreMutationRecipeCatalog = [
           provider: 'npm',
           target: {
             id: 'codewhale',
-            kind: 'package',
-          },
-        },
-        {
-          probes: ['executable-presence'],
-          provider: 'cargo',
-          target: {
-            arguments: ['--locked'],
-            id: 'codewhale-cli',
             kind: 'package',
           },
         },
@@ -534,14 +507,6 @@ export const coreMutationRecipeCatalog = [
           },
         },
         {
-          probes: ['executable-presence', 'installed-version', 'package-presence'],
-          provider: 'mise',
-          target: {
-            id: 'npm:@openai/codex',
-            kind: 'tool',
-          },
-        },
-        {
           probes: ['executable-presence'],
           provider: 'brew',
           target: {
@@ -568,14 +533,6 @@ export const coreMutationRecipeCatalog = [
           },
         },
         {
-          probes: ['executable-presence', 'installed-version', 'package-presence'],
-          provider: 'mise',
-          target: {
-            id: 'npm:@openai/codex',
-            kind: 'tool',
-          },
-        },
-        {
           probes: ['executable-presence'],
           provider: 'brew',
           target: {
@@ -599,14 +556,6 @@ export const coreMutationRecipeCatalog = [
           target: {
             id: '@openai/codex',
             kind: 'package',
-          },
-        },
-        {
-          probes: ['executable-presence', 'installed-version', 'package-presence'],
-          provider: 'mise',
-          target: {
-            id: 'npm:@openai/codex',
-            kind: 'tool',
           },
         },
       ],
@@ -2063,16 +2012,7 @@ export const coreMutationRecipeCatalog = [
     platforms: {
       linux: [
         {
-          probes: ['executable-presence', 'installed-version', 'package-presence'],
-          provider: 'uv',
-          target: {
-            arguments: ['--python', '3.12'],
-            id: 'openhands',
-            kind: 'tool',
-          },
-        },
-        {
-          probes: ['executable-presence'],
+          probes: ['executable-presence', 'installed-version'],
           provider: 'script',
           target: {
             effect: {
@@ -2086,16 +2026,7 @@ export const coreMutationRecipeCatalog = [
       ],
       macos: [
         {
-          probes: ['executable-presence', 'installed-version', 'package-presence'],
-          provider: 'uv',
-          target: {
-            arguments: ['--python', '3.12'],
-            id: 'openhands',
-            kind: 'tool',
-          },
-        },
-        {
-          probes: ['executable-presence'],
+          probes: ['executable-presence', 'installed-version'],
           provider: 'script',
           target: {
             effect: {
@@ -2421,7 +2352,7 @@ export const coreMutationRecipeCatalog = [
     platforms: {
       linux: [
         {
-          probes: ['executable-presence'],
+          probes: ['executable-presence', 'installed-version'],
           provider: 'script',
           target: {
             effect: {
@@ -2430,28 +2361,12 @@ export const coreMutationRecipeCatalog = [
             },
             id: 'https://mistral.ai/vibe/install.sh',
             kind: 'script',
-          },
-        },
-        {
-          probes: ['executable-presence', 'installed-version', 'package-presence'],
-          provider: 'uv',
-          target: {
-            id: 'mistral-vibe',
-            kind: 'tool',
-          },
-        },
-        {
-          probes: ['executable-presence'],
-          provider: 'pip',
-          target: {
-            id: 'mistral-vibe',
-            kind: 'package',
           },
         },
       ],
       macos: [
         {
-          probes: ['executable-presence'],
+          probes: ['executable-presence', 'installed-version'],
           provider: 'script',
           target: {
             effect: {
@@ -2460,40 +2375,6 @@ export const coreMutationRecipeCatalog = [
             },
             id: 'https://mistral.ai/vibe/install.sh',
             kind: 'script',
-          },
-        },
-        {
-          probes: ['executable-presence', 'installed-version', 'package-presence'],
-          provider: 'uv',
-          target: {
-            id: 'mistral-vibe',
-            kind: 'tool',
-          },
-        },
-        {
-          probes: ['executable-presence'],
-          provider: 'pip',
-          target: {
-            id: 'mistral-vibe',
-            kind: 'package',
-          },
-        },
-      ],
-      windows: [
-        {
-          probes: ['executable-presence', 'installed-version', 'package-presence'],
-          provider: 'uv',
-          target: {
-            id: 'mistral-vibe',
-            kind: 'tool',
-          },
-        },
-        {
-          probes: ['executable-presence'],
-          provider: 'pip',
-          target: {
-            id: 'mistral-vibe',
-            kind: 'package',
           },
         },
       ],
@@ -2517,14 +2398,6 @@ export const coreMutationRecipeCatalog = [
         },
         {
           probes: ['executable-presence'],
-          provider: 'cargo',
-          target: {
-            id: 'vtcode',
-            kind: 'package',
-          },
-        },
-        {
-          probes: ['executable-presence'],
           provider: 'brew',
           target: {
             id: 'vtcode',
@@ -2547,14 +2420,6 @@ export const coreMutationRecipeCatalog = [
         },
         {
           probes: ['executable-presence'],
-          provider: 'cargo',
-          target: {
-            id: 'vtcode',
-            kind: 'package',
-          },
-        },
-        {
-          probes: ['executable-presence'],
           provider: 'brew',
           target: {
             id: 'vtcode',
@@ -2563,14 +2428,6 @@ export const coreMutationRecipeCatalog = [
         },
       ],
       windows: [
-        {
-          probes: ['executable-presence'],
-          provider: 'cargo',
-          target: {
-            id: 'vtcode',
-            kind: 'package',
-          },
-        },
         {
           probes: ['executable-presence'],
           provider: 'script',

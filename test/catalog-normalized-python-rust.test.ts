@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest'
+import { getAllAgents } from '../src/agents'
 import { getCatalogAgent } from '../src/agents/catalog'
 import { catalogData } from '../src/agents/generated/catalog-data'
 
@@ -24,20 +25,20 @@ describe('normalized Cargo, Deno, pip, and uv catalog entries', () => {
     }
   })
 
-  it('preserves Cargo/Deno arguments and legacy explicit package-name projection', () => {
-    expect(getCatalogAgent('codewhale').platforms.linux?.find(method => method.type === 'cargo')).toEqual({
-      packageInstallArgs: ['--locked'],
-      type: 'cargo',
-    })
+  it('preserves Deno arguments in the legacy projection', () => {
     expect(getCatalogAgent('genie').platforms.linux?.find(method => method.type === 'deno')).toEqual({
       packageInstallArgs: ['-A'],
       type: 'deno',
     })
-    expect(
-      getCatalogAgent('vibe').platforms.linux?.filter(method => method.type === 'uv' || method.type === 'pip'),
-    ).toEqual([
-      { packageName: 'mistral-vibe', type: 'uv' },
-      { packageName: 'mistral-vibe', type: 'pip' },
-    ])
+  })
+
+  it('projects no cargo, mise, pip, or uv method, because those providers are ineligible', () => {
+    for (const agent of getAllAgents()) {
+      for (const methods of Object.values(agent.platforms)) {
+        for (const method of methods ?? []) {
+          expect(['cargo', 'mise', 'pip', 'uv']).not.toContain(method.type)
+        }
+      }
+    }
   })
 })

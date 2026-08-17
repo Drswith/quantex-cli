@@ -38,8 +38,8 @@ describe('normalized npm, Bun, and mise catalog entries', () => {
   it('reconstructs the maintained Codex package map and method shapes', () => {
     const codex = getCatalogAgent('codex')
 
-    expect(codex.packages).toEqual({ mise: 'npm:@openai/codex', npm: '@openai/codex' })
-    expect(codex.platforms.windows).toEqual([{ type: 'bun' }, { type: 'npm' }, { type: 'mise' }])
-    expect(codex.platforms.macos?.slice(0, 3)).toEqual([{ type: 'bun' }, { type: 'npm' }, { type: 'mise' }])
+    expect(codex.packages).toEqual({ npm: '@openai/codex' })
+    expect(codex.platforms.windows).toEqual([{ type: 'bun' }, { type: 'npm' }])
+    expect(codex.platforms.macos?.slice(0, 2)).toEqual([{ type: 'bun' }, { type: 'npm' }])
   })
 })

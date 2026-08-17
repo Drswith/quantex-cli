@@ -12,14 +12,6 @@
   "platforms": {
     "windows": [
       {
-        "provider": "cargo",
-        "target": {
-          "id": "vtcode",
-          "kind": "package"
-        },
-        "probes": ["executable-presence"]
-      },
-      {
         "probes": ["executable-presence"],
         "provider": "script",
         "target": {
@@ -46,14 +38,6 @@
         }
       },
       {
-        "provider": "cargo",
-        "target": {
-          "id": "vtcode",
-          "kind": "package"
-        },
-        "probes": ["executable-presence"]
-      },
-      {
         "probes": ["executable-presence"],
         "provider": "brew",
         "target": {
@@ -74,14 +58,6 @@
             "kind": "shell-script"
           }
         }
-      },
-      {
-        "provider": "cargo",
-        "target": {
-          "id": "vtcode",
-          "kind": "package"
-        },
-        "probes": ["executable-presence"]
       },
       {
         "probes": ["executable-presence"],

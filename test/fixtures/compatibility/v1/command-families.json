@@ -121,9 +121,9 @@
         "name": "codex"
       },
       "goldens": {
-        "human": "2b5e90a9c77b56a43ff01b68b36d0ccefbfb9d4d1fcd5bedea46ff7b16cfb093",
-        "json": "f5a1fee6dba3274676eaf8b94ca7efa3c59cb30415c120c4f007e14ed1a12e56",
-        "ndjson": "e41e28983250ce96a1c9ca0c22904ca510ad5e483c6873565601b4bfe5d571e2"
+        "human": "803a83fa4fe2d38e4c8c24214fe1e9a65fb4cbbe60329769ca90255fba38b476",
+        "json": "1656f73abd944c5dfa38cd8ab19ae3ae4301fe7482c5b4c2bc36ac4a4f12b607",
+        "ndjson": "fe2d023ae848ab6b0c2ea0ce6e88f73fb1c195e9817451d51358922210ed523e"
       }
     },
     {
@@ -139,9 +139,9 @@
         "name": "codex"
       },
       "goldens": {
-        "human": "b15b3e11bc83b1cce1bfd9f8976904a9e8097e70905af4d37faa7f86ceded173",
-        "json": "dabee33df8d245a4fb0eba2e8f9f706e46a447c30d13bfbe21788d43ff8332de",
-        "ndjson": "b82197ea330052a5e202b8cbdabb50c6a4f7bf7562de6dd6c3f063c3122c2e31"
+        "human": "edf01216b9f2480e0475270956f01ac6e1fefbb9440283f5ec33af128826d0dc",
+        "json": "f2cae9d864622ab7a00130e7db19e8716d4726d5d757db703aab4f3cf4db0401",
+        "ndjson": "f2c7680735fa9f6f49b1e37cad7d654cc5873c1f050cd473d46c7672adfa8969"
       }
     },
     {
@@ -176,8 +176,8 @@
       },
       "goldens": {
         "human": "2716b10a673a74da4c79343dc2f5cff312747cca84f901c5226ea04d435db0f8",
-        "json": "5189893357057be8434f1af18788069c68eb90f17792594f842d07a778546216",
-        "ndjson": "976b015d02268b08d97b21d52d54109a48fe866fb306776cc1799f3fa0d8c2c0"
+        "json": "3ff3f60ec4a36b9c84b8a9e368fe984767d35d9a2d80076c9d5ab8e04b11d420",
+        "ndjson": "7b9c965853a6e92e593db2cfc9723ebfe7d112717511a4255035b2bece49b31e"
       }
     },
     {
@@ -194,9 +194,9 @@
         "name": "codex"
       },
       "goldens": {
-        "human": "885251cf726c1d1f563984849e887112a5e90c68f69ae948451bd847481bd7ed",
-        "json": "0d7ea597c3ab15fb162d7ffb6905da3b2e8b7efecc5c41a9b2dbaca4dab81a9f",
-        "ndjson": "1b11cc384845c76ab76d814ea6b61206e8bfbf1aa116a042f1dcc7e58b7866bb"
+        "human": "55e8a92641b078a05a83690e3c07c568ad69bcea84a8aae637c10a3514b62472",
+        "json": "6c7d035a278d8f45ddce9a4a897ec624ae8a09db6e62c0b23eb48eaf9f98cc18",
+        "ndjson": "37c1d8b4b92461021ef7a1cb83d0ac7d3bb23f14d200041511a6810c713b0906"
       }
     },
     {
@@ -290,7 +290,7 @@
         "ls"
       ],
       "canonicalName": "list",
-      "golden": "5189893357057be8434f1af18788069c68eb90f17792594f842d07a778546216"
+      "golden": "3ff3f60ec4a36b9c84b8a9e368fe984767d35d9a2d80076c9d5ab8e04b11d420"
     },
     {
       "args": [

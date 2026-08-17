@@ -29,7 +29,7 @@ Quantex 是一个 `human-friendly + agent-friendly` 的 AI 编程助手 CLI life
 - 一个生命周期命令管理多个 AI 编程助手 CLI：安装、确保可用、查询状态、更新、卸载、启动。
 - 适合脚本和 agent 调用：支持 `--json`、`--output ndjson`、`--non-interactive`、`--dry-run` 等适合机器读取的稳定契约。
 - 记住真实安装来源：`update --all` 会优先按已记录来源分组更新，避免混合安装环境下误用更新方式。
-- 支持通过可用的 Bun、npm、Homebrew、Cargo、Deno、mise、pip、uv、winget provider 管理 agent 安装。
+- 支持通过可用的 Bun、npm、Homebrew、Deno、winget provider 以及官方安装脚本管理 agent 安装。Cargo、mise、pip、uv 仍支持已记录的历史安装，但不再用于目录中的新安装。
 - 支持 Quantex 自升级：Bun、npm、独立二进制安装来源都有对应升级路径。
 
 ## 生命周期与兼容性保证
@@ -293,7 +293,7 @@ quantex schema --json
 }
 ```
 
-`defaultPackageManager` 可以是 `bun`、`npm`、`mise` 或 `uv`。它只会在目标 agent 暴露对应 managed installer 时调整 agent 安装方式排序；对应的 package manager 可执行文件必须已经存在，Quantex 不会自动替你安装。
+`defaultPackageManager` 可以是 `bun`、`npm`、`mise` 或 `uv`。它只会在目标 agent 暴露对应 managed installer 时调整 agent 安装方式排序；对应的 package manager 可执行文件必须已经存在，Quantex 不会自动替你安装。当前目录中已没有 agent 声明 mise 或 uv 安装方式，因此这两个偏好暂时不会改变任何排序。
 
 `selfUpdateRegistry` 默认不设置。未设置时，Quantex 自升级会跟随当前 Bun/npm 实际使用的 registry。设置 `selfUpdateRegistry` 后，它只影响 Quantex 自身通过 Bun/npm 执行 `qtx upgrade` 的 registry 选择，不会修改你其他项目的默认安装源。一次性覆盖可使用环境变量 `QTX_SELF_UPDATE_REGISTRY`。
 

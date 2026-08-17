@@ -319,7 +319,6 @@ describe('agent definitions', () => {
     const agent = getAgentByNameOrAlias('vtcode')
     expect(agent).toBeDefined()
     expect(agent!.displayName).toBe('VTCode')
-    expect(agent!.packages?.cargo).toBe('vtcode')
     expect(agent!.binaryName).toBe('vtcode')
     expect(agent!.homepage).toBe('https://github.com/vinhnx/vtcode')
   })

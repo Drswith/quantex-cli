@@ -271,34 +271,21 @@ export const coreAgentCatalog: readonly AgentDefinition[] = [
     name: 'codewhale',
     packages: {
       npm: 'codewhale',
-      cargo: 'codewhale-cli',
     },
     platforms: {
       linux: [
         {
           type: 'npm',
         },
-        {
-          packageInstallArgs: ['--locked'],
-          type: 'cargo',
-        },
       ],
       macos: [
         {
           type: 'npm',
         },
-        {
-          packageInstallArgs: ['--locked'],
-          type: 'cargo',
-        },
       ],
       windows: [
         {
           type: 'npm',
-        },
-        {
-          packageInstallArgs: ['--locked'],
-          type: 'cargo',
         },
       ],
     },
@@ -313,7 +300,6 @@ export const coreAgentCatalog: readonly AgentDefinition[] = [
     name: 'codex',
     packages: {
       npm: '@openai/codex',
-      mise: 'npm:@openai/codex',
     },
     platforms: {
       linux: [
@@ -322,9 +308,6 @@ export const coreAgentCatalog: readonly AgentDefinition[] = [
         },
         {
           type: 'npm',
-        },
-        {
-          type: 'mise',
         },
         {
           packageName: 'codex',
@@ -339,9 +322,6 @@ export const coreAgentCatalog: readonly AgentDefinition[] = [
           type: 'npm',
         },
         {
-          type: 'mise',
-        },
-        {
           packageName: 'codex',
           type: 'brew',
         },
@@ -352,9 +332,6 @@ export const coreAgentCatalog: readonly AgentDefinition[] = [
         },
         {
           type: 'npm',
-        },
-        {
-          type: 'mise',
         },
       ],
     },
@@ -1222,25 +1199,14 @@ export const coreAgentCatalog: readonly AgentDefinition[] = [
     displayName: 'OpenHands CLI',
     homepage: 'https://docs.openhands.dev/openhands/usage/cli/installation',
     name: 'openhands',
-    packages: {
-      uv: 'openhands',
-    },
     platforms: {
       linux: [
-        {
-          packageInstallArgs: ['--python', '3.12'],
-          type: 'uv',
-        },
         {
           command: 'curl -fsSL https://install.openhands.dev/install.sh | sh',
           type: 'script',
         },
       ],
       macos: [
-        {
-          packageInstallArgs: ['--python', '3.12'],
-          type: 'uv',
-        },
         {
           command: 'curl -fsSL https://install.openhands.dev/install.sh | sh',
           type: 'script',
@@ -1434,47 +1400,17 @@ export const coreAgentCatalog: readonly AgentDefinition[] = [
     homepage: 'https://docs.mistral.ai/mistral-vibe/terminal/install',
     lookupAliases: ['mistral-vibe'],
     name: 'vibe',
-    packages: {
-      uv: 'mistral-vibe',
-      pip: 'mistral-vibe',
-    },
     platforms: {
       linux: [
         {
           command: 'curl -LsSf https://mistral.ai/vibe/install.sh | bash',
           type: 'script',
         },
-        {
-          packageName: 'mistral-vibe',
-          type: 'uv',
-        },
-        {
-          packageName: 'mistral-vibe',
-          type: 'pip',
-        },
       ],
       macos: [
         {
           command: 'curl -LsSf https://mistral.ai/vibe/install.sh | bash',
           type: 'script',
-        },
-        {
-          packageName: 'mistral-vibe',
-          type: 'uv',
-        },
-        {
-          packageName: 'mistral-vibe',
-          type: 'pip',
-        },
-      ],
-      windows: [
-        {
-          packageName: 'mistral-vibe',
-          type: 'uv',
-        },
-        {
-          packageName: 'mistral-vibe',
-          type: 'pip',
         },
       ],
     },
@@ -1487,17 +1423,11 @@ export const coreAgentCatalog: readonly AgentDefinition[] = [
     displayName: 'VTCode',
     homepage: 'https://github.com/vinhnx/vtcode',
     name: 'vtcode',
-    packages: {
-      cargo: 'vtcode',
-    },
     platforms: {
       linux: [
         {
           command: 'curl -fsSL https://raw.githubusercontent.com/vinhnx/vtcode/main/scripts/install.sh | bash',
           type: 'script',
-        },
-        {
-          type: 'cargo',
         },
         {
           packageName: 'vtcode',
@@ -1510,17 +1440,11 @@ export const coreAgentCatalog: readonly AgentDefinition[] = [
           type: 'script',
         },
         {
-          type: 'cargo',
-        },
-        {
           packageName: 'vtcode',
           type: 'brew',
         },
       ],
       windows: [
-        {
-          type: 'cargo',
-        },
         {
           command: 'irm https://raw.githubusercontent.com/vinhnx/vtcode/main/scripts/install.ps1 | iex',
           type: 'script',

@@ -332,12 +332,6 @@
             "provider": "npm",
             "targetId": "codewhale",
             "targetKind": "package"
-          },
-          {
-            "probes": ["executable-presence"],
-            "provider": "cargo",
-            "targetId": "codewhale-cli",
-            "targetKind": "package"
           }
         ],
         "macos": [
@@ -346,12 +340,6 @@
             "provider": "npm",
             "targetId": "codewhale",
             "targetKind": "package"
-          },
-          {
-            "probes": ["executable-presence"],
-            "provider": "cargo",
-            "targetId": "codewhale-cli",
-            "targetKind": "package"
           }
         ],
         "windows": [
@@ -359,12 +347,6 @@
             "probes": ["executable-presence", "installed-version", "package-presence", "target-version"],
             "provider": "npm",
             "targetId": "codewhale",
-            "targetKind": "package"
-          },
-          {
-            "probes": ["executable-presence"],
-            "provider": "cargo",
-            "targetId": "codewhale-cli",
             "targetKind": "package"
           }
         ]
@@ -388,12 +370,6 @@
             "targetKind": "package"
           },
           {
-            "probes": ["executable-presence", "installed-version", "package-presence"],
-            "provider": "mise",
-            "targetId": "npm:@openai/codex",
-            "targetKind": "tool"
-          },
-          {
             "probes": ["executable-presence"],
             "provider": "brew",
             "targetId": "codex",
@@ -414,12 +390,6 @@
             "targetKind": "package"
           },
           {
-            "probes": ["executable-presence", "installed-version", "package-presence"],
-            "provider": "mise",
-            "targetId": "npm:@openai/codex",
-            "targetKind": "tool"
-          },
-          {
             "probes": ["executable-presence"],
             "provider": "brew",
             "targetId": "codex",
@@ -438,12 +408,6 @@
             "provider": "npm",
             "targetId": "@openai/codex",
             "targetKind": "package"
-          },
-          {
-            "probes": ["executable-presence", "installed-version", "package-presence"],
-            "provider": "mise",
-            "targetId": "npm:@openai/codex",
-            "targetKind": "tool"
           }
         ]
       }
@@ -1480,13 +1444,7 @@
       "platforms": {
         "linux": [
           {
-            "probes": ["executable-presence", "installed-version", "package-presence"],
-            "provider": "uv",
-            "targetId": "openhands",
-            "targetKind": "tool"
-          },
-          {
-            "probes": ["executable-presence"],
+            "probes": ["executable-presence", "installed-version"],
             "provider": "script",
             "targetId": "https://install.openhands.dev/install.sh",
             "targetKind": "script"
@@ -1494,13 +1452,7 @@
         ],
         "macos": [
           {
-            "probes": ["executable-presence", "installed-version", "package-presence"],
-            "provider": "uv",
-            "targetId": "openhands",
-            "targetKind": "tool"
-          },
-          {
-            "probes": ["executable-presence"],
+            "probes": ["executable-presence", "installed-version"],
             "provider": "script",
             "targetId": "https://install.openhands.dev/install.sh",
             "targetKind": "script"
@@ -1742,56 +1694,18 @@
       "platforms": {
         "linux": [
           {
-            "probes": ["executable-presence"],
+            "probes": ["executable-presence", "installed-version"],
             "provider": "script",
             "targetId": "https://mistral.ai/vibe/install.sh",
             "targetKind": "script"
-          },
-          {
-            "probes": ["executable-presence", "installed-version", "package-presence"],
-            "provider": "uv",
-            "targetId": "mistral-vibe",
-            "targetKind": "tool"
-          },
-          {
-            "probes": ["executable-presence"],
-            "provider": "pip",
-            "targetId": "mistral-vibe",
-            "targetKind": "package"
           }
         ],
         "macos": [
           {
-            "probes": ["executable-presence"],
+            "probes": ["executable-presence", "installed-version"],
             "provider": "script",
             "targetId": "https://mistral.ai/vibe/install.sh",
             "targetKind": "script"
-          },
-          {
-            "probes": ["executable-presence", "installed-version", "package-presence"],
-            "provider": "uv",
-            "targetId": "mistral-vibe",
-            "targetKind": "tool"
-          },
-          {
-            "probes": ["executable-presence"],
-            "provider": "pip",
-            "targetId": "mistral-vibe",
-            "targetKind": "package"
-          }
-        ],
-        "windows": [
-          {
-            "probes": ["executable-presence", "installed-version", "package-presence"],
-            "provider": "uv",
-            "targetId": "mistral-vibe",
-            "targetKind": "tool"
-          },
-          {
-            "probes": ["executable-presence"],
-            "provider": "pip",
-            "targetId": "mistral-vibe",
-            "targetKind": "package"
           }
         ]
       }
@@ -1809,12 +1723,6 @@
           },
           {
             "probes": ["executable-presence"],
-            "provider": "cargo",
-            "targetId": "vtcode",
-            "targetKind": "package"
-          },
-          {
-            "probes": ["executable-presence"],
             "provider": "brew",
             "targetId": "vtcode",
             "targetKind": "formula"
@@ -1829,24 +1737,12 @@
           },
           {
             "probes": ["executable-presence"],
-            "provider": "cargo",
-            "targetId": "vtcode",
-            "targetKind": "package"
-          },
-          {
-            "probes": ["executable-presence"],
             "provider": "brew",
             "targetId": "vtcode",
             "targetKind": "formula"
           }
         ],
         "windows": [
-          {
-            "probes": ["executable-presence"],
-            "provider": "cargo",
-            "targetId": "vtcode",
-            "targetKind": "package"
-          },
           {
             "probes": ["executable-presence"],
             "provider": "script",
@@ -1934,10 +1830,10 @@
       "targetKinds": ["cask", "formula"]
     },
     "cargo": {
-      "agents": ["codewhale", "vtcode"],
-      "platforms": ["linux", "macos", "windows"],
-      "probes": ["executable-presence"],
-      "targetKinds": ["package"]
+      "agents": [],
+      "platforms": [],
+      "probes": [],
+      "targetKinds": []
     },
     "deno": {
       "agents": ["genie"],
@@ -1946,22 +1842,22 @@
       "targetKinds": ["tool"]
     },
     "mise": {
-      "agents": ["codex"],
-      "platforms": ["linux", "macos", "windows"],
-      "probes": ["executable-presence", "installed-version", "package-presence"],
-      "targetKinds": ["tool"]
+      "agents": [],
+      "platforms": [],
+      "probes": [],
+      "targetKinds": []
     },
     "pip": {
-      "agents": ["vibe"],
-      "platforms": ["linux", "macos", "windows"],
-      "probes": ["executable-presence"],
-      "targetKinds": ["package"]
+      "agents": [],
+      "platforms": [],
+      "probes": [],
+      "targetKinds": []
     },
     "uv": {
-      "agents": ["openhands", "vibe"],
-      "platforms": ["linux", "macos", "windows"],
-      "probes": ["executable-presence", "installed-version", "package-presence"],
-      "targetKinds": ["tool"]
+      "agents": [],
+      "platforms": [],
+      "probes": [],
+      "targetKinds": []
     },
     "winget": {
       "agents": ["claude", "copilot", "crush"],

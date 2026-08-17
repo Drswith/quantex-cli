@@ -39,8 +39,9 @@ describe('agent canary matrix', () => {
     expect(byAgent.get('kimi')?.provider).toBe('npm')
     expect(byAgent.get('mimo')?.provider).toBe('npm')
     expect(byAgent.get('genie')?.provider).toBe('deno')
-    expect(byAgent.get('openhands')?.provider).toBe('uv')
-    expect(byAgent.get('vibe')?.provider).toBe('uv')
+    expect(byAgent.get('openhands')?.provider).toBe('script')
+    expect(byAgent.get('openhands')?.requireVersion).toBe(true)
+    expect(byAgent.get('vibe')?.provider).toBe('script')
     expect(byAgent.get('vibe')?.requireVersion).toBe(true)
     expect(byAgent.get('vtcode')?.provider).toBe('script')
   })
@@ -69,7 +70,7 @@ describe('agent canary matrix', () => {
     })
     expect(byAgent.get('vibe')).toMatchObject({
       coverage: 'full-lifecycle',
-      provider: 'uv',
+      provider: 'script',
       requireVersion: true,
       setup: 'default',
     })
