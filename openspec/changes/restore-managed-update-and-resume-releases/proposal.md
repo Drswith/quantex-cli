@@ -28,7 +28,17 @@ Work-intake classification: observable CLI behavior, the stable command catalog 
 - No desktop client code, workflow job, sidecar script, or `macos-desktop-client` spec returns. Only the two CLI surfaces come back.
 - `test/workflow-classification.test.ts` keeps its post-revert shape. Its removed assertions covered the `desktop-macos` CI job, which stays deleted.
 - The v2 readiness requirement is untouched. This change does not identify the required refactor, start its clock, or make any stable `2.x` version eligible.
-- No one-shot release path, `Release-As` override, or manual version edit. Once `main` is a minor, ordinary release-please preparation is sufficient.
+- No manual version edit, no persisted `release-as` in release-please configuration, and no new prerelease channel.
+
+## Correction after delivery
+
+The bullet above originally also excluded a one-shot `Release-As` override, on the reasoning that restoring the surface would let release-please compute `1.11.0` unaided. That was wrong, and the first preparation run after merge proved it: release-please generated `chore: release 2.0.0` (PR #669).
+
+Release-please reads the conventional-commit markers in the `v1.10.0..main` range. `d92c7bc revert!:` is still in that range and still carries `!`. Restoring the surface changes what the code does; it does not change what that commit message says. A major is therefore computed no matter how complete the restoration is, until the range no longer contains the marker — which only happens once a release boundary is placed after it.
+
+So this change additionally carries a one-shot `Release-As: 1.11.0`, which is the mechanism `docs/runbooks/releasing-quantex.md` already documents for an exact version. It forces a version *below* the deferred major, so it does not touch the stable-v2 readiness gate; `major-release-readiness` denies `Release-As` only as a way to reach a stable `2.x`.
+
+The rest of the change is unaffected and was confirmed correct by the same run: PR #669 was created and then rejected by `governance` with the deferred-readiness reason, which is exactly the behavior the `release-workflow` and `major-release-readiness` deltas specify — the gate denies a named version instead of suppressing preparation.
 
 ## Capabilities
 

@@ -27,4 +27,14 @@
 - [x] 4.3 Run `bun run openspec:validate` and `bun run memory:check`.
 - [x] 4.4 Run `bun run release:dry-run`, because this change edits `release-please.yml`.
 - [x] 4.5 Open the PR with a body validated by `bun run pr:body:check`, declaring a minor release intent and a commit override for the restored options.
-- [ ] 4.6 After merge, confirm Release Please prepares a `1.11.0` Release PR rather than `2.0.0`, and report validation, OpenSpec, git, commit, remote, PR, release, and archive-closure state.
+- [x] 4.6 After merge, confirm what Release Please prepares. It prepared `chore: release 2.0.0` (#669), because `d92c7bc revert!:` is still inside the `v1.10.0..main` range and release-please reads the marker rather than whether it still describes a removal. Recorded as a correction in the proposal and design.
+
+## 5. One-shot 1.11.0 preparation
+
+- [x] 5.1 Confirm the generated `2.0.0` Release PR is rejected rather than mergeable, so the narrowed gate behaves as the `release-workflow` and `major-release-readiness` deltas specify: `governance` fails on #669 with the deferred-readiness reason.
+- [x] 5.2 Prove `1.11.0` is the honest version by comparing the v1 compatibility fixtures between `v1.10.0` and `main`: identical root exports, no command or alias added or removed, no exit code changed, and only catalog-derived digests moved.
+- [x] 5.3 Close the governance gap that blocks a boundary-only one-shot: `pr-body-policy` rejected any process-only PR carrying `Release-As`, so a PR whose only purpose is moving the release boundary had no path. Allow it when the declared major is at or below the current released major, keep rejecting a release-worthy title or `BREAKING CHANGE`, and fail closed when the current major is unknown. Cover all four cases in `test/pr-body-policy.test.ts` and record the rule in `release-workflow` and the release runbook.
+- [x] 5.4 Carry `Release-As: 1.11.0` in the delivery commit message and repeat the footer under `## Release Summary`, satisfying `pr-body-policy` and `commit-policy`.
+- [ ] 5.5 After merge, confirm Release Please replaces the `2.0.0` Release PR with `1.11.0`, and that `governance` passes on it.
+- [ ] 5.6 Merge the Release PR, confirm `tag-release` tags `v1.11.0` and `release.yml` publishes, then verify the published package accepts `qtx update --all --managed` and `qtx update --non-interactive`.
+- [ ] 5.7 Report validation, OpenSpec, git, commit, remote, PR, release, and archive-closure state.

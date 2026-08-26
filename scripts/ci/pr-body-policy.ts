@@ -5,6 +5,8 @@ import { classifyChangedFiles } from './path-taxonomy'
 export interface PrBodyPolicyInput {
   body: string
   changedFiles?: string[]
+  /** Major of the currently released version, used to allow a release-boundary-only `Release-As`. */
+  currentMajor?: number
   headBranch?: string
   title?: string
   validatedReleasePr?: boolean
@@ -51,7 +53,7 @@ export function validatePrBodyPolicy(input: PrBodyPolicyInput): string[] {
 
   const classification = classifyChangedFiles(input.changedFiles)
 
-  if (classification.processOnly && releaseWorthyMetadata) {
+  if (classification.processOnly && releaseWorthyMetadata && !isReleaseBoundaryOnly(title, body, input.currentMajor)) {
     issues.push(
       [
         'Release/process/docs/memory-only PRs must not use release-worthy conventional commit metadata.',
@@ -81,13 +83,35 @@ export function validatePrBodyPolicy(input: PrBodyPolicyInput): string[] {
   return issues
 }
 
+/**
+ * A process-only PR may still need to move the release boundary: release-please reads
+ * conventional-commit markers from the whole `<last tag>..main` range, so a stale marker
+ * keeps computing the same bump until a release lands after it. Such a PR carries nothing
+ * but a `Release-As` footer, and it MUST NOT be able to reach a deferred major, so the
+ * exemption is limited to a version at or below the current major and refuses to apply
+ * when the caller did not supply that major.
+ */
+export function isReleaseBoundaryOnly(title: string, body: string, currentMajor: number | undefined): boolean {
+  if (currentMajor === undefined || !Number.isInteger(currentMajor)) return false
+  if (hasReleaseWorthyTitle(title) || /\nBREAKING CHANGE:/.test(`\n${body}`)) return false
+
+  const declared = getDeclaredReleaseAsMajor(body)
+
+  return declared !== null && declared <= currentMajor
+}
+
+function getDeclaredReleaseAsMajor(body: string): number | null {
+  const match = body.match(/^release-as:\s*v?(\d+)\.\d+\.\d+\s*$/im)
+
+  return match ? Number(match[1]) : null
+}
+
+function hasReleaseWorthyTitle(title: string): boolean {
+  return /^(feat|fix|perf)(\(.+\))?!?:/.test(title) || /^[a-z]+(\(.+\))?!:/.test(title)
+}
+
 export function hasReleaseWorthyMetadata(title: string, body: string): boolean {
-  return (
-    /^(feat|fix|perf)(\(.+\))?!?:/.test(title) ||
-    /^[a-z]+(\(.+\))?!:/.test(title) ||
-    /\nBREAKING CHANGE:/.test(`\n${body}`) ||
-    hasReleaseAsFooter(body)
-  )
+  return hasReleaseWorthyTitle(title) || /\nBREAKING CHANGE:/.test(`\n${body}`) || hasReleaseAsFooter(body)
 }
 
 function validateReleaseSummary(body: string): string[] {
@@ -158,7 +182,14 @@ if (import.meta.main) {
       ? parseChangedFiles(process.env.CHANGED_FILES_JSON)
       : undefined
 
-  const issues = validatePrBodyPolicy({ body, changedFiles, headBranch, title, validatedReleasePr })
+  const issues = validatePrBodyPolicy({
+    body,
+    changedFiles,
+    currentMajor: readCurrentMajor(),
+    headBranch,
+    title,
+    validatedReleasePr,
+  })
 
   if (issues.length > 0) {
     console.error('PR body policy check failed:\n')
@@ -167,6 +198,19 @@ if (import.meta.main) {
   }
 
   console.log('PR body policy check passed.')
+}
+
+function readCurrentMajor(): number | undefined {
+  try {
+    const manifest = JSON.parse(readFileSync(new URL('../../package.json', import.meta.url), 'utf8')) as {
+      version?: string
+    }
+    const match = manifest.version?.match(/^(\d+)\./)
+
+    return match ? Number(match[1]) : undefined
+  } catch {
+    return undefined
+  }
 }
 
 function parseArgs(args: string[]): {
