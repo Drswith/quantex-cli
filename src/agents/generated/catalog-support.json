@@ -713,6 +713,36 @@
       }
     },
     {
+      "binaryName": "dsh",
+      "name": "dsh",
+      "platforms": {
+        "linux": [
+          {
+            "probes": ["executable-presence", "installed-version", "package-presence", "target-version"],
+            "provider": "npm",
+            "targetId": "@deepseek-ai/dsh",
+            "targetKind": "package"
+          }
+        ],
+        "macos": [
+          {
+            "probes": ["executable-presence", "installed-version", "package-presence", "target-version"],
+            "provider": "npm",
+            "targetId": "@deepseek-ai/dsh",
+            "targetKind": "package"
+          }
+        ],
+        "windows": [
+          {
+            "probes": ["executable-presence", "installed-version", "package-presence", "target-version"],
+            "provider": "npm",
+            "targetId": "@deepseek-ai/dsh",
+            "targetKind": "package"
+          }
+        ]
+      }
+    },
+    {
       "binaryName": "gemini",
       "name": "gemini",
       "platforms": {
@@ -1586,6 +1616,7 @@
         "copilot",
         "crush",
         "droid",
+        "dsh",
         "gemini",
         "kilo",
         "kimi",

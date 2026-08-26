@@ -20,6 +20,7 @@ This skill snapshot knows about these Quantex agent names:
 - `cursor`
 - `devin`
 - `droid`
+- `dsh`
 - `gemini`
 - `goose`
 - `grok`

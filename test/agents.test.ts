@@ -19,6 +19,7 @@ import {
   deepcode,
   devin,
   droid,
+  dsh,
   gemini,
   genie,
   getAgentByLookupName,
@@ -520,6 +521,47 @@ describe('droid', () => {
       ),
     ).toBeDefined()
     expect(droid.platforms.windows!.find(m => m.type === 'brew')).toBeUndefined()
+  })
+})
+
+describe('dsh', () => {
+  it('is registered for lookup by canonical name and product alias', () => {
+    expect(getAgentByNameOrAlias('dsh')).toBe(dsh)
+    expect(getAgentByNameOrAlias('deepseek-harness')).toBe(dsh)
+    expect(getAgentByLookupName('DeepSeek Harness')).toBe(dsh)
+  })
+
+  it('does not reclaim the withdrawn DeepSeek TUI lookup names', () => {
+    expect(getAgentByNameOrAlias('deepseek')).toBeUndefined()
+    expect(getAgentByNameOrAlias('deepseek-tui')).toBeUndefined()
+  })
+
+  it('has valid structure', () => {
+    validateAgent(dsh)
+    expect(dsh.name).toBe('dsh')
+    expect(dsh.lookupAliases).toEqual(['deepseek-harness'])
+    expect(dsh.displayName).toBe('DeepSeek Harness')
+    expect(dsh.packages?.npm).toBe('@deepseek-ai/dsh')
+    expect(dsh.binaryName).toBe('dsh')
+    expect(dsh.homepage).toBe('https://github.com/deepseek-ai/deepseek-harness')
+    expect(dsh.versionProbe?.command).toEqual(['dsh', '--version'])
+  })
+
+  it('exposes the official npm install on every supported platform', () => {
+    for (const methods of [dsh.platforms.windows!, dsh.platforms.macos!, dsh.platforms.linux!]) {
+      expect(methods.find(method => method.type === 'npm')).toBeDefined()
+    }
+    expect(dsh.packages?.npm).toBe('@deepseek-ai/dsh')
+  })
+
+  it('declares no install method upstream does not document', () => {
+    for (const methods of [dsh.platforms.windows!, dsh.platforms.macos!, dsh.platforms.linux!]) {
+      expect(methods.map(method => method.type)).toEqual(['npm'])
+    }
+  })
+
+  it('declares no self-update command, because the launcher has no update verb', () => {
+    expect(dsh.selfUpdate).toBeUndefined()
   })
 })
 

@@ -976,6 +976,41 @@ export const coreMutationRecipeCatalog = [
     },
   },
   {
+    name: 'dsh',
+    platforms: {
+      linux: [
+        {
+          probes: ['executable-presence', 'installed-version', 'package-presence', 'target-version'],
+          provider: 'npm',
+          target: {
+            id: '@deepseek-ai/dsh',
+            kind: 'package',
+          },
+        },
+      ],
+      macos: [
+        {
+          probes: ['executable-presence', 'installed-version', 'package-presence', 'target-version'],
+          provider: 'npm',
+          target: {
+            id: '@deepseek-ai/dsh',
+            kind: 'package',
+          },
+        },
+      ],
+      windows: [
+        {
+          probes: ['executable-presence', 'installed-version', 'package-presence', 'target-version'],
+          provider: 'npm',
+          target: {
+            id: '@deepseek-ai/dsh',
+            kind: 'package',
+          },
+        },
+      ],
+    },
+  },
+  {
     name: 'gemini',
     platforms: {
       linux: [
