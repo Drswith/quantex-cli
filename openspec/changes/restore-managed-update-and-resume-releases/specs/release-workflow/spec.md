@@ -24,3 +24,37 @@ A deferred-major readiness gate SHALL NOT be implemented by suppressing Release 
 
 - **WHEN** the release automation is inspected
 - **THEN** no workflow trigger, branch allowlist, or release-please config file MAY designate a branch other than `main` as a release channel
+
+## ADDED Requirements
+
+### Requirement: Validation SHALL permit a boundary-only Release-As on a process-only PR
+
+Release PR body validation SHALL permit a process-only pull request to declare a `Release-As` footer when the declared version's major is not greater than the current released major.
+
+This exists because release-please computes a version from every conventional-commit marker in the range between the last release tag and `main`. A marker keeps forcing its bump until a release lands after it, even once the change it described has been undone. Clearing such a marker requires a pull request whose only release-worthy signal is a `Release-As` footer, and that pull request has no product change to carry. The allowance SHALL be limited to that footer: a release-worthy conventional-commit title or a `BREAKING CHANGE` footer on a process-only pull request MUST still be rejected. Validation MUST fail closed and reject the pull request when the current released major is not available to compare against.
+
+The allowance SHALL NOT provide a route to a version that a readiness gate denies. A declared major above the current released major MUST be rejected by this requirement before any readiness gate is consulted, so a documentation or process pull request can never reach a deferred major.
+
+#### Scenario: A process-only PR clears a stale marker
+
+- **GIVEN** the range since the last release contains a marker that no longer describes a real change
+- **AND** a pull request changes only process, documentation, or specification files
+- **WHEN** it declares a `Release-As` footer naming a version at or below the current released major
+- **THEN** Release PR body validation accepts it
+- **AND** it MUST still supply a commit override under `## Release Summary` and repeat the same footer there
+
+#### Scenario: A process-only PR names a higher major
+
+- **WHEN** a process-only pull request declares a `Release-As` footer whose major exceeds the current released major
+- **THEN** validation rejects it as release-worthy metadata on a process-only change
+- **AND** the rejection does not depend on whether a readiness gate would also deny that version
+
+#### Scenario: The allowance is not a general exemption
+
+- **WHEN** a process-only pull request carries a release-worthy conventional-commit title or a `BREAKING CHANGE` footer
+- **THEN** validation rejects it, whether or not a `Release-As` footer is present
+
+#### Scenario: The current major cannot be determined
+
+- **WHEN** validation cannot read the current released major
+- **THEN** it MUST reject a process-only pull request carrying a `Release-As` footer rather than allow it

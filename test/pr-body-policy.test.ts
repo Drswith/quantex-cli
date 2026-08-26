@@ -79,6 +79,80 @@ describe('PR body policy', () => {
     )
   })
 
+  // release-please computes a bump from every marker in the `<last tag>..main` range, so a
+  // stale marker keeps forcing that bump until a release lands after it. Moving the boundary
+  // needs a PR whose only release-worthy signal is `Release-As`, and that PR has no product
+  // change to carry, so it would otherwise be rejected as process-only.
+  describe('release-boundary-only Release-As', () => {
+    // A boundary PR is still release-worthy, so it must carry a commit override for
+    // release-please and repeat the footer under Release Summary.
+    const boundaryBody = validBody.replace(
+      '- Not applicable - this change does not produce a release entry.',
+      [
+        'BEGIN_COMMIT_OVERRIDE',
+        'fix(release): prepare the 1.11.0 boundary',
+        'END_COMMIT_OVERRIDE',
+        '',
+        'Release-As: 1.11.0',
+      ].join('\n'),
+    )
+
+    it('allows a process-only PR to move the release boundary within the current major', () => {
+      expect(
+        validatePrBodyPolicy({
+          body: boundaryBody,
+          changedFiles: ['openspec/changes/some-change/tasks.md'],
+          currentMajor: 1,
+          title: 'docs(openspec): record the one-shot preparation',
+        }),
+      ).toEqual([])
+    })
+
+    it('still refuses to let a process-only PR reach a higher major', () => {
+      const issues = validatePrBodyPolicy({
+        body: boundaryBody.replaceAll('1.11.0', '2.0.0'),
+        changedFiles: ['openspec/changes/some-change/tasks.md'],
+        currentMajor: 1,
+        title: 'docs(openspec): record the one-shot preparation',
+      })
+
+      expect(issues.join('\n')).toContain(
+        'Release/process/docs/memory-only PRs must not use release-worthy conventional commit metadata.',
+      )
+    })
+
+    it('does not extend the allowance to a release-worthy title or a breaking footer', () => {
+      const changedFiles = ['openspec/changes/some-change/tasks.md']
+
+      expect(
+        validatePrBodyPolicy({
+          body: boundaryBody,
+          changedFiles,
+          currentMajor: 1,
+          title: 'feat: sneak a release',
+        }).join('\n'),
+      ).toContain('Release/process/docs/memory-only PRs')
+      expect(
+        validatePrBodyPolicy({
+          body: boundaryBody.replace('## Docs Updated', 'BREAKING CHANGE: no\n\n## Docs Updated'),
+          changedFiles,
+          currentMajor: 1,
+          title: 'docs(openspec): record the one-shot preparation',
+        }).join('\n'),
+      ).toContain('Release/process/docs/memory-only PRs')
+    })
+
+    it('fails closed when the current major is unknown', () => {
+      const issues = validatePrBodyPolicy({
+        body: boundaryBody,
+        changedFiles: ['openspec/changes/some-change/tasks.md'],
+        title: 'docs(openspec): record the one-shot preparation',
+      })
+
+      expect(issues.join('\n')).toContain('Release/process/docs/memory-only PRs')
+    })
+  })
+
   it('rejects product-impacting no-release placeholders', () => {
     const body = validBody.replace(
       'Release: not applicable - docs/process/test-only change',
