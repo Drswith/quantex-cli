@@ -34,6 +34,7 @@ export {
   cursor,
   devin,
   droid,
+  dsh,
   gemini,
   goose,
   grok,

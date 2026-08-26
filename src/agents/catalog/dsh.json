@@ -1,0 +1,42 @@
+{
+  "name": "dsh",
+  "lookupAliases": ["deepseek-harness"],
+  "displayName": "DeepSeek Harness",
+  "homepage": "https://github.com/deepseek-ai/deepseek-harness",
+  "binaryName": "dsh",
+  "versionProbe": {
+    "command": ["dsh", "--version"]
+  },
+  "platforms": {
+    "windows": [
+      {
+        "probes": ["executable-presence", "installed-version", "package-presence", "target-version"],
+        "provider": "npm",
+        "target": {
+          "id": "@deepseek-ai/dsh",
+          "kind": "package"
+        }
+      }
+    ],
+    "macos": [
+      {
+        "probes": ["executable-presence", "installed-version", "package-presence", "target-version"],
+        "provider": "npm",
+        "target": {
+          "id": "@deepseek-ai/dsh",
+          "kind": "package"
+        }
+      }
+    ],
+    "linux": [
+      {
+        "probes": ["executable-presence", "installed-version", "package-presence", "target-version"],
+        "provider": "npm",
+        "target": {
+          "id": "@deepseek-ai/dsh",
+          "kind": "package"
+        }
+      }
+    ]
+  }
+}

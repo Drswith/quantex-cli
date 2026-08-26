@@ -584,6 +584,36 @@ export const coreAgentCatalog: readonly AgentDefinition[] = [
     },
   },
   {
+    binaryName: 'dsh',
+    displayName: 'DeepSeek Harness',
+    homepage: 'https://github.com/deepseek-ai/deepseek-harness',
+    lookupAliases: ['deepseek-harness'],
+    name: 'dsh',
+    packages: {
+      npm: '@deepseek-ai/dsh',
+    },
+    platforms: {
+      linux: [
+        {
+          type: 'npm',
+        },
+      ],
+      macos: [
+        {
+          type: 'npm',
+        },
+      ],
+      windows: [
+        {
+          type: 'npm',
+        },
+      ],
+    },
+    versionProbe: {
+      command: ['dsh', '--version'],
+    },
+  },
+  {
     binaryName: 'gemini',
     displayName: 'Gemini CLI',
     homepage: 'https://google-gemini.github.io/gemini-cli/docs/',
