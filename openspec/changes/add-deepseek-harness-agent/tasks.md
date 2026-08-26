@@ -27,5 +27,5 @@
 - [x] 5.1 Run `bun run lint`, `bun run format:check`, `bun run typecheck`, and `bun run test`.
 - [x] 5.2 Run `bun run openspec:validate` and `bun run memory:check`.
 - [x] 5.3 Verify the real lifecycle locally: install `@deepseek-ai/dsh` into a disposable prefix and confirm `dsh --version` reports a version, so the canary's installed-version requirement is met before the entry joins the full matrix.
-- [ ] 5.4 Commit, push, and open the PR with a body validated by `bun run pr:body:check`.
+- [x] 5.4 Commit, push, and open the PR with a body validated by `bun run pr:body:check`.
 - [ ] 5.5 Report validation, OpenSpec, git, commit, remote, PR, release, and archive-closure state at handoff.
