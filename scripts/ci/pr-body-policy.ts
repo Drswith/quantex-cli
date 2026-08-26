@@ -130,8 +130,16 @@ function validateReleaseSummary(body: string): string[] {
     ]
   }
 
-  if (hasReleaseAsFooter(body) && !hasReleaseAsFooter(summary)) {
-    return ['Release-As source PRs must declare the same non-empty Release-As footer under "## Release Summary".']
+  // release-please replaces the merged commit message with the override block, so a
+  // footer placed after END_COMMIT_OVERRIDE is never parsed. It has to sit inside.
+  if (hasReleaseAsFooter(body) && !hasReleaseAsFooter(override[1])) {
+    return [
+      [
+        'Release-As source PRs must declare the Release-As footer INSIDE the BEGIN_COMMIT_OVERRIDE block.',
+        'release-please replaces the merged commit message with that block, so a footer placed after',
+        'END_COMMIT_OVERRIDE is silently ignored and the release keeps the computed version.',
+      ].join('\n'),
+    ]
   }
 
   return []

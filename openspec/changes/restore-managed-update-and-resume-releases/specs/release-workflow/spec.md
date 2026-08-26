@@ -58,3 +58,22 @@ The allowance SHALL NOT provide a route to a version that a readiness gate denie
 
 - **WHEN** validation cannot read the current released major
 - **THEN** it MUST reject a process-only pull request carrying a `Release-As` footer rather than allow it
+
+### Requirement: A Release-As footer MUST sit inside the commit override block
+
+Release PR body validation SHALL require that a declared `Release-As` footer appears inside the `BEGIN_COMMIT_OVERRIDE` block rather than anywhere else in the `## Release Summary` section.
+
+Release-please replaces the merged commit message with the contents of that block when the pull request is squash-merged. A footer placed after `END_COMMIT_OVERRIDE` is therefore never parsed, and the failure is silent: the release is prepared at the computed version with no error, no warning, and no log line naming the override. Validating placement is the only point at which the mistake is visible.
+
+#### Scenario: The footer is placed outside the override block
+
+- **GIVEN** a pull request body declares a `Release-As` footer
+- **WHEN** that footer appears in the `## Release Summary` section but outside the `BEGIN_COMMIT_OVERRIDE` block
+- **THEN** validation rejects the body
+- **AND** the message states that release-please replaces the commit message with the block, so the footer would be ignored
+
+#### Scenario: The footer is placed inside the override block
+
+- **WHEN** the `Release-As` footer appears inside the `BEGIN_COMMIT_OVERRIDE` block
+- **THEN** validation accepts it
+- **AND** the block still requires a conventional-commit entry

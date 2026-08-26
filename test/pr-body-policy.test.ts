@@ -91,9 +91,9 @@ describe('PR body policy', () => {
       [
         'BEGIN_COMMIT_OVERRIDE',
         'fix(release): prepare the 1.11.0 boundary',
-        'END_COMMIT_OVERRIDE',
         '',
         'Release-As: 1.11.0',
+        'END_COMMIT_OVERRIDE',
       ].join('\n'),
     )
 
@@ -140,6 +140,32 @@ describe('PR body policy', () => {
           title: 'docs(openspec): record the one-shot preparation',
         }).join('\n'),
       ).toContain('Release/process/docs/memory-only PRs')
+    })
+
+    // Release-please replaces the merged commit message with the override block. A footer
+    // after END_COMMIT_OVERRIDE is never parsed, so the release silently keeps the computed
+    // version: this is what left quantex-cli unable to leave 2.0.0 across #670 and #671.
+    it('requires the Release-As footer inside the commit override block', () => {
+      const outside = validBody.replace(
+        '- Not applicable - this change does not produce a release entry.',
+        [
+          'BEGIN_COMMIT_OVERRIDE',
+          'fix(release): prepare the boundary',
+          'END_COMMIT_OVERRIDE',
+          '',
+          'Release-As: 1.11.0',
+        ].join('\n'),
+      )
+      const issues = validatePrBodyPolicy({
+        body: outside,
+        changedFiles: ['openspec/changes/some-change/tasks.md'],
+        currentMajor: 1,
+        title: 'docs(openspec): record the one-shot preparation',
+      })
+
+      expect(issues.join('\n')).toContain(
+        'Release-As source PRs must declare the Release-As footer INSIDE the BEGIN_COMMIT_OVERRIDE block.',
+      )
     })
 
     it('fails closed when the current major is unknown', () => {
@@ -234,7 +260,7 @@ describe('PR body policy', () => {
     ).toEqual([])
   })
 
-  it('treats Release-As source metadata as release-worthy and requires it in the summary', () => {
+  it('treats Release-As source metadata as release-worthy and requires it inside the override', () => {
     const body = validBody
       .replace(
         'Release: not applicable - docs/process/test-only change',
@@ -242,7 +268,7 @@ describe('PR body policy', () => {
       )
       .replace(
         '- Not applicable - this change does not produce a release entry.',
-        'BEGIN_COMMIT_OVERRIDE\nrefactor: consolidate the lifecycle engine\nEND_COMMIT_OVERRIDE\n\nRelease-As: 2.0.0',
+        'BEGIN_COMMIT_OVERRIDE\nrefactor: consolidate the lifecycle engine\n\nRelease-As: 2.0.0\nEND_COMMIT_OVERRIDE',
       )
 
     expect(
