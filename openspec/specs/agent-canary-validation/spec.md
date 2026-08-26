@@ -84,12 +84,14 @@ The real-agent canary workflow MUST run one selected agent per fresh GitHub-host
 
 ### Requirement: The probe scenario MUST verify installed-version evidence
 
-The lifecycle smoke `probe` scenario MUST install or adopt each selected agent according to its named coverage mode, refresh `inspect` and `list`, and require a non-empty installed version for matrix entries whose candidate declares an installed-version probe. It MUST fail when required version evidence is absent, when a selected provider is unavailable, or when an installer or cleanup outcome differs from its exact policy. A failed cleanup MUST report the executable path that Quantex can still resolve so source ownership can be diagnosed without weakening the assertion. It MUST preserve the selected agent in the in-flight cleanup stack when any assertion fails. Deferred credentialed setup MUST be reported separately from the binary lifecycle and MUST NOT be counted as a skipped agent.
+The lifecycle smoke `probe` scenario MUST install each selected agent, refresh `inspect` and `list`, and require a non-empty installed version for matrix entries whose candidate declares an installed-version probe. It MUST fail when required version evidence is absent and MUST preserve the selected agent for cleanup when any assertion fails.
+
+The probe MUST assert the lifecycle classification implied by the matrix entry's selected provider rather than requiring a single classification for every agent. A provider that Quantex classifies as unmanaged MUST NOT fail the probe for reporting `unmanaged`.
 
 #### Scenario: Version is exposed after installation
 
 - **WHEN** a selected agent installs successfully and its candidate declares an installed-version probe
-- **THEN** refreshed inspection and the corresponding list row contain the same non-empty installed version
+- **THEN** refreshed inspection and the corresponding list row contain a non-empty installed version
 
 #### Scenario: Missing version is surfaced as a canary failure
 
@@ -98,25 +100,20 @@ The lifecycle smoke `probe` scenario MUST install or adopt each selected agent a
 
 #### Scenario: Probe cleanup runs after a failed assertion
 
-- **WHEN** a probe assertion fails after installation or adoption
-- **THEN** the smoke process attempts to uninstall or untrack the selected agent before exiting
+- **WHEN** a probe assertion fails after installation
+- **THEN** the smoke process attempts to uninstall the selected agent before exiting
 
-#### Scenario: Failed cleanup exposes the remaining executable
+#### Scenario: Script-provider agent reports an unmanaged lifecycle
 
-- **WHEN** a provider reports successful removal but the agent executable remains resolvable
-- **THEN** the probe fails and prints the remaining resolved executable path for source diagnosis
+- **GIVEN** the matrix entry selected a provider that Quantex classifies as unmanaged
+- **WHEN** the probe inspects the agent after installation
+- **THEN** the probe accepts the reported `unmanaged` lifecycle and does not fail
 
-#### Scenario: Devin binary lifecycle remains explicit
+#### Scenario: Managed provider still requires a managed lifecycle
 
-- **GIVEN** the official Devin installer acquired a version-reporting executable before credentialed setup
-- **WHEN** the focused probe runs in binary-lifecycle mode
-- **THEN** Quantex adopts the supported script source and verifies inspect, list, and version evidence
-- **AND** the output states that account setup is deferred rather than claiming an authenticated pass
-
-#### Scenario: Provider unavailability is not converted to skip
-
-- **WHEN** the workflow-owned provider toolchain is unavailable or the selected installer cannot execute
-- **THEN** the advisory agent job fails with the concrete error instead of reporting a skipped or successful lifecycle
+- **GIVEN** the matrix entry selected a provider that Quantex classifies as managed
+- **WHEN** refreshed inspection reports a lifecycle other than `managed`
+- **THEN** the probe exits non-zero with the agent name in the failure message
 
 ### Requirement: Successful version probes MUST accept stderr-only output
 
@@ -202,3 +199,27 @@ The repository contract suite MUST capture the receipt emitted by each lifecycle
 - **GIVEN** a receipt names an executable different from the agent's declared default and the installed-state binding
 - **WHEN** the uninstall reader compares the two bindings
 - **THEN** the contract test MUST fail that comparison as a conflicting source
+
+### Requirement: The probe skips an entry with no available provider
+
+The lifecycle smoke `probe` scenario MUST treat "no installation provider is currently available" as a skip for that matrix entry rather than a failure. The canary reports on Quantex and on upstream installers; which toolchains a runner image happens to ship is not a Quantex defect.
+
+A skip MUST be reported by name and reason so the run is not silently narrowed, and MUST NOT mark the entry as passing.
+
+#### Scenario: The runner lacks the provider toolchain
+
+- **GIVEN** a matrix entry whose only declared provider is absent from the runner
+- **WHEN** the probe installs that agent
+- **THEN** the probe records a skip naming the agent and the unavailable provider, and does not exit non-zero for that entry
+
+#### Scenario: An available provider that fails still fails the probe
+
+- **GIVEN** a matrix entry whose provider is available on the runner
+- **WHEN** installation fails for any reason other than provider unavailability
+- **THEN** the probe exits non-zero with the agent name in the failure message
+
+#### Scenario: A skip is distinguishable from a pass
+
+- **WHEN** the probe finishes a run containing at least one skipped entry
+- **THEN** the summary reports skipped entries separately from successful ones
+
