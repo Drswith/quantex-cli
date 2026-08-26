@@ -111,11 +111,14 @@ describe('release candidate notes', () => {
 })
 
 describe('release workflow closure', () => {
-  it('runs on protected-branch push while the temporary v2 gate pauses Release PR creation', () => {
+  it('runs on protected-branch push and prepares Release PRs', () => {
     expect(releasePleaseWorkflow).toContain('branches:\n      - main')
     expect(releasePleaseWorkflow).not.toContain('beta')
     expect(releasePleaseWorkflow).toContain('skip-github-release: true')
-    expect(releasePleaseWorkflow).toContain('skip-github-pull-request: true')
+    // The stable-v2 gate denies an ineligible version at Release PR validation,
+    // tag planning, and publication identity. It must not suppress preparation,
+    // which would also block eligible releases on the current major.
+    expect(releasePleaseWorkflow).not.toContain('skip-github-pull-request')
     expect(releasePleaseWorkflow).toContain(
       'googleapis/release-please-action@45996ed1f6d02564a971a2fa1b5860e934307cf7 # v5.0.0',
     )

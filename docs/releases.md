@@ -21,9 +21,11 @@ A Release PR that proposes a new major version on the stable line is rejected by
 
 Stable `2.x` is not release-ready. The required v2 refactor must merge and then complete at least 90 days of stabilization before a future reviewed OpenSpec change can lift the gate.
 
-While the gate is active, Release Please still runs on pushes to `main` but uses `skip-github-pull-request: true`, so it cannot recreate or update a `2.0.0` Release PR. The independent tag-recovery job remains active for an already merged eligible 1.x release commit. Defense-in-depth checks also reject stable `2.x` in generated Release PR validation, before deterministic tag creation, and before release-candidate build or publication. Adding `Release-As: 2.x.y` is not a readiness override.
+The gate denies stable `2.x` at the three boundaries that name a version: generated Release PR validation, deterministic tag planning, and release-candidate build or publication identity validation. Adding `Release-As: 2.x.y` is not a readiness override.
 
-If an urgent 1.x release is needed during this pause, first deliver a reviewed OpenSpec change that defines the one-shot preparation path. Do not hand-edit source version files, create a replacement tag, or temporarily bypass only one layer of the v2 gate.
+Release Please prepares Release PRs normally. It briefly did not: `main` carried a v1 surface removal that made every computed version a stable `2.0.0`, and the workflow passed `skip-github-pull-request: true` to stop that ineligible PR being recreated, which also blocked every eligible 1.x release. Restoring the removed surface returned `main` to the minor line, so the suppression was removed. Denial belongs to the layers that name a version; a readiness gate must not be implemented by pausing preparation.
+
+If `main` ever computes a stable `2.x` again, the generated Release PR is rejected by validation rather than prevented from existing. Do not hand-edit source version files, create a replacement tag, or bypass only one layer of the v2 gate.
 
 Registry errors other than a conclusive exact-version not-found response stop publication. Reruns are tag-idempotent.
 
