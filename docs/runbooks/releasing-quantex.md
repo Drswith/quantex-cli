@@ -26,7 +26,7 @@ Normal feature, fix, or maintenance work lands through standard PRs.
 
 On every push to `main`, `release-please.yml` runs release-please with `release-please-config.json` and normally opens or updates the Release PR when a version bump is warranted. No manual dispatch is involved.
 
-Stable v2 is temporarily deferred until the required refactor has merged and completed at least 90 days of stabilization. While that gate is active, the workflow passes `skip-github-pull-request: true`, so a push does not create or update any Release PR. The separate tag-recovery job still runs so an already merged eligible 1.x release commit cannot be stranded.
+Stable v2 is temporarily deferred until the required refactor has merged and completed at least 90 days of stabilization. That gate denies an ineligible version at Release PR validation, tag planning, and publication identity; it does not pause preparation, so ordinary 1.x Release PRs are created as usual.
 
 The Release PR materializes the pending version in:
 
@@ -116,7 +116,7 @@ END_COMMIT_OVERRIDE
 
 A breaking-change marker (`!` or `BREAKING CHANGE:`) feeds release-please a major bump. On the stable line the generated major Release PR is rejected by governance until a maintainer adds `Release-As: <version>` to its body, so an undeclared major cannot ship. A deferred-major readiness gate is stronger and remains blocking after that declaration.
 
-The current stable-v2 gate is deny-by-default. Release PR preparation is paused, generated stable-v2 PRs are rejected, deterministic tag planning fails before creating `v2.x.y`, and publication identity validation fails before candidate build. Lift all layers together only through a future reviewed OpenSpec change that identifies the completed v2 refactor and records at least 90 elapsed days since it merged; there is no date-only automatic unlock.
+The current stable-v2 gate is deny-by-default at three layers: generated stable-v2 PRs are rejected, deterministic tag planning fails before creating `v2.x.y`, and publication identity validation fails before candidate build. Release PR preparation itself is not paused, so an eligible 1.x release is never blocked as a side effect. Lift all layers together only through a future reviewed OpenSpec change that identifies the completed v2 refactor and records at least 90 elapsed days since it merged; there is no date-only automatic unlock.
 
 The stable 0.x line ends at `0.29.1`. The completed lifecycle redesign graduates through the exact transition `0.29.1 -> 1.1.0`; `1.0.0` remains burned and MUST NOT be reused. Do not persist `release-as` in release-please configuration and do not manually edit the version manifest, package version, changelog, or generated build metadata to imitate the generated Release PR.
 

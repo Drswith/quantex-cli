@@ -20,6 +20,7 @@ import { createErrorResult, createSuccessResult, emitCommandEvent, emitCommandRe
 import { resolveAgent } from '../services/agents'
 import {
   createLifecycleUpdateBatchInvocation,
+  createManagedLifecycleUpdateBatchInvocation,
   createSingleAgentLifecycleUpdateInvocation,
   runLifecycleUpdateBatch,
   runSingleAgentLifecycleUpdate,
@@ -34,7 +35,7 @@ type UpdateStatus = 'failed' | 'locked' | 'manual-required' | 'planned' | 'up-to
 
 interface UpdateCommandData {
   results: UpdateResultItem[]
-  scope: 'all' | 'single'
+  scope: 'all' | 'managed' | 'single'
 }
 
 interface UpdateResultItem {
@@ -51,6 +52,7 @@ interface UpdateResultItem {
 
 interface UpdateCommandDependencies {
   readonly runBatch: typeof runLifecycleUpdateBatch
+  readonly runManagedBatch?: typeof runLifecycleUpdateBatch
   readonly runSingle: typeof runSingleAgentLifecycleUpdate
 }
 
@@ -65,10 +67,27 @@ export async function updateCommand(
   all: boolean,
   dependencies: UpdateCommandDependencies = {
     runBatch: runLifecycleUpdateBatch,
+    runManagedBatch: runLifecycleUpdateBatch,
     runSingle: runSingleAgentLifecycleUpdate,
   },
+  managed = false,
 ): Promise<CommandResult<UpdateCommandData>> {
-  if (all) return updateAllAgents(dependencies)
+  if (managed && !all) {
+    return emitCommandResult(
+      createErrorResult<UpdateCommandData>({
+        action: 'update',
+        error: {
+          code: 'INVALID_ARGUMENT',
+          message: 'The --managed option requires --all.',
+        },
+        target: {
+          kind: 'agent',
+        },
+      }),
+      renderUpdateHuman,
+    )
+  }
+  if (all) return updateAllAgents(dependencies, managed ? 'managed' : 'all')
 
   if (!agentName) {
     return emitCommandResult(
@@ -110,23 +129,35 @@ export async function updateCommand(
   return updateSingleAgent(agent, dependencies)
 }
 
-export function createUpdateCommandInvocation(agentName: string | undefined, all: boolean): UpdateCommandInvocation {
+export function createUpdateCommandInvocation(
+  agentName: string | undefined,
+  all: boolean,
+  managed = false,
+): UpdateCommandInvocation {
   if (all) {
-    const lifecycleInvocation = createLifecycleUpdateBatchInvocation()
+    const lifecycleInvocation = managed
+      ? createManagedLifecycleUpdateBatchInvocation()
+      : createLifecycleUpdateBatchInvocation()
     return {
       dispose: lifecycleInvocation.dispose,
       idempotencyPolicy: () => createAgentBatchUpdateIdempotencyPolicy(lifecycleInvocation),
       run: () =>
-        updateCommand(agentName, true, {
-          runBatch: () => lifecycleInvocation.run(),
-          runSingle: runSingleAgentLifecycleUpdate,
-        }),
+        updateCommand(
+          agentName,
+          true,
+          {
+            runBatch: () => lifecycleInvocation.run(),
+            runManagedBatch: () => lifecycleInvocation.run(),
+            runSingle: runSingleAgentLifecycleUpdate,
+          },
+          managed,
+        ),
     }
   }
   if (!agentName) {
     return {
       dispose() {},
-      run: () => updateCommand(agentName, all),
+      run: () => updateCommand(agentName, all, undefined, managed),
     }
   }
 
@@ -135,18 +166,27 @@ export function createUpdateCommandInvocation(agentName: string | undefined, all
     dispose: lifecycleInvocation.dispose,
     idempotencyPolicy: () => createAgentUpdateIdempotencyPolicy(agentName, lifecycleInvocation),
     run: () =>
-      updateCommand(agentName, false, {
-        runBatch: runLifecycleUpdateBatch,
-        runSingle: () => lifecycleInvocation.run(),
-      }),
+      updateCommand(
+        agentName,
+        false,
+        {
+          runBatch: runLifecycleUpdateBatch,
+          runManagedBatch: runLifecycleUpdateBatch,
+          runSingle: () => lifecycleInvocation.run(),
+        },
+        managed,
+      ),
   }
 }
 
-async function updateAllAgents(dependencies: UpdateCommandDependencies): Promise<CommandResult<UpdateCommandData>> {
+async function updateAllAgents(
+  dependencies: UpdateCommandDependencies,
+  scope: Extract<UpdateCommandData['scope'], 'all' | 'managed'>,
+): Promise<CommandResult<UpdateCommandData>> {
   emitCommandEvent({
     action: 'update',
     data: {
-      scope: 'all',
+      scope,
     },
     target: {
       kind: 'agent',
@@ -154,7 +194,9 @@ async function updateAllAgents(dependencies: UpdateCommandDependencies): Promise
     type: 'started',
   })
 
-  const outcome = await dependencies.runBatch()
+  const outcome = await (scope === 'managed'
+    ? (dependencies.runManagedBatch ?? dependencies.runBatch)()
+    : dependencies.runBatch())
   const results = projectLifecycleUpdateBatch(outcome)
   const warnings = projectLifecycleUpdateWarnings(outcome)
 
@@ -164,7 +206,7 @@ async function updateAllAgents(dependencies: UpdateCommandDependencies): Promise
         action: 'update',
         data: {
           results,
-          scope: 'all',
+          scope,
         },
         error: {
           code: 'CANCELLED',
@@ -185,7 +227,7 @@ async function updateAllAgents(dependencies: UpdateCommandDependencies): Promise
         action: 'update',
         data: {
           results,
-          scope: 'all',
+          scope,
         },
         error: {
           code: 'UPDATE_FAILED',
@@ -205,7 +247,7 @@ async function updateAllAgents(dependencies: UpdateCommandDependencies): Promise
       action: 'update',
       data: {
         results,
-        scope: 'all',
+        scope,
       },
       target: {
         kind: 'agent',

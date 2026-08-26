@@ -159,9 +159,9 @@ const commandActionHandlers: Record<StableCommandName, CommandActionHandler> = {
     })
   },
   update: async (...args) => {
-    const [agent, options] = args as [string | undefined, { all?: boolean }]
+    const [agent, options] = args as [string | undefined, { all?: boolean; managed?: boolean }]
     const { createUpdateCommandInvocation } = await import('../commands/update')
-    const invocation = createUpdateCommandInvocation(agent, options.all ?? false)
+    const invocation = createUpdateCommandInvocation(agent, options.all ?? false, options.managed ?? false)
     try {
       await setCliExitCode({
         action: 'update',

@@ -36,9 +36,6 @@ jobs:
           config-file: release-please-config.json
           manifest-file: .release-please-manifest.json
           skip-github-release: true
-          # Stable v2 is deferred until its refactor has stabilized for 90 days.
-          # Keep tag recovery below active, but do not recreate an ineligible PR.
-          skip-github-pull-request: true
 
   tag-release:
     needs: release-please
