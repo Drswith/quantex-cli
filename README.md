@@ -29,7 +29,7 @@ Quantex is a `human-friendly + agent-friendly` lifecycle CLI for AI coding assis
 - Manage multiple AI coding assistant CLIs from one lifecycle command: install, ensure, inspect, update, uninstall, and run.
 - Designed for scripts and coding agents: stable `--json`, `--output ndjson`, `--non-interactive`, and `--dry-run` contracts for machine-readable automation.
 - Tracks real install sources: `update --all` groups updates by recorded source instead of guessing from PATH alone.
-- Supports managed agent installs through available Bun, npm, Homebrew, Deno, and winget providers, plus official install scripts. Cargo, mise, pip, and uv stay supported for installations already recorded in state, but are no longer offered for new catalog installs.
+- Supports managed agent installs through available Bun, npm, Homebrew, and winget providers, plus official install scripts. Cargo, Deno, mise, pip, and uv stay supported for installations already recorded in state, but are no longer offered for new catalog installs.
 - Supports Quantex self-upgrade across Bun, npm, and standalone binary installs.
 
 ## Lifecycle and compatibility guarantees

@@ -29,7 +29,7 @@ Quantex 是一个 `human-friendly + agent-friendly` 的 AI 编程助手 CLI life
 - 一个生命周期命令管理多个 AI 编程助手 CLI：安装、确保可用、查询状态、更新、卸载、启动。
 - 适合脚本和 agent 调用：支持 `--json`、`--output ndjson`、`--non-interactive`、`--dry-run` 等适合机器读取的稳定契约。
 - 记住真实安装来源：`update --all` 会优先按已记录来源分组更新，避免混合安装环境下误用更新方式。
-- 支持通过可用的 Bun、npm、Homebrew、Deno、winget provider 以及官方安装脚本管理 agent 安装。Cargo、mise、pip、uv 仍支持已记录的历史安装，但不再用于目录中的新安装。
+- 支持通过可用的 Bun、npm、Homebrew、winget provider 以及官方安装脚本管理 agent 安装。Cargo、Deno、mise、pip、uv 仍支持已记录的历史安装，但不再用于目录中的新安装。
 - 支持 Quantex 自升级：Bun、npm、独立二进制安装来源都有对应升级路径。
 
 ## 生命周期与兼容性保证
