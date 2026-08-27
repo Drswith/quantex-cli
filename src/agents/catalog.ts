@@ -1,5 +1,5 @@
-import type { CatalogSourceEntry, NormalizedInstallCandidate } from './schema'
-import type { AgentDefinition, AgentPackageMetadata, AgentVersionProbe, InstallMethod } from './types'
+import type { AgentSupersededPackages, CatalogSourceEntry, NormalizedInstallCandidate } from './schema'
+import type { AgentDefinition, AgentPackageMetadata, AgentVersionProbe, InstallMethod, InstallType } from './types'
 import { catalogData } from './generated/catalog-data'
 import { catalogSourceSchema } from './schema'
 
@@ -15,6 +15,9 @@ const behaviorExtensions: Partial<Record<string, AgentBehaviorExtension>> = {}
 const parsedCatalog = catalogSourceSchema.parse(catalogData)
 const agents = parsedCatalog.map(toAgentDefinition)
 const agentsByName = new Map(agents.map(agent => [agent.name, agent]))
+const supersededPackagesByName = new Map(
+  parsedCatalog.flatMap(entry => (entry.supersededPackages ? [[entry.name, entry.supersededPackages] as const] : [])),
+)
 
 export function getCatalogAgents(): AgentDefinition[] {
   return agents
@@ -26,6 +29,20 @@ export function getCatalogAgent(name: string): AgentDefinition {
   return agent
 }
 
+// Superseded identifiers stay off AgentDefinition, so lifecycle resolution reads them
+// by agent name instead of from the projected entry.
+export function getCatalogSupersededPackages(name: string): AgentSupersededPackages | undefined {
+  return supersededPackagesByName.get(name)
+}
+
+export function getPackageMetadataKey(provider: InstallType): keyof AgentPackageMetadata | undefined {
+  if (provider === 'bun' || provider === 'npm') return 'npm'
+  if (provider === 'cargo' || provider === 'deno' || provider === 'mise' || provider === 'pip' || provider === 'uv') {
+    return provider
+  }
+  return undefined
+}
+
 // Exported for the withdrawn-agent compatibility exports, which project frozen entries
 // through the same normalization without joining the catalog. Not re-exported from
 // src/agents/index.ts, so it stays off the v1 root surface.
@@ -33,6 +50,7 @@ export function toAgentDefinition(entry: CatalogSourceEntry): AgentDefinition {
   const behavior = behaviorExtensions[entry.name]
   const versionProbe = mergeVersionProbe(entry.versionProbe, behavior)
   const packages = projectLegacyPackages(entry)
+  assertSupersededPackagesAreDistinct(entry, packages)
   const platforms = Object.fromEntries(
     Object.entries(entry.platforms).map(([platform, candidates]) => [
       platform,
@@ -40,8 +58,11 @@ export function toAgentDefinition(entry: CatalogSourceEntry): AgentDefinition {
     ]),
   ) as AgentDefinition['platforms']
 
+  // `supersededPackages` is authoring input, not part of the projected v1 entry shape.
+  const { supersededPackages: _supersededPackages, ...projectable } = entry
+
   return {
-    ...entry,
+    ...projectable,
     ...(packages ? { packages } : {}),
     platforms,
     versionProbe,
@@ -92,14 +113,21 @@ function projectLegacyPackages(entry: CatalogSourceEntry): AgentPackageMetadata 
   return Object.keys(packages).length > 0 ? packages : undefined
 }
 
-function getPackageMetadataKey(
-  provider: NormalizedInstallCandidate['provider'],
-): keyof AgentPackageMetadata | undefined {
-  if (provider === 'bun' || provider === 'npm') return 'npm'
-  if (provider === 'cargo' || provider === 'deno' || provider === 'mise' || provider === 'pip' || provider === 'uv') {
-    return provider
+function assertSupersededPackagesAreDistinct(
+  entry: CatalogSourceEntry,
+  packages: AgentPackageMetadata | undefined,
+): void {
+  if (!entry.supersededPackages || !packages) return
+
+  for (const [key, identifiers] of Object.entries(entry.supersededPackages) as [
+    keyof AgentPackageMetadata,
+    string[] | undefined,
+  ][]) {
+    const current = packages[key]
+    if (current && identifiers?.includes(current)) {
+      throw new Error(`${entry.name} declares ${key} package ${current} as both current and superseded`)
+    }
   }
-  return undefined
 }
 
 function isExecutionEffect(value: unknown): value is

@@ -356,6 +356,32 @@ describe('single-agent lifecycle update application service', () => {
     )
   })
 
+  it('blocks an install bound to a superseded catalog package without resolving a target version', async () => {
+    const harness = createHarness()
+    const observation = piObservationResult('@mariozechner/pi-coding-agent')
+
+    const result = await planSingleAgentLifecycleUpdate('pi', { ...harness.ports, observe: async () => observation })
+
+    expect(result.kind).toBe('blocked')
+    if (result.kind !== 'blocked') return
+    expect(result.category).toBe('superseded-package')
+    expect(result.reason).toContain('@mariozechner/pi-coding-agent')
+    expect(result.reason).toContain('@earendil-works/pi-coding-agent')
+    expect(harness.resolveLatestVersion).not.toHaveBeenCalled()
+  })
+
+  it('plans normally when the recorded package is the current catalog package', async () => {
+    const harness = createHarness()
+    const observation = piObservationResult('@earendil-works/pi-coding-agent')
+
+    const result = await planSingleAgentLifecycleUpdate('pi', { ...harness.ports, observe: async () => observation })
+
+    expect(result.kind).toBe('planned')
+    expect(harness.resolveLatestVersion).toHaveBeenCalledWith(
+      expect.objectContaining({ target: expect.objectContaining({ id: '@earendil-works/pi-coding-agent' }) }),
+    )
+  })
+
   it('plans a managed update when receipt and live paths resolve to the same executable', async () => {
     const target = {
       binaryName: 'alpha',
@@ -1075,6 +1101,45 @@ function observationResult(options: { executableVersion?: string; observation?: 
       targetId: 'alpha',
       verifiedAt: '2026-07-12T04:00:00.000Z',
       version: '1.0.0',
+    },
+  }
+}
+
+// Superseded identity is declared in the real catalog, so this fixture uses the catalog's
+// own agent name and package identifiers rather than the synthetic `alpha` fixture.
+function piObservationResult(recordedPackage: string) {
+  const target = { binaryName: 'pi', id: recordedPackage, kind: 'package' as const }
+  const binding = { providerId: 'bun' as const, target }
+
+  return {
+    agent: { binaryName: 'pi', displayName: 'Pi', name: 'pi', packages: { npm: '@earendil-works/pi-coding-agent' } },
+    binding,
+    persistedBinding: binding,
+    capabilities: ['observe', 'resolve-latest-version', 'update', 'verify'] as const,
+    executable: { path: '/bin/pi', present: true, version: '0.73.1' },
+    installedState: { agentName: 'pi', installType: 'bun' as const, packageName: recordedPackage },
+    methods: [{ packageName: '@earendil-works/pi-coding-agent', type: 'bun' as const }],
+    observation: {
+      drift: { kind: 'none' } as const,
+      executablePath: '/bin/pi',
+      kind: 'present' as const,
+      providerId: 'bun',
+      providerTargetId: recordedPackage,
+      providerTargetKind: 'package' as const,
+      targetId: 'pi',
+      version: '0.73.1',
+    },
+    receipt: {
+      executableName: 'pi',
+      executablePath: '/bin/pi',
+      kind: 'lifecycle-receipt' as const,
+      providerId: 'bun',
+      providerTargetId: recordedPackage,
+      providerTargetKind: 'package' as const,
+      schemaVersion: 1,
+      targetId: 'pi',
+      verifiedAt: '2026-07-12T04:00:00.000Z',
+      version: '0.73.1',
     },
   }
 }

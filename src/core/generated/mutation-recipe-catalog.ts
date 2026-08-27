@@ -1860,7 +1860,7 @@ export const coreMutationRecipeCatalog = [
           probes: ['executable-presence', 'installed-version', 'package-presence', 'target-version'],
           provider: 'bun',
           target: {
-            id: '@mariozechner/pi-coding-agent',
+            id: '@earendil-works/pi-coding-agent',
             kind: 'package',
           },
         },
@@ -1868,7 +1868,7 @@ export const coreMutationRecipeCatalog = [
           probes: ['executable-presence', 'installed-version', 'package-presence', 'target-version'],
           provider: 'npm',
           target: {
-            id: '@mariozechner/pi-coding-agent',
+            id: '@earendil-works/pi-coding-agent',
             kind: 'package',
           },
         },
@@ -1878,7 +1878,7 @@ export const coreMutationRecipeCatalog = [
           probes: ['executable-presence', 'installed-version', 'package-presence', 'target-version'],
           provider: 'bun',
           target: {
-            id: '@mariozechner/pi-coding-agent',
+            id: '@earendil-works/pi-coding-agent',
             kind: 'package',
           },
         },
@@ -1886,7 +1886,7 @@ export const coreMutationRecipeCatalog = [
           probes: ['executable-presence', 'installed-version', 'package-presence', 'target-version'],
           provider: 'npm',
           target: {
-            id: '@mariozechner/pi-coding-agent',
+            id: '@earendil-works/pi-coding-agent',
             kind: 'package',
           },
         },
@@ -1896,7 +1896,7 @@ export const coreMutationRecipeCatalog = [
           probes: ['executable-presence', 'installed-version', 'package-presence', 'target-version'],
           provider: 'bun',
           target: {
-            id: '@mariozechner/pi-coding-agent',
+            id: '@earendil-works/pi-coding-agent',
             kind: 'package',
           },
         },
@@ -1904,7 +1904,7 @@ export const coreMutationRecipeCatalog = [
           probes: ['executable-presence', 'installed-version', 'package-presence', 'target-version'],
           provider: 'npm',
           target: {
-            id: '@mariozechner/pi-coding-agent',
+            id: '@earendil-works/pi-coding-agent',
             kind: 'package',
           },
         },

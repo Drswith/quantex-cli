@@ -1,9 +1,12 @@
-import type { CommandResult } from '../output/types'
+import type { CommandResult, CommandWarning } from '../output/types'
+import { createSupersededPackageWarning } from '../agent-update'
+import { resolveSupersededPackage } from '../agents/superseded'
 import { projectObservationToV1Inspection } from '../compatibility/agent-inspection'
 import { createSuccessResult, emitCommandResult } from '../output'
 import { getHumanTerminalWidth, renderHumanTable, renderHumanWrapped } from '../output/human'
 import { observeCliReadRegisteredAgents } from '../services/core-read-observations'
 import { pc } from '../utils/color'
+import { printWarn } from '../utils/user-output'
 import { isVersionNewer } from '../utils/version'
 
 interface ListedAgent {
@@ -41,14 +44,26 @@ export async function listCommand(): Promise<CommandResult<{ agents: ListedAgent
         kind: 'system',
         name: 'agents',
       },
+      warnings: inspections.flatMap(inspection => {
+        const migration = resolveSupersededPackage(inspection.agent, inspection.installedState)
+        return migration ? [createSupersededPackageWarning(inspection.agent, migration)] : []
+      }),
     }),
     renderListHuman,
   )
 }
 
-function renderListHuman(result: { data?: { agents: ListedAgent[] } }): void {
+function renderListHuman(result: { data?: { agents: ListedAgent[] }; warnings: CommandWarning[] }): void {
   const agents = result.data?.agents ?? []
   const width = getHumanTerminalWidth()
+  // Superseded rows are identified from the warnings rather than a payload field, so the
+  // v1 agent objects in structured output keep their shape.
+  const superseded = new Set(
+    result.warnings
+      .filter(warning => warning.code === 'AGENT_PACKAGE_SUPERSEDED')
+      .map(warning => warning.details?.agentName)
+      .filter((name): name is string => typeof name === 'string'),
+  )
   console.log(pc.bold('\nAI Agents:\n'))
   for (const line of renderHumanTable(
     agents,
@@ -86,7 +101,7 @@ function renderListHuman(result: { data?: { agents: ListedAgent[] } }): void {
         header: 'Available',
         optional: true,
         priority: 0,
-        value: formatListAvailableVersion,
+        value: agent => formatListAvailableVersion(agent, superseded),
       },
     ],
     { headerStyle: pc.bold, width },
@@ -101,13 +116,16 @@ function renderListHuman(result: { data?: { agents: ListedAgent[] } }): void {
   for (const line of renderHumanWrapped(pc.dim('Details: qtx inspect <agent>'), { indent: '  ', width }))
     console.log(line)
   console.log()
+  for (const warning of result.warnings) printWarn(pc.yellow(warning.message))
 }
 
 function formatListUpdateMode(label: string): string {
   return label.replace(/ update$/u, '')
 }
 
-function formatListAvailableVersion(agent: ListedAgent): string {
+function formatListAvailableVersion(agent: ListedAgent, superseded: ReadonlySet<string>): string {
+  if (superseded.has(agent.name)) return pc.yellow('migrate')
+
   if (!agent.installed || !agent.installedVersion || !agent.latestVersion) return pc.dim('—')
 
   return isVersionNewer(agent.latestVersion, agent.installedVersion) ? pc.cyan(agent.latestVersion) : pc.dim('—')

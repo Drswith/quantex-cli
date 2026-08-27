@@ -1336,13 +1336,13 @@
           {
             "probes": ["executable-presence", "installed-version", "package-presence", "target-version"],
             "provider": "bun",
-            "targetId": "@mariozechner/pi-coding-agent",
+            "targetId": "@earendil-works/pi-coding-agent",
             "targetKind": "package"
           },
           {
             "probes": ["executable-presence", "installed-version", "package-presence", "target-version"],
             "provider": "npm",
-            "targetId": "@mariozechner/pi-coding-agent",
+            "targetId": "@earendil-works/pi-coding-agent",
             "targetKind": "package"
           }
         ],
@@ -1350,13 +1350,13 @@
           {
             "probes": ["executable-presence", "installed-version", "package-presence", "target-version"],
             "provider": "bun",
-            "targetId": "@mariozechner/pi-coding-agent",
+            "targetId": "@earendil-works/pi-coding-agent",
             "targetKind": "package"
           },
           {
             "probes": ["executable-presence", "installed-version", "package-presence", "target-version"],
             "provider": "npm",
-            "targetId": "@mariozechner/pi-coding-agent",
+            "targetId": "@earendil-works/pi-coding-agent",
             "targetKind": "package"
           }
         ],
@@ -1364,13 +1364,13 @@
           {
             "probes": ["executable-presence", "installed-version", "package-presence", "target-version"],
             "provider": "bun",
-            "targetId": "@mariozechner/pi-coding-agent",
+            "targetId": "@earendil-works/pi-coding-agent",
             "targetKind": "package"
           },
           {
             "probes": ["executable-presence", "installed-version", "package-presence", "target-version"],
             "provider": "npm",
-            "targetId": "@mariozechner/pi-coding-agent",
+            "targetId": "@earendil-works/pi-coding-agent",
             "targetKind": "package"
           }
         ]

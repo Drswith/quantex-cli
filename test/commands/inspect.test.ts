@@ -2,6 +2,7 @@ import type { AgentDefinition, InstallMethod } from '../../src/agents'
 import type { LifecycleObservation } from '../../src/lifecycle'
 import type { ResolvedAgentObservation } from '../../src/services/lifecycle-observations'
 import type { InstalledAgentState } from '../../src/state'
+import process from 'node:process'
 import { afterAll, afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { setCliContext } from '../../src/cli-context'
 import { inspectCommand } from '../../src/commands/inspect'
@@ -173,7 +174,64 @@ describe('inspectCommand', () => {
     expect(resolveAgentInspectionSpy).not.toHaveBeenCalled()
     expect(logSpy.mock.calls.map((call: unknown[]) => call[0])).toEqual(['Unknown agent: unknown'])
   })
+
+  it('reports the recorded superseded package beside the current one', async () => {
+    resolveAgentObservationSpy.mockResolvedValueOnce(supersededPiObservation())
+    const stdoutWriteSpy = vi.spyOn(process.stdout, 'write').mockReturnValue(true)
+
+    try {
+      const result = await inspectCommand('pi')
+
+      expect(result.data?.agent.packageName).toBe('@earendil-works/pi-coding-agent')
+      expect(result.data?.inspection.sourceLabel).toContain('@mariozechner/pi-coding-agent')
+      expect(result.data?.inspection.latestVersion).toBeUndefined()
+      expect(result.warnings).toEqual([
+        expect.objectContaining({
+          code: 'AGENT_PACKAGE_SUPERSEDED',
+          details: expect.objectContaining({
+            currentPackage: '@earendil-works/pi-coding-agent',
+            recordedPackage: '@mariozechner/pi-coding-agent',
+          }),
+        }),
+      ])
+      expect(stdoutWriteSpy.mock.calls.map(call => String(call[0])).join('')).toContain('quantex uninstall pi')
+    } finally {
+      stdoutWriteSpy.mockRestore()
+    }
+  })
 })
+
+// Superseded identity is catalog-declared, so this fixture uses the real `pi` entry.
+function supersededPiObservation(): ResolvedAgentObservation {
+  const pathExecutable = { path: '/usr/bin/pi', present: true as const, version: '0.73.1' }
+  const agent: AgentDefinition = {
+    binaryName: 'pi',
+    displayName: 'Pi',
+    homepage: 'https://pi.dev',
+    name: 'pi',
+    packages: { npm: '@earendil-works/pi-coding-agent' },
+    platforms: { linux: [{ packageName: '@earendil-works/pi-coding-agent', type: 'bun' }] },
+    selfUpdate: { command: ['pi', 'update'] },
+  }
+
+  return {
+    agent,
+    capabilities: ['observe', 'update'],
+    catalogMethods: [],
+    executable: pathExecutable,
+    installedState: { agentName: 'pi', installType: 'bun', packageName: '@mariozechner/pi-coding-agent' },
+    methods: [{ packageName: '@earendil-works/pi-coding-agent', type: 'bun' }],
+    observation: {
+      drift: { kind: 'none' },
+      executablePath: pathExecutable.path,
+      kind: 'present',
+      targetId: 'pi',
+      version: '0.73.1',
+    },
+    pathExecutable,
+    resolvedBinaryPath: pathExecutable.path,
+  }
+}
 
 function observed(
   observation: LifecycleObservation,

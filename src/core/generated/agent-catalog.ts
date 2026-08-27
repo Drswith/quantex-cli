@@ -1111,7 +1111,7 @@ export const coreAgentCatalog: readonly AgentDefinition[] = [
     homepage: 'https://pi.dev',
     name: 'pi',
     packages: {
-      npm: '@mariozechner/pi-coding-agent',
+      npm: '@earendil-works/pi-coding-agent',
     },
     platforms: {
       linux: [
