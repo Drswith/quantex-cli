@@ -1,6 +1,32 @@
 # Changelog
 
 
+## [1.11.0](https://github.com/Drswith/quantex-cli/compare/v1.10.0...v1.11.0) (2026-08-27)
+
+
+### ⚠ BREAKING CHANGES
+
+* remove the macOS desktop client and restore the CLI-only product boundary
+
+### Features
+
+* **agents:** add DeepSeek Harness to the supported agent catalog ([8aca687](https://github.com/Drswith/quantex-cli/commit/8aca6872bce87b981568648d4d54f7c001ee9d58))
+* **agents:** narrow catalog installs to the Node ecosystem and native binaries ([ae6ba03](https://github.com/Drswith/quantex-cli/commit/ae6ba0303c2b3d92c1a56146c7146695d5af54b1))
+* **agents:** withdraw jcode, deepcode, genie, vtcode, and forgecode from the supported catalog ([34d4abb](https://github.com/Drswith/quantex-cli/commit/34d4abbf0d98725443a68927bbe3a2abe445132b))
+
+
+### Bug Fixes
+
+* **release:** restore automatic release preparation after the desktop rollback ([4a982f5](https://github.com/Drswith/quantex-cli/commit/4a982f5212fe542343c132cade67830ef74e14a1))
+* **release:** restore automatic release preparation after the desktop rollback ([a55d6e8](https://github.com/Drswith/quantex-cli/commit/a55d6e8d807d66706387e6a1776a61bb5a65a207))
+* **release:** restore automatic release preparation after the desktop rollback ([5f50865](https://github.com/Drswith/quantex-cli/commit/5f50865aadcfcf0ac61d2adeb8112da59cb6afd2))
+* **update:** restore the --managed batch scope and --non-interactive option ([4187389](https://github.com/Drswith/quantex-cli/commit/41873897fdbc1e1f617081fea0e9037191eaed4d))
+
+
+### Reverts
+
+* remove the macOS desktop client and restore the CLI-only product boundary ([d92c7bc](https://github.com/Drswith/quantex-cli/commit/d92c7bc6c871146ca4796b5e5e4d3e8fbde1689b))
+
 ## [1.10.0](https://github.com/Drswith/quantex-cli/compare/v1.9.4...v1.10.0) (2026-08-14)
 
 
