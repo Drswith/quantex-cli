@@ -1,4 +1,4 @@
-import type { AgentSelfUpdate, InstallMethod } from '../agents'
+import type { AgentPackageMetadata, AgentSelfUpdate, InstallMethod } from '../agents'
 import type {
   LifecycleObservation,
   LifecyclePlanningProvider,
@@ -20,6 +20,8 @@ import type {
   ProviderTarget,
 } from '../providers/types'
 import type { InstalledAgentState } from '../state'
+import { getSupersededPackageMessage } from '../agent-update/messages'
+import { resolveSupersededPackage } from '../agents/superseded'
 import { LIFECYCLE_RECEIPT_SCHEMA_VERSION } from '../lifecycle'
 import { compareVersions } from '../utils/version'
 
@@ -28,6 +30,7 @@ export interface LifecycleUpdateObservedAgent {
     readonly binaryName: string
     readonly displayName: string
     readonly name: string
+    readonly packages?: AgentPackageMetadata
     readonly selfUpdate?: AgentSelfUpdate
   }
   readonly binding?: {
@@ -121,7 +124,12 @@ export interface SelfAgentLifecycleUpdatePlan extends SingleAgentLifecycleUpdate
 
 export type SingleAgentLifecycleUpdatePlan = ManagedAgentLifecycleUpdatePlan | SelfAgentLifecycleUpdatePlan
 
-export type LifecycleUpdateBlockedCategory = 'manual-required' | 'stale-state' | 'unsafe-source' | 'untracked'
+export type LifecycleUpdateBlockedCategory =
+  | 'manual-required'
+  | 'stale-state'
+  | 'superseded-package'
+  | 'unsafe-source'
+  | 'untracked'
 
 export type SingleAgentLifecycleUpdatePlanningOutcome =
   | { readonly kind: 'unknown-agent'; readonly agentName: string }
@@ -382,6 +390,19 @@ export async function planSingleAgentLifecycleUpdate(
       reason: staleState
         ? `${before.agent.displayName} has stale lifecycle evidence. Run \`quantex uninstall ${before.agent.name}\` to reconcile it.`
         : 'The recorded update source does not match live provider evidence.',
+    }
+  }
+
+  // The binding is internally consistent, but the identifier it names no longer receives
+  // upstream releases, so resolving a target version from it would report a dead
+  // distribution as current.
+  const superseded = resolveSupersededPackage(before.agent, before.installedState)
+  if (superseded) {
+    return {
+      before,
+      category: 'superseded-package',
+      kind: 'blocked',
+      reason: getSupersededPackageMessage(before.agent, superseded),
     }
   }
 

@@ -1,4 +1,10 @@
-export { getAgentUpdateFailureHint, getManualAgentUpdateMessage, getUntrackedPathAgentUpdateMessage } from './messages'
+export {
+  createSupersededPackageWarning,
+  getAgentUpdateFailureHint,
+  getManualAgentUpdateMessage,
+  getSupersededPackageMessage,
+  getUntrackedPathAgentUpdateMessage,
+} from './messages'
 export { executeAgentSelfUpdate } from './self-update'
 export {
   agentUpdateProviders,

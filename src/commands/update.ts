@@ -6,11 +6,13 @@ import type {
   LifecycleUpdateBatchTargetOutcome,
 } from '../services/lifecycle-updates'
 import {
+  createSupersededPackageWarning,
   getAgentUpdateFailureHint,
   getAgentUpdateStrategy,
   getManualAgentUpdateMessage,
   getUntrackedPathAgentUpdateMessage,
 } from '../agent-update'
+import { resolveSupersededPackage } from '../agents/superseded'
 import { getCliContext } from '../cli-context'
 import {
   createAgentBatchUpdateIdempotencyPolicy,
@@ -377,9 +379,19 @@ async function updateSingleAgent(
         kind: 'agent',
         name: agent.name,
       },
+      warnings: singleSupersededPackageWarnings(agent, outcome),
     }),
     renderUpdateHuman,
   )
+}
+
+function singleSupersededPackageWarnings(
+  agent: AgentDefinition,
+  outcome: RunSingleAgentLifecycleUpdateOutcome,
+): CommandWarning[] {
+  if (outcome.kind !== 'blocked' || outcome.category !== 'superseded-package') return []
+  const migration = resolveSupersededPackage(agent, outcome.before.installedState)
+  return migration ? [createSupersededPackageWarning(agent, migration)] : []
 }
 
 function toSingleUpdateResult(agent: AgentDefinition, outcome: RunSingleAgentLifecycleUpdateOutcome): UpdateResultItem {
@@ -450,6 +462,15 @@ function toSingleUpdateResult(agent: AgentDefinition, outcome: RunSingleAgentLif
           displayName: agent.displayName,
           installedVersion,
           message: getManualAgentUpdateMessage(agent),
+          name: agent.name,
+          status: 'manual-required',
+        }
+      }
+      if (outcome.category === 'superseded-package') {
+        return {
+          displayName: agent.displayName,
+          installedVersion,
+          message: outcome.reason,
           name: agent.name,
           status: 'manual-required',
         }
@@ -608,9 +629,14 @@ function toCancellationRemainderResult(target: LifecycleUpdateBatchCancellationR
 
 function projectLifecycleUpdateWarnings(outcome: LifecycleUpdateBatchCommandOutcome): CommandWarning[] {
   return outcome.plan.targets.flatMap(target => {
-    if (target.outcome.kind !== 'blocked' || target.outcome.category !== 'stale-state') return []
+    if (target.outcome.kind !== 'blocked') return []
     const agent = resolveAgent(target.agentName) ?? target.outcome.before.agent
-    return [staleStateWarning(agent)]
+    if (target.outcome.category === 'stale-state') return [staleStateWarning(agent)]
+    if (target.outcome.category === 'superseded-package') {
+      const migration = resolveSupersededPackage(agent, target.outcome.before.installedState)
+      return migration ? [createSupersededPackageWarning(agent, migration)] : []
+    }
+    return []
   })
 }
 

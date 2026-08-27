@@ -1,10 +1,13 @@
-import type { CommandResult } from '../output/types'
+import type { CommandResult, CommandWarning } from '../output/types'
+import { createSupersededPackageWarning } from '../agent-update'
+import { resolveSupersededPackage } from '../agents/superseded'
 import { projectObservationToV1Inspection } from '../compatibility/agent-inspection'
 import { createErrorResult, createSuccessResult, emitCommandResult } from '../output'
 import { getHumanTerminalWidth, renderHumanFields, renderHumanTable } from '../output/human'
 import { resolveCliReadObservation } from '../services/core-read-observations'
 import { pc } from '../utils/color'
 import { formatInstallMethodCommand, formatInstallMethodLabel } from '../utils/install'
+import { printWarn } from '../utils/user-output'
 
 interface InspectCommandData {
   agent: {
@@ -102,12 +105,25 @@ export async function inspectCommand(agentName: string): Promise<CommandResult<I
         kind: 'agent',
         name: agent.name,
       },
+      warnings: supersededPackageWarnings(agent, inspection.installedState),
     }),
     renderInspectHuman,
   )
 }
 
-function renderInspectHuman(result: { data?: InspectCommandData; error: { message: string } | null }): void {
+function supersededPackageWarnings(
+  agent: Parameters<typeof resolveSupersededPackage>[0] & { displayName: string },
+  installedState: Parameters<typeof resolveSupersededPackage>[1],
+): CommandWarning[] {
+  const migration = resolveSupersededPackage(agent, installedState)
+  return migration ? [createSupersededPackageWarning(agent, migration)] : []
+}
+
+function renderInspectHuman(result: {
+  data?: InspectCommandData
+  error: { message: string } | null
+  warnings: CommandWarning[]
+}): void {
   if (result.error) {
     console.log(pc.red(result.error.message))
     return
@@ -172,4 +188,5 @@ function renderInspectHuman(result: { data?: InspectCommandData; error: { messag
   }
 
   console.log()
+  for (const warning of result.warnings) printWarn(pc.yellow(warning.message))
 }

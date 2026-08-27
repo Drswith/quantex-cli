@@ -1,6 +1,7 @@
 import type { AgentDefinition, InstallMethod, PackageTargetKind } from '../agents/types'
 import type { InstalledAgentState } from '../state'
 import { getAgentUpdateStrategy } from '../agent-update'
+import { isSupersededPackage } from '../agents/superseded'
 import {
   canLookupLatestVersionForInstallType,
   canUpdateInstallType,
@@ -156,12 +157,15 @@ export function formatInstallMethodCommand(agent: Pick<AgentDefinition, 'package
 }
 
 export function getLatestVersionPackage(
-  agent: Pick<AgentDefinition, 'packages'>,
+  agent: Pick<AgentDefinition, 'name' | 'packages'>,
   state: Pick<InstalledAgentState, 'installType' | 'packageName'> | undefined,
   methods: Pick<InstallMethod, 'type'>[],
 ): string | undefined {
   if (state) {
     if (!canLookupLatestVersionForState(state)) return undefined
+    // A recorded install on a superseded identifier has no comparable target version: the
+    // identifier no longer receives releases, and the current one is not what is installed.
+    if (isSupersededPackage(agent, state)) return undefined
 
     return state.packageName || agent.packages?.npm || undefined
   }

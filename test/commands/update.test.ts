@@ -668,6 +668,35 @@ describe('updateCommand', () => {
     }
   })
 
+  it('reports a superseded package as manual-required instead of up-to-date', async () => {
+    const superseded = createSupersededPackageTarget()
+    agentSpy.mockReturnValue(superseded.agent)
+    lifecycleUpdateSpy.mockResolvedValue(superseded.target.outcome as never)
+
+    const result = await updateCommand('pi', false)
+
+    expect(result.ok).toBe(true)
+    expect(result.data?.results).toEqual([
+      expect.objectContaining({
+        installedVersion: '0.73.1',
+        name: 'pi',
+        status: 'manual-required',
+      }),
+    ])
+    expect(result.data?.results[0]).not.toHaveProperty('latestVersion')
+    expect(result.data?.results[0]?.message).toContain('@earendil-works/pi-coding-agent')
+    expect(result.warnings).toEqual([
+      expect.objectContaining({
+        code: 'AGENT_PACKAGE_SUPERSEDED',
+        details: expect.objectContaining({
+          currentPackage: '@earendil-works/pi-coding-agent',
+          recordedPackage: '@mariozechner/pi-coding-agent',
+          suggestedCommands: ['quantex uninstall pi', 'quantex install pi'],
+        }),
+      }),
+    ])
+  })
+
   it('returns the same stale-state guidance for a single-agent update', async () => {
     const jcode = createBatchCommandStaleTarget('jcode')
     agentSpy.mockReturnValue(jcode.agent)
@@ -1310,6 +1339,46 @@ function createBatchCommandUntrackedTarget(name: string) {
   }
   const target = { agentName: name, id: `target-${name}`, outcome: planning }
   return { agent, result: { agentName: name, id: target.id, planning }, target }
+}
+
+// Superseded identity is catalog-declared, so this target carries the real `pi` identity.
+function createSupersededPackageTarget() {
+  const recordedPackage = '@mariozechner/pi-coding-agent'
+  const currentPackage = '@earendil-works/pi-coding-agent'
+  const agent = {
+    ...testAgent,
+    binaryName: 'pi',
+    displayName: 'Pi',
+    name: 'pi',
+    packages: { npm: currentPackage },
+    platforms: {
+      linux: [{ packageName: currentPackage, type: 'bun' as const }],
+      macos: [{ packageName: currentPackage, type: 'bun' as const }],
+      windows: [{ packageName: currentPackage, type: 'bun' as const }],
+    },
+  }
+  const before = {
+    agent,
+    binding: { providerId: 'bun' as const, target: { id: recordedPackage, kind: 'package' as const } },
+    capabilities: ['observe', 'resolve-latest-version', 'update'] as const,
+    executable: { present: true, version: '0.73.1' },
+    installedState: { agentName: 'pi', installType: 'bun' as const, packageName: recordedPackage },
+    methods: [{ packageName: currentPackage, type: 'bun' as const }],
+    observation: {
+      drift: { kind: 'none' as const },
+      kind: 'present' as const,
+      targetId: 'pi',
+      version: '0.73.1',
+    },
+  }
+  const planning = {
+    before,
+    category: 'superseded-package' as const,
+    kind: 'blocked' as const,
+    reason: `Pi is installed from ${recordedPackage}, which upstream replaced with ${currentPackage}.`,
+  }
+  const target = { agentName: 'pi', id: 'target-pi', outcome: planning }
+  return { agent, result: { agentName: 'pi', id: target.id, planning }, target }
 }
 
 function createBatchCommandStaleTarget(name: string) {

@@ -138,6 +138,30 @@ export const agentPackageMetadataSchema = z
     message: 'packages must include at least one package identifier',
   })
 
+// Authoring-only metadata: identifiers an agent was previously distributed under.
+// Kept off `agentCatalogEntrySchema` so the pinned v1 root declaration and the
+// generated catalog.schema.json stay byte-identical.
+const supersededPackageListSchema = z
+  .array(nonEmptyStringSchema)
+  .min(1)
+  .refine(identifiers => new Set(identifiers).size === identifiers.length, {
+    message: 'superseded package identifiers must be unique',
+  })
+
+export const agentSupersededPackagesSchema = z
+  .object({
+    cargo: supersededPackageListSchema.optional(),
+    deno: supersededPackageListSchema.optional(),
+    mise: supersededPackageListSchema.optional(),
+    npm: supersededPackageListSchema.optional(),
+    pip: supersededPackageListSchema.optional(),
+    uv: supersededPackageListSchema.optional(),
+  })
+  .strict()
+  .refine(packages => Object.values(packages).some(Boolean), {
+    message: 'supersededPackages must include at least one package identifier',
+  })
+
 export const agentSelfUpdateSchema = z
   .object({
     command: commandSchema,
@@ -181,7 +205,7 @@ export const agentCatalogEntrySchema = z
   .strict()
 
 export const catalogSourceEntrySchema = agentCatalogEntrySchema
-  .extend({ platforms: catalogSourcePlatformsSchema })
+  .extend({ platforms: catalogSourcePlatformsSchema, supersededPackages: agentSupersededPackagesSchema.optional() })
   .strict()
 export const catalogSourceSchema = z.array(catalogSourceEntrySchema).min(1)
 
@@ -189,6 +213,7 @@ export const agentCatalogSchema = z.array(agentCatalogEntrySchema).min(1)
 
 export type AgentCatalogEntry = z.infer<typeof agentCatalogEntrySchema>
 export type AgentCatalogData = z.infer<typeof agentCatalogSchema>
+export type AgentSupersededPackages = z.infer<typeof agentSupersededPackagesSchema>
 export type CatalogSourceEntry = z.infer<typeof catalogSourceEntrySchema>
 export type NormalizedInstallCandidate = z.infer<typeof normalizedInstallCandidateSchema>
 

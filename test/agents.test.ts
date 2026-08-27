@@ -43,6 +43,7 @@ import {
   vibe,
   vtcode,
 } from '../src/agents'
+import { getCatalogSupersededPackages, toAgentDefinition } from '../src/agents/catalog'
 import catalogSchemaFile from '../src/agents/catalog.schema.json'
 import { catalogData } from '../src/agents/generated/catalog-data'
 import { agentCatalogJsonSchema, catalogSourceSchema } from '../src/agents/schema'
@@ -163,6 +164,38 @@ describe('agent catalog data schema', () => {
 
   it('keeps the checked-in JSON Schema in sync with the Zod contract', () => {
     expect(catalogSchemaFile).toEqual(agentCatalogJsonSchema)
+  })
+
+  it('accepts a superseded package declaration', () => {
+    const entry = {
+      ...catalogData.find(agent => agent.name === 'pi'),
+      supersededPackages: { npm: ['@example/old-package'] },
+    }
+
+    expect(() => catalogSourceSchema.parse([entry])).not.toThrow()
+  })
+
+  it('accepts an entry without a superseded package declaration', () => {
+    const entry = catalogData.find(agent => agent.name === 'claude')
+
+    expect(catalogSourceSchema.parse([entry])[0]).not.toHaveProperty('supersededPackages')
+  })
+
+  it('rejects an empty superseded package declaration', () => {
+    const entry = { ...catalogData.find(agent => agent.name === 'pi'), supersededPackages: {} }
+
+    expect(() => catalogSourceSchema.parse([entry])).toThrow()
+  })
+
+  it('rejects an identifier declared as both current and superseded', () => {
+    const entry = catalogSourceSchema.parse([
+      {
+        ...catalogData.find(agent => agent.name === 'pi'),
+        supersededPackages: { npm: ['@earendil-works/pi-coding-agent'] },
+      },
+    ])[0]
+
+    expect(() => toAgentDefinition(entry)).toThrow(/both current and superseded/u)
   })
 
   it('keeps the checked-in catalog manifest in sync with the catalog directory', async () => {
@@ -898,7 +931,7 @@ describe('pi', () => {
     validateAgent(pi)
     expect(pi.name).toBe('pi')
     expect(pi.displayName).toBe('Pi')
-    expect(pi.packages?.npm).toBe('@mariozechner/pi-coding-agent')
+    expect(pi.packages?.npm).toBe('@earendil-works/pi-coding-agent')
     expect(pi.binaryName).toBe('pi')
     expect(pi.selfUpdate?.command).toEqual(['pi', 'update'])
   })
@@ -909,6 +942,23 @@ describe('pi', () => {
         expect(['bun', 'npm']).toContain(method.type)
       }
     }
+  })
+
+  it('binds the current upstream package on every platform candidate', () => {
+    expect(Object.keys(pi.platforms).sort()).toEqual(['linux', 'macos', 'windows'])
+    for (const methods of Object.values(pi.platforms)) {
+      for (const method of methods!) {
+        expect(method.packageName ?? pi.packages?.npm).toBe('@earendil-works/pi-coding-agent')
+      }
+    }
+  })
+
+  it('declares the previous upstream package as superseded', () => {
+    expect(getCatalogSupersededPackages('pi')?.npm).toEqual(['@mariozechner/pi-coding-agent'])
+  })
+
+  it('does not project superseded packages onto the agent definition', () => {
+    expect(pi).not.toHaveProperty('supersededPackages')
   })
 })
 

@@ -14,6 +14,8 @@ const observeRegisteredAgentsSpy = vi.spyOn(coreReadObservations, 'observeCliRea
 
 const testAgent = agent('test-agent', 'Test Agent', 'test-bin', 'test-pkg')
 const secondAgent = agent('second-agent', 'Second Agent', 'second-bin', 'second-pkg')
+// Superseded identity is catalog-declared, so this row must carry the real catalog name.
+const supersededPiAgent = agent('pi', 'Pi', 'pi', '@earendil-works/pi-coding-agent')
 const originalStdoutColumns = process.stdout.columns
 
 afterAll(() => {
@@ -220,6 +222,68 @@ describe('listCommand', () => {
       },
     ])
     expect(result.data?.agents[0]).toHaveProperty('latestVersion', undefined)
+  })
+
+  it('marks a superseded install for migration instead of leaving the column empty', async () => {
+    observeRegisteredAgentsSpy.mockResolvedValueOnce([
+      observed(supersededPiAgent, {
+        installedState: trackedState('pi', '@mariozechner/pi-coding-agent'),
+        version: '0.73.1',
+      }),
+    ])
+
+    const stdoutWriteSpy = vi.spyOn(process.stdout, 'write').mockReturnValue(true)
+    try {
+      await listCommand()
+
+      const rows: string[] = logSpy.mock.calls.map((call: unknown[]) => String(call[0]))
+      expect(rows.find(row => row.includes('Pi'))).toMatch(/migrate/u)
+      const printed = stdoutWriteSpy.mock.calls.map((call: unknown[]) => String(call[0])).join('')
+      expect(printed).toContain('@mariozechner/pi-coding-agent')
+      expect(printed).toContain('@earendil-works/pi-coding-agent')
+      expect(printed).toContain('quantex uninstall pi')
+    } finally {
+      stdoutWriteSpy.mockRestore()
+    }
+  })
+
+  it('carries the superseded migration as a structured warning', async () => {
+    setCliContext({ interactive: false, outputMode: 'json', runId: 'list-superseded-json' })
+    observeRegisteredAgentsSpy.mockResolvedValueOnce([
+      observed(supersededPiAgent, {
+        installedState: trackedState('pi', '@mariozechner/pi-coding-agent'),
+        version: '0.73.1',
+      }),
+    ])
+
+    const result = await listCommand()
+
+    expect(result.warnings).toEqual([
+      expect.objectContaining({
+        code: 'AGENT_PACKAGE_SUPERSEDED',
+        details: expect.objectContaining({
+          agentName: 'pi',
+          currentPackage: '@earendil-works/pi-coding-agent',
+          recordedPackage: '@mariozechner/pi-coding-agent',
+          suggestedCommands: ['quantex uninstall pi', 'quantex install pi'],
+        }),
+      }),
+    ])
+    expect(result.data?.agents[0]).not.toHaveProperty('supersededPackages')
+  })
+
+  it('leaves an install on the current package unmarked', async () => {
+    observeRegisteredAgentsSpy.mockResolvedValueOnce([
+      observed(supersededPiAgent, {
+        installedState: trackedState('pi', '@earendil-works/pi-coding-agent'),
+        version: '0.84.3',
+      }),
+    ])
+
+    const result = await listCommand()
+
+    expect(result.warnings).toEqual([])
+    expect(logSpy.mock.calls.map((call: unknown[]) => String(call[0])).join('\n')).not.toContain('migrate')
   })
 })
 
