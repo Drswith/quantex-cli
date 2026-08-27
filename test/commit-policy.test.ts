@@ -1,3 +1,4 @@
+import { spawnSync } from 'node:child_process'
 import { readFileSync } from 'node:fs'
 import { describe, expect, it } from 'vitest'
 import { validatePullRequestCommitPolicy } from '../scripts/ci/commit-policy'
@@ -107,5 +108,35 @@ describe('pull request commit policy', () => {
     expect(policyScript).not.toContain('Squash the branch')
     expect(ciWorkflow).not.toContain('Validate commit trailer policy')
     expect(manifest['simple-git-hooks']['commit-msg']).toBeUndefined()
+  })
+
+  // A commit message that named the markers literally hijacked its own parsing:
+  // release-please read the fragment between them, failed, and dropped the commit.
+  it('rejects a commit message containing a commit-override marker', () => {
+    const issues = validatePullRequestCommitPolicy({
+      body: 'Release-As: 1.11.0',
+      commits: [
+        {
+          message:
+            'fix(release): explain the mechanism\n\nText mentioning BEGIN_COMMIT_OVERRIDE inline.\n\nRelease-As: 1.11.0',
+          sha: 'abcdef1234567890',
+        },
+      ],
+    })
+
+    expect(issues.join('\n')).toContain('contains a commit-override marker in its message')
+  })
+
+  // The exported predicates are import-time safe, but the CLI entry runs during module
+  // evaluation. A module-scope const declared below it throws on access, which unit tests
+  // that only import the module cannot see. Exercise the real entry point.
+  it('runs as a CLI without a module-initialisation error', () => {
+    const result = spawnSync('bun', ['run', 'scripts/ci/commit-policy.ts'], {
+      encoding: 'utf8',
+      env: { ...process.env, PR_BODY: 'no release footer here', PR_COMMITS_JSON: '[]' },
+    })
+
+    expect(`${result.stdout}${result.stderr}`).not.toContain('before initialization')
+    expect(result.status).toBe(0)
   })
 })

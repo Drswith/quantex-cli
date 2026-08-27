@@ -46,6 +46,9 @@ export function validatePrBodyPolicy(input: PrBodyPolicyInput): string[] {
     )
   }
 
+  const strayMarkers = findStrayOverrideMarkers(body)
+  if (strayMarkers.length > 0) issues.push(...strayMarkers)
+
   const releaseWorthyMetadata = hasReleaseWorthyMetadata(title, body)
   if (!validatedReleasePr && releaseWorthyMetadata) issues.push(...validateReleaseSummary(body))
 
@@ -143,6 +146,32 @@ function validateReleaseSummary(body: string): string[] {
   }
 
   return []
+}
+
+/**
+ * release-please reads the commit-override markers out of a merged PR body and parses only
+ * the text between them. A second, stray occurrence anywhere in the body silently changes
+ * which text that is, which can drop the commit from the release entirely. Prose about the
+ * mechanism must therefore avoid writing the marker words.
+ *
+ * The markers are built at runtime so this file never contains them as literal text.
+ */
+function overrideMarkers(): string[] {
+  return ['BEGIN', 'END'].map(edge => `${edge}_COMMIT_OVERRIDE`)
+}
+
+export function findStrayOverrideMarkers(body: string): string[] {
+  return overrideMarkers().flatMap(marker => {
+    const count = body.split(marker).length - 1
+
+    return count > 1
+      ? [
+          `PR body contains ${count} occurrences of a commit-override marker; exactly one is allowed. ` +
+            'release-please parses only the text between the first pair, so a stray mention silently ' +
+            'changes or destroys the release entry. Describe the mechanism without writing the marker words.',
+        ]
+      : []
+  })
 }
 
 function hasReleaseAsFooter(value: string): boolean {

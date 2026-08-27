@@ -17,6 +17,17 @@ export interface PullRequestCommitPolicyInput {
 // from the merged commit, so the two must agree or the release silently differs
 // from what the PR asked for.
 export function validatePullRequestCommitPolicy(input: PullRequestCommitPolicyInput): string[] {
+  const markerIssues = input.commits
+    .filter(commit => hasCommitOverrideMarker(commit.message))
+    .map(
+      commit =>
+        `Commit ${commit.sha.slice(0, 8)} contains a commit-override marker in its message. ` +
+        'release-please treats those markers as a message replacement and parses only the text between them, ' +
+        'so the commit is dropped from the release along with any footer it carries. ' +
+        'Describe the mechanism without writing the marker words.',
+    )
+  if (markerIssues.length > 0) return markerIssues
+
   const releaseAsVersion = getReleaseAsVersion(input.body ?? '')
   if (!releaseAsVersion || isReleasePleasePullRequest(input.headBranch)) return []
 
@@ -53,6 +64,15 @@ if (import.meta.main) {
   }
 
   console.log('Commit policy check passed.')
+}
+
+/** The markers are built at runtime so this file never contains them as literal text. */
+function overrideMarkers(): string[] {
+  return ['BEGIN', 'END'].map(edge => `${edge}_COMMIT_OVERRIDE`)
+}
+
+export function hasCommitOverrideMarker(message: string): boolean {
+  return overrideMarkers().some(marker => message.includes(marker))
 }
 
 function parseCommits(args: string[], commitsJsonEnv: string | undefined): CommitMetadata[] {

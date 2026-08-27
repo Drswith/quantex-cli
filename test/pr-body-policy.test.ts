@@ -260,6 +260,31 @@ describe('PR body policy', () => {
     ).toEqual([])
   })
 
+  // A commit whose message explained this very mechanism named the markers literally.
+  // release-please found them, parsed the sentence fragment between them, failed, and
+  // dropped the commit from the release with its Release-As footer.
+  it('rejects a stray commit-override marker elsewhere in the body', () => {
+    const body =
+      validBody.replace(
+        '- Not applicable - this change does not produce a release entry.',
+        [
+          'BEGIN_COMMIT_OVERRIDE',
+          'fix(release): prepare the boundary',
+          '',
+          'Release-As: 1.11.0',
+          'END_COMMIT_OVERRIDE',
+        ].join('\n'),
+      ) + '\n\nProse that names BEGIN_COMMIT_OVERRIDE again by accident.\n'
+
+    const issues = validatePrBodyPolicy({
+      body,
+      changedFiles: ['src/cli.ts'],
+      title: 'fix: something',
+    })
+
+    expect(issues.join('\n')).toContain('occurrences of a commit-override marker')
+  })
+
   it('treats Release-As source metadata as release-worthy and requires it inside the override', () => {
     const body = validBody
       .replace(
