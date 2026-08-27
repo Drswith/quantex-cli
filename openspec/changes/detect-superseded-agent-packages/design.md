@@ -29,7 +29,7 @@ Two constraints shape the design.
 
 ### 1. Declare superseded identifiers in the catalog source schema, not on the exported types
 
-`supersededPackages` is added to `catalogSourceEntrySchema` only. `agentCatalogEntrySchema`, `AgentCatalogEntry`, `AgentDefinition`, and the generated `catalog.schema.json` are untouched, so `dist/index.d.mts` keeps its pinned bytes and digest.
+`supersededPackages` is added to `catalogSourceEntrySchema` only. `agentCatalogEntrySchema`, `AgentCatalogEntry`, `AgentDefinition`, and the generated `catalog.schema.json` are untouched, so no v1-exported declared type changes.
 
 This is not a workaround; it matches what the source schema already is. `catalog.schema.json` describes the projected entry shape and already omits `provider`, `target`, `probes`, and `effect` — every field the normalized candidate form introduced. Superseded identifiers belong to the same category: catalog authoring input that the v1 projection does not carry.
 
@@ -38,6 +38,21 @@ The alternative — extend the exported types and update the pin — was rejecte
 Consequence: `toAgentDefinition()` currently spreads the whole source entry, so it MUST strip `supersededPackages` explicitly. Otherwise every `AgentDefinition` would carry a field its type does not declare, which is exactly the kind of untyped runtime payload the projection exists to prevent.
 
 Lookup goes through a dedicated helper keyed by agent name, reading the already-parsed catalog source. Call sites that need it (`getLatestVersionPackage`, update planning, the three presenters) have the agent name available.
+
+#### The pinned root declaration still moved, and why that is the sanctioned case
+
+Keeping the declared types unchanged did not keep `dist/index.d.mts` byte-identical. Adding two type-only imports to `src/agent-update/messages.ts` changed module emission order, and tsdown relocated the whole `src/cli-context.d.ts` region within the output. `compatibility-contract` covers exactly this: a change that reorders declarations may update the pin, provided it records evidence that the declared types and the exported symbol set are unchanged.
+
+Evidence, from `dist/index.d.mts` built at `origin/main` (`dcf80c0`) against the same file built from this change:
+
+- Byte count is identical at `49262`; only the digest moved, from `b1078cd1…` to `8a219038…`.
+- The diff is 89 lines moved and nothing else: 89 removed, 89 added, all of them the contiguous `src/cli-context.d.ts` region relocating.
+- Sorting both files line-by-line yields identical output, so the change is a pure permutation of the same declarations.
+- Every `export` and `declare` line is identical between the two builds.
+- `test/fixtures/compatibility/v1/root-exports.json` is untouched, so the exported symbol snapshot is unchanged.
+- `packages/core/dist/index.d.mts` is unaffected, and `package:check:core` passes.
+
+The pin in `test/fixtures/compatibility/v1/root-declaration.json` is updated to the new digest on that basis. This is a reorder, not a surface change.
 
 ### 2. Key superseded identifiers by package-metadata provider key
 

@@ -7,6 +7,7 @@
 - [x] 1.5 Add a superseded-package lookup module exposing resolution by agent name and a predicate that matches a recorded `installType` plus `packageName`
 - [x] 1.6 Repoint `src/agents/catalog/pi.json` at `@earendil-works/pi-coding-agent` for the bun and npm candidates on all three platforms, and declare `@mariozechner/pi-coding-agent` under `supersededPackages.npm`
 - [x] 1.7 Run `bun run agent-catalog:generate` and confirm `catalog.schema.json` is unchanged
+- [x] 1.8 Run `bun run build && bun run package:check`; the emitted root declaration reordered, so re-pin `root-declaration.json` and record the reorder evidence required by `compatibility-contract` in `design.md`
 
 ## 2. Version resolution
 
