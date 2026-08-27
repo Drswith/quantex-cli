@@ -77,3 +77,48 @@ Release-please replaces the merged commit message with the contents of that bloc
 - **WHEN** the `Release-As` footer appears inside the `BEGIN_COMMIT_OVERRIDE` block
 - **THEN** validation accepts it
 - **AND** the block still requires a conventional-commit entry
+
+### Requirement: Override markers MUST NOT appear outside the single override block
+
+Commit messages SHALL NOT contain a commit-override marker, and a pull request body SHALL NOT contain more than one occurrence of each marker. Validation SHALL reject either case.
+
+Release-please treats these markers as a message replacement and parses only the text between the first pair. A stray occurrence — most easily produced by prose that explains the mechanism and names the markers literally — silently changes which text is parsed. When the resulting text is not a conventional commit, release-please logs that the commit could not be parsed and drops it from the release entirely, discarding any `Release-As` footer it carried. Nothing else surfaces the mistake.
+
+#### Scenario: A commit message names the markers
+
+- **WHEN** a pull request commit message contains a commit-override marker
+- **THEN** validation rejects it
+- **AND** the message explains that release-please would parse only the text between the markers and drop the commit
+
+#### Scenario: A pull request body names a marker twice
+
+- **GIVEN** a pull request body carries one override block
+- **WHEN** either marker also appears elsewhere in the body
+- **THEN** validation rejects it
+
+#### Scenario: A single override block is unaffected
+
+- **WHEN** a pull request body contains exactly one override block and no other mention of the markers
+- **THEN** validation accepts it
+
+### Requirement: A declared Release-As MUST be verified against release-please's parser
+
+Pull request validation SHALL run release-please's own commit parser over the pull request body whenever that body declares a `Release-As` footer, and SHALL fail when the parser would not apply the declared version.
+
+Text-level checks cannot establish this. Release-please replaces the commit message with the text inside the override block and then parses it, so whether a declared version survives depends on that parser rather than on where a regex finds the footer. Three reviewed pull requests declared a version, satisfied every text-level check, merged, and produced no release before this verification existed.
+
+#### Scenario: The declared version would not be applied
+
+- **GIVEN** a pull request body declares a `Release-As` footer
+- **WHEN** release-please's parser does not yield that version for the pull request
+- **THEN** validation fails and names the reason, distinguishing a footer outside the override block from a pull request whose commit is dropped entirely
+
+#### Scenario: The declared version would be applied
+
+- **WHEN** the parser yields the declared version
+- **THEN** validation passes
+
+#### Scenario: No version is declared
+
+- **WHEN** the body declares no `Release-As` footer
+- **THEN** the verification is skipped rather than failed

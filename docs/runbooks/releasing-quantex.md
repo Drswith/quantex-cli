@@ -112,7 +112,17 @@ refactor: make agent lifecycle operations safer and easier to diagnose
 END_COMMIT_OVERRIDE
 ```
 
-`refactor:` entries appear in the generated `Internal Improvements` section but do not independently trigger a version bump. When an exact one-shot version is needed, carry `Release-As: <version>` in the merged commit and repeat the same footer in the source PR's Release Summary, **inside** the `BEGIN_COMMIT_OVERRIDE` block. Release-please replaces the merged commit message with that block on a squash-merge, so a footer placed after `END_COMMIT_OVERRIDE` is never parsed and the release is silently prepared at the computed version instead. The protected-branch resolver recognizes that footer as a Release PR trigger, so do not add `!` or a false `BREAKING CHANGE` marker merely to start release automation.
+`refactor:` entries appear in the generated `Internal Improvements` section but do not independently trigger a version bump. When an exact one-shot version is needed, carry `Release-As: <version>` in the merged commit and repeat the same footer in the source PR's Release Summary, **inside** the `BEGIN_COMMIT_OVERRIDE` block. Release-please replaces the merged commit message with that block on a squash-merge, so a footer placed after `END_COMMIT_OVERRIDE` is never parsed and the release is silently prepared at the computed version instead.
+
+Never write the marker words anywhere else in a commit message or PR body, including in prose explaining this rule. Release-please parses only the text between the first pair it finds, so a stray mention changes which text that is; when the result is not a conventional commit it logs `commit could not be parsed` and drops the commit from the release along with any `Release-As` footer. `bun run pr:body:check` and the commit policy both reject stray markers for this reason.
+
+Before opening a one-shot release PR, verify the declaration against release-please's own parser rather than trusting the text checks:
+
+```bash
+bun run release:verify-release-as -- --body-file <pr-body-file>
+```
+
+It reports the version release-please would actually release, and fails when the declaration would be inert. The `Verify a declared Release-As would take effect` step in `ci.yml` runs the same check on every pull request. The protected-branch resolver recognizes that footer as a Release PR trigger, so do not add `!` or a false `BREAKING CHANGE` marker merely to start release automation.
 
 A one-shot is sometimes needed with no product change to attach it to. release-please computes the bump from every marker between the last release tag and `main`, so a marker whose change has since been undone keeps forcing that bump until a release lands after it. A pull request that only moves the boundary may carry `Release-As` while changing nothing but process or documentation files, provided the declared major is not above the current released major; a release-worthy title or a `BREAKING CHANGE` footer on such a PR is still rejected, and a higher major is rejected before any readiness gate is consulted. It must still supply a commit override under `## Release Summary`.
 

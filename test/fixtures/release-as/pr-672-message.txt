@@ -1,0 +1,20 @@
+fix(release): require the Release-As footer inside the commit override block (#672)
+
+Release-please replaces the merged commit message with the contents of a pull
+request's BEGIN_COMMIT_OVERRIDE block on a squash-merge. A footer placed after
+END_COMMIT_OVERRIDE is therefore never parsed, and the failure is silent: the
+release is prepared at the computed version with no error, no warning, and no
+log line naming the override.
+
+That is why the overrides in #670 and #671 did nothing. Release-please's own dry
+run showed it: the changelog entries for both delivery commits carry the text of
+their override blocks rather than their commit subjects, so the message it
+parsed never contained the footer. The earlier theory about a wrapped line was
+wrong, and re-sending the same shape a second time was the cost of guessing
+instead of running the tool.
+
+Validate placement, which is the only point where the mistake is visible.
+Correct the pre-existing test that asserted the wrong placement, and record the
+rule in the release-workflow spec and the release runbook.
+
+Release-As: 1.11.0

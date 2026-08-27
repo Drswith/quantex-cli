@@ -127,6 +127,18 @@ jobs:
           PR_HEAD_BRANCH: ${{ github.event.pull_request.head.ref }}
         run: bun run ci:commit-policy
 
+      # Body and commit policies are heuristics over text. This runs release-please's own
+      # parser, which is the only thing that decides whether a declared version override
+      # actually takes effect. Three reviewed PRs declared one, passed every other check,
+      # merged, and released nothing before this step existed.
+      - name: Verify a declared Release-As would take effect
+        if: "!startsWith(github.event.pull_request.head.ref, 'release-please--branches--')"
+        env:
+          PR_BODY: ${{ github.event.pull_request.body }}
+        run: |
+          printf '%s' "$PR_BODY" > "$RUNNER_TEMP/pr-body.md"
+          bun run release:verify-release-as -- --body-file "$RUNNER_TEMP/pr-body.md"
+
   test-ubuntu:
     name: test (ubuntu-latest)
     needs: classify
