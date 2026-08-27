@@ -39,4 +39,4 @@
 - [x] 5.2 `bun run test`
 - [x] 5.3 `bun run openspec:validate`
 - [x] 5.4 Verify against the real registry that a Pi install recorded on the superseded identifier now reports migration, and that a fresh install resolves `@earendil-works/pi-coding-agent`
-- [ ] 5.5 Commit, push, and open the PR with a validated body file
+- [x] 5.5 Commit, push, and open the PR with a validated body file
