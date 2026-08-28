@@ -1,5 +1,5 @@
 import { execFile } from 'node:child_process'
-import { readFile } from 'node:fs/promises'
+import { appendFile, readFile } from 'node:fs/promises'
 import process from 'node:process'
 import { promisify } from 'node:util'
 import { assertStableReleaseReady } from './release-readiness'
@@ -9,6 +9,7 @@ const execFileAsync = promisify(execFile)
 const releaseVersionPattern = /^\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?$/
 const pendingAutoreleaseLabel = 'autorelease: pending'
 const taggedAutoreleaseLabel = 'autorelease: tagged'
+const releaseManifestPath = '.release-please-manifest.json'
 
 // How far back on the protected branch a release commit may be found. The
 // release commit for the *current* manifest version is always recent; anything
@@ -25,6 +26,13 @@ export interface ReleaseTagInput {
 }
 
 export type ReleaseTagAction = 'noop' | 'relabel-only' | 'tag'
+
+export interface BranchSealState {
+  sealed: boolean
+  reason: string
+  tag?: string
+  version?: string
+}
 
 export interface ReleaseTagPlan {
   action: ReleaseTagAction
@@ -107,6 +115,49 @@ export function findReleaseCommitShaFromLog(input: { log: string; version: strin
   return null
 }
 
+// release-please derives its commit range from the tag for the version recorded
+// in the branch manifest. A missing tag is not an error to it: it keeps the
+// manifest version as the changelog comparison point, leaves the range boundary
+// undefined, and walks the whole history instead. That re-admits every
+// conventional-commit marker the project ever merged, including one-shot
+// `Release-As` footers a past release already settled, so the computed version
+// can move backwards past what is published. Preparation is gated on this state
+// rather than merely ordered after tagging.
+export function resolveBranchSealState(input: {
+  manifestVersion: string | null
+  tagSha: string | null
+}): BranchSealState {
+  const version = input.manifestVersion?.trim() ?? ''
+  if (!version) {
+    return { sealed: false, reason: `no version could be read from ${releaseManifestPath} on the branch` }
+  }
+
+  if (!releaseVersionPattern.test(version)) {
+    return { sealed: false, reason: `branch manifest version is not a release version: ${version}` }
+  }
+
+  const tag = `v${version}`
+  if (!input.tagSha) {
+    return { sealed: false, reason: `${tag} does not exist yet`, tag, version }
+  }
+
+  return { sealed: true, reason: `${tag} exists`, tag, version }
+}
+
+export function parseManifestVersion(content: string): string | null {
+  let manifest: unknown
+  try {
+    manifest = JSON.parse(content)
+  } catch {
+    return null
+  }
+
+  if (typeof manifest !== 'object' || manifest === null || Array.isArray(manifest)) return null
+
+  const version = (manifest as Record<string, unknown>)['.']
+  return typeof version === 'string' && version.trim() ? version.trim() : null
+}
+
 if (import.meta.main) {
   await runReleaseTagging()
 }
@@ -122,6 +173,16 @@ async function runReleaseTagging(): Promise<void> {
   if (!token) throw new Error('GH_TOKEN or GITHUB_TOKEN is required.')
 
   await git(['fetch', '--force', 'origin', branch, '--tags'])
+
+  // Tagging owns its own early returns, so the seal state is published from the
+  // caller: an untaggable ordinary push still has to answer whether the branch
+  // is sealed, and that answer is what gates release-please.
+  await tagBranchRelease({ branch, token })
+  await publishBranchSealState({ branch })
+}
+
+async function tagBranchRelease(input: { branch: string; token: string }): Promise<void> {
+  const { branch, token } = input
 
   const packageJson = JSON.parse(await readFile(new URL('../../package.json', import.meta.url), 'utf8')) as {
     version?: string
@@ -164,6 +225,37 @@ async function runReleaseTagging(): Promise<void> {
   }
 
   await relabelPendingReleasePullRequest({ branch, token })
+}
+
+// Read from the branch tip rather than from this job's checkout. A run queued
+// behind another push plans against a commit that predates the release commit,
+// while release-please reads the branch live. Answering the seal question from
+// the checkout would answer it for the wrong version, which is exactly how a
+// stale run handed release-please an unresolvable boundary.
+async function publishBranchSealState(input: { branch: string }): Promise<void> {
+  await git(['fetch', '--force', 'origin', input.branch, '--tags'])
+
+  const manifestVersion = await readBranchManifestVersion(input.branch)
+  const tagSha = manifestVersion ? await readTagSha(`v${manifestVersion}`) : null
+  const state = resolveBranchSealState({ manifestVersion, tagSha })
+
+  console.log(`Branch seal state: ${state.sealed ? 'sealed' : 'unsealed'} (${state.reason})`)
+  await writeJobOutput('sealed', state.sealed ? 'true' : 'false')
+}
+
+async function readBranchManifestVersion(branch: string): Promise<string | null> {
+  try {
+    return parseManifestVersion(await git(['show', `origin/${branch}:${releaseManifestPath}`]))
+  } catch {
+    return null
+  }
+}
+
+async function writeJobOutput(name: string, value: string): Promise<void> {
+  const outputPath = process.env.GITHUB_OUTPUT
+  if (!outputPath) return
+
+  await appendFile(outputPath, `${name}=${value}\n`)
 }
 
 async function waitForSuccessfulCi(input: { branch: string; sha: string; token: string }): Promise<string | null> {

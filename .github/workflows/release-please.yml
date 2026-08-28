@@ -14,7 +14,53 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
+  # Sealing runs before preparation, not after it. release-please resolves its
+  # commit range from the tag for the version in .release-please-manifest.json,
+  # and with skip-github-release: true that tag is created by this job — so
+  # preparing first means preparing against a boundary that does not exist yet.
+  # When the boundary is unresolvable release-please does not fail: it replays
+  # the entire history, which re-admits settled Release-As footers and can
+  # compute a version below the one already published.
+  tag-release:
+    runs-on: ubuntu-latest
+    permissions:
+      actions: write
+      contents: write
+      pull-requests: write
+    outputs:
+      sealed: ${{ steps.tag-release.outputs.sealed }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - name: Setup Bun
+        uses: ./.github/actions/setup-bun
+
+      - name: Create release bot token
+        id: release-bot-token
+        uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1 # v3.2.0
+        with:
+          client-id: ${{ secrets.RELEASE_APP_CLIENT_ID }}
+          private-key: ${{ secrets.RELEASE_APP_PRIVATE_KEY }}
+
+      - name: Tag release when release-please left the merged Release PR untagged
+        id: tag-release
+        env:
+          GH_TOKEN: ${{ steps.release-bot-token.outputs.token }}
+          GITHUB_TOKEN: ${{ github.token }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+          TARGET_BRANCH: ${{ github.ref_name }}
+        run: bun run ci:tag-release
+
+  # Gated on the seal state rather than merely ordered after it. A run queued
+  # behind a later push plans against a checkout that predates the release
+  # commit, so it can seal an older version and still hand release-please a
+  # branch whose manifest has already moved on. The gate is read from the branch
+  # tip, which is the same ref release-please reads.
   release-please:
+    needs: tag-release
+    if: needs.tag-release.outputs.sealed == 'true'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
@@ -36,33 +82,3 @@ jobs:
           config-file: release-please-config.json
           manifest-file: .release-please-manifest.json
           skip-github-release: true
-
-  tag-release:
-    needs: release-please
-    runs-on: ubuntu-latest
-    permissions:
-      actions: write
-      contents: write
-      pull-requests: write
-    steps:
-      - uses: actions/checkout@v7
-        with:
-          fetch-depth: 0
-
-      - name: Setup Bun
-        uses: ./.github/actions/setup-bun
-
-      - name: Create release bot token
-        id: release-bot-token
-        uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1 # v3.2.0
-        with:
-          client-id: ${{ secrets.RELEASE_APP_CLIENT_ID }}
-          private-key: ${{ secrets.RELEASE_APP_PRIVATE_KEY }}
-
-      - name: Tag release when release-please left the merged Release PR untagged
-        env:
-          GH_TOKEN: ${{ steps.release-bot-token.outputs.token }}
-          GITHUB_TOKEN: ${{ github.token }}
-          GITHUB_REPOSITORY: ${{ github.repository }}
-          TARGET_BRANCH: ${{ github.ref_name }}
-        run: bun run ci:tag-release

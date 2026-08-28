@@ -24,7 +24,11 @@ Normal feature, fix, or maintenance work lands through standard PRs.
 
 ### 2. release-please maintains the Release PR automatically
 
-On every push to `main`, `release-please.yml` runs release-please with `release-please-config.json` and normally opens or updates the Release PR when a version bump is warranted. No manual dispatch is involved.
+On every push to `main`, `release-please.yml` first runs its `tag-release` job and then, only if that job reports the branch sealed, runs release-please with `release-please-config.json` to open or update the Release PR when a version bump is warranted. No manual dispatch is involved.
+
+Sealed means the tag for the version in `.release-please-manifest.json` on the branch tip exists. release-please derives its commit range from that tag, and a missing tag is not an error to it: it drops the range boundary and replays the entire history, which re-admits settled `Release-As` footers and can compute a version below the published one. That is how [#677](https://github.com/Drswith/quantex-cli/pull/677) proposed `1.11.0` after `1.11.1` had shipped.
+
+An unsealed branch therefore skips preparation rather than preparing something wrong. It is self-clearing: the push that merges a Release PR seals it, and anything that landed beside it is prepared by the next push.
 
 Stable v2 is temporarily deferred until the required refactor has merged and completed at least 90 days of stabilization. That gate denies an ineligible version at Release PR validation, tag planning, and publication identity; it does not pause preparation, so ordinary 1.x Release PRs are created as usual.
 
@@ -56,14 +60,17 @@ Merge the locked reviewed head manually; prefer rebase and use squash only when 
 
 ### 4. Deterministic tag after push CI
 
-After the Release PR merges, push CI on the exact `main` head must succeed. The `tag-release` job in `release-please.yml` then:
+After the Release PR merges, push CI on the exact `main` head must succeed. The `tag-release` job in `release-please.yml`, which runs before release-please in the same run, then:
 
 - waits for a successful `ci.yml` push run on the branch head;
 - pushes `v<version>` with `git push` under the release GitHub App token when the head is `chore: release <version>` and the tag is still missing (the normal case, because maintainers re-author Release PR branches and release-please runs with `skip-github-release: true`);
 - dispatches `release.yml` at the pushed tag, because the tag event itself does not start publication for the bot (see the automation note below);
-- relabels the merged release PR from `autorelease: pending` to `autorelease: tagged` so release-please is not blocked on the next cycle.
+- relabels the merged release PR from `autorelease: pending` to `autorelease: tagged` so release-please is not blocked on the next cycle;
+- publishes a `sealed` job output, read from the branch tip rather than from its own checkout, which gates whether release-please runs at all.
 
 If the tag already points at the branch head, tag-release only relabels.
+
+The seal read is deliberately taken from the tip. A run queued behind a later push plans against a checkout that predates the release commit, so it can correctly seal an older version while the branch has already moved on; answering from the checkout would report that stale run as sealed and hand release-please a manifest it has no tag for.
 
 Publication identity still requires all of these values to agree before `release.yml` publishes:
 
@@ -136,9 +143,9 @@ Release automation, documentation, and project-memory-only PRs must use non-rele
 
 The Release workflow pins `googleapis/release-please-action` to a repository-verified tag instead of floating on the major `v4` tag. Before changing that pin, run a dry run against the repository and confirm it can prepare the expected Release PR without GitHub GraphQL errors.
 
-release-please owns Release PR preparation. The `tag-release` job creates missing tags after CI and guarantees exactly one Release workflow trigger; `release.yml` publishes on tag push and does not ask release-please to create a GitHub Release.
+release-please owns Release PR preparation, but only after the branch is sealed. The `tag-release` job runs first, creates missing tags after CI, guarantees exactly one Release workflow trigger, and publishes the seal state that gates preparation; `release.yml` publishes on tag push and does not ask release-please to create a GitHub Release.
 
-If release-please fails to open a Release PR while no readiness gate is active, check for stale `autorelease: pending` labels or an untagged merged Release PR. While the stable-v2 gate is active, absence of a Release PR is expected and must not be treated as an automation failure. If tag creation fails, fix the protected-branch, readiness, or CI mismatch and rerun `Release Please` on the branch. If publish or the post-publish installer gate fails after an eligible tag exists, rerun `Release` at the same tag or dispatch `release.yml` with `--ref v<version>` after inspecting the failure. Never create a replacement version commit merely to recover incomplete npm, GitHub, or installer verification closure, and never move an existing version tag.
+If no Release PR appears, read the `tag-release` job log first. Its last line reports the verdict — `Branch seal state: unsealed (v<version> does not exist yet)` means preparation was skipped on purpose because the current release is not tagged yet, and the next push retries. A skipped `release-please` job with a sealed branch is a different problem: check for stale `autorelease: pending` labels or an untagged merged Release PR. While the stable-v2 gate is active, absence of a Release PR is expected and must not be treated as an automation failure. If tag creation fails, fix the protected-branch, readiness, or CI mismatch and rerun `Release Please` on the branch. If publish or the post-publish installer gate fails after an eligible tag exists, rerun `Release` at the same tag or dispatch `release.yml` with `--ref v<version>` after inspecting the failure. Never create a replacement version commit merely to recover incomplete npm, GitHub, or installer verification closure, and never move an existing version tag.
 
 ## npm trusted publishing
 
