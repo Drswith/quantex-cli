@@ -1,6 +1,13 @@
 # Changelog
 
 
+## [1.11.2](https://github.com/Drswith/quantex-cli/compare/v1.11.1...v1.11.2) (2026-08-28)
+
+
+### Bug Fixes
+
+* **release:** stop preparing the next release before the current one is tagged ([90c03ef](https://github.com/Drswith/quantex-cli/commit/90c03efb0c808d55f7d518114251b7079d8fb7e6))
+
 ## [1.11.1](https://github.com/Drswith/quantex-cli/compare/v1.11.0...v1.11.1) (2026-08-27)
 
 
