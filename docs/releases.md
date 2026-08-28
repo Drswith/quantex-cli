@@ -6,10 +6,12 @@ The repository keeps a source-controlled [CHANGELOG.md](../CHANGELOG.md). A Rele
 
 `quantex-cli`, the GitHub Release, and standalone binaries form the primary public release closure. Release automation:
 
-1. runs release-please automatically on push to `main` and, when no readiness gate is active, opens or updates its Release PR;
-2. merges the Release PR after review, re-authoring, and required CI;
-3. creates an immutable `v<version>` tag through the `tag-release` job once push CI succeeds on the release commit (release-please runs with `skip-github-release: true` and never tags);
+1. seals the branch on push to `main` through the `tag-release` job, which creates the immutable `v<version>` tag once push CI succeeds on the release commit (release-please runs with `skip-github-release: true` and never tags);
+2. runs release-please afterwards, and only on a sealed branch, to open or update the Release PR for the next version;
+3. merges the Release PR after review, re-authoring, and required CI;
 4. runs `release.yml` on the tag push to validate the release identity, build and stage the exact release candidate once, then publish npm and GitHub Release assets from that candidate.
+
+Sealing comes first because release-please derives its commit range from the tag for the version in `.release-please-manifest.json`. When that tag is missing it does not fail — it keeps the manifest version as the changelog comparison point, drops the range boundary, and replays the whole history, which re-admits settled `Release-As` footers and can compute a version below the one already published. Preparation is therefore gated on the tag existing, and a run that finds the branch unsealed skips preparation and leaves it to the next push.
 
 The full build-candidate chain is exercisable locally without a tag via `bun run release:dry-run`.
 

@@ -203,6 +203,27 @@ describe('workflow classification integration', () => {
     expect(releasePleaseWorkflow).not.toContain('workflow_dispatch')
   })
 
+  // release-please resolves its commit range from the tag for the manifest
+  // version, and tag-release is what creates that tag. Preparing first left the
+  // boundary unresolvable on the very push that merged a Release PR, and
+  // release-please answers that by replaying the whole history rather than
+  // failing — which is how #677 proposed 1.11.0 after 1.11.1 shipped.
+  it('seals the current release before preparing the next one', () => {
+    expect(releasePleaseWorkflow.indexOf('  tag-release:')).toBeLessThan(
+      releasePleaseWorkflow.indexOf('  release-please:'),
+    )
+    expect(releasePleaseWorkflow).toContain('needs: tag-release')
+    expect(releasePleaseWorkflow).not.toContain('needs: release-please')
+  })
+
+  // Order alone is not enough: a run queued behind a later push seals a version
+  // older than the branch tip and would still hand release-please a manifest it
+  // has no tag for.
+  it('gates release-please on the published seal state', () => {
+    expect(releasePleaseWorkflow).toContain('sealed: ${{ steps.tag-release.outputs.sealed }}')
+    expect(releasePleaseWorkflow).toContain("if: needs.tag-release.outputs.sealed == 'true'")
+  })
+
   it('runs the release pipeline through testable scripts instead of inline heredocs', () => {
     expect(releaseWorkflow).toContain('bun run release:candidate')
     expect(releaseWorkflow).toContain('bun run scripts/release/verify-release-candidate.ts download-check')
