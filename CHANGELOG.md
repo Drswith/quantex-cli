@@ -1,6 +1,13 @@
 # Changelog
 
 
+## [1.11.1](https://github.com/Drswith/quantex-cli/compare/v1.11.0...v1.11.1) (2026-08-27)
+
+
+### Bug Fixes
+
+* **agents:** detect Pi's renamed upstream package instead of reporting it current ([853350f](https://github.com/Drswith/quantex-cli/commit/853350f93648ff0b0c096a4d9c4ba139b1941b0e))
+
 ## [1.11.0](https://github.com/Drswith/quantex-cli/compare/v1.10.0...v1.11.0) (2026-08-27)
 
 
