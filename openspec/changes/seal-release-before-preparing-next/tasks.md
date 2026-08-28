@@ -27,5 +27,5 @@
 - [x] 5.1 Run `bun run lint`, `bun run format:check`, `bun run typecheck`, and `bun run test`.
 - [x] 5.2 Run `bun run openspec:validate` and `bun run memory:check`.
 - [x] 5.3 Run `bun run release:dry-run`, because this change edits `release-please.yml`.
-- [ ] 5.4 Open the PR with a body validated by `bun run pr:body:check`.
+- [x] 5.4 Open the PR with a body validated by `bun run pr:body:check`: [#678](https://github.com/Drswith/quantex-cli/pull/678).
 - [ ] 5.5 After merge, confirm on the next protected-branch push that `tag-release` runs first, reports the branch sealed, and release-please resolves `v<version>` as its boundary instead of replaying the full history.
