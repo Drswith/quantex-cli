@@ -94,9 +94,10 @@ describe('Core-backed CLI read observations', () => {
     for (const path of ['ensure', 'install']) {
       const contents = await source(`src/commands/${path}.ts`)
       expect(contents).toContain('./core-installation-cli')
-      expect(contents).toContain("from '../services/lifecycle-observations'")
+      expect(contents).toContain('./installation-routing')
       expect(contents).not.toContain('core-read-observations')
       expect(contents).not.toContain('QUANTEX_INSTALLATION_ENGINE')
+      expect(contents).not.toContain('reconcileAgentInstallation')
     }
 
     const adapter = await source('src/services/core-read-observations.ts')
