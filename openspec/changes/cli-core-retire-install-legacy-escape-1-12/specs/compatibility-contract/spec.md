@@ -2,18 +2,19 @@
 
 ### Requirement: Core-default installation routing remains a whole-invocation compatibility choice
 
-Quantex SHALL select the in-repo Core engine for every CLI `install` and
-`ensure` invocation, including `--dry-run`, and for `update` and `uninstall`,
-before any lifecycle work begins after the install/ensure escape retirement.
-Install/ensure `--dry-run` MUST use Core's existing preview path and MUST
-retain the maintained v1 dry-run plan without lifecycle mutation. Quantex MUST
-NOT honor `QUANTEX_INSTALLATION_ENGINE=legacy` (or any other value) as a second
-install/ensure engine route, MUST keep state schema version 2 unchanged, and
-MUST NOT automatically fall back between engines after selection.
+Quantex SHALL select the in-repo Core engine for every non-dry-run CLI
+`install` and `ensure` invocation, and for `update` and `uninstall`, before any
+lifecycle work begins after the install/ensure escape retirement. Install/
+ensure `--dry-run` MUST retain the maintained v1 observation short-circuit
+planning path and MUST retain the maintained v1 dry-run plan without lifecycle
+mutation. Quantex MUST NOT honor `QUANTEX_INSTALLATION_ENGINE=legacy` (or any
+other value) as a second install/ensure apply engine route, MUST keep state
+schema version 2 unchanged, and MUST NOT automatically fall back between
+engines after selection.
 
 #### Scenario: Default install or ensure invocation
 
-- **WHEN** a user invokes `install` or `ensure`
+- **WHEN** a user invokes non-dry-run `install` or `ensure`
 - **THEN** Quantex selects the Core engine once before observation, locks,
   providers, filesystem, or state side effects
 - **AND THEN** the invocation preserves the maintained v1 command, output,
@@ -32,18 +33,19 @@ MUST NOT automatically fall back between engines after selection.
 #### Scenario: v1 dry-run planning for install or ensure
 
 - **WHEN** a user invokes `install` or `ensure` with `--dry-run`
-- **THEN** Quantex selects Core's preview path before any lifecycle side
-  effect
+- **THEN** Quantex selects the retained v1 observation short-circuit planning
+  path before any lifecycle side effect
 - **AND THEN** the result retains the maintained v1 dry-run plan and does not
   mutate providers, filesystem, or state
 
-#### Scenario: Legacy environment override no longer selects a second engine
+#### Scenario: Legacy environment override no longer selects a second apply engine
 
 - **WHEN** an operator sets `QUANTEX_INSTALLATION_ENGINE=legacy` before
-  invoking `install` or `ensure`
+  invoking non-dry-run `install` or `ensure`
 - **THEN** Quantex still selects the in-repo Core engine for the complete
-  invocation
-- **AND THEN** the environment value does not create a retained legacy route
+  apply invocation
+- **AND THEN** the environment value does not create a retained legacy apply
+  route
 
 #### Scenario: Selected engine fails after a side effect begins
 

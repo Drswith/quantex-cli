@@ -163,6 +163,13 @@ describe('mutation and execution observation boundary', () => {
       for (const exportName of expected.exports) expect(contents).toContain(exportName)
     }
 
+    for (const path of ['src/commands/ensure.ts', 'src/commands/install.ts']) {
+      const contents = await source(path)
+      expect(contents).toContain('./core-installation-cli')
+      expect(contents).not.toContain('QUANTEX_INSTALLATION_ENGINE')
+      expect(contents).not.toContain('reconcileAgentInstallation')
+    }
+
     for (const path of [
       'src/commands/ensure.ts',
       'src/commands/install.ts',

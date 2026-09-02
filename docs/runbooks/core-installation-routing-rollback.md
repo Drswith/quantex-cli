@@ -12,6 +12,6 @@
 - Preserve state schema version 2; do not edit or delete the state file to
   change engines.
 - Do not set `QUANTEX_INSTALLATION_ENGINE` expecting a second install/ensure
-  engine. The value is ignored for routing.
-- `--dry-run` for install/ensure uses Core preview and makes no lifecycle
-  mutation; it is not mutation evidence.
+  apply engine. The value is ignored for apply routing.
+- `--dry-run` for install/ensure retains the maintained v1 planning path and
+  makes no lifecycle mutation; it is not mutation evidence.

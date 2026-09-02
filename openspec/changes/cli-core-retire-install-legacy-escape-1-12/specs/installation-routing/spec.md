@@ -2,29 +2,30 @@
 
 ### Requirement: Install and ensure SHALL route whole invocations to one engine
 
-Quantex SHALL keep Core as the only whole-invocation engine for CLI `install`,
-`ensure`, `update`, and `uninstall`. CLI `install` and `ensure` MUST select the
-in-repo Core engine before observation or mutation, including when `--dry-run`
-is set, and MUST NOT select a second engine through
-`QUANTEX_INSTALLATION_ENGINE` or any other process-scoped override. After the
-1.12 retirement of the install/ensure legacy escape, those commands MUST execute
-Core's apply path for mutating invocations and Core's existing preview/dry-run
-path for `--dry-run`, preserving the maintained v1 dry-run plan with no
-lifecycle mutation. Quantex MUST NOT select Core for `run`, and MUST NOT fall
-back between engines after an invocation begins.
+Quantex SHALL keep Core as the only whole-invocation apply engine for CLI
+`install`, `ensure`, `update`, and `uninstall`. CLI `install` and `ensure`
+MUST select the in-repo Core engine before observation or mutation for
+non-dry-run invocations, and MUST NOT select a second apply engine through
+`QUANTEX_INSTALLATION_ENGINE` or any other process-scoped override. Install/
+ensure `--dry-run` MUST retain the maintained v1 observation short-circuit
+planning path that produces the frozen dry-run plan with no lifecycle mutation;
+Core preview MUST NOT replace that path until it matches those frozen contracts.
+Quantex MUST NOT select Core for `run`, and MUST NOT fall back between engines
+after an invocation begins.
 
-#### Scenario: install or ensure always selects Core
+#### Scenario: install or ensure always selects Core for apply
 
-- **WHEN** an operator invokes `install` or `ensure` with or without
+- **WHEN** an operator invokes non-dry-run `install` or `ensure` with or without
   `QUANTEX_INSTALLATION_ENGINE` set
 - **THEN** that invocation uses the in-repo Core engine from start to finish
 - **AND THEN** an exact `legacy` environment value does not create a second
-  routing mode
+  apply routing mode
 
-#### Scenario: dry-run for install or ensure uses Core preview
+#### Scenario: dry-run for install or ensure keeps the maintained planning path
 
 - **WHEN** an operator invokes `install` or `ensure` with `--dry-run`
-- **THEN** the invocation uses Core's existing preview/dry-run path
+- **THEN** the invocation uses the retained v1 observation short-circuit
+  planning path
 - **AND THEN** it retains the maintained v1 dry-run plan and does not start a
   lifecycle mutation
 

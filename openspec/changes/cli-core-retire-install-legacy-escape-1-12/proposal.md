@@ -15,9 +15,10 @@ edits.
 - Remove the `QUANTEX_INSTALLATION_ENGINE=legacy` whole-invocation escape for
   CLI `install` and `ensure`. Those commands MUST always select in-repo Core
   before observation or mutation.
-- Move install/ensure `--dry-run` onto Core's existing `preview` path when it
-  already projects the maintained v1 dry-run plan (no mutation, same warning
-  codes/messages and data shape). Do **not** silently change dry-run JSON.
+- Move install/ensure `--dry-run` onto Core's existing `preview` path only when
+  it already projects the maintained v1 dry-run plan. Verified mismatch under
+  indeterminate provider observation: keep the retained observation
+  short-circuit dry-run planner so dry-run JSON/exit do not drift.
 - Keep user-facing commands, aliases, `--json` / `--output`, exit codes, and
   state schema version 2 unchanged.
 - After Core-only routing, prove the `src/lifecycle` import graph and delete

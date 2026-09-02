@@ -21,11 +21,11 @@ Core preview so the second engine can be fully retired for those commands.
 
 **Goals:**
 
-- Make CLI `install` and `ensure` Core-only for every invocation, including
-  `--dry-run`.
-- Remove env-selected second-engine branching from route selection and command
-  modules.
-- Preserve frozen v1 command / JSON / exit / state schema contracts.
+- Make CLI `install` and `ensure` Core-only for apply invocations.
+- Remove env-selected second-engine branching from apply route selection and
+  command modules.
+- Preserve frozen v1 dry-run planning semantics via the retained observation
+  short-circuit planner (Core preview is not yet contract-identical).
 - Prove and delete only zero-reference `src/lifecycle` files after the escape
   is gone.
 - Update OpenSpec, README, and the rollback runbook so they no longer require
@@ -55,18 +55,18 @@ by product authorization for this slice. Soft-deprecate with a warning but keep
 the second engine — rejected because it preserves a dual-engine maintenance
 burden without a frozen public contract requiring it.
 
-### 2. Move install/ensure `--dry-run` onto Core preview
+### 2. Keep install/ensure `--dry-run` on the maintained planning path
 
-Verified: `core-installation-cli` already maps `cliContext.dryRun` to
-`mode: 'preview'` and projects the maintained v1 dry-run plan (`changed: false`,
-`warnings[].code === 'DRY_RUN'`, adopt/reinstall/install messages matching the
-legacy planner, no provider mutation). Prefer Core preview so install/ensure
-no longer need a second planning engine.
+Verified: Core `preview` does **not** yet match the frozen v1 dry-run plan when
+provider observation is indeterminate (for example empty PATH in the command-
+family process fixture). Prefer frozen contracts over premature Core preview
+adoption. Install/ensure `--dry-run` therefore keeps the observation
+short-circuit planner (no mutation, same DRY_RUN warnings), while apply stays
+Core-only and the env escape is removed.
 
-**Alternatives considered:** Keep dry-run on the legacy planner while removing
-only the env escape — rejected because it would leave a second engine solely
-for dry-run after product authorized Core-only install/ensure. Reimplement a
-CLI-local dry-run planner — rejected as duplicate of Core preview.
+**Alternatives considered:** Force Core preview now — rejected because it
+changes dry-run JSON/exit under indeterminate observation. Keep dry-run on the
+full legacy mutation engine — rejected because only planning is required.
 
 ### 3. Collapse install/ensure command modules onto the Core session path
 

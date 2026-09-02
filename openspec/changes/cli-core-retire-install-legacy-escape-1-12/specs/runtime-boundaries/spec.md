@@ -6,8 +6,10 @@ Quantex SHALL keep CLI `install` and `ensure` as thin projections over in-repo
 Core only after the 1.12 retirement of the install/ensure whole-invocation
 escape. Those command modules MAY parse argv, project Core apply/preview
 outcomes into maintained v1 human/JSON/NDJSON results, and apply exit policy.
-They MUST NOT retain a second install/ensure engine selected by
-`QUANTEX_INSTALLATION_ENGINE` or by a separate legacy dry-run planner.
+They MUST NOT retain a second install/ensure apply engine selected by
+`QUANTEX_INSTALLATION_ENGINE`. Install/ensure `--dry-run` MAY keep the
+maintained v1 observation short-circuit planner until Core preview matches
+those frozen contracts.
 
 #### Scenario: Install or ensure has no env-selected second engine
 
@@ -17,12 +19,12 @@ They MUST NOT retain a second install/ensure engine selected by
 - **AND THEN** the command module does not branch onto a retained legacy
   install/ensure engine
 
-#### Scenario: Install or ensure dry-run stays on Core preview
+#### Scenario: Install or ensure dry-run stays on the retained planner
 
 - **WHEN** a user invokes `install` or `ensure` with `--dry-run`
-- **THEN** planning executes through Core's existing preview path
-- **AND THEN** the CLI does not own a second dry-run planning engine for that
-  invocation
+- **THEN** planning executes through the retained v1 observation short-circuit
+  path
+- **AND THEN** the CLI does not invoke Core apply mutation for that request
 
 ## MODIFIED Requirements
 

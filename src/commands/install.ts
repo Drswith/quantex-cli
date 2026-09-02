@@ -5,7 +5,10 @@ import type { InstallationEngineRoute } from './installation-routing'
 import { getCliContext } from '../cli-context'
 import { normalizeAgentPresenceTargets } from '../idempotency/lifecycle-policy'
 import { createErrorResult, createSuccessResult, emitCommandEvent, emitCommandResult } from '../output'
+import { resolveAgent } from '../services/agents'
+import { resolveAgentObservation } from '../services/lifecycle-observations'
 import { pc } from '../utils/color'
+import { getAdoptableExistingInstallMethod } from '../utils/install'
 import { printError, printInfo, printWarn } from '../utils/user-output'
 import { reportInstallationEngineRoute, selectInstallationEngineRoute } from './installation-routing'
 import { resolveUnmanagedExternalAgent } from './unmanaged-install-compatibility'
@@ -79,6 +82,9 @@ export async function installCommandWithRoute(
   route: InstallationEngineRoute,
 ): Promise<CommandResult<InstallBatchCommandData | InstallCommandData>> {
   reportInstallationEngineRoute('install', route)
+  if (route.engine === 'dry-run-planning') {
+    return await runInstallCommand(agentNames, undefined)
+  }
   const { createCoreInstallationCliSession } = await import('./core-installation-cli')
   const coreSession = createCoreInstallationCliSession('install')
   try {
@@ -90,7 +96,7 @@ export async function installCommandWithRoute(
 
 async function runInstallCommand(
   agentNames: string | string[],
-  coreSession: CoreInstallationCliSession,
+  coreSession: CoreInstallationCliSession | undefined,
 ): Promise<CommandResult<InstallBatchCommandData | InstallCommandData>> {
   const requestedAgents = normalizeAgentPresenceTargets(Array.isArray(agentNames) ? agentNames : [agentNames])
 
@@ -179,10 +185,74 @@ async function runInstallCommand(
 async function performSingleInstall(
   agentName: string,
   options: SingleInstallOptions = {},
-  coreSession: CoreInstallationCliSession,
+  coreSession: CoreInstallationCliSession | undefined,
 ): Promise<CommandResult<InstallCommandData>> {
+  if (!coreSession) return planInstallDryRun(agentName)
   const unmanaged = await resolveUnmanagedExternalAgent(agentName)
   return unmanaged ? createUnmanagedInstallResult(unmanaged) : await coreSession.execute(agentName, options)
+}
+
+async function planInstallDryRun(agentName: string): Promise<CommandResult<InstallCommandData>> {
+  if (!resolveAgent(agentName)) {
+    return createUnknownInstallResult(agentName)
+  }
+
+  const resolved = await resolveAgentObservation(agentName)
+  if (!resolved) return createUnknownInstallResult(agentName)
+
+  const { agent } = resolved
+  const inPath = resolved.pathExecutable.present
+  const installedState = resolved.installedState
+  const adoptableMethod =
+    inPath && !installedState
+      ? getAdoptableExistingInstallMethod(resolved.methods, resolved.resolvedBinaryPath ?? resolved.pathExecutable.path)
+      : undefined
+
+  if (inPath && !installedState && !adoptableMethod) return createUnmanagedInstallResult(agent)
+  if (installedState && inPath) {
+    return createSuccessResult({
+      action: 'install',
+      data: {
+        agent: { displayName: agent.displayName, name: agent.name },
+        changed: false,
+        installed: true,
+      },
+      target: { kind: 'agent', name: agent.name },
+      warnings: [{ code: 'ALREADY_INSTALLED', message: `${agent.displayName} is already installed.` }],
+    })
+  }
+
+  return createSuccessResult({
+    action: 'install',
+    data: {
+      agent: { displayName: agent.displayName, name: agent.name },
+      changed: false,
+      installed: Boolean(adoptableMethod),
+    },
+    target: { kind: 'agent', name: agent.name },
+    warnings: [
+      {
+        code: 'DRY_RUN',
+        message: adoptableMethod
+          ? `Dry run: would record the existing ${agent.displayName} install in Quantex state.`
+          : installedState
+            ? `Dry run: would reinstall ${agent.displayName} only if its recorded provider target is confirmed absent.`
+            : `Dry run: would install ${agent.displayName}.`,
+      },
+    ],
+  })
+}
+
+function createUnknownInstallResult(agentName: string): CommandResult<InstallCommandData> {
+  return createErrorResult({
+    action: 'install',
+    error: {
+      code: 'AGENT_NOT_FOUND',
+      details: { input: agentName },
+      message: `Unknown agent: ${agentName}`,
+    },
+    target: { kind: 'agent', name: agentName },
+  })
 }
 
 function createUnmanagedInstallResult(agent: AgentDefinition): CommandResult<InstallCommandData> {

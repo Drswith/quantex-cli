@@ -392,7 +392,9 @@ describe.each(['install', 'ensure'] as const)('legacy/Core %s differential gate'
     expect(core.typedOutcome).toEqual(legacy.typedOutcome)
     expect(core.stateDelta).toEqual(legacy.stateDelta)
     expect(core.receipt).toEqual(legacy.receipt)
-    expect(core.cli).toEqual(legacy.cli)
+    // CLI projection equality is no longer part of this gate: install/ensure no
+    // longer expose a legacy CLI route. Core CLI projection remains covered by
+    // core-installation-cli contract tests.
 
     expect(legacy.incomparableFields).toEqual([
       'error.details.reason (free-form engine-specific diagnostic)',
@@ -578,19 +580,6 @@ async function runLegacyReconciler(operation: Operation): Promise<CommandResult<
   }
 
   const route: AgentInstallationRoute = installedState && inPath ? 'satisfied' : adoptableMethod ? 'adopt' : 'install'
-  if (route === 'satisfied') {
-    return createSuccessResult({
-      action: operation,
-      data: {
-        agent: { displayName: agent.displayName, name: agent.name },
-        changed: false,
-        installed: true,
-      },
-      target: { kind: 'agent', name: agent.name },
-      warnings: [{ code: 'ALREADY_INSTALLED', message: `${agent.displayName} is already installed.` }],
-    })
-  }
-
   const outcome = await reconcileAgentInstallation({
     adoptableMethod,
     agent,
@@ -600,6 +589,18 @@ async function runLegacyReconciler(operation: Operation): Promise<CommandResult<
   })
 
   if (outcome.kind === 'success') {
+    if (route === 'satisfied') {
+      return createSuccessResult({
+        action: operation,
+        data: {
+          agent: { displayName: agent.displayName, name: agent.name },
+          changed: false,
+          installed: true,
+        },
+        target: { kind: 'agent', name: agent.name },
+        warnings: [{ code: 'ALREADY_INSTALLED', message: `${agent.displayName} is already installed.` }],
+      })
+    }
     const installed = outcome.value.value.installedState
     return createSuccessResult({
       action: operation,

@@ -5,7 +5,9 @@ const control = vi.hoisted(() => ({
   createSession: vi.fn(),
   dispose: vi.fn(),
   execute: vi.fn(),
+  resolveObservation: vi.fn(),
   resolveUnmanaged: vi.fn(),
+  getAgent: vi.fn(),
 }))
 
 vi.mock('../../src/commands/core-installation-cli', () => ({
@@ -16,9 +18,28 @@ vi.mock('../../src/commands/unmanaged-install-compatibility', () => ({
   resolveUnmanagedExternalAgent: control.resolveUnmanaged,
 }))
 
+vi.mock('../../src/services/agents', async importOriginal => {
+  const actual = await importOriginal<typeof import('../../src/services/agents')>()
+  return { ...actual, resolveAgent: (name: string) => control.getAgent(name) }
+})
+
+vi.mock('../../src/services/lifecycle-observations', async importOriginal => {
+  const actual = await importOriginal<typeof import('../../src/services/lifecycle-observations')>()
+  return { ...actual, resolveAgentObservation: control.resolveObservation }
+})
+
 import { resetCliContext, setCliContext } from '../../src/cli-context'
 import { ensureCommand } from '../../src/commands/ensure'
 import { createErrorResult, createSuccessResult } from '../../src/output'
+
+const testAgent = {
+  binaryName: 'test-bin',
+  displayName: 'Test Agent',
+  homepage: 'https://example.com',
+  name: 'test-agent',
+  packages: { npm: 'test-pkg' },
+  platforms: { linux: [{ type: 'bun' as const }] },
+}
 
 describe('ensureCommand', () => {
   let logSpy: ReturnType<typeof vi.spyOn>
@@ -32,7 +53,10 @@ describe('ensureCommand', () => {
     control.dispose.mockReset()
     control.execute.mockReset()
     control.resolveUnmanaged.mockReset()
+    control.resolveObservation.mockReset()
+    control.getAgent.mockReset()
     control.resolveUnmanaged.mockResolvedValue(undefined)
+    control.getAgent.mockImplementation((name: string) => (name === 'test-agent' ? testAgent : undefined))
     control.createSession.mockImplementation(() => ({
       dispose: control.dispose,
       execute: control.execute,
@@ -79,46 +103,50 @@ describe('ensureCommand', () => {
     expect(control.execute).toHaveBeenCalledWith('test-agent', { emitStartedEvent: true })
   })
 
-  it('keeps dry-run on Core preview with the maintained DRY_RUN warning', async () => {
+  it('keeps dry-run on the retained planning route with the maintained DRY_RUN warning', async () => {
     setCliContext({ dryRun: true, interactive: false, outputMode: 'json', runId: 'ensure-dry-run' })
-    control.execute.mockResolvedValueOnce(
-      createSuccessResult({
-        action: 'ensure',
-        data: { agent: { displayName: 'Test Agent', name: 'test-agent' }, changed: false, installed: false },
-        target: { kind: 'agent', name: 'test-agent' },
-        warnings: [{ code: 'DRY_RUN', message: 'Dry run: would install Test Agent.' }],
-      }),
-    )
+    control.resolveObservation.mockResolvedValueOnce({
+      agent: testAgent,
+      methods: [{ type: 'bun' }],
+      observation: {
+        drift: { kind: 'none' },
+        kind: 'absent',
+        observedAt: '2026-01-01T00:00:00.000Z',
+        targetId: 'test-agent',
+      },
+      pathExecutable: { present: false },
+    })
 
     const result = await ensureCommand('test-agent')
 
     expect(result.ok).toBe(true)
     expect(result.warnings[0]?.code).toBe('DRY_RUN')
     expect(result.warnings[0]?.message).toBe('Dry run: would install Test Agent.')
+    expect(control.createSession).not.toHaveBeenCalled()
   })
 
-  it('keeps tracked-ghost dry-run conditional messaging from Core preview', async () => {
+  it('keeps tracked-ghost dry-run conditional messaging from the retained planner', async () => {
     setCliContext({ dryRun: true, interactive: false, outputMode: 'json', runId: 'ghost-dry-run' })
-    control.execute.mockResolvedValueOnce(
-      createSuccessResult({
-        action: 'ensure',
-        data: { agent: { displayName: 'Test Agent', name: 'test-agent' }, changed: false, installed: false },
-        target: { kind: 'agent', name: 'test-agent' },
-        warnings: [
-          {
-            code: 'DRY_RUN',
-            message: 'Dry run: would reinstall Test Agent only if its recorded provider target is confirmed absent.',
-          },
-        ],
-      }),
-    )
+    control.resolveObservation.mockResolvedValueOnce({
+      agent: testAgent,
+      installedState: { agentName: 'test-agent', installType: 'bun', packageName: 'test-pkg' },
+      methods: [{ type: 'bun' }],
+      observation: {
+        drift: { kind: 'recorded-absent' },
+        kind: 'absent',
+        observedAt: '2026-01-01T00:00:00.000Z',
+        targetId: 'test-agent',
+      },
+      pathExecutable: { present: false },
+    })
 
     const result = await ensureCommand('test-agent')
 
     expect(result.warnings[0]?.message).toContain('would reinstall Test Agent only if')
+    expect(control.createSession).not.toHaveBeenCalled()
   })
 
-  it('ignores the retired legacy env override and still uses Core', async () => {
+  it('ignores the retired legacy env override and still uses Core for apply', async () => {
     process.env.QUANTEX_INSTALLATION_ENGINE = 'legacy'
     control.execute.mockResolvedValueOnce(
       createSuccessResult({

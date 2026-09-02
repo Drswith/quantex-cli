@@ -5,7 +5,9 @@ const control = vi.hoisted(() => ({
   createSession: vi.fn(),
   dispose: vi.fn(),
   execute: vi.fn(),
+  resolveObservation: vi.fn(),
   resolveUnmanaged: vi.fn(),
+  getAgent: vi.fn(),
 }))
 
 vi.mock('../../src/commands/core-installation-cli', () => ({
@@ -16,9 +18,28 @@ vi.mock('../../src/commands/unmanaged-install-compatibility', () => ({
   resolveUnmanagedExternalAgent: control.resolveUnmanaged,
 }))
 
+vi.mock('../../src/services/agents', async importOriginal => {
+  const actual = await importOriginal<typeof import('../../src/services/agents')>()
+  return { ...actual, resolveAgent: (name: string) => control.getAgent(name) }
+})
+
+vi.mock('../../src/services/lifecycle-observations', async importOriginal => {
+  const actual = await importOriginal<typeof import('../../src/services/lifecycle-observations')>()
+  return { ...actual, resolveAgentObservation: control.resolveObservation }
+})
+
 import { resetCliContext, setCliContext } from '../../src/cli-context'
 import { installCommand } from '../../src/commands/install'
 import { createErrorResult, createSuccessResult } from '../../src/output'
+
+const testAgent = {
+  binaryName: 'test-bin',
+  displayName: 'Test Agent',
+  homepage: 'https://example.com',
+  name: 'test-agent',
+  packages: { npm: 'test-pkg' },
+  platforms: { linux: [{ type: 'bun' as const }] },
+}
 
 describe('installCommand', () => {
   let logSpy: ReturnType<typeof vi.spyOn>
@@ -32,7 +53,10 @@ describe('installCommand', () => {
     control.dispose.mockReset()
     control.execute.mockReset()
     control.resolveUnmanaged.mockReset()
+    control.resolveObservation.mockReset()
+    control.getAgent.mockReset()
     control.resolveUnmanaged.mockResolvedValue(undefined)
+    control.getAgent.mockImplementation((name: string) => (name === 'test-agent' ? testAgent : undefined))
     control.createSession.mockImplementation(() => ({
       dispose: control.dispose,
       execute: control.execute,
@@ -77,21 +101,24 @@ describe('installCommand', () => {
     expect(stdoutWriteSpy).toHaveBeenCalledWith(expect.stringContaining('already installed'))
   })
 
-  it('returns a dry-run plan from Core preview without mutation', async () => {
+  it('returns a dry-run plan from the retained planning route without Core mutation', async () => {
     setCliContext({
       dryRun: true,
       interactive: false,
       outputMode: 'json',
       runId: 'dry-run-id',
     })
-    control.execute.mockResolvedValueOnce(
-      createSuccessResult({
-        action: 'install',
-        data: { agent: { displayName: 'Test Agent', name: 'test-agent' }, changed: false, installed: false },
-        target: { kind: 'agent', name: 'test-agent' },
-        warnings: [{ code: 'DRY_RUN', message: 'Dry run: would install Test Agent.' }],
-      }),
-    )
+    control.resolveObservation.mockResolvedValueOnce({
+      agent: testAgent,
+      methods: [{ type: 'bun' }],
+      observation: {
+        drift: { kind: 'none' },
+        kind: 'absent',
+        observedAt: '2026-01-01T00:00:00.000Z',
+        targetId: 'test-agent',
+      },
+      pathExecutable: { present: false },
+    })
 
     const result = await installCommand('test-agent')
 
@@ -99,10 +126,10 @@ describe('installCommand', () => {
     expect(result.data?.changed).toBe(false)
     expect(result.warnings[0]?.code).toBe('DRY_RUN')
     expect(result.warnings[0]?.message).toBe('Dry run: would install Test Agent.')
-    expect(control.createSession).toHaveBeenCalledWith('install')
+    expect(control.createSession).not.toHaveBeenCalled()
   })
 
-  it('ignores the retired legacy env override and still uses Core', async () => {
+  it('ignores the retired legacy env override and still uses Core for apply', async () => {
     process.env.QUANTEX_INSTALLATION_ENGINE = 'legacy'
     control.execute.mockResolvedValueOnce(
       createSuccessResult({

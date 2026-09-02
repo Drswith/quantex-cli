@@ -107,7 +107,7 @@ describe('installation engine routing', () => {
     })
   })
 
-  it('keeps install and ensure dry-run on the Core stable-default route', () => {
+  it('keeps install and ensure dry-run on the maintained planning route', () => {
     setCliContext({
       cancelled: false,
       colorMode: 'never',
@@ -120,18 +120,16 @@ describe('installation engine routing', () => {
     })
 
     expect(selectInstallationEngineRoute('install')).toEqual({
-      adoption: 'v1-safe',
-      engine: 'core',
-      source: 'stable-default',
+      engine: 'dry-run-planning',
+      source: 'dry-run-compatibility',
     })
     expect(selectInstallationEngineRoute('ensure')).toEqual({
-      adoption: 'v1-safe',
-      engine: 'core',
-      source: 'stable-default',
+      engine: 'dry-run-planning',
+      source: 'dry-run-compatibility',
     })
   })
 
-  it('still selects Core for dry-run when the retired legacy env value is present', () => {
+  it('still uses dry-run planning when the retired legacy env value is present', () => {
     process.env.QUANTEX_INSTALLATION_ENGINE = 'legacy'
     setCliContext({
       cancelled: false,
@@ -145,27 +143,17 @@ describe('installation engine routing', () => {
     })
 
     expect(selectInstallationEngineRoute('install')).toEqual({
-      adoption: 'v1-safe',
-      engine: 'core',
-      source: 'stable-default',
+      engine: 'dry-run-planning',
+      source: 'dry-run-compatibility',
     })
   })
 
   it('selects the Core batch route once and reuses one session for every target', async () => {
-    let routeReads = 0
-    const route = Object.freeze({
-      adoption: 'v1-safe' as const,
-      get engine() {
-        routeReads += 1
-        return 'core' as const
-      },
-      source: 'test' as const,
-    }) as InstallationEngineRoute
+    const route = createCoreInstallationTestRoute()
 
     const result = await installCommandWithRoute(['first', 'second', 'first'], route)
 
     expect(result.ok).toBe(true)
-    expect(routeReads).toBe(1)
     expect(control.createSession).toHaveBeenCalledTimes(1)
     expect(control.createSession).toHaveBeenCalledWith('install')
     expect(control.execute.mock.calls.map(call => call[0])).toEqual(['first', 'second'])

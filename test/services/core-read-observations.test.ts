@@ -78,7 +78,7 @@ describe('Core-backed CLI read observations', () => {
     expect(cleanup).toHaveBeenCalledOnce()
   })
 
-  it('routes only maintained read commands through Core while mutation commands stay on the legacy boundary', async () => {
+  it('routes only maintained read commands through Core while install/ensure apply through Core', async () => {
     for (const path of ['info', 'inspect', 'list', 'resolve']) {
       expect(await source(`src/commands/${path}.ts`)).toContain("from '../services/core-read-observations'")
     }
@@ -93,8 +93,10 @@ describe('Core-backed CLI read observations', () => {
     }
     for (const path of ['ensure', 'install']) {
       const contents = await source(`src/commands/${path}.ts`)
+      expect(contents).toContain('./core-installation-cli')
       expect(contents).toContain("from '../services/lifecycle-observations'")
       expect(contents).not.toContain('core-read-observations')
+      expect(contents).not.toContain('QUANTEX_INSTALLATION_ENGINE')
     }
 
     const adapter = await source('src/services/core-read-observations.ts')
