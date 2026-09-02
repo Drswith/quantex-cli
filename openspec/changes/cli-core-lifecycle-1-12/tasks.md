@@ -27,4 +27,4 @@
 
 - [x] 5.1 Run `bun run lint`, `bun run format:check`, and `bun run typecheck`
 - [x] 5.2 Run focused Core, command, routing, and `--json` contract tests covering the changed surface
-- [ ] 5.3 Commit, push, and open the PR with the repository template stating 1.12 intent and the frozen compatibility surface
+- [x] 5.3 Commit, push, and open the PR with the repository template stating 1.12 intent and the frozen compatibility surface
