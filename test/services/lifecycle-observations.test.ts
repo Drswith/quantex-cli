@@ -151,8 +151,6 @@ describe('mutation and execution observation boundary', () => {
     expect(agentsSource).not.toContain("from './lifecycle-observations'")
 
     const expectedRoutes = {
-      'src/commands/ensure.ts': { exports: ['resolveAgentObservation'], route: '../services/lifecycle-observations' },
-      'src/commands/install.ts': { exports: ['resolveAgentObservation'], route: '../services/lifecycle-observations' },
       'src/commands/update.ts': { exports: ['resolveAgent'], route: '../services/agents' },
       'src/services/update.ts': { exports: ['inspectRegisteredAgents'], route: './agents' },
     }
@@ -161,6 +159,14 @@ describe('mutation and execution observation boundary', () => {
       const contents = await source(path)
       expect(contents).toContain(`from '${expected.route}'`)
       for (const exportName of expected.exports) expect(contents).toContain(exportName)
+    }
+
+    for (const path of ['src/commands/ensure.ts', 'src/commands/install.ts']) {
+      const contents = await source(path)
+      expect(contents).toContain('./core-installation-cli')
+      expect(contents).toContain('./installation-routing')
+      expect(contents).not.toContain('QUANTEX_INSTALLATION_ENGINE')
+      expect(contents).not.toContain('reconcileAgentInstallation')
     }
 
     for (const path of [

@@ -1,13 +1,9 @@
 import type { AgentDefinition, InstallMethod } from '../../src/agents/types'
-import type { InstallationEngineRoute } from '../../src/commands/installation-routing'
 import type { CoreInstallationExecutionOutcome } from '../../src/core/installation-executor'
 import type { CoreInvocationOutcome } from '../../src/core/invocation'
 import type { CoreMutationRecipeCatalog } from '../../src/core/mutation-recipe-catalog'
 import type { CoreAgentObservation } from '../../src/core/production-observation'
-import type { LifecycleOutcome, LifecycleReceipt } from '../../src/lifecycle/model'
-import type { LifecycleProviderBinding } from '../../src/lifecycle/provider-binding'
-import type { VerifiedMutation } from '../../src/lifecycle/reconcile'
-import type { CommandResult } from '../../src/output/types'
+import type { LifecycleReceipt } from '../../src/lifecycle/model'
 import type {
   ProviderAdapter,
   ProviderMutationEvidence,
@@ -18,17 +14,16 @@ import type { InstalledAgentState, VersionedQuantexState } from '../../src/state
 import { describe, expect, it, vi } from 'vitest'
 
 /**
- * Each runner owns one in-memory world and invokes exactly one mutation engine. The
- * legacy runner keeps the real command/reconciler and replaces only its hard-wired
- * effect ports; the Core runner keeps the executor/production composition/state
- * transaction and injects fake providers, reads, locks, and persistence.
+ * Core-only install/ensure compatibility gate.
+ *
+ * CLI install/ensure no longer expose a live legacy engine route, so this file
+ * stops dual-engine live comparison. It runs the Core executor once per scenario
+ * and asserts decision / typed outcome / state effects / CLI projection against
+ * frozen Core-side expected payloads (aligned with `core-installation-cli` tests).
+ * Free-form diagnostic reason/remediation text stays incomparable.
  */
-type Operation = 'ensure' | 'install'
 
-const LEGACY_DIFFERENTIAL_ROUTE: InstallationEngineRoute = Object.freeze({
-  engine: 'legacy',
-  source: 'compatibility-escape',
-})
+type Operation = 'ensure' | 'install'
 
 type ScenarioName =
   | 'binary-verification-failure'
@@ -55,14 +50,11 @@ interface DifferentialScenario {
 interface MutableWorld {
   artifactPresent: boolean
   readonly agent: AgentDefinition
-  readonly engine: 'core' | 'legacy'
   readonly events: string[]
   readonly id: string
   installedByEngine: boolean
   readonly initialDocument: VersionedQuantexState
   readonly initialObservation: CoreAgentObservation
-  legacyOutcome?: LifecycleOutcome<VerifiedMutation<{ installedState: InstalledAgentState }>>
-  legacyRoute?: 'adopt' | 'install' | 'satisfied'
   readonly method: InstallMethod
   readonly mutation: DifferentialScenario['mutation']
   readonly operation: Operation
@@ -75,201 +67,6 @@ interface MutableWorld {
 }
 
 type WorldWithoutInitialObservation = Omit<MutableWorld, 'initialObservation'>
-
-const legacyControl = vi.hoisted(() => {
-  let active: MutableWorld | undefined
-  let lastAgent: AgentDefinition | undefined
-
-  const world = (): MutableWorld => {
-    if (!active) throw new Error('The legacy differential world is not active.')
-    return active
-  }
-  const executeInstall = async (): Promise<unknown> => {
-    const current = world()
-    current.events.push('legacy:install')
-    if (current.mutation === 'cancelled') return { kind: 'cancelled', reason: 'fixture-cancelled' }
-    if (current.mutation === 'timed-out') return { kind: 'timed-out', timeoutMs: 37 }
-    current.artifactPresent = true
-    current.installedByEngine = true
-    return { kind: 'success', value: { installedState: structuredClone(current.recipeState) } }
-  }
-
-  return {
-    activate(next: MutableWorld): void {
-      if (active) throw new Error('A differential engine is already active.')
-      active = next
-      lastAgent = next.agent
-    },
-    async buildInstalledAgentState(): Promise<InstalledAgentState> {
-      return structuredClone(world().recipeState)
-    },
-    captureLegacyOutcome(
-      outcome: LifecycleOutcome<VerifiedMutation<{ installedState: InstalledAgentState }>>,
-      route: MutableWorld['legacyRoute'],
-    ): void {
-      world().legacyOutcome = outcome
-      world().legacyRoute = route
-    },
-    clear(): void {
-      active = undefined
-    },
-    createCliOperationContext() {
-      return {
-        context: { signal: new AbortController().signal },
-        dispose: vi.fn(),
-        run: async <T>(run: () => Promise<T>): Promise<T> => run(),
-      }
-    },
-    getCliContext() {
-      return {
-        cacheMode: 'default',
-        cancelled: false,
-        colorMode: 'never',
-        interactive: false,
-        logLevel: 'silent',
-        outputMode: 'human',
-        quiet: true,
-        runId: 'core-installation-differential',
-      }
-    },
-    async installAgentOutcome(): Promise<unknown> {
-      return executeInstall()
-    },
-    async isBinaryInPath(): Promise<boolean> {
-      const current = world()
-      current.events.push('legacy:binary-probe')
-      return current.artifactPresent && current.verification === 'satisfied'
-    },
-    async observeLifecycleProvider(binding: LifecycleProviderBinding): Promise<unknown> {
-      const current = world()
-      current.events.push('legacy:provider-observe')
-      return {
-        kind: 'success',
-        value: current.artifactPresent
-          ? {
-              executablePath: `/isolated/bin/${current.agent.binaryName}`,
-              kind: 'present',
-              target: binding.target,
-              version: '1.0.0',
-            }
-          : { kind: 'absent', target: binding.target },
-      }
-    },
-    async reinstallInstalledAgentOutcome(): Promise<unknown> {
-      world().events.push('legacy:reinstall')
-      return executeInstall()
-    },
-    resolveAgent(): AgentDefinition | undefined {
-      return active?.agent ?? lastAgent
-    },
-    async resolveAgentObservation(): Promise<CoreAgentObservation> {
-      const current = world()
-      current.events.push('legacy:observe')
-      return current.initialObservation
-    },
-    async rollbackInstalledAgentInstallation(): Promise<void> {
-      const current = world()
-      current.events.push('legacy:compensate')
-      if (current.source === 'npm') current.artifactPresent = false
-    },
-    async setAgentLifecycleEvidence(installedState: InstalledAgentState, receipt: LifecycleReceipt): Promise<void> {
-      const current = world()
-      current.events.push('legacy:record')
-      current.recordWrites += 1
-      current.state = {
-        ...current.state,
-        installedAgents: {
-          ...current.state.installedAgents,
-          [installedState.agentName]: structuredClone(installedState),
-        },
-        lifecycleReceipts: {
-          ...current.state.lifecycleReceipts,
-          [receipt.targetId]: structuredClone(receipt),
-        },
-      }
-    },
-    async withAgentLifecycleLock<T>(run: () => Promise<T>): Promise<T> {
-      const current = world()
-      current.events.push('legacy:lock:acquire')
-      try {
-        return await run()
-      } finally {
-        current.events.push('legacy:lock:release')
-      }
-    },
-  }
-})
-
-vi.mock('../../src/cli-context', () => ({ getCliContext: legacyControl.getCliContext }))
-vi.mock('../../src/package-manager', () => ({
-  buildInstalledAgentState: legacyControl.buildInstalledAgentState,
-  installAgentOutcome: legacyControl.installAgentOutcome,
-  reinstallInstalledAgentOutcome: legacyControl.reinstallInstalledAgentOutcome,
-  rollbackInstalledAgentInstallation: legacyControl.rollbackInstalledAgentInstallation,
-  withAgentLifecycleLock: legacyControl.withAgentLifecycleLock,
-}))
-vi.mock('../../src/runtime/cli-operation-context', () => ({
-  createCliOperationContext: legacyControl.createCliOperationContext,
-}))
-vi.mock('../../src/services/agents', () => ({ resolveAgent: legacyControl.resolveAgent }))
-vi.mock('../../src/services/lifecycle-observations', () => ({
-  resolveAgentObservation: legacyControl.resolveAgentObservation,
-}))
-vi.mock('../../src/state', async importOriginal => {
-  const actual = await importOriginal<typeof import('../../src/state')>()
-  return { ...actual, setAgentLifecycleEvidence: legacyControl.setAgentLifecycleEvidence }
-})
-vi.mock('../../src/utils/detect', async importOriginal => {
-  const actual = await importOriginal<typeof import('../../src/utils/detect')>()
-  return { ...actual, isBinaryInPath: legacyControl.isBinaryInPath }
-})
-vi.mock('../../src/lifecycle/provider-evidence', async importOriginal => {
-  const actual = await importOriginal<typeof import('../../src/lifecycle/provider-evidence')>()
-  return { ...actual, observeLifecycleProvider: legacyControl.observeLifecycleProvider }
-})
-vi.mock('../../src/lifecycle', async importOriginal => {
-  const actual = await importOriginal<typeof import('../../src/lifecycle')>()
-  return {
-    ...actual,
-    async reconcileAgentInstallation(input: Parameters<typeof actual.reconcileAgentInstallation>[0]) {
-      const outcome = await actual.reconcileAgentInstallation(input)
-      legacyControl.captureLegacyOutcome(outcome, input.route)
-      return outcome
-    },
-  }
-})
-vi.mock('../../src/output', async importOriginal => {
-  const actual = await importOriginal<typeof import('../../src/output')>()
-  return {
-    ...actual,
-    emitCommandEvent: () => undefined,
-    emitCommandResult: <T>(result: T) => result,
-  }
-})
-vi.mock('../../src/utils/user-output', () => ({
-  isDryRunEnabled: () => false,
-  printError: vi.fn(),
-  printInfo: vi.fn(),
-  printWarn: vi.fn(),
-}))
-
-import { projectCoreInstallationOutcome } from '../../src/commands/core-installation-cli'
-import { ensureCommandWithRoute } from '../../src/commands/ensure'
-import { installCommandWithRoute } from '../../src/commands/install'
-import { decideCoreInstallation } from '../../src/core/installation-decision'
-import { executeCoreInstallation } from '../../src/core/installation-executor'
-import { createProductionCoreInstallationPorts } from '../../src/core/installation-production'
-import { runCoreInvocation } from '../../src/core/invocation'
-import { getExitCodeForResult } from '../../src/errors'
-import {
-  providerBindingsEqual,
-  resolveInstallMethodProviderBinding,
-  resolveReceiptProviderBinding,
-  resolveStateProviderBinding,
-} from '../../src/lifecycle/provider-binding'
-import { createProviderRegistry } from '../../src/providers/registry'
-import { createEmptyStateDocument } from '../../src/state/schema'
-import { LifecycleStateStore } from '../../src/state/store'
 
 const AGENT: AgentDefinition = {
   binaryName: 'fixture-agent',
@@ -285,6 +82,53 @@ const AGENT: AgentDefinition = {
     ],
   },
 }
+
+vi.mock('../../src/cli-context', () => ({
+  getCliContext: () => ({
+    cacheMode: 'default',
+    cancelled: false,
+    colorMode: 'never',
+    interactive: false,
+    logLevel: 'silent',
+    outputMode: 'human',
+    quiet: true,
+    runId: 'core-installation-differential',
+  }),
+}))
+vi.mock('../../src/services/agents', () => ({
+  resolveAgent: () => AGENT,
+}))
+vi.mock('../../src/output', async importOriginal => {
+  const actual = await importOriginal<typeof import('../../src/output')>()
+  return {
+    ...actual,
+    emitCommandEvent: () => undefined,
+    emitCommandResult: <T>(result: T) => result,
+  }
+})
+vi.mock('../../src/utils/user-output', () => ({
+  isDryRunEnabled: () => false,
+  printError: vi.fn(),
+  printInfo: vi.fn(),
+  printWarn: vi.fn(),
+}))
+
+import type { CommandResult } from '../../src/output/types'
+import { projectCoreInstallationOutcome } from '../../src/commands/core-installation-cli'
+import { decideCoreInstallation } from '../../src/core/installation-decision'
+import { executeCoreInstallation } from '../../src/core/installation-executor'
+import { createProductionCoreInstallationPorts } from '../../src/core/installation-production'
+import { runCoreInvocation } from '../../src/core/invocation'
+import { getExitCodeForResult } from '../../src/errors'
+import {
+  resolveInstallMethodProviderBinding,
+  resolveReceiptProviderBinding,
+  resolveStateProviderBinding,
+} from '../../src/lifecycle/provider-binding'
+import { createProviderRegistry } from '../../src/providers/registry'
+import { createEmptyStateDocument } from '../../src/state/schema'
+import { LifecycleStateStore } from '../../src/state/store'
+
 const CONFIG_DIR = '/isolated/quantex-config'
 const SCRIPT_COMMAND = 'curl -fsSL https://example.com/fixture-agent | sh'
 const BINARY_COMMAND = 'fixture-installer --install fixture-agent'
@@ -378,83 +222,6 @@ const SCENARIOS: readonly DifferentialScenario[] = [
   },
 ]
 
-describe.each(['install', 'ensure'] as const)('legacy/Core %s differential gate', operation => {
-  it.each(SCENARIOS)('$name compares one isolated engine invocation at a time', async scenario => {
-    const legacy = await runLegacy(operation, scenario)
-    const core = await runCore(operation, scenario)
-
-    expect(legacy.worldId).not.toBe(core.worldId)
-    expect(legacy.selectedEngines).toEqual(['legacy'])
-    expect(core.selectedEngines).toEqual(['core'])
-    expect(legacy.events.some(event => event.startsWith('core:'))).toBe(false)
-    expect(core.events.some(event => event.startsWith('legacy:'))).toBe(false)
-
-    expect(core.observation).toEqual(legacy.observation)
-    expect(core.decision).toEqual(legacy.decision)
-    expect(core.typedOutcome).toEqual(legacy.typedOutcome)
-    expect(core.stateDelta).toEqual(legacy.stateDelta)
-    expect(core.receipt).toEqual(legacy.receipt)
-    expect(core.cli).toEqual(legacy.cli)
-
-    expect(legacy.incomparableFields).toEqual([
-      'error.details.reason (free-form engine-specific diagnostic)',
-      'error.details.remediation (free-form engine-specific diagnostic)',
-      'receipt.verifiedAt (engine-local clock)',
-      'recordWrites (implementation-only; semantic state delta compared)',
-      'typedOutcome.phase (not reported by v1)',
-      'typedOutcome.sideEffect (not reported by v1)',
-    ])
-    expect(core.incomparableFields).toEqual(legacy.incomparableFields)
-
-    if (
-      scenario.name === 'verification-failure' ||
-      scenario.name === 'script-verification-failure' ||
-      scenario.name === 'binary-verification-failure'
-    ) {
-      expect(legacy.recordWrites).toBe(0)
-      expect(core.recordWrites).toBe(0)
-      expect(legacy.receipt).toBeUndefined()
-      expect(core.receipt).toBeUndefined()
-    }
-
-    if (scenario.name === 'verification-failure') {
-      expect(legacy.artifactPresent).toBe(false)
-      expect(core.artifactPresent).toBe(false)
-      expect(core.diagnostics).toEqual({ phase: 'verify', sideEffect: 'compensated' })
-    }
-
-    if (scenario.name === 'managed-no-op') {
-      expect(legacy.recordWrites).toBe(1)
-      expect(core.recordWrites).toBe(0)
-      expect(core.stateDelta).toEqual(legacy.stateDelta)
-    }
-
-    if (scenario.name === 'script-verification-failure' || scenario.name === 'binary-verification-failure') {
-      expect(legacy.artifactPresent).toBe(true)
-      expect(core.artifactPresent).toBe(true)
-      expect(legacy.events).toContain('legacy:compensate')
-      expect(core.events).not.toContain('core:uninstall')
-      expect(core.diagnostics).toEqual({ phase: 'verify', sideEffect: 'may-remain' })
-    }
-  })
-})
-
-interface DifferentialSnapshot {
-  readonly artifactPresent: boolean
-  readonly cli: NormalizedCliProjection
-  readonly decision: CanonicalDecision
-  readonly diagnostics?: { readonly phase?: string; readonly sideEffect?: string }
-  readonly events: readonly string[]
-  readonly incomparableFields: readonly string[]
-  readonly observation: CanonicalObservation
-  readonly receipt?: NormalizedReceipt
-  readonly recordWrites: number
-  readonly selectedEngines: readonly ('core' | 'legacy')[]
-  readonly stateDelta: NormalizedStateDelta
-  readonly typedOutcome: CommonTypedOutcome
-  readonly worldId: string
-}
-
 type CanonicalDecision =
   | 'already-satisfied'
   | 'blocked-conflict'
@@ -462,13 +229,6 @@ type CanonicalDecision =
   | 'external-preserved'
   | 'install'
   | 'reinstall'
-
-interface CanonicalObservation {
-  readonly receipt?: NormalizedReceipt
-  readonly source?: { readonly providerId: string; readonly targetId: string; readonly targetKind: string }
-  readonly state?: InstalledAgentState
-  readonly status: 'conflict' | 'external' | 'indeterminate' | 'managed' | 'missing' | 'stale'
-}
 
 type CommonTypedOutcome =
   | { readonly changed: boolean; readonly kind: 'success' }
@@ -478,6 +238,267 @@ type CommonTypedOutcome =
       readonly code: 'decision-conflict' | 'decision-indeterminate' | 'verification-failed'
       readonly kind: 'failure'
     }
+
+interface ExpectedScenario {
+  readonly artifactPresent: boolean
+  readonly decision: CanonicalDecision
+  readonly diagnostics?: { readonly phase?: string; readonly sideEffect?: string }
+  readonly hasReceipt: boolean
+  readonly recordWrites: number
+  readonly typedOutcome: CommonTypedOutcome
+  readonly warningCodes: readonly string[]
+  readonly cli: {
+    readonly error: null | {
+      readonly code: string
+      readonly details?: Record<string, unknown>
+      readonly message: string
+    }
+    readonly ok: boolean
+  }
+}
+
+/**
+ * Frozen Core-side expectations for the CLI projector. Verification failures keep
+ * Core's `lifecycle: verification-failed` marker (locked by core-installation-cli);
+ * free-form reason/remediation remain stripped before comparison.
+ */
+const EXPECTED: Record<ScenarioName, ExpectedScenario> = {
+  'missing-success': {
+    artifactPresent: true,
+    cli: { error: null, ok: true },
+    decision: 'install',
+    hasReceipt: true,
+    recordWrites: 1,
+    typedOutcome: { changed: true, kind: 'success' },
+    warningCodes: [],
+  },
+  'managed-no-op': {
+    artifactPresent: true,
+    cli: { error: null, ok: true },
+    decision: 'already-satisfied',
+    hasReceipt: true,
+    recordWrites: 0,
+    typedOutcome: { changed: false, kind: 'success' },
+    warningCodes: ['ALREADY_INSTALLED'],
+  },
+  'external-preserved': {
+    artifactPresent: true,
+    cli: { error: null, ok: true },
+    decision: 'external-preserved',
+    hasReceipt: false,
+    recordWrites: 0,
+    typedOutcome: { changed: false, kind: 'success' },
+    warningCodes: ['UNTRACKED_EXISTING_INSTALL'],
+  },
+  'external-adopted': {
+    artifactPresent: true,
+    cli: { error: null, ok: true },
+    decision: 'external-preserved',
+    hasReceipt: true,
+    recordWrites: 1,
+    typedOutcome: { changed: true, kind: 'success' },
+    warningCodes: ['TRACKED_EXISTING_INSTALL'],
+  },
+  'stale-exact-reinstall': {
+    artifactPresent: true,
+    cli: { error: null, ok: true },
+    decision: 'reinstall',
+    hasReceipt: true,
+    recordWrites: 1,
+    typedOutcome: { changed: true, kind: 'success' },
+    warningCodes: [],
+  },
+  conflict: {
+    artifactPresent: true,
+    cli: {
+      error: {
+        code: 'INSTALL_FAILED',
+        details: { lifecycle: 'decision-indeterminate' },
+        message: 'Quantex could not determine the installed state of Fixture Agent.',
+      },
+      ok: false,
+    },
+    decision: 'blocked-conflict',
+    diagnostics: { phase: 'decide', sideEffect: 'none' },
+    hasReceipt: true,
+    recordWrites: 0,
+    typedOutcome: { code: 'decision-conflict', kind: 'failure' },
+    warningCodes: [],
+  },
+  indeterminate: {
+    artifactPresent: false,
+    cli: {
+      error: {
+        code: 'INSTALL_FAILED',
+        details: { lifecycle: 'decision-indeterminate' },
+        message: 'Quantex could not determine the installed state of Fixture Agent.',
+      },
+      ok: false,
+    },
+    decision: 'blocked-indeterminate',
+    diagnostics: { phase: 'decide', sideEffect: 'none' },
+    hasReceipt: false,
+    recordWrites: 0,
+    typedOutcome: { code: 'decision-indeterminate', kind: 'failure' },
+    warningCodes: [],
+  },
+  'provider-timeout': {
+    artifactPresent: false,
+    cli: {
+      error: { code: 'INSTALL_FAILED', message: 'Failed to install Fixture Agent.' },
+      ok: false,
+    },
+    decision: 'install',
+    diagnostics: { phase: 'execute', sideEffect: 'may-remain' },
+    hasReceipt: false,
+    recordWrites: 0,
+    typedOutcome: { kind: 'timed-out' },
+    warningCodes: [],
+  },
+  'provider-cancelled': {
+    artifactPresent: false,
+    cli: {
+      error: {
+        code: 'CANCELLED',
+        message: 'Install was cancelled before tracking could complete.',
+      },
+      ok: false,
+    },
+    decision: 'install',
+    diagnostics: { phase: 'execute', sideEffect: 'may-remain' },
+    hasReceipt: false,
+    recordWrites: 0,
+    typedOutcome: { kind: 'cancelled' },
+    warningCodes: [],
+  },
+  'verification-failure': {
+    artifactPresent: false,
+    cli: {
+      error: {
+        code: 'INSTALL_FAILED',
+        details: { lifecycle: 'verification-failed' },
+        message: 'Fixture Agent could not be verified after installation.',
+      },
+      ok: false,
+    },
+    decision: 'install',
+    diagnostics: { phase: 'verify', sideEffect: 'compensated' },
+    hasReceipt: false,
+    recordWrites: 0,
+    typedOutcome: { code: 'verification-failed', kind: 'failure' },
+    warningCodes: [],
+  },
+  'script-verification-failure': {
+    artifactPresent: true,
+    cli: {
+      error: {
+        code: 'INSTALL_FAILED',
+        details: { lifecycle: 'verification-failed' },
+        message: 'Fixture Agent could not be verified after installation.',
+      },
+      ok: false,
+    },
+    decision: 'install',
+    diagnostics: { phase: 'verify', sideEffect: 'may-remain' },
+    hasReceipt: false,
+    recordWrites: 0,
+    typedOutcome: { code: 'verification-failed', kind: 'failure' },
+    warningCodes: [],
+  },
+  'binary-verification-failure': {
+    artifactPresent: true,
+    cli: {
+      error: {
+        code: 'INSTALL_FAILED',
+        details: { lifecycle: 'verification-failed' },
+        message: 'Fixture Agent could not be verified after installation.',
+      },
+      ok: false,
+    },
+    decision: 'install',
+    diagnostics: { phase: 'verify', sideEffect: 'may-remain' },
+    hasReceipt: false,
+    recordWrites: 0,
+    typedOutcome: { code: 'verification-failed', kind: 'failure' },
+    warningCodes: [],
+  },
+}
+
+describe.each(['install', 'ensure'] as const)('Core %s compatibility gate', operation => {
+  it.each(SCENARIOS)('$name matches frozen Core CLI / engine expectations', async scenario => {
+    const core = await runCore(operation, scenario)
+    const expected = expectedFor(operation, scenario.name)
+
+    expect(core.events.some(event => event.startsWith('legacy:'))).toBe(false)
+    expect(core.decision).toEqual(expected.decision)
+    expect(core.typedOutcome).toEqual(expected.typedOutcome)
+    expect(core.recordWrites).toBe(expected.recordWrites)
+    expect(core.artifactPresent).toBe(expected.artifactPresent)
+    expect(core.receipt !== undefined).toBe(expected.hasReceipt)
+    expect(core.diagnostics).toEqual(expected.diagnostics)
+    expect(core.cli.ok).toBe(expected.cli.ok)
+    expect(core.cli.action).toBe(operation)
+    if (expected.cli.ok) expect(core.cli.exitCode).toBe(0)
+    else expect(core.cli.exitCode).toBeGreaterThan(0)
+    expect(core.cli.error).toEqual(expected.cli.error)
+    expect(core.cli.warnings.map(warning => warningCode(warning))).toEqual([...expected.warningCodes])
+
+    if (scenario.name === 'script-verification-failure' || scenario.name === 'binary-verification-failure') {
+      // Script/binary compensation leaves the artifact and does not uninstall.
+      expect(core.events).not.toContain('core:uninstall')
+    }
+    if (scenario.name === 'verification-failure') {
+      expect(core.events).toContain('core:uninstall')
+    }
+  })
+})
+
+function expectedFor(operation: Operation, name: ScenarioName): ExpectedScenario {
+  const base = EXPECTED[name]
+  if (operation === 'install') return base
+
+  const cliError = base.cli.error
+  if (!cliError) return base
+
+  if (cliError.code === 'CANCELLED') {
+    return {
+      ...base,
+      cli: {
+        ...base.cli,
+        error: {
+          ...cliError,
+          message: 'Ensure was cancelled before tracking could complete.',
+        },
+      },
+    }
+  }
+
+  if (cliError.details?.lifecycle === 'verification-failed') {
+    return {
+      ...base,
+      cli: {
+        ...base.cli,
+        error: {
+          ...cliError,
+          message: 'Fixture Agent could not be verified after ensure completed.',
+        },
+      },
+    }
+  }
+
+  return base
+}
+
+interface CoreSnapshot {
+  readonly artifactPresent: boolean
+  readonly cli: NormalizedCliProjection
+  readonly decision: CanonicalDecision
+  readonly diagnostics?: { readonly phase?: string; readonly sideEffect?: string }
+  readonly events: readonly string[]
+  readonly receipt?: NormalizedReceipt
+  readonly recordWrites: number
+  readonly typedOutcome: CommonTypedOutcome
+}
 
 interface NormalizedReceipt {
   readonly executableName?: string
@@ -491,59 +512,17 @@ interface NormalizedReceipt {
   readonly version?: string
 }
 
-interface NormalizedStateDelta {
-  readonly installedState: { readonly after?: InstalledAgentState; readonly before?: InstalledAgentState }
-  readonly receipt: { readonly after?: NormalizedReceipt; readonly before?: NormalizedReceipt }
-}
-
 interface NormalizedCliProjection {
   readonly action: string
   readonly data?: unknown
   readonly error: null | { readonly code: string; readonly details?: unknown; readonly message: string }
   readonly exitCode: number
-  readonly meta: {
-    readonly mode: string
-    readonly runId: string
-    readonly schemaVersion: string
-    readonly version: string
-  }
   readonly ok: boolean
-  readonly target?: unknown
   readonly warnings: readonly unknown[]
 }
 
-async function runLegacy(operation: Operation, scenario: DifferentialScenario): Promise<DifferentialSnapshot> {
-  const world = createWorld('legacy', operation, scenario)
-  legacyControl.activate(world)
-  let result: CommandResult<unknown>
-  try {
-    result =
-      operation === 'install'
-        ? ((await installCommandWithRoute(AGENT.name, LEGACY_DIFFERENTIAL_ROUTE)) as CommandResult<unknown>)
-        : ((await ensureCommandWithRoute(AGENT.name, LEGACY_DIFFERENTIAL_ROUTE)) as CommandResult<unknown>)
-  } finally {
-    legacyControl.clear()
-  }
-
-  const decision = legacyDecision(world)
-  return {
-    artifactPresent: world.artifactPresent,
-    cli: normalizeCliResult(result),
-    decision,
-    events: [...world.events],
-    incomparableFields: incomparableV1Fields(),
-    observation: normalizeObservation(world.initialObservation),
-    receipt: normalizeReceipt(world.state.lifecycleReceipts[AGENT.name]),
-    recordWrites: world.recordWrites,
-    selectedEngines: ['legacy'],
-    stateDelta: normalizeStateDelta(world.initialDocument, world.state),
-    typedOutcome: normalizeLegacyOutcome(world, decision),
-    worldId: world.id,
-  }
-}
-
-async function runCore(operation: Operation, scenario: DifferentialScenario): Promise<DifferentialSnapshot> {
-  const world = createWorld('core', operation, scenario)
+async function runCore(operation: Operation, scenario: DifferentialScenario): Promise<CoreSnapshot> {
+  const world = createWorld(operation, scenario)
   const registry = createProviderRegistry([createFakeProvider(world)])
   const persistence = {
     async load(): Promise<VersionedQuantexState> {
@@ -597,30 +576,20 @@ async function runCore(operation: Operation, scenario: DifferentialScenario): Pr
         : {},
     ),
   )
-  const decision = normalizeCoreDecision(directive)
 
   return {
     artifactPresent: world.artifactPresent,
     cli: normalizeCliResult(projectCoreInstallationOutcome(operation, AGENT.name, outcome)),
-    decision,
+    decision: normalizeCoreDecision(directive),
     diagnostics: coreDiagnostics(outcome),
     events: [...world.events],
-    incomparableFields: incomparableV1Fields(),
-    observation: normalizeObservation(world.initialObservation),
     receipt: normalizeReceipt(world.state.lifecycleReceipts[AGENT.name]),
     recordWrites: world.recordWrites,
-    selectedEngines: ['core'],
-    stateDelta: normalizeStateDelta(world.initialDocument, world.state),
     typedOutcome: normalizeCoreOutcome(outcome),
-    worldId: world.id,
   }
 }
 
-function createWorld(
-  engine: MutableWorld['engine'],
-  operation: Operation,
-  scenario: DifferentialScenario,
-): MutableWorld {
+function createWorld(operation: Operation, scenario: DifferentialScenario): MutableWorld {
   const method: InstallMethod =
     scenario.source === 'script' || scenario.source === 'binary'
       ? {
@@ -642,9 +611,8 @@ function createWorld(
   const world: WorldWithoutInitialObservation = {
     agent: AGENT,
     artifactPresent,
-    engine,
     events: [],
-    id: `${engine}:${operation}:${scenario.name}:${crypto.randomUUID()}`,
+    id: `core:${operation}:${scenario.name}:${crypto.randomUUID()}`,
     initialDocument: clone(document),
     installedByEngine: false,
     method,
@@ -718,12 +686,13 @@ function buildObservation(world: WorldWithoutInitialObservation, observedAt: str
           observedProviderId: stateBinding?.providerId,
           recordedProviderId: receiptBinding?.providerId,
         },
-        executablePath: executable.present ? executable.path : undefined,
+        executablePath: executable.path,
         kind: 'present',
         observedAt,
         targetId: AGENT.name,
-        version: executable.present ? executable.version : undefined,
+        version: executable.version,
       },
+      resolvedBinaryPath: executable.path,
     }
   }
 
@@ -741,13 +710,12 @@ function buildObservation(world: WorldWithoutInitialObservation, observedAt: str
     }
   }
 
-  if (!world.artifactPresent) {
+  if (!executable.present) {
     return {
       ...base,
-      ...(stateBinding ? { binding: stateBinding } : {}),
-      capabilities: [],
+      capabilities: catalogBinding ? ['availability', 'install', 'observe', 'uninstall', 'verify'] : [],
       observation: {
-        drift: { kind: stateBinding ? 'recorded-absent' : 'none' },
+        drift: installedState ? { kind: 'recorded-absent' } : { kind: 'none' },
         kind: 'absent',
         observedAt,
         targetId: AGENT.name,
@@ -755,8 +723,8 @@ function buildObservation(world: WorldWithoutInitialObservation, observedAt: str
     }
   }
 
-  const managed = Boolean(stateBinding && receiptBinding && providerBindingsEqual(stateBinding, receiptBinding))
-  const liveBinding = managed ? (receiptBinding ?? stateBinding) : world.installedByEngine ? catalogBinding : undefined
+  const liveBinding = catalogBinding
+  const managed = Boolean(installedState && receiptBinding)
   return {
     ...base,
     ...(liveBinding ? { binding: liveBinding } : {}),
@@ -864,41 +832,12 @@ function successfulMutation(target: ProviderTarget): ProviderOutcome<ProviderMut
   return { kind: 'success', value: { evidence: [], target } }
 }
 
-function legacyDecision(world: MutableWorld): CanonicalDecision {
-  switch (world.scenario.initial) {
-    case 'conflict':
-      return 'blocked-conflict'
-    case 'external':
-      return 'external-preserved'
-    case 'indeterminate':
-      return 'blocked-indeterminate'
-    case 'stale':
-      return 'reinstall'
-    case 'managed':
-      return 'already-satisfied'
-    case 'missing':
-      return 'install'
-  }
-}
-
 function normalizeCoreDecision(directive: ReturnType<typeof decideCoreInstallation>): CanonicalDecision {
   if (directive.kind === 'blocked') {
     return directive.code === 'conflict' ? 'blocked-conflict' : 'blocked-indeterminate'
   }
   if (directive.kind === 'interrupted') return 'blocked-indeterminate'
   return directive.decision
-}
-
-function normalizeLegacyOutcome(world: MutableWorld, decision: CanonicalDecision): CommonTypedOutcome {
-  if (decision === 'external-preserved' && world.legacyRoute !== 'adopt') return { changed: false, kind: 'success' }
-  const outcome = world.legacyOutcome
-  if (!outcome) throw new Error('The legacy engine did not expose a typed outcome.')
-  if (outcome.kind === 'success') return { changed: outcome.value.changed, kind: 'success' }
-  if (outcome.kind === 'cancelled') return { kind: 'cancelled' }
-  if (outcome.kind === 'timed-out') return { kind: 'timed-out' }
-  if (decision === 'blocked-conflict') return { code: 'decision-conflict', kind: 'failure' }
-  if (decision === 'blocked-indeterminate') return { code: 'decision-indeterminate', kind: 'failure' }
-  return { code: 'verification-failed', kind: 'failure' }
 }
 
 function normalizeCoreOutcome(outcome: CoreInvocationOutcome<CoreInstallationExecutionOutcome>): CommonTypedOutcome {
@@ -921,7 +860,7 @@ function normalizeCoreOutcome(outcome: CoreInvocationOutcome<CoreInstallationExe
 
 function coreDiagnostics(
   outcome: CoreInvocationOutcome<CoreInstallationExecutionOutcome>,
-): DifferentialSnapshot['diagnostics'] {
+): CoreSnapshot['diagnostics'] {
   if (outcome.kind === 'failure') {
     return {
       phase: typeof outcome.error.details?.phase === 'string' ? outcome.error.details.phase : undefined,
@@ -933,77 +872,31 @@ function coreDiagnostics(
     : undefined
 }
 
-function normalizeObservation(observed: CoreAgentObservation): CanonicalObservation {
-  const observation = observed.observation
-  const status: CanonicalObservation['status'] =
-    observation.drift.kind === 'conflicting-source'
-      ? 'conflict'
-      : observation.kind === 'indeterminate' || observation.drift.kind === 'indeterminate'
-        ? 'indeterminate'
-        : observation.kind === 'absent'
-          ? observation.drift.kind === 'recorded-absent'
-            ? 'stale'
-            : 'missing'
-          : observation.drift.kind === 'untracked'
-            ? 'external'
-            : 'managed'
-  const binding = observed.persistedBinding ?? observed.binding
-  return {
-    ...(observed.receipt ? { receipt: normalizeReceipt(observed.receipt) } : {}),
-    ...(binding
-      ? {
-          source: {
-            providerId: binding.providerId,
-            targetId: binding.target.id,
-            targetKind: binding.target.kind,
-          },
-        }
-      : {}),
-    ...(observed.installedState ? { state: clone(observed.installedState) } : {}),
-    status,
-  }
-}
-
-function normalizeStateDelta(before: VersionedQuantexState, after: VersionedQuantexState): NormalizedStateDelta {
-  return {
-    installedState: compactPair(before.installedAgents[AGENT.name], after.installedAgents[AGENT.name]),
-    receipt: compactPair(
-      normalizeReceipt(before.lifecycleReceipts[AGENT.name]),
-      normalizeReceipt(after.lifecycleReceipts[AGENT.name]),
-    ),
-  }
-}
-
-function compactPair<T>(before: T | undefined, after: T | undefined): { readonly after?: T; readonly before?: T } {
-  return {
-    ...(before === undefined ? {} : { before: clone(before) }),
-    ...(after === undefined ? {} : { after: clone(after) }),
-  }
-}
-
 function normalizeReceipt(receipt: LifecycleReceipt | undefined): NormalizedReceipt | undefined {
   if (!receipt) return undefined
   return {
-    ...(receipt.executableName ? { executableName: receipt.executableName } : {}),
-    ...(receipt.executablePath ? { executablePath: receipt.executablePath } : {}),
-    kind: receipt.kind,
+    ...(receipt.executableName === undefined ? {} : { executableName: receipt.executableName }),
+    ...(receipt.executablePath === undefined ? {} : { executablePath: receipt.executablePath }),
+    kind: 'lifecycle-receipt',
     providerId: receipt.providerId,
     providerTargetId: receipt.providerTargetId,
-    ...(receipt.providerTargetKind ? { providerTargetKind: receipt.providerTargetKind } : {}),
+    ...(receipt.providerTargetKind === undefined ? {} : { providerTargetKind: receipt.providerTargetKind }),
     schemaVersion: receipt.schemaVersion,
     targetId: receipt.targetId,
-    ...(receipt.version ? { version: receipt.version } : {}),
+    ...(receipt.version === undefined ? {} : { version: receipt.version }),
   }
 }
 
 function receiptFor(
-  binding: LifecycleProviderBinding,
+  binding: {
+    readonly providerId: string
+    readonly target: { readonly id: string; readonly kind: NonNullable<LifecycleReceipt['providerTargetKind']> }
+  },
   version: string,
   executablePath: string,
   verifiedAt: string,
 ): LifecycleReceipt {
   return {
-    ...(binding.target.binaryName ? { executableName: binding.target.binaryName } : {}),
     executablePath,
     kind: 'lifecycle-receipt',
     providerId: binding.providerId,
@@ -1028,24 +921,15 @@ function normalizeCliResult(result: CommandResult<unknown>): NormalizedCliProjec
         }
       : null,
     exitCode: getExitCodeForResult(result),
-    meta: {
-      mode: result.meta.mode,
-      runId: result.meta.runId,
-      schemaVersion: result.meta.schemaVersion,
-      version: result.meta.version,
-    },
     ok: result.ok,
-    ...(result.target === undefined ? {} : { target: clone(result.target) }),
     warnings: clone(result.warnings),
   }
 }
 
 /**
- * The diagnostic reason is free-form provider evidence, and the two engines
- * describe the same failure in their own vocabularies — v1 emits reason codes
- * like `provider-binding-unresolved-after-install`, Core emits prose. It is
- * explicitly not a stable contract and nothing may branch on it, so the gate
- * compares everything around it instead of forcing the two texts to converge.
+ * Free-form provider evidence stays out of the frozen contract. Core may attach
+ * richer reason/remediation text than historical v1; the gate compares the stable
+ * lifecycle marker and message family around it.
  */
 function withoutDiagnosticReason(details: Record<string, unknown>): Record<string, unknown> {
   const { reason: _reason, remediation: _remediation, ...rest } = clone(details)
@@ -1057,15 +941,11 @@ function stripDiagnosticReason(message: string): string {
   return head === undefined || head === message ? message : `${head}.`
 }
 
-function incomparableV1Fields(): readonly string[] {
-  return [
-    'error.details.reason (free-form engine-specific diagnostic)',
-    'error.details.remediation (free-form engine-specific diagnostic)',
-    'receipt.verifiedAt (engine-local clock)',
-    'recordWrites (implementation-only; semantic state delta compared)',
-    'typedOutcome.phase (not reported by v1)',
-    'typedOutcome.sideEffect (not reported by v1)',
-  ]
+function warningCode(warning: unknown): string {
+  if (warning && typeof warning === 'object' && 'code' in warning && typeof warning.code === 'string') {
+    return warning.code
+  }
+  throw new Error('CLI warning is missing a stable code.')
 }
 
 function clone<T>(value: T): T {

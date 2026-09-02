@@ -11,17 +11,11 @@ const control = vi.hoisted(() => ({
   createSession: vi.fn(),
   dispose: vi.fn(),
   execute: vi.fn(),
-  legacyLock: vi.fn(),
 }))
 
 vi.mock('../../src/commands/core-installation-cli', () => ({
   createCoreInstallationCliSession: control.createSession,
 }))
-
-vi.mock('../../src/package-manager', async importOriginal => {
-  const actual = await importOriginal<typeof import('../../src/package-manager')>()
-  return { ...actual, withAgentLifecycleLock: control.legacyLock }
-})
 
 import { setCliContext } from '../../src/cli-context'
 import { ensureCommandWithRoute } from '../../src/commands/ensure'
@@ -48,8 +42,6 @@ beforeEach(() => {
   control.createSession.mockReset()
   control.dispose.mockReset()
   control.execute.mockReset()
-  control.legacyLock.mockReset()
-  control.legacyLock.mockImplementation(async run => await run())
   control.createSession.mockImplementation(() => ({
     dispose: control.dispose,
     execute: control.execute,
@@ -76,9 +68,7 @@ describe('installation engine routing', () => {
     expect(Object.isFrozen(install)).toBe(true)
   })
 
-  it('selects Core for update and uninstall regardless of the install/ensure legacy escape', () => {
-    process.env.QUANTEX_INSTALLATION_ENGINE = 'legacy'
-
+  it('selects Core for update and uninstall', () => {
     expect(selectInstallationEngineRoute('update')).toEqual({
       adoption: 'v1-safe',
       engine: 'core',
@@ -91,28 +81,33 @@ describe('installation engine routing', () => {
     })
   })
 
-  it('uses the legacy compatibility escape for the complete selected invocation', () => {
+  it('ignores QUANTEX_INSTALLATION_ENGINE=legacy for install and ensure', () => {
     process.env.QUANTEX_INSTALLATION_ENGINE = 'legacy'
 
     const install = selectInstallationEngineRoute('install')
     const ensure = selectInstallationEngineRoute('ensure')
 
-    expect(install).toEqual({ engine: 'legacy', source: 'compatibility-escape' })
+    expect(install).toEqual({ adoption: 'v1-safe', engine: 'core', source: 'stable-default' })
     expect(ensure).toBe(install)
-    expect(Object.isFrozen(install)).toBe(true)
   })
 
-  it('recognizes only the exact legacy compatibility override', () => {
+  it('ignores non-exact and empty installation engine overrides', () => {
     process.env.QUANTEX_INSTALLATION_ENGINE = 'Legacy'
-
     expect(selectInstallationEngineRoute('install')).toEqual({
+      adoption: 'v1-safe',
+      engine: 'core',
+      source: 'stable-default',
+    })
+
+    process.env.QUANTEX_INSTALLATION_ENGINE = 'core'
+    expect(selectInstallationEngineRoute('ensure')).toEqual({
       adoption: 'v1-safe',
       engine: 'core',
       source: 'stable-default',
     })
   })
 
-  it('retains the legacy route for v1-compatible dry-run planning', () => {
+  it('keeps install and ensure dry-run on the maintained planning route', () => {
     setCliContext({
       cancelled: false,
       colorMode: 'never',
@@ -124,11 +119,17 @@ describe('installation engine routing', () => {
       runId: 'installation-routing-dry-run',
     })
 
-    expect(selectInstallationEngineRoute('install')).toEqual({ engine: 'legacy', source: 'dry-run-compatibility' })
-    expect(selectInstallationEngineRoute('ensure')).toEqual({ engine: 'legacy', source: 'dry-run-compatibility' })
+    expect(selectInstallationEngineRoute('install')).toEqual({
+      engine: 'dry-run-planning',
+      source: 'dry-run-compatibility',
+    })
+    expect(selectInstallationEngineRoute('ensure')).toEqual({
+      engine: 'dry-run-planning',
+      source: 'dry-run-compatibility',
+    })
   })
 
-  it('gives dry-run compatibility precedence over the explicit legacy escape', () => {
+  it('still uses dry-run planning when the retired legacy env value is present', () => {
     process.env.QUANTEX_INSTALLATION_ENGINE = 'legacy'
     setCliContext({
       cancelled: false,
@@ -141,30 +142,23 @@ describe('installation engine routing', () => {
       runId: 'installation-routing-dry-run-override',
     })
 
-    expect(selectInstallationEngineRoute('install')).toEqual({ engine: 'legacy', source: 'dry-run-compatibility' })
+    expect(selectInstallationEngineRoute('install')).toEqual({
+      engine: 'dry-run-planning',
+      source: 'dry-run-compatibility',
+    })
   })
 
   it('selects the Core batch route once and reuses one session for every target', async () => {
-    let routeReads = 0
-    const route = Object.freeze({
-      adoption: 'v1-safe' as const,
-      get engine() {
-        routeReads += 1
-        return 'core' as const
-      },
-      source: 'test' as const,
-    }) as InstallationEngineRoute
+    const route = createCoreInstallationTestRoute()
 
     const result = await installCommandWithRoute(['first', 'second', 'first'], route)
 
     expect(result.ok).toBe(true)
-    expect(routeReads).toBe(1)
     expect(control.createSession).toHaveBeenCalledTimes(1)
     expect(control.createSession).toHaveBeenCalledWith('install')
     expect(control.execute.mock.calls.map(call => call[0])).toEqual(['first', 'second'])
     expect(control.execute.mock.calls.map(call => call[1])).toEqual([{}, {}])
     expect(control.dispose).toHaveBeenCalledTimes(1)
-    expect(control.legacyLock).not.toHaveBeenCalled()
   })
 
   it('contains Core failures in the selected engine and continues an ordinary batch failure', async () => {
@@ -176,7 +170,6 @@ describe('installation engine routing', () => {
 
     expect(result.error?.code).toBe('INSTALL_FAILED')
     expect(control.execute).toHaveBeenCalledTimes(2)
-    expect(control.legacyLock).not.toHaveBeenCalled()
   })
 
   it('keeps v1 batch continuation for a provider-originated Core cancellation', async () => {
@@ -188,10 +181,9 @@ describe('installation engine routing', () => {
 
     expect(result.error?.code).toBe('INSTALL_FAILED')
     expect(control.execute).toHaveBeenCalledTimes(2)
-    expect(control.legacyLock).not.toHaveBeenCalled()
   })
 
-  it('branches ensure to Core before the legacy lifecycle lock and requests a started hook', async () => {
+  it('branches ensure to Core and requests a started hook', async () => {
     control.execute.mockResolvedValueOnce(ensureSuccess('fixture'))
 
     const result = await ensureCommandWithRoute('fixture', createCoreInstallationTestRoute())
@@ -200,7 +192,6 @@ describe('installation engine routing', () => {
     expect(control.createSession).toHaveBeenCalledWith('ensure')
     expect(control.execute).toHaveBeenCalledWith('fixture', { emitStartedEvent: true })
     expect(control.dispose).toHaveBeenCalledTimes(1)
-    expect(control.legacyLock).not.toHaveBeenCalled()
   })
 
   it.each([
@@ -244,7 +235,6 @@ describe('installation engine routing', () => {
       expect(result.action).toBe(operation)
       expect(result.target).toEqual({ kind: 'agent', name: 'commandcode' })
       expect(getExitCodeForResult(result)).toBe(0)
-      expect(control.legacyLock).not.toHaveBeenCalled()
 
       if (outputMode === 'human') {
         const rendered = stdout.mock.calls.map(call => String(call[0])).join('')
