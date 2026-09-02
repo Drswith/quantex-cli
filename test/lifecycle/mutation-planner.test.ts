@@ -1,7 +1,7 @@
 import type { LifecycleIntent, LifecycleObservation } from '../../src/lifecycle'
 import type { LifecyclePlanningProvider } from '../../src/lifecycle/model'
 import { describe, expect, it } from 'vitest'
-import { planLifecycleMutation } from '../../src/lifecycle/agent-installation'
+import { planLifecycleMutation } from '../../src/lifecycle/mutation-planner'
 
 describe('planLifecycleMutation', () => {
   it.each([

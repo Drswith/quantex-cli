@@ -1,6 +1,6 @@
 import type { LifecycleIntent, LifecycleObservation, LifecycleStep } from '../../src/lifecycle'
 import { describe, expect, it } from 'vitest'
-import { planLifecycleMutation } from '../../src/lifecycle/agent-installation'
+import { planLifecycleMutation } from '../../src/lifecycle/mutation-planner'
 
 describe('observation-driven lifecycle planning', () => {
   it.each([

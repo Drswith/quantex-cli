@@ -2,7 +2,7 @@ import { afterAll, afterEach, beforeEach, describe, expect, it, vi } from 'vites
 import * as agents from '../../src/agents'
 import { cancelCliContextOperations, setCliContext } from '../../src/cli-context'
 import { uninstallCommand } from '../../src/commands/uninstall'
-import * as providerEvidence from '../../src/lifecycle/reconcile'
+import * as providerEvidence from '../../src/lifecycle/provider-evidence'
 import * as pm from '../../src/package-manager'
 import * as state from '../../src/state'
 import * as detect from '../../src/utils/detect'

@@ -5,7 +5,7 @@ import { afterAll, afterEach, beforeEach, describe, expect, it, vi } from 'vites
 import * as agents from '../../src/agents'
 import { resetCliContext, setCliContext } from '../../src/cli-context'
 import { ensureCommand } from '../../src/commands/ensure'
-import * as providerEvidence from '../../src/lifecycle/reconcile'
+import * as providerEvidence from '../../src/lifecycle/provider-evidence'
 import * as pm from '../../src/package-manager'
 import * as lifecycleObservations from '../../src/services/lifecycle-observations'
 import * as state from '../../src/state'

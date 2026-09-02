@@ -79,8 +79,8 @@ vi.mock('../../src/utils/detect', async importOriginal => {
   return { ...actual, isBinaryInPath: legacyControl.isBinaryInPath }
 })
 
-vi.mock('../../src/lifecycle/reconcile', async importOriginal => {
-  const actual = await importOriginal<typeof import('../../src/lifecycle/reconcile')>()
+vi.mock('../../src/lifecycle/provider-evidence', async importOriginal => {
+  const actual = await importOriginal<typeof import('../../src/lifecycle/provider-evidence')>()
   return { ...actual, observeLifecycleProvider: legacyControl.observeLifecycleProvider }
 })
 

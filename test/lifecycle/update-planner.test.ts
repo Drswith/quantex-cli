@@ -1,7 +1,7 @@
 import type { AgentInspection } from '../../src/inspection'
 import type { LifecycleObservation, LifecyclePlanningProvider } from '../../src/lifecycle'
 import { describe, expect, it } from 'vitest'
-import { planLifecycleUpdate, projectLifecycleProviderCapabilities } from '../../src/lifecycle'
+import { planLifecycleUpdate, projectLifecycleProviderCapabilities, validateLifecyclePlan } from '../../src/lifecycle'
 import { createUpdatePlan, isInspectionUpdateAvailable } from '../../src/planning/updates'
 
 describe('planLifecycleUpdate', () => {
@@ -128,7 +128,7 @@ describe('planLifecycleUpdate', () => {
     })
 
     expect(projectLifecycleProviderCapabilities(provider)).toEqual(['bun-observe', 'bun-update', 'bun-verify'])
-    expect(result.plan.steps).toHaveLength(1)
+    expect(validateLifecyclePlan(result.plan, projectLifecycleProviderCapabilities(provider))).toEqual([])
   })
 
   it.each([
