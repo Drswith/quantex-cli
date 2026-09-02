@@ -58,9 +58,9 @@ The real-agent canary workflow MUST run one selected agent per fresh GitHub-host
 - **WHEN** a pull request changes paths classified as sandbox-relevant
 - **THEN** the workflow runs the quick matrix with a temporary HOME and the focused probe scenario
 
-#### Scenario: Scheduled full canary
+#### Scenario: Manually dispatched full canary
 
-- **WHEN** the scheduled or manually dispatched full scope runs
+- **WHEN** a maintainer manually dispatches the full canary scope
 - **THEN** the workflow creates parallel disposable jobs for every Linux catalog entry, provisions the selected provider toolchain and setup policy, and executes each named coverage mode
 
 #### Scenario: Install-only provider cleanup
@@ -136,7 +136,7 @@ The legacy and Core observation paths MUST parse stderr when a version command e
 
 ### Requirement: Real canaries MUST remain advisory and separate from Modal transport tests
 
-The canary workflow MUST run on relevant pull requests and scheduled/manual events without becoming a required branch-protection context. The existing Modal/Docker isolation commands MUST remain available for explicit transport and scenario validation, and workflow documentation MUST distinguish their purposes.
+The canary workflow MUST run on relevant pull requests and manual dispatch without becoming a required branch-protection context. It MUST NOT declare a standing schedule. The existing Modal/Docker isolation commands MUST remain available for explicit transport and scenario validation, and workflow documentation MUST distinguish their purposes.
 
 #### Scenario: Canary failure does not block merge by itself
 
@@ -147,6 +147,12 @@ The canary workflow MUST run on relevant pull requests and scheduled/manual even
 
 - **WHEN** a contributor needs remote transport or broad sandbox scenarios
 - **THEN** the contributor can still invoke the existing Modal isolation command independently of the canary matrix
+
+#### Scenario: Standing schedule is absent
+
+- **WHEN** a contributor inspects the agent-canary workflow triggers
+- **THEN** the workflow MUST NOT declare a `schedule` event
+- **AND** it MUST still declare `pull_request` and `workflow_dispatch`
 
 ### Requirement: uv-backed disposable canaries MUST disable a non-invalidating package cache
 
