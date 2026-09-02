@@ -21,10 +21,10 @@
 - [x] 4.1 Update bilingual README Core-transition wording; remove documented env escape / legacy dry-run route
 - [x] 4.2 Retire or rewrite `docs/runbooks/core-installation-routing-rollback.md` so it no longer instructs legacy-env recovery
 - [x] 4.3 Correct ADR / session notes that still present the escape as current policy
-- [ ] 4.4 Run `bun run openspec:validate` and `bun run memory:check`
+- [x] 4.4 Run `bun run openspec:validate` and `bun run memory:check`
 
 ## 5. Validation and delivery
 
-- [ ] 5.1 Run `bun run lint`, `bun run format:check`, and `bun run typecheck`
-- [ ] 5.2 Run `--json` contract / install / ensure / routing tests including former legacy-env cases
-- [ ] 5.3 Commit, push, and open the PR with the repository template
+- [x] 5.1 Run `bun run lint`, `bun run format:check`, and `bun run typecheck`
+- [x] 5.2 Run `--json` contract / install / ensure / routing tests including former legacy-env cases
+- [x] 5.3 Commit, push, and open the PR with the repository template
