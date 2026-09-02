@@ -31,3 +31,8 @@ ADR 0008 consolidated CI and moved the release train to release-please, but a fu
 - The first release after this lands exercises the new `tag-release` path live; `bun run release:dry-run` covers the candidate chain locally before then.
 - ADR 0008 remains the record of the release-please migration; this ADR supersedes its ruleset alignment (point 5) and refines its archive/doc hierarchy decisions where they drifted.
 - Scripts were renamed without keeping aliases (`commit-policy.ts`, `pm-lifecycle-smoke.ts`, `test-isolation.ts`, `release-artifacts.ts`, `tag-release.ts`, `release-pr-policy.ts`); git history preserves the old names.
+
+## Amendment: one-line release ordering (2026-09-02)
+
+Release preparation is sealed only when the tip manifest tag exists and that tag's `Release` workflow has succeeded. `release.yml` runs documented installer smoke against the release-candidate artifact before npm publish. `release-please.yml` also resumes on successful `Release` completion so the next Release PR is prepared without an unrelated follow-up push. See OpenSpec change `release-one-line-delivery`.
+

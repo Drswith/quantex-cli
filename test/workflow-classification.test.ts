@@ -221,6 +221,12 @@ describe('workflow classification integration', () => {
     expect(releasePleaseWorkflow).toContain("if: needs.tag-release.outputs.sealed == 'true'")
   })
 
+  it('re-evaluates release-please after a Release workflow completes', () => {
+    expect(releasePleaseWorkflow).toContain('workflow_run:')
+    expect(releasePleaseWorkflow).toContain('- Release')
+    expect(releasePleaseWorkflow).toContain('group: release-please-main')
+  })
+
   it('runs the release pipeline through testable scripts instead of inline heredocs', () => {
     expect(releaseWorkflow).toContain('bun run release:candidate')
     expect(releaseWorkflow).toContain('bun run scripts/release/verify-release-candidate.ts download-check')

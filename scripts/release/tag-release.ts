@@ -3,7 +3,7 @@ import { appendFile, readFile } from 'node:fs/promises'
 import process from 'node:process'
 import { promisify } from 'node:util'
 import { assertStableReleaseReady } from './release-readiness'
-import { findSuccessfulProtectedBranchCiSha } from './release-seal-contract'
+import { findSuccessfulProtectedBranchCiSha, hasSuccessfulReleaseWorkflowRun } from './release-seal-contract'
 
 const execFileAsync = promisify(execFile)
 const releaseVersionPattern = /^\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?$/
@@ -122,10 +122,13 @@ export function findReleaseCommitShaFromLog(input: { log: string; version: strin
 // conventional-commit marker the project ever merged, including one-shot
 // `Release-As` footers a past release already settled, so the computed version
 // can move backwards past what is published. Preparation is gated on this state
-// rather than merely ordered after tagging.
+// rather than merely ordered after tagging. The tag alone is not enough either:
+// preparing the next Release PR before the current tag's Release workflow has
+// succeeded recreates the same race against an unfinished publication.
 export function resolveBranchSealState(input: {
   manifestVersion: string | null
   tagSha: string | null
+  releaseSucceeded: boolean
 }): BranchSealState {
   const version = input.manifestVersion?.trim() ?? ''
   if (!version) {
@@ -141,7 +144,21 @@ export function resolveBranchSealState(input: {
     return { sealed: false, reason: `${tag} does not exist yet`, tag, version }
   }
 
-  return { sealed: true, reason: `${tag} exists`, tag, version }
+  if (!input.releaseSucceeded) {
+    return {
+      sealed: false,
+      reason: `${tag} exists but its Release workflow has not succeeded`,
+      tag,
+      version,
+    }
+  }
+
+  return {
+    sealed: true,
+    reason: `${tag} exists and its Release workflow succeeded`,
+    tag,
+    version,
+  }
 }
 
 export function parseManifestVersion(content: string): string | null {
@@ -237,7 +254,9 @@ async function publishBranchSealState(input: { branch: string }): Promise<void> 
 
   const manifestVersion = await readBranchManifestVersion(input.branch)
   const tagSha = manifestVersion ? await readTagSha(`v${manifestVersion}`) : null
-  const state = resolveBranchSealState({ manifestVersion, tagSha })
+  const releaseSucceeded =
+    manifestVersion && tagSha ? await hasSuccessfulReleaseWorkflowRun({ tag: `v${manifestVersion}` }) : false
+  const state = resolveBranchSealState({ manifestVersion, releaseSucceeded, tagSha })
 
   console.log(`Branch seal state: ${state.sealed ? 'sealed' : 'unsealed'} (${state.reason})`)
   await writeJobOutput('sealed', state.sealed ? 'true' : 'false')

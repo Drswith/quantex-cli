@@ -222,10 +222,31 @@ describe('release tagging', () => {
 })
 
 describe('branch seal state', () => {
-  it('reports sealed only when the manifest version has a tag', () => {
-    expect(resolveBranchSealState({ manifestVersion: '1.11.1', tagSha: releaseSha })).toEqual({
+  it('reports sealed only when the manifest version has a tag and Release succeeded', () => {
+    expect(
+      resolveBranchSealState({
+        manifestVersion: '1.11.1',
+        releaseSucceeded: true,
+        tagSha: releaseSha,
+      }),
+    ).toEqual({
       sealed: true,
-      reason: 'v1.11.1 exists',
+      reason: 'v1.11.1 exists and its Release workflow succeeded',
+      tag: 'v1.11.1',
+      version: '1.11.1',
+    })
+  })
+
+  it('reports unsealed when the tag exists but Release has not succeeded', () => {
+    expect(
+      resolveBranchSealState({
+        manifestVersion: '1.11.1',
+        releaseSucceeded: false,
+        tagSha: releaseSha,
+      }),
+    ).toEqual({
+      sealed: false,
+      reason: 'v1.11.1 exists but its Release workflow has not succeeded',
       tag: 'v1.11.1',
       version: '1.11.1',
     })
@@ -234,7 +255,7 @@ describe('branch seal state', () => {
   // The 2026-08-28 state: the manifest already said 1.11.1 while tag-release was
   // still three minutes away from pushing v1.11.1.
   it('reports unsealed while the manifest version is still untagged', () => {
-    expect(resolveBranchSealState({ manifestVersion: '1.11.1', tagSha: null })).toEqual({
+    expect(resolveBranchSealState({ manifestVersion: '1.11.1', releaseSucceeded: false, tagSha: null })).toEqual({
       sealed: false,
       reason: 'v1.11.1 does not exist yet',
       tag: 'v1.11.1',
@@ -243,21 +264,25 @@ describe('branch seal state', () => {
   })
 
   it('fails closed when the branch manifest version cannot be read', () => {
-    expect(resolveBranchSealState({ manifestVersion: null, tagSha: releaseSha }).sealed).toBe(false)
-    expect(resolveBranchSealState({ manifestVersion: '  ', tagSha: releaseSha }).reason).toMatch(
-      /no version could be read from \.release-please-manifest\.json/,
+    expect(resolveBranchSealState({ manifestVersion: null, releaseSucceeded: false, tagSha: releaseSha }).sealed).toBe(
+      false,
     )
+    expect(
+      resolveBranchSealState({ manifestVersion: '  ', releaseSucceeded: false, tagSha: releaseSha }).reason,
+    ).toMatch(/no version could be read from \.release-please-manifest\.json/)
   })
 
   it('fails closed on a manifest version that is not a release version', () => {
-    expect(resolveBranchSealState({ manifestVersion: 'next', tagSha: releaseSha })).toEqual({
+    expect(resolveBranchSealState({ manifestVersion: 'next', releaseSucceeded: false, tagSha: releaseSha })).toEqual({
       sealed: false,
       reason: 'branch manifest version is not a release version: next',
     })
   })
 
   it('keeps a prerelease manifest version sealable', () => {
-    expect(resolveBranchSealState({ manifestVersion: '1.8.2-beta', tagSha: releaseSha }).sealed).toBe(true)
+    expect(
+      resolveBranchSealState({ manifestVersion: '1.8.2-beta', releaseSucceeded: true, tagSha: releaseSha }).sealed,
+    ).toBe(true)
   })
 
   it('reads the root entry from the manifest and tolerates unusable content', () => {
@@ -277,6 +302,9 @@ describe('branch seal state', () => {
 
     expect(sealBody).toContain("await git(['fetch', '--force', 'origin', input.branch, '--tags'])")
     expect(sealBody).toContain('readBranchManifestVersion')
+    expect(sealBody).toContain('hasSuccessfulReleaseWorkflowRun')
+    expect(tagReleaseScript).toContain("from './release-seal-contract'")
+
     expect(sealBody).not.toContain('package.json')
     expect(tagReleaseScript).toContain('`origin/${branch}:${releaseManifestPath}`')
   })

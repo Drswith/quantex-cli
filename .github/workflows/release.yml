@@ -71,7 +71,7 @@ jobs:
           retention-days: 30
 
   publish:
-    needs: build-candidate
+    needs: [build-candidate, verify-installers]
     runs-on: ubuntu-latest
     env:
       GH_REPO: ${{ github.repository }}
@@ -194,7 +194,7 @@ jobs:
 
   verify-installers:
     name: Verify ${{ matrix.installer }} on ${{ matrix.os }}
-    needs: [publish, build-candidate]
+    needs: [build-candidate]
     strategy:
       fail-fast: false
       matrix:
@@ -208,6 +208,7 @@ jobs:
     runs-on: ${{ matrix.os }}
     permissions:
       contents: read
+      actions: read
     steps:
       - name: Checkout exact installer source
         uses: actions/checkout@v7
@@ -215,7 +216,13 @@ jobs:
           fetch-depth: 1
           ref: ${{ needs.build-candidate.outputs.tag }}
 
-      - name: Run install.sh against the public release
+      - name: Download exact release candidate
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: release-candidate-${{ needs.build-candidate.outputs.tag }}
+          path: release-candidate
+
+      - name: Run install.sh against the release candidate
         if: matrix.installer == 'install.sh'
         shell: bash
         env:
@@ -232,8 +239,26 @@ jobs:
             exit 1
           }
 
+          assets_dir="${GITHUB_WORKSPACE}/release-candidate/assets"
+          if [ ! -d "${assets_dir}" ]; then
+            fail "release candidate assets directory missing at ${assets_dir}."
+          fi
+
+          port=8765
+          python3 -m http.server "${port}" --directory "${assets_dir}" >/tmp/quantex-candidate-http.log 2>&1 &
+          server_pid=$!
+          trap 'kill "${server_pid}" >/dev/null 2>&1 || true' EXIT
+
+          for _ in 1 2 3 4 5 6 7 8 9 10; do
+            if curl -fsS "http://127.0.0.1:${port}/SHA256SUMS.txt" >/dev/null; then
+              break
+            fi
+            sleep 0.5
+          done
+
+          export QUANTEX_DOWNLOAD_BASE="http://127.0.0.1:${port}"
           if ! bash ./install.sh; then
-            fail "install.sh could not install ${QUANTEX_VERSION} on ${RUNNER_OS}."
+            fail "install.sh could not install ${QUANTEX_VERSION} from the release candidate on ${RUNNER_OS}."
           fi
 
           expected_version="${QUANTEX_VERSION#v}"
@@ -259,9 +284,9 @@ jobs:
 
           assert_version "${installed_path}"
           assert_version "${alias_path}"
-          echo "install.sh installer smoke passed on ${RUNNER_OS} for ${QUANTEX_VERSION}."
+          echo "install.sh candidate installer smoke passed on ${RUNNER_OS} for ${QUANTEX_VERSION}."
 
-      - name: Run install.ps1 against the public release
+      - name: Run install.ps1 against the release candidate
         if: matrix.installer == 'install.ps1'
         shell: pwsh
         env:
@@ -276,35 +301,66 @@ jobs:
             exit 1
           }
 
+          $assetsDir = Join-Path $env:GITHUB_WORKSPACE 'release-candidate/assets'
+          if (-not (Test-Path -LiteralPath $assetsDir -PathType Container)) {
+            Fail "release candidate assets directory missing at $assetsDir."
+          }
+
+          $port = 8765
+          $logPath = Join-Path $env:RUNNER_TEMP 'quantex-candidate-http.log'
+          $server = Start-Process -FilePath python -ArgumentList @('-m', 'http.server', "$port", '--directory', $assetsDir) -PassThru -RedirectStandardOutput $logPath -RedirectStandardError $logPath
           try {
-            & ./install.ps1
-          }
-          catch {
-            Fail "install.ps1 could not install $env:QUANTEX_VERSION on $env:RUNNER_OS: $($_.Exception.Message)"
-          }
-
-          $expectedVersion = $env:QUANTEX_VERSION -replace '^v', ''
-          $installedPath = Join-Path $env:QUANTEX_INSTALL_DIR 'quantex.exe'
-          $aliasPath = Join-Path $env:QUANTEX_INSTALL_DIR 'qtx.exe'
-
-          if (-not (Test-Path -LiteralPath $installedPath -PathType Leaf)) {
-            Fail "install.ps1 did not create $installedPath."
-          }
-          if (-not (Test-Path -LiteralPath $aliasPath -PathType Leaf)) {
-            Fail "install.ps1 did not create $aliasPath."
-          }
-
-          function Assert-Version([string] $TargetPath) {
-            $output = & $TargetPath --version 2>&1
-            if ($LASTEXITCODE -ne 0) {
-              Fail "install.ps1 installed $TargetPath, but --version failed."
+            $ready = $false
+            foreach ($i in 1..20) {
+              try {
+                Invoke-WebRequest -Uri "http://127.0.0.1:$port/SHA256SUMS.txt" -UseBasicParsing | Out-Null
+                $ready = $true
+                break
+              }
+              catch {
+                Start-Sleep -Milliseconds 500
+              }
             }
-            $text = $output | Out-String
-            if (-not $text.Contains($expectedVersion)) {
-              Fail "install.ps1 installed $TargetPath, but --version did not report $expectedVersion."
+            if (-not $ready) {
+              Fail "candidate asset server did not become ready on port $port."
+            }
+
+            $env:QUANTEX_DOWNLOAD_BASE = "http://127.0.0.1:$port"
+            try {
+              & ./install.ps1
+            }
+            catch {
+              Fail "install.ps1 could not install $env:QUANTEX_VERSION from the release candidate on $env:RUNNER_OS: $($_.Exception.Message)"
+            }
+
+            $expectedVersion = $env:QUANTEX_VERSION -replace '^v', ''
+            $installedPath = Join-Path $env:QUANTEX_INSTALL_DIR 'quantex.exe'
+            $aliasPath = Join-Path $env:QUANTEX_INSTALL_DIR 'qtx.exe'
+
+            if (-not (Test-Path -LiteralPath $installedPath -PathType Leaf)) {
+              Fail "install.ps1 did not create $installedPath."
+            }
+            if (-not (Test-Path -LiteralPath $aliasPath -PathType Leaf)) {
+              Fail "install.ps1 did not create $aliasPath."
+            }
+
+            function Assert-Version([string] $TargetPath) {
+              $output = & $TargetPath --version 2>&1
+              if ($LASTEXITCODE -ne 0) {
+                Fail "install.ps1 installed $TargetPath, but --version failed."
+              }
+              $text = $output | Out-String
+              if (-not $text.Contains($expectedVersion)) {
+                Fail "install.ps1 installed $TargetPath, but --version did not report $expectedVersion."
+              }
+            }
+
+            Assert-Version $installedPath
+            Assert-Version $aliasPath
+            Write-Host "install.ps1 candidate installer smoke passed on $env:RUNNER_OS for $env:QUANTEX_VERSION."
+          }
+          finally {
+            if ($server -and -not $server.HasExited) {
+              Stop-Process -Id $server.Id -Force -ErrorAction SilentlyContinue
             }
           }
-
-          Assert-Version $installedPath
-          Assert-Version $aliasPath
-          Write-Host "install.ps1 installer smoke passed on $env:RUNNER_OS for $env:QUANTEX_VERSION."

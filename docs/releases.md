@@ -6,12 +6,13 @@ The repository keeps a source-controlled [CHANGELOG.md](../CHANGELOG.md). A Rele
 
 `quantex-cli`, the GitHub Release, and standalone binaries form the primary public release closure. Release automation:
 
-1. seals the branch on push to `main` through the `tag-release` job, which creates the immutable `v<version>` tag once push CI succeeds on the release commit (release-please runs with `skip-github-release: true` and never tags);
-2. runs release-please afterwards, and only on a sealed branch, to open or update the Release PR for the next version;
-3. merges the Release PR after review, re-authoring, and required CI;
-4. runs `release.yml` on the tag push to validate the release identity, build and stage the exact release candidate once, then publish npm and GitHub Release assets from that candidate.
+1. merges a Release PR after review, re-authoring, and required CI;
+2. seals the release commit on push to `main` through the `tag-release` job, which creates the immutable `v<version>` tag once push CI succeeds (release-please runs with `skip-github-release: true` and never tags) and dispatches `release.yml`;
+3. runs `release.yml` to validate the release identity, build and stage the exact release candidate once, smoke the documented installers against that candidate, then publish npm and GitHub Release assets only after smoke succeeds;
+4. re-evaluates seal state after Release succeeds (tag present and Release workflow green) and only then runs release-please to open or update the Release PR for the next version.
 
-Sealing comes first because release-please derives its commit range from the tag for the version in `.release-please-manifest.json`. When that tag is missing it does not fail — it keeps the manifest version as the changelog comparison point, drops the range boundary, and replays the whole history, which re-admits settled `Release-As` footers and can compute a version below the one already published. Preparation is therefore gated on the tag existing, and a run that finds the branch unsealed skips preparation and leaves it to the next push.
+
+Sealing comes first because release-please derives its commit range from the tag for the version in `.release-please-manifest.json`. When that tag is missing it does not fail — it keeps the manifest version as the changelog comparison point, drops the range boundary, and replays the whole history, which re-admits settled `Release-As` footers and can compute a version below the one already published. Preparation is therefore gated on the tag existing **and** on that tag's Release workflow having succeeded, so the next Release PR cannot be prepared against an unfinished publication. A run that finds the branch unsealed skips preparation; once Release succeeds, `release-please.yml` runs again and prepares against a boundary that now resolves.
 
 The full build-candidate chain is exercisable locally without a tag via `bun run release:dry-run`.
 

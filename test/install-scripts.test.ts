@@ -135,6 +135,8 @@ describe('standalone install scripts', () => {
 
   it('verifies downloaded archives against the published checksums', () => {
     expect(installSh).toContain('download "$release_url/SHA256SUMS.txt" "$tmp_checksums"')
+    expect(installSh).toContain('QUANTEX_DOWNLOAD_BASE')
+    expect(installPs1).toContain('QUANTEX_DOWNLOAD_BASE')
     expect(installSh).toMatch(/if \[ -z "\$expected_checksum" \]/)
     expect(installSh).toMatch(/if \[ "\$actual_checksum" != "\$expected_checksum" \]/)
 
