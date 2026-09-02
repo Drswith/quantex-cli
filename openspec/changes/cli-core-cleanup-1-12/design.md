@@ -65,18 +65,24 @@ already marked `@deprecated`.
 Rewrite `lifecycle-updates-production.ts` as a thin CLI adapter that:
 
 - creates CLI operation context (cancellation / timeout / registerCleanup)
-- delegates plan/execute/observe to `createCoreSingleAgentUpdateInvocation` /
-  `createCoreUpdateBatchInvocation` (or equivalent Core helpers) with
-  Core production ports from `update-production`
-- does not reimplement the invocation state machine or rebuild update ports from
-  legacy `createProductionLifecycleObservationService`
+- delegates the plan/execute invocation state machine to
+  `createCoreSingleAgentUpdateInvocation` /
+  `createCoreUpdateBatchInvocation`
+- retains the existing CLI observation/lock port wiring
+  (`createProductionLifecycleObservationService`, `withAgentLifecycleLock`,
+  `getAllAgents` batch listing) so v1 `--json` / exit / lock contracts do not
+  drift
 
-CLI `update.ts` remains a v1 projector over that thin adapter. Public Core index
-and packages/core exports stay unchanged (no `update` SDK method).
+Do **not** switch observation onto Core `update-production` ports in this
+cleanup slice: that would replace a retained compatibility surface and risk
+user-visible contract drift. Public Core index and packages/core exports stay
+unchanged (no `update` SDK method).
 
 **Alternatives considered:** Leave the duplicate bridge forever — rejected as
-the named deletion target. Move CLI operation context into Core — rejected
-because Core must stay free of CLI context / presentation imports.
+the named deletion target. Move observation onto Core `update-production` now —
+rejected for this freeze because it changes mockable/compatibility port wiring
+and failed the v1 update baseline. Move CLI operation context into Core —
+rejected because Core must stay free of CLI context / presentation imports.
 
 ### 3. Keep required legacy install/ensure paths and observation helpers
 

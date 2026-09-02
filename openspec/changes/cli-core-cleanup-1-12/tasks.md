@@ -7,7 +7,7 @@
 ## 2. Delete leftover duplicate engines
 
 - [x] 2.1 Rewire callers of deprecated `src/services/lifecycle-updates.ts` and `src/services/lifecycle-execution.ts` to Core modules, then delete the shims
-- [x] 2.2 Collapse `src/services/lifecycle-updates-production.ts` onto Core `update-compatibility` / `update-production` (CLI keeps only operation-context wrapping)
+- [x] 2.2 Collapse `src/services/lifecycle-updates-production.ts` onto Core `update-compatibility` invocation while retaining CLI observation/lock compatibility ports
 - [x] 2.3 Preserve `QUANTEX_INSTALLATION_ENGINE=legacy` and install/ensure `--dry-run` legacy planning paths
 - [x] 2.4 Leave upgrade, config, capabilities, commands, and schema on their current implementations
 

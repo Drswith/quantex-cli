@@ -90,6 +90,9 @@ and a separately approved later-major deprecation change.
 - **THEN** promoted commands remain thin projections over Core
 - **AND THEN** the retained `QUANTEX_INSTALLATION_ENGINE=legacy` install/ensure
   escape remains available
+- **AND THEN** retained CLI observation/lock compatibility wiring used by those
+  projections is not deleted merely because the duplicate invocation engine is
+  removed
 
 #### Scenario: Legacy removal is proposed early
 
