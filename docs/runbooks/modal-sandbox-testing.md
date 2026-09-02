@@ -104,7 +104,7 @@ QTX_ISOLATION_SCENARIOS=managed QTX_ISOLATION_AGENTS=qoder bun run test:containe
 The repository also has an advisory GitHub Actions workflow at `.github/workflows/agent-canary.yml`. It is the high-frequency real-agent signal and does not require Modal credentials:
 
 - Relevant pull requests run a quick matrix containing the maintained anchors `codex`, `opencode`, `pi`, and `qoder`.
-- The weekly schedule and manual dispatch can run the full catalog-driven Linux matrix. Each job uses a fresh `ubuntu-latest` runner, a runner-temporary `HOME`/`BUN_INSTALL`, one agent, and `QTX_ISOLATION_SCENARIOS=probe`.
+- Manual dispatch can run the full catalog-driven Linux matrix. Each job uses a fresh `ubuntu-latest` runner, a runner-temporary `HOME`/`BUN_INSTALL`, one agent, and `QTX_ISOLATION_SCENARIOS=probe`.
 - Matrix entries carry the selected catalog provider, installed-version requirement, lifecycle coverage mode, installer setup policy, update-isolation policy, and deliberate source-conflict flag. Full-scope entries do not carry an agent-level installation or cleanup skip.
 - Candidate selection prefers Bun, npm, and uv because those are CI-ready providers the product configuration can reorder. Junie explicitly uses its official script candidate so the canary keeps provider-source verification strict instead of accepting the managed package's external shim. The workflow provisions Deno or uv when selected.
 - Goose runs its official installer with `CONFIGURE=false`. Vibe runs through uv with the disposable local bin directory already on PATH. A provider or installer that cannot execute makes that advisory agent job red.

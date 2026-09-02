@@ -338,7 +338,7 @@ trap 'rm -rf "$canary_home"' EXIT
 HOME="$canary_home" BUN_INSTALL="$canary_home/.bun" PATH="$canary_home/.bun/bin:$PATH" QTX_ISOLATION_SCENARIOS=probe QTX_CANARY_REQUIRE_VERSION=true QTX_ISOLATION_AGENTS=pi bun run scripts/smoke/lifecycle-smoke.ts
 ```
 
-advisory 的 `Agent Canaries` GitHub Actions workflow 会在相关 pull request 上运行 quick anchor，并在定时或手动触发时运行完整 catalog。范围和排障顺序见[隔离测试 runbook](./docs/runbooks/modal-sandbox-testing.md)。
+advisory 的 `Agent Canaries` GitHub Actions workflow 会在相关 pull request 上运行 quick anchor，并在手动触发时运行完整 catalog。范围和排障顺序见[隔离测试 runbook](./docs/runbooks/modal-sandbox-testing.md)。
 
 ## License
 
