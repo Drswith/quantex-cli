@@ -186,5 +186,10 @@ describe('release workflow closure', () => {
     expect(installerJob).toContain('install.ps1 installer smoke failed')
     expect(installerJob).toContain("matrix.installer == 'install.sh'")
     expect(installerJob).toContain("matrix.installer == 'install.ps1'")
+    // PowerShell 7 Start-Process rejects identical RedirectStandardOutput/RedirectStandardError paths.
+    expect(installerJob).toContain('quantex-candidate-http.stdout.log')
+    expect(installerJob).toContain('quantex-candidate-http.stderr.log')
+    expect(installerJob).toMatch(/-RedirectStandardOutput \$stdoutPath -RedirectStandardError \$stderrPath/)
+    expect(installerJob).not.toMatch(/-RedirectStandardOutput \$logPath -RedirectStandardError \$logPath/)
   })
 })

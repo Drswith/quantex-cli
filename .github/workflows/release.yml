@@ -307,8 +307,10 @@ jobs:
           }
 
           $port = 8765
-          $logPath = Join-Path $env:RUNNER_TEMP 'quantex-candidate-http.log'
-          $server = Start-Process -FilePath python -ArgumentList @('-m', 'http.server', "$port", '--directory', $assetsDir) -PassThru -RedirectStandardOutput $logPath -RedirectStandardError $logPath
+          $stdoutPath = Join-Path $env:RUNNER_TEMP 'quantex-candidate-http.stdout.log'
+          $stderrPath = Join-Path $env:RUNNER_TEMP 'quantex-candidate-http.stderr.log'
+          # PowerShell 7 rejects RedirectStandardOutput and RedirectStandardError pointing at the same path.
+          $server = Start-Process -FilePath python -ArgumentList @('-m', 'http.server', "$port", '--directory', $assetsDir) -PassThru -RedirectStandardOutput $stdoutPath -RedirectStandardError $stderrPath
           try {
             $ready = $false
             foreach ($i in 1..20) {
