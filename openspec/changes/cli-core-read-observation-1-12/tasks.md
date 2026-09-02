@@ -13,10 +13,10 @@
 ## 3. Docs and product memory
 
 - [x] 3.1 Update product README Core transition wording for Core-backed `inspect` / `info` / `resolve`
-- [ ] 3.2 Run `bun run openspec:validate` and `bun run memory:check`
+- [x] 3.2 Run `bun run openspec:validate` and `bun run memory:check`
 
 ## 4. Validation and delivery
 
-- [ ] 4.1 Run `bun run lint`, `bun run format:check`, and `bun run typecheck`
-- [ ] 4.2 Run focused command, Core-read, and `--json` contract tests covering the changed surface
-- [ ] 4.3 Commit, push, and open the PR with the repository template (including archive closure for `cli-core-lifecycle-1-12` when riding this delivery)
+- [x] 4.1 Run `bun run lint`, `bun run format:check`, and `bun run typecheck`
+- [x] 4.2 Run focused command, Core-read, and `--json` contract tests covering the changed surface
+- [x] 4.3 Commit, push, and open the PR with the repository template (including archive closure for `cli-core-lifecycle-1-12` when riding this delivery)
