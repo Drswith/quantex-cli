@@ -79,9 +79,12 @@ describe('Core-backed CLI read observations', () => {
   })
 
   it('routes only maintained read commands through Core while mutation commands stay on the legacy boundary', async () => {
-    for (const path of ['doctor', 'info', 'inspect', 'list', 'resolve']) {
+    for (const path of ['info', 'inspect', 'list', 'resolve']) {
       expect(await source(`src/commands/${path}.ts`)).toContain("from '../services/core-read-observations'")
     }
+    const doctorBridge = await source('src/services/doctor-diagnosis-production.ts')
+    expect(doctorBridge).toContain("from './core-read-observations'")
+    expect(doctorBridge).toContain('observeCliReadRegisteredAgents')
     for (const path of ['info', 'inspect', 'resolve']) {
       const contents = await source(`src/commands/${path}.ts`)
       expect(contents).toContain("from './cli-read-projection'")
