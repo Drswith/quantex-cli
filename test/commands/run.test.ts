@@ -1,4 +1,4 @@
-import type { AgentExecutionOutcome, LifecycleExecutionObservedAgent } from '../../src/services'
+import type { AgentExecutionOutcome, LifecycleExecutionObservedAgent } from '../../src/core/execution-executor'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { setCliContext } from '../../src/cli-context'
 import { runCommand, type RunCommandDependencies } from '../../src/commands/run'
@@ -121,6 +121,18 @@ describe('runCommand', () => {
     const payload = JSON.parse(String(logSpy.mock.calls[0]?.[0]))
     expect(payload.error.code).toBe('AGENT_NOT_INSTALLED')
     expect(payload.data.execution.installGuidance.suggestedEnsureCommand).toBe('quantex ensure test-agent')
+    expect(JSON.stringify(payload)).not.toMatch(/"(?:engine|route|routeSource|installationEngine)"/)
+  })
+
+  it('keeps structured exec payloads free of Core engine or route identifiers', async () => {
+    setJsonContext('exec-no-route-leak')
+    const fixture = executionFixture({ kind: 'interaction-required', observed })
+
+    await expect(runCommand('test-agent', ['--help'], { nonInteractive: true }, fixture.dependencies)).resolves.toBe(7)
+    const payload = JSON.parse(String(logSpy.mock.calls[0]?.[0]))
+    expect(payload.action).toBe('exec')
+    expect(JSON.stringify(payload)).not.toMatch(/"(?:engine|route|routeSource|installationEngine)"/)
+    expect(JSON.stringify(payload)).not.toMatch(/\b(?:core|legacy)\b/)
   })
 
   it('passes automatic installation policy without prompting', async () => {
