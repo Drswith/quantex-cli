@@ -78,13 +78,27 @@ if (import.meta.main) {
   console.log(JSON.stringify(identity))
 }
 
+/**
+ * Resolve the immutable release tag identity from process env.
+ *
+ * Prefer RELEASE_TAG (workflow-owned) over GITHUB_REF_NAME. GitHub Actions does
+ * not allow jobs to override GITHUB_* variables, so main-branch workflow_dispatch
+ * recovery must pass the input tag via RELEASE_TAG instead of trying to rewrite
+ * GITHUB_REF_NAME (which stays "main" for branch dispatches).
+ */
+export function resolveRequestedReleaseTag(env: Record<string, string | undefined> = process.env): string {
+  const fromReleaseTag = env.RELEASE_TAG?.trim()
+  if (fromReleaseTag) return fromReleaseTag
+  return env.GITHUB_REF_NAME?.trim() || ''
+}
+
 async function resolveReleaseIdentity(): Promise<ReleaseIdentity> {
   const manifest = JSON.parse(await readFile(new URL('../../package.json', import.meta.url), 'utf8')) as {
     version?: string
   }
   const packageVersion = manifest.version ?? ''
   const requestedBranch = 'main'
-  const requestedTag = process.env.GITHUB_REF_NAME ?? ''
+  const requestedTag = resolveRequestedReleaseTag()
   const commitSha = await git(['rev-parse', 'HEAD'])
   const branchHeadSha = await git(['rev-parse', `origin/${requestedBranch}`])
   const commitTitle = await git(['log', '-1', '--pretty=%s', commitSha])

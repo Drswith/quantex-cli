@@ -1,6 +1,6 @@
 import { readFileSync } from 'node:fs'
 import { describe, expect, it } from 'vitest'
-import { validateReleaseIdentity } from '../scripts/release/release-seal-contract.js'
+import { resolveRequestedReleaseTag, validateReleaseIdentity } from '../scripts/release/release-seal-contract.js'
 import { extractReleaseNotes } from '../scripts/release/stage-release-candidate.js'
 
 const releasePleaseWorkflow = readFileSync('.github/workflows/release-please.yml', 'utf8')
@@ -152,6 +152,7 @@ describe('release workflow closure', () => {
       releaseWorkflow.indexOf('  verify-installers:'),
     )
     const installerJob = releaseWorkflow.slice(releaseWorkflow.indexOf('  verify-installers:'))
+    const sealContract = readFileSync('scripts/release/release-seal-contract.ts', 'utf8')
 
     expect(releaseWorkflow).toContain('run-name: Release ${{ github.event.inputs.tag || github.ref_name }}')
     expect(releaseWorkflow).toContain('group: release-${{ github.event.inputs.tag || github.ref_name }}')
@@ -164,17 +165,37 @@ describe('release workflow closure', () => {
     expect(releaseWorkflow).toContain('Release tag must match v*')
 
     // Candidate and publish content come from the immutable tag, never from the
-    // workflow_dispatch branch ref / github.sha / main HEAD.
+    // workflow_dispatch branch ref / github.sha / main HEAD as the checkout ref.
     expect(buildJob).toContain('ref: ${{ steps.release-ref.outputs.tag }}')
     expect(buildJob).not.toContain('ref: ${{ github.ref }}')
     expect(buildJob).not.toContain('ref: ${{ github.sha }}')
-    expect(buildJob).toContain('GITHUB_REF_NAME: ${{ steps.release-ref.outputs.tag }}')
+    // Actions rejects overriding GITHUB_*; pass the resolved tag via RELEASE_TAG.
+    expect(buildJob).toContain('RELEASE_TAG: ${{ steps.release-ref.outputs.tag }}')
+    expect(buildJob).not.toMatch(/GITHUB_REF_NAME:\s*\$\{\{\s*steps\.release-ref\.outputs\.tag\s*\}\}/)
+    expect(buildJob).not.toContain('GITHUB_REF_NAME: ${{ steps.release-ref.outputs.tag }}')
+    // Older tags only read GITHUB_REF_NAME; overlay scripts/release from the
+    // workflow commit so identity understands RELEASE_TAG without replacing
+    // candidate package/src content with main HEAD.
+    expect(buildJob).toContain('Overlay workflow-commit release scripts')
+    expect(buildJob).toContain('git checkout "${GITHUB_SHA}" -- scripts/release/')
+    expect(buildJob).toContain('"${GITHUB_SHA}"')
+    expect(sealContract).toContain('resolveRequestedReleaseTag')
+    expect(sealContract).toContain('env.RELEASE_TAG')
     expect(publishJob).toContain('ref: ${{ needs.build-candidate.outputs.tag }}')
     expect(publishJob).not.toContain('ref: ${{ github.ref }}')
     expect(publishJob).not.toContain('ref: ${{ github.sha }}')
     expect(installerJob).toContain('ref: ${{ needs.build-candidate.outputs.tag }}')
     expect(installerJob).not.toContain('ref: ${{ github.ref }}')
     expect(installerJob).not.toContain('ref: ${{ github.sha }}')
+  })
+
+  it('prefers RELEASE_TAG over GITHUB_REF_NAME for release identity', () => {
+    expect(resolveRequestedReleaseTag({ RELEASE_TAG: 'v1.11.3', GITHUB_REF_NAME: 'main' })).toBe('v1.11.3')
+    expect(resolveRequestedReleaseTag({ RELEASE_TAG: '  v1.11.3  ', GITHUB_REF_NAME: 'main' })).toBe('v1.11.3')
+    expect(resolveRequestedReleaseTag({ GITHUB_REF_NAME: 'v1.11.3' })).toBe('v1.11.3')
+    expect(resolveRequestedReleaseTag({ RELEASE_TAG: '', GITHUB_REF_NAME: 'v1.11.3' })).toBe('v1.11.3')
+    expect(resolveRequestedReleaseTag({ RELEASE_TAG: '   ', GITHUB_REF_NAME: 'v1.11.3' })).toBe('v1.11.3')
+    expect(resolveRequestedReleaseTag({})).toBe('')
   })
 
   it('stages and verifies GitHub assets before npm and publishes the release last', () => {
