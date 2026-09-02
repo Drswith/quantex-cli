@@ -1,8 +1,8 @@
 import type { CommandIdempotencyPolicy } from '../command-runtime'
+import type { LifecycleUpdateObservedAgent, SingleAgentLifecycleUpdatePlan } from '../core/update-executor'
 import type { LifecycleProviderBinding } from '../lifecycle'
 import type { LifecycleReceipt } from '../lifecycle'
 import type { ProviderId, ProviderObservation, ProviderOutcome, ProviderTargetKind } from '../providers'
-import type { LifecycleUpdateObservedAgent, SingleAgentLifecycleUpdatePlan } from '../services/lifecycle-updates'
 import type {
   LifecycleUpdateBatchInvocation,
   SingleAgentLifecycleUpdateInvocation,
@@ -14,12 +14,12 @@ import type {
   IdempotencyReceiptSnapshot,
   IdempotencySinglePostcondition,
 } from './schema'
+import { getSingleAgentLifecycleUpdateResolvedPlanId } from '../core/update-executor'
 import { observeLifecycleProvider, providerBindingsEqual, resolveReceiptProviderBinding } from '../lifecycle'
 import { firstPartyProviderIds } from '../providers'
 import { createCliOperationContext } from '../runtime/cli-operation-context'
 import { resolveAgent } from '../services/agents'
 import { resolveAgentObservation, type ResolvedAgentObservation } from '../services/lifecycle-observations'
-import { getSingleAgentLifecycleUpdateResolvedPlanId } from '../services/lifecycle-updates'
 import { isBinaryInPath } from '../utils/detect'
 import { compareVersions } from '../utils/version'
 import { canonicalizeMutationRequest, fingerprintCanonicalValue } from './canonical'

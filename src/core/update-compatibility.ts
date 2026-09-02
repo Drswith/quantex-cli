@@ -88,6 +88,7 @@ export function createCoreSingleAgentUpdateInvocation(
       if (disposed) return Promise.reject(new Error('Core update invocation has been disposed.'))
       runPromise ??= (async () => {
         const planning = await this.prepare()
+        if (disposed) throw new Error('Core update invocation has been disposed.')
         outcome =
           planning.kind === 'planned'
             ? await executeSingleAgentLifecycleUpdate(planning.planned, await resolvePorts())
@@ -141,6 +142,7 @@ export function createCoreUpdateBatchInvocation(
       if (disposed) return Promise.reject(new Error('Core update batch invocation has been disposed.'))
       runPromise ??= (async () => {
         const plan = await this.prepare()
+        if (disposed) throw new Error('Core update batch invocation has been disposed.')
         outcome = await executeLifecycleUpdateBatch(plan, await resolvePorts())
         return outcome
       })()

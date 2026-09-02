@@ -2,14 +2,14 @@ import type { AgentDefinition, InstallMethod } from '../../src/agents'
 import type { CoreInstallationRecipe } from '../../src/core/installation-executor'
 import type { CoreInvocationContext } from '../../src/core/invocation'
 import type { CoreAgentObservation } from '../../src/core/production-observation'
-import type { LifecycleObservation, LifecycleReceipt } from '../../src/lifecycle'
-import type { LifecycleProviderBinding } from '../../src/lifecycle/provider-binding'
-import type { ProviderAdapter, ProviderId } from '../../src/providers'
 import type {
   LifecycleUpdateObservedAgent,
   LifecycleUpdateServicePorts,
   ManagedAgentLifecycleUpdatePlan,
-} from '../../src/services/lifecycle-updates'
+} from '../../src/core/update-executor'
+import type { LifecycleObservation, LifecycleReceipt } from '../../src/lifecycle'
+import type { LifecycleProviderBinding } from '../../src/lifecycle/provider-binding'
+import type { ProviderAdapter, ProviderId } from '../../src/providers'
 import type { InstalledAgentState, VersionedQuantexState } from '../../src/state/schema'
 import type { StateDocumentPersistence } from '../../src/state/store'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
@@ -85,6 +85,7 @@ vi.mock('../../src/lifecycle/provider-evidence', async importOriginal => {
 })
 
 import { createProductionCoreInstallationPorts } from '../../src/core/installation-production'
+import { executeSingleAgentLifecycleUpdate } from '../../src/core/update-executor'
 import { reconcileAgentInstallation } from '../../src/lifecycle/agent-installation'
 import {
   providerBindingsEqual,
@@ -97,7 +98,6 @@ import { planLifecycleUpdate } from '../../src/lifecycle/update-planner'
 import { buildInstalledAgentState } from '../../src/package-manager'
 import { firstPartyProviderIds } from '../../src/providers'
 import { createProviderRegistry } from '../../src/providers/registry'
-import { executeSingleAgentLifecycleUpdate } from '../../src/services/lifecycle-updates'
 import { createEmptyStateDocument } from '../../src/state/schema'
 import { LifecycleStateStore } from '../../src/state/store'
 

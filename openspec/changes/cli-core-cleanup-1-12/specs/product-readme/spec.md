@@ -11,7 +11,9 @@ CLI `doctor` through an in-repo Core diagnosis engine. They MUST state that the
 published `quantex-core` SDK does not gain methods from this CLI promotion, that
 package/binary/state identities remain v1-compatible, and that removal of
 retained legacy escape routes remains subject to the full soak plus a separately
-approved later-major proposal.
+approved later-major proposal. They MUST NOT imply that the cleanup deletion of
+leftover duplicate CLI engines changes user-facing commands, aliases, `--json`,
+exit codes, or state schema version 2.
 
 #### Scenario: a user reads either product README during the 1.12 slice
 
@@ -25,3 +27,5 @@ approved later-major proposal.
 - **AND THEN** it identifies `doctor` as a Core-backed CLI diagnosis command
 - **AND THEN** it does not imply that the published SDK added methods because
   of those CLI routes
+- **AND THEN** it does not imply that cleanup of leftover duplicate engines
+  changed frozen v1 contracts

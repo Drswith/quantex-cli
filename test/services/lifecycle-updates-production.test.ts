@@ -250,6 +250,20 @@ import {
 describe('lifecycle update production composition', () => {
   beforeEach(() => production.reset())
 
+  it('routes invocation through Core update-compatibility while retaining CLI observation ports', async () => {
+    const source = await import('node:fs/promises').then(fs =>
+      fs.readFile(new URL('../../src/services/lifecycle-updates-production.ts', import.meta.url), 'utf8'),
+    )
+    expect(source).toContain("from '../core/update-compatibility'")
+    expect(source).toContain('createCoreSingleAgentUpdateInvocation')
+    expect(source).toContain('createCoreUpdateBatchInvocation')
+    expect(source).toContain('createProductionLifecycleObservationService')
+    expect(source).toContain('loadCliUpdatePorts')
+    expect(source).not.toContain('executeSingleAgentLifecycleUpdate')
+    expect(source).not.toContain('planSingleAgentLifecycleUpdate')
+    expect(source).not.toContain('createQuantex')
+  })
+
   it('prepares a batch once and reuses the exact plan for one memoized execution', async () => {
     const invocation = createLifecycleUpdateBatchInvocation()
 

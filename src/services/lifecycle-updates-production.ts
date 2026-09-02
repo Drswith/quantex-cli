@@ -2,22 +2,15 @@ import type {
   CoreUpdateBatchInvocation,
   CoreSingleAgentUpdateInvocation,
   CoreUpdateBatchOutcome,
+  CoreUpdateCompatibilityExecutorOptions,
   CoreUpdateSingleOutcome,
 } from '../core/update-compatibility'
-import type {
-  LifecycleUpdateBatchExecutionPorts,
-  LifecycleUpdateBatchPlanningPorts,
-  LifecycleUpdateServicePorts,
-} from '../core/update-executor'
+import type { LifecycleUpdateBatchPlanningPorts } from '../core/update-executor'
+import type { CoreUpdateServicePorts } from '../core/update-production'
 import { executeAgentSelfUpdate } from '../agent-update'
 import { getAllAgents } from '../agents'
 import { loadConfig } from '../config'
-import {
-  executeLifecycleUpdateBatch,
-  executeSingleAgentLifecycleUpdate,
-  planRegisteredAgentUpdates,
-  planSingleAgentLifecycleUpdate,
-} from '../core/update-executor'
+import { createCoreSingleAgentUpdateInvocation, createCoreUpdateBatchInvocation } from '../core/update-compatibility'
 import { planLifecycleUpdate } from '../lifecycle'
 import { withAgentLifecycleLock } from '../package-manager'
 import { firstPartyProviderRegistry } from '../providers'
@@ -34,8 +27,10 @@ export type SingleAgentLifecycleUpdateInvocation = CoreSingleAgentUpdateInvocati
 export type LifecycleUpdateBatchInvocation = CoreUpdateBatchInvocation
 
 /**
- * CLI production adapter over the in-repo Core update executor.
- * Supplies CLI cancellation/timeout/observation context; Core owns plan/execute/verify/record.
+ * CLI production adapter over in-repo Core update-compatibility.
+ * Owns CLI cancellation/timeout/operation-context wrapping and the retained CLI
+ * observation/lock port wiring; Core owns the plan/execute invocation engine.
+ * Does not replace the install/ensure legacy escape or other compatibility surfaces.
  */
 export async function runLifecycleUpdateBatch(): Promise<RunLifecycleUpdateBatchOutcome> {
   const invocation = createLifecycleUpdateBatchInvocation()
@@ -47,11 +42,11 @@ export async function runLifecycleUpdateBatch(): Promise<RunLifecycleUpdateBatch
 }
 
 export function createLifecycleUpdateBatchInvocation(): LifecycleUpdateBatchInvocation {
-  return createCliBackedBatchInvocation(() => getAllAgents().map(agent => agent.name))
+  return createCliWrappedBatchInvocation('all', () => getAllAgents().map(agent => agent.name))
 }
 
 export function createManagedLifecycleUpdateBatchInvocation(): LifecycleUpdateBatchInvocation {
-  return createCliBackedBatchInvocation(async () => Object.keys((await loadState()).installedAgents))
+  return createCliWrappedBatchInvocation('managed', async () => Object.keys((await loadState()).installedAgents))
 }
 
 export async function runSingleAgentLifecycleUpdate(agentName: string): Promise<RunSingleAgentLifecycleUpdateOutcome> {
@@ -64,14 +59,15 @@ export async function runSingleAgentLifecycleUpdate(agentName: string): Promise<
 }
 
 export function createSingleAgentLifecycleUpdateInvocation(agentName: string): SingleAgentLifecycleUpdateInvocation {
+  return createCliWrappedSingleInvocation(agentName)
+}
+
+function createCliWrappedSingleInvocation(agentName: string): SingleAgentLifecycleUpdateInvocation {
   const operation = createCliOperationContext()
   let activeOperations = 0
   let disposed = false
   let operationDisposed = false
-  let outcome: CoreUpdateSingleOutcome | undefined
-  let planningPromise: Promise<Awaited<ReturnType<typeof planSingleAgentLifecycleUpdate>>> | undefined
-  let portsPromise: Promise<LifecycleUpdateServicePorts> | undefined
-  let runPromise: Promise<CoreUpdateSingleOutcome> | undefined
+  const core = createCoreSingleAgentUpdateInvocation(agentName, coreOptionsFrom(operation))
 
   const disposeOperationIfIdle = (): void => {
     if (!disposed || operationDisposed || activeOperations > 0) return
@@ -90,63 +86,46 @@ export function createSingleAgentLifecycleUpdateInvocation(agentName: string): S
     }
   }
 
-  const resolvePorts = (): Promise<LifecycleUpdateServicePorts> => {
-    portsPromise ??= loadCliUpdatePorts(operation)
-    return portsPromise
-  }
-
   return {
     dispose() {
       if (disposed) return
       disposed = true
+      core.dispose()
       disposeOperationIfIdle()
     },
-    getOutcome: () => outcome,
-    async observe(targetAgentName) {
-      return runWhileActive(async () => {
-        const ports = await resolvePorts()
-        return ports.observe(targetAgentName)
-      })
+    getOutcome: () => core.getOutcome(),
+    observe(targetAgentName) {
+      return runWhileActive(() => core.observe(targetAgentName))
     },
     prepare() {
-      if (disposed) return Promise.reject(new Error('Single-agent update invocation has been disposed.'))
-      planningPromise ??= runWhileActive(async () => planSingleAgentLifecycleUpdate(agentName, await resolvePorts()))
-      return planningPromise
+      return runWhileActive(() => core.prepare())
     },
     run() {
-      if (disposed) return Promise.reject(new Error('Single-agent update invocation has been disposed.'))
-      runPromise ??= (async () => {
-        const planning = await prepareThroughActive()
-        outcome =
-          planning.kind === 'planned'
-            ? await runWhileActive(async () =>
-                executeSingleAgentLifecycleUpdate(planning.planned, await resolvePorts()),
-              )
-            : planning
-        return outcome
-      })()
-      return runPromise
+      return runWhileActive(() => core.run())
     },
-  }
-
-  function prepareThroughActive() {
-    if (disposed) return Promise.reject(new Error('Single-agent update invocation has been disposed.'))
-    planningPromise ??= runWhileActive(async () => planSingleAgentLifecycleUpdate(agentName, await resolvePorts()))
-    return planningPromise
   }
 }
 
-function createCliBackedBatchInvocation(
+function createCliWrappedBatchInvocation(
+  scope: 'all' | 'managed',
   listRegisteredAgentNames: LifecycleUpdateBatchPlanningPorts['listRegisteredAgentNames'],
 ): LifecycleUpdateBatchInvocation {
   const operation = createCliOperationContext()
   let activeOperations = 0
   let disposed = false
   let operationDisposed = false
-  let outcome: CoreUpdateBatchOutcome | undefined
-  let planningPromise: Promise<Awaited<ReturnType<typeof planRegisteredAgentUpdates>>> | undefined
-  let portsPromise: Promise<LifecycleUpdateBatchPlanningPorts & LifecycleUpdateBatchExecutionPorts> | undefined
-  let runPromise: Promise<CoreUpdateBatchOutcome> | undefined
+  const core = createCoreUpdateBatchInvocation(scope, {
+    ...coreOptionsFrom(operation),
+    loadPorts: async () => {
+      const ports = await loadCliUpdatePorts(operation)
+      return {
+        ...ports,
+        classifyMutationLockError: (error: unknown) =>
+          isResourceLockError(error) ? { reason: error.message, resource: error.resource } : undefined,
+        listRegisteredAgentNames,
+      }
+    },
+  })
 
   const disposeOperationIfIdle = (): void => {
     if (!disposed || operationDisposed || activeOperations > 0) return
@@ -165,57 +144,55 @@ function createCliBackedBatchInvocation(
     }
   }
 
-  const resolvePorts = (): Promise<LifecycleUpdateBatchPlanningPorts & LifecycleUpdateBatchExecutionPorts> => {
-    portsPromise ??= loadCliUpdatePorts(operation).then(ports => ({
-      ...ports,
-      classifyMutationLockError: (error: unknown) =>
-        isResourceLockError(error) ? { reason: error.message, resource: error.resource } : undefined,
-      listRegisteredAgentNames,
-    }))
-    return portsPromise
-  }
-
-  const prepare = (): Promise<Awaited<ReturnType<typeof planRegisteredAgentUpdates>>> => {
-    if (disposed) return Promise.reject(new Error('Lifecycle update batch invocation has been disposed.'))
-    planningPromise ??= runWhileActive(async () => planRegisteredAgentUpdates(await resolvePorts()))
-    return planningPromise
-  }
-
   return {
     dispose() {
       if (disposed) return
       disposed = true
+      core.dispose()
       disposeOperationIfIdle()
     },
-    getOutcome: () => outcome,
-    async observe(agentName) {
-      return runWhileActive(async () => {
-        const ports = await resolvePorts()
-        return ports.observe(agentName)
-      })
+    getOutcome: () => core.getOutcome(),
+    observe(agentName) {
+      return runWhileActive(() => core.observe(agentName))
     },
-    prepare,
+    prepare() {
+      return runWhileActive(() => core.prepare())
+    },
     run() {
-      if (disposed) return Promise.reject(new Error('Lifecycle update batch invocation has been disposed.'))
-      runPromise ??= (async () => {
-        const plan = await prepare()
-        outcome = await runWhileActive(async () => executeLifecycleUpdateBatch(plan, await resolvePorts()))
-        return outcome
-      })()
-      return runPromise
+      return runWhileActive(() => core.run())
     },
   }
 }
 
+function coreOptionsFrom(
+  operation: ReturnType<typeof createCliOperationContext>,
+): CoreUpdateCompatibilityExecutorOptions {
+  return {
+    dryRun: isDryRunEnabled(),
+    loadPorts: () => loadCliUpdatePorts(operation),
+    registerCleanup: operation.context.registerCleanup,
+    signal: operation.context.signal,
+    timeoutMs: operation.context.timeoutMs,
+  }
+}
+
+/**
+ * Retained CLI compatibility port wiring for update observation/locks.
+ * Kept deliberately so v1 contracts and install/ensure-adjacent observation
+ * surfaces do not drift while the duplicate invocation engine is removed.
+ */
 async function loadCliUpdatePorts(
   operation: ReturnType<typeof createCliOperationContext>,
-): Promise<LifecycleUpdateServicePorts> {
+): Promise<CoreUpdateServicePorts> {
   const config = await loadConfig()
   const observationService = createProductionLifecycleObservationService(operation.context)
   return {
+    classifyMutationLockError: (error: unknown) =>
+      isResourceLockError(error) ? { reason: error.message, resource: error.resource } : undefined,
     clock: () => new Date().toISOString(),
     dryRun: isDryRunEnabled(),
     executeSelfUpdate: executeAgentSelfUpdate,
+    listRegisteredAgentNames: () => getAllAgents().map(agent => agent.name),
     observe: observationService.resolveAgentObservation,
     planLifecycleUpdate,
     providerRegistry: firstPartyProviderRegistry,

@@ -8,8 +8,6 @@ import type {
   ProviderResolvedVersion,
 } from '../../src/providers'
 import { describe, expect, it, vi } from 'vitest'
-import { observeAgentLifecycle } from '../../src/lifecycle/agent-observation'
-import { planLifecycleUpdate } from '../../src/lifecycle/update-planner'
 import {
   executeLifecycleUpdateBatch,
   executeSingleAgentLifecycleUpdate,
@@ -19,7 +17,9 @@ import {
   type LifecycleUpdateBatchPlanningPorts,
   type LifecycleUpdateServicePorts,
   type SingleAgentLifecycleUpdatePlan,
-} from '../../src/services/lifecycle-updates'
+} from '../../src/core/update-executor'
+import { observeAgentLifecycle } from '../../src/lifecycle/agent-observation'
+import { planLifecycleUpdate } from '../../src/lifecycle/update-planner'
 
 describe('registered-agent lifecycle update batch planning', () => {
   it('plans equivalent registered inputs with one deterministic resolved identity', async () => {

@@ -6,7 +6,7 @@ export {
   executeAgentLifecycle,
   type LifecycleExecutionObservedAgent,
   type LifecycleExecutionServicePorts,
-} from './lifecycle-execution'
+} from '../core/execution-executor'
 export {
   createProductionLifecycleExecutionService,
   type ProductionLifecycleExecutionDependencies,
