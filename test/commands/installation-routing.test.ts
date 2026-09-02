@@ -1,4 +1,8 @@
-import type { InstallationEngineRoute, InstallationOperation } from '../../src/commands/installation-routing'
+import type {
+  InstallationEngineRoute,
+  InstallationOperation,
+  LifecycleEngineOperation,
+} from '../../src/commands/installation-routing'
 import type { CommandResult } from '../../src/output/types'
 import process from 'node:process'
 import { afterEach, beforeEach, describe, expect, expectTypeOf, it, vi } from 'vitest'
@@ -58,7 +62,8 @@ afterEach(() => {
 })
 
 describe('installation engine routing', () => {
-  it('keeps the promoted operation set frozen to install and ensure', () => {
+  it('keeps the promoted operation set covering install, ensure, update, and uninstall', () => {
+    expectTypeOf<LifecycleEngineOperation>().toEqualTypeOf<'ensure' | 'install' | 'uninstall' | 'update'>()
     expectTypeOf<InstallationOperation>().toEqualTypeOf<'ensure' | 'install'>()
   })
 
@@ -69,6 +74,21 @@ describe('installation engine routing', () => {
     expect(install).toEqual({ adoption: 'v1-safe', engine: 'core', source: 'stable-default' })
     expect(ensure).toBe(install)
     expect(Object.isFrozen(install)).toBe(true)
+  })
+
+  it('selects Core for update and uninstall regardless of the install/ensure legacy escape', () => {
+    process.env.QUANTEX_INSTALLATION_ENGINE = 'legacy'
+
+    expect(selectInstallationEngineRoute('update')).toEqual({
+      adoption: 'v1-safe',
+      engine: 'core',
+      source: 'stable-default',
+    })
+    expect(selectInstallationEngineRoute('uninstall')).toEqual({
+      adoption: 'v1-safe',
+      engine: 'core',
+      source: 'stable-default',
+    })
   })
 
   it('uses the legacy compatibility escape for the complete selected invocation', () => {

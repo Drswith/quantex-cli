@@ -22,6 +22,8 @@ interface ListedAgent {
 }
 
 export async function listCommand(): Promise<CommandResult<{ agents: ListedAgent[] }>> {
+  // Core read ports already back list; project the richer v1 inspection rows rather than
+  // wrapping the narrower public SDK list() descriptors into a second CLI-shaped API.
   const inspections = (await observeCliReadRegisteredAgents()).map(projectObservationToV1Inspection)
 
   return emitCommandResult(

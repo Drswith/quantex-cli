@@ -1,31 +1,13 @@
-import type { AgentDefinition } from '../agents'
+import type { CoreUninstallExecutionOutcome } from '../core/uninstall-executor'
 import type { CommandResult } from '../output/types'
+import type { InstallationEngineRoute } from './installation-routing'
 import { getCliContext } from '../cli-context'
-import {
-  observeLifecycleProvider,
-  providerBindingsEqual,
-  resolveReceiptProviderBinding,
-  resolveStateProviderBinding,
-  type LifecycleProviderBinding,
-} from '../lifecycle'
-import { waitForUninstallAbsence } from '../lifecycle/uninstall-postcondition'
+import { createCoreUninstallCompatibilityExecutor } from '../core/uninstall-compatibility'
 import { createErrorResult, createSuccessResult, emitCommandResult } from '../output'
-import { uninstallInstalledAgentOutcome, withAgentLifecycleLock } from '../package-manager'
-import { resolveAgent } from '../services/agents'
-import {
-  getInstalledAgentState,
-  getLifecycleReceipt,
-  removeInstalledAgentState,
-  removeLifecycleReceipt,
-  setInstalledAgentState,
-  setLifecycleReceipt,
-} from '../state'
 import { pc } from '../utils/color'
-import { isBinaryInPath } from '../utils/detect'
-import { canUninstallInstallType } from '../utils/install'
 import { createResourceLockedError } from '../utils/lifecycle-errors'
-import { isResourceLockError } from '../utils/lock'
 import { isDryRunEnabled, printError, printInfo, printWarn } from '../utils/user-output'
+import { reportInstallationEngineRoute, selectInstallationEngineRoute } from './installation-routing'
 
 interface UninstallCommandData {
   agent: {
@@ -36,331 +18,121 @@ interface UninstallCommandData {
 }
 
 export async function uninstallCommand(agentName: string): Promise<CommandResult<UninstallCommandData>> {
-  const agent = resolveAgent(agentName)
-  if (!agent) {
-    return emitCommandResult(
-      createErrorResult<UninstallCommandData>({
+  return await uninstallCommandWithRoute(agentName, selectInstallationEngineRoute('uninstall'))
+}
+
+export async function uninstallCommandWithRoute(
+  agentName: string,
+  route: InstallationEngineRoute,
+): Promise<CommandResult<UninstallCommandData>> {
+  reportInstallationEngineRoute('uninstall', route)
+  const cli = getCliContext()
+  const controller = new AbortController()
+  if (cli.cancelled) controller.abort('cli-cancelled')
+  const executor = createCoreUninstallCompatibilityExecutor()
+  const outcome = await executor.execute({
+    dryRun: isDryRunEnabled(),
+    isCancelled: () => Boolean(cli.cancelled) || controller.signal.aborted,
+    name: agentName,
+    signal: controller.signal,
+    timeoutMs: cli.timeoutMs,
+  })
+  return emitCommandResult(projectUninstallOutcome(outcome, agentName), renderUninstallHuman)
+}
+
+function projectUninstallOutcome(
+  outcome: CoreUninstallExecutionOutcome,
+  inputName: string,
+): CommandResult<UninstallCommandData> {
+  switch (outcome.kind) {
+    case 'agent-not-found':
+      return createErrorResult({
         action: 'uninstall',
         error: {
           code: 'AGENT_NOT_FOUND',
+          details: { input: inputName },
+          message: `Unknown agent: ${inputName}`,
+        },
+        target: { kind: 'agent', name: inputName },
+      })
+    case 'unmanaged':
+      return createErrorResult({
+        action: 'uninstall',
+        data: {
+          agent: { displayName: outcome.agent.displayName, name: outcome.agent.name },
+          changed: false,
+        },
+        error: {
+          code: 'UNINSTALL_UNMANAGED',
           details: {
-            input: agentName,
+            canAutoUninstall: false,
+            displayName: outcome.agent.displayName,
+            input: inputName,
+            lifecycle: 'unmanaged',
+            name: outcome.agent.name,
           },
-          message: `Unknown agent: ${agentName}`,
+          message: `${outcome.agent.displayName} is not managed by qtx, so qtx cannot auto-uninstall it. Run qtx inspect ${outcome.agent.name} for details.`,
         },
-        target: {
-          kind: 'agent',
-          name: agentName,
+        target: { kind: 'agent', name: outcome.agent.name },
+      })
+    case 'locked':
+      return createErrorResult({
+        action: 'uninstall',
+        data: {
+          agent: { displayName: outcome.agent.displayName, name: outcome.agent.name },
+          changed: false,
         },
-      }),
-      renderUninstallHuman,
-    )
-  }
-
-  try {
-    return await withAgentLifecycleLock(async () => {
-      const [installedState, receipt] = await Promise.all([
-        getInstalledAgentState(agent.name),
-        getLifecycleReceipt(agent.name),
-      ])
-      if (!installedState && !receipt) {
-        return emitCommandResult(createUnmanagedUninstallResult(agentName, agent), renderUninstallHuman)
-      }
-
-      const liveBefore = await isBinaryInPath(agent.binaryName)
-      const stateBinding = installedState ? resolveStateProviderBinding(agent, installedState) : undefined
-      const receiptBinding = receipt ? resolveReceiptProviderBinding(receipt) : undefined
-      if ((installedState && !stateBinding) || (receipt && !receiptBinding)) {
-        return emitCommandResult(
-          createUninstallFailure(
-            agent,
-            'indeterminate-source',
-            `Cannot resolve provider evidence for ${agent.displayName}.`,
-          ),
-          renderUninstallHuman,
-        )
-      }
-      // The agent's binary name is the default both records fall back to: state bindings omit the
-      // executable name for package providers, while receipts written by update always carry it.
-      // Without that default, evidence that differs only by the default reads as a source conflict.
-      if (stateBinding && receiptBinding && !providerBindingsEqual(stateBinding, receiptBinding, agent.binaryName)) {
-        return emitCommandResult(
-          createUninstallFailure(agent, 'conflicting-source', `Recorded sources disagree for ${agent.displayName}.`),
-          renderUninstallHuman,
-        )
-      }
-
-      const binding = stateBinding ?? receiptBinding!
-      const providerBefore = await observeBoundProvider(binding)
-      if (providerBefore.kind !== 'success') {
-        return emitCommandResult(
-          createUninstallFailure(
-            agent,
-            'indeterminate-source',
-            `Cannot verify provider state for ${agent.displayName}.`,
-          ),
-          renderUninstallHuman,
-        )
-      }
-
-      if (providerBefore.value.kind === 'absent') {
-        if (liveBefore) {
-          return emitCommandResult(
-            createUninstallFailure(
-              agent,
-              'conflicting-source',
-              `${agent.displayName} is on PATH but its recorded provider target is absent.`,
-            ),
-            renderUninstallHuman,
-          )
-        }
-        if (isDryRunEnabled()) {
-          return emitCommandResult(
-            createDryRunUninstallResult(agent, 'would reconcile stale lifecycle evidence'),
-            renderUninstallHuman,
-          )
-        }
-        if (installedState) await removeInstalledAgentState(agent.name)
-        if (receipt) await removeLifecycleReceipt(agent.name)
-        return emitCommandResult(createGhostReconciledResult(agent), renderUninstallHuman)
-      }
-
-      if (!installedState) {
-        return emitCommandResult(
-          createUninstallFailure(
-            agent,
-            'indeterminate-source',
-            `Cannot safely reconstruct ${agent.displayName}'s uninstall source.`,
-          ),
-          renderUninstallHuman,
-        )
-      }
-
-      if (isDryRunEnabled()) {
-        return emitCommandResult(
-          createDryRunUninstallResult(agent, `would uninstall ${agent.displayName}`),
-          renderUninstallHuman,
-        )
-      }
-
-      // Script/binary installs are state-only: Quantex untracks them without removing the
-      // upstream executable, so managed receipt synthesis and PATH absence polling do not apply.
-      if (!canUninstallInstallType(installedState.installType)) {
-        const uninstallOutcome = await uninstallInstalledAgentOutcome(agent, installedState)
-        if (uninstallOutcome.kind !== 'success') {
-          return emitCommandResult(
-            createUninstallFailure(agent, 'provider-failure', `Failed to uninstall ${agent.displayName}.`),
-            renderUninstallHuman,
-          )
-        }
-
-        await removeLifecycleReceipt(agent.name)
-        return emitCommandResult(
-          createSuccessResult<UninstallCommandData>({
-            action: 'uninstall',
-            data: {
-              agent: {
-                displayName: agent.displayName,
-                name: agent.name,
-              },
-              changed: true,
-            },
-            target: {
-              kind: 'agent',
-              name: agent.name,
-            },
-          }),
-          renderUninstallHuman,
-        )
-      }
-
-      if (!receipt) {
-        await setLifecycleReceipt({
-          ...(binding.target.binaryName ? { executableName: binding.target.binaryName } : {}),
-          kind: 'lifecycle-receipt',
-          providerId: binding.providerId,
-          providerTargetId: binding.target.id,
-          providerTargetKind: binding.target.kind,
-          schemaVersion: 1,
-          targetId: agent.name,
-          verifiedAt: new Date().toISOString(),
-          ...(providerBefore.value.executablePath ? { executablePath: providerBefore.value.executablePath } : {}),
-          ...(providerBefore.value.version ? { version: providerBefore.value.version } : {}),
-        })
-      }
-
-      const uninstallOutcome = await uninstallInstalledAgentOutcome(agent, installedState)
-
-      if (uninstallOutcome.kind === 'success') {
-        const postconditionSatisfied = await waitForUninstallAbsence(
-          async () => {
-            const providerAfter = await observeBoundProvider(binding)
-            if (providerAfter.kind !== 'success' || providerAfter.value.kind !== 'absent') return false
-            return !(await isBinaryInPath(agent.binaryName))
+        ...createResourceLockedError(outcome.lock, { kind: 'agent', name: outcome.agent.name }),
+      })
+    case 'failed':
+      return createErrorResult({
+        action: 'uninstall',
+        data: {
+          agent: { displayName: outcome.agent.displayName, name: outcome.agent.name },
+          changed: false,
+        },
+        error: {
+          code: 'UNINSTALL_FAILED',
+          details: { lifecycle: outcome.lifecycle },
+          message: outcome.message,
+        },
+        target: { kind: 'agent', name: outcome.agent.name },
+      })
+    case 'dry-run':
+      return createSuccessResult({
+        action: 'uninstall',
+        data: {
+          agent: { displayName: outcome.agent.displayName, name: outcome.agent.name },
+          changed: false,
+        },
+        target: { kind: 'agent', name: outcome.agent.name },
+        warnings: [{ code: 'DRY_RUN', message: `Dry run: ${outcome.action}.` }],
+      })
+    case 'ghost-reconciled':
+      return createSuccessResult({
+        action: 'uninstall',
+        data: {
+          agent: { displayName: outcome.agent.displayName, name: outcome.agent.name },
+          changed: true,
+        },
+        target: { kind: 'agent', name: outcome.agent.name },
+        warnings: [
+          {
+            code: 'GHOST_STATE_RECONCILED',
+            message: `${outcome.agent.displayName} was already absent; stale lifecycle evidence was removed.`,
           },
-          { isCancelled: () => Boolean(getCliContext().cancelled) },
-        )
-        if (!postconditionSatisfied) {
-          const providerAfterFailure = await observeBoundProvider(binding)
-          if (providerAfterFailure.kind === 'success' && providerAfterFailure.value.kind === 'absent') {
-            // Managed package is gone; a residual PATH binary is not Quantex-owned tracking.
-            // Do not restore installed-agent state that uninstallInstalledAgentOutcome already cleared.
-            await removeLifecycleReceipt(agent.name)
-            return emitCommandResult(
-              createUninstallFailure(
-                agent,
-                'conflicting-source',
-                `${agent.displayName}'s managed package was removed, but another copy remains on PATH.`,
-              ),
-              renderUninstallHuman,
-            )
-          }
-
-          await setInstalledAgentState(installedState)
-          return emitCommandResult(
-            createUninstallFailure(
-              agent,
-              'verification-failed',
-              `${agent.displayName} is still present after provider removal.`,
-            ),
-            renderUninstallHuman,
-          )
-        }
-
-        await removeLifecycleReceipt(agent.name)
-        return emitCommandResult(
-          createSuccessResult<UninstallCommandData>({
-            action: 'uninstall',
-            data: {
-              agent: {
-                displayName: agent.displayName,
-                name: agent.name,
-              },
-              changed: true,
-            },
-            target: {
-              kind: 'agent',
-              name: agent.name,
-            },
-          }),
-          renderUninstallHuman,
-        )
-      }
-
-      return emitCommandResult(
-        createUninstallFailure(agent, 'provider-failure', `Failed to uninstall ${agent.displayName}.`),
-        renderUninstallHuman,
-      )
-    })
-  } catch (error) {
-    if (isResourceLockError(error)) {
-      return emitCommandResult(
-        createErrorResult<UninstallCommandData>({
-          action: 'uninstall',
-          data: {
-            agent: {
-              displayName: agent.displayName,
-              name: agent.name,
-            },
-            changed: false,
-          },
-          ...createResourceLockedError(error, {
-            kind: 'agent',
-            name: agent.name,
-          }),
-        }),
-        renderUninstallHuman,
-      )
-    }
-    throw error
+        ],
+      })
+    case 'uninstalled':
+      return createSuccessResult({
+        action: 'uninstall',
+        data: {
+          agent: { displayName: outcome.agent.displayName, name: outcome.agent.name },
+          changed: true,
+        },
+        target: { kind: 'agent', name: outcome.agent.name },
+      })
   }
-}
-
-async function observeBoundProvider(binding: LifecycleProviderBinding) {
-  const context = getCliContext()
-  const controller = new AbortController()
-  if (context.cancelled) controller.abort('cli-cancelled')
-  return observeLifecycleProvider(binding, {
-    signal: controller.signal,
-    timeoutMs: context.timeoutMs,
-  })
-}
-
-function createUninstallFailure(
-  agent: AgentDefinition,
-  lifecycle: 'conflicting-source' | 'indeterminate-source' | 'provider-failure' | 'verification-failed',
-  message: string,
-): CommandResult<UninstallCommandData> {
-  return createErrorResult({
-    action: 'uninstall',
-    data: {
-      agent: { displayName: agent.displayName, name: agent.name },
-      changed: false,
-    },
-    error: {
-      code: 'UNINSTALL_FAILED',
-      details: { lifecycle },
-      message,
-    },
-    target: { kind: 'agent', name: agent.name },
-  })
-}
-
-function createDryRunUninstallResult(agent: AgentDefinition, action: string): CommandResult<UninstallCommandData> {
-  return createSuccessResult({
-    action: 'uninstall',
-    data: {
-      agent: { displayName: agent.displayName, name: agent.name },
-      changed: false,
-    },
-    target: { kind: 'agent', name: agent.name },
-    warnings: [{ code: 'DRY_RUN', message: `Dry run: ${action}.` }],
-  })
-}
-
-function createGhostReconciledResult(agent: AgentDefinition): CommandResult<UninstallCommandData> {
-  return createSuccessResult({
-    action: 'uninstall',
-    data: {
-      agent: { displayName: agent.displayName, name: agent.name },
-      changed: true,
-    },
-    target: { kind: 'agent', name: agent.name },
-    warnings: [
-      {
-        code: 'GHOST_STATE_RECONCILED',
-        message: `${agent.displayName} was already absent; stale lifecycle evidence was removed.`,
-      },
-    ],
-  })
-}
-
-function createUnmanagedUninstallResult(agentName: string, agent: AgentDefinition) {
-  return createErrorResult<UninstallCommandData>({
-    action: 'uninstall',
-    data: {
-      agent: {
-        displayName: agent.displayName,
-        name: agent.name,
-      },
-      changed: false,
-    },
-    error: {
-      code: 'UNINSTALL_UNMANAGED',
-      details: {
-        canAutoUninstall: false,
-        displayName: agent.displayName,
-        input: agentName,
-        lifecycle: 'unmanaged',
-        name: agent.name,
-      },
-      message: `${agent.displayName} is not managed by qtx, so qtx cannot auto-uninstall it. Run qtx inspect ${agent.name} for details.`,
-    },
-    target: {
-      kind: 'agent',
-      name: agent.name,
-    },
-  })
 }
 
 function renderUninstallHuman(result: {
