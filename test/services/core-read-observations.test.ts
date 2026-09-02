@@ -82,6 +82,12 @@ describe('Core-backed CLI read observations', () => {
     for (const path of ['doctor', 'info', 'inspect', 'list', 'resolve']) {
       expect(await source(`src/commands/${path}.ts`)).toContain("from '../services/core-read-observations'")
     }
+    for (const path of ['info', 'inspect', 'resolve']) {
+      const contents = await source(`src/commands/${path}.ts`)
+      expect(contents).toContain("from './cli-read-projection'")
+      expect(contents).not.toContain('createQuantex')
+      expect(contents).not.toMatch(/from ['"]quantex-core['"]/u)
+    }
     for (const path of ['ensure', 'install']) {
       const contents = await source(`src/commands/${path}.ts`)
       expect(contents).toContain("from '../services/lifecycle-observations'")
@@ -94,6 +100,11 @@ describe('Core-backed CLI read observations', () => {
     expect(adapter).not.toContain('createProductionLifecycleObservationService')
     expect(adapter).not.toContain('fallback')
     expect(adapter).not.toContain('shadow')
+
+    const projection = await source('src/commands/cli-read-projection.ts')
+    expect(projection).toContain('projectObservationToV1Inspection')
+    expect(projection).not.toContain('createQuantex')
+    expect(projection).not.toMatch(/from ['"]quantex-core['"]/u)
   })
 })
 

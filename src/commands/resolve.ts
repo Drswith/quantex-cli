@@ -1,10 +1,9 @@
 import type { CommandResult } from '../output/types'
-import { projectObservationToV1Inspection } from '../compatibility/agent-inspection'
 import { createErrorResult, createSuccessResult, emitCommandResult } from '../output'
 import { getHumanTerminalWidth, renderHumanFields, renderHumanWrapped } from '../output/human'
 import { resolveCliReadObservation } from '../services/core-read-observations'
 import { pc } from '../utils/color'
-import { formatInstallMethodCommand, formatInstallMethodLabel } from '../utils/install'
+import { projectCliReadObservation, projectInstallMethods } from './cli-read-projection'
 
 interface ResolveCommandData {
   agent: {
@@ -34,6 +33,8 @@ interface ResolveCommandData {
 }
 
 export async function resolveCommand(agentName: string): Promise<CommandResult<ResolveCommandData>> {
+  // Core read ports already back resolve; project the richer v1 CLI payload rather than
+  // wrapping the narrower public SDK inspect() descriptors into a second CLI-shaped API.
   const resolved = await resolveCliReadObservation(agentName)
   if (!resolved) {
     return emitCommandResult(
@@ -55,16 +56,9 @@ export async function resolveCommand(agentName: string): Promise<CommandResult<R
     )
   }
 
-  const { agent } = resolved
-  const inspection = projectObservationToV1Inspection(resolved)
+  const { agent, inspection } = projectCliReadObservation(resolved)
   if (!inspection.inPath || !inspection.binaryPath) {
-    const installMethods = inspection.methods
-      .map(method => ({
-        command: formatInstallMethodCommand(agent, method),
-        label: formatInstallMethodLabel(method),
-        type: method.type,
-      }))
-      .filter(method => method.command)
+    const installMethods = projectInstallMethods(agent, inspection.methods).filter(method => method.command)
 
     return emitCommandResult(
       createErrorResult<ResolveCommandData>({
