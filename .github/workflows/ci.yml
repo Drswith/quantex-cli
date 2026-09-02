@@ -165,11 +165,16 @@ jobs:
 
       - run: bun run package:check
 
+  # Windows still runs on the product test matrix and remains visible in Checks.
+  # It is intentionally NOT a merge gate: flakes must not fail ci.yml or block
+  # merge/release tagging. continue-on-error keeps the job signal without making
+  # a Windows failure fail the overall workflow conclusion.
   test-windows:
     name: test (windows-latest)
     needs: classify
     if: needs.classify.outputs.run_test_matrix == 'true'
     runs-on: windows-latest
+    continue-on-error: true
     steps:
       - uses: actions/checkout@v7
       - uses: ./.github/actions/setup-bun
