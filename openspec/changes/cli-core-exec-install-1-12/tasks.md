@@ -19,10 +19,10 @@
 ## 4. Docs and product memory
 
 - [x] 4.1 Update bilingual README Core-transition wording for exec `--install` Core install/ensure
-- [ ] 4.2 Run `bun run openspec:validate` and `bun run memory:check`
+- [x] 4.2 Run `bun run openspec:validate` and `bun run memory:check`
 
 ## 5. Validation and delivery
 
-- [ ] 5.1 Run `bun run lint`, `bun run format:check`, and `bun run typecheck`
-- [ ] 5.2 Run exec/shortcut `--json` / `--install` / stdio tests
-- [ ] 5.3 Commit, push, and open the PR with the repository template
+- [x] 5.1 Run `bun run lint`, `bun run format:check`, and `bun run typecheck`
+- [x] 5.2 Run exec/shortcut `--json` / `--install` / stdio tests
+- [x] 5.3 Commit, push, and open the PR with the repository template
