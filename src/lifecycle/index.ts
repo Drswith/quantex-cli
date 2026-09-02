@@ -45,7 +45,6 @@ export {
   type LifecycleMutationPlanningResult,
   planLifecycleMutation,
 } from './mutation-planner'
-export { type PlanValidationIssue, type PlanValidationIssueCode, validateLifecyclePlan } from './plan-validation'
 export {
   type CatalogProviderEvidence,
   type LifecycleProviderBinding,
