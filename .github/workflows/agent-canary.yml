@@ -3,6 +3,7 @@ name: Agent Canaries
 # Advisory real-agent signal. This workflow intentionally is not a required
 # merge gate: upstream registries and installers are external dependencies.
 # GitHub-hosted jobs provide the disposable HOME that local development cannot.
+# There is no standing schedule; full coverage is manual dispatch only.
 
 on:
   pull_request:
@@ -25,9 +26,6 @@ on:
         options:
           - quick
           - full
-
-  schedule:
-    - cron: '0 6 * * 6'
 
 concurrency:
   group: agent-canary-${{ github.event.pull_request.number || github.ref || github.run_id }}

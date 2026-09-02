@@ -338,7 +338,7 @@ trap 'rm -rf "$canary_home"' EXIT
 HOME="$canary_home" BUN_INSTALL="$canary_home/.bun" PATH="$canary_home/.bun/bin:$PATH" QTX_ISOLATION_SCENARIOS=probe QTX_CANARY_REQUIRE_VERSION=true QTX_ISOLATION_AGENTS=pi bun run scripts/smoke/lifecycle-smoke.ts
 ```
 
-The advisory `Agent Canaries` GitHub Actions workflow runs this probe for quick anchors on relevant pull requests and for the full catalog on a schedule or manual dispatch. See [the isolation runbook](./docs/runbooks/modal-sandbox-testing.md) for scope and triage guidance.
+The advisory `Agent Canaries` GitHub Actions workflow runs this probe for quick anchors on relevant pull requests and for the full catalog on manual dispatch. See [the isolation runbook](./docs/runbooks/modal-sandbox-testing.md) for scope and triage guidance.
 
 ## License
 

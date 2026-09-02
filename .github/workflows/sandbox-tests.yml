@@ -2,17 +2,14 @@ name: Sandbox Tests
 
 # Advisory signal only: this workflow is intentionally NOT a required merge gate.
 #
-# It no longer runs per pull request. It never gated anything there -- it is
-# advisory by design, fork PRs skipped it for lack of secrets, and its failures
-# were external Modal capacity rather than repository regressions -- so a full
-# run per pull request bought a signal nothing consumed. Schedule and manual
-# dispatch keep the coverage where it is actually read.
+# It no longer runs per pull request or on a standing schedule. It never gated
+# anything on PRs -- it is advisory by design, fork PRs skipped it for lack of
+# secrets, and its failures were external Modal capacity rather than repository
+# regressions -- so automatic runs bought a signal nothing consumed. Manual
+# dispatch keeps the coverage where it is actually read.
 
 on:
   workflow_dispatch:
-
-  schedule:
-    - cron: '0 6 * * 2'
 
 concurrency:
   group: sandbox-tests-${{ github.ref }}
