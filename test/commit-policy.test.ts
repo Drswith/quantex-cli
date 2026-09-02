@@ -89,12 +89,15 @@ describe('pull request commit policy', () => {
     expect(issues).toEqual([])
   })
 
-  it('routes commit policy through the CI governance job', () => {
+  it('routes commit policy through the CI governance job for human PRs only', () => {
     const policyStep = extractNamedStep(ciWorkflow, 'Validate PR commit policy')
 
     expect(policyStep).toContain('PR_COMMITS_JSON')
     expect(policyStep).toContain('PR_BODY')
     expect(policyStep).toContain('PR_HEAD_BRANCH')
+    expect(policyStep).toContain(
+      'if: "!startsWith(github.event.pull_request.head.ref, \'release-please--branches--\')"',
+    )
   })
 
   it('no longer gates on commit authorship or branch commit count', () => {
