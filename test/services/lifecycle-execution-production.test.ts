@@ -147,17 +147,22 @@ function resolvedObservation(pathPresent: boolean, providerPresent = pathPresent
   }
 }
 
-function options(overrides: Partial<ReturnType<typeof baseOptions>> = {}): ReturnType<typeof baseOptions> {
-  return { ...baseOptions(), ...overrides }
-}
-
-function baseOptions() {
+function options(
+  overrides: Partial<{
+    confirmInstall: () => Promise<boolean>
+    dryRun: boolean
+    interactive: boolean
+    outputMode: 'human' | 'json' | 'ndjson'
+    timeoutMs: number
+  }> = {},
+) {
   return {
     confirmInstall: vi.fn(async () => true),
     dryRun: false,
     interactive: false,
-    outputMode: 'human' as const,
+    outputMode: 'human' as 'human' | 'json' | 'ndjson',
     timeoutMs: 5_000,
+    ...overrides,
   }
 }
 
