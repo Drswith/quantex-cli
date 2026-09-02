@@ -2,9 +2,8 @@
 
 ### Requirement: Exec --install SHALL mutate through Core install/ensure without drifting frozen contracts
 
-For the 1.12 ninth slice, when CLI `exec` or shortcut installs a missing agent
-under an authorized `--install` policy, Quantex SHALL perform that mutation
-through the in-repo Core install/ensure engine used by CLI `install` /
+Quantex SHALL perform authorized missing-agent installation for CLI `exec` or
+shortcut through the in-repo Core install/ensure engine used by CLI `install` /
 `ensure`. The public `--install` enum MUST remain `never` / `if-missing` /
 `always` with default `never` on the public flag surface; interactive `prompt`
 MUST remain interactive-only and MUST NOT become a JSON policy value.
