@@ -1,9 +1,9 @@
 import type { AgentDefinition, InstallMethod } from '../../src/agents/types'
-import type { InstallationEngineRoute } from '../../src/commands/installation-routing'
 import type { CoreInstallationExecutionOutcome } from '../../src/core/installation-executor'
 import type { CoreInvocationOutcome } from '../../src/core/invocation'
 import type { CoreMutationRecipeCatalog } from '../../src/core/mutation-recipe-catalog'
 import type { CoreAgentObservation } from '../../src/core/production-observation'
+import type { AgentInstallationRoute } from '../../src/lifecycle'
 import type { LifecycleOutcome, LifecycleReceipt } from '../../src/lifecycle/model'
 import type { LifecycleProviderBinding } from '../../src/lifecycle/provider-binding'
 import type { VerifiedMutation } from '../../src/lifecycle/reconcile'
@@ -19,16 +19,12 @@ import { describe, expect, it, vi } from 'vitest'
 
 /**
  * Each runner owns one in-memory world and invokes exactly one mutation engine. The
- * legacy runner keeps the real command/reconciler and replaces only its hard-wired
- * effect ports; the Core runner keeps the executor/production composition/state
- * transaction and injects fake providers, reads, locks, and persistence.
+ * legacy runner exercises `reconcileAgentInstallation` (still used by exec
+ * install-if-missing) with hard-wired effect ports; the Core runner keeps the
+ * executor/production composition/state transaction and injects fake providers,
+ * reads, locks, and persistence. CLI install/ensure no longer select a legacy route.
  */
 type Operation = 'ensure' | 'install'
-
-const LEGACY_DIFFERENTIAL_ROUTE: InstallationEngineRoute = Object.freeze({
-  engine: 'legacy',
-  source: 'compatibility-escape',
-})
 
 type ScenarioName =
   | 'binary-verification-failure'
@@ -254,22 +250,24 @@ vi.mock('../../src/utils/user-output', () => ({
 }))
 
 import { projectCoreInstallationOutcome } from '../../src/commands/core-installation-cli'
-import { ensureCommandWithRoute } from '../../src/commands/ensure'
-import { installCommandWithRoute } from '../../src/commands/install'
 import { decideCoreInstallation } from '../../src/core/installation-decision'
 import { executeCoreInstallation } from '../../src/core/installation-executor'
 import { createProductionCoreInstallationPorts } from '../../src/core/installation-production'
 import { runCoreInvocation } from '../../src/core/invocation'
 import { getExitCodeForResult } from '../../src/errors'
+import { reconcileAgentInstallation } from '../../src/lifecycle'
 import {
   providerBindingsEqual,
   resolveInstallMethodProviderBinding,
   resolveReceiptProviderBinding,
   resolveStateProviderBinding,
 } from '../../src/lifecycle/provider-binding'
+import { createErrorResult, createSuccessResult } from '../../src/output'
 import { createProviderRegistry } from '../../src/providers/registry'
+import { resolveAgentObservation } from '../../src/services/lifecycle-observations'
 import { createEmptyStateDocument } from '../../src/state/schema'
 import { LifecycleStateStore } from '../../src/state/store'
+import { getAdoptableExistingInstallMethod } from '../../src/utils/install'
 
 const AGENT: AgentDefinition = {
   binaryName: 'fixture-agent',
@@ -517,10 +515,7 @@ async function runLegacy(operation: Operation, scenario: DifferentialScenario): 
   legacyControl.activate(world)
   let result: CommandResult<unknown>
   try {
-    result =
-      operation === 'install'
-        ? ((await installCommandWithRoute(AGENT.name, LEGACY_DIFFERENTIAL_ROUTE)) as CommandResult<unknown>)
-        : ((await ensureCommandWithRoute(AGENT.name, LEGACY_DIFFERENTIAL_ROUTE)) as CommandResult<unknown>)
+    result = await runLegacyReconciler(operation)
   } finally {
     legacyControl.clear()
   }
@@ -540,6 +535,129 @@ async function runLegacy(operation: Operation, scenario: DifferentialScenario): 
     typedOutcome: normalizeLegacyOutcome(world, decision),
     worldId: world.id,
   }
+}
+
+async function runLegacyReconciler(operation: Operation): Promise<CommandResult<unknown>> {
+  const resolved = await resolveAgentObservation(AGENT.name)
+  if (!resolved) {
+    return createErrorResult({
+      action: operation,
+      error: {
+        code: 'AGENT_NOT_FOUND',
+        details: { input: AGENT.name },
+        message: `Unknown agent: ${AGENT.name}`,
+      },
+      target: { kind: 'agent', name: AGENT.name },
+    })
+  }
+
+  const { agent } = resolved
+  const inPath = resolved.pathExecutable.present
+  const installedState = resolved.installedState
+  const adoptableMethod =
+    inPath && !installedState
+      ? getAdoptableExistingInstallMethod(resolved.methods, resolved.resolvedBinaryPath ?? resolved.pathExecutable.path)
+      : undefined
+
+  if (inPath && !installedState && !adoptableMethod) {
+    return createSuccessResult({
+      action: operation,
+      data: {
+        agent: { displayName: agent.displayName, name: agent.name },
+        changed: false,
+        installed: true,
+      },
+      target: { kind: 'agent', name: agent.name },
+      warnings: [
+        {
+          code: 'UNTRACKED_EXISTING_INSTALL',
+          message: `${agent.displayName} is already installed but not tracked by Quantex. Quantex could not safely determine the supported install source, so the existing install remains unmanaged.`,
+        },
+      ],
+    })
+  }
+
+  const route: AgentInstallationRoute = installedState && inPath ? 'satisfied' : adoptableMethod ? 'adopt' : 'install'
+  if (route === 'satisfied') {
+    return createSuccessResult({
+      action: operation,
+      data: {
+        agent: { displayName: agent.displayName, name: agent.name },
+        changed: false,
+        installed: true,
+      },
+      target: { kind: 'agent', name: agent.name },
+      warnings: [{ code: 'ALREADY_INSTALLED', message: `${agent.displayName} is already installed.` }],
+    })
+  }
+
+  const outcome = await reconcileAgentInstallation({
+    adoptableMethod,
+    agent,
+    observation: { inPath, installedState, lifecycle: resolved.observation, methods: resolved.methods },
+    operation,
+    route,
+  })
+
+  if (outcome.kind === 'success') {
+    const installed = outcome.value.value.installedState
+    return createSuccessResult({
+      action: operation,
+      data: {
+        agent: { displayName: agent.displayName, name: agent.name },
+        changed: outcome.value.changed,
+        installState: {
+          installType: installed.installType,
+          packageName: installed.packageName,
+        },
+        installed: true,
+      },
+      target: { kind: 'agent', name: agent.name },
+      warnings:
+        route === 'adopt'
+          ? [
+              {
+                code: 'TRACKED_EXISTING_INSTALL',
+                message: `${agent.displayName} is already installed. Quantex is now tracking the existing install.`,
+              },
+            ]
+          : [],
+    })
+  }
+
+  if (outcome.kind === 'cancelled') {
+    return createErrorResult({
+      action: operation,
+      data: {
+        agent: { displayName: agent.displayName, name: agent.name },
+        changed: false,
+        installed: false,
+      },
+      error: {
+        code: 'CANCELLED',
+        message:
+          operation === 'ensure'
+            ? 'Ensure was cancelled before tracking could complete.'
+            : 'Install was cancelled before tracking could complete.',
+      },
+      target: { kind: 'agent', name: agent.name },
+    })
+  }
+
+  return createErrorResult({
+    action: operation,
+    data: {
+      agent: { displayName: agent.displayName, name: agent.name },
+      changed: false,
+      installed: false,
+    },
+    error: {
+      code: 'INSTALL_FAILED',
+      message: `Failed to install ${agent.displayName}.`,
+      ...(outcome.kind === 'failed' || outcome.kind === 'indeterminate' ? { details: { reason: outcome.reason } } : {}),
+    },
+    target: { kind: 'agent', name: agent.name },
+  })
 }
 
 async function runCore(operation: Operation, scenario: DifferentialScenario): Promise<DifferentialSnapshot> {

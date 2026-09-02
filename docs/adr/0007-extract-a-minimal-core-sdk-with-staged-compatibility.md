@@ -31,7 +31,7 @@ The compatibility runway is at least four stable minor stages:
 
 - 1.2 establishes the private, independently packable read-only SDK boundary while CLI mutations remain legacy-default.
 - 1.3 permits mutation families only on beta or explicit whole-invocation opt-in after differential and provider conformance gates.
-- 1.4 makes Core the stable default for non-dry-run CLI `install` and `ensure` after cross-platform, state, package, sandbox, cancellation, and fault gates. v1 `--dry-run` planning remains on legacy, and `QUANTEX_INSTALLATION_ENGINE=legacy` remains a pre-invocation, whole-invocation compatibility escape route.
+- 1.4 makes Core the stable default for non-dry-run CLI `install` and `ensure` after cross-platform, state, package, sandbox, cancellation, and fault gates. During the 1.4/1.5 soak, v1 `--dry-run` planning remained on legacy, and `QUANTEX_INSTALLATION_ENGINE=legacy` remained a pre-invocation, whole-invocation compatibility escape route. The 1.12 eighth slice retires that escape: CLI `install` / `ensure` are Core-only, and `--dry-run` uses Core preview.
 - 1.5 keeps Core default for a second stable minor and freezes the legacy engine while documenting deprecations and practicing rollback.
 
 Breaking removal requires a separate major-version deprecation decision after both two Core-default stable minors and at least 90 days from stable-default enablement. The later gate controls.
@@ -46,7 +46,7 @@ The active `simplify-lifecycle-core-sdk` OpenSpec change is the detailed source 
 - State evolution that cannot round-trip through the preceding supported 1.x release is deferred to a separate major-version design.
 - CLI release automation validates the bundled Core source but keeps CLI npm/GitHub/binary closure independent of the public Core registry identity and the external `quantex` alias repository. Core publishing uses its own manual workflow and tag recovery.
 - Core public identity, ownership, bootstrap, trust, and recovery are recorded in the independent activation change; clean tarball consumers remain the distribution evidence for the CLI's bundled Core boundary.
-- The 1.4 promotion is intentionally limited to `install` and `ensure`; `update`, `uninstall`, and `run` keep their maintained legacy implementations during the 1.x transition. The compatibility escape remains through the 1.5 soak and cannot be removed without the later-major deprecation decision.
+- The 1.4 promotion is intentionally limited to `install` and `ensure`; `update`, `uninstall`, and `run` keep their maintained legacy implementations during the early 1.x transition. The compatibility escape remained through the 1.5 soak; the 1.12 eighth slice retires the install/ensure escape after product authorization, while other maintained v1 surfaces still require a separately approved later-major deprecation decision.
 
 ## Alternatives Considered
 

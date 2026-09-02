@@ -29,6 +29,6 @@ Two audits ran: a six-dimension repository audit, and a failure audit over ~130 
 - **Open**: `ci.yml` and `sandbox-tests.yml` declare no concurrency group, so a burst of PR edits leaves overlapping full-matrix runs.
 - **Open**: `sandbox-tests` is advisory and has never failed in recent runs; moving it off per-PR triggering would cut cost without losing signal.
 - **Open**: `AGENTS.md` restates the validation-routing matrix and OpenSpec intake signals that the runtime skill already carries in full, with no parity guard.
-- **Deferred to a later major**: switch CLI `--dry-run` onto Core preview and retire the `QUANTEX_INSTALLATION_ENGINE=legacy` escape.
+- **Completed in 1.12**: switch CLI `--dry-run` onto Core preview and retire the `QUANTEX_INSTALLATION_ENGINE=legacy` escape.
 - **Resolved during the audit**: the Windows `test/ci-context.test.ts` flake (fixed by `04ab970`), and the release seal contract title matching (fixed by `d315ade` and `2c4ef7c`, pinned by #589).
 - **Repository hygiene**: worktrees reduced from 13 to 4, local branches from 57 to 13, remote branches from 100 to 18; `delete_branch_on_merge` now prevents the pile-up from recurring.
