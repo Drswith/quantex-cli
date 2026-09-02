@@ -2,15 +2,13 @@ export {
   type AgentInstallationExecutionValue,
   type AgentInstallationObservation,
   type AgentInstallationRoute,
+  type LifecycleMutationDecision,
+  type LifecycleMutationPlanningInput,
+  type LifecycleMutationPlanningResult,
+  planLifecycleMutation,
   reconcileAgentInstallation,
   type ReconcileAgentInstallationInput,
 } from './agent-installation'
-export {
-  type AgentExecutionInstallPolicy,
-  type AgentExecutionPreflightInput,
-  type AgentExecutionPreflightPlan,
-  planAgentExecutionPreflight,
-} from './agent-execution'
 export type {
   LifecycleDrift,
   LifecycleEffect,
@@ -40,26 +38,20 @@ export {
   observeAgentLifecycle,
 } from './agent-observation'
 export {
-  type LifecycleMutationDecision,
-  type LifecycleMutationPlanningInput,
-  type LifecycleMutationPlanningResult,
-  planLifecycleMutation,
-} from './mutation-planner'
-export { type PlanValidationIssue, type PlanValidationIssueCode, validateLifecyclePlan } from './plan-validation'
-export {
   type CatalogProviderEvidence,
   type LifecycleProviderBinding,
-  type ObserveLifecycleProviderOptions,
-  observeLifecycleProvider,
   providerBindingsEqual,
   resolveCatalogProviderBindings,
   resolveCatalogProviderEvidence,
+  resolveInstallMethodProviderBinding,
   resolvePersistedProviderBinding,
   resolveReceiptProviderBinding,
   resolveStateProviderBinding,
-} from './provider-evidence'
+} from './provider-binding'
 export {
   type MutationExecution,
+  type ObserveLifecycleProviderOptions,
+  observeLifecycleProvider,
   type ReconcileVerifiedMutationInput,
   reconcileVerifiedMutation,
   type VerifiedMutation,

@@ -1,5 +1,5 @@
 import type { AgentDefinition, Platform } from '../agents/types'
-import type { LifecycleProviderBinding } from '../lifecycle/provider-evidence'
+import type { LifecycleProviderBinding } from '../lifecycle/provider-binding'
 import type { CoreInstallationExecutionOutcome, CoreInstallationExecutorPorts } from './installation-executor-types'
 import type {
   AgentDescriptor,

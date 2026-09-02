@@ -1,18 +1,40 @@
 import type { AgentDefinition, InstallMethod } from '../agents'
+import type { AgentExecutableObservation, LifecycleObservation, LifecycleOutcome } from '../lifecycle'
 import type { ProcessPort, ProcessStdio, RuntimeFailure, RuntimeOutcome } from '../runtime'
 import type { InstalledAgentState } from '../state'
-import {
-  type AgentExecutableObservation,
-  type AgentExecutionInstallPolicy,
-  type LifecycleObservation,
-  type LifecycleOutcome,
-  planAgentExecutionPreflight,
-} from '../lifecycle'
 
 /**
  * In-repo Core agent execution engine (CLI-facing). Absent from the published
  * `quantex-core` public API — do not re-export from `src/core/index.ts`.
  */
+export type AgentExecutionInstallPolicy = 'always' | 'if-missing' | 'never' | 'prompt'
+
+export interface AgentExecutionPreflightInput {
+  readonly dryRun: boolean
+  readonly executable: AgentExecutableObservation
+  readonly installPolicy: AgentExecutionInstallPolicy
+  readonly interactive: boolean
+  readonly observation: LifecycleObservation
+}
+
+export type AgentExecutionPreflightPlan =
+  | { readonly decision: 'dry-run' | 'install-and-launch' | 'launch' | 'prompt-install' }
+  | {
+      readonly decision: 'reject'
+      readonly errorCode: 'AGENT_NOT_INSTALLED' | 'INTERACTION_REQUIRED'
+    }
+
+/** Pure preflight for exec/shortcut install policy — owned by Core execution. */
+export function planAgentExecutionPreflight(input: AgentExecutionPreflightInput): AgentExecutionPreflightPlan {
+  if (input.executable.present) return { decision: input.dryRun ? 'dry-run' : 'launch' }
+  if (input.installPolicy === 'never') return { decision: 'reject', errorCode: 'AGENT_NOT_INSTALLED' }
+  if (input.installPolicy === 'prompt' && !input.interactive) {
+    return { decision: 'reject', errorCode: 'INTERACTION_REQUIRED' }
+  }
+  if (input.dryRun) return { decision: 'dry-run' }
+  return { decision: input.installPolicy === 'prompt' ? 'prompt-install' : 'install-and-launch' }
+}
+
 export interface LifecycleExecutionObservedAgent {
   readonly agent: AgentDefinition
   readonly executable: AgentExecutableObservation

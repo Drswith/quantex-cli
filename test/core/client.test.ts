@@ -2,7 +2,7 @@ import type { AgentDefinition } from '../../src/agents/types'
 import type { CoreAgentObservation, CoreReadPorts } from '../../src/core/production-observation'
 import type { AgentDescriptor, AgentInspection, CoreResult, Quantex } from '../../src/core/types'
 import type { LifecycleObservation } from '../../src/lifecycle/model'
-import type { LifecycleProviderBinding } from '../../src/lifecycle/provider-evidence'
+import type { LifecycleProviderBinding } from '../../src/lifecycle/provider-binding'
 import { describe, expect, expectTypeOf, it, vi } from 'vitest'
 import { createQuantexClient } from '../../src/core/client'
 

@@ -4,11 +4,11 @@ import type { ProviderAdapter, ProviderObservation, ProviderRegistry } from '../
 import type { InstalledAgentState } from '../../src/state'
 import { describe, expect, it, vi } from 'vitest'
 import {
-  observeLifecycleProvider,
   resolveCatalogProviderEvidence,
   resolveReceiptProviderBinding,
   resolveStateProviderBinding,
-} from '../../src/lifecycle/provider-evidence'
+} from '../../src/lifecycle/provider-binding'
+import { observeLifecycleProvider } from '../../src/lifecycle/reconcile'
 
 describe('lifecycle provider evidence', () => {
   it('resolves a legacy Bun state through catalog package metadata', () => {

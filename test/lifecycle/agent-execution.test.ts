@@ -1,6 +1,6 @@
-import type { AgentExecutionPreflightInput, AgentExecutionPreflightPlan } from '../../src/lifecycle/agent-execution'
+import type { AgentExecutionPreflightInput, AgentExecutionPreflightPlan } from '../../src/core/execution-executor'
 import { describe, expect, it } from 'vitest'
-import { planAgentExecutionPreflight } from '../../src/lifecycle/agent-execution'
+import { planAgentExecutionPreflight } from '../../src/core/execution-executor'
 
 const presentObservation = {
   drift: { kind: 'none' as const },

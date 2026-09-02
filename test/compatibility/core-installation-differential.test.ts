@@ -223,8 +223,8 @@ vi.mock('../../src/utils/detect', async importOriginal => {
   const actual = await importOriginal<typeof import('../../src/utils/detect')>()
   return { ...actual, isBinaryInPath: legacyControl.isBinaryInPath }
 })
-vi.mock('../../src/lifecycle/provider-evidence', async importOriginal => {
-  const actual = await importOriginal<typeof import('../../src/lifecycle/provider-evidence')>()
+vi.mock('../../src/lifecycle/reconcile', async importOriginal => {
+  const actual = await importOriginal<typeof import('../../src/lifecycle/reconcile')>()
   return { ...actual, observeLifecycleProvider: legacyControl.observeLifecycleProvider }
 })
 vi.mock('../../src/lifecycle', async importOriginal => {
