@@ -27,4 +27,4 @@
 
 - [x] 5.1 Run `bun run lint`, `bun run format:check`, and `bun run typecheck`
 - [x] 5.2 Run existing `--json` contract / command tests plus ownership / architecture suites as the no-drift gate
-- [ ] 5.3 Commit, push, and open the PR with the repository template stating cleanup-only / no contract change (including archive closure for `cli-core-doctor-1-12`)
+- [x] 5.3 Commit, push, and open the PR with the repository template stating cleanup-only / no contract change (including archive closure for `cli-core-doctor-1-12`)
