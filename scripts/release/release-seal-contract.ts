@@ -139,6 +139,35 @@ export async function findSuccessfulProtectedBranchCiSha(input: {
   )
 }
 
+export async function hasSuccessfulReleaseWorkflowRun(input: { tag: string }): Promise<boolean> {
+  const repository = process.env.GITHUB_REPOSITORY
+  const token = process.env.GITHUB_TOKEN ?? process.env.GH_TOKEN
+  if (!repository) throw new Error('GITHUB_REPOSITORY is required.')
+  if (!token) throw new Error('GITHUB_TOKEN or GH_TOKEN is required.')
+
+  const apiBaseUrl = process.env.GITHUB_API_URL ?? 'https://api.github.com'
+  const url = new URL(`${apiBaseUrl}/repos/${repository}/actions/workflows/release.yml/runs`)
+  // Tag-triggered and workflow_dispatch-at-tag runs both expose the tag name as
+  // head_branch, which is the same identity release-please and seal-state use.
+  url.searchParams.set('branch', input.tag)
+  url.searchParams.set('status', 'completed')
+  url.searchParams.set('per_page', '30')
+  const response = await fetch(url, {
+    headers: {
+      Accept: 'application/vnd.github+json',
+      Authorization: `Bearer ${token}`,
+      'X-GitHub-Api-Version': '2022-11-28',
+    },
+  })
+  if (!response.ok) {
+    throw new Error(`Unable to inspect Release workflow runs: ${response.status} ${response.statusText}`)
+  }
+  const payload = (await response.json()) as {
+    workflow_runs?: Array<{ conclusion?: string; head_branch?: string }>
+  }
+  return payload.workflow_runs?.some(run => run.conclusion === 'success' && run.head_branch === input.tag) ?? false
+}
+
 async function readTagSha(tag: string): Promise<string | null> {
   try {
     return await git(['rev-list', '-n', '1', `refs/tags/${tag}`])

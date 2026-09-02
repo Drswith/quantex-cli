@@ -4,13 +4,21 @@ on:
   push:
     branches:
       - main
+  # After Release finishes publishing the current tag, re-evaluate seal state and
+  # prepare the next Release PR without waiting for an unrelated later push.
+  workflow_run:
+    workflows:
+      - Release
+    types:
+      - completed
 
 permissions:
   contents: write
   pull-requests: write
+  actions: read
 
 concurrency:
-  group: release-please-${{ github.ref_name }}
+  group: release-please-main
   cancel-in-progress: false
 
 jobs:
@@ -50,7 +58,7 @@ jobs:
           GH_TOKEN: ${{ steps.release-bot-token.outputs.token }}
           GITHUB_TOKEN: ${{ github.token }}
           GITHUB_REPOSITORY: ${{ github.repository }}
-          TARGET_BRANCH: ${{ github.ref_name }}
+          TARGET_BRANCH: ${{ github.event_name == 'workflow_run' && github.event.repository.default_branch || github.ref_name }}
         run: bun run ci:tag-release
 
   # Gated on the seal state rather than merely ordered after it. A run queued
@@ -78,7 +86,7 @@ jobs:
         uses: googleapis/release-please-action@45996ed1f6d02564a971a2fa1b5860e934307cf7 # v5.0.0
         with:
           token: ${{ steps.release-bot-token.outputs.token }}
-          target-branch: ${{ github.ref_name }}
+          target-branch: ${{ github.event_name == 'workflow_run' && github.event.repository.default_branch || github.ref_name }}
           config-file: release-please-config.json
           manifest-file: .release-please-manifest.json
           skip-github-release: true

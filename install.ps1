@@ -21,7 +21,12 @@ $arch = switch ($hostArch.ToLowerInvariant()) {
 # Releases publish compressed archives; the archive entry is the binary name.
 $binary = "quantex-windows-$arch.exe"
 $asset = "$binary.zip"
-$releaseUrl = if ($Version -eq 'latest') {
+$releaseUrl = if ($env:QUANTEX_DOWNLOAD_BASE) {
+  # Release CI candidate smoke serves local artifact bytes; trim a trailing slash
+  # so "$releaseUrl/$asset" joins cleanly.
+  $env:QUANTEX_DOWNLOAD_BASE.TrimEnd('/')
+}
+elseif ($Version -eq 'latest') {
   "https://github.com/$Repo/releases/latest/download"
 }
 else {

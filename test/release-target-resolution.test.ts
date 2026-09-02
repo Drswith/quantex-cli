@@ -156,19 +156,17 @@ describe('release workflow closure', () => {
     expect(releasePublishIndex).toBeGreaterThan(npmVerifyIndex)
   })
 
-  it('verifies the documented installers against the public release on every hosted platform', () => {
+  it('verifies the documented installers against the release candidate before npm publish', () => {
     const installerJobIndex = releaseWorkflow.indexOf('  verify-installers:')
     const installerJob = releaseWorkflow.slice(installerJobIndex)
-    const publicClosureIndex = releaseWorkflow.indexOf('Verify public release closure')
-    const jobStepsIndex = installerJob.indexOf('\n    steps:')
-    const jobLevelEnvIndex = installerJob.indexOf('\n    env:')
-    const jobLevelEnv =
-      jobLevelEnvIndex >= 0 && jobLevelEnvIndex < jobStepsIndex
-        ? installerJob.slice(jobLevelEnvIndex, jobStepsIndex)
-        : ''
+    const publishNeedsIndex = releaseWorkflow.indexOf('needs: [build-candidate, verify-installers]')
+    const npmPublishIndex = releaseWorkflow.indexOf('Publish exact CLI candidate tarball')
 
-    expect(installerJobIndex).toBeGreaterThan(publicClosureIndex)
-    expect(installerJob).toContain('needs: [publish, build-candidate]')
+    expect(installerJobIndex).toBeGreaterThan(-1)
+    expect(publishNeedsIndex).toBeGreaterThan(-1)
+    expect(publishNeedsIndex).toBeLessThan(npmPublishIndex)
+    expect(installerJob).toContain('needs: [build-candidate]')
+    expect(installerJob).not.toContain('needs: [publish, build-candidate]')
     expect(installerJob).toContain('fail-fast: false')
     expect(installerJob).toContain('os: ubuntu-latest')
     expect(installerJob).toContain('os: macos-latest')
@@ -176,16 +174,12 @@ describe('release workflow closure', () => {
     expect(installerJob).toContain('installer: install.sh')
     expect(installerJob).toContain('installer: install.ps1')
     expect(installerJob).toContain('ref: ${{ needs.build-candidate.outputs.tag }}')
+    expect(installerJob).toContain('name: release-candidate-${{ needs.build-candidate.outputs.tag }}')
+    expect(installerJob).toContain('python3 -m http.server')
+    expect(installerJob).toContain('QUANTEX_DOWNLOAD_BASE')
     expect(installerJob).toContain('QUANTEX_REPO: ${{ github.repository }}')
     expect(installerJob).toContain('QUANTEX_VERSION: ${{ needs.build-candidate.outputs.tag }}')
     expect(installerJob).toContain('QUANTEX_INSTALL_DIR: ${{ runner.temp }}/quantex-install')
-    expect(jobLevelEnv).not.toContain('runner.temp')
-    expect(installerJob).toContain(
-      '        env:\n          HOME: ${{ runner.temp }}/quantex-home\n          QUANTEX_INSTALL_DIR: ${{ runner.temp }}/quantex-install',
-    )
-    expect(installerJob).toContain(
-      '        env:\n          QUANTEX_INSTALL_DIR: ${{ runner.temp }}/quantex-install\n          QUANTEX_REPO: ${{ github.repository }}',
-    )
     expect(installerJob).toContain('bash ./install.sh')
     expect(installerJob).toContain('& ./install.ps1')
     expect(installerJob).toContain('install.sh installer smoke failed')

@@ -26,9 +26,9 @@ Normal feature, fix, or maintenance work lands through standard PRs.
 
 On every push to `main`, `release-please.yml` first runs its `tag-release` job and then, only if that job reports the branch sealed, runs release-please with `release-please-config.json` to open or update the Release PR when a version bump is warranted. No manual dispatch is involved.
 
-Sealed means the tag for the version in `.release-please-manifest.json` on the branch tip exists. release-please derives its commit range from that tag, and a missing tag is not an error to it: it drops the range boundary and replays the entire history, which re-admits settled `Release-As` footers and can compute a version below the published one. That is how [#677](https://github.com/Drswith/quantex-cli/pull/677) proposed `1.11.0` after `1.11.1` had shipped.
+Sealed means the tag for the version in `.release-please-manifest.json` on the branch tip exists **and** a `Release` workflow run for that tag has succeeded. release-please derives its commit range from that tag, and a missing tag is not an error to it: it drops the range boundary and replays the entire history, which re-admits settled `Release-As` footers and can compute a version below the published one. That is how [#677](https://github.com/Drswith/quantex-cli/pull/677) proposed `1.11.0` after `1.11.1` had shipped. A tag without a successful Release run is also unsealed, so preparation cannot race ahead of publication.
 
-An unsealed branch therefore skips preparation rather than preparing something wrong. It is self-clearing: the push that merges a Release PR seals it, and anything that landed beside it is prepared by the next push.
+An unsealed branch therefore skips preparation rather than preparing something wrong. It clears once the current tag's Release workflow succeeds: `release-please.yml` also runs on `Release` completion, and any commit that landed beside the release is prepared then or on the next push.
 
 Stable v2 is temporarily deferred until the required refactor has merged and completed at least 90 days of stabilization. That gate denies an ineligible version at Release PR validation, tag planning, and publication identity; it does not pause preparation, so ordinary 1.x Release PRs are created as usual.
 
@@ -68,7 +68,7 @@ After the Release PR merges, push CI on the exact `main` head must succeed. The 
 - pushes `v<version>` with `git push` under the release GitHub App token when the head is `chore: release <version>` and the tag is still missing (the normal case, because maintainers re-author Release PR branches and release-please runs with `skip-github-release: true`);
 - dispatches `release.yml` at the pushed tag, because the tag event itself does not start publication for the bot (see the automation note below);
 - relabels the merged release PR from `autorelease: pending` to `autorelease: tagged` so release-please is not blocked on the next cycle;
-- publishes a `sealed` job output, read from the branch tip rather than from its own checkout, which gates whether release-please runs at all.
+- publishes a `sealed` job output, read from the branch tip rather than from its own checkout, which is true only when the tip manifest tag exists and that tag's Release workflow has succeeded, and which gates whether release-please runs at all.
 
 If the tag already points at the branch head, tag-release only relabels.
 
@@ -97,11 +97,10 @@ The build-candidate job runs `bun run release:candidate`, the same pipeline defi
 4. verify npm registry closure;
 5. make the GitHub Release public.
 
-After the public-release check, the `verify-installers` matrix checks the same immutable tag on `ubuntu-latest`, `macos-latest`, and `windows-latest`. It checks out the tagged `install.sh` or `install.ps1`, passes the exact repository and tag through `QUANTEX_REPO` and `QUANTEX_VERSION`, installs into `runner.temp`, and runs both documented entry points with `--version`. The matrix uses `fail-fast: false`, so a multi-platform regression reports every affected installer.
+Before npm publish, the `verify-installers` matrix checks the same immutable tag on `ubuntu-latest`, `macos-latest`, and `windows-latest` against the uploaded release-candidate artifact. It checks out the tagged `install.sh` or `install.ps1`, downloads the candidate, serves `release-candidate/assets` locally, and points the installers at that local base through `QUANTEX_DOWNLOAD_BASE` while still passing the exact repository and tag through `QUANTEX_REPO` and `QUANTEX_VERSION`. Each leg installs into `runner.temp` and runs both documented entry points with `--version`. The matrix uses `fail-fast: false`, so a multi-platform regression reports every affected installer. The `publish` job needs this matrix, so a smoke failure cannot publish an immutable npm package.
 
-This is a post-publish gate because the installers must use public `releases/download/<tag>` URLs. A failed installer leg makes the Release workflow fail and means installer verification is incomplete, but it does not delete, move, or retag the already-public GitHub Release, tag, or npm version. Inspect the named installer and runner first; if the failure is transient, rerun `Release` at the same `v<version>` tag, and if it identifies an asset or installer defect, land the corrective change before publishing a new version. Never hide the failure by moving an existing tag.
+Default end-user installs omit `QUANTEX_DOWNLOAD_BASE` and keep using public `releases/download/<tag>` URLs. A failed candidate installer leg fails the Release workflow before npm publish; remediate and rerun `Release` at the same `v<version>` tag. Never hide a failure by moving an existing tag.
 
-Regular source merges never publish by themselves. Only the immutable tag triggers publication.
 
 ## Version rules
 
@@ -147,7 +146,7 @@ The Release workflow pins `googleapis/release-please-action` to a repository-ver
 
 release-please owns Release PR preparation, but only after the branch is sealed. The `tag-release` job runs first, creates missing tags after CI, guarantees exactly one Release workflow trigger, and publishes the seal state that gates preparation; `release.yml` publishes on tag push and does not ask release-please to create a GitHub Release.
 
-If no Release PR appears, read the `tag-release` job log first. Its last line reports the verdict — `Branch seal state: unsealed (v<version> does not exist yet)` means preparation was skipped on purpose because the current release is not tagged yet, and the next push retries. A skipped `release-please` job with a sealed branch is a different problem: check for stale `autorelease: pending` labels or an untagged merged Release PR. While the stable-v2 gate is active, absence of a Release PR is expected and must not be treated as an automation failure. If tag creation fails, fix the protected-branch, readiness, or CI mismatch and rerun `Release Please` on the branch. If publish or the post-publish installer gate fails after an eligible tag exists, rerun `Release` at the same tag or dispatch `release.yml` with `--ref v<version>` after inspecting the failure. Never create a replacement version commit merely to recover incomplete npm, GitHub, or installer verification closure, and never move an existing version tag.
+If no Release PR appears, read the `tag-release` job log first. Its last line reports the verdict — `Branch seal state: unsealed (v<version> does not exist yet / Release has not succeeded)` means preparation was skipped on purpose because the current release is not tagged yet, and the next push retries. A skipped `release-please` job with a sealed branch is a different problem: check for stale `autorelease: pending` labels or an untagged merged Release PR. While the stable-v2 gate is active, absence of a Release PR is expected and must not be treated as an automation failure. If tag creation fails, fix the protected-branch, readiness, or CI mismatch and rerun `Release Please` on the branch. If publish or the pre-npm candidate installer gate fails after an eligible tag exists, rerun `Release` at the same tag or dispatch `release.yml` with `--ref v<version>` after inspecting the failure. Never create a replacement version commit merely to recover incomplete npm, GitHub, or installer verification closure, and never move an existing version tag.
 
 ## npm trusted publishing
 

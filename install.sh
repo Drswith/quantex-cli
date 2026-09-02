@@ -31,7 +31,11 @@ esac
 binary="quantex-$platform-$arch"
 asset="$binary.tar.gz"
 
-if [ "$VERSION" = "latest" ]; then
+if [ -n "${QUANTEX_DOWNLOAD_BASE:-}" ]; then
+  # Release CI candidate smoke serves local artifact bytes; strip a trailing slash
+  # so "$release_url/$asset" joins cleanly.
+  release_url="${QUANTEX_DOWNLOAD_BASE%/}"
+elif [ "$VERSION" = "latest" ]; then
   release_url="https://github.com/$REPO/releases/latest/download"
 else
   release_url="https://github.com/$REPO/releases/download/$VERSION"
