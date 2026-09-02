@@ -58,6 +58,23 @@ describe('createProductionLifecycleExecutionService', () => {
     )
     service.dispose()
   })
+
+  it('freezes human interactive agent launch on inherited stdin/stdout/stderr', async () => {
+    const observationService = serviceWithObservations([resolvedObservation(true)])
+    const dependencies = fakeDependencies(observationService)
+    const service = createProductionLifecycleExecutionService(options({ outputMode: 'human' }), dependencies)
+
+    await expect(
+      service.execute({ agentName: 'test-agent', args: ['repl'], installPolicy: 'never' }),
+    ).resolves.toMatchObject({ exitCode: 0, kind: 'exited' })
+    expect(dependencies.createProcessPort().run).toHaveBeenCalledWith({
+      argv: ['/path/test-bin', 'repl'],
+      signal: expect.any(AbortSignal),
+      stdio: ['inherit', 'inherit', 'inherit'],
+      timeoutMs: 5_000,
+    })
+    service.dispose()
+  })
 })
 
 function fakeDependencies(observationService: LifecycleObservationService): ProductionLifecycleExecutionDependencies {

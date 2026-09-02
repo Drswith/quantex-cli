@@ -32,3 +32,13 @@ API.
   stderr for the agent process
 - **AND THEN** that policy is applied through the Core execution engine rather
   than a second CLI-local spawn path
+- **AND THEN** interactive agent I/O behavior remains unchanged from the
+  pre-slice CLI contract
+
+#### Scenario: Structured exec output omits engine and route identifiers
+
+- **WHEN** `exec` or shortcut-backed presentation emits JSON or NDJSON
+- **THEN** the maintained payload does not include selected engine or route
+  identifiers
+- **AND THEN** engine or route diagnostics remain absent from those payloads
+  (debug stderr only, when emitted)
