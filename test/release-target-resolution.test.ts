@@ -142,6 +142,41 @@ describe('release workflow closure', () => {
     expect(releaseWorkflow).not.toContain('bun run test')
   })
 
+  it('resolves an existing version tag for workflow_dispatch without using the dispatch branch as the candidate', () => {
+    const buildJob = releaseWorkflow.slice(
+      releaseWorkflow.indexOf('  build-candidate:'),
+      releaseWorkflow.indexOf('  publish:'),
+    )
+    const publishJob = releaseWorkflow.slice(
+      releaseWorkflow.indexOf('  publish:'),
+      releaseWorkflow.indexOf('  verify-installers:'),
+    )
+    const installerJob = releaseWorkflow.slice(releaseWorkflow.indexOf('  verify-installers:'))
+
+    expect(releaseWorkflow).toContain('run-name: Release ${{ github.event.inputs.tag || github.ref_name }}')
+    expect(releaseWorkflow).toContain('group: release-${{ github.event.inputs.tag || github.ref_name }}')
+    expect(releaseWorkflow).toMatch(/workflow_dispatch:\s*\n\s*inputs:\s*\n\s*tag:/)
+    expect(releaseWorkflow).toContain('required: true')
+    expect(releaseWorkflow).toContain('Resolve immutable release tag')
+    expect(releaseWorkflow).toContain('id: release-ref')
+    expect(releaseWorkflow).toContain('GITHUB_EVENT_NAME')
+    expect(releaseWorkflow).toContain('workflow_dispatch from a branch must run on main')
+    expect(releaseWorkflow).toContain('Release tag must match v*')
+
+    // Candidate and publish content come from the immutable tag, never from the
+    // workflow_dispatch branch ref / github.sha / main HEAD.
+    expect(buildJob).toContain('ref: ${{ steps.release-ref.outputs.tag }}')
+    expect(buildJob).not.toContain('ref: ${{ github.ref }}')
+    expect(buildJob).not.toContain('ref: ${{ github.sha }}')
+    expect(buildJob).toContain('GITHUB_REF_NAME: ${{ steps.release-ref.outputs.tag }}')
+    expect(publishJob).toContain('ref: ${{ needs.build-candidate.outputs.tag }}')
+    expect(publishJob).not.toContain('ref: ${{ github.ref }}')
+    expect(publishJob).not.toContain('ref: ${{ github.sha }}')
+    expect(installerJob).toContain('ref: ${{ needs.build-candidate.outputs.tag }}')
+    expect(installerJob).not.toContain('ref: ${{ github.ref }}')
+    expect(installerJob).not.toContain('ref: ${{ github.sha }}')
+  })
+
   it('stages and verifies GitHub assets before npm and publishes the release last', () => {
     const draftIndex = releaseWorkflow.indexOf('Create or recover draft GitHub Release')
     const assetVerifyIndex = releaseWorkflow.indexOf('Verify staged GitHub Release assets')

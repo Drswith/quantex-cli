@@ -1,13 +1,23 @@
 name: Release
+# Keep the published identity in the run title so seal detection can recognize
+# successful workflow_dispatch runs that execute from main against an older tag.
+run-name: Release ${{ github.event.inputs.tag || github.ref_name }}
 
 on:
   push:
     tags:
       - 'v*'
   workflow_dispatch:
+    inputs:
+      tag:
+        description: Existing immutable version tag to publish (e.g. v1.11.3). Does not create or move tags.
+        required: true
+        type: string
 
 concurrency:
-  group: release-${{ github.ref_name }}
+  # Key on the release tag, not the workflow ref, so a main-branch recovery
+  # dispatch for vX.Y.Z shares the group with tag-push / tag-dispatch runs.
+  group: release-${{ github.event.inputs.tag || github.ref_name }}
   cancel-in-progress: false
 
 jobs:
@@ -22,19 +32,46 @@ jobs:
       tag: ${{ steps.candidate.outputs.tag }}
       version: ${{ steps.candidate.outputs.version }}
     steps:
-      - name: Require an immutable version tag
+      - name: Resolve immutable release tag
+        id: release-ref
         run: |
-          test "${GITHUB_REF_TYPE}" = "tag"
-          case "${GITHUB_REF_NAME}" in
+          set -euo pipefail
+          if [ "${GITHUB_EVENT_NAME}" = "workflow_dispatch" ]; then
+            tag="${{ inputs.tag }}"
+            # Recovery / re-seal dispatches must run on main so this workflow YAML
+            # is current, while candidate/installer/publish content still uses the
+            # existing immutable tag named by the input.
+            if [ "${GITHUB_REF_TYPE}" = "branch" ] && [ "${GITHUB_REF_NAME}" != "main" ]; then
+              echo "::error title=invalid release dispatch::workflow_dispatch from a branch must run on main (got ${GITHUB_REF_NAME})."
+              exit 1
+            fi
+            if [ "${GITHUB_REF_TYPE}" = "tag" ] && [ "${tag}" != "${GITHUB_REF_NAME}" ]; then
+              echo "::error title=invalid release dispatch::workflow_dispatch at a tag must set inputs.tag to that same tag (got ${tag}, ref ${GITHUB_REF_NAME})."
+              exit 1
+            fi
+          else
+            test "${GITHUB_REF_TYPE}" = "tag"
+            tag="${GITHUB_REF_NAME}"
+          fi
+          case "${tag}" in
             v*) ;;
-            *) exit 1 ;;
+            *)
+              echo "::error title=invalid release tag::Release tag must match v*; got: ${tag}"
+              exit 1
+              ;;
           esac
+          if [ -z "${tag}" ]; then
+            echo "::error title=invalid release tag::Release tag is empty."
+            exit 1
+          fi
+          echo "tag=${tag}" >> "${GITHUB_OUTPUT}"
+          echo "Resolved release tag ${tag} (event=${GITHUB_EVENT_NAME}, workflow_ref=${GITHUB_REF_NAME})."
 
       - name: Checkout exact release tag
         uses: actions/checkout@v7
         with:
           fetch-depth: 0
-          ref: ${{ github.ref }}
+          ref: ${{ steps.release-ref.outputs.tag }}
 
       - name: Setup Bun
         uses: oven-sh/setup-bun@v2
@@ -60,6 +97,9 @@ jobs:
         id: candidate
         env:
           GITHUB_TOKEN: ${{ github.token }}
+          # Identity validation reads GITHUB_REF_NAME; override so a main-branch
+          # workflow_dispatch still validates the immutable input tag after checkout.
+          GITHUB_REF_NAME: ${{ steps.release-ref.outputs.tag }}
         run: bun run release:candidate
 
       - name: Upload exact release candidate
@@ -83,7 +123,7 @@ jobs:
       - name: Checkout exact release tag
         uses: actions/checkout@v7
         with:
-          ref: ${{ github.ref }}
+          ref: ${{ needs.build-candidate.outputs.tag }}
 
       - name: Download exact release candidate
         uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
