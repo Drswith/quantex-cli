@@ -1,10 +1,9 @@
 import type { CommandResult } from '../output/types'
-import { projectObservationToV1Inspection } from '../compatibility/agent-inspection'
 import { createErrorResult, createSuccessResult, emitCommandResult } from '../output'
 import { getHumanTerminalWidth, renderHumanFields, renderHumanTable } from '../output/human'
 import { resolveCliReadObservation } from '../services/core-read-observations'
 import { pc } from '../utils/color'
-import { formatInstallMethodCommand, formatInstallMethodLabel } from '../utils/install'
+import { projectCliReadObservation } from './cli-read-projection'
 
 interface AgentInfoData {
   agent: {
@@ -31,6 +30,8 @@ interface AgentInfoData {
 }
 
 export async function infoCommand(agentName: string): Promise<CommandResult<AgentInfoData>> {
+  // Core read ports already back info; project the richer v1 CLI payload rather than
+  // wrapping the narrower public SDK inspect() descriptors into a second CLI-shaped API.
   const resolved = await resolveCliReadObservation(agentName)
   if (!resolved) {
     return emitCommandResult(
@@ -52,36 +53,20 @@ export async function infoCommand(agentName: string): Promise<CommandResult<Agen
     )
   }
 
-  const { agent } = resolved
-  const inspection = projectObservationToV1Inspection(resolved)
-  const selfUpdateCommands = agent.selfUpdate
-    ? [agent.selfUpdate.command, ...(agent.selfUpdate.fallbackCommands ?? [])].map(command => command.join(' '))
-    : []
+  const { agent, summary } = projectCliReadObservation(resolved)
 
   return emitCommandResult(
     createSuccessResult<AgentInfoData>({
       action: 'info',
       data: {
-        agent: {
-          aliases: agent.lookupAliases ?? [],
-          binaryName: agent.binaryName,
-          displayName: agent.displayName,
-          installMethods: inspection.methods.map(method => ({
-            command: formatInstallMethodCommand(agent, method),
-            label: formatInstallMethodLabel(method),
-            type: method.type,
-          })),
-          name: agent.name,
-          packageName: agent.packages?.npm,
-          selfUpdateCommands,
-        },
+        agent: summary.agent,
         inspection: {
-          binaryPath: inspection.binaryPath,
-          installed: inspection.inPath,
-          installedVersion: inspection.installedVersion,
-          latestVersion: inspection.latestVersion,
-          lifecycle: inspection.lifecycle,
-          sourceLabel: inspection.inPath ? inspection.sourceLabel : undefined,
+          binaryPath: summary.inspection.binaryPath,
+          installed: summary.inspection.installed,
+          installedVersion: summary.inspection.installedVersion,
+          latestVersion: summary.inspection.latestVersion,
+          lifecycle: summary.inspection.lifecycle,
+          sourceLabel: summary.inspection.sourceLabel,
         },
       },
       target: {

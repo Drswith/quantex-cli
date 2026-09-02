@@ -1,13 +1,12 @@
 import type { CommandResult, CommandWarning } from '../output/types'
 import { createSupersededPackageWarning } from '../agent-update'
 import { resolveSupersededPackage } from '../agents/superseded'
-import { projectObservationToV1Inspection } from '../compatibility/agent-inspection'
 import { createErrorResult, createSuccessResult, emitCommandResult } from '../output'
 import { getHumanTerminalWidth, renderHumanFields, renderHumanTable } from '../output/human'
 import { resolveCliReadObservation } from '../services/core-read-observations'
 import { pc } from '../utils/color'
-import { formatInstallMethodCommand, formatInstallMethodLabel } from '../utils/install'
 import { printWarn } from '../utils/user-output'
+import { projectCliReadObservation } from './cli-read-projection'
 
 interface InspectCommandData {
   agent: {
@@ -41,6 +40,8 @@ interface InspectCommandData {
 }
 
 export async function inspectCommand(agentName: string): Promise<CommandResult<InspectCommandData>> {
+  // Core read ports already back inspect; project the richer v1 CLI payload rather than
+  // wrapping the narrower public SDK inspect() descriptors into a second CLI-shaped API.
   const resolved = await resolveCliReadObservation(agentName)
   if (!resolved) {
     return emitCommandResult(
@@ -62,44 +63,21 @@ export async function inspectCommand(agentName: string): Promise<CommandResult<I
     )
   }
 
-  const { agent } = resolved
-  const inspection = projectObservationToV1Inspection(resolved)
-  const selfUpdateCommands = agent.selfUpdate
-    ? [agent.selfUpdate.command, ...(agent.selfUpdate.fallbackCommands ?? [])].map(command => command.join(' '))
-    : []
+  const projected = projectCliReadObservation(resolved)
+  const { agent, inspection, summary } = projected
 
   return emitCommandResult(
     createSuccessResult<InspectCommandData>({
       action: 'inspect',
       data: {
-        agent: {
-          aliases: agent.lookupAliases ?? [],
-          binaryName: agent.binaryName,
-          displayName: agent.displayName,
-          installMethods: inspection.methods.map(method => ({
-            command: formatInstallMethodCommand(agent, method),
-            label: formatInstallMethodLabel(method),
-            type: method.type,
-          })),
-          name: agent.name,
-          packageName: agent.packages?.npm,
-          selfUpdateCommands,
-        },
+        agent: summary.agent,
         capabilities: {
           canAutoInstall: inspection.methods.length > 0,
           canAutoUninstall: inspection.inPath && inspection.lifecycle === 'managed',
           canRun: inspection.inPath,
-          canSelfUpdate: selfUpdateCommands.length > 0,
+          canSelfUpdate: summary.agent.selfUpdateCommands.length > 0,
         },
-        inspection: {
-          binaryPath: inspection.binaryPath,
-          installed: inspection.inPath,
-          installedVersion: inspection.installedVersion,
-          latestVersion: inspection.latestVersion,
-          lifecycle: inspection.lifecycle,
-          sourceLabel: inspection.inPath ? inspection.sourceLabel : undefined,
-          updateLabel: inspection.updateLabel,
-        },
+        inspection: summary.inspection,
       },
       target: {
         kind: 'agent',
