@@ -1,6 +1,13 @@
 # Changelog
 
 
+## [1.11.3](https://github.com/Drswith/quantex-cli/compare/v1.11.2...v1.11.3) (2026-09-02)
+
+
+### Bug Fixes
+
+* **release:** seal after Release success and smoke installers before npm ([388c913](https://github.com/Drswith/quantex-cli/commit/388c913414a6be4aaf5d63e0b962867ce610401c))
+
 ## [1.11.2](https://github.com/Drswith/quantex-cli/compare/v1.11.1...v1.11.2) (2026-08-28)
 
 
