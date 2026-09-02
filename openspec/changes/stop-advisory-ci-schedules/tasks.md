@@ -16,4 +16,4 @@
 - [x] 3.1 Run `bun run lint`, `bun run format:check`, `bun run typecheck`
 - [x] 3.2 Run `bun run test` focused on workflow classification (and full suite if needed)
 - [x] 3.3 Run `bun run openspec:validate` and `bun run memory:check`
-- [ ] 3.4 Commit, push, and open a PR whose description states manual dispatch still works
+- [x] 3.4 Commit, push, and open a PR whose description states manual dispatch still works
