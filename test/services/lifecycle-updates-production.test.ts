@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { planLifecycleUpdate } from '../../src/lifecycle/update-planner'
 
 const production = vi.hoisted(() => {
   let lockDepth = 0
@@ -66,7 +67,7 @@ const production = vi.hoisted(() => {
     dispose: vi.fn(),
     run: async <T>(run: () => Promise<T>) => run(),
   }))
-  const resolveAgentObservation = vi.fn(async (agentName: string) => {
+  const observe = vi.fn(async (agentName: string) => {
     calls.push(`observe:${agentName}:${upgraded.has(agentName) ? 'fresh' : 'initial'}`)
     if (absent.has(agentName)) {
       return {
@@ -159,24 +160,16 @@ const production = vi.hoisted(() => {
         : {}),
     }
   })
-  const createProductionLifecycleObservationService = vi.fn((context: { signal: AbortSignal }) => {
-    calls.push('observation-service:create')
-    return { context, resolveAgentObservation }
-  })
-  const nestedResolveAgentObservation = vi.fn(async () => {
-    throw new Error('nested lifecycle observation wrapper must not run')
-  })
 
   return {
     calls,
     createCliOperationContext,
-    createProductionLifecycleObservationService,
     isUpgraded: (agentName: string) => upgraded.has(agentName),
     loadState,
     markAbsent: (agentName: string) => absent.add(agentName),
     markManualScript: (agentName: string) => manualScripts.add(agentName),
     markUntracked: (agentName: string) => untracked.add(agentName),
-    nestedResolveAgentObservation,
+    observe,
     registry,
     reset() {
       calls.length = 0
@@ -187,9 +180,7 @@ const production = vi.hoisted(() => {
       upgraded.clear()
       untracked.clear()
       createCliOperationContext.mockClear()
-      createProductionLifecycleObservationService.mockClear()
-      nestedResolveAgentObservation.mockClear()
-      resolveAgentObservation.mockClear()
+      observe.mockClear()
       update.mockClear()
       withAgentLifecycleLock.mockClear()
       writeReceipt.mockClear()
@@ -207,37 +198,51 @@ const production = vi.hoisted(() => {
   }
 })
 
-vi.mock('../../src/config', () => ({
-  loadConfig: vi.fn(async () => ({ npmBunUpdateStrategy: 'latest-major' })),
+vi.mock('../../src/utils/user-output', () => ({
+  isDryRunEnabled: () => false,
 }))
-vi.mock('../../src/agents', () => ({
-  getAllAgents: () => [
-    { binaryName: 'beta', displayName: 'Beta', name: 'beta' },
-    { binaryName: 'alpha', displayName: 'Alpha', name: 'alpha' },
-  ],
-}))
-vi.mock('../../src/package-manager', () => ({
-  withAgentLifecycleLock: production.withAgentLifecycleLock,
+vi.mock('../../src/runtime/cli-operation-context', () => ({
+  createCliOperationContext: production.createCliOperationContext,
 }))
 vi.mock('../../src/providers', async importOriginal => {
   const actual = await importOriginal<typeof import('../../src/providers')>()
   production.setScriptAdapter(actual.firstPartyProviderRegistry.get('script')!)
   return { ...actual, firstPartyProviderRegistry: production.registry }
 })
-vi.mock('../../src/runtime/cli-operation-context', () => ({
-  createCliOperationContext: production.createCliOperationContext,
-}))
-vi.mock('../../src/state', () => ({
-  lifecycleReceiptStore: { write: production.writeReceipt },
-  loadState: production.loadState,
-}))
-vi.mock('../../src/utils/user-output', () => ({
-  isDryRunEnabled: () => false,
-}))
-vi.mock('../../src/services/lifecycle-observations', () => ({
-  createProductionLifecycleObservationService: production.createProductionLifecycleObservationService,
-  resolveAgentObservation: production.nestedResolveAgentObservation,
-}))
+vi.mock('../../src/core/update-production', async importOriginal => {
+  const actual = await importOriginal<typeof import('../../src/core/update-production')>()
+  return {
+    ...actual,
+    createManagedUpdateAgentNameLoader: () => async () => Object.keys((await production.loadState()).installedAgents),
+    loadProductionCoreUpdatePorts: async (options: {
+      readonly listRegisteredAgentNames?: () => Promise<string[]> | string[]
+      readonly registerCleanup?: unknown
+      readonly signal?: AbortSignal
+      readonly timeoutMs?: number
+    }) => ({
+      classifyMutationLockError: (error: unknown) =>
+        error && typeof error === 'object' && 'resource' in error
+          ? {
+              reason: String((error as { message?: string }).message ?? error),
+              resource: String((error as { resource: unknown }).resource),
+            }
+          : undefined,
+      clock: () => new Date().toISOString(),
+      dryRun: false,
+      executeSelfUpdate: vi.fn(),
+      listRegisteredAgentNames: options.listRegisteredAgentNames ?? (() => ['alpha', 'beta']),
+      observe: production.observe,
+      planLifecycleUpdate,
+      providerRegistry: production.registry,
+      registerCleanup: options.registerCleanup,
+      signal: options.signal ?? new AbortController().signal,
+      timeoutMs: options.timeoutMs,
+      updateOptions: { updateStrategy: 'latest-major' as const },
+      withMutationLock: production.withAgentLifecycleLock,
+      writeReceipt: production.writeReceipt,
+    }),
+  }
+})
 
 import {
   createLifecycleUpdateBatchInvocation,
@@ -249,6 +254,19 @@ import {
 
 describe('lifecycle update production composition', () => {
   beforeEach(() => production.reset())
+
+  it('routes through Core update-compatibility with CLI operation-context wrapping only', async () => {
+    const source = await import('node:fs/promises').then(fs =>
+      fs.readFile(new URL('../../src/services/lifecycle-updates-production.ts', import.meta.url), 'utf8'),
+    )
+    expect(source).toContain("from '../core/update-compatibility'")
+    expect(source).toContain('createCoreSingleAgentUpdateInvocation')
+    expect(source).toContain('createCoreUpdateBatchInvocation')
+    expect(source).not.toContain('createProductionLifecycleObservationService')
+    expect(source).not.toContain('executeSingleAgentLifecycleUpdate')
+    expect(source).not.toContain('planSingleAgentLifecycleUpdate')
+    expect(source).not.toContain('createQuantex')
+  })
 
   it('prepares a batch once and reuses the exact plan for one memoized execution', async () => {
     const invocation = createLifecycleUpdateBatchInvocation()
@@ -337,7 +355,7 @@ describe('lifecycle update production composition', () => {
     await expect(invocation.prepare()).rejects.toThrow('disposed')
     await expect(invocation.run()).rejects.toThrow('disposed')
     await expect(invocation.observe('alpha')).rejects.toThrow('disposed')
-    expect(production.createProductionLifecycleObservationService).not.toHaveBeenCalled()
+    expect(production.observe).not.toHaveBeenCalled()
     expect(production.update).not.toHaveBeenCalled()
   })
 
@@ -379,15 +397,10 @@ describe('lifecycle update production composition', () => {
 
     expect(result).toMatchObject({ kind: 'updated', verification: { kind: 'satisfied' } })
     expect(production.withAgentLifecycleLock).toHaveBeenCalledTimes(1)
-    expect(production.createProductionLifecycleObservationService).toHaveBeenCalledOnce()
-    expect(production.createProductionLifecycleObservationService).toHaveBeenCalledWith(
-      production.createCliOperationContext.mock.results[0]?.value.context,
-    )
-    expect(production.nestedResolveAgentObservation).not.toHaveBeenCalled()
+    expect(production.observe).toHaveBeenCalled()
     expect(production.update).toHaveBeenCalledTimes(1)
     expect(production.writeReceipt).toHaveBeenCalledTimes(1)
     expect(production.calls).toEqual([
-      'observation-service:create',
       'observe:alpha:initial',
       'resolve:alpha',
       'lock:start',
@@ -406,13 +419,7 @@ describe('lifecycle update production composition', () => {
       ['beta', 'updated'],
     ])
     expect(production.createCliOperationContext).toHaveBeenCalledTimes(1)
-    expect(production.createProductionLifecycleObservationService).toHaveBeenCalledOnce()
-    expect(production.createProductionLifecycleObservationService).toHaveBeenCalledWith(
-      production.createCliOperationContext.mock.results[0]?.value.context,
-    )
-    expect(production.nestedResolveAgentObservation).not.toHaveBeenCalled()
     expect(production.calls).toEqual([
-      'observation-service:create',
       'observe:alpha:initial',
       'resolve:alpha',
       'observe:beta:initial',

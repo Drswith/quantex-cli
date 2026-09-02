@@ -16,8 +16,7 @@ describe('CLI Core execution ownership', () => {
     expect(productionBridge).not.toContain('createQuantex')
     expect(productionBridge).not.toMatch(/from ['"]quantex-core['"]/u)
 
-    const deprecatedReexport = await source('src/services/lifecycle-execution.ts')
-    expect(deprecatedReexport).toContain("from '../core/execution-executor'")
+    await expect(source('src/services/lifecycle-execution.ts')).rejects.toThrow()
 
     const coreEngine = await source('src/core/execution-executor.ts')
     expect(coreEngine).toContain('executeAgentLifecycle')

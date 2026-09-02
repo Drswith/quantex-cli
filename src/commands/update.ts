@@ -654,11 +654,11 @@ function staleStateWarning(agent: Pick<AgentDefinition, 'displayName' | 'name'>)
   }
 }
 
-function planLatestVersion(plan: import('../services/lifecycle-updates').SingleAgentLifecycleUpdatePlan | undefined) {
+function planLatestVersion(plan: import('../core/update-executor').SingleAgentLifecycleUpdatePlan | undefined) {
   return plan?.strategy === 'managed-provider' ? plan.plannedTargetVersion : undefined
 }
 
-function planStrategy(plan: import('../services/lifecycle-updates').SingleAgentLifecycleUpdatePlan | undefined) {
+function planStrategy(plan: import('../core/update-executor').SingleAgentLifecycleUpdatePlan | undefined) {
   if (!plan) return undefined
   return plan.strategy === 'self-update' ? 'self-update' : `managed/${plan.binding.providerId}`
 }
