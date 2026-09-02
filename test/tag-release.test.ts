@@ -157,10 +157,18 @@ describe('release tagging', () => {
   // so polling for that run only ever expired its grace period. Dispatch is the
   // trigger now; a reintroduced wait would silently cost two minutes per release.
   it('dispatches the release workflow directly after the tag push', () => {
+    const releaseSealContract = readFileSync('scripts/release/release-seal-contract.ts', 'utf8')
     expect(tagReleaseScript).toContain('dispatchReleaseWorkflow')
+    expect(tagReleaseScript).toContain('inputs: { tag: input.tag }')
+    expect(tagReleaseScript).toContain('ref: input.tag')
     expect(tagReleaseScript).not.toContain('ensureReleaseWorkflowTriggered')
     expect(tagReleaseScript).not.toContain('RELEASE_TAG_DISPATCH_GRACE_MS')
     expect(releasePleaseWorkflow).not.toContain('workflow_dispatch')
+    expect(releaseWorkflow).toContain('run-name: Release ${{ github.event.inputs.tag || github.ref_name }}')
+    expect(releaseSealContract).toContain("branch: 'main'")
+    expect(releaseSealContract).toContain("event: 'workflow_dispatch'")
+    expect(releaseSealContract).toContain('display_title')
+    expect(releaseSealContract).toContain('`Release ${input.tag}`')
   })
 
   it('keeps the tag trigger available for maintainer-pushed tags', () => {

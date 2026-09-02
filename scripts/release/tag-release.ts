@@ -314,7 +314,9 @@ async function dispatchReleaseWorkflow(input: { tag: string; token: string }): P
   const dispatchToken = process.env.GITHUB_TOKEN ?? input.token
   await githubApiFetch(dispatchUrl, dispatchToken, {
     method: 'POST',
-    body: JSON.stringify({ ref: input.tag }),
+    // Dispatch at the tag so head_branch stays the tag identity for seal
+    // detection, and pass inputs.tag because release.yml requires it.
+    body: JSON.stringify({ ref: input.tag, inputs: { tag: input.tag } }),
   })
   console.log(`Dispatched Release workflow for ${input.tag}.`)
 }

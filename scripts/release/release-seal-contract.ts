@@ -146,26 +146,61 @@ export async function hasSuccessfulReleaseWorkflowRun(input: { tag: string }): P
   if (!token) throw new Error('GITHUB_TOKEN or GH_TOKEN is required.')
 
   const apiBaseUrl = process.env.GITHUB_API_URL ?? 'https://api.github.com'
-  const url = new URL(`${apiBaseUrl}/repos/${repository}/actions/workflows/release.yml/runs`)
   // Tag-triggered and workflow_dispatch-at-tag runs both expose the tag name as
   // head_branch, which is the same identity release-please and seal-state use.
-  url.searchParams.set('branch', input.tag)
+  if (await hasMatchingReleaseRun({ apiBaseUrl, repository, token, branch: input.tag, tag: input.tag })) {
+    return true
+  }
+
+  // Recovery path: workflow_dispatch from main against an existing tag keeps the
+  // fixed workflow YAML on main while publishing that tag. Those runs report
+  // head_branch=main, so match the run-name / display_title "Release <tag>".
+  return await hasMatchingReleaseRun({
+    apiBaseUrl,
+    repository,
+    token,
+    branch: 'main',
+    event: 'workflow_dispatch',
+    tag: input.tag,
+  })
+}
+
+async function hasMatchingReleaseRun(input: {
+  apiBaseUrl: string
+  repository: string
+  token: string
+  branch: string
+  tag: string
+  event?: string
+}): Promise<boolean> {
+  const url = new URL(`${input.apiBaseUrl}/repos/${input.repository}/actions/workflows/release.yml/runs`)
+  url.searchParams.set('branch', input.branch)
   url.searchParams.set('status', 'completed')
   url.searchParams.set('per_page', '30')
+  if (input.event) url.searchParams.set('event', input.event)
+
   const response = await fetch(url, {
     headers: {
       Accept: 'application/vnd.github+json',
-      Authorization: `Bearer ${token}`,
+      Authorization: `Bearer ${input.token}`,
       'X-GitHub-Api-Version': '2022-11-28',
     },
   })
   if (!response.ok) {
     throw new Error(`Unable to inspect Release workflow runs: ${response.status} ${response.statusText}`)
   }
+
   const payload = (await response.json()) as {
-    workflow_runs?: Array<{ conclusion?: string; head_branch?: string }>
+    workflow_runs?: Array<{ conclusion?: string; display_title?: string; head_branch?: string; name?: string }>
   }
-  return payload.workflow_runs?.some(run => run.conclusion === 'success' && run.head_branch === input.tag) ?? false
+  const expectedTitle = `Release ${input.tag}`
+  return (
+    payload.workflow_runs?.some(run => {
+      if (run.conclusion !== 'success') return false
+      if (run.head_branch === input.tag) return true
+      return run.display_title === expectedTitle || run.name === expectedTitle
+    }) ?? false
+  )
 }
 
 async function readTagSha(tag: string): Promise<string | null> {
