@@ -54,6 +54,8 @@ Confirm that the PR:
 
 Before merge, review the generated branch and confirm the checklist above. Governance no longer rejects the release bot author, so re-authoring the branch is optional housekeeping rather than a merge requirement.
 
+Merge-gating `governance` for Release Please PRs runs `ci:release-pr-policy` only. It skips the human PR heuristics (`pr:body:check` and `ci:commit-policy`) that apply to ordinary contributor PRs, so generated release text cannot fail those text checks. The dedicated Release PR validator still enforces branch naming, title shape, generated marker, file scope, version monotonicity, and major/readiness gates.
+
 If the Release PR proposes a new major version on the stable line, governance fails until a maintainer adds a `Release-As: <version>` line to the Release PR body. This is the generic human gate for major version identity, but it cannot override a separate deferred-major readiness gate. In particular, stable `2.x` remains blocked even if `Release-As: 2.x.y` is added.
 
 Merge the locked reviewed head manually; prefer rebase and use squash only when rebase is unavailable or unsafe.
@@ -129,7 +131,7 @@ Before opening a one-shot release PR, verify the declaration against release-ple
 bun run release:verify-release-as -- --body-file <pr-body-file>
 ```
 
-It reports the version release-please would actually release, and fails when the declaration would be inert. The `Verify a declared Release-As would take effect` step in `ci.yml` runs the same check on every pull request. The protected-branch resolver recognizes that footer as a Release PR trigger, so do not add `!` or a false `BREAKING CHANGE` marker merely to start release automation.
+It reports the version release-please would actually release, and fails when the declaration would be inert. The `Verify a declared Release-As would take effect` step in `ci.yml` runs the same check on human pull requests (it is skipped on `release-please--branches--*` heads). The protected-branch resolver recognizes that footer as a Release PR trigger, so do not add `!` or a false `BREAKING CHANGE` marker merely to start release automation.
 
 A one-shot is sometimes needed with no product change to attach it to. release-please computes the bump from every marker between the last release tag and `main`, so a marker whose change has since been undone keeps forcing that bump until a release lands after it. A pull request that only moves the boundary may carry `Release-As` while changing nothing but process or documentation files, provided the declared major is not above the current released major; a release-worthy title or a `BREAKING CHANGE` footer on such a PR is still rejected, and a higher major is rejected before any readiness gate is consulted. It must still supply a commit override under `## Release Summary`.
 

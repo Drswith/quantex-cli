@@ -11,6 +11,18 @@ const openspecReadme = readFileSync('openspec/README.md', 'utf8')
 const runtimeSkill = readFileSync('skills/quantex-agent-runtime/SKILL.md', 'utf8')
 const integrationRunbookPath = 'docs/runbooks/lifecycle-integration-delivery.md'
 
+function extractNamedStep(workflow: string, stepName: string): string {
+  const marker = `      - name: ${stepName}\n`
+  const startIndex = workflow.indexOf(marker)
+  if (startIndex === -1) throw new Error(`Missing workflow step: ${stepName}`)
+
+  const remainingWorkflow = workflow.slice(startIndex + marker.length)
+  const nextStepIndex = remainingWorkflow.indexOf('\n      - ')
+  const endIndex = nextStepIndex === -1 ? workflow.length : startIndex + marker.length + nextStepIndex
+
+  return workflow.slice(startIndex, endIndex)
+}
+
 describe('pr governance release intent', () => {
   it('requires a release intent section in PR bodies', () => {
     expect(ciWorkflow).toContain('bun run pr:body:check')
@@ -85,18 +97,28 @@ describe('pr governance release intent', () => {
     expect(prTemplate).toContain('active across milestone merges by design')
   })
 
-  it('runs PR commit governance before merge', () => {
+  it('runs PR commit governance before merge on human PRs', () => {
     expect(ciWorkflow).toContain('Validate PR commit policy')
     expect(ciWorkflow).toContain('bun run ci:commit-policy')
     expect(ciWorkflow).toContain('PR_COMMITS_JSON')
-    expect(ciWorkflow).toContain('PR_IS_VALIDATED_RELEASE_PR')
     expect(commitPolicyScript).toContain('Release-As')
   })
 
-  it('validates release-please PRs before granting release-specific exemptions', () => {
+  it('keeps release-please PRs on dedicated release validation without human heuristics', () => {
     expect(ciWorkflow).toContain('Validate release PR policy')
     expect(ciWorkflow).toContain('bun run ci:release-pr-policy')
     expect(ciWorkflow).toContain('PR_BASE_VERSION')
+
+    const bodyStep = extractNamedStep(ciWorkflow, 'Validate PR body')
+    const commitStep = extractNamedStep(ciWorkflow, 'Validate PR commit policy')
+    const releaseStep = extractNamedStep(ciWorkflow, 'Validate release PR policy')
+    const skipHumanHeuristics = "!startsWith(github.event.pull_request.head.ref, 'release-please--branches--')"
+    const onlyReleasePlease = "startsWith(github.event.pull_request.head.ref, 'release-please--branches--')"
+
+    expect(bodyStep).toContain(`if: "${skipHumanHeuristics}"`)
+    expect(commitStep).toContain(`if: "${skipHumanHeuristics}"`)
+    expect(releaseStep).toContain(`if: ${onlyReleasePlease}`)
+    expect(ciWorkflow).not.toContain('PR_IS_VALIDATED_RELEASE_PR')
   })
 })
 

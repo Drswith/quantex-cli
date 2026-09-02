@@ -98,7 +98,6 @@ jobs:
           echo "base_version=$(printf '%s' "${content}" | base64 -d | jq -r '.version')" >> "$GITHUB_OUTPUT"
 
       - name: Validate release PR policy
-        id: release-pr
         if: startsWith(github.event.pull_request.head.ref, 'release-please--branches--')
         env:
           CHANGED_FILES_JSON: ${{ needs.classify.outputs.changed_files }}
@@ -107,20 +106,23 @@ jobs:
           PR_BODY: ${{ github.event.pull_request.body }}
           PR_HEAD_BRANCH: ${{ github.event.pull_request.head.ref }}
           PR_TITLE: ${{ github.event.pull_request.title }}
-        run: |
-          bun run ci:release-pr-policy
-          echo "validated=true" >> "$GITHUB_OUTPUT"
+        run: bun run ci:release-pr-policy
 
+      # Human PR heuristics. Automated Release Please PRs are gated by
+      # `ci:release-pr-policy` above, not by these text heuristics. Body/commit
+      # policy remain required for human PRs; Release-As verification below also
+      # stays human-PR-only (already skipped on release-please heads).
       - name: Validate PR body
+        if: "!startsWith(github.event.pull_request.head.ref, 'release-please--branches--')"
         env:
           CHANGED_FILES_JSON: ${{ needs.classify.outputs.changed_files }}
-          PR_IS_VALIDATED_RELEASE_PR: ${{ steps.release-pr.outputs.validated == 'true' }}
           PR_BODY: ${{ github.event.pull_request.body }}
           PR_HEAD_BRANCH: ${{ github.event.pull_request.head.ref }}
           PR_TITLE: ${{ github.event.pull_request.title }}
         run: bun run pr:body:check
 
       - name: Validate PR commit policy
+        if: "!startsWith(github.event.pull_request.head.ref, 'release-please--branches--')"
         env:
           PR_BODY: ${{ github.event.pull_request.body }}
           PR_COMMITS_JSON: ${{ needs.classify.outputs.commits_json }}
@@ -130,7 +132,8 @@ jobs:
       # Body and commit policies are heuristics over text. This runs release-please's own
       # parser, which is the only thing that decides whether a declared version override
       # actually takes effect. Three reviewed PRs declared one, passed every other check,
-      # merged, and released nothing before this step existed.
+      # merged, and released nothing before this step existed. Skipped on release-please
+      # heads because those PRs are not human Release-As source PRs.
       - name: Verify a declared Release-As would take effect
         if: "!startsWith(github.event.pull_request.head.ref, 'release-please--branches--')"
         env:

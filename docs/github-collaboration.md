@@ -44,7 +44,7 @@ Use a single top-level backlog issue when a workstream needs planning-only triag
 
 - issue forms in `.github/ISSUE_TEMPLATE/`
 - PR template in `.github/pull_request_template.md`
-- PR body validation in `.github/workflows/ci.yml` (governance job)
+- PR governance in `.github/workflows/ci.yml` (`governance` job): human PRs run body and commit-policy heuristics; `release-please--branches--*` PRs run `ci:release-pr-policy` instead
 - discussion forms in `.github/DISCUSSION_TEMPLATE/`
 
 ## Manual GitHub setup still required
