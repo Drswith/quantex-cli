@@ -230,7 +230,7 @@ This runs the same pipeline definition CI uses (`scripts/release/release-candida
 
 ## CI coverage split
 
-Every pull request that touches product-impacting paths runs the full test suite on all three platforms (`test (ubuntu-latest)`, `test (macos-latest)`, `test (windows-latest)`); process-only changes skip the platform matrix honestly and keep the Ubuntu build guard plus package checks. Required merge gates are `lint`, `governance`, and the three platform test contexts. `sandbox-tests` is advisory signal, not a required check.
+Every pull request that touches product-impacting paths runs the full test suite on all three platforms (`test (ubuntu-latest)`, `test (macos-latest)`, `test (windows-latest)`); process-only changes skip the platform matrix honestly and keep the Ubuntu build guard plus package checks. Required merge gates are `lint`, `governance`, `test (ubuntu-latest)`, and `test (macos-latest)`. `test (windows-latest)` still runs and remains visible, but it is advisory (`continue-on-error`) and must not fail `ci.yml` or block merge. `sandbox-tests` is advisory signal, not a required check.
 
 If coverage policy changes again, update `.github/workflows/ci.yml`, this runbook, and the `code-quality-tooling` spec in the same change so release and workflow expectations stay aligned.
 

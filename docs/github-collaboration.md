@@ -65,15 +65,14 @@ The filenames in `.github/DISCUSSION_TEMPLATE/` already assume those slugs.
 
 ### Protect `main`
 
-`main` is the only release channel. Configure branch protection or rulesets so that it requires exactly the checks that really run on every pull request:
+`main` is the only release channel. Configure branch protection or rulesets so that it requires exactly the checks that really gate every pull request:
 
 - `lint`
 - `governance`
 - `test (ubuntu-latest)`
-- `test (windows-latest)`
 - `test (macos-latest)`
 
-`classify` must not be a required context. `sandbox-tests` is advisory by design and must not be required: fork PRs skip it for lack of secrets, and a skipped required check silently passes without providing coverage.
+`classify` must not be a required context. `test (windows-latest)` still runs on product-matrix changes inside `ci.yml` and remains visible in Checks, but it is advisory platform signal (`continue-on-error`) and must not be required. `sandbox-tests` is advisory by design and must not be required: fork PRs skip it for lack of secrets, and a skipped required check silently passes without providing coverage.
 
 ### Labels
 

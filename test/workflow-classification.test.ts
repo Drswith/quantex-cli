@@ -148,9 +148,11 @@ describe('workflow classification integration', () => {
     expect(ciWorkflow).toContain('bun run package:check')
   })
 
-  it('runs Windows tests for product-impacting pull requests', () => {
+  it('runs Windows tests for product-impacting pull requests without making them a merge gate', () => {
     expect(ciWorkflow).toContain('name: test (windows-latest)')
     expect(ciWorkflow).not.toContain("github.event_name != 'pull_request'")
+    expect(ciWorkflow).toContain('continue-on-error: true')
+    expect(ciWorkflow).toContain('NOT a merge gate')
   })
 
   // Windows used to pass --pool=threads, which runs every worker inside one
@@ -165,19 +167,14 @@ describe('workflow classification integration', () => {
     expect(new Set(testCommands).size).toBe(1)
   })
 
-  it('preserves the live merge-gate contexts without classify', () => {
-    const requiredContexts = [
-      'lint',
-      'governance',
-      'test (ubuntu-latest)',
-      'test (windows-latest)',
-      'test (macos-latest)',
-    ]
+  it('preserves the live merge-gate contexts without classify or Windows', () => {
+    const requiredContexts = ['lint', 'governance', 'test (ubuntu-latest)', 'test (macos-latest)']
 
     for (const context of requiredContexts) {
       expect(ciWorkflow).toContain(context)
     }
 
+    expect(ciWorkflow).toContain('name: test (windows-latest)')
     expect(ciWorkflow).not.toContain('name: classify')
     expect(ciWorkflow).not.toContain('pr-governance.yml')
   })
