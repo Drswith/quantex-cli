@@ -87,7 +87,6 @@ jobs:
       - name: Fetch the release branch and tags
         run: |
           git fetch --force origin \
-            "${GITHUB_SHA}" \
             "refs/heads/main:refs/remotes/origin/main" \
             --tags
 
@@ -101,9 +100,14 @@ jobs:
       # the older tag scripts that only read GITHUB_REF_NAME cannot see the input
       # tag when the workflow runs from main. On tag-push, github.sha matches the
       # tag commit and this checkout is a no-op for content.
+      #
+      # Fetch GITHUB_SHA explicitly before checkout: a tag-only working tree does
+      # not contain later main commits, and bundling the SHA into the earlier
+      # main/tags fetch is not a reliable way to materialize that object.
       - name: Overlay workflow-commit release scripts
         run: |
           set -euo pipefail
+          git fetch origin "${GITHUB_SHA}"
           git checkout "${GITHUB_SHA}" -- scripts/release/
           echo "Overlaid scripts/release from workflow commit ${GITHUB_SHA}."
 

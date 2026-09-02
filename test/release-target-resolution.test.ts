@@ -177,8 +177,11 @@ describe('release workflow closure', () => {
     // workflow commit so identity understands RELEASE_TAG without replacing
     // candidate package/src content with main HEAD.
     expect(buildJob).toContain('Overlay workflow-commit release scripts')
-    expect(buildJob).toContain('git checkout "${GITHUB_SHA}" -- scripts/release/')
-    expect(buildJob).toContain('"${GITHUB_SHA}"')
+    // Tag checkout cannot see later main commits; fetch the workflow SHA first.
+    const overlayFetchIndex = buildJob.indexOf('git fetch origin "${GITHUB_SHA}"')
+    const overlayCheckoutIndex = buildJob.indexOf('git checkout "${GITHUB_SHA}" -- scripts/release/')
+    expect(overlayFetchIndex).toBeGreaterThan(-1)
+    expect(overlayCheckoutIndex).toBeGreaterThan(overlayFetchIndex)
     expect(sealContract).toContain('resolveRequestedReleaseTag')
     expect(sealContract).toContain('env.RELEASE_TAG')
     expect(publishJob).toContain('ref: ${{ needs.build-candidate.outputs.tag }}')
