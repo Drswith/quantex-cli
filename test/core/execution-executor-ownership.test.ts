@@ -12,7 +12,10 @@ describe('CLI Core execution ownership', () => {
     const productionBridge = await source('src/services/lifecycle-execution-production.ts')
     expect(productionBridge).toContain("from '../core/execution-executor'")
     expect(productionBridge).toContain('executeAgentLifecycle')
+    expect(productionBridge).toContain("from '../core/installation-compatibility'")
+    expect(productionBridge).toContain('createCoreInstallationCompatibilityExecutor')
     expect(productionBridge).toContain("stdio: options.outputMode === 'human'")
+    expect(productionBridge).not.toContain('reconcileAgentInstallation')
     expect(productionBridge).not.toContain('createQuantex')
     expect(productionBridge).not.toMatch(/from ['"]quantex-core['"]/u)
 

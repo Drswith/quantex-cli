@@ -1,3 +1,7 @@
+import type { CoreInstallationCompatibilityExecutor } from '../core/installation-compatibility'
+import type { CoreInstallationExecutionOutcome } from '../core/installation-executor-types'
+import type { CoreInvocationOutcome } from '../core/invocation'
+import type { CoreAgentObservation } from '../core/production-observation'
 import type { LifecycleOutcome } from '../lifecycle'
 import type { ProcessPort, RuntimeFailure, RuntimeOutcome } from '../runtime'
 import type { LifecycleObservationService, LifecycleObservationServiceOptions } from './lifecycle-observations'
@@ -8,10 +12,14 @@ import {
   executeAgentLifecycle,
   type LifecycleExecutionObservedAgent,
 } from '../core/execution-executor'
-import { reconcileAgentInstallation } from '../lifecycle'
+import { createCoreInstallationCompatibilityExecutor } from '../core/installation-compatibility'
+import { resolveInstallMethodProviderBinding } from '../lifecycle/provider-binding'
+import { buildInstalledAgentState } from '../package-manager'
 import { createAgentProcessPort, createCliOperationContext } from '../runtime'
+import { resolveCliProviderOutputPolicy } from '../runtime/cli-operation-context'
 import { getStateFilePath, StateFileError } from '../state'
 import { isProcessInterruptionError } from '../utils/child-process'
+import { getAdoptableExistingInstallMethod } from '../utils/install'
 import { createProductionLifecycleObservationService } from './lifecycle-observations'
 
 export interface ProductionLifecycleExecutionOptions {
@@ -30,13 +38,13 @@ interface ProductionOperationContext {
 
 export interface ProductionLifecycleExecutionDependencies {
   readonly cancelOperations: typeof cancelCliContextOperations
+  readonly createInstallationExecutor: () => CoreInstallationCompatibilityExecutor
   readonly createObservationService: (
     context: ProductionOperationContext['context'],
     options: LifecycleObservationServiceOptions,
   ) => LifecycleObservationService
   readonly createOperationContext: () => ProductionOperationContext
   readonly createProcessPort: () => ProcessPort
-  readonly reconcileAgentInstallation: typeof reconcileAgentInstallation
 }
 
 export interface ProductionLifecycleExecutionService {
@@ -46,10 +54,10 @@ export interface ProductionLifecycleExecutionService {
 
 const defaultDependencies: ProductionLifecycleExecutionDependencies = {
   cancelOperations: cancelCliContextOperations,
+  createInstallationExecutor: () => createCoreInstallationCompatibilityExecutor(),
   createObservationService: createProductionLifecycleObservationService,
   createOperationContext: createCliOperationContext,
   createProcessPort: createAgentProcessPort,
-  reconcileAgentInstallation,
 }
 
 export function createProductionLifecycleExecutionService(
@@ -61,6 +69,7 @@ export function createProductionLifecycleExecutionService(
     resolveLatestVersion: false,
   })
   const process = dependencies.createProcessPort()
+  const installationExecutor = dependencies.createInstallationExecutor()
 
   return {
     dispose: operation.dispose,
@@ -68,7 +77,12 @@ export function createProductionLifecycleExecutionService(
       executeAgentLifecycle(input, {
         confirmInstall: options.confirmInstall,
         dryRun: options.dryRun,
-        install: observed => installAgent(observed, options.timeoutMs, dependencies),
+        install: observed =>
+          installAgent(observed, options.timeoutMs ?? operation.context.timeoutMs, installationExecutor, {
+            cancelOperations: dependencies.cancelOperations,
+            outputMode: options.outputMode,
+            signal: operation.context.signal,
+          }),
         interactive: options.interactive,
         observe: agentName => observeAgent(agentName, observationService),
         onInstallStart: options.onInstallStart,
@@ -104,29 +118,36 @@ async function observeAgent(
   }
 }
 
+interface InstallAgentContext {
+  readonly cancelOperations: typeof cancelCliContextOperations
+  readonly outputMode: ProductionLifecycleExecutionOptions['outputMode']
+  readonly signal: AbortSignal
+}
+
 async function installAgent(
   observed: LifecycleExecutionObservedAgent,
   timeoutMs: number | undefined,
-  dependencies: ProductionLifecycleExecutionDependencies,
+  executor: CoreInstallationCompatibilityExecutor,
+  context: InstallAgentContext,
 ): Promise<LifecycleOutcome<void>> {
   try {
     if (observed.executable.present) return { kind: 'success', value: undefined }
 
-    const reconciliation = dependencies.reconcileAgentInstallation({
-      agent: observed.agent,
-      observation: {
-        inPath: observed.executable.present,
-        installedState: observed.installedState,
-        lifecycle: observed.observation,
-        methods: observed.methods,
-      },
-      operation: 'install',
-      route: 'install',
-    })
-    const outcome = await withInstallTimeout(reconciliation, timeoutMs, dependencies.cancelOperations)
-    if (!outcome) return { kind: 'timed-out', timeoutMs: timeoutMs! }
-    if (outcome.kind === 'success') return { kind: 'success', value: undefined }
-    return outcome
+    const invocation = await withInstallTimeout(
+      executor.execute({
+        mode: 'apply',
+        name: observed.agent.name,
+        operation: 'install',
+        outputPolicy: resolveCliProviderOutputPolicy(context.outputMode),
+        providerTimeoutMs: timeoutMs,
+        resolveAdoption: resolveCompatibilityAdoption,
+        signal: context.signal,
+      }),
+      timeoutMs,
+      context.cancelOperations,
+    )
+    if (!invocation) return { kind: 'timed-out', timeoutMs: timeoutMs! }
+    return mapCoreInstallationOutcome(invocation)
   } catch (error) {
     if (isProcessInterruptionError(error)) {
       return error.kind === 'timed-out'
@@ -135,6 +156,57 @@ async function installAgent(
     }
     return { kind: 'failed', reason: errorReason(error, 'Failed to install agent.'), retryable: false }
   }
+}
+
+function mapCoreInstallationOutcome(
+  invocation: CoreInvocationOutcome<CoreInstallationExecutionOutcome>,
+): LifecycleOutcome<void> {
+  if (invocation.kind === 'failure') {
+    if (invocation.error.code === 'cancelled') {
+      return { kind: 'cancelled', reason: invocation.error.message }
+    }
+    if (invocation.error.code === 'timed-out') {
+      const timeoutMs = typeof invocation.error.details?.timeoutMs === 'number' ? invocation.error.details.timeoutMs : 0
+      return { kind: 'timed-out', timeoutMs }
+    }
+    return {
+      kind: 'failed',
+      reason: invocation.error.message || 'Failed to initialize the install lifecycle engine.',
+      retryable: invocation.error.retryable,
+    }
+  }
+
+  const outcome = invocation.value
+  if (outcome.kind === 'success') return { kind: 'success', value: undefined }
+  if (outcome.kind === 'agent-not-found') {
+    return { kind: 'failed', reason: `Unknown agent: ${outcome.name}`, retryable: false }
+  }
+
+  if (outcome.error.code === 'decision-indeterminate' || outcome.error.code === 'decision-conflict') {
+    return { kind: 'indeterminate', reason: outcome.error.reason }
+  }
+  return {
+    kind: 'failed',
+    reason: outcome.error.reason || 'Failed to install agent.',
+    retryable: outcome.error.retryable,
+  }
+}
+
+async function resolveCompatibilityAdoption(before: CoreAgentObservation): Promise<
+  | {
+      readonly binding: NonNullable<ReturnType<typeof resolveInstallMethodProviderBinding>>
+      readonly installedState: ReturnType<typeof buildInstalledAgentState>
+    }
+  | undefined
+> {
+  const method = getAdoptableExistingInstallMethod(
+    [...before.methods],
+    before.resolvedBinaryPath ?? before.pathExecutable.path,
+  )
+  if (!method) return undefined
+  const binding = resolveInstallMethodProviderBinding(before.agent, method)
+  if (!binding) return undefined
+  return { binding, installedState: buildInstalledAgentState(before.agent, method) }
 }
 
 async function withInstallTimeout<T>(

@@ -214,6 +214,9 @@ describe('mutation and execution observation boundary', () => {
     const productionSource = await source('src/services/lifecycle-execution-production.ts')
     expect(productionSource).toContain("from '../core/execution-executor'")
     expect(productionSource).toContain('executeAgentLifecycle')
+    expect(productionSource).toContain("from '../core/installation-compatibility'")
+    expect(productionSource).toContain('createCoreInstallationCompatibilityExecutor')
+    expect(productionSource).not.toContain('reconcileAgentInstallation')
   })
 
   it('keeps the new application boundary read-only and presenter-independent', async () => {

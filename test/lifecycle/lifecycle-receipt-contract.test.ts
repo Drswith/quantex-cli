@@ -12,81 +12,9 @@ import type { LifecycleProviderBinding } from '../../src/lifecycle/provider-bind
 import type { ProviderAdapter, ProviderId } from '../../src/providers'
 import type { InstalledAgentState, VersionedQuantexState } from '../../src/state/schema'
 import type { StateDocumentPersistence } from '../../src/state/store'
-import { beforeEach, describe, expect, it, vi } from 'vitest'
-
-const legacyControl = vi.hoisted(() => {
-  const receiptWrites: Array<{ installedState: unknown; receipt: unknown }> = []
-
-  return {
-    createCliOperationContext: () => ({
-      context: {
-        outputPolicy: 'stderr' as const,
-        signal: new AbortController().signal,
-      },
-      dispose: () => undefined,
-      run: async <T>(invoke: () => Promise<T>) => invoke(),
-    }),
-    getCliContext: () => ({
-      cacheMode: 'default' as const,
-      cancelled: false,
-      colorMode: 'never' as const,
-      interactive: false,
-      logLevel: 'silent' as const,
-      outputMode: 'json' as const,
-      quiet: true,
-      runId: 'lifecycle-receipt-contract',
-    }),
-    isBinaryInPath: async () => true,
-    observeLifecycleProvider: async (binding: { target: object }) => ({
-      kind: 'success' as const,
-      value: {
-        executablePath: '/isolated/bin/receipt-agent',
-        kind: 'present' as const,
-        target: binding.target,
-        version: '1.0.0',
-      },
-    }),
-    receiptWrites,
-    setAgentLifecycleEvidence: async (installedState: unknown, receipt: unknown) => {
-      receiptWrites.push({ installedState, receipt })
-    },
-    withAgentLifecycleLock: async <T>(run: () => Promise<T>): Promise<T> => run(),
-  }
-})
-
-vi.mock('../../src/cli-context', async importOriginal => {
-  const actual = await importOriginal<typeof import('../../src/cli-context')>()
-  return { ...actual, getCliContext: legacyControl.getCliContext }
-})
-
-vi.mock('../../src/package-manager', async importOriginal => {
-  const actual = await importOriginal<typeof import('../../src/package-manager')>()
-  return { ...actual, withAgentLifecycleLock: legacyControl.withAgentLifecycleLock }
-})
-
-vi.mock('../../src/runtime/cli-operation-context', async importOriginal => {
-  const actual = await importOriginal<typeof import('../../src/runtime/cli-operation-context')>()
-  return { ...actual, createCliOperationContext: legacyControl.createCliOperationContext }
-})
-
-vi.mock('../../src/state', async importOriginal => {
-  const actual = await importOriginal<typeof import('../../src/state')>()
-  return { ...actual, setAgentLifecycleEvidence: legacyControl.setAgentLifecycleEvidence }
-})
-
-vi.mock('../../src/utils/detect', async importOriginal => {
-  const actual = await importOriginal<typeof import('../../src/utils/detect')>()
-  return { ...actual, isBinaryInPath: legacyControl.isBinaryInPath }
-})
-
-vi.mock('../../src/lifecycle/provider-evidence', async importOriginal => {
-  const actual = await importOriginal<typeof import('../../src/lifecycle/provider-evidence')>()
-  return { ...actual, observeLifecycleProvider: legacyControl.observeLifecycleProvider }
-})
-
+import { describe, expect, it } from 'vitest'
 import { createProductionCoreInstallationPorts } from '../../src/core/installation-production'
 import { executeSingleAgentLifecycleUpdate } from '../../src/core/update-executor'
-import { reconcileAgentInstallation } from '../../src/lifecycle/agent-installation'
 import {
   providerBindingsEqual,
   resolveInstallMethodProviderBinding,
@@ -120,25 +48,18 @@ interface ProviderFixture {
 }
 
 describe('lifecycle receipt writer/reader contract', () => {
-  beforeEach(() => {
-    legacyControl.receiptWrites.length = 0
-  })
-
-  it.each(firstPartyProviderIds)('reconciles legacy, Core, and update receipts for %s', async providerId => {
+  it.each(firstPartyProviderIds)('reconciles Core and update receipts for %s', async providerId => {
     const fixture = createProviderFixture(providerId)
-    const legacyReceipt = await captureLegacyReceipt(fixture)
     const coreReceipt = await captureCoreReceipt(fixture)
     const updateReceipt = await captureUpdateReceipt(fixture)
 
-    for (const receipt of [legacyReceipt, coreReceipt, updateReceipt]) {
+    for (const receipt of [coreReceipt, updateReceipt]) {
       expectReceiptToReconcile(fixture, receipt)
     }
 
     if (providerId === 'deno' || providerId === 'script' || providerId === 'binary') {
-      expect(legacyReceipt.executableName).toBe(agent.binaryName)
       expect(coreReceipt.executableName).toBe(agent.binaryName)
     } else {
-      expect(legacyReceipt.executableName).toBeUndefined()
       expect(coreReceipt.executableName).toBeUndefined()
     }
     expect(updateReceipt.executableName).toBe(agent.binaryName)
@@ -205,27 +126,6 @@ function createProviderMethod(providerId: ProviderId): InstallMethod {
         type: 'binary',
       }
   }
-}
-
-async function captureLegacyReceipt(fixture: ProviderFixture): Promise<LifecycleReceipt> {
-  const result = await reconcileAgentInstallation({
-    adoptableMethod: fixture.method,
-    agent,
-    observation: {
-      inPath: true,
-      lifecycle: presentObservation(fixture.binding, 'untracked'),
-      methods: [fixture.method],
-    },
-    operation: 'install',
-    route: 'adopt',
-  })
-
-  expect(result.kind).toBe('success')
-  const write = legacyControl.receiptWrites.at(-1)
-  expect(write).toBeDefined()
-  if (!write) throw new Error(`Legacy writer did not record ${fixture.providerId}.`)
-  expect(result).toMatchObject({ kind: 'success', value: { receipt: write.receipt } })
-  return write.receipt as LifecycleReceipt
 }
 
 async function captureCoreReceipt(fixture: ProviderFixture): Promise<LifecycleReceipt> {
