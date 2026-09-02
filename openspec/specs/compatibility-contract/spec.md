@@ -92,19 +92,19 @@ The redesign MUST remain focused on Quantex agent lifecycle capabilities and SHA
 
 ### Requirement: Core-default installation routing remains a whole-invocation compatibility choice
 
-For the 1.12 CLI lifecycle slice, Quantex SHALL select the in-repo Core engine by
-default for non-dry-run `install` and `ensure`, and for `update` and `uninstall`,
-before any lifecycle work begins. It MUST retain legacy routing for v1 `--dry-run`
-planning on `install` / `ensure` and `QUANTEX_INSTALLATION_ENGINE=legacy` as a
-process-scoped whole-invocation compatibility route for `install` / `ensure`,
-MUST keep state schema version 2 unchanged, and MUST NOT automatically fall back
-between engines after selection. Removing the retained install/ensure route
-requires the documented soak, a later-major proposal, and its separate approval.
+Quantex SHALL select the in-repo Core engine for every non-dry-run CLI
+`install` and `ensure` invocation, and for `update` and `uninstall`, before any
+lifecycle work begins after the install/ensure escape retirement. Install/
+ensure `--dry-run` MUST retain the maintained v1 observation short-circuit
+planning path and MUST retain the maintained v1 dry-run plan without lifecycle
+mutation. Quantex MUST NOT honor `QUANTEX_INSTALLATION_ENGINE=legacy` (or any
+other value) as a second install/ensure apply engine route, MUST keep state
+schema version 2 unchanged, and MUST NOT automatically fall back between
+engines after selection.
 
 #### Scenario: Default install or ensure invocation
 
-- **WHEN** a user invokes non-dry-run `install` or `ensure` without the
-  compatibility environment override
+- **WHEN** a user invokes non-dry-run `install` or `ensure`
 - **THEN** Quantex selects the Core engine once before observation, locks,
   providers, filesystem, or state side effects
 - **AND THEN** the invocation preserves the maintained v1 command, output,
@@ -123,25 +123,27 @@ requires the documented soak, a later-major proposal, and its separate approval.
 #### Scenario: v1 dry-run planning for install or ensure
 
 - **WHEN** a user invokes `install` or `ensure` with `--dry-run`
-- **THEN** Quantex selects the retained legacy planning route before any
-  lifecycle side effect
+- **THEN** Quantex selects the retained v1 observation short-circuit planning
+  path before any lifecycle side effect
 - **AND THEN** the result retains the maintained v1 dry-run plan and does not
-  invoke Core for that request
+  mutate providers, filesystem, or state
 
-#### Scenario: Operator uses the compatibility escape route for install or ensure
+#### Scenario: Legacy environment override no longer selects a second apply engine
 
 - **WHEN** an operator sets `QUANTEX_INSTALLATION_ENGINE=legacy` before
-  invoking `install` or `ensure`
-- **THEN** Quantex selects the retained legacy engine for the complete
-  invocation before side effects begin
-- **AND THEN** it does not invoke Core for that request
+  invoking non-dry-run `install` or `ensure`
+- **THEN** Quantex still selects the in-repo Core engine for the complete
+  apply invocation
+- **AND THEN** the environment value does not create a retained legacy apply
+  route
 
 #### Scenario: Selected engine fails after a side effect begins
 
-- **WHEN** either selected engine has started a provider, filesystem, or state
-  side effect and then fails
+- **WHEN** the selected Core engine has started a provider, filesystem, or
+  state side effect and then fails
 - **THEN** Quantex completes that engine's verification or scoped recovery path
-- **AND THEN** it does not invoke the other engine for the same request
+- **AND THEN** it does not invoke a second install/ensure engine for the same
+  request
 
 #### Scenario: Machine-readable command output is requested
 
@@ -156,10 +158,11 @@ The Core-default CLI promotion for 1.12 MUST include `install`, `ensure`,
 `update`, and `uninstall`, MUST launch CLI `exec` / shortcut through in-repo
 Core execution without publishing SDK `run` / `exec` methods, and MUST diagnose
 CLI `doctor` through in-repo Core without publishing SDK `doctor` / `diagnose`
-methods. Quantex MUST NOT expand the published `quantex-core` public method
-surface as part of this CLI promotion, and MUST NOT remove a v1 compatibility
-surface before the staged soak and a separately approved later-major deprecation
-change.
+methods. After the install/ensure escape retirement, Quantex MUST NOT retain a
+second install/ensure engine route. Quantex MUST NOT expand the published
+`quantex-core` public method surface as part of this CLI promotion, and MUST
+NOT remove other maintained v1 surfaces before a separately approved
+later-major deprecation change.
 
 #### Scenario: User invokes doctor during the 1.12 transition
 
@@ -186,10 +189,12 @@ change.
   `diagnose` SDK method appears solely because the CLI now routes those
   operations through in-repo Core modules
 
-#### Scenario: Legacy removal is proposed early
+#### Scenario: Unrelated v1 surface removal is proposed early
 
-- **WHEN** a maintainer proposes deleting the retained legacy route or another maintained v1 surface before the staged soak and later-major decision complete
-- **THEN** the proposal is rejected as outside this promotion change
+- **WHEN** a maintainer proposes deleting another maintained v1 surface that
+  is outside this install/ensure escape retirement
+- **THEN** the proposal remains subject to the separately approved later-major
+  deprecation gate
 
 ### Requirement: A withdrawn catalog entry retains its v1 root export as frozen data
 
@@ -344,19 +349,23 @@ state schema version 2, or alter frozen command names, aliases, `--json` /
 
 For the 1.12 CLI exec slice, Quantex SHALL execute managed agent launch for
 CLI `exec` and shortcut `qtx <agent> [args...]` through an in-repo Core
-execution engine. Those entry points MUST preserve the maintained v1 human/JSON
-contracts, exit-code meanings, and `--install` policy semantics, and MUST NOT
-wrap a published `createQuantex()` `run()` / `exec()` method into a second
-CLI-shaped API. This CLI ownership MUST NOT, by itself, expand the published
-`quantex-core` method surface, change package/binary identity, bump state
-schema version 2, or alter frozen command names, aliases, `--json` / `--output`
-fields, or exit-code meanings.
+execution engine. When `--install` authorizes installing a missing agent before
+launch, that mutation MUST use the in-repo Core install/ensure engine rather
+than a retained lifecycle reconcile port. Those entry points MUST preserve the
+maintained v1 human/JSON contracts, exit-code meanings, and `--install` policy
+semantics, and MUST NOT wrap a published `createQuantex()` `run()` / `exec()`
+method into a second CLI-shaped API. This CLI ownership MUST NOT, by itself,
+expand the published `quantex-core` method surface, change package/binary
+identity, bump state schema version 2, or alter frozen command names, aliases,
+`--json` / `--output` fields, or exit-code meanings.
 
 #### Scenario: Default exec invocation with install policy
 
 - **WHEN** a user invokes `quantex exec <agent> --install <policy> -- [args...]`
 - **THEN** Quantex applies the selected `--install` policy through the in-repo
   Core execution engine before launching the agent
+- **AND THEN** any authorized missing-agent install mutates through Core
+  install/ensure
 - **AND THEN** the published SDK does not gain a `run` or `exec` method solely
   because of this CLI routing change
 
@@ -383,4 +392,44 @@ fields, or exit-code meanings.
   lifecycle methods
 - **AND THEN** no new SDK `run` or `exec` method appears solely because CLI
   `exec` / shortcut launch through in-repo Core
+
+### Requirement: Exec --install SHALL mutate through Core install/ensure without drifting frozen contracts
+
+Quantex SHALL perform authorized missing-agent installation for CLI `exec` or
+shortcut through the in-repo Core install/ensure engine used by CLI `install` /
+`ensure`. The public `--install` enum MUST remain `never` / `if-missing` /
+`always` with default `never` on the public flag surface; interactive `prompt`
+MUST remain interactive-only and MUST NOT become a JSON policy value.
+Maintained `--json` payloads, human/interactive stdio inherit, and exit-code
+meanings MUST remain unchanged and MUST NOT expose engine or route identifiers.
+This routing MUST NOT expand the published `quantex-core` method surface.
+
+#### Scenario: Public install policy enum stays frozen
+
+- **WHEN** a user inspects `exec --install` help or structured command metadata
+- **THEN** the public policy values remain `never`, `if-missing`, and `always`
+- **AND THEN** `prompt` is not advertised as a JSON policy value
+
+#### Scenario: Exec install-if-missing uses Core without JSON engine leakage
+
+- **WHEN** `exec` runs with `--install if-missing` and JSON or NDJSON output
+- **THEN** a required missing-agent install mutates through Core install/ensure
+- **AND THEN** maintained payload field names, types, and meanings remain
+  unchanged
+- **AND THEN** engine or route identifiers remain absent from those payloads
+
+#### Scenario: Human interactive launch keeps inherited stdio after Core install
+
+- **WHEN** `exec` or shortcut installs then launches in human output mode
+- **THEN** the agent process still inherits stdin, stdout, and stderr
+- **AND THEN** exit-code meanings remain unchanged from the pre-slice contract
+
+#### Scenario: Published SDK surface stays frozen for the exec-install slice
+
+- **WHEN** a TypeScript consumer inspects the published `quantex-core` root
+  export after this slice
+- **THEN** `createQuantex()` still exposes only the previously published
+  lifecycle methods
+- **AND THEN** no new SDK `run`, `exec`, or install-port method appears solely
+  because exec `--install` now uses Core install/ensure
 
