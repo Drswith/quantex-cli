@@ -1,4 +1,5 @@
 import type { AgentDefinition } from '../../src/agents'
+import type { CoreInstallationCompatibilityExecutor } from '../../src/core/installation-compatibility'
 import type { LifecycleObservationService } from '../../src/services/lifecycle-observations'
 import { describe, expect, it, vi } from 'vitest'
 import {
@@ -19,10 +20,11 @@ describe('createProductionLifecycleExecutionService', () => {
       resolveLatestVersion: false,
     })
     expect(dependencies.createProcessPort().run).not.toHaveBeenCalled()
+    expect(dependencies.createInstallationExecutor().execute).not.toHaveBeenCalled()
     service.dispose()
   })
 
-  it('adapts verified installation reconciliation before re-observation and launch', async () => {
+  it('adapts Core install/ensure before re-observation and launch', async () => {
     const observationService = serviceWithObservations([resolvedObservation(false), resolvedObservation(true)])
     const dependencies = fakeDependencies(observationService)
     const service = createProductionLifecycleExecutionService(options(), dependencies)
@@ -30,12 +32,14 @@ describe('createProductionLifecycleExecutionService', () => {
     await expect(
       service.execute({ agentName: 'test-agent', args: ['--help'], installPolicy: 'if-missing' }),
     ).resolves.toMatchObject({ exitCode: 0, kind: 'exited' })
-    expect(dependencies.reconcileAgentInstallation).toHaveBeenCalledWith({
-      agent: testAgent,
-      observation: expect.objectContaining({ inPath: false }),
-      operation: 'install',
-      route: 'install',
-    })
+    expect(dependencies.createInstallationExecutor().execute).toHaveBeenCalledWith(
+      expect.objectContaining({
+        mode: 'apply',
+        name: 'test-agent',
+        operation: 'install',
+        outputPolicy: 'inherit',
+      }),
+    )
     expect(dependencies.createProcessPort().run).toHaveBeenCalledWith(
       expect.objectContaining({
         argv: ['/path/test-bin', '--help'],
@@ -75,12 +79,63 @@ describe('createProductionLifecycleExecutionService', () => {
     })
     service.dispose()
   })
+
+  it('does not import reconcileAgentInstallation after Core install routing', async () => {
+    const source = await import('node:fs/promises').then(fs =>
+      fs.readFile(new URL('../../src/services/lifecycle-execution-production.ts', import.meta.url), 'utf8'),
+    )
+    expect(source).toContain('createCoreInstallationCompatibilityExecutor')
+    expect(source).toContain("from '../core/installation-compatibility'")
+    expect(source).not.toContain('reconcileAgentInstallation')
+  })
 })
 
 function fakeDependencies(observationService: LifecycleObservationService): ProductionLifecycleExecutionDependencies {
   const processPort = { run: vi.fn(async () => ({ kind: 'success' as const, value: { exitCode: 0 } })) }
+  const installationExecutor: CoreInstallationCompatibilityExecutor = {
+    execute: vi.fn(async () => ({
+      kind: 'success' as const,
+      value: {
+        kind: 'success' as const,
+        value: {
+          after: {
+            agent: testAgent,
+            binding: undefined,
+            capabilities: [],
+            catalogMethods: [],
+            executable: { path: '/path/test-bin', present: true, version: '1.0.0' },
+            methods: [{ packageName: 'test-package', type: 'npm' as const }],
+            observation: {
+              drift: { kind: 'none' as const },
+              kind: 'present' as const,
+              targetId: 'test-agent',
+            },
+            pathExecutable: { path: '/path/test-bin', present: true, version: '1.0.0' },
+          },
+          before: {
+            agent: testAgent,
+            binding: undefined,
+            capabilities: [],
+            catalogMethods: [],
+            executable: { present: false },
+            methods: [{ packageName: 'test-package', type: 'npm' as const }],
+            observation: {
+              drift: { kind: 'none' as const },
+              kind: 'absent' as const,
+              targetId: 'test-agent',
+            },
+            pathExecutable: { present: false },
+          },
+          changed: true,
+          decision: 'install' as const,
+          kind: 'apply' as const,
+        },
+      },
+    })),
+  }
   return {
     cancelOperations: vi.fn(async () => undefined),
+    createInstallationExecutor: vi.fn(() => installationExecutor),
     createObservationService: vi.fn(() => observationService),
     createOperationContext: vi.fn(() => ({
       context: {
@@ -92,40 +147,6 @@ function fakeDependencies(observationService: LifecycleObservationService): Prod
       run: vi.fn(),
     })),
     createProcessPort: vi.fn(() => processPort),
-    reconcileAgentInstallation: vi.fn(
-      async () =>
-        ({
-          kind: 'success' as const,
-          value: {
-            changed: true,
-            receipt: {
-              kind: 'lifecycle-receipt' as const,
-              providerId: 'npm',
-              providerTargetId: 'test-package',
-              providerTargetKind: 'package' as const,
-              schemaVersion: 1 as const,
-              targetId: 'test-agent',
-              verifiedAt: '2026-07-15T08:00:00.000Z',
-            },
-            value: {
-              installedState: {
-                agentName: 'test-agent',
-                installType: 'npm' as const,
-                packageName: 'test-package',
-              },
-            },
-            verification: {
-              kind: 'satisfied' as const,
-              observation: {
-                drift: { kind: 'none' as const },
-                kind: 'present' as const,
-                targetId: 'test-agent',
-              },
-              postcondition: { executable: 'test-bin', kind: 'executable-present' as const },
-            },
-          },
-        }) as const,
-    ) as unknown as ProductionLifecycleExecutionDependencies['reconcileAgentInstallation'],
   }
 }
 

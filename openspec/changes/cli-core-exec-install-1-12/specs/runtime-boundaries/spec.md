@@ -1,0 +1,73 @@
+## ADDED Requirements
+
+### Requirement: Exec and shortcut install-before-launch SHALL use Core install/ensure
+
+Quantex SHALL install a missing agent for CLI `exec` / shortcut through the same
+in-repo Core install/ensure engine used by CLI `install` / `ensure` when the
+selected `--install` policy authorizes mutation. The production execution bridge
+MAY adapt Core outcomes into the Core execution engine's install port. It MUST
+NOT call `reconcileAgentInstallation` or otherwise retain a second install
+mutation engine beside Core for that path.
+
+#### Scenario: Exec install-if-missing uses Core installation
+
+- **WHEN** `exec` must install a missing agent under an authorized `--install`
+  policy
+- **THEN** mutation ownership executes through the in-repo Core install/ensure
+  engine
+- **AND THEN** the production bridge does not call `reconcileAgentInstallation`
+
+#### Scenario: Shortcut shares the same install path
+
+- **WHEN** shortcut `qtx <agent>` reaches the shared launch path and must
+  install before launch
+- **THEN** installation uses the same Core install/ensure path as `exec`
+- **AND THEN** argv presentation and process I/O policy remain CLI-owned
+
+## MODIFIED Requirements
+
+### Requirement: CLI exec and shortcut SHALL remain thin facades over Core execution
+
+Quantex SHALL keep CLI `exec` and shortcut `qtx <agent> [args...]` as thin
+compatibility shells for the 1.12 exec slice: they MAY parse argv, choose
+`--install` policy, invoke the in-repo Core execution engine through a CLI
+bridge, project Core outcomes into maintained v1 human/JSON results, apply exit
+policy, and supply process I/O policy (including inherited standard I/O for
+human agent launch). When `--install` authorizes installing a missing agent,
+that mutation MUST run through the in-repo Core install/ensure engine rather
+than a retained lifecycle reconcile port. They MUST NOT become a second
+launch-engine or install-engine implementation and MUST NOT re-wrap a published
+SDK `run()` / `exec()` surface into a CLI-only API.
+
+#### Scenario: Exec command module stays presentation-focused
+
+- **WHEN** a user invokes `exec`
+- **THEN** observe/install/launch ownership executes through the Core execution
+  engine behind the CLI bridge, with install mutation delegated to Core
+  install/ensure when required
+- **AND THEN** the command path projects the outcome into the maintained v1 CLI
+  result without owning a second launch state machine
+
+#### Scenario: Shortcut stays presentation-focused over the same Core engine
+
+- **WHEN** a user invokes shortcut `qtx <agent> [args...]`
+- **THEN** launch executes through the same Core execution engine used by `exec`
+- **AND THEN** shortcut argv parsing and process I/O policy remain CLI-owned
+
+#### Scenario: Human agent launch keeps inherited standard I/O
+
+- **WHEN** `exec` or shortcut launches an installed agent in human output mode
+- **THEN** the CLI-supplied process I/O policy inherits stdin, stdout, and
+  stderr for the agent process
+- **AND THEN** that policy is applied through the Core execution engine rather
+  than a second CLI-local spawn path
+- **AND THEN** interactive agent I/O behavior remains unchanged from the
+  pre-slice CLI contract
+
+#### Scenario: Structured exec output omits engine and route identifiers
+
+- **WHEN** `exec` or shortcut-backed presentation emits JSON or NDJSON
+- **THEN** the maintained payload does not include selected engine or route
+  identifiers
+- **AND THEN** engine or route diagnostics remain absent from those payloads
+  (debug stderr only, when emitted)
