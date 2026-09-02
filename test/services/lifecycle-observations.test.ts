@@ -195,13 +195,19 @@ describe('mutation and execution observation boundary', () => {
     }
   })
 
-  it('routes execution through the lifecycle application service', async () => {
+  it('routes execution through Core via the lifecycle application service bridge', async () => {
     const runSource = await source('src/commands/run.ts')
 
-    expect(runSource).toContain("from '../services'")
+    expect(runSource).toContain("from '../core/execution-executor'")
+    expect(runSource).toContain("from '../services/lifecycle-execution-production'")
     expect(runSource).toContain('createProductionLifecycleExecutionService')
     expect(runSource).not.toContain('resolveAgentInspection')
     expect(runSource).not.toContain('lifecycle-observations')
+    expect(runSource).not.toContain('createQuantex')
+
+    const productionSource = await source('src/services/lifecycle-execution-production.ts')
+    expect(productionSource).toContain("from '../core/execution-executor'")
+    expect(productionSource).toContain('executeAgentLifecycle')
   })
 
   it('keeps the new application boundary read-only and presenter-independent', async () => {
