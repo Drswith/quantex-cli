@@ -1,10 +1,10 @@
 import type { AgentDefinition } from '../agents'
 import type { CommandIdempotencyPolicyFactory } from '../command-runtime'
-import type { CommandResult, CommandWarning } from '../output/types'
 import type {
   LifecycleUpdateBatchCancellationRemainder,
   LifecycleUpdateBatchTargetOutcome,
-} from '../services/lifecycle-updates'
+} from '../core/update-executor'
+import type { CommandResult, CommandWarning } from '../output/types'
 import {
   createSupersededPackageWarning,
   getAgentUpdateFailureHint,
@@ -32,6 +32,7 @@ import { pc } from '../utils/color'
 import { isResourceLockError } from '../utils/lock'
 import { printError, printInfo, printWarn } from '../utils/user-output'
 import { appendFailureReason } from './installation-failure-diagnostics'
+import { reportInstallationEngineRoute, selectInstallationEngineRoute } from './installation-routing'
 
 type UpdateStatus = 'failed' | 'locked' | 'manual-required' | 'planned' | 'up-to-date' | 'updated'
 
@@ -74,6 +75,7 @@ export async function updateCommand(
   },
   managed = false,
 ): Promise<CommandResult<UpdateCommandData>> {
+  reportInstallationEngineRoute('update', selectInstallationEngineRoute('update'))
   if (managed && !all) {
     return emitCommandResult(
       createErrorResult<UpdateCommandData>({

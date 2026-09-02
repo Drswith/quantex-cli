@@ -1,7 +1,11 @@
 import process from 'node:process'
 import { getCliContext } from '../cli-context'
 
+/** Install/ensure only — used by the Core installation compatibility bridge. */
 export type InstallationOperation = 'ensure' | 'install'
+
+/** Promoted CLI lifecycle commands that participate in engine routing. */
+export type LifecycleEngineOperation = InstallationOperation | 'uninstall' | 'update'
 
 export type InstallationEngineRoute =
   | {
@@ -30,8 +34,14 @@ const DRY_RUN_LEGACY_ROUTE: InstallationEngineRoute = Object.freeze({
   source: 'dry-run-compatibility',
 })
 
-/** Core is the 1.4 apply default; v1 dry-run and the legacy escape remain whole-invocation routes through 1.5. */
-export function selectInstallationEngineRoute(_operation: InstallationOperation): InstallationEngineRoute {
+/**
+ * Core is the 1.12 default for install/ensure/update/uninstall.
+ * The exact `legacy` escape and install/ensure `--dry-run` planning route remain
+ * whole-invocation compatibility paths for install/ensure. Update/uninstall execute
+ * the relocated in-repo Core engine (no divergent second engine remains after the move).
+ */
+export function selectInstallationEngineRoute(operation: LifecycleEngineOperation): InstallationEngineRoute {
+  if (operation === 'update' || operation === 'uninstall') return STABLE_CORE_ROUTE
   if (getCliContext().dryRun) return DRY_RUN_LEGACY_ROUTE
   return process.env.QUANTEX_INSTALLATION_ENGINE === 'legacy' ? COMPATIBILITY_LEGACY_ROUTE : STABLE_CORE_ROUTE
 }
@@ -41,7 +51,10 @@ export function createCoreInstallationTestRoute(): InstallationEngineRoute {
   return Object.freeze({ adoption: 'v1-safe', engine: 'core', source: 'test' })
 }
 
-export function reportInstallationEngineRoute(operation: InstallationOperation, route: InstallationEngineRoute): void {
+export function reportInstallationEngineRoute(
+  operation: LifecycleEngineOperation,
+  route: InstallationEngineRoute,
+): void {
   if (getCliContext().logLevel !== 'debug') return
   process.stderr.write(`[quantex:debug] ${operation} engine=${route.engine} source=${route.source}\n`)
 }
