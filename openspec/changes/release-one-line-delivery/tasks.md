@@ -30,4 +30,4 @@
 - [x] 5.2 Run focused release/workflow/installer tests and `bun run test` as needed
 - [x] 5.3 Run `bun run openspec:validate` and `bun run memory:check`
 - [x] 5.4 Run `bun run release:dry-run` because release workflows/scripts change
-- [ ] 5.5 Commit, push, and open a PR whose description states the new order in one paragraph and that tests/workflow structure make npm-before-smoke and prepare-before-seal impossible
+- [x] 5.5 Commit, push, and open a PR whose description states the new order in one paragraph and that tests/workflow structure make npm-before-smoke and prepare-before-seal impossible
