@@ -4,7 +4,7 @@ import {
   executeAgentLifecycle,
   type LifecycleExecutionObservedAgent,
   type LifecycleExecutionServicePorts,
-} from '../../src/services/lifecycle-execution'
+} from '../../src/core/execution-executor'
 
 const controller = new AbortController()
 
@@ -55,8 +55,11 @@ describe('executeAgentLifecycle', () => {
     expect(ports.process.run).toHaveBeenCalledWith(expect.objectContaining({ argv: ['/tmp/test-bin', '--help'] }))
   })
 
-  it('reserves stdout for structured output', async () => {
-    const ports = fakePorts({ observations: [observed(true)], outputMode: 'json' })
+  it('applies CLI-supplied structured stdio policy without deciding output mode itself', async () => {
+    const ports = fakePorts({
+      observations: [observed(true)],
+      stdio: ['ignore', 'pipe', 'pipe'],
+    })
 
     await executeAgentLifecycle(request(), ports)
 
@@ -205,8 +208,8 @@ interface FakePortsOptions {
   interactive?: boolean
   observationResult?: RuntimeOutcome<LifecycleExecutionObservedAgent | undefined>
   observations?: Array<LifecycleExecutionObservedAgent | undefined>
-  outputMode?: LifecycleExecutionServicePorts['outputMode']
   processResult?: Awaited<ReturnType<LifecycleExecutionServicePorts['process']['run']>>
+  stdio?: LifecycleExecutionServicePorts['stdio']
 }
 
 function fakePorts(options: FakePortsOptions = {}): LifecycleExecutionServicePorts {
@@ -218,11 +221,11 @@ function fakePorts(options: FakePortsOptions = {}): LifecycleExecutionServicePor
     interactive: options.interactive ?? true,
     observe: vi.fn(async () => options.observationResult ?? success(observations.shift())),
     onInstallStart: vi.fn(),
-    outputMode: options.outputMode ?? 'human',
     process: {
       run: vi.fn(async () => options.processResult ?? success({ exitCode: 0 })),
     },
     signal: controller.signal,
+    stdio: options.stdio ?? ['inherit', 'inherit', 'inherit'],
     timeoutMs: 5_000,
   }
 }

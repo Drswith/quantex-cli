@@ -2,16 +2,16 @@ import type { LifecycleOutcome } from '../lifecycle'
 import type { ProcessPort, RuntimeFailure, RuntimeOutcome } from '../runtime'
 import type { LifecycleObservationService, LifecycleObservationServiceOptions } from './lifecycle-observations'
 import { cancelCliContextOperations } from '../cli-context'
-import { reconcileAgentInstallation } from '../lifecycle'
-import { createAgentProcessPort, createCliOperationContext } from '../runtime'
-import { getStateFilePath, StateFileError } from '../state'
-import { isProcessInterruptionError } from '../utils/child-process'
 import {
   type AgentExecutionOutcome,
   type ExecuteAgentLifecycleInput,
   executeAgentLifecycle,
   type LifecycleExecutionObservedAgent,
-} from './lifecycle-execution'
+} from '../core/execution-executor'
+import { reconcileAgentInstallation } from '../lifecycle'
+import { createAgentProcessPort, createCliOperationContext } from '../runtime'
+import { getStateFilePath, StateFileError } from '../state'
+import { isProcessInterruptionError } from '../utils/child-process'
 import { createProductionLifecycleObservationService } from './lifecycle-observations'
 
 export interface ProductionLifecycleExecutionOptions {
@@ -72,9 +72,10 @@ export function createProductionLifecycleExecutionService(
         interactive: options.interactive,
         observe: agentName => observeAgent(agentName, observationService),
         onInstallStart: options.onInstallStart,
-        outputMode: options.outputMode,
         process,
         signal: operation.context.signal,
+        // CLI owns process I/O policy: human inherits agent stdio; structured modes reserve stdout.
+        stdio: options.outputMode === 'human' ? ['inherit', 'inherit', 'inherit'] : ['ignore', 'pipe', 'pipe'],
         timeoutMs: options.timeoutMs,
       }),
   }

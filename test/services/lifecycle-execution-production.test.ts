@@ -37,7 +37,24 @@ describe('createProductionLifecycleExecutionService', () => {
       route: 'install',
     })
     expect(dependencies.createProcessPort().run).toHaveBeenCalledWith(
-      expect.objectContaining({ argv: ['/path/test-bin', '--help'] }),
+      expect.objectContaining({
+        argv: ['/path/test-bin', '--help'],
+        stdio: ['inherit', 'inherit', 'inherit'],
+      }),
+    )
+    service.dispose()
+  })
+
+  it('supplies structured stdio policy from the CLI output mode without a public SDK run()', async () => {
+    const observationService = serviceWithObservations([resolvedObservation(true)])
+    const dependencies = fakeDependencies(observationService)
+    const service = createProductionLifecycleExecutionService(options({ outputMode: 'json' }), dependencies)
+
+    await expect(service.execute({ agentName: 'test-agent', args: [], installPolicy: 'never' })).resolves.toMatchObject(
+      { exitCode: 0, kind: 'exited' },
+    )
+    expect(dependencies.createProcessPort().run).toHaveBeenCalledWith(
+      expect.objectContaining({ stdio: ['ignore', 'pipe', 'pipe'] }),
     )
     service.dispose()
   })
@@ -130,7 +147,11 @@ function resolvedObservation(pathPresent: boolean, providerPresent = pathPresent
   }
 }
 
-function options() {
+function options(overrides: Partial<ReturnType<typeof baseOptions>> = {}): ReturnType<typeof baseOptions> {
+  return { ...baseOptions(), ...overrides }
+}
+
+function baseOptions() {
   return {
     confirmInstall: vi.fn(async () => true),
     dryRun: false,

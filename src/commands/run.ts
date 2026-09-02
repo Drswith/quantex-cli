@@ -1,14 +1,14 @@
 import type { AgentDefinition, InstallMethod } from '../agents/types'
+import type { AgentExecutionOutcome } from '../core/execution-executor'
 import type { CliErrorCode } from '../errors'
 import type { RuntimeFailure } from '../runtime'
-import type { AgentExecutionOutcome } from '../services'
 import type { ExecInstallPolicy } from './exec'
 import process from 'node:process'
 import prompts from 'prompts'
 import { cancelCliContextOperations, getCliContext } from '../cli-context'
 import { cliErrorCodes, getExitCodeForError } from '../errors'
 import { createErrorResult, createSuccessResult, emitCommandResult } from '../output'
-import { createProductionLifecycleExecutionService } from '../services'
+import { createProductionLifecycleExecutionService } from '../services/lifecycle-execution-production'
 import { pc } from '../utils/color'
 import { formatInstallMethodCommand, formatInstallMethodLabel } from '../utils/install'
 import {
@@ -19,6 +19,13 @@ import {
   printWarn,
   writeDirectOutput,
 } from '../utils/user-output'
+
+/**
+ * Thin CLI facade for `exec` and shortcut launch over the in-repo Core execution
+ * engine. Owns argv presentation, `--install` policy defaults, exit codes, and
+ * process I/O policy wiring through the production bridge — not a second launch
+ * state machine and not a public SDK `run()` wrapper.
+ */
 
 interface ExecPreflightData {
   agent: {
