@@ -93,13 +93,31 @@ jobs:
       - name: Install dependencies
         run: bun install --frozen-lockfile
 
+      # Tag checkout keeps package.json / src / installers from the immutable tag.
+      # Overlay only scripts/release from the workflow commit (github.sha) so
+      # main-dispatch recovery can resolve RELEASE_TAG even when the tagged tree
+      # predates that env. GitHub rejects overriding GITHUB_* process env vars, so
+      # the older tag scripts that only read GITHUB_REF_NAME cannot see the input
+      # tag when the workflow runs from main. On tag-push, github.sha matches the
+      # tag commit and this checkout is a no-op for content.
+      #
+      # Fetch GITHUB_SHA explicitly before checkout: a tag-only working tree does
+      # not contain later main commits, and bundling the SHA into the earlier
+      # main/tags fetch is not a reliable way to materialize that object.
+      - name: Overlay workflow-commit release scripts
+        run: |
+          set -euo pipefail
+          git fetch origin "${GITHUB_SHA}"
+          git checkout "${GITHUB_SHA}" -- scripts/release/
+          echo "Overlaid scripts/release from workflow commit ${GITHUB_SHA}."
+
       - name: Build and stage exact release candidate
         id: candidate
         env:
           GITHUB_TOKEN: ${{ github.token }}
-          # Identity validation reads GITHUB_REF_NAME; override so a main-branch
-          # workflow_dispatch still validates the immutable input tag after checkout.
-          GITHUB_REF_NAME: ${{ steps.release-ref.outputs.tag }}
+          # Prefer RELEASE_TAG over GITHUB_REF_NAME. Do not set GITHUB_REF_NAME:
+          # Actions does not allow overriding GITHUB_* variables.
+          RELEASE_TAG: ${{ steps.release-ref.outputs.tag }}
         run: bun run release:candidate
 
       - name: Upload exact release candidate
