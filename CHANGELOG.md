@@ -1,6 +1,19 @@
 # Changelog
 
 
+## [1.12.0](https://github.com/Drswith/quantex-cli/compare/v1.11.3...v1.12.0) (2026-09-03)
+
+
+### Features
+
+* **core:** move exec --install onto Core install/ensure for 1.12 ([e6d0f9e](https://github.com/Drswith/quantex-cli/commit/e6d0f9e8476867b03bc9fad065c5dfd9f5d133dd))
+* **core:** retire install/ensure legacy escape for 1.12 ([49ab050](https://github.com/Drswith/quantex-cli/commit/49ab0507457bfadbbb4e2d4e93fdd92c3659655f))
+* **core:** route CLI doctor through in-repo Core diagnosis for 1.12 ([1afa2e4](https://github.com/Drswith/quantex-cli/commit/1afa2e49253ae2549d05e09190600fa20f5e1ca6))
+* **core:** route CLI exec/shortcut through in-repo Core for 1.12 ([a1134cd](https://github.com/Drswith/quantex-cli/commit/a1134cd5d5a38add64ca4a9b7ff94e21726bb95b))
+* **core:** route CLI inspect/info/resolve through in-repo Core read observation for 1.12 ([e55e4a6](https://github.com/Drswith/quantex-cli/commit/e55e4a6c3c9ce87ccbbd1ff20799f350bf64ac35))
+* **core:** route CLI update and uninstall through in-repo Core for 1.12 ([237bc9d](https://github.com/Drswith/quantex-cli/commit/237bc9dec82ca4c6c3d4e997943be2dc89bf15e0))
+* **core:** route leftover CLI lifecycle cleanup through Core for 1.12 ([fa0e206](https://github.com/Drswith/quantex-cli/commit/fa0e20607c73fed04ed74b560fc564d3a4383a56))
+
 ## [1.11.3](https://github.com/Drswith/quantex-cli/compare/v1.11.2...v1.11.3) (2026-09-02)
 
 
