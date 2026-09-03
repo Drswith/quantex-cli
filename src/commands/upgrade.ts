@@ -62,41 +62,7 @@ export async function upgradeCommand(
     )
   }
 
-  if (options.check || dryRun) {
-    if (plan.status === 'update-available') {
-      return emitCommandResult(
-        createSuccessResult<UpgradeCommandData>({
-          action: 'upgrade',
-          data: {
-            canAutoUpdate: inspection.canAutoUpdate,
-            channel: inspection.updateChannel,
-            currentVersion: inspection.currentVersion,
-            installSource: inspection.installSource,
-            latestVersion: inspection.latestVersion,
-            status: 'update-available',
-          },
-          exitCode: options.check ? 1 : undefined,
-          target: {
-            kind: 'self',
-            name: 'quantex',
-          },
-          warnings: [
-            ...registryWarnings,
-            ...(staleLatestWarning ? [staleLatestWarning] : []),
-            ...(dryRun
-              ? [
-                  {
-                    code: 'DRY_RUN',
-                    message: 'Dry run: would upgrade Quantex CLI.',
-                  },
-                ]
-              : []),
-          ],
-        }),
-        renderUpgradeHuman,
-      )
-    }
-
+  if (plan.status === 'check-unavailable') {
     return emitCommandResult(
       createErrorResult<UpgradeCommandData>({
         action: 'upgrade',
@@ -144,6 +110,40 @@ export async function upgradeCommand(
           name: 'quantex',
         },
         warnings: [...registryWarnings, ...(staleLatestWarning ? [staleLatestWarning] : [])],
+      }),
+      renderUpgradeHuman,
+    )
+  }
+
+  if (options.check || dryRun) {
+    return emitCommandResult(
+      createSuccessResult<UpgradeCommandData>({
+        action: 'upgrade',
+        data: {
+          canAutoUpdate: inspection.canAutoUpdate,
+          channel: inspection.updateChannel,
+          currentVersion: inspection.currentVersion,
+          installSource: inspection.installSource,
+          latestVersion: inspection.latestVersion,
+          status: 'update-available',
+        },
+        exitCode: options.check ? 1 : undefined,
+        target: {
+          kind: 'self',
+          name: 'quantex',
+        },
+        warnings: [
+          ...registryWarnings,
+          ...(staleLatestWarning ? [staleLatestWarning] : []),
+          ...(dryRun
+            ? [
+                {
+                  code: 'DRY_RUN',
+                  message: 'Dry run: would upgrade Quantex CLI.',
+                },
+              ]
+            : []),
+        ],
       }),
       renderUpgradeHuman,
     )

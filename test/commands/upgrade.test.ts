@@ -52,6 +52,41 @@ describe('upgradeCommand', () => {
     expect(stdoutWriteSpy).toHaveBeenCalledWith(expect.stringContaining('Unable to determine the latest'))
   })
 
+  it('reports structured NETWORK_ERROR on plain upgrade when latest version cannot be resolved', async () => {
+    planSelfUpgradeSpy.mockResolvedValue(createPlan({}, 'check-unavailable'))
+
+    await expect(upgradeCommand()).resolves.toMatchObject({
+      data: { status: 'check-unavailable' },
+      error: { code: 'NETWORK_ERROR' },
+      ok: false,
+    })
+
+    expect(upgradeSelfSpy).not.toHaveBeenCalled()
+    expect(stdoutWriteSpy).toHaveBeenCalledWith(expect.stringContaining('Unable to determine the latest'))
+  })
+
+  it('preserves MANUAL_ACTION_REQUIRED under --check for non-auto-update sources', async () => {
+    planSelfUpgradeSpy.mockResolvedValue(
+      createPlan(
+        {
+          canAutoUpdate: false,
+          installSource: 'source',
+          targetVersion: '1.1.0',
+        },
+        'manual-required',
+      ),
+    )
+
+    await expect(upgradeCommand({ check: true })).resolves.toMatchObject({
+      data: { status: 'manual-required' },
+      error: { code: 'MANUAL_ACTION_REQUIRED' },
+      ok: false,
+    })
+
+    expect(upgradeSelfSpy).not.toHaveBeenCalled()
+    expect(stdoutWriteSpy).toHaveBeenCalledWith(expect.stringContaining('cannot auto-update'))
+  })
+
   it('treats a lower latest version as stale instead of attempting a downgrade', async () => {
     planSelfUpgradeSpy.mockResolvedValue(
       createPlan(
