@@ -1,6 +1,13 @@
 # Changelog
 
 
+## [1.13.0](https://github.com/Drswith/quantex-cli/compare/v1.12.0...v1.13.0) (2026-09-06)
+
+
+### Features
+
+* **core:** route install/ensure --dry-run through Core preview ([faf9f19](https://github.com/Drswith/quantex-cli/commit/faf9f190928f64c088d126d2f1857a58e0097e5c))
+
 ## [1.12.0](https://github.com/Drswith/quantex-cli/compare/v1.11.3...v1.12.0) (2026-09-03)
 
 
