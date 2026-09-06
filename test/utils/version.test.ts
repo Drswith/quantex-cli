@@ -156,6 +156,20 @@ describe('getInstalledVersion', () => {
     expect(mockSpawn).toHaveBeenCalledWith(['/home/agent/.local/bin/agy', 'version'], expect.any(Object))
   })
 
+  it('substitutes a resolved path whose basename differs from binaryName', async () => {
+    const { probeInstalledVersion } = await import('../../src/utils/version')
+    mockSpawn.mockReturnValue(createMockProcess(0, '2026.09.02-c22c1a3\n'))
+
+    await probeInstalledVersion(
+      'agent',
+      { command: ['agent', '--version'] },
+      undefined,
+      '/home/agent/.local/bin/cursor-agent',
+    )
+
+    expect(mockSpawn).toHaveBeenCalledWith(['/home/agent/.local/bin/cursor-agent', '--version'], expect.any(Object))
+  })
+
   it('leaves a probe command that does not lead with the executable untouched', async () => {
     const { probeInstalledVersion } = await import('../../src/utils/version')
     mockSpawn.mockReturnValue(createMockProcess(0, '1.2.3\n'))
