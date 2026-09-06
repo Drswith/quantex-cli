@@ -1,5 +1,4 @@
 import type { Platform } from '../agents/types'
-import type { LifecycleReceipt } from '../lifecycle/model'
 import type { ProviderRegistry } from '../providers/registry'
 import type {
   ProviderMutationEvidence,
@@ -20,11 +19,11 @@ import type { CoreMutationRecipeCatalog } from './mutation-recipe-catalog'
 import type { CoreAgentObservation, CoreReadPorts } from './production-observation'
 import { isDeepStrictEqual } from 'node:util'
 import { createFileLifecycleStateStore } from '../state/file-store'
-import { LIFECYCLE_RECEIPT_SCHEMA_VERSION } from '../state/schema'
 import { getPlatform } from '../utils/detect'
 import { acquireResourceLockInConfigDir } from '../utils/lock'
 import { resolveCoreInstallationRecipe } from './installation-recipe-resolver'
 import { prepareCoreInstallationStateRecord } from './installation-state-record'
+import { LIFECYCLE_RECEIPT_SCHEMA_VERSION, type LifecycleReceipt } from './lifecycle/model'
 import { loadCoreMutationRecipeCatalog } from './mutation-recipe-catalog'
 import { createProductionCoreReadPorts } from './production-observation'
 

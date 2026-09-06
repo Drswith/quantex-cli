@@ -1,4 +1,4 @@
-import type { LifecycleReceipt } from '../lifecycle/model'
+import type { LifecycleReceipt } from '../core/lifecycle/model'
 import type { InstalledAgentState, QuantexState, VersionedQuantexState } from './schema'
 import {
   createEmptyStateDocument,

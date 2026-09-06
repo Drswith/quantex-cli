@@ -1,11 +1,10 @@
 import type { AgentDefinition, InstallMethod } from '../agents'
 import type { ProcessPort, ProcessStdio, RuntimeFailure, RuntimeOutcome } from '../runtime'
 import type { InstalledAgentState } from '../state'
+import type { LifecycleObservation, LifecycleOutcome } from './lifecycle/model'
 import {
   type AgentExecutableObservation,
   type AgentExecutionInstallPolicy,
-  type LifecycleObservation,
-  type LifecycleOutcome,
   planAgentExecutionPreflight,
 } from '../lifecycle'
 

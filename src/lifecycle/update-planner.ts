@@ -8,7 +8,7 @@ import type {
   LifecyclePlanningProvider,
   LifecycleStep,
   ProviderCapability,
-} from './model'
+} from '../core/lifecycle/model'
 import { compareVersions } from '../utils/version'
 
 export type LifecycleUpdateDecision =

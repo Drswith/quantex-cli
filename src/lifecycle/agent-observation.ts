@@ -3,9 +3,9 @@
 // allowed outside-Core dependency in the published SDK eager closure. Moving into
 // src/core would relocate differential observation, not a zero-ref leftover.
 import type { AgentDefinition, Platform } from '../agents'
+import type { LifecycleObservation, LifecycleReceipt } from '../core/lifecycle/model'
 import type { ProviderOperation, ProviderOutcome, ProviderObservation, ProviderRegistry } from '../providers'
 import type { InstalledAgentState } from '../state'
-import type { LifecycleObservation, LifecycleReceipt } from './model'
 import { compareVersions } from '../utils/compare-versions'
 import {
   type LifecycleProviderBinding,

@@ -4,8 +4,8 @@ import type {
   CoreInstallationCompatibilityRequest,
 } from '../../src/core/installation-compatibility'
 import type { CoreInstallationExecutionOutcome } from '../../src/core/installation-executor'
+import type { LifecycleObservation, LifecycleReceipt } from '../../src/core/lifecycle/model'
 import type { CoreAgentObservation } from '../../src/core/production-observation'
-import type { LifecycleObservation, LifecycleReceipt } from '../../src/lifecycle/model'
 import type { LifecycleProviderBinding } from '../../src/lifecycle/provider-binding'
 import type { InstalledAgentState } from '../../src/state'
 import { beforeEach, describe, expect, it, vi } from 'vitest'

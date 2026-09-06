@@ -1,13 +1,5 @@
 import type { AgentPackageMetadata, AgentSelfUpdate, InstallMethod } from '../agents'
-import type {
-  LifecycleObservation,
-  LifecyclePlanningProvider,
-  LifecyclePostcondition,
-  LifecycleReceipt,
-  LifecycleUpdatePlanningInput,
-  LifecycleUpdatePlanningResult,
-  LifecycleVerification,
-} from '../lifecycle'
+import type { LifecycleUpdatePlanningInput, LifecycleUpdatePlanningResult } from '../lifecycle'
 import type {
   ProviderAdapter,
   ProviderEvidence,
@@ -22,8 +14,15 @@ import type {
 import type { InstalledAgentState } from '../state'
 import { getSupersededPackageMessage } from '../agent-update/messages'
 import { resolveSupersededPackage } from '../agents/superseded'
-import { LIFECYCLE_RECEIPT_SCHEMA_VERSION } from '../lifecycle'
 import { compareVersions } from '../utils/version'
+import {
+  LIFECYCLE_RECEIPT_SCHEMA_VERSION,
+  type LifecycleObservation,
+  type LifecyclePlanningProvider,
+  type LifecyclePostcondition,
+  type LifecycleReceipt,
+  type LifecycleVerification,
+} from './lifecycle/model'
 
 export interface LifecycleUpdateObservedAgent {
   readonly agent: {

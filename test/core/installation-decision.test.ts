@@ -1,6 +1,6 @@
 import type { AgentDefinition } from '../../src/agents/types'
+import type { LifecycleObservation } from '../../src/core/lifecycle/model'
 import type { CoreAgentObservation } from '../../src/core/production-observation'
-import type { LifecycleObservation } from '../../src/lifecycle/model'
 import type { LifecycleProviderBinding } from '../../src/lifecycle/provider-binding'
 import type { ProviderOutcome, ProviderObservation } from '../../src/providers/types'
 import { describe, expect, it } from 'vitest'
