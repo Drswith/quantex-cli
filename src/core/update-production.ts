@@ -18,6 +18,7 @@ import { firstPartyProviderRegistry } from '../providers'
 import { getInstalledAgentState, getLifecycleReceipt, lifecycleReceiptStore, loadState } from '../state'
 import { getPlatform } from '../utils/detect'
 import { resolveAgentExecutablePath } from '../utils/executable-resolution'
+import { uniqueExecutableLookupNames } from '../utils/executable-search-paths'
 import { isResourceLockError } from '../utils/lock'
 import { getResolvedBinaryPath, probeInstalledVersion } from '../utils/version'
 import { getCoreAgentByNameOrAlias, getCoreAgents } from './agent-catalog'
@@ -158,7 +159,10 @@ async function inspectExecutable(
   agent: AgentDefinition,
   context: ProviderOperationContext,
 ): Promise<AgentExecutableObservation> {
-  const binaryPath = await resolveAgentExecutablePath(agent.binaryName, context)
+  const binaryPath = await resolveAgentExecutablePath(
+    uniqueExecutableLookupNames(agent.binaryName, agent.versionProbe?.preferredBinaries),
+    context,
+  )
   if (!binaryPath) return { present: false }
   const version = await probeInstalledVersion(agent.binaryName, agent.versionProbe, context, binaryPath)
   const path = (await getResolvedBinaryPath(binaryPath, context)) ?? binaryPath

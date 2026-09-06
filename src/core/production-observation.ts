@@ -13,7 +13,11 @@ import process from 'node:process'
 import { observeAgentLifecycle } from '../lifecycle/agent-observation'
 import { resolveInstallMethodProviderBinding } from '../lifecycle/provider-binding'
 import { createEmptyStateDocument, parseStateDocument, StateSchemaError } from '../state/schema'
-import { getExecutableCandidateNames, getKnownAgentInstallDirectories } from '../utils/executable-search-paths'
+import {
+  getExecutableCandidateNames,
+  getKnownAgentInstallDirectories,
+  uniqueExecutableLookupNames,
+} from '../utils/executable-search-paths'
 import { getCoreAgentByNameOrAlias, getCoreAgents } from './agent-catalog'
 import { createCoreProviderObservationRegistry } from './provider-observation-registry'
 import { CoreProcessInterruptionError, runReadOnlyCommand } from './read-only-process'
@@ -137,7 +141,10 @@ async function inspectExecutable(
   agent: AgentDefinition,
   context: ProviderOperationContext,
 ): Promise<AgentExecutableObservation> {
-  const path = await findExecutable(agent.binaryName, context)
+  const path = await findExecutable(
+    uniqueExecutableLookupNames(agent.binaryName, agent.versionProbe?.preferredBinaries),
+    context,
+  )
   if (!path) return { present: false }
   const executablePath = (await resolveExecutablePath(path, context.signal)) ?? path
   const version = await inspectVersion(agent, executablePath, context)
@@ -148,19 +155,26 @@ async function inspectExecutable(
   }
 }
 
-async function findExecutable(binaryName: string, context: ProviderOperationContext): Promise<string | undefined> {
-  try {
-    const result = await runReadOnlyCommand([process.platform === 'win32' ? 'where' : 'which', binaryName], context)
-    if (result.exitCode === 0) {
-      const fromPath = result.stdout.trim().split(/\r?\n/u)[0]
-      if (fromPath) return fromPath
+async function findExecutable(
+  binaryNames: readonly string[],
+  context: ProviderOperationContext,
+): Promise<string | undefined> {
+  for (const binaryName of binaryNames) {
+    try {
+      const result = await runReadOnlyCommand([process.platform === 'win32' ? 'where' : 'which', binaryName], context)
+      if (result.exitCode === 0) {
+        const fromPath = result.stdout.trim().split(/\r?\n/u)[0]
+        if (fromPath) return fromPath
+      }
+    } catch (error) {
+      if (error instanceof CoreProcessInterruptionError) throw error
     }
-  } catch (error) {
-    if (error instanceof CoreProcessInterruptionError) throw error
+    // An installer that writes into a directory it also appends to a shell profile
+    // is invisible to the PATH of this already-running process.
+    const fromKnown = await findInKnownInstallDirectories(binaryName)
+    if (fromKnown) return fromKnown
   }
-  // An installer that writes into a directory it also appends to a shell profile
-  // is invisible to the PATH of this already-running process.
-  return findInKnownInstallDirectories(binaryName)
+  return undefined
 }
 
 async function findInKnownInstallDirectories(binaryName: string): Promise<string | undefined> {

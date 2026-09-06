@@ -435,6 +435,14 @@
               "type": "string",
               "minLength": 1
             }
+          },
+          "preferredBinaries": {
+            "minItems": 1,
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1
+            }
           }
         },
         "additionalProperties": false

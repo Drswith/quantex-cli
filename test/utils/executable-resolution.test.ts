@@ -3,7 +3,11 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import process from 'node:process'
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { getExecutableCandidateNames, getKnownAgentInstallDirectories } from '../../src/utils/executable-search-paths'
+import {
+  getExecutableCandidateNames,
+  getKnownAgentInstallDirectories,
+  uniqueExecutableLookupNames,
+} from '../../src/utils/executable-search-paths'
 
 const mockSpawn = vi.hoisted(() => vi.fn())
 
@@ -127,6 +131,38 @@ describe('resolveAgentExecutablePath', () => {
     expect(await resolveAgentExecutablePath('definitely-missing-agent')).toBeUndefined()
   })
 
+  it('tries preferred names completely before falling back to binaryName', async () => {
+    if (process.platform === 'win32') return
+
+    const home = await mkdtemp(join(tmpdir(), 'qtx-resolution-preferred-'))
+    const binDirectory = join(home, '.local', 'bin')
+    await mkdir(binDirectory, { recursive: true })
+    const preferred = join(binDirectory, 'cursor-agent')
+    await writeFile(preferred, '#!/bin/sh\n')
+    await chmod(preferred, 0o755)
+
+    vi.stubEnv('HOME', home)
+    const { resolveAgentExecutablePath } = await import('../../src/utils/executable-resolution')
+    mockSpawn.mockImplementation((argv: string[]) => {
+      const name = argv[1]
+      if (name === 'agent') return createMockProcess(0, '/usr/bin/agent\n')
+      return createMockProcess(1, '')
+    })
+
+    expect(await resolveAgentExecutablePath(['cursor-agent', 'agent'])).toBe(preferred)
+  })
+
+  it('falls back to a later lookup name when earlier names miss', async () => {
+    const { resolveAgentExecutablePath } = await import('../../src/utils/executable-resolution')
+    mockSpawn.mockImplementation((argv: string[]) => {
+      const name = argv[1]
+      if (name === 'agent') return createMockProcess(0, '/usr/bin/agent\n')
+      return createMockProcess(1, '')
+    })
+
+    expect(await resolveAgentExecutablePath(['cursor-agent', 'agent'])).toBe('/usr/bin/agent')
+  })
+
   it('does not treat a non-executable file as a resolved agent', async () => {
     if (process.platform === 'win32') return
 
@@ -141,5 +177,15 @@ describe('resolveAgentExecutablePath', () => {
     mockSpawn.mockReturnValue(createMockProcess(1, ''))
 
     expect(await resolveAgentExecutablePath('agy')).toBeUndefined()
+  })
+})
+
+describe('uniqueExecutableLookupNames', () => {
+  it('places preferred binaries before binaryName and drops duplicates', () => {
+    expect(uniqueExecutableLookupNames('agent', ['cursor-agent', 'agent', 'cursor-agent'])).toEqual([
+      'cursor-agent',
+      'agent',
+    ])
+    expect(uniqueExecutableLookupNames('agent')).toEqual(['agent'])
   })
 })

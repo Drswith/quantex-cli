@@ -152,7 +152,16 @@ function projectCoreAgent(agent: AgentDefinition): AgentDefinition {
         })),
       ]),
     ) as AgentDefinition['platforms'],
-    ...(agent.versionProbe ? { versionProbe: { command: agent.versionProbe.command } } : {}),
+    ...(agent.versionProbe
+      ? {
+          versionProbe: {
+            command: agent.versionProbe.command,
+            ...(agent.versionProbe.preferredBinaries?.length
+              ? { preferredBinaries: [...agent.versionProbe.preferredBinaries] }
+              : {}),
+          },
+        }
+      : {}),
   }
 }
 

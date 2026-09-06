@@ -47,6 +47,11 @@ export interface AgentSelfUpdate {
 export interface AgentVersionProbe {
   command?: string[]
   parser?: (stdout: string) => string | undefined
+  /**
+   * Names tried before `binaryName` when locating the executable to probe.
+   * Identity (`binaryName`, lookup aliases) stays unchanged.
+   */
+  preferredBinaries?: string[]
 }
 
 export interface AgentDefinition {

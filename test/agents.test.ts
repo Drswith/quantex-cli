@@ -484,6 +484,8 @@ describe('cursor', () => {
     expect(cursor.binaryName).toBe('agent')
     expect(cursor.selfUpdate?.command).toEqual(['agent', 'update'])
     expect(cursor.versionProbe?.command).toEqual(['agent', '--version'])
+    expect(cursor.versionProbe?.preferredBinaries).toEqual(['cursor-agent'])
+    expect(cursor.lookupAliases).toEqual(['agent'])
   })
 
   it('binary install returns correct strings per platform', () => {

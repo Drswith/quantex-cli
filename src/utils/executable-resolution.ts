@@ -51,18 +51,24 @@ async function findInKnownDirectories(binaryName: string, inputs: ExecutableSear
 }
 
 /**
- * Resolves an agent executable to an absolute path. The inherited PATH is
- * authoritative; the known install directories are consulted only when the PATH
- * lookup does not resolve, so existing setups keep resolving exactly as before.
+ * Resolves an agent executable to an absolute path. Each lookup name is tried
+ * completely (inherited PATH, then known install directories) before the next
+ * name, so a preferred unique binary in a known directory wins over a colliding
+ * PATH hit for a later name. A single name keeps the historical PATH-first rule.
  */
 export async function resolveAgentExecutablePath(
-  binaryName: string,
+  binaryName: string | readonly string[],
   context?: ProviderOperationContext,
 ): Promise<string | undefined> {
-  const fromPath = await lookupThroughPath(binaryName, context)
-  if (fromPath) return fromPath
-  if (context?.signal.aborted) return undefined
-  return findInKnownDirectories(binaryName, currentSearchInputs())
+  const names = typeof binaryName === 'string' ? [binaryName] : binaryName
+  for (const name of names) {
+    const fromPath = await lookupThroughPath(name, context)
+    if (fromPath) return fromPath
+    if (context?.signal.aborted) return undefined
+    const fromKnown = await findInKnownDirectories(name, currentSearchInputs())
+    if (fromKnown) return fromKnown
+  }
+  return undefined
 }
 
 export async function isAgentExecutableAvailable(

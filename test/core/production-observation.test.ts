@@ -221,6 +221,91 @@ describe('production Core observation', () => {
       }
     },
   )
+
+  it.skipIf(process.platform === 'win32')(
+    'probes Cursor via cursor-agent when PATH has a different agent binary',
+    async () => {
+      const root = await mkdtemp(join(tmpdir(), 'quantex-core-cursor-probe-'))
+      const collidingBin = join(root, 'colliding-bin')
+      const home = join(root, 'home')
+      const localBin = join(home, '.local', 'bin')
+      const configDir = join(root, 'config')
+      const previousPath = process.env.PATH
+      const previousHome = process.env.HOME
+
+      try {
+        await mkdir(collidingBin, { recursive: true })
+        await mkdir(localBin, { recursive: true })
+        await mkdir(configDir, { recursive: true })
+        await writeFile(join(collidingBin, 'agent'), '#!/bin/sh\necho other-agent 9.9.9\n')
+        await chmod(join(collidingBin, 'agent'), 0o755)
+        const cursorAgent = join(localBin, 'cursor-agent')
+        await writeFile(cursorAgent, '#!/bin/sh\necho 2026.09.02-c22c1a3\n')
+        await chmod(cursorAgent, 0o755)
+        process.env.HOME = home
+        process.env.PATH = `${collidingBin}:${join(root, 'empty')}`
+
+        const ports = createProductionCoreReadPorts({ providerRegistry: scriptAbsentRegistry() })
+        const outcome = await runCoreInvocation(undefined, context =>
+          ports.inspectAgent('cursor', { ...context, configDir }),
+        )
+
+        expect(outcome).toMatchObject({
+          kind: 'success',
+          value: {
+            agent: { binaryName: 'agent', name: 'cursor' },
+            pathExecutable: {
+              path: await realpath(cursorAgent),
+              present: true,
+              version: '2026.09.02-c22c1a3',
+            },
+          },
+        })
+      } finally {
+        process.env.PATH = previousPath
+        process.env.HOME = previousHome
+        await rm(root, { force: true, recursive: true })
+      }
+    },
+  )
+
+  it.skipIf(process.platform === 'win32')('falls back to agent when cursor-agent is absent', async () => {
+    const root = await mkdtemp(join(tmpdir(), 'quantex-core-cursor-fallback-'))
+    const binDir = join(root, 'bin')
+    const configDir = join(root, 'config')
+    const previousPath = process.env.PATH
+    const previousHome = process.env.HOME
+
+    try {
+      await mkdir(binDir, { recursive: true })
+      await mkdir(configDir, { recursive: true })
+      const agentBin = join(binDir, 'agent')
+      await writeFile(agentBin, '#!/bin/sh\necho 2026.03.30-a5d3e17\n')
+      await chmod(agentBin, 0o755)
+      process.env.HOME = join(root, 'home')
+      process.env.PATH = `${binDir}:${join(root, 'empty')}`
+
+      const ports = createProductionCoreReadPorts({ providerRegistry: scriptAbsentRegistry() })
+      const outcome = await runCoreInvocation(undefined, context =>
+        ports.inspectAgent('cursor', { ...context, configDir }),
+      )
+
+      expect(outcome).toMatchObject({
+        kind: 'success',
+        value: {
+          pathExecutable: {
+            path: await realpath(agentBin),
+            present: true,
+            version: '2026.03.30-a5d3e17',
+          },
+        },
+      })
+    } finally {
+      process.env.PATH = previousPath
+      process.env.HOME = previousHome
+      await rm(root, { force: true, recursive: true })
+    }
+  })
 })
 
 function bunRegistry(version: string | undefined = '0.73.1'): ProviderRegistry {
@@ -244,6 +329,26 @@ function bunRegistry(version: string | undefined = '0.73.1'): ProviderRegistry {
   return {
     get: id => (id === 'bun' ? adapter : undefined),
     getCapabilities: id => (id === 'bun' ? ['availability', 'observe'] : []),
+    list: () => [adapter],
+  }
+}
+
+function scriptAbsentRegistry(): ProviderRegistry {
+  const adapter = {
+    async availability() {
+      return { kind: 'success' as const, value: { executable: 'sh' } }
+    },
+    id: 'script' as const,
+    async observe(request: ProviderTargetRequest) {
+      return {
+        kind: 'success' as const,
+        value: { evidence: [], kind: 'absent' as const, target: request.target },
+      }
+    },
+  }
+  return {
+    get: id => (id === 'script' ? adapter : undefined),
+    getCapabilities: id => (id === 'script' ? ['availability', 'observe'] : []),
     list: () => [adapter],
   }
 }

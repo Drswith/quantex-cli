@@ -47,6 +47,19 @@ export function getKnownAgentInstallDirectories(inputs: ExecutableSearchInputs):
 }
 
 /**
+ * Ordered names used to locate an agent executable for observation and version
+ * probing. Preferred names are unique enough to beat a colliding `PATH` hit for
+ * `binaryName`; `binaryName` remains the fallback and the catalog identity.
+ */
+export function uniqueExecutableLookupNames(binaryName: string, preferredBinaries: readonly string[] = []): string[] {
+  const names: string[] = []
+  for (const name of [...preferredBinaries, binaryName]) {
+    if (name.length > 0 && !names.includes(name)) names.push(name)
+  }
+  return names
+}
+
+/**
  * Candidate file names for one binary. POSIX uses the bare name; Windows appends
  * each executable extension so `agy` can resolve `agy.exe`.
  */

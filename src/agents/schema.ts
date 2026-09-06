@@ -173,6 +173,7 @@ export const agentSelfUpdateSchema = z
 export const agentVersionProbeSchema = z
   .object({
     command: commandSchema.optional(),
+    preferredBinaries: z.array(nonEmptyStringSchema).min(1).optional(),
   })
   .strict()
   .refine(probe => probe.command !== undefined, {
