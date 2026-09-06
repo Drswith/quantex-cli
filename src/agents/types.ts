@@ -47,10 +47,6 @@ export interface AgentSelfUpdate {
 export interface AgentVersionProbe {
   command?: string[]
   parser?: (stdout: string) => string | undefined
-  // Names tried before `binaryName` when locating the executable to probe.
-  // Identity (`binaryName`, lookup aliases) stays unchanged. Line comments
-  // keep this note out of the pinned v1 dist/index.d.mts signature.
-  preferredBinaries?: string[]
 }
 
 export interface AgentDefinition {

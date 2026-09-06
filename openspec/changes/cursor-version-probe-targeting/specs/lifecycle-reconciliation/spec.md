@@ -2,7 +2,7 @@
 
 ### Requirement: Executable resolution MAY prefer a more specific binary name before `binaryName`
 
-When locating an agent executable for observation, Quantex SHALL try any catalog-declared preferred probe binaries before the agent's `binaryName`. Each name is resolved with the existing PATH-then-known-install-directory rule. The first hit is the resolved executable used for presence, reported path, and version probing.
+When locating Cursor CLI for observation, Quantex SHALL try `cursor-agent` before the agent's `binaryName` `agent`. Each name is resolved with the existing PATH-then-known-install-directory rule. The first hit is the resolved executable used for presence, reported path, and version probing. This targeting rule is internal and MUST NOT add a catalog field or a v1 public type member.
 
 This does not change the substitution rule: a catalog version-probe command whose first argument is the agent's executable name is still invoked through the resolved absolute path, even when that path's basename differs from `binaryName`.
 

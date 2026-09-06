@@ -3,7 +3,7 @@ import type { InstalledAgentState } from '../state'
 import { getManagedInstalledPackageVersion, getOrderedInstallMethods } from '../package-manager'
 import { getInstalledAgentState } from '../state'
 import { resolveAgentExecutablePath } from '../utils/executable-resolution'
-import { uniqueExecutableLookupNames } from '../utils/executable-search-paths'
+import { executableLookupNamesForAgent } from '../utils/executable-search-paths'
 import {
   formatInstalledSource,
   formatUpdateManagement,
@@ -33,7 +33,7 @@ export async function inspectAgent(agent: AgentDefinition): Promise<AgentInspect
   const [methods, installedState, binaryPath] = await Promise.all([
     getOrderedInstallMethods(agent),
     getInstalledAgentState(agent.name),
-    resolveAgentExecutablePath(uniqueExecutableLookupNames(agent.binaryName, agent.versionProbe?.preferredBinaries)),
+    resolveAgentExecutablePath(executableLookupNamesForAgent(agent)),
   ])
   const inPath = binaryPath !== undefined
 

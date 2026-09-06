@@ -8,8 +8,7 @@
     "command": ["agent", "update"]
   },
   "versionProbe": {
-    "command": ["agent", "--version"],
-    "preferredBinaries": ["cursor-agent"]
+    "command": ["agent", "--version"]
   },
   "platforms": {
     "windows": [

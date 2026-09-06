@@ -59,6 +59,16 @@ export function uniqueExecutableLookupNames(binaryName: string, preferredBinarie
   return names
 }
 
+// Cursor CLI installs as both `agent` and `cursor-agent`. Catalog identity stays
+// `binaryName=agent`; this table is probe targeting only and is not a v1 export.
+const PREFERRED_PROBE_BINARIES_BY_AGENT: Readonly<Record<string, readonly string[]>> = {
+  cursor: ['cursor-agent'],
+}
+
+export function executableLookupNamesForAgent(agent: { readonly name: string; readonly binaryName: string }): string[] {
+  return uniqueExecutableLookupNames(agent.binaryName, PREFERRED_PROBE_BINARIES_BY_AGENT[agent.name])
+}
+
 /**
  * Candidate file names for one binary. POSIX uses the bare name; Windows appends
  * each executable extension so `agy` can resolve `agy.exe`.

@@ -4,6 +4,7 @@ import { join } from 'node:path'
 import process from 'node:process'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import {
+  executableLookupNamesForAgent,
   getExecutableCandidateNames,
   getKnownAgentInstallDirectories,
   uniqueExecutableLookupNames,
@@ -187,5 +188,12 @@ describe('uniqueExecutableLookupNames', () => {
       'agent',
     ])
     expect(uniqueExecutableLookupNames('agent')).toEqual(['agent'])
+  })
+})
+
+describe('executableLookupNamesForAgent', () => {
+  it('prefers cursor-agent for Cursor without changing catalog identity names', () => {
+    expect(executableLookupNamesForAgent({ name: 'cursor', binaryName: 'agent' })).toEqual(['cursor-agent', 'agent'])
+    expect(executableLookupNamesForAgent({ name: 'claude', binaryName: 'claude' })).toEqual(['claude'])
   })
 })

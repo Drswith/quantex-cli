@@ -14,9 +14,9 @@ import { observeAgentLifecycle } from '../lifecycle/agent-observation'
 import { resolveInstallMethodProviderBinding } from '../lifecycle/provider-binding'
 import { createEmptyStateDocument, parseStateDocument, StateSchemaError } from '../state/schema'
 import {
+  executableLookupNamesForAgent,
   getExecutableCandidateNames,
   getKnownAgentInstallDirectories,
-  uniqueExecutableLookupNames,
 } from '../utils/executable-search-paths'
 import { getCoreAgentByNameOrAlias, getCoreAgents } from './agent-catalog'
 import { createCoreProviderObservationRegistry } from './provider-observation-registry'
@@ -141,10 +141,7 @@ async function inspectExecutable(
   agent: AgentDefinition,
   context: ProviderOperationContext,
 ): Promise<AgentExecutableObservation> {
-  const path = await findExecutable(
-    uniqueExecutableLookupNames(agent.binaryName, agent.versionProbe?.preferredBinaries),
-    context,
-  )
+  const path = await findExecutable(executableLookupNamesForAgent(agent), context)
   if (!path) return { present: false }
   const executablePath = (await resolveExecutablePath(path, context.signal)) ?? path
   const version = await inspectVersion(agent, executablePath, context)

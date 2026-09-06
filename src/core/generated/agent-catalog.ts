@@ -495,7 +495,6 @@ export const coreAgentCatalog: readonly AgentDefinition[] = [
     },
     versionProbe: {
       command: ['agent', '--version'],
-      preferredBinaries: ['cursor-agent'],
     },
   },
   {

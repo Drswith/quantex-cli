@@ -16,7 +16,7 @@ import { createCliOperationContext } from '../runtime/cli-operation-context'
 import { getInstalledAgentState, getLifecycleReceipt } from '../state'
 import { getPlatform } from '../utils/detect'
 import { resolveAgentExecutablePath } from '../utils/executable-resolution'
-import { uniqueExecutableLookupNames } from '../utils/executable-search-paths'
+import { executableLookupNamesForAgent } from '../utils/executable-search-paths'
 import { getLatestVersionPackage } from '../utils/install'
 import { getLatestVersion, getResolvedBinaryPath, probeInstalledVersion } from '../utils/version'
 
@@ -172,10 +172,7 @@ async function inspectExecutable(
 ): Promise<AgentExecutableObservation> {
   // One resolution decides presence and feeds the version probe, so an agent
   // outside the inherited PATH is probed through the path it actually occupies.
-  const binaryPath = await resolveAgentExecutablePath(
-    uniqueExecutableLookupNames(agent.binaryName, agent.versionProbe?.preferredBinaries),
-    context,
-  )
+  const binaryPath = await resolveAgentExecutablePath(executableLookupNamesForAgent(agent), context)
   if (!binaryPath) return { present: false }
 
   const version = await getObservedInstalledVersion(agent, installedState, context, binaryPath)
