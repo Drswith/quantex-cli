@@ -29,7 +29,10 @@ export interface CoreUpdateCompatibilityExecutorOptions {
 }
 
 /**
- * Internal CLI bridge for Core-owned update. Absent from the published SDK entry point.
+ * KEEP (P2): Core update invocation state machine (prepare/run/dispose).
+ * Importers: src/services/lifecycle-updates-production.ts (CLI port wiring + cancellation).
+ * Default loadPorts still use update-production; CLI overrides with observation ports.
+ * Absent from the published SDK entry point.
  */
 export interface CoreSingleAgentUpdateInvocation {
   dispose(): void
@@ -148,29 +151,5 @@ export function createCoreUpdateBatchInvocation(
       })()
       return runPromise
     },
-  }
-}
-
-export async function runCoreSingleAgentUpdate(
-  agentName: string,
-  options: CoreUpdateCompatibilityExecutorOptions = {},
-): Promise<CoreUpdateSingleOutcome> {
-  const invocation = createCoreSingleAgentUpdateInvocation(agentName, options)
-  try {
-    return await invocation.run()
-  } finally {
-    invocation.dispose()
-  }
-}
-
-export async function runCoreUpdateBatch(
-  scope: 'all' | 'managed' = 'all',
-  options: CoreUpdateCompatibilityExecutorOptions = {},
-): Promise<CoreUpdateBatchOutcome> {
-  const invocation = createCoreUpdateBatchInvocation(scope, options)
-  try {
-    return await invocation.run()
-  } finally {
-    invocation.dispose()
   }
 }

@@ -37,7 +37,9 @@ export interface CoreUpdateProductionOptions {
 export type CoreUpdateServicePorts = LifecycleUpdateBatchPlanningPorts & LifecycleUpdateBatchExecutionPorts
 
 /**
- * Production ports for the in-repo Core update engine. Absent from the published SDK entry.
+ * KEEP (P2): default Core update production ports + managed name loader.
+ * Importers: src/core/update-compatibility.ts (defaults); types used by lifecycle-updates-production.
+ * Absent from the published SDK entry.
  */
 export async function loadProductionCoreUpdatePorts(
   options: CoreUpdateProductionOptions = {},

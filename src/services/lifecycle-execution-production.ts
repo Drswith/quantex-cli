@@ -60,6 +60,10 @@ const defaultDependencies: ProductionLifecycleExecutionDependencies = {
   createProcessPort: createAgentProcessPort,
 }
 
+/**
+ * KEEP (P2): exec/shortcut production bridge over Core execution + install compatibility.
+ * Importers: src/commands/run.ts. Owns human stdio inherit and --install via installation-compatibility.
+ */
 export function createProductionLifecycleExecutionService(
   options: ProductionLifecycleExecutionOptions,
   dependencies: ProductionLifecycleExecutionDependencies = defaultDependencies,

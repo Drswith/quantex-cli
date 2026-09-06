@@ -2,7 +2,7 @@ import type { CoreUninstallExecutionOutcome } from '../core/uninstall-executor'
 import type { CommandResult } from '../output/types'
 import type { InstallationEngineRoute } from './installation-routing'
 import { getCliContext } from '../cli-context'
-import { createCoreUninstallCompatibilityExecutor } from '../core/uninstall-compatibility'
+import { createProductionCoreUninstallPorts, executeCoreUninstall } from '../core/uninstall-executor'
 import { createErrorResult, createSuccessResult, emitCommandResult } from '../output'
 import { pc } from '../utils/color'
 import { createResourceLockedError } from '../utils/lifecycle-errors'
@@ -29,14 +29,17 @@ export async function uninstallCommandWithRoute(
   const cli = getCliContext()
   const controller = new AbortController()
   if (cli.cancelled) controller.abort('cli-cancelled')
-  const executor = createCoreUninstallCompatibilityExecutor()
-  const outcome = await executor.execute({
-    dryRun: isDryRunEnabled(),
-    isCancelled: () => Boolean(cli.cancelled) || controller.signal.aborted,
-    name: agentName,
-    signal: controller.signal,
-    timeoutMs: cli.timeoutMs,
-  })
+  // Direct Core uninstall ports: the former uninstall-compatibility wrapper was a
+  // zero-logic pass-through (single importer) and is inlined here for P2 thinning.
+  const outcome = await executeCoreUninstall(
+    { name: agentName },
+    createProductionCoreUninstallPorts({
+      dryRun: isDryRunEnabled(),
+      isCancelled: () => Boolean(cli.cancelled) || controller.signal.aborted,
+      signal: controller.signal,
+      timeoutMs: cli.timeoutMs,
+    }),
+  )
   return emitCommandResult(projectUninstallOutcome(outcome, agentName), renderUninstallHuman)
 }
 
