@@ -1,6 +1,13 @@
 # Changelog
 
 
+## [1.13.1](https://github.com/Drswith/quantex-cli/compare/v1.13.0...v1.13.1) (2026-09-06)
+
+
+### Bug Fixes
+
+* **upgrade:** return NETWORK_ERROR when latest version cannot be resolved ([60f4960](https://github.com/Drswith/quantex-cli/commit/60f4960e5b449f2e09b8917b7340eabbad7a8923))
+
 ## [1.13.0](https://github.com/Drswith/quantex-cli/compare/v1.12.0...v1.13.0) (2026-09-06)
 
 
