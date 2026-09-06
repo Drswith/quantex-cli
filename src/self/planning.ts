@@ -1,3 +1,5 @@
+// KEEP (P7): domain planning still required after P6 Core orchestration.
+// Importers: src/self/index.ts (planSelfUpgrade / buildSelfInspectionFromPlan).
 import type { ProviderOperationContext } from '../providers'
 import type { CachePort, NetworkPort, PersistencePort, ProcessPort } from '../runtime'
 import type { SelfInspection, SelfInstallFacts, SelfUpdateResult, SelfUpdateTarget, SelfUpgradePlan } from './types'

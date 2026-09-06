@@ -38,9 +38,40 @@ describe('CLI Core self-upgrade ownership', () => {
   it('deletes the leftover self-upgrade application shell', async () => {
     await expect(source('src/self/application.ts')).rejects.toThrow()
     await expect(source('src/core/self-upgrade-production.ts')).rejects.toThrow()
+    await expect(source('src/services/self-upgrade.ts')).rejects.toThrow()
 
     const barrel = await source('src/services/index.ts')
     expect(barrel).not.toMatch(/from ['"]\.\/self-upgrade-production['"]/u)
+  })
+
+  it('keeps differential CLI/self layers after the P7 leftover scan', async () => {
+    const productionBridge = await source('src/services/self-upgrade-production.ts')
+    expect(productionBridge).toContain('getCliContext')
+    expect(productionBridge).toContain('registerCliCancellationHandler')
+    expect(productionBridge).toContain('createInvocationContext')
+    expect(productionBridge).toContain('planSelfUpgrade')
+    expect(productionBridge).toContain('upgradeSelf')
+    expect(productionBridge).toContain('createSelfUpgradeLockPort')
+    expect(productionBridge).toContain('createSelfInstallSourcePersistencePort')
+    expect(productionBridge).toContain('executeCoreSelfUpgrade')
+
+    const barrel = await source('src/services/index.ts')
+    expect(barrel).toContain("from './agents'")
+    expect(barrel).toContain("from './update'")
+    expect(barrel).not.toMatch(/from ['"]\.\/self-upgrade-production['"]/u)
+    expect(barrel).not.toMatch(/from ['"]\.\.\/core\/self-upgrade-executor['"]/u)
+
+    const domainBarrel = await source('src/self/index.ts')
+    expect(domainBarrel).toContain('planSelfUpgrade')
+    expect(domainBarrel).toContain('upgradeSelf')
+    expect(domainBarrel).toContain("from './lock'")
+    expect(domainBarrel).toContain("from './planning'")
+
+    await source('src/self/planning.ts')
+    await source('src/self/lock.ts')
+    await source('src/self/binary.ts')
+    await source('src/self/facts.ts')
+    await source('src/self/providers/index.ts')
   })
 })
 

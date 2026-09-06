@@ -1,3 +1,6 @@
+// KEEP (P7): domain self-upgrade barrel after P6 relocated orchestration to
+// src/core/self-upgrade-executor.ts. Planning, providers, binary, lock, and
+// persistence stay here; production still injects them as Core ports.
 import type { ProviderOperationContext } from '../providers'
 import type { LockPort, NetworkPort, ProcessPort, ProcessStdio, RuntimeOutcome } from '../runtime'
 import type { SelfInspection, SelfInstallSource, SelfUpdateChannel, SelfUpdateResult, SelfUpgradePlan } from './types'
