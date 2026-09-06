@@ -10,8 +10,8 @@ import type {
 } from '../runtime'
 
 /**
- * In-repo Core self-upgrade engine (CLI-facing). Absent from the published
- * `quantex-core` public API — do not re-export from `src/core/index.ts`.
+ * KEEP (P6 / P7): in-repo Core self-upgrade engine (CLI-facing). Absent from
+ * the published `quantex-core` public API — do not re-export from `src/core/index.ts`.
  *
  * Owns plan/check/apply orchestration only. Domain inspection, providers,
  * binary replacement, and locks remain outside Core and are injected as ports.

@@ -24,7 +24,7 @@ export function resolveUpgradeChannelOption(channel?: string): SelfUpdateChannel
 }
 
 /**
- * Thin CLI facade for `upgrade` over the in-repo Core self-upgrade engine.
+ * KEEP (P6 / P7): thin CLI facade for `upgrade` over the in-repo Core engine.
  * Owns argv presentation, JSON/human projection, and exit policy — not a
  * second planner/mutator and not a public SDK `upgrade()` wrapper.
  */
