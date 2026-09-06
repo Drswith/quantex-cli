@@ -1,4 +1,4 @@
-// Kept after P0 (#702) dry-run Core preview: still required by update planning
+// Kept after P0 (#702) / P1 / P5 zero-ref scans: still required by update planning
 // (src/planning/updates.ts, Core update-production, lifecycle-updates-production).
 // Install/ensure --dry-run no longer imports this module.
 import type {

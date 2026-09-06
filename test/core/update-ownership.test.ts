@@ -41,6 +41,13 @@ describe('CLI Core update ownership', () => {
   it('does not retain deprecated Core re-export shims under services', async () => {
     await expect(source('src/services/lifecycle-updates.ts')).rejects.toThrow()
     await expect(source('src/services/lifecycle-execution.ts')).rejects.toThrow()
+
+    const barrel = await source('src/services/index.ts')
+    expect(barrel).not.toMatch(/from ['"]\.\.\/core\/execution-executor['"]/u)
+    expect(barrel).not.toMatch(/from ['"]\.\/lifecycle-execution-production['"]/u)
+    expect(barrel).not.toMatch(/from ['"]\.\/self-upgrade-production['"]/u)
+    expect(barrel).toContain("from './agents'")
+    expect(barrel).toContain("from './update'")
   })
 })
 
