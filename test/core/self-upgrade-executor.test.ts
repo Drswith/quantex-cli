@@ -1,10 +1,10 @@
 import type { CacheLookup, RuntimeOutcome, RuntimePorts } from '../../src/runtime'
 import type { SelfUpgradePlan } from '../../src/self'
 import { describe, expect, it, vi } from 'vitest'
+import { executeCoreSelfUpgrade } from '../../src/core/self-upgrade-executor'
 import { createInvocationContext } from '../../src/runtime'
-import { runSelfUpgradeApplication } from '../../src/self/application'
 
-describe('runSelfUpgradeApplication', () => {
+describe('executeCoreSelfUpgrade', () => {
   it.each([
     ['check', { check: true, dryRun: false }, 'update-available'],
     ['dry run', { check: false, dryRun: true }, 'update-available'],
@@ -17,7 +17,7 @@ describe('runSelfUpgradeApplication', () => {
     const upgrade = vi.fn()
 
     await expect(
-      runSelfUpgradeApplication({ ...input, updateChannel: 'stable' }, context, { plan: async () => plan, upgrade }),
+      executeCoreSelfUpgrade({ ...input, updateChannel: 'stable' }, context, { plan: async () => plan, upgrade }),
     ).resolves.toEqual({ kind: 'planned', plan })
     expect(upgrade).not.toHaveBeenCalled()
   })
@@ -29,7 +29,7 @@ describe('runSelfUpgradeApplication', () => {
     const plan = createPlan('update-available')
     const result = { installSource: 'npm' as const, newVersion: '1.1.0', success: true }
 
-    const outcome = await runSelfUpgradeApplication({ check: false, dryRun: false, updateChannel: 'stable' }, context, {
+    const outcome = await executeCoreSelfUpgrade({ check: false, dryRun: false, updateChannel: 'stable' }, context, {
       async plan(input) {
         events.push('plan')
         expect(input.context.signal).toBe(context.signal)
@@ -65,7 +65,7 @@ describe('runSelfUpgradeApplication', () => {
     const upgrade = vi.fn()
 
     await expect(
-      runSelfUpgradeApplication({ check: false, dryRun: false, updateChannel: 'stable' }, context, { plan, upgrade }),
+      executeCoreSelfUpgrade({ check: false, dryRun: false, updateChannel: 'stable' }, context, { plan, upgrade }),
     ).resolves.toEqual({
       error: { kind: 'cancelled', message: 'Self-upgrade invocation was cancelled.' },
       kind: 'interrupted',
@@ -79,7 +79,7 @@ describe('runSelfUpgradeApplication', () => {
     const plan = createPlan('update-available')
     const upgrade = vi.fn()
 
-    const outcome = await runSelfUpgradeApplication({ check: false, dryRun: false, updateChannel: 'stable' }, context, {
+    const outcome = await executeCoreSelfUpgrade({ check: false, dryRun: false, updateChannel: 'stable' }, context, {
       async plan() {
         await context.cancel('after-plan')
         return plan

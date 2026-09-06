@@ -1,5 +1,4 @@
-import type { CommandResult } from '../output/types'
-import type { CommandWarning } from '../output/types'
+import type { CommandResult, CommandWarning } from '../output/types'
 import type { SelfInspection, SelfUpdateChannel } from '../self'
 import { createErrorResult, createSuccessResult, emitCommandResult } from '../output'
 import { buildSelfInspectionFromPlan, getSelfUpgradeRecoveryHintForInspection } from '../self'
@@ -24,6 +23,11 @@ export function resolveUpgradeChannelOption(channel?: string): SelfUpdateChannel
   return undefined
 }
 
+/**
+ * Thin CLI facade for `upgrade` over the in-repo Core self-upgrade engine.
+ * Owns argv presentation, JSON/human projection, and exit policy — not a
+ * second planner/mutator and not a public SDK `upgrade()` wrapper.
+ */
 export async function upgradeCommand(
   options: { channel?: SelfUpdateChannel; check?: boolean } = {},
 ): Promise<CommandResult<UpgradeCommandData>> {

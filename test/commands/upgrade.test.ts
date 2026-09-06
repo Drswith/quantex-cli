@@ -377,6 +377,26 @@ describe('upgradeCommand', () => {
     expect(payload.exitCode).toBe(1)
     expect(payload.data.status).toBe('update-available')
     expect(payload.meta.runId).toBe('test-run-id')
+    expect(JSON.stringify(payload)).not.toMatch(/"(?:engine|route|routeSource|installationEngine)"/)
+  })
+
+  it('keeps structured upgrade payloads free of Core engine or route identifiers', async () => {
+    setCliContext({
+      interactive: false,
+      outputMode: 'json',
+      runId: 'upgrade-no-route-leak',
+    })
+    planSelfUpgradeSpy.mockResolvedValue(createPlan({ targetVersion: '1.1.0' }, 'update-available'))
+
+    await upgradeCommand({ check: true })
+
+    const payload = JSON.parse(logSpy.mock.calls[0][0])
+    expect(payload.action).toBe('upgrade')
+    expect(payload).not.toHaveProperty('engine')
+    expect(payload).not.toHaveProperty('route')
+    expect(payload.meta).not.toHaveProperty('engine')
+    expect(payload.meta).not.toHaveProperty('route')
+    expect(JSON.stringify(payload)).not.toMatch(/"(?:engine|route|routeSource|installationEngine)"/)
   })
 
   it('returns a dry-run upgrade plan without invoking the upgrader', async () => {

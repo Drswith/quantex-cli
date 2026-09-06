@@ -1,10 +1,8 @@
+import type { CoreSelfUpgradeInput, CoreSelfUpgradeOutcome, CoreSelfUpgradePorts } from '../core/self-upgrade-executor'
 import type { RuntimeOutcome, RuntimePorts } from '../runtime'
-import type {
-  SelfUpgradeApplicationInput,
-  SelfUpgradeApplicationOutcome,
-  SelfUpgradeApplicationPorts,
-} from '../self/application'
+import type { SelfUpdateResult, SelfUpgradePlan } from '../self'
 import { getCliContext, registerCliCancellationHandler } from '../cli-context'
+import { executeCoreSelfUpgrade } from '../core/self-upgrade-executor'
 import {
   createChildProcessPort,
   createFetchNetworkPort,
@@ -12,17 +10,18 @@ import {
   createVersionCachePort,
 } from '../runtime'
 import * as selfModule from '../self'
-import { runSelfUpgradeApplication } from '../self/application'
 import { createSelfInstallSourcePersistencePort } from '../self/state-persistence'
 
 export interface ProductionSelfUpgradeInvocation {
   dispose(): void
-  run(input: SelfUpgradeApplicationInput): Promise<SelfUpgradeApplicationOutcome>
+  run(input: CoreSelfUpgradeInput): Promise<CoreSelfUpgradeOutcome<SelfUpgradePlan, SelfUpdateResult>>
 }
 
 /**
- * KEEP (P2 / out of scope for thinning): self-upgrade production invocation.
- * Importers: src/commands/upgrade.ts. P3 territory — do not rewrite here.
+ * KEEP: CLI production bridge over the in-repo Core self-upgrade executor.
+ * Importers: src/commands/upgrade.ts.
+ * Owns CLI cancellation/invocation context and src/self domain port binding.
+ * Core owns plan/check/apply orchestration and must stay free of src/self.
  */
 export function createProductionSelfUpgradeInvocation(): ProductionSelfUpgradeInvocation {
   const cliContext = getCliContext()
@@ -38,7 +37,7 @@ export function createProductionSelfUpgradeInvocation(): ProductionSelfUpgradeIn
   const unregister = registerCliCancellationHandler(() => invocation.cancel('cancelled'))
   let disposed = false
 
-  const applicationPorts: SelfUpgradeApplicationPorts = {
+  const ports: CoreSelfUpgradePorts<SelfUpgradePlan, SelfUpdateResult> = {
     plan: input =>
       selfModule.planSelfUpgrade({
         context: input.context,
@@ -57,7 +56,7 @@ export function createProductionSelfUpgradeInvocation(): ProductionSelfUpgradeIn
       disposed = true
       unregister()
     },
-    run: input => runSelfUpgradeApplication(input, invocation, applicationPorts),
+    run: input => executeCoreSelfUpgrade(input, invocation, ports),
   }
 }
 
