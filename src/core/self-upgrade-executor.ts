@@ -8,31 +8,41 @@ import type {
   ProcessStdio,
   RuntimeFailure,
 } from '../runtime'
-import type { SelfUpdateChannel, SelfUpdateResult, SelfUpgradePlan } from './types'
+
+/**
+ * In-repo Core self-upgrade engine (CLI-facing). Absent from the published
+ * `quantex-core` public API — do not re-export from `src/core/index.ts`.
+ *
+ * Owns plan/check/apply orchestration only. Domain inspection, providers,
+ * binary replacement, and locks remain outside Core and are injected as ports.
+ * This module MUST NOT import `src/self` (architecture boundary).
+ */
 
 type MetadataCacheMode = 'default' | 'no-cache' | 'refresh'
 
-export interface SelfUpgradeApplicationInput {
+export type CoreSelfUpdateChannel = 'beta' | 'stable'
+
+export interface CoreSelfUpgradeInput {
   readonly check: boolean
   readonly dryRun: boolean
-  readonly updateChannel?: SelfUpdateChannel
+  readonly updateChannel?: CoreSelfUpdateChannel
 }
 
-export interface SelfUpgradeApplicationPlanInput {
-  readonly context: SelfUpgradeOperationContext
+export interface CoreSelfUpgradePlanInput {
+  readonly context: CoreSelfUpgradeOperationContext
   readonly metadataCache: CachePort
   readonly metadataCacheMode: MetadataCacheMode
   readonly networkPort: NetworkPort
   readonly persistencePort: PersistencePort
-  readonly updateChannel?: SelfUpdateChannel
+  readonly updateChannel?: CoreSelfUpdateChannel
 }
 
-export interface SelfUpgradeOperationContext {
+export interface CoreSelfUpgradeOperationContext {
   readonly signal: AbortSignal
   readonly timeoutMs?: number
 }
 
-export interface SelfUpgradeApplicationExecutionInput {
+export interface CoreSelfUpgradeExecutionInput {
   readonly lockPort: LockPort
   readonly networkPort: NetworkPort
   readonly processPort: ProcessPort
@@ -41,21 +51,25 @@ export interface SelfUpgradeApplicationExecutionInput {
   readonly timeoutMs?: number
 }
 
-export interface SelfUpgradeApplicationPorts {
-  plan(input: SelfUpgradeApplicationPlanInput): Promise<SelfUpgradePlan>
-  upgrade(plan: SelfUpgradePlan, input: SelfUpgradeApplicationExecutionInput): Promise<SelfUpdateResult>
+export interface CoreSelfUpgradePlan {
+  readonly status: 'check-unavailable' | 'manual-required' | 'up-to-date' | 'update-available'
 }
 
-export type SelfUpgradeApplicationOutcome =
-  | { readonly kind: 'executed'; readonly plan: SelfUpgradePlan; readonly result: SelfUpdateResult }
-  | { readonly kind: 'interrupted'; readonly error: RuntimeFailure; readonly plan?: SelfUpgradePlan }
-  | { readonly kind: 'planned'; readonly plan: SelfUpgradePlan }
+export interface CoreSelfUpgradePorts<TPlan extends CoreSelfUpgradePlan = CoreSelfUpgradePlan, TResult = unknown> {
+  plan(input: CoreSelfUpgradePlanInput): Promise<TPlan>
+  upgrade(plan: TPlan, input: CoreSelfUpgradeExecutionInput): Promise<TResult>
+}
 
-export async function runSelfUpgradeApplication(
-  input: SelfUpgradeApplicationInput,
+export type CoreSelfUpgradeOutcome<TPlan extends CoreSelfUpgradePlan = CoreSelfUpgradePlan, TResult = unknown> =
+  | { readonly kind: 'executed'; readonly plan: TPlan; readonly result: TResult }
+  | { readonly kind: 'interrupted'; readonly error: RuntimeFailure; readonly plan?: TPlan }
+  | { readonly kind: 'planned'; readonly plan: TPlan }
+
+export async function executeCoreSelfUpgrade<TPlan extends CoreSelfUpgradePlan, TResult>(
+  input: CoreSelfUpgradeInput,
   invocation: InvocationContext,
-  ports: SelfUpgradeApplicationPorts,
-): Promise<SelfUpgradeApplicationOutcome> {
+  ports: CoreSelfUpgradePorts<TPlan, TResult>,
+): Promise<CoreSelfUpgradeOutcome<TPlan, TResult>> {
   if (invocation.signal.aborted) return interrupted()
 
   const plan = await ports.plan({
@@ -84,7 +98,7 @@ export async function runSelfUpgradeApplication(
   return { kind: 'executed', plan, result }
 }
 
-function interrupted(plan?: SelfUpgradePlan): SelfUpgradeApplicationOutcome {
+function interrupted<TPlan extends CoreSelfUpgradePlan, TResult>(plan?: TPlan): CoreSelfUpgradeOutcome<TPlan, TResult> {
   return {
     error: { kind: 'cancelled', message: 'Self-upgrade invocation was cancelled.' },
     kind: 'interrupted',
