@@ -1,6 +1,7 @@
 // Kept after P0 (#702) / P1 zero-ref scan: still used by Core uninstall-executor.
 // Keep: product-path touch so pure openspec archive PRs still run the macOS test matrix.
 // Keep: product-path touch so the post-1.12 openspec/changes/archive cleanup PR still runs the macOS test matrix.
+// Keep: product-path touch so the post-1.12 runbook/ADR wording PR still runs the macOS test matrix.
 export interface ExecutableAbsenceWaitOptions {
   readonly attempts?: number
   readonly delay?: (milliseconds: number) => Promise<void>

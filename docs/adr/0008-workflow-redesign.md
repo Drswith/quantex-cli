@@ -19,6 +19,6 @@ The repository accumulated overlapping workflow documentation across `AGENTS.md`
 ## Consequences
 
 - Maintainers no longer dispatch Prepare/Seal workflows.
-- First automatic release after merge should be monitored on `beta` before relying on stable flow.
+- First automatic release after merge should be monitored on `main`; the `beta` release line was later retired and is not a current prerequisite for stable flow.
 - Historical OpenSpec changes and `docs/archive/` are removed from the working tree; use git history for archaeology.
 - `openspec:*` package scripts are reduced to `list`, `status`, `validate`, and `archive-closure`; other OpenSpec CLI commands use `bunx openspec`.
