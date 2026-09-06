@@ -243,7 +243,7 @@ describe('production Core observation', () => {
         await writeFile(cursorAgent, '#!/bin/sh\necho 2026.09.02-c22c1a3\n')
         await chmod(cursorAgent, 0o755)
         process.env.HOME = home
-        process.env.PATH = `${collidingBin}:${join(root, 'empty')}`
+        process.env.PATH = `${collidingBin}:/usr/bin:/bin`
 
         const ports = createProductionCoreReadPorts({ providerRegistry: scriptAbsentRegistry() })
         const outcome = await runCoreInvocation(undefined, context =>
@@ -283,7 +283,7 @@ describe('production Core observation', () => {
       await writeFile(agentBin, '#!/bin/sh\necho 2026.03.30-a5d3e17\n')
       await chmod(agentBin, 0o755)
       process.env.HOME = join(root, 'home')
-      process.env.PATH = `${binDir}:${join(root, 'empty')}`
+      process.env.PATH = `${binDir}:/usr/bin:/bin`
 
       const ports = createProductionCoreReadPorts({ providerRegistry: scriptAbsentRegistry() })
       const outcome = await runCoreInvocation(undefined, context =>
