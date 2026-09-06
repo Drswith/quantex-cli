@@ -1,3 +1,5 @@
+// KEEP (P8): Shared receipt/observation types. src/state and package-manager import
+// LifecycleReceipt from here; moving into src/core would invert state → Core.
 export type ProviderCapability = `${string}-${string}`
 
 export type LifecycleIntent =

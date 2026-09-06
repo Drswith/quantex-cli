@@ -1,3 +1,6 @@
+// KEEP (P8): Not a pure re-export — observeLifecycleProvider defaults to the
+// first-party registry. Core uninstall-executor and idempotency consume it via
+// the barrel. Binding helpers remain re-exported for existing import sites.
 import type { ProviderObservation, ProviderOutcome, ProviderRegistry } from '../providers'
 import type { LifecycleProviderBinding } from './provider-binding'
 import { firstPartyProviderRegistry } from '../providers'

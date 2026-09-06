@@ -1,6 +1,6 @@
-// Kept after P0 (#702) / P1 / P5 zero-ref scans: still required by update planning
-// (src/planning/updates.ts, Core update-production, lifecycle-updates-production).
-// Install/ensure --dry-run no longer imports this module.
+// KEEP (P8 / P0–P5): planLifecycleUpdate is differential update planning used by
+// src/planning/updates.ts, Core update-production, and lifecycle-updates-production.
+// Install/ensure --dry-run no longer imports this module. Do not fold into src/core.
 import type {
   LifecycleIntent,
   LifecycleObservation,
