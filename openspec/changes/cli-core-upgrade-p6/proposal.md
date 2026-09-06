@@ -22,9 +22,11 @@ product-facing docs — OpenSpec is required.
   stays free of `src/self` imports.
 - KEEP every still-differential `src/self` module (facts, planning, providers,
   binary, lock, recovery, state persistence).
-- Freeze aliases (`quantex` / `qtx`), `--json` / `--check` / dry-run plan
-  shape, exit codes, structured codes from #700 (`NETWORK_ERROR`,
+- Freeze aliases (`quantex` / `qtx`), `--json` / `--check` / `--channel` /
+  dry-run plan shape, exit codes, structured codes from #700 (`NETWORK_ERROR`,
   `MANUAL_ACTION_REQUIRED`), `UPGRADE_FAILED`, and state schema v2.
+  JSON MUST NOT expose engine or route. Changelog framing for this knife is
+  internal.
 - Document the Core route in product READMEs without adding commands or SDK
   methods.
 - Stay on the 1.x line. Do not publish `upgrade()` on `quantex-core`.
@@ -39,12 +41,13 @@ product-facing docs — OpenSpec is required.
 ### Modified Capabilities
 
 - `self-upgrade`: CLI `upgrade` SHALL plan, check, and apply through in-repo
-  Core while preserving frozen check/dry-run/error contracts.
+  Core while preserving frozen `--check` / `--channel` / dry-run / error
+  contracts.
 - `runtime-boundaries`: CLI `upgrade` SHALL stay a thin facade over the Core
   self-upgrade engine and MUST NOT become a second planner/mutator.
 - `compatibility-contract`: Core routing for this 1.x knife includes CLI
   `upgrade` without publishing SDK `upgrade`, without leaking engine/route in
-  JSON, and without changing packages/binaries/state v2.
+  JSON, and without changing `--channel`, packages/binaries, or state v2.
 - `product-readme`: product READMEs SHALL identify CLI `upgrade` as Core-backed
   while stating the published SDK does not gain `upgrade`.
 
@@ -54,8 +57,9 @@ product-facing docs — OpenSpec is required.
   `src/services/self-upgrade-production.ts`; delete `src/self/application.ts`
   after zero-ref proof. KEEP remaining `src/self` domain modules and the CLI
   production bridge.
-- Tests: ownership lock, `--json` / `--check` / dry-run shape, `NETWORK_ERROR` /
-  `MANUAL_ACTION_REQUIRED` / `UPGRADE_FAILED`, no engine/route leak.
+- Tests: ownership lock, `--json` / `--check` / `--channel` / dry-run shape,
+  `NETWORK_ERROR` / `MANUAL_ACTION_REQUIRED` / `UPGRADE_FAILED`, no engine/route
+  leak.
 - Docs: `README.md`, `README.zh-CN.md`, `packages/core/README.md`, living
   OpenSpec specs listed above.
 - Out of scope: YAML / `release-core.yml` / protect-main; folding `config` /

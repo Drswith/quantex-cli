@@ -3,7 +3,9 @@
 ### Requirement: CLI upgrade SHALL plan, check, and apply through in-repo Core
 
 Quantex SHALL execute CLI `upgrade` / `qtx upgrade` plan, `--check`, dry-run,
-and apply through an in-repo Core self-upgrade engine. That engine MUST reuse
+and apply through an in-repo Core self-upgrade engine. Explicit `--channel`
+selection MUST be forwarded into that planning path without changing frozen
+JSON, `--check`, dry-run, or error contracts. That engine MUST reuse
 the existing self-upgrade domain modules for install-source inspection, target
 resolution, provider mutation, verification, and recovery hints. It MUST NOT
 model Quantex as an agent or share the agent-lifecycle `update` engine. The
@@ -53,3 +55,26 @@ because of this CLI routing change.
 - **THEN** Quantex reports structured `MANUAL_ACTION_REQUIRED`
 - **AND THEN** it does not report `NETWORK_ERROR`
 - **AND THEN** it does not invoke the self-upgrade mutator
+
+#### Scenario: Explicit --channel is forwarded through Core planning
+
+- **GIVEN** `quantex upgrade --channel beta`
+- **WHEN** the Core executor plans the upgrade
+- **THEN** it forwards `channel: "beta"` into the self-upgrade planner
+- **AND THEN** the JSON projection includes `data.channel: "beta"`
+- **AND THEN** the JSON projection does not include `engine` or `route`
+
+#### Scenario: --check with --channel does not mutate
+
+- **GIVEN** `quantex upgrade --check --channel beta`
+- **WHEN** the Core executor evaluates the upgrade
+- **THEN** it forwards `channel: "beta"` into planning
+- **AND THEN** it returns a plan-only result
+- **AND THEN** it does not invoke the self-upgrade mutator
+
+#### Scenario: Unknown channel values stay rejected at option resolution
+
+- **GIVEN** `quantex upgrade --channel nightly`
+- **WHEN** the CLI resolves `--channel`
+- **THEN** it does not pass `"nightly"` into Core planning
+- **AND THEN** it does not treat the unknown value as a new public error shape

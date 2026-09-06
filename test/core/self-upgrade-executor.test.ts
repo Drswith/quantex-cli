@@ -22,6 +22,44 @@ describe('executeCoreSelfUpgrade', () => {
     expect(upgrade).not.toHaveBeenCalled()
   })
 
+  it('forwards an explicit beta channel into planning and skips mutation on --check', async () => {
+    const context = createInvocationContext({ ports: createFakeRuntimePorts() })
+    const plan = createPlan('update-available')
+    const upgrade = vi.fn()
+    let receivedChannel: string | undefined
+
+    await expect(
+      executeCoreSelfUpgrade({ check: true, dryRun: false, updateChannel: 'beta' }, context, {
+        async plan(input) {
+          receivedChannel = input.updateChannel
+          return plan
+        },
+        upgrade,
+      }),
+    ).resolves.toEqual({ kind: 'planned', plan })
+    expect(receivedChannel).toBe('beta')
+    expect(upgrade).not.toHaveBeenCalled()
+  })
+
+  it('forwards omitted channel as undefined into planning', async () => {
+    const context = createInvocationContext({ ports: createFakeRuntimePorts() })
+    const plan = createPlan('up-to-date')
+    const upgrade = vi.fn()
+    let receivedChannel: string | undefined = 'sentinel'
+
+    await expect(
+      executeCoreSelfUpgrade({ check: false, dryRun: false }, context, {
+        async plan(input) {
+          receivedChannel = input.updateChannel
+          return plan
+        },
+        upgrade,
+      }),
+    ).resolves.toEqual({ kind: 'planned', plan })
+    expect(receivedChannel).toBeUndefined()
+    expect(upgrade).not.toHaveBeenCalled()
+  })
+
   it('passes invocation cache, lock, signal, timeout, and refresh mode into planning and mutation in order', async () => {
     const events: string[] = []
     const runtimePorts = createFakeRuntimePorts()

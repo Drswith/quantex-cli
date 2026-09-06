@@ -444,13 +444,13 @@ This routing MUST NOT expand the published `quantex-core` method surface.
 
 For this 1.x CLI upgrade knife, Quantex SHALL plan, check, and apply CLI
 `upgrade` through an in-repo Core self-upgrade engine. That entry point MUST
-preserve the maintained v1 human/JSON contracts, `--check` / dry-run plan
-shape, exit-code meanings, `NETWORK_ERROR` / `MANUAL_ACTION_REQUIRED` /
+preserve the maintained v1 human/JSON contracts, `--check` / `--channel` /
+dry-run plan shape, exit-code meanings, `NETWORK_ERROR` / `MANUAL_ACTION_REQUIRED` /
 `UPGRADE_FAILED` codes, `qtx` / `quantex` binaries, empty dedicated alias set,
 and state schema version 2. It MUST NOT wrap a published `createQuantex()`
 `upgrade()` method into a second CLI-shaped API. This CLI ownership MUST NOT,
 by itself, expand the published `quantex-core` method surface, change
-package/binary identity, or bump state schema version 2.
+`--channel` semantics, package/binary identity, or bump state schema version 2.
 
 #### Scenario: Default upgrade invocation
 
@@ -472,6 +472,13 @@ package/binary identity, or bump state schema version 2.
 - **WHEN** `upgrade --check` or dry-run reports an available update
 - **THEN** the payload keeps status `update-available` without mutation
 - **AND THEN** `--check` still uses exit code 1 and dry-run still emits `DRY_RUN`
+
+#### Scenario: Channel selection stays frozen
+
+- **WHEN** `upgrade` runs with `--channel beta` or `--channel stable`
+- **THEN** planning uses that channel
+- **AND THEN** `--json` `data.channel` matches the selected value
+- **AND THEN** engine or route identifiers remain absent from the payload
 
 #### Scenario: Published SDK surface stays frozen for the upgrade knife
 

@@ -3,11 +3,12 @@
 ### Requirement: CLI upgrade SHALL remain a thin facade over Core self-upgrade
 
 Quantex SHALL keep CLI `upgrade` as a thin compatibility shell: it MAY parse
-argv, bind CLI cancellation and invocation context, invoke the in-repo Core
-self-upgrade engine, project Core outcomes into maintained v1 human/JSON
-results, and apply exit policy. It MUST NOT become a second self-upgrade
-planner or mutator, MUST NOT re-wrap a published SDK `upgrade()` surface, and
-MUST NOT fold Quantex self-upgrade into the agent-lifecycle update engine.
+argv including frozen `--check` / `--channel`, bind CLI cancellation and
+invocation context, invoke the in-repo Core self-upgrade engine, project Core
+outcomes into maintained v1 human/JSON results, and apply exit policy. It MUST
+NOT become a second self-upgrade planner or mutator, MUST NOT re-wrap a
+published SDK `upgrade()` surface, and MUST NOT fold Quantex self-upgrade into
+the agent-lifecycle update engine. JSON MUST still omit engine and route.
 
 #### Scenario: Upgrade command module stays presentation-focused
 

@@ -1,6 +1,7 @@
 import type { SelfUpgradePlan } from '../../src/self'
 import { afterAll, afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { resetCliContext, setCliContext } from '../../src/cli-context'
+import { getCommandContracts } from '../../src/command-contract'
 import { resolveUpgradeChannelOption, upgradeCommand } from '../../src/commands/upgrade'
 import * as selfModule from '../../src/self'
 
@@ -340,6 +341,129 @@ describe('upgradeCommand', () => {
     expect(resolveUpgradeChannelOption('beta')).toBe('beta')
     expect(resolveUpgradeChannelOption(undefined)).toBeUndefined()
     expect(resolveUpgradeChannelOption('nightly')).toBeUndefined()
+    expect(resolveUpgradeChannelOption('')).toBeUndefined()
+  })
+
+  it('keeps frozen upgrade command-contract flags and empty aliases', () => {
+    const contract = getCommandContracts().find(candidate => candidate.name === 'upgrade')
+
+    expect(contract?.aliases).toEqual([])
+    expect(contract?.options.map(option => option.flags)).toEqual(['--check', '--channel <channel>'])
+  })
+
+  it('forwards explicit --channel beta into Core planning and JSON data.channel', async () => {
+    setCliContext({
+      interactive: false,
+      outputMode: 'json',
+      runId: 'upgrade-channel-beta',
+    })
+    planSelfUpgradeSpy.mockResolvedValue(
+      createPlan({ targetVersion: '1.1.0', updateChannel: 'beta' }, 'update-available'),
+    )
+    upgradeSelfSpy.mockResolvedValue({
+      installSource: 'npm',
+      success: true,
+    })
+
+    const result = await upgradeCommand({ channel: 'beta' })
+
+    expect(result).toMatchObject({
+      data: { channel: 'beta', status: 'updated' },
+      ok: true,
+    })
+    expect(planSelfUpgradeSpy).toHaveBeenCalledWith(expect.objectContaining({ updateChannel: 'beta' }))
+    expect(upgradeSelfSpy).toHaveBeenCalled()
+
+    const payload = JSON.parse(logSpy.mock.calls[0][0])
+    expect(payload.data.channel).toBe('beta')
+    expect(JSON.stringify(payload)).not.toMatch(/"(?:engine|route|routeSource|installationEngine)"/)
+  })
+
+  it('keeps --check --channel beta as plan-only JSON without engine or route', async () => {
+    setCliContext({
+      interactive: false,
+      outputMode: 'json',
+      runId: 'upgrade-check-channel-beta',
+    })
+    planSelfUpgradeSpy.mockResolvedValue(
+      createPlan({ targetVersion: '1.1.0', updateChannel: 'beta' }, 'update-available'),
+    )
+
+    const result = await upgradeCommand({ check: true, channel: 'beta' })
+
+    expect(result).toMatchObject({
+      data: { channel: 'beta', status: 'update-available' },
+      exitCode: 1,
+      ok: true,
+    })
+    expect(planSelfUpgradeSpy).toHaveBeenCalledWith(expect.objectContaining({ updateChannel: 'beta' }))
+    expect(upgradeSelfSpy).not.toHaveBeenCalled()
+
+    const payload = JSON.parse(logSpy.mock.calls[0][0])
+    expect(payload.data.channel).toBe('beta')
+    expect(payload.exitCode).toBe(1)
+    expect(payload).not.toHaveProperty('engine')
+    expect(payload).not.toHaveProperty('route')
+    expect(payload.meta).not.toHaveProperty('engine')
+    expect(payload.meta).not.toHaveProperty('route')
+    expect(JSON.stringify(payload)).not.toMatch(/"(?:engine|route|routeSource|installationEngine)"/)
+  })
+
+  it('projects --channel stable into JSON data.channel without engine or route', async () => {
+    setCliContext({
+      interactive: false,
+      outputMode: 'json',
+      runId: 'upgrade-channel-stable',
+    })
+    planSelfUpgradeSpy.mockResolvedValue(createPlan({ updateChannel: 'stable' }, 'up-to-date'))
+
+    const result = await upgradeCommand({ channel: 'stable' })
+
+    expect(result).toMatchObject({
+      data: { channel: 'stable', status: 'up-to-date' },
+      ok: true,
+    })
+    expect(planSelfUpgradeSpy).toHaveBeenCalledWith(expect.objectContaining({ updateChannel: 'stable' }))
+    expect(upgradeSelfSpy).not.toHaveBeenCalled()
+
+    const payload = JSON.parse(logSpy.mock.calls[0][0])
+    expect(payload.data.channel).toBe('stable')
+    expect(JSON.stringify(payload)).not.toMatch(/"(?:engine|route|routeSource|installationEngine)"/)
+  })
+
+  it('omits updateChannel in planning when --channel is absent', async () => {
+    planSelfUpgradeSpy.mockResolvedValue(createPlan({}, 'up-to-date'))
+
+    await expect(upgradeCommand()).resolves.toMatchObject({ ok: true })
+
+    expect(planSelfUpgradeSpy.mock.calls[0]?.[0]?.updateChannel).toBeUndefined()
+    expect(upgradeSelfSpy).not.toHaveBeenCalled()
+  })
+
+  it('keeps dry-run --channel beta as DRY_RUN without mutation or engine leak', async () => {
+    setCliContext({
+      dryRun: true,
+      interactive: false,
+      outputMode: 'json',
+      runId: 'upgrade-dry-run-channel-beta',
+    })
+    planSelfUpgradeSpy.mockResolvedValue(
+      createPlan({ targetVersion: '1.1.0', updateChannel: 'beta' }, 'update-available'),
+    )
+
+    const result = await upgradeCommand({ channel: 'beta' })
+
+    expect(result.ok).toBe(true)
+    expect(result.data?.channel).toBe('beta')
+    expect(result.data?.status).toBe('update-available')
+    expect(result.warnings[0]?.code).toBe('DRY_RUN')
+    expect(planSelfUpgradeSpy).toHaveBeenCalledWith(expect.objectContaining({ updateChannel: 'beta' }))
+    expect(upgradeSelfSpy).not.toHaveBeenCalled()
+
+    const payload = JSON.parse(logSpy.mock.calls[0][0])
+    expect(payload.data.channel).toBe('beta')
+    expect(payload.warnings[0].code).toBe('DRY_RUN')
+    expect(JSON.stringify(payload)).not.toMatch(/"(?:engine|route|routeSource|installationEngine)"/)
   })
 
   it('treats a lower latest version as up to date in --check mode', async () => {

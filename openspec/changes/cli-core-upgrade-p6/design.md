@@ -35,7 +35,7 @@ avoids a split engine.
 - Reuse `src/self` domain modules; do not invent a second planner or mutator.
 - Keep CLI as presentation + process policy (argv, cancellation, JSON/human, exit).
 - Delete only proven zero-ref shells after the move.
-- Lock frozen `--json` / `--check` / error codes / aliases with tests.
+- Lock frozen `--json` / `--check` / `--channel` / error codes / aliases with tests.
 - Keep classify product-impacting via `src/` so macOS tests run.
 
 **Non-Goals:**
