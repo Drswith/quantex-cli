@@ -1,6 +1,13 @@
 # Changelog
 
 
+## [1.13.2](https://github.com/Drswith/quantex-cli/compare/v1.13.1...v1.13.2) (2026-09-06)
+
+
+### Bug Fixes
+
+* **agents:** report Cursor CLI version from the resolved cursor-agent binary ([ea6e24b](https://github.com/Drswith/quantex-cli/commit/ea6e24bbbac21dec68f845af8f900810101a54fe))
+
 ## [1.13.1](https://github.com/Drswith/quantex-cli/compare/v1.13.0...v1.13.1) (2026-09-06)
 
 
