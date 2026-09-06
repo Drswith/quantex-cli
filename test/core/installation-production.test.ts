@@ -2,9 +2,9 @@ import type { AgentDefinition } from '../../src/agents/types'
 import type { CoreInstallationRecipe } from '../../src/core/installation-executor'
 import type { CoreInstallationProductionDependencies } from '../../src/core/installation-production'
 import type { CoreInvocationCleanup, CoreInvocationContext } from '../../src/core/invocation'
+import type { LifecycleObservation, LifecycleReceipt } from '../../src/core/lifecycle/model'
 import type { CoreMutationRecipeCatalog } from '../../src/core/mutation-recipe-catalog'
 import type { CoreAgentObservation, CoreReadPorts } from '../../src/core/production-observation'
-import type { LifecycleObservation, LifecycleReceipt } from '../../src/lifecycle/model'
 import type { LifecycleProviderBinding } from '../../src/lifecycle/provider-binding'
 import type {
   ProviderAdapter,

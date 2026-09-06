@@ -1,8 +1,8 @@
 import type { AgentDefinition } from '../agents/types'
-import type { LifecycleReceipt } from '../lifecycle/model'
 import type { LifecycleProviderBinding } from '../lifecycle/provider-binding'
 import type { ProviderOutcome, ProviderObservation } from '../providers/types'
 import type { InstalledAgentState } from '../state'
+import type { LifecycleReceipt } from './lifecycle/model'
 import { getAgentByNameOrAlias } from '../agents'
 import {
   observeLifecycleProvider,

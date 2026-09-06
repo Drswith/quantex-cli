@@ -1,5 +1,6 @@
-// KEEP (P8): Used barrel (Core execution/update/uninstall, services, idempotency).
-// Not zero-ref. Unused named type re-exports stay; the barrel itself is imported.
+// KEEP (P8 / L1): Used barrel (Core execution/update/uninstall, services, idempotency).
+// L1 moved receipt types to src/core/lifecycle/model; this barrel re-exports them
+// as an existing non-SDK path. Remaining engines stay here for L2+.
 export {
   type AgentExecutionInstallPolicy,
   type AgentExecutionPreflightInput,
@@ -19,8 +20,8 @@ export type {
   LifecycleStep,
   LifecycleVerification,
   ProviderCapability,
-} from './model'
-export { LIFECYCLE_RECEIPT_SCHEMA_VERSION } from './model'
+} from '../core/lifecycle/model'
+export { LIFECYCLE_RECEIPT_SCHEMA_VERSION } from '../core/lifecycle/model'
 export {
   type LifecycleUpdateDecision,
   type LifecycleUpdatePlanningInput,

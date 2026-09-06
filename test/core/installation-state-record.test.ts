@@ -1,4 +1,4 @@
-import type { LifecycleReceipt } from '../../src/lifecycle/model'
+import type { LifecycleReceipt } from '../../src/core/lifecycle/model'
 import type { InstalledAgentState, VersionedQuantexState } from '../../src/state/schema'
 import type { StateDocumentPersistence } from '../../src/state/store'
 import { describe, expect, it, vi } from 'vitest'

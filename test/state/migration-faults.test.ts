@@ -1,4 +1,4 @@
-import type { LifecycleReceipt } from '../../src/lifecycle/model'
+import type { LifecycleReceipt } from '../../src/core/lifecycle/model'
 import type { StateFileSystem } from '../../src/state/store'
 import { describe, expect, it } from 'vitest'
 import {

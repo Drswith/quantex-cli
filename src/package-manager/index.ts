@@ -1,6 +1,6 @@
 import type { AgentDefinition, InstallMethod, ManagedInstallType } from '../agents/types'
 import type { NpmBunUpdateStrategy } from '../config'
-import type { LifecycleOutcome } from '../lifecycle/model'
+import type { LifecycleOutcome } from '../core/lifecycle/model'
 import type { ProviderOperationContext } from '../providers'
 import type { ProviderProcessOperationContext } from '../providers/internal-operation-context'
 import type { InstalledAgentState } from '../state'

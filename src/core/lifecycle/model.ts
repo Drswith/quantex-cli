@@ -1,5 +1,6 @@
-// KEEP (P8): Shared receipt/observation types. src/state and package-manager import
-// LifecycleReceipt from here; moving into src/core would invert state → Core.
+// L1: Core-internal leaf for receipt/observation types. Zero imports so
+// src/state may share this module without depending on Core runtime (ADR 0011).
+// Do not re-export from src/core/index.ts or packages/core.
 export type ProviderCapability = `${string}-${string}`
 
 export type LifecycleIntent =
@@ -152,7 +153,7 @@ export interface LifecycleReceipt {
   readonly version?: string
 }
 
-export const LIFECYCLE_RECEIPT_SCHEMA_VERSION = 1
+export const LIFECYCLE_RECEIPT_SCHEMA_VERSION = 1 as const
 
 export type LifecycleOutcome<T> =
   | { readonly kind: 'success'; readonly value: T }

@@ -5,9 +5,9 @@ import type {
   CoreInstallationExecutorPorts,
   CoreInstallationRecipe,
 } from '../../src/core/installation-executor'
+import type { LifecycleObservation, LifecycleReceipt } from '../../src/core/lifecycle/model'
 import type { CoreAgentObservation } from '../../src/core/production-observation'
 import type { CoreRequestOptions } from '../../src/core/types'
-import type { LifecycleObservation, LifecycleReceipt } from '../../src/lifecycle/model'
 import type { LifecycleProviderBinding } from '../../src/lifecycle/provider-binding'
 import type { ProviderMutationEvidence, ProviderOutcome, ProviderVerification } from '../../src/providers/types'
 import type { InstalledAgentState } from '../../src/state/schema'

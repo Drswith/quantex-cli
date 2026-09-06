@@ -1,9 +1,9 @@
 import type { AgentDefinition, InstallMethod } from '../../src/agents/types'
 import type { CoreInstallationExecutionOutcome } from '../../src/core/installation-executor'
 import type { CoreInvocationOutcome } from '../../src/core/invocation'
+import type { LifecycleReceipt } from '../../src/core/lifecycle/model'
 import type { CoreMutationRecipeCatalog } from '../../src/core/mutation-recipe-catalog'
 import type { CoreAgentObservation } from '../../src/core/production-observation'
-import type { LifecycleReceipt } from '../../src/lifecycle/model'
 import type {
   ProviderAdapter,
   ProviderMutationEvidence,

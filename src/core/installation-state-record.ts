@@ -1,7 +1,7 @@
-import type { LifecycleReceipt } from '../lifecycle/model'
 import type { InstalledAgentState, VersionedQuantexState } from '../state/schema'
 import type { LifecycleStateStore } from '../state/store'
 import type { CoreInstallationStateRecord } from './installation-executor-types'
+import type { LifecycleReceipt } from './lifecycle/model'
 import { parseStateDocument } from '../state/schema'
 
 export type AcquireCoreInstallationStateLock = () => Promise<() => Promise<void>>
