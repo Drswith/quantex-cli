@@ -32,5 +32,5 @@
 
 ## 4. Validation and delivery
 
-- [ ] 4.1 Re-run `bun run lint`, `bun run format:check`, `bun run typecheck`, `bun run test`, `bun run openspec:validate`, and `bun run memory:check` after the `--channel` freeze.
-- [ ] 4.2 Commit, push, and keep one draft PR whose body includes the before/after path map, DELETE vs KEEP table, `--channel` freeze checklist, and internal changelog framing.
+- [x] 4.1 Re-run `bun run lint`, `bun run format:check`, `bun run typecheck`, `bun run test`, `bun run openspec:validate`, and `bun run memory:check` after the `--channel` freeze.
+- [x] 4.2 Commit, push, and keep one draft PR whose body includes the before/after path map, DELETE vs KEEP table, `--channel` freeze checklist, and internal changelog framing.
