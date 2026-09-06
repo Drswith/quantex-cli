@@ -1,3 +1,5 @@
+// KEEP (P8): Used barrel (Core execution/update/uninstall, services, idempotency).
+// Not zero-ref. Unused named type re-exports stay; the barrel itself is imported.
 export {
   type AgentExecutionInstallPolicy,
   type AgentExecutionPreflightInput,

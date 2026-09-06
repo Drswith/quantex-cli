@@ -1,3 +1,7 @@
+// KEEP (P8): Core production-observation + update-production call observeAgentLifecycle.
+// Shared observation engine also used by CLI lifecycle-observations. Listed as an
+// allowed outside-Core dependency in the published SDK eager closure. Moving into
+// src/core would relocate differential observation, not a zero-ref leftover.
 import type { AgentDefinition, Platform } from '../agents'
 import type { ProviderOperation, ProviderOutcome, ProviderObservation, ProviderRegistry } from '../providers'
 import type { InstalledAgentState } from '../state'

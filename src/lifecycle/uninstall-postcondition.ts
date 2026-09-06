@@ -1,8 +1,6 @@
-// Kept after P0 (#702) / P1 / P5 zero-ref scans: still used by Core uninstall-executor.
-// Keep: product-path touch so pure openspec archive PRs still run the macOS test matrix.
-// Keep: product-path touch so the post-1.12 openspec/changes/archive cleanup PR still runs the macOS test matrix.
-// Keep: product-path touch so the post-1.12 runbook/ADR wording PR still runs the macOS test matrix.
-// Keep: product-path touch so the cli-core-upgrade-p6 archive PR still runs the macOS test matrix.
+// KEEP (P8 / P0–P5): waitForUninstallAbsence is differential uninstall postcondition
+// retry used by Core uninstall-executor. Not zero-ref; do not fold into src/core.
+// Product-path touch so process-only PRs are not required to skip the macOS matrix.
 export interface ExecutableAbsenceWaitOptions {
   readonly attempts?: number
   readonly delay?: (milliseconds: number) => Promise<void>

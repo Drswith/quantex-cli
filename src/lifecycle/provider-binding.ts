@@ -1,3 +1,5 @@
+// KEEP (P8): Differential provider-binding resolution used by Core install/uninstall/
+// update/execution and CLI. Listed as allowed outside-Core in the SDK eager closure.
 import type { AgentDefinition, InstallMethod, Platform } from '../agents'
 import type { ProviderId, ProviderTarget, ProviderTargetKind } from '../providers/types'
 import type { InstalledAgentState } from '../state'
