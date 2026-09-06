@@ -1,4 +1,4 @@
-// Kept after 1.12 lifecycle zero-ref prune: still used by Core uninstall-executor.
+// Kept after P0 (#702) / P1 zero-ref scan: still used by Core uninstall-executor.
 export interface ExecutableAbsenceWaitOptions {
   readonly attempts?: number
   readonly delay?: (milliseconds: number) => Promise<void>

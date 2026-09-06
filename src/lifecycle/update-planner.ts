@@ -1,3 +1,6 @@
+// Kept after P0 (#702) dry-run Core preview: still required by update planning
+// (src/planning/updates.ts, Core update-production, lifecycle-updates-production).
+// Install/ensure --dry-run no longer imports this module.
 import type {
   LifecycleIntent,
   LifecycleObservation,
