@@ -32,9 +32,9 @@ export interface CoreInstallationCompatibilityExecutorOptions {
 }
 
 /**
- * Internal CLI bridge for the staged 1.x migration. It returns the richer Core
- * outcome needed by the v1 compatibility projector and is deliberately absent
- * from the public SDK entry point.
+ * KEEP (P2): install/ensure compatibility executor + provider outputPolicy injection.
+ * Importers: src/commands/core-installation-cli.ts, src/services/lifecycle-execution-production.ts.
+ * Returns richer Core outcomes for the v1 projector; absent from the public SDK entry.
  */
 export function createCoreInstallationCompatibilityExecutor(
   options: CoreInstallationCompatibilityExecutorOptions = {},

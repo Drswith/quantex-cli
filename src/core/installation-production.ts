@@ -41,6 +41,11 @@ export interface CoreInstallationProductionDependencies {
   readonly stateStore?: LifecycleStateStore
 }
 
+/**
+ * KEEP (P2): production install ports (provider mutate/verify/lock/state).
+ * Importers: installation-compatibility, core/client.ts, contract tests.
+ * Required wiring for Core install/ensure; absent from published SDK root.
+ */
 export async function loadProductionCoreInstallationPorts(configDir: string): Promise<CoreInstallationExecutorPorts> {
   const [recipeCatalog, providers] = await Promise.all([
     loadCoreMutationRecipeCatalog(),

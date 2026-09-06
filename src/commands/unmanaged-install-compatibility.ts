@@ -5,8 +5,9 @@ import { isBinaryInPath } from '../utils/detect'
 import { getAdoptableExistingInstallMethod } from '../utils/install'
 
 /**
- * Preserves the v1 no-op contract for an executable that Quantex does not own
- * and cannot safely attribute to exactly one supported installation source.
+ * KEEP (P2): frozen v1 no-op for unmanaged external executables.
+ * Importers: src/commands/install.ts, src/commands/ensure.ts.
+ * Shared helper (not a Core bridge), still required for install/ensure contracts.
  */
 export async function resolveUnmanagedExternalAgent(agentName: string): Promise<AgentDefinition | undefined> {
   const agent = resolveAgent(agentName)

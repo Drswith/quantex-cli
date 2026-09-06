@@ -11,8 +11,8 @@ const troubleshootingDocsRef = 'docs/runbooks/quantex-troubleshooting.md'
 const selfUpgradeDocsRef = 'docs/runbooks/release-and-self-upgrade-debugging.md'
 
 /**
- * CLI→Core bridge for doctor: gather CLI-coupled observations, then synthesize
- * through the in-repo Core diagnosis engine.
+ * KEEP (P2): doctor CLI→Core bridge (CLI-coupled observations + Core diagnosis).
+ * Importers: src/commands/doctor.ts. Required; Core diagnosis stays free of CLI/self imports.
  */
 export async function observeAndDiagnoseDoctorEnvironment(): Promise<DoctorData> {
   const operation = createCliOperationContext()

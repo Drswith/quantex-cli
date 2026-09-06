@@ -46,6 +46,10 @@ export function resolveCoreConfigDir(configDir?: string): string {
   return join(process.env.HOME || process.env.USERPROFILE || homedir(), '.quantex')
 }
 
+/**
+ * KEEP (P2): Core production read/observation ports (not a deletable leftover bridge).
+ * Broad importers across Core install/update/client and packages/core internal.
+ */
 export function createProductionCoreReadPorts(options: ProductionCoreReadOptions = {}): CoreReadPorts {
   const providerRegistry = options.providerRegistry ?? createCoreProviderObservationRegistry()
   return {

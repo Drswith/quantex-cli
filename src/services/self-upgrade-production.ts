@@ -20,6 +20,10 @@ export interface ProductionSelfUpgradeInvocation {
   run(input: SelfUpgradeApplicationInput): Promise<SelfUpgradeApplicationOutcome>
 }
 
+/**
+ * KEEP (P2 / out of scope for thinning): self-upgrade production invocation.
+ * Importers: src/commands/upgrade.ts. P3 territory — do not rewrite here.
+ */
 export function createProductionSelfUpgradeInvocation(): ProductionSelfUpgradeInvocation {
   const cliContext = getCliContext()
   const invocation = createInvocationContext({
