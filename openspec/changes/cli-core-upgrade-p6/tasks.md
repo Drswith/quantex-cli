@@ -26,5 +26,5 @@
 
 ## 4. Validation and delivery
 
-- [ ] 4.1 Run `bun run lint`, `bun run format:check`, `bun run typecheck`, `bun run test`, `bun run openspec:validate`, and `bun run memory:check`.
+- [x] 4.1 Run `bun run lint`, `bun run format:check`, `bun run typecheck`, `bun run test`, `bun run openspec:validate`, and `bun run memory:check`.
 - [ ] 4.2 Commit, push, and open one draft PR whose body includes the before/after path map, DELETE vs KEEP table, and contract freeze checklist.
