@@ -575,7 +575,7 @@
       }
     },
     {
-      "binaryName": "agent",
+      "binaryName": "cursor-agent",
       "name": "cursor",
       "platforms": {
         "linux": [

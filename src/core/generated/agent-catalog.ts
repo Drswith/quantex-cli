@@ -468,10 +468,10 @@ export const coreAgentCatalog: readonly AgentDefinition[] = [
     },
   },
   {
-    binaryName: 'agent',
+    binaryName: 'cursor-agent',
     displayName: 'Cursor CLI',
     homepage: 'https://cursor.com/docs/cli',
-    lookupAliases: ['agent'],
+    lookupAliases: ['agent', 'cursor'],
     name: 'cursor',
     platforms: {
       linux: [
@@ -494,7 +494,7 @@ export const coreAgentCatalog: readonly AgentDefinition[] = [
       ],
     },
     versionProbe: {
-      command: ['agent', '--version'],
+      command: ['cursor-agent', '--version'],
     },
   },
   {

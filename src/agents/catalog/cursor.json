@@ -1,14 +1,14 @@
 {
   "name": "cursor",
-  "lookupAliases": ["agent"],
+  "lookupAliases": ["agent", "cursor"],
   "displayName": "Cursor CLI",
   "homepage": "https://cursor.com/docs/cli",
-  "binaryName": "agent",
+  "binaryName": "cursor-agent",
   "selfUpdate": {
-    "command": ["agent", "update"]
+    "command": ["cursor-agent", "update"]
   },
   "versionProbe": {
-    "command": ["agent", "--version"]
+    "command": ["cursor-agent", "--version"]
   },
   "platforms": {
     "windows": [
