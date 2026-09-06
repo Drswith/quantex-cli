@@ -65,6 +65,61 @@ describe('Core installation executor fault handling', () => {
     expect(harness.events).toEqual(['observe:0', 'resolve'])
   })
 
+  it('preview synthesizes the frozen dry-run install plan when observation is indeterminate', async () => {
+    const before = observed(
+      {
+        drift: { kind: 'indeterminate', reason: 'fixture provider evidence is unknown' },
+        kind: 'indeterminate',
+        observedAt: '2026-07-22T00:00:00.000Z',
+        reason: 'fixture provider evidence is unknown',
+        targetId: agent.name,
+      },
+      {
+        executable: { present: false },
+        pathExecutable: { present: false },
+      },
+    )
+    const harness = createHarness({ observations: [before] })
+
+    const outcome = await execute(harness.ports, { mode: 'preview', name: agent.name, operation: 'ensure' })
+
+    expect(outcome).toEqual({
+      kind: 'success',
+      value: {
+        before,
+        decision: 'install',
+        kind: 'preview',
+        wouldChange: true,
+      },
+    })
+    expect(harness.events).toEqual(['observe:0'])
+  })
+
+  it('apply still fails closed on indeterminate observation', async () => {
+    const before = observed(
+      {
+        drift: { kind: 'indeterminate', reason: 'fixture provider evidence is unknown' },
+        kind: 'indeterminate',
+        observedAt: '2026-07-22T00:00:00.000Z',
+        reason: 'fixture provider evidence is unknown',
+        targetId: agent.name,
+      },
+      {
+        executable: { present: false },
+        pathExecutable: { present: false },
+      },
+    )
+    const harness = createHarness({ observations: [before] })
+
+    const outcome = await execute(harness.ports, { mode: 'apply', name: agent.name, operation: 'ensure' })
+
+    expect(outcome).toMatchObject({
+      error: { code: 'decision-indeterminate', phase: 'decide', sideEffect: 'none' },
+      kind: 'failed',
+    })
+    expect(harness.events).toEqual(['lock:acquire', 'observe:0', 'lock:release'])
+  })
+
   it('freshly observes an unchanged managed installation while holding the mutation lock', async () => {
     const before = managedObservation('2026-07-22T00:00:00.000Z')
     const after = managedObservation('2026-07-22T00:00:01.000Z')

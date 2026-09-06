@@ -92,15 +92,15 @@ The redesign MUST remain focused on Quantex agent lifecycle capabilities and SHA
 
 ### Requirement: Core-default installation routing remains a whole-invocation compatibility choice
 
-Quantex SHALL select the in-repo Core engine for every non-dry-run CLI
-`install` and `ensure` invocation, and for `update` and `uninstall`, before any
-lifecycle work begins after the install/ensure escape retirement. Install/
-ensure `--dry-run` MUST retain the maintained v1 observation short-circuit
-planning path and MUST retain the maintained v1 dry-run plan without lifecycle
-mutation. Quantex MUST NOT honor `QUANTEX_INSTALLATION_ENGINE=legacy` (or any
-other value) as a second install/ensure apply engine route, MUST keep state
-schema version 2 unchanged, and MUST NOT automatically fall back between
-engines after selection.
+Quantex SHALL select the in-repo Core engine for every CLI `install` and
+`ensure` invocation (apply and `--dry-run`), and for `update` and `uninstall`,
+before any lifecycle work begins after the install/ensure escape retirement and
+the P0 dry-run Core preview switch. Install/ensure `--dry-run` MUST use Core
+preview, MUST retain the maintained v1 dry-run plan without lifecycle mutation,
+and MUST keep that plan frozen when provider observation is indeterminate.
+Quantex MUST NOT honor `QUANTEX_INSTALLATION_ENGINE=legacy` (or any other value)
+as a second install/ensure engine route, MUST keep state schema version 2
+unchanged, and MUST NOT automatically fall back between engines after selection.
 
 #### Scenario: Default install or ensure invocation
 
@@ -120,11 +120,10 @@ engines after selection.
 - **AND THEN** the published `quantex-core` SDK does not gain `update` or
   `uninstall` methods solely because of this CLI routing change
 
-#### Scenario: v1 dry-run planning for install or ensure
+#### Scenario: v1 dry-run planning for install or ensure via Core preview
 
 - **WHEN** a user invokes `install` or `ensure` with `--dry-run`
-- **THEN** Quantex selects the retained v1 observation short-circuit planning
-  path before any lifecycle side effect
+- **THEN** Quantex selects Core preview before any lifecycle side effect
 - **AND THEN** the result retains the maintained v1 dry-run plan and does not
   mutate providers, filesystem, or state
 

@@ -7,16 +7,11 @@ export type InstallationOperation = 'ensure' | 'install'
 /** Promoted CLI lifecycle commands that participate in engine routing. */
 export type LifecycleEngineOperation = InstallationOperation | 'uninstall' | 'update'
 
-export type InstallationEngineRoute =
-  | {
-      readonly adoption: 'v1-safe'
-      readonly engine: 'core'
-      readonly source: 'stable-default' | 'test'
-    }
-  | {
-      readonly engine: 'dry-run-planning'
-      readonly source: 'dry-run-compatibility'
-    }
+export type InstallationEngineRoute = {
+  readonly adoption: 'v1-safe'
+  readonly engine: 'core'
+  readonly source: 'stable-default' | 'test'
+}
 
 const STABLE_CORE_ROUTE: InstallationEngineRoute = Object.freeze({
   adoption: 'v1-safe',
@@ -24,21 +19,14 @@ const STABLE_CORE_ROUTE: InstallationEngineRoute = Object.freeze({
   source: 'stable-default',
 })
 
-const DRY_RUN_PLANNING_ROUTE: InstallationEngineRoute = Object.freeze({
-  engine: 'dry-run-planning',
-  source: 'dry-run-compatibility',
-})
-
 /**
- * Apply mutations for install/ensure/update/uninstall always use Core.
- * `QUANTEX_INSTALLATION_ENGINE` is ignored and does not create a second apply route.
- * Install/ensure `--dry-run` keeps the maintained v1 observation short-circuit
- * planner (no mutation) because Core preview does not yet match that frozen plan
- * when provider observation is indeterminate.
+ * Apply and `--dry-run` for install/ensure/update/uninstall always use Core.
+ * `QUANTEX_INSTALLATION_ENGINE` is ignored and does not create a second route.
+ * Install/ensure `--dry-run` maps to Core preview (CLI dryRun → preview) and
+ * preserves the frozen dry-run plan, including under indeterminate provider
+ * observation.
  */
-export function selectInstallationEngineRoute(operation: LifecycleEngineOperation): InstallationEngineRoute {
-  if (operation === 'update' || operation === 'uninstall') return STABLE_CORE_ROUTE
-  if (getCliContext().dryRun) return DRY_RUN_PLANNING_ROUTE
+export function selectInstallationEngineRoute(_operation: LifecycleEngineOperation): InstallationEngineRoute {
   return STABLE_CORE_ROUTE
 }
 
