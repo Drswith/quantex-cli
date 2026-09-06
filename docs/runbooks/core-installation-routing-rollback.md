@@ -13,5 +13,5 @@
   change engines.
 - Do not set `QUANTEX_INSTALLATION_ENGINE` expecting a second install/ensure
   apply engine. The value is ignored for apply routing.
-- `--dry-run` for install/ensure retains the maintained v1 planning path and
-  makes no lifecycle mutation; it is not mutation evidence.
+- `--dry-run` for install/ensure uses Core preview, preserves the frozen dry-run
+  plan, and makes no lifecycle mutation; it is not mutation evidence.

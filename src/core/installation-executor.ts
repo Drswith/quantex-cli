@@ -94,9 +94,14 @@ async function preview(
   ports: CoreInstallationExecutorPorts,
   hooks: CoreInstallationExecutionHooks,
 ): Promise<CoreInstallationExecutionOutcome> {
-  const observed = await observeDecision(input.name, context, ports)
+  // Preview observes then decides locally so blocked ownership can still emit the
+  // frozen dry-run PATH/state plan instead of apply-time indeterminate failures.
+  const observed = await observeAgent(input.name, context, ports)
   if (observed.kind !== 'ready') return observed.outcome
-  const { before, directive } = observed
+  const { before } = observed
+  const directive = decideCoreInstallation(before)
+  if (directive.kind === 'interrupted') throw mutationInterruption(directive.outcome, 'decide', 'none')
+  if (directive.kind === 'blocked') return await previewFrozenDryRunPlan(before, context, hooks)
 
   if (!isMutating(directive)) {
     if (directive.decision !== 'external-preserved') return successPreview(before, directive)
@@ -116,7 +121,18 @@ async function preview(
     }
   }
   const recipe = await resolveRecipe(input, before, directive, context, ports)
-  if (recipe.kind !== 'ready') return recipe.outcome
+  if (recipe.kind !== 'ready') {
+    // Frozen dry-run JSON never exposes method selection; keep the would-change plan.
+    return {
+      kind: 'success',
+      value: {
+        before,
+        decision: directive.decision,
+        kind: 'preview',
+        wouldChange: true,
+      },
+    }
+  }
   return {
     kind: 'success',
     value: {
@@ -127,6 +143,93 @@ async function preview(
       wouldChange: true,
     },
   }
+}
+
+/**
+ * Mirror the maintained v1 install/ensure dry-run short-circuit: PATH presence +
+ * installed state (+ private adoption hook) decide the frozen plan even when
+ * provider package observation is indeterminate or conflicting.
+ */
+async function previewFrozenDryRunPlan(
+  before: CoreAgentObservation,
+  context: CoreInvocationContext,
+  hooks: CoreInstallationExecutionHooks,
+): Promise<CoreInstallationExecutionOutcome> {
+  const inPath = before.pathExecutable.present
+  const installedState = before.installedState
+
+  if (inPath && !installedState) {
+    const adoption = await resolveFrozenPreviewAdoption(before, context, hooks)
+    if (adoption.kind === 'terminal') return adoption.outcome
+    if (adoption.kind === 'ready') {
+      return {
+        kind: 'success',
+        value: {
+          before,
+          binding: adoption.value.binding,
+          compatibility: { kind: 'adopt' },
+          decision: 'external-preserved',
+          kind: 'preview',
+          wouldChange: true,
+        },
+      }
+    }
+    return {
+      kind: 'success',
+      value: {
+        before,
+        decision: 'external-preserved',
+        kind: 'preview',
+        wouldChange: false,
+      },
+    }
+  }
+
+  if (installedState && inPath) {
+    const binding = before.persistedBinding ?? before.binding
+    return {
+      kind: 'success',
+      value: {
+        before,
+        ...(binding ? { binding } : {}),
+        decision: 'already-satisfied',
+        kind: 'preview',
+        wouldChange: false,
+      },
+    }
+  }
+
+  return {
+    kind: 'success',
+    value: {
+      before,
+      decision: installedState ? 'reinstall' : 'install',
+      kind: 'preview',
+      wouldChange: true,
+    },
+  }
+}
+
+async function resolveFrozenPreviewAdoption(
+  before: CoreAgentObservation,
+  context: CoreInvocationContext,
+  hooks: CoreInstallationExecutionHooks,
+): Promise<CompatibilityAdoptionResolution> {
+  if (!hooks.resolveAdoption) return { kind: 'none' }
+  let adoption: CoreInstallationCompatibilityAdoption | undefined
+  try {
+    adoption = await hooks.resolveAdoption(before, context)
+  } catch (error) {
+    if (context.signal.aborted) throw signalInterruption(context.signal, 'decide', 'none')
+    return {
+      kind: 'terminal',
+      outcome: failure('decision-indeterminate', 'decide', 'none', errorReason(error), false, undefined, error),
+    }
+  }
+  throwIfAborted(context, 'decide', 'none')
+  // Preview short-circuit trusts the CLI adoption hook the same way the v1 planner
+  // trusted getAdoptableExistingInstallMethod, without requiring observation.kind === present.
+  return adoption ? { kind: 'ready', value: adoption } : { kind: 'none' }
 }
 
 async function apply(
@@ -425,12 +528,12 @@ async function applyCompatibilityAdoption(
   }
 }
 
-async function observeDecision(
+async function observeAgent(
   name: string,
   context: CoreInvocationContext,
   ports: CoreInstallationExecutorPorts,
 ): Promise<
-  | { readonly before: CoreAgentObservation; readonly directive: ReadyDecision; readonly kind: 'ready' }
+  | { readonly before: CoreAgentObservation; readonly kind: 'ready' }
   | { readonly kind: 'terminal'; readonly outcome: CoreInstallationExecutionOutcome }
 > {
   throwIfAborted(context, 'decide', 'none')
@@ -446,6 +549,20 @@ async function observeDecision(
   }
   throwIfAborted(context, 'decide', 'none')
   if (!before) return { kind: 'terminal', outcome: { kind: 'agent-not-found', name } }
+  return { before, kind: 'ready' }
+}
+
+async function observeDecision(
+  name: string,
+  context: CoreInvocationContext,
+  ports: CoreInstallationExecutorPorts,
+): Promise<
+  | { readonly before: CoreAgentObservation; readonly directive: ReadyDecision; readonly kind: 'ready' }
+  | { readonly kind: 'terminal'; readonly outcome: CoreInstallationExecutionOutcome }
+> {
+  const observed = await observeAgent(name, context, ports)
+  if (observed.kind !== 'ready') return observed
+  const { before } = observed
 
   const directive = decideCoreInstallation(before)
   if (directive.kind === 'interrupted') throw mutationInterruption(directive.outcome, 'decide', 'none')

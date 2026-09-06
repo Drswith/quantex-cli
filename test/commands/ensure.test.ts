@@ -103,47 +103,46 @@ describe('ensureCommand', () => {
     expect(control.execute).toHaveBeenCalledWith('test-agent', { emitStartedEvent: true })
   })
 
-  it('keeps dry-run on the retained planning route with the maintained DRY_RUN warning', async () => {
+  it('keeps dry-run on Core preview with the maintained DRY_RUN warning', async () => {
     setCliContext({ dryRun: true, interactive: false, outputMode: 'json', runId: 'ensure-dry-run' })
-    control.resolveObservation.mockResolvedValueOnce({
-      agent: testAgent,
-      methods: [{ type: 'bun' }],
-      observation: {
-        drift: { kind: 'none' },
-        kind: 'absent',
-        observedAt: '2026-01-01T00:00:00.000Z',
-        targetId: 'test-agent',
-      },
-      pathExecutable: { present: false },
-    })
+    control.execute.mockResolvedValueOnce(
+      createSuccessResult({
+        action: 'ensure',
+        data: { agent: { displayName: 'Test Agent', name: 'test-agent' }, changed: false, installed: false },
+        target: { kind: 'agent', name: 'test-agent' },
+        warnings: [{ code: 'DRY_RUN', message: 'Dry run: would install Test Agent.' }],
+      }),
+    )
 
     const result = await ensureCommand('test-agent')
 
     expect(result.ok).toBe(true)
     expect(result.warnings[0]?.code).toBe('DRY_RUN')
     expect(result.warnings[0]?.message).toBe('Dry run: would install Test Agent.')
-    expect(control.createSession).not.toHaveBeenCalled()
+    expect(control.createSession).toHaveBeenCalledWith('ensure')
+    expect(control.execute).toHaveBeenCalled()
   })
 
-  it('keeps tracked-ghost dry-run conditional messaging from the retained planner', async () => {
+  it('keeps tracked-ghost dry-run conditional messaging through Core preview', async () => {
     setCliContext({ dryRun: true, interactive: false, outputMode: 'json', runId: 'ghost-dry-run' })
-    control.resolveObservation.mockResolvedValueOnce({
-      agent: testAgent,
-      installedState: { agentName: 'test-agent', installType: 'bun', packageName: 'test-pkg' },
-      methods: [{ type: 'bun' }],
-      observation: {
-        drift: { kind: 'recorded-absent' },
-        kind: 'absent',
-        observedAt: '2026-01-01T00:00:00.000Z',
-        targetId: 'test-agent',
-      },
-      pathExecutable: { present: false },
-    })
+    control.execute.mockResolvedValueOnce(
+      createSuccessResult({
+        action: 'ensure',
+        data: { agent: { displayName: 'Test Agent', name: 'test-agent' }, changed: false, installed: false },
+        target: { kind: 'agent', name: 'test-agent' },
+        warnings: [
+          {
+            code: 'DRY_RUN',
+            message: 'Dry run: would reinstall Test Agent only if its recorded provider target is confirmed absent.',
+          },
+        ],
+      }),
+    )
 
     const result = await ensureCommand('test-agent')
 
     expect(result.warnings[0]?.message).toContain('would reinstall Test Agent only if')
-    expect(control.createSession).not.toHaveBeenCalled()
+    expect(control.createSession).toHaveBeenCalledWith('ensure')
   })
 
   it('ignores the retired legacy env override and still uses Core for apply', async () => {

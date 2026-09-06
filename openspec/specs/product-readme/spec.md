@@ -151,9 +151,9 @@ install/ensure engine as CLI install/ensure, and by diagnosing CLI `doctor`
 through an in-repo Core diagnosis engine. They MUST state that the published
 `quantex-core` SDK does not gain methods from this CLI promotion, that
 package/binary/state identities remain v1-compatible, that install/ensure
-`--dry-run` retains the maintained v1 planning path without lifecycle mutation,
-and that the former `QUANTEX_INSTALLATION_ENGINE=legacy` install/ensure apply
-escape is retired.
+`--dry-run` uses Core preview while preserving the frozen dry-run plan without
+lifecycle mutation, and that the former `QUANTEX_INSTALLATION_ENGINE=legacy`
+install/ensure apply escape is retired.
 
 #### Scenario: a user reads either product README during the 1.12 slice
 

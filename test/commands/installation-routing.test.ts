@@ -107,7 +107,7 @@ describe('installation engine routing', () => {
     })
   })
 
-  it('keeps install and ensure dry-run on the maintained planning route', () => {
+  it('routes install and ensure dry-run through Core', () => {
     setCliContext({
       cancelled: false,
       colorMode: 'never',
@@ -120,16 +120,18 @@ describe('installation engine routing', () => {
     })
 
     expect(selectInstallationEngineRoute('install')).toEqual({
-      engine: 'dry-run-planning',
-      source: 'dry-run-compatibility',
+      adoption: 'v1-safe',
+      engine: 'core',
+      source: 'stable-default',
     })
     expect(selectInstallationEngineRoute('ensure')).toEqual({
-      engine: 'dry-run-planning',
-      source: 'dry-run-compatibility',
+      adoption: 'v1-safe',
+      engine: 'core',
+      source: 'stable-default',
     })
   })
 
-  it('still uses dry-run planning when the retired legacy env value is present', () => {
+  it('still uses Core for dry-run when the retired legacy env value is present', () => {
     process.env.QUANTEX_INSTALLATION_ENGINE = 'legacy'
     setCliContext({
       cancelled: false,
@@ -143,8 +145,9 @@ describe('installation engine routing', () => {
     })
 
     expect(selectInstallationEngineRoute('install')).toEqual({
-      engine: 'dry-run-planning',
-      source: 'dry-run-compatibility',
+      adoption: 'v1-safe',
+      engine: 'core',
+      source: 'stable-default',
     })
   })
 

@@ -101,24 +101,21 @@ describe('installCommand', () => {
     expect(stdoutWriteSpy).toHaveBeenCalledWith(expect.stringContaining('already installed'))
   })
 
-  it('returns a dry-run plan from the retained planning route without Core mutation', async () => {
+  it('returns a dry-run plan through Core preview with the frozen DRY_RUN contract', async () => {
     setCliContext({
       dryRun: true,
       interactive: false,
       outputMode: 'json',
       runId: 'dry-run-id',
     })
-    control.resolveObservation.mockResolvedValueOnce({
-      agent: testAgent,
-      methods: [{ type: 'bun' }],
-      observation: {
-        drift: { kind: 'none' },
-        kind: 'absent',
-        observedAt: '2026-01-01T00:00:00.000Z',
-        targetId: 'test-agent',
-      },
-      pathExecutable: { present: false },
-    })
+    control.execute.mockResolvedValueOnce(
+      createSuccessResult({
+        action: 'install',
+        data: { agent: { displayName: 'Test Agent', name: 'test-agent' }, changed: false, installed: false },
+        target: { kind: 'agent', name: 'test-agent' },
+        warnings: [{ code: 'DRY_RUN', message: 'Dry run: would install Test Agent.' }],
+      }),
+    )
 
     const result = await installCommand('test-agent')
 
@@ -126,7 +123,9 @@ describe('installCommand', () => {
     expect(result.data?.changed).toBe(false)
     expect(result.warnings[0]?.code).toBe('DRY_RUN')
     expect(result.warnings[0]?.message).toBe('Dry run: would install Test Agent.')
-    expect(control.createSession).not.toHaveBeenCalled()
+    expect(control.createSession).toHaveBeenCalledWith('install')
+    expect(control.execute).toHaveBeenCalled()
+    expect(control.dispose).toHaveBeenCalledTimes(1)
   })
 
   it('ignores the retired legacy env override and still uses Core for apply', async () => {
