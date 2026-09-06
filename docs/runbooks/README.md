@@ -7,7 +7,7 @@ Start from [_template.md](./_template.md). For troubleshooting, use [quantex-tro
 ## Index
 
 - [cloud-agent-automations.md](./cloud-agent-automations.md) — Cursor Cloud role split and prompt baselines
-- [core-installation-routing-rollback.md](./core-installation-routing-rollback.md) — Core installation routing rollback
+- [core-installation-routing-rollback.md](./core-installation-routing-rollback.md) — Retired 1.12 note: former install/ensure engine-escape rollback is no longer an operator path
 - [modal-sandbox-testing.md](./modal-sandbox-testing.md) — Modal/Docker sandbox testing
 - [quantex-troubleshooting.md](./quantex-troubleshooting.md) — Canonical troubleshooting
 - [releasing-quantex.md](./releasing-quantex.md) — Release operations

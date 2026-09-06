@@ -22,7 +22,7 @@ Quantex keeps the root `quantex-cli` package and adds exactly one independently 
 - During 1.x, CLI source consumes the Core boundary while npm and standalone binary artifacts inline it. Existing CLI installation and self-upgrade do not acquire a runtime dependency on a second registry package.
 - Core retains typed provider observation and the sequence observe, decide, execute, verify, record, and scoped compensate. It may remove unused generic DAG concepts and duplicate boolean/package-manager facades only after equivalent contracts cover the replacement.
 - State remains schema version 2 for the entire 1.x transition. New policy is derived from existing records plus live evidence rather than new persisted fields or an authoritative sidecar.
-- A lifecycle invocation selects legacy or Core before work begins. It never shadow-runs mutations and never falls back to the other engine after a side effect starts.
+- Historically, a lifecycle invocation selected legacy or Core before work began and never shadow-ran mutations or fell back after a side effect started. After the 1.12 eighth slice, CLI `install` / `ensure` (including `--dry-run` preview) are Core-only; other maintained v1 surfaces may still use their legacy implementations until a later approved deprecation.
 - CLI request-key replay remains a compatibility decorator; Core ensure remains semantically idempotent through observation and verification.
 - The main release workflow builds and pack-validates Core but publishes and recovers only `quantex-cli`, the GitHub Release, and standalone artifacts. CLI npm closure precedes creation of a new public GitHub Release.
 - Core public activation is governed by its own change, trusted publisher, `core-v<version>` tag, and recovery behavior. It cannot be coupled to a CLI Release PR or enabled by a repository variable.
@@ -36,7 +36,7 @@ The compatibility runway is at least four stable minor stages:
 
 Breaking removal requires a separate major-version deprecation decision after both two Core-default stable minors and at least 90 days from stable-default enablement. The later gate controls.
 
-The active `simplify-lifecycle-core-sdk` OpenSpec change is the detailed source of truth and remains open across milestone releases.
+The `simplify-lifecycle-core-sdk` OpenSpec change was the detailed migration contract across those milestone releases; it has been completed and archived. Current behavior is defined by `openspec/specs/` (especially `compatibility-contract`, `installation-routing`, and `runtime-boundaries`) together with this ADR.
 
 ## Consequences
 
