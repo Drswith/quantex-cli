@@ -1,3 +1,5 @@
+// KEEP (S2): `quantex <agent>` shortcut argv parser. Frozen: structured
+// output is rejected for shortcut execution. Not a leftover of Commander.
 import type { GlobalOptionId } from '../command-contract'
 import { getGlobalOptionDefinitions } from '../command-contract'
 

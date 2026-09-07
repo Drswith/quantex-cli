@@ -1,3 +1,7 @@
+// KEEP (S2): CLI command runtime (timeout, signals, idempotency replay,
+// state-read mapping, dual-mode emit). Differential over command handlers.
+// Not a leftover pass-through of Core or output.
+// S2 leftover scan: KEEP product-path hang here (CLI shell leftover; do not restore src/lifecycle).
 import type { VersionedIdempotencyLoadResult } from './idempotency'
 import type { CanonicalMutationRequest, CanonicalValue } from './idempotency/canonical'
 import type { IdempotencyPostcondition, IdempotencyReceiptEvidence } from './idempotency/schema'

@@ -1,3 +1,7 @@
+// KEEP (S2): release archive/manifest/checksum helpers used by self-upgrade
+// and release scripts. Differential compression + naming, not a leftover
+// pass-through of generated build-meta.
+// S2 leftover scan: KEEP product-path hang here (CLI shell leftover; do not restore src/lifecycle).
 import { deflateRawSync, gunzipSync, gzipSync, inflateRawSync } from 'node:zlib'
 
 export type ReleaseChannel = 'beta' | 'stable'

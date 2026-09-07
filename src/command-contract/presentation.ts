@@ -1,3 +1,6 @@
+// KEEP (S2): dual-mode presentation (human / json / ndjson) keyed by command.
+// Identity JSON stringify is the frozen envelope; must not add engine/route.
+// Not a leftover to fold into src/output.
 import type { OutputMode } from '../cli-context'
 import type { CommandResult, CommandTarget, HumanRenderer } from '../output/types'
 import type { StableCommandName } from './registry'

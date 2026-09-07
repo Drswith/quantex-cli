@@ -1,3 +1,5 @@
+// KEEP (S2): CLI read projector for inspect/info/resolve. Richer than the
+// public SDK inspect() descriptors. Do not wrap or expand the SDK.
 import type { AgentDefinition, InstallMethod } from '../agents'
 import type { AgentInspection } from '../inspection'
 import type { ResolvedAgentObservation } from '../services/lifecycle-observations'

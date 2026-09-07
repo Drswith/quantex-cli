@@ -1,3 +1,5 @@
+// KEEP (S2): stable command/option/alias/effect registry. Source for
+// `commands` / `schema` / Commander. Frozen aliases. Not a leftover catalog.
 import type { SchemaDocument } from './schemas'
 import { schemaDocuments } from './schemas'
 

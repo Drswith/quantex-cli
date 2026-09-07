@@ -1,5 +1,9 @@
 #!/usr/bin/env node
 
+// KEEP (S2): process entry for `quantex` / `qtx` (tsdown + package.json bin).
+// Import-graph zero-ref is expected: this file is executed, not imported.
+// Shortcut dispatch + Commander program. Not a leftover shell to delete.
+// S2 leftover scan: KEEP product-path hang here (CLI shell leftover; do not restore src/lifecycle).
 import process from 'node:process'
 import { getAgentByNameOrAlias } from './agents'
 import { resetCliContext, resolveCliContext, setCliContext } from './cli-context'

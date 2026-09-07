@@ -1,3 +1,6 @@
+// KEEP (S2): CLI `capabilities` command. Frozen dual-mode surface. Do not
+// fold into package-manager/capabilities or config/commands/schema.
+// S2 leftover scan: KEEP product-path hang here (CLI shell leftover; do not restore src/lifecycle).
 import type { CommandResult } from '../output/types'
 import process from 'node:process'
 import { getAllAgents } from '../agents'

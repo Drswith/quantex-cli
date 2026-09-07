@@ -5,7 +5,7 @@ import { isBinaryInPath } from '../utils/detect'
 import { getAdoptableExistingInstallMethod } from '../utils/install'
 
 /**
- * KEEP (P2): frozen v1 no-op for unmanaged external executables.
+ * KEEP (P2 / S2): frozen v1 no-op for unmanaged external executables.
  * Importers: src/commands/install.ts, src/commands/ensure.ts.
  * Shared helper (not a Core bridge), still required for install/ensure contracts.
  */
