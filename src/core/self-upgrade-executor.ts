@@ -1,3 +1,6 @@
+// KEEP (S3): Core self-upgrade engine (CLI-facing). Plan/check/apply over
+// injected ports. Absent from published SDK. Not a leftover of src/self.
+// S3 leftover scan: KEEP product-path hang here (Core-internal leftover; do not restore src/lifecycle).
 import type {
   CachePort,
   InvocationContext,

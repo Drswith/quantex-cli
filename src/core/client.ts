@@ -1,3 +1,6 @@
+// KEEP (S3): Core SDK client (createQuantex / inspect / list / install / ensure).
+// Projects observations onto frozen public types. Differential, not a leftover.
+// S3 leftover scan: KEEP product-path hang here (Core-internal leftover; do not restore src/lifecycle).
 import type { AgentDefinition, Platform } from '../agents/types'
 import type { CoreInstallationExecutionOutcome, CoreInstallationExecutorPorts } from './installation-executor-types'
 import type { LifecycleProviderBinding } from './lifecycle/provider-binding'
