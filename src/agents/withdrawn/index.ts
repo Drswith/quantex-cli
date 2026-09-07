@@ -6,6 +6,9 @@ import genieEntry from './genie.json'
 import jcodeEntry from './jcode.json'
 import vtcodeEntry from './vtcode.json'
 
+// KEEP (S1): withdrawn catalog members retained as frozen v1 named exports.
+// Not leftover pass-throughs — folding would change the published root surface.
+//
 // Agents withdrawn from the supported catalog that remain importable from the package
 // root because they were part of the v1 export snapshot. These are frozen definitions,
 // not catalog members: they are absent from getAllAgents, agent lookup, and every

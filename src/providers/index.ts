@@ -1,3 +1,7 @@
+// KEEP (S1): first-party provider domain barrel (registry / invoke / types).
+// Live importers across Core, package-manager, and services. Not a leftover
+// pass-through of a single adapter.
+// S1 leftover scan: KEEP product-path hang here (thick-area zero-ref; do not restore src/lifecycle).
 export {
   createProviderRegistry,
   defineFirstPartyProviderRegistry,

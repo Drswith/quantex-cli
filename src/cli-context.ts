@@ -1,3 +1,5 @@
+// KEEP (S1): process-wide CLI context (--json / color / timeout / cancellation).
+// Frozen dual-mode surface. Not a leftover pass-through.
 import { randomUUID } from 'node:crypto'
 import process from 'node:process'
 import { parseDurationToMs } from './utils/duration'

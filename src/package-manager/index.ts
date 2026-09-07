@@ -1,3 +1,7 @@
+// KEEP (S1): agent install/update/uninstall orchestration over managed
+// installers, binary/script effects, state persistence, and lifecycle lock.
+// Not a leftover pass-through of providers or Core.
+// S1 leftover scan: KEEP product-path hang here (thick-area zero-ref; do not restore src/lifecycle).
 import type { AgentDefinition, InstallMethod, ManagedInstallType } from '../agents/types'
 import type { NpmBunUpdateStrategy } from '../config'
 import type { LifecycleOutcome } from '../core/lifecycle/model'

@@ -1,3 +1,5 @@
+// KEEP (S1): CLI operation-context wrapper over package mutation outcomes.
+// Type re-export is convenience; projectLegacyPackageMutation is differential.
 import type { ProviderOperationContext } from '../providers'
 import type { PackageMutationOutcome } from './context-mutation'
 

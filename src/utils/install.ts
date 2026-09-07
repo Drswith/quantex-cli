@@ -1,3 +1,7 @@
+// KEEP (S1): install-source formatting, package-name resolution, and update
+// capability helpers. Named re-exports of package-manager/capabilities are
+// convenience for existing callers, not a leftover wrapper to fold.
+// S1 leftover scan: KEEP product-path hang here (thick-area zero-ref; do not restore src/lifecycle).
 import type { AgentDefinition, InstallMethod, PackageTargetKind } from '../agents/types'
 import type { InstalledAgentState } from '../state'
 import { getAgentUpdateStrategy } from '../agent-update'

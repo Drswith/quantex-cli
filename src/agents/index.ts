@@ -1,3 +1,8 @@
+// KEEP (S1): catalog lookup barrel. getAllAgents / getAgentByLookupName add
+// alias and display-name matching; getAgentByNameOrAlias is the published v1
+// name for that lookup. Generated catalog + withdrawn named exports stay for
+// the frozen root surface. Not a leftover pass-through.
+// S1 leftover scan: KEEP product-path hang here (thick-area zero-ref; do not restore src/lifecycle).
 import type { AgentDefinition } from './types'
 import { getCatalogAgents } from './catalog'
 

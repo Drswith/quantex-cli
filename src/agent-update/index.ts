@@ -1,3 +1,6 @@
+// KEEP (S1): published v1 agent-update facade (strategy, messages, self-update).
+// Compatibility re-exports this barrel. Not a leftover pass-through to delete.
+// S1 leftover scan: KEEP product-path hang here (thick-area zero-ref; do not restore src/lifecycle).
 export {
   createSupersededPackageWarning,
   getAgentUpdateFailureHint,

@@ -1,3 +1,5 @@
+// KEEP (S1): command result envelope (schemaVersion, meta, --json / ndjson).
+// Frozen JSON contract. Not a leftover pass-through.
 import type { CommandError, CommandEvent, CommandResult, CommandTarget, CommandWarning, HumanRenderer } from './types'
 import { getCliContext } from '../cli-context'
 import {
