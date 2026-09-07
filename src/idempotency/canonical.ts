@@ -1,3 +1,5 @@
+// KEEP (L5): canonical mutation fingerprinting. Differential JSON canonicalization.
+// L5 leftover scan: not zero-ref and not a pure pass-through.
 import { createHash } from 'node:crypto'
 
 export type CanonicalValue = boolean | null | number | string | CanonicalValue[] | { [key: string]: CanonicalValue }

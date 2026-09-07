@@ -1,3 +1,5 @@
+// KEEP (L5): published v1 agent inspection facade. Default CLI routes no longer
+// call resolveAgentInspection; the barrel still publishes it. Not zero-ref.
 import type { AgentDefinition } from '../agents'
 import type { AgentInspection } from '../inspection'
 import * as agentRegistry from '../agents'

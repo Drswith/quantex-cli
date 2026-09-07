@@ -18,11 +18,11 @@ export interface ProductionSelfUpgradeInvocation {
 }
 
 /**
- * KEEP (P6 / P7): CLI production bridge over the in-repo Core self-upgrade executor.
+ * KEEP (P6 / P7 / L5): CLI production bridge over the in-repo Core self-upgrade executor.
  * Importers: src/commands/upgrade.ts.
  * Owns CLI cancellation/invocation context and src/self domain port binding.
  * Core owns plan/check/apply orchestration and must stay free of src/self.
- * P7 leftover scan: not zero-ref and not a pure pass-through.
+ * L5 leftover scan: not zero-ref and not a pure pass-through.
  */
 export function createProductionSelfUpgradeInvocation(): ProductionSelfUpgradeInvocation {
   const cliContext = getCliContext()

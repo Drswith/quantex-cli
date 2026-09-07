@@ -1,3 +1,6 @@
+// KEEP (L5): published v1 root facade. src/index.ts re-exports this surface.
+// Not a leftover pass-through to delete or fold — folding would change the
+// published command/SDK boundary (frozen).
 export {
   agentUpdateProviders,
   canResolveAgentUpdate,

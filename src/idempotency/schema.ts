@@ -1,3 +1,5 @@
+// KEEP (L5): versioned idempotency record schema and parse/canonicalize helpers.
+// L5 leftover scan: not zero-ref and not a pure pass-through.
 import type { CommandResult } from '../output/types'
 import type { CanonicalMutationRequest, CanonicalValue } from './canonical'
 import { canonicalizeMutationRequest, fingerprintCanonicalValue } from './canonical'

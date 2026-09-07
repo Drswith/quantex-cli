@@ -61,8 +61,9 @@ const defaultDependencies: ProductionLifecycleExecutionDependencies = {
 }
 
 /**
- * KEEP (P2): exec/shortcut production bridge over Core execution + install compatibility.
+ * KEEP (P2 / L5): exec/shortcut production bridge over Core execution + install compatibility.
  * Importers: src/commands/run.ts. Owns human stdio inherit and --install via installation-compatibility.
+ * L5 leftover scan: not zero-ref and not a pure pass-through.
  */
 export function createProductionLifecycleExecutionService(
   options: ProductionLifecycleExecutionOptions,

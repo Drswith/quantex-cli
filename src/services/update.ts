@@ -1,3 +1,5 @@
+// KEEP (L5): published v1 update-planning facade (planAgentUpdates grouping).
+// L5 leftover scan: not zero-ref; still re-exported by src/services/index.ts.
 import type { AgentUpdateStrategy } from '../agent-update'
 import type { AgentDefinition } from '../agents'
 import type { InstallMethod, ManagedInstallType } from '../agents/types'

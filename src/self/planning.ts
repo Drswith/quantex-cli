@@ -1,5 +1,6 @@
-// KEEP (P7): domain planning still required after P6 Core orchestration.
+// KEEP (P7 / L5): domain planning still required after P6 Core orchestration.
 // Importers: src/self/index.ts (planSelfUpgrade / buildSelfInspectionFromPlan).
+// L5 leftover scan: not zero-ref and not a pure pass-through.
 import type { ProviderOperationContext } from '../providers'
 import type { CachePort, NetworkPort, PersistencePort, ProcessPort } from '../runtime'
 import type { SelfInspection, SelfInstallFacts, SelfUpdateResult, SelfUpdateTarget, SelfUpgradePlan } from './types'

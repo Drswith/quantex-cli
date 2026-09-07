@@ -1,6 +1,7 @@
 // L2: Core-internal provider-binding resolution. Not a leaf (imports agents,
 // providers/types, and type-only state). Do not re-export from src/core/index.ts
 // or packages/core. src/state MUST NOT import this module (ADR 0011 / 0012).
+// L5 leftover scan: KEEP product-path hang here (do not restore src/lifecycle).
 import type { AgentDefinition, InstallMethod, Platform } from '../../agents'
 import type { ProviderId, ProviderTarget, ProviderTargetKind } from '../../providers/types'
 import type { InstalledAgentState } from '../../state'
