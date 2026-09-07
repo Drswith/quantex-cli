@@ -1,3 +1,6 @@
+// KEEP (S3): Core uninstall executor (CLI-facing). Postcondition wait +
+// state/receipt cleanup. Importer: src/commands/uninstall.ts.
+// S3 leftover scan: KEEP product-path hang here (Core-internal leftover; do not restore src/lifecycle).
 import type { AgentDefinition } from '../agents/types'
 import type { ProviderOutcome, ProviderObservation } from '../providers/types'
 import type { InstalledAgentState } from '../state'

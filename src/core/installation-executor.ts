@@ -1,3 +1,6 @@
+// KEEP (S3): Core install/ensure executor. Decision + mutation + verify + record.
+// Importers: client, compatibility, CLI session. Not a leftover pass-through.
+// S3 leftover scan: KEEP product-path hang here (Core-internal leftover; do not restore src/lifecycle).
 import type { ProviderOperationContext, ProviderOutcome } from '../providers/types'
 import type { CoreInstallationDirective } from './installation-decision'
 import type {

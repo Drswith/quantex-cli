@@ -1,3 +1,6 @@
+// KEEP (S3): Core agent-update executor (single + batch). Differential planning
+// and mutation. Importers: CLI update, compatibility, idempotency policy.
+// S3 leftover scan: KEEP product-path hang here (Core-internal leftover; do not restore src/lifecycle).
 import type { AgentPackageMetadata, AgentSelfUpdate, InstallMethod } from '../agents'
 import type {
   ProviderAdapter,

@@ -1,3 +1,6 @@
+// KEEP (S3): frozen public Core SDK types (Quantex / inspect / mutation).
+// Live importers: src/core/index.ts and Core internals. Not a leftover shell.
+// S3 leftover scan: KEEP product-path hang here (Core-internal leftover; do not restore src/lifecycle).
 import type { Platform } from '../agents/types'
 
 export type CoreErrorCode =
