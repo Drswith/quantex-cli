@@ -1,5 +1,5 @@
 import type { AgentDefinition, InstallMethod } from '../../src/agents'
-import type { LifecycleObservation } from '../../src/lifecycle'
+import type { LifecycleObservation } from '../../src/core/lifecycle/model'
 import type { ResolvedAgentObservation } from '../../src/services/lifecycle-observations'
 import type { InstalledAgentState } from '../../src/state'
 import { describe, expect, it } from 'vitest'

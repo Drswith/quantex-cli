@@ -1,9 +1,9 @@
+import type { LifecycleProviderBinding } from '../src/core/lifecycle/provider-binding'
 import type {
   IdempotencyPostcondition,
   IdempotencyReceiptEvidence,
   IdempotencyReceiptSnapshot,
 } from '../src/idempotency/schema'
-import type { LifecycleProviderBinding } from '../src/lifecycle'
 import type { CommandResult } from '../src/output/types'
 import type { ResolvedAgentObservation } from '../src/services/lifecycle-observations'
 import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'

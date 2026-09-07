@@ -5,7 +5,7 @@ import { afterAll, afterEach, beforeEach, describe, expect, it, vi } from 'vites
 import * as agents from '../../src/agents'
 import { resetCliContext, setCliContext } from '../../src/cli-context'
 import { doctorCommand } from '../../src/commands/doctor'
-import { observeAgentLifecycle } from '../../src/lifecycle'
+import { observeAgentLifecycle } from '../../src/core/lifecycle/agent-observation'
 import * as selfModule from '../../src/self'
 import * as coreReadObservations from '../../src/services/core-read-observations'
 import * as providerObservations from '../../src/services/provider-observations'

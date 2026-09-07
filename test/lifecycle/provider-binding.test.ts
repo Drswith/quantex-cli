@@ -1,5 +1,5 @@
 import type { AgentDefinition } from '../../src/agents'
-import type { LifecycleReceipt } from '../../src/lifecycle'
+import type { LifecycleReceipt } from '../../src/core/lifecycle/model'
 import type { InstalledAgentState } from '../../src/state'
 import { describe, expect, it } from 'vitest'
 import {

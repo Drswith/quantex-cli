@@ -97,7 +97,7 @@ PR body：基于 `.github/pull_request_template.md` 写 body 文件 → `bun run
 - 改 config、state、self-upgrade、release artifacts：
   `src/config/`、`src/state/`、`src/self/`、`src/release-artifacts/`、`openspec/specs/self-upgrade/spec.md`、`docs/releases.md`
 - 改 lifecycle 收据类型 / provider-binding / observation 等引擎内化 / Core 内部 lifecycle：
-  `src/core/lifecycle/`、`src/lifecycle/`、`openspec/specs/runtime-boundaries/spec.md`、`docs/adr/0011-core-internal-lifecycle-model-leaf.md`、`docs/adr/0012-core-internal-lifecycle-provider-binding.md`、`docs/adr/0013-core-internal-lifecycle-engines.md`
+  `src/core/lifecycle/`、`openspec/specs/runtime-boundaries/spec.md`、`docs/adr/0011-core-internal-lifecycle-model-leaf.md`、`docs/adr/0012-core-internal-lifecycle-provider-binding.md`、`docs/adr/0013-core-internal-lifecycle-engines.md`、`docs/adr/0014-core-internal-lifecycle-barrel-deletion.md`
 - 改 durable workflow、project memory、GitHub collaboration：
   `skills/quantex-agent-runtime/SKILL.md`、`openspec/README.md`、`openspec/config.yaml`、`docs/README.md`、`docs/github-collaboration.md`、`openspec/specs/project-memory/spec.md`
 - 改产品介绍、安装方式、用户理解：

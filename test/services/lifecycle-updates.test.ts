@@ -1,5 +1,5 @@
 import type { AgentDefinition } from '../../src/agents'
-import type { LifecycleObservation, LifecycleReceipt } from '../../src/lifecycle'
+import type { LifecycleObservation, LifecycleReceipt } from '../../src/core/lifecycle/model'
 import type {
   ProviderAdapter,
   ProviderOperation,

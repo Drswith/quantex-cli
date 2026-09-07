@@ -1,6 +1,6 @@
 import type { AgentDefinition } from '../../src/agents'
+import type { LifecycleProviderBinding } from '../../src/core/lifecycle/provider-binding'
 import type { ReplayLiveEvidence } from '../../src/idempotency/replay'
-import type { LifecycleProviderBinding } from '../../src/lifecycle'
 import type { ProviderId, ProviderObservation, ProviderOutcome, ProviderTargetKind } from '../../src/providers'
 import type { ResolvedAgentObservation } from '../../src/services/lifecycle-observations'
 import type {

@@ -1,5 +1,8 @@
 import type { AgentDefinition, InstallMethod } from '../../src/agents'
-import type { AgentLifecycleObservationPorts, AgentLifecycleObservationResult } from '../../src/lifecycle'
+import type {
+  AgentLifecycleObservationPorts,
+  AgentLifecycleObservationResult,
+} from '../../src/core/lifecycle/agent-observation'
 import type { InstalledAgentState } from '../../src/state'
 import { readFile } from 'node:fs/promises'
 import { describe, expect, it, vi } from 'vitest'
