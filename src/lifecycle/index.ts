@@ -1,13 +1,13 @@
-// KEEP (P8 / L1 / L2): Used barrel (Core execution/update, services, idempotency).
-// L1 moved receipt types to src/core/lifecycle/model; L2 moved provider-binding
-// and provider-evidence. This barrel re-exports them as an existing non-SDK path.
-// Remaining engines stay here for L3+.
+// KEEP (P8 / L1 / L2 / L3): Used barrel (services, idempotency). L1 moved receipt
+// types, L2 moved provider-binding/evidence, L3 moved observation/planner/
+// execution/postcondition. This barrel re-exports them as an existing non-SDK
+// path. Do not delete this directory in L3 (L4).
 export {
   type AgentExecutionInstallPolicy,
   type AgentExecutionPreflightInput,
   type AgentExecutionPreflightPlan,
   planAgentExecutionPreflight,
-} from './agent-execution'
+} from '../core/lifecycle/agent-execution'
 export type {
   LifecycleDrift,
   LifecycleEffect,
@@ -29,13 +29,13 @@ export {
   type LifecycleUpdatePlanningResult,
   planLifecycleUpdate,
   projectLifecycleProviderCapabilities,
-} from './update-planner'
+} from '../core/lifecycle/update-planner'
 export {
   type AgentExecutableObservation,
   type AgentLifecycleObservationPorts,
   type AgentLifecycleObservationResult,
   observeAgentLifecycle,
-} from './agent-observation'
+} from '../core/lifecycle/agent-observation'
 export {
   type CatalogProviderEvidence,
   type LifecycleProviderBinding,

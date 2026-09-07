@@ -1,6 +1,6 @@
-// KEEP (P8 / P0–P5): planLifecycleUpdate is differential update planning used by
-// src/planning/updates.ts, Core update-production, and lifecycle-updates-production.
-// Install/ensure --dry-run no longer imports this module. Do not fold into src/core.
+// L3: Core-internal update planning. Not a leaf (imports the model leaf and
+// utils/version). Do not re-export from src/core/index.ts or packages/core.
+// src/state MUST NOT import this module (ADR 0011 / 0013).
 import type {
   LifecycleIntent,
   LifecycleObservation,
@@ -8,8 +8,8 @@ import type {
   LifecyclePlanningProvider,
   LifecycleStep,
   ProviderCapability,
-} from '../core/lifecycle/model'
-import { compareVersions } from '../utils/version'
+} from './model'
+import { compareVersions } from '../../utils/version'
 
 export type LifecycleUpdateDecision =
   | 'blocked-downgrade'

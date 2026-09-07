@@ -54,7 +54,6 @@ describe('Core package boundary', () => {
   it('keeps the eager public runtime dependency closure outside mutation and CLI infrastructure', async () => {
     const closure = await runtimeDependencyClosure(PACKAGE_ENTRY, false)
     const allowedOutsideCore = new Set([
-      'src/lifecycle/agent-observation.ts',
       'src/package-manager/managed-install-types.ts',
       'src/providers/types.ts',
       'src/state/schema.ts',

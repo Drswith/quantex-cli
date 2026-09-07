@@ -1,12 +1,9 @@
 import type { AgentDefinition, InstallMethod } from '../agents'
 import type { ProcessPort, ProcessStdio, RuntimeFailure, RuntimeOutcome } from '../runtime'
 import type { InstalledAgentState } from '../state'
+import type { AgentExecutableObservation } from './lifecycle/agent-observation'
 import type { LifecycleObservation, LifecycleOutcome } from './lifecycle/model'
-import {
-  type AgentExecutableObservation,
-  type AgentExecutionInstallPolicy,
-  planAgentExecutionPreflight,
-} from '../lifecycle'
+import { type AgentExecutionInstallPolicy, planAgentExecutionPreflight } from './lifecycle/agent-execution'
 
 /**
  * In-repo Core agent execution engine (CLI-facing). Absent from the published

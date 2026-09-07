@@ -1,8 +1,8 @@
-import type { LifecycleObservation } from '../core/lifecycle/model'
-// KEEP (P8): Core execution-executor consumes planAgentExecutionPreflight via the
-// lifecycle barrel. Differential install-policy preflight, not a pass-through.
-// Do not fold into src/core — Core wraps it with launch/install; tests cover the planner.
 import type { AgentExecutableObservation } from './agent-observation'
+// L3: Core-internal execution preflight. Not a leftover pass-through — Core
+// execution-executor wraps it with launch/install. Do not re-export from
+// src/core/index.ts or packages/core. src/state MUST NOT import this module.
+import type { LifecycleObservation } from './model'
 
 export type AgentExecutionInstallPolicy = 'always' | 'if-missing' | 'never' | 'prompt'
 

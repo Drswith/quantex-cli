@@ -1,59 +1,64 @@
 import { readdir, readFile } from 'node:fs/promises'
 import { describe, expect, it } from 'vitest'
 
-const keptLifecycleModules = [
-  'src/lifecycle/agent-execution.ts',
-  'src/lifecycle/agent-observation.ts',
-  'src/lifecycle/index.ts',
-  'src/lifecycle/uninstall-postcondition.ts',
-  'src/lifecycle/update-planner.ts',
-] as const
+const lifecycleBarrel = 'src/lifecycle/index.ts'
 
 const coreInternalLifecycleModules = [
+  'src/core/lifecycle/agent-execution.ts',
+  'src/core/lifecycle/agent-observation.ts',
   'src/core/lifecycle/model.ts',
   'src/core/lifecycle/provider-binding.ts',
   'src/core/lifecycle/provider-evidence.ts',
+  'src/core/lifecycle/uninstall-postcondition.ts',
+  'src/core/lifecycle/update-planner.ts',
 ] as const
 
 const coreInternalModel = 'src/core/lifecycle/model.ts'
 const stateCoreLeafImport = "from '../core/lifecycle/model'"
 
 describe('P8 lifecycle→Core closure', () => {
-  it('keeps remaining lifecycle engines as differential domain outside src/core', async () => {
-    for (const path of keptLifecycleModules) await source(path)
+  it('keeps the lifecycle barrel as a non-SDK facade outside src/core', async () => {
+    await source(lifecycleBarrel)
 
     const execution = await source('src/core/execution-executor.ts')
-    expect(execution).toContain("from '../lifecycle'")
+    expect(execution).toContain("from './lifecycle/agent-execution'")
+    expect(execution).toContain("from './lifecycle/agent-observation'")
     expect(execution).toContain('planAgentExecutionPreflight')
     expect(execution).toContain("from './lifecycle/model'")
+    expect(execution).not.toContain("from '../lifecycle'")
     expect(execution).not.toContain('createQuantex')
 
     const observation = await source('src/core/production-observation.ts')
-    expect(observation).toContain("from '../lifecycle/agent-observation'")
+    expect(observation).toContain("from './lifecycle/agent-observation'")
     expect(observation).toContain('observeAgentLifecycle')
     expect(observation).toContain("from './lifecycle/provider-binding'")
+    expect(observation).not.toContain("from '../lifecycle/agent-observation'")
     expect(observation).not.toContain("from '../lifecycle/provider-binding'")
 
     const updateProduction = await source('src/core/update-production.ts')
-    expect(updateProduction).toContain("from '../lifecycle'")
+    expect(updateProduction).toContain("from './lifecycle/update-planner'")
     expect(updateProduction).toContain('planLifecycleUpdate')
-    expect(updateProduction).toContain("from '../lifecycle/agent-observation'")
+    expect(updateProduction).toContain("from './lifecycle/agent-observation'")
     expect(updateProduction).toContain("from './lifecycle/provider-binding'")
+    expect(updateProduction).not.toContain("from '../lifecycle'")
+    expect(updateProduction).not.toContain("from '../lifecycle/agent-observation'")
     expect(updateProduction).not.toContain("from '../lifecycle/provider-binding'")
 
     const uninstall = await source('src/core/uninstall-executor.ts')
-    expect(uninstall).toContain("from '../lifecycle/uninstall-postcondition'")
+    expect(uninstall).toContain("from './lifecycle/uninstall-postcondition'")
     expect(uninstall).toContain('waitForUninstallAbsence')
     expect(uninstall).toContain('observeLifecycleProvider')
     expect(uninstall).toContain("from './lifecycle/model'")
     expect(uninstall).toContain("from './lifecycle/provider-binding'")
     expect(uninstall).toContain("from './lifecycle/provider-evidence'")
+    expect(uninstall).not.toContain("from '../lifecycle/uninstall-postcondition'")
     expect(uninstall).not.toContain("from '../lifecycle/provider-binding'")
     expect(uninstall).not.toContain("from '../lifecycle/provider-evidence'")
 
     const planning = await source('src/planning/updates.ts')
-    expect(planning).toContain("from '../lifecycle/update-planner'")
+    expect(planning).toContain("from '../core/lifecycle/update-planner'")
     expect(planning).toContain('planLifecycleUpdate')
+    expect(planning).not.toContain("from '../lifecycle/update-planner'")
   })
 
   it('does not publish lifecycle engines on the Core SDK surface', async () => {
@@ -73,6 +78,8 @@ describe('P8 lifecycle→Core closure', () => {
     const packageEntry = await source('packages/core/src/index.ts')
     expect(packageEntry).not.toContain('observeAgentLifecycle')
     expect(packageEntry).not.toContain('planLifecycleUpdate')
+    expect(packageEntry).not.toContain('waitForUninstallAbsence')
+    expect(packageEntry).not.toContain('planAgentExecutionPreflight')
     expect(packageEntry).not.toContain('observeLifecycleProvider')
     expect(packageEntry).not.toContain('LifecycleProviderBinding')
     expect(packageEntry).not.toContain('../lifecycle')
@@ -97,6 +104,10 @@ describe('L1 lifecycle model Core-internal leaf', () => {
       expect(text).not.toContain("from '../lifecycle/model'")
       expect(text).not.toContain('provider-binding')
       expect(text).not.toContain('provider-evidence')
+      expect(text).not.toContain('agent-observation')
+      expect(text).not.toContain('update-planner')
+      expect(text).not.toContain('agent-execution')
+      expect(text).not.toContain('uninstall-postcondition')
       const coreImports = [...text.matchAll(/from ['"](\.\.\/core[^'"]*)['"]/gu)].map(match => match[1])
       expect(coreImports).toEqual(['../core/lifecycle/model'])
       expect(text).not.toContain('createQuantex')
@@ -119,23 +130,22 @@ describe('L1 lifecycle model Core-internal leaf', () => {
     expect(packageManager).toContain("from '../core/lifecycle/model'")
     expect(packageManager).not.toContain("from '../lifecycle/model'")
 
-    const barrel = await source('src/lifecycle/index.ts')
+    const barrel = await source(lifecycleBarrel)
     expect(barrel).toContain("from '../core/lifecycle/model'")
-
-    const remaining = [
-      'src/lifecycle/agent-observation.ts',
-      'src/lifecycle/agent-execution.ts',
-      'src/lifecycle/update-planner.ts',
-    ] as const
-    for (const path of remaining) {
-      const text = await source(path)
-      expect(text).toContain("from '../core/lifecycle/model'")
-      expect(text).not.toContain("from './model'")
-    }
 
     const binding = await source('src/core/lifecycle/provider-binding.ts')
     expect(binding).toContain("from './model'")
     expect(binding).not.toContain("from '../lifecycle/model'")
+
+    const observation = await source('src/core/lifecycle/agent-observation.ts')
+    expect(observation).toContain("from './model'")
+    expect(observation).not.toContain("from '../lifecycle/model'")
+
+    const planner = await source('src/core/lifecycle/update-planner.ts')
+    expect(planner).toContain("from './model'")
+
+    const execution = await source('src/core/lifecycle/agent-execution.ts')
+    expect(execution).toContain("from './model'")
   })
 })
 
@@ -149,57 +159,18 @@ describe('L2 lifecycle provider-binding Core-internal modules', () => {
     await expect(source('src/lifecycle/shadow-planning.ts')).rejects.toThrow()
     await expect(source('src/core/lifecycle/index.ts')).rejects.toThrow()
 
-    const coreLifecycleEntries = await readdir(new URL('../../src/core/lifecycle', import.meta.url))
-    expect(coreLifecycleEntries.filter(name => name.endsWith('.ts')).sort()).toEqual([
-      'model.ts',
-      'provider-binding.ts',
-      'provider-evidence.ts',
-    ])
+    const binding = await source('src/core/lifecycle/provider-binding.ts')
+    expect(binding).toContain('export interface LifecycleProviderBinding')
+    expect(binding).toContain('resolveInstallMethodProviderBinding')
+    expect(binding).not.toContain('../lifecycle')
+    expect(binding).not.toContain('createQuantex')
 
-    const lifecycleEntries = await readdir(new URL('../../src/lifecycle', import.meta.url))
-    expect(lifecycleEntries.filter(name => name.endsWith('.ts')).sort()).toEqual([
-      'agent-execution.ts',
-      'agent-observation.ts',
-      'index.ts',
-      'uninstall-postcondition.ts',
-      'update-planner.ts',
-    ])
-  })
-
-  it('keeps provider-evidence as observation plus binding re-exports, not a leftover pass-through', async () => {
     const evidence = await source('src/core/lifecycle/provider-evidence.ts')
     expect(evidence).toContain('observeLifecycleProvider')
     expect(evidence).toContain('firstPartyProviderRegistry')
     expect(evidence).toContain("from './provider-binding'")
     expect(evidence).not.toContain('../lifecycle')
     expect(evidence).not.toContain('createQuantex')
-
-    const binding = await source('src/core/lifecycle/provider-binding.ts')
-    expect(binding).toContain('export interface LifecycleProviderBinding')
-    expect(binding).toContain('resolveInstallMethodProviderBinding')
-    expect(binding).not.toContain('../lifecycle')
-    expect(binding).not.toContain('createQuantex')
-  })
-
-  it('forbids state and remaining lifecycle engines from depending on Core runtime', async () => {
-    for (const path of keptLifecycleModules) {
-      const text = await source(path)
-      expect(text).not.toContain("from '../core/index'")
-      expect(text).not.toContain('createQuantex')
-      expect(text).not.toContain('../core/installation-')
-      expect(text).not.toContain('../core/uninstall-executor')
-      expect(text).not.toContain('../core/update-executor')
-      expect(text).not.toContain('../core/execution-executor')
-    }
-
-    const observation = await source('src/lifecycle/agent-observation.ts')
-    expect(observation).toContain("from '../core/lifecycle/provider-binding'")
-    expect(observation).not.toContain("from './provider-binding'")
-
-    const barrel = await source('src/lifecycle/index.ts')
-    expect(barrel).toContain("from '../core/lifecycle/provider-evidence'")
-    expect(barrel).not.toContain("from './provider-evidence'")
-    expect(barrel).not.toContain("from './provider-binding'")
   })
 
   it('retargets former lifecycle/provider-binding importers onto Core-internal modules', async () => {
@@ -217,6 +188,86 @@ describe('L2 lifecycle provider-binding Core-internal modules', () => {
     const cli = await source('src/commands/core-installation-cli.ts')
     expect(cli).toContain("from '../core/lifecycle/provider-binding'")
     expect(cli).not.toContain("from '../lifecycle/provider-binding'")
+  })
+})
+
+describe('L3 lifecycle engines Core-internal modules', () => {
+  it('owns observation, planner, execution, and postcondition under src/core/lifecycle', async () => {
+    for (const path of coreInternalLifecycleModules) await source(path)
+
+    await expect(source('src/lifecycle/agent-observation.ts')).rejects.toThrow()
+    await expect(source('src/lifecycle/update-planner.ts')).rejects.toThrow()
+    await expect(source('src/lifecycle/agent-execution.ts')).rejects.toThrow()
+    await expect(source('src/lifecycle/uninstall-postcondition.ts')).rejects.toThrow()
+    await expect(source('src/core/lifecycle/index.ts')).rejects.toThrow()
+
+    const coreLifecycleEntries = await readdir(new URL('../../src/core/lifecycle', import.meta.url))
+    expect(coreLifecycleEntries.filter(name => name.endsWith('.ts')).sort()).toEqual([
+      'agent-execution.ts',
+      'agent-observation.ts',
+      'model.ts',
+      'provider-binding.ts',
+      'provider-evidence.ts',
+      'uninstall-postcondition.ts',
+      'update-planner.ts',
+    ])
+
+    const lifecycleEntries = await readdir(new URL('../../src/lifecycle', import.meta.url))
+    expect(lifecycleEntries.filter(name => name.endsWith('.ts')).sort()).toEqual(['index.ts'])
+  })
+
+  it('forbids state and Core-internal engines from depending on Core runtime', async () => {
+    for (const path of coreInternalLifecycleModules) {
+      const text = await source(path)
+      expect(text).not.toContain("from '../../core/index'")
+      expect(text).not.toContain("from '../index'")
+      expect(text).not.toContain('createQuantex')
+      expect(text).not.toContain('../installation-')
+      expect(text).not.toContain('../uninstall-executor')
+      expect(text).not.toContain('../update-executor')
+      expect(text).not.toContain('../execution-executor')
+    }
+
+    const observation = await source('src/core/lifecycle/agent-observation.ts')
+    expect(observation).toContain("from './provider-binding'")
+    expect(observation).toContain('observeAgentLifecycle')
+    expect(observation).not.toContain('../lifecycle')
+
+    const planner = await source('src/core/lifecycle/update-planner.ts')
+    expect(planner).toContain('planLifecycleUpdate')
+    expect(planner).not.toContain('../lifecycle')
+
+    const execution = await source('src/core/lifecycle/agent-execution.ts')
+    expect(execution).toContain('planAgentExecutionPreflight')
+    expect(execution).toContain("from './agent-observation'")
+
+    const postcondition = await source('src/core/lifecycle/uninstall-postcondition.ts')
+    expect(postcondition).toContain('waitForUninstallAbsence')
+    expect(postcondition).not.toContain('../lifecycle')
+
+    const barrel = await source(lifecycleBarrel)
+    expect(barrel).toContain("from '../core/lifecycle/agent-observation'")
+    expect(barrel).toContain("from '../core/lifecycle/update-planner'")
+    expect(barrel).toContain("from '../core/lifecycle/agent-execution'")
+    expect(barrel).not.toContain("from './agent-observation'")
+    expect(barrel).not.toContain("from './update-planner'")
+    expect(barrel).not.toContain("from './agent-execution'")
+    expect(barrel).not.toContain("from './uninstall-postcondition'")
+  })
+
+  it('retargets Core, services, and planning onto Core-internal engines', async () => {
+    const services = await source('src/services/lifecycle-observations.ts')
+    expect(services).toContain("from '../core/lifecycle/agent-observation'")
+    expect(services).toContain('observeAgentLifecycle')
+    expect(services).not.toContain("from '../lifecycle/agent-observation'")
+
+    const updates = await source('src/services/lifecycle-updates-production.ts')
+    expect(updates).toContain("from '../core/lifecycle/update-planner'")
+    expect(updates).not.toContain("from '../lifecycle'")
+
+    const updateExecutor = await source('src/core/update-executor.ts')
+    expect(updateExecutor).toContain("from './lifecycle/update-planner'")
+    expect(updateExecutor).not.toContain("from '../lifecycle'")
   })
 })
 

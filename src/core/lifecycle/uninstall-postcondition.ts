@@ -1,8 +1,6 @@
-// KEEP (P8 / P0–P5): waitForUninstallAbsence is differential uninstall postcondition
-// retry used by Core uninstall-executor. Not zero-ref; do not fold into src/core.
-// Product-path touch so process-only PRs are not required to skip the macOS matrix.
-// Product-path touch so the cursor-version-probe-targeting archive PR still runs the macOS test matrix.
-// Product-path touch so the lifecycle-model-core-internal-l1 archive PR still runs the macOS test matrix.
+// L3: Core-internal uninstall postcondition retry used by uninstall-executor.
+// Do not re-export from src/core/index.ts or packages/core. src/state MUST NOT
+// import this module (ADR 0011 / 0013).
 export interface ExecutableAbsenceWaitOptions {
   readonly attempts?: number
   readonly delay?: (milliseconds: number) => Promise<void>

@@ -3,13 +3,13 @@ import type {
   AgentExecutableObservation,
   AgentLifecycleObservationPorts,
   AgentLifecycleObservationResult,
-  LifecycleReceipt,
-} from '../lifecycle'
+} from '../core/lifecycle/agent-observation'
+import type { LifecycleReceipt } from '../core/lifecycle/model'
 import type { ProviderOperationContext, ProviderRegistry } from '../providers'
 import type { InstalledAgentState } from '../state'
 import * as agentRegistry from '../agents'
+import { observeAgentLifecycle } from '../core/lifecycle/agent-observation'
 import { resolveInstallMethodProviderBinding } from '../core/lifecycle/provider-binding'
-import { observeAgentLifecycle } from '../lifecycle'
 import { getOrderedInstallMethods } from '../package-manager'
 import { firstPartyProviderRegistry } from '../providers'
 import { createCliOperationContext } from '../runtime/cli-operation-context'

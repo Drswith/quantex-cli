@@ -21,8 +21,8 @@ import {
   resolveReceiptProviderBinding,
   resolveStateProviderBinding,
 } from '../../src/core/lifecycle/provider-binding'
+import { planLifecycleUpdate } from '../../src/core/lifecycle/update-planner'
 import { executeSingleAgentLifecycleUpdate } from '../../src/core/update-executor'
-import { planLifecycleUpdate } from '../../src/lifecycle/update-planner'
 import { buildInstalledAgentState } from '../../src/package-manager'
 import { firstPartyProviderIds } from '../../src/providers'
 import { createProviderRegistry } from '../../src/providers/registry'
