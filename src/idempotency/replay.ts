@@ -1,3 +1,5 @@
+// KEEP (L5): replay decision engine (mismatch/expiry/live-drift). Differential.
+// L5 leftover scan: not zero-ref and not a pure pass-through.
 import type { CommandResult } from '../output/types'
 import type {
   IdempotencyPostcondition,

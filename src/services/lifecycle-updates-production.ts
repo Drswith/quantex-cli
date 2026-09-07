@@ -27,10 +27,11 @@ export type SingleAgentLifecycleUpdateInvocation = CoreSingleAgentUpdateInvocati
 export type LifecycleUpdateBatchInvocation = CoreUpdateBatchInvocation
 
 /**
- * KEEP (P2): CLI production adapter over Core update-compatibility.
+ * KEEP (P2 / L5): CLI production adapter over Core update-compatibility.
  * Importers: src/commands/update.ts, src/idempotency/lifecycle-policy.ts.
  * Owns CLI cancellation/timeout/operation-context and retained CLI observation/lock ports;
  * Core owns plan/execute. Required for frozen update contracts.
+ * L5 leftover scan: not zero-ref and not a pure pass-through.
  */
 export async function runLifecycleUpdateBatch(): Promise<RunLifecycleUpdateBatchOutcome> {
   const invocation = createLifecycleUpdateBatchInvocation()

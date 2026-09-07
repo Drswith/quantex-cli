@@ -2,6 +2,7 @@
 // providers, type-only state, provider-binding, and compare-versions). Do not
 // re-export from src/core/index.ts or packages/core. src/state MUST NOT import
 // this module (ADR 0011 / 0013).
+// L5 leftover scan: KEEP product-path hang here (do not restore src/lifecycle).
 import type { AgentDefinition, Platform } from '../../agents'
 import type { ProviderOperation, ProviderOutcome, ProviderObservation, ProviderRegistry } from '../../providers'
 import type { InstalledAgentState } from '../../state'

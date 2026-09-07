@@ -254,6 +254,172 @@ describe('L3 lifecycle engines Core-internal modules', () => {
   })
 })
 
+describe('L5 leftover scan after lifecycle barrel deletion', () => {
+  const leftoverKeepHang = 'L5 leftover scan: KEEP product-path hang here (do not restore src/lifecycle).'
+
+  it('does not restore src/lifecycle and keeps Core-internal modules barrel-free', async () => {
+    await expect(source(deletedLifecycleBarrel)).rejects.toThrow()
+    await expect(readdir(new URL('../../src/lifecycle', import.meta.url))).rejects.toThrow()
+    await expect(source('src/core/lifecycle/index.ts')).rejects.toThrow()
+
+    for (const path of coreInternalLifecycleModules) {
+      const text = await source(path)
+      expect(text).toContain(leftoverKeepHang)
+    }
+  })
+
+  it('keeps already-deleted leftover shells absent', async () => {
+    await expect(source('src/self/application.ts')).rejects.toThrow()
+    await expect(source('src/core/self-upgrade-production.ts')).rejects.toThrow()
+    await expect(source('src/services/self-upgrade.ts')).rejects.toThrow()
+    await expect(source('src/services/lifecycle-updates.ts')).rejects.toThrow()
+    await expect(source('src/services/lifecycle-execution.ts')).rejects.toThrow()
+  })
+
+  it('keeps differential CLI/self/idempotency/compatibility layers after the L5 scan', async () => {
+    const servicesBarrel = await source('src/services/index.ts')
+    expect(servicesBarrel).toContain("from './agents'")
+    expect(servicesBarrel).toContain("from './update'")
+    expect(servicesBarrel).not.toMatch(/from ['"]\.\/self-upgrade-production['"]/u)
+    expect(servicesBarrel).not.toMatch(/from ['"]\.\/lifecycle-execution-production['"]/u)
+    expect(servicesBarrel).not.toMatch(/from ['"]\.\/lifecycle-updates-production['"]/u)
+    expect(servicesBarrel).toContain('KEEP (P5 / P7 / L5)')
+
+    const compatibility = await source('src/compatibility/index.ts')
+    expect(compatibility).toContain("from '../services'")
+    expect(compatibility).toContain("from '../self'")
+    expect(compatibility).toContain('KEEP (L5): published v1 root facade')
+
+    const inspectionProjector = await source('src/compatibility/agent-inspection.ts')
+    expect(inspectionProjector).toContain('projectObservationToV1Inspection')
+    expect(inspectionProjector).toContain('formatInstalledSource')
+    expect(inspectionProjector).toContain('KEEP (L5): v1 inspection projector')
+
+    const selfBarrel = await source('src/self/index.ts')
+    expect(selfBarrel).toContain('planSelfUpgrade')
+    expect(selfBarrel).toContain('upgradeSelf')
+    expect(selfBarrel).toContain('acquireSelfUpgradeLock')
+    expect(selfBarrel).toContain('KEEP (P7 / L5)')
+
+    const selfPlanning = await source('src/self/planning.ts')
+    expect(selfPlanning).toContain('planSelfUpgrade')
+    expect(selfPlanning).toContain('KEEP (P7 / L5)')
+
+    const policy = await source('src/idempotency/lifecycle-policy.ts')
+    expect(policy).toContain("from '../core/lifecycle/model'")
+    expect(policy).toContain("from '../core/lifecycle/provider-binding'")
+    expect(policy).toContain("from '../core/lifecycle/provider-evidence'")
+    expect(policy).toContain('observeLifecycleProvider')
+    expect(policy).not.toContain("from '../lifecycle'")
+    expect(policy).toContain('KEEP (L5): idempotency policy is differential')
+
+    const upgradeProduction = await source('src/services/self-upgrade-production.ts')
+    expect(upgradeProduction).toContain('getCliContext')
+    expect(upgradeProduction).toContain('executeCoreSelfUpgrade')
+    expect(upgradeProduction).toContain('KEEP (P6 / P7 / L5)')
+
+    const executionProduction = await source('src/services/lifecycle-execution-production.ts')
+    expect(executionProduction).toContain('executeAgentLifecycle')
+    expect(executionProduction).toContain("stdio: options.outputMode === 'human'")
+    expect(executionProduction).toContain('KEEP (P2 / L5)')
+
+    const updateProduction = await source('src/services/lifecycle-updates-production.ts')
+    expect(updateProduction).toContain('createCoreSingleAgentUpdateInvocation')
+    expect(updateProduction).toContain('KEEP (P2 / L5)')
+
+    const doctorProduction = await source('src/services/doctor-diagnosis-production.ts')
+    expect(doctorProduction).toContain('diagnoseDoctorEnvironment')
+    expect(doctorProduction).toContain('KEEP (P2 / L5)')
+  })
+
+  it('finds production importers for every leftover-scan candidate module', async () => {
+    const candidates: ReadonlyArray<{ path: string; importer: string; token: string }> = [
+      { path: 'src/services/index.ts', importer: 'src/compatibility/index.ts', token: "from '../services'" },
+      { path: 'src/services/agents.ts', importer: 'src/services/index.ts', token: "from './agents'" },
+      { path: 'src/services/update.ts', importer: 'src/services/index.ts', token: "from './update'" },
+      {
+        path: 'src/services/self-upgrade-production.ts',
+        importer: 'src/commands/upgrade.ts',
+        token: "from '../services/self-upgrade-production'",
+      },
+      {
+        path: 'src/services/lifecycle-execution-production.ts',
+        importer: 'src/commands/run.ts',
+        token: "from '../services/lifecycle-execution-production'",
+      },
+      {
+        path: 'src/services/lifecycle-updates-production.ts',
+        importer: 'src/commands/update.ts',
+        token: "from '../services/lifecycle-updates-production'",
+      },
+      {
+        path: 'src/services/doctor-diagnosis-production.ts',
+        importer: 'src/commands/doctor.ts',
+        token: "from '../services/doctor-diagnosis-production'",
+      },
+      {
+        path: 'src/services/lifecycle-observations.ts',
+        importer: 'src/services/lifecycle-execution-production.ts',
+        token: "from './lifecycle-observations'",
+      },
+      {
+        path: 'src/services/core-read-observations.ts',
+        importer: 'src/commands/inspect.ts',
+        token: "from '../services/core-read-observations'",
+      },
+      {
+        path: 'src/services/provider-observations.ts',
+        importer: 'src/commands/capabilities.ts',
+        token: "from '../services/provider-observations'",
+      },
+      {
+        path: 'src/services/command-capabilities.ts',
+        importer: 'src/commands/capabilities.ts',
+        token: "from '../services/command-capabilities'",
+      },
+      { path: 'src/compatibility/index.ts', importer: 'src/index.ts', token: "from './compatibility'" },
+      {
+        path: 'src/compatibility/agent-inspection.ts',
+        importer: 'src/commands/list.ts',
+        token: "from '../compatibility/agent-inspection'",
+      },
+      { path: 'src/self/index.ts', importer: 'src/commands/upgrade.ts', token: "from '../self'" },
+      { path: 'src/self/planning.ts', importer: 'src/self/index.ts', token: "from './planning'" },
+      { path: 'src/self/lock.ts', importer: 'src/self/index.ts', token: "from './lock'" },
+      { path: 'src/self/facts.ts', importer: 'src/self/index.ts', token: "from './facts'" },
+      { path: 'src/self/binary.ts', importer: 'src/self/providers/binary.ts', token: "from '../binary'" },
+      { path: 'src/self/providers/index.ts', importer: 'src/self/index.ts', token: "from './providers'" },
+      { path: 'src/idempotency.ts', importer: 'src/command-runtime.ts', token: "from './idempotency'" },
+      {
+        path: 'src/idempotency/lifecycle-policy.ts',
+        importer: 'src/commands/update.ts',
+        token: "from '../idempotency/lifecycle-policy'",
+      },
+      { path: 'src/idempotency/canonical.ts', importer: 'src/idempotency/schema.ts', token: "from './canonical'" },
+      { path: 'src/idempotency/replay.ts', importer: 'src/command-runtime.ts', token: "from './idempotency/replay'" },
+      { path: 'src/idempotency/schema.ts', importer: 'src/idempotency.ts', token: "from './idempotency/schema'" },
+    ]
+
+    for (const candidate of candidates) {
+      await source(candidate.path)
+      const importer = await source(candidate.importer)
+      expect(importer, `${candidate.importer} must import ${candidate.path}`).toContain(candidate.token)
+    }
+  })
+
+  it('does not publish leftover engine or route identifiers on Core SDK or CLI JSON helpers', async () => {
+    const publicCore = await source('src/core/index.ts')
+    expect(publicCore).not.toContain('./lifecycle')
+    expect(publicCore).not.toContain('engine')
+    expect(publicCore).not.toContain('route')
+
+    const packageEntry = await source('packages/core/src/index.ts')
+    expect(packageEntry).not.toContain('lifecycle')
+    expect(packageEntry).not.toContain('engine')
+    expect(packageEntry).not.toContain('route')
+  })
+})
+
 describe('L4 leftover lifecycle barrel deletion', () => {
   it('deletes src/lifecycle and keeps Core-internal modules barrel-free', async () => {
     await expect(source(deletedLifecycleBarrel)).rejects.toThrow()

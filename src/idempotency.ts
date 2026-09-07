@@ -1,3 +1,5 @@
+// KEEP (L5): versioned idempotency record I/O (TTL, atomic write, parse).
+// Not a leftover pass-through of src/idempotency/schema.ts.
 import type { CommandResult, CommandTarget } from './output/types'
 import { createHash, randomUUID } from 'node:crypto'
 import { mkdir, readFile, rename, rm, writeFile } from 'node:fs/promises'

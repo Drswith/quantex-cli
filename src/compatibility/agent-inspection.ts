@@ -1,3 +1,5 @@
+// KEEP (L5): v1 inspection projector over lifecycle observations. Differential
+// formatting (source/update labels, unmanaged lifecycle). Not a pass-through.
 import type { AgentInspection } from '../inspection'
 import type { ResolvedAgentObservation } from '../services/lifecycle-observations'
 import { formatInstalledSource, formatUpdateManagement, getInstallLifecycle } from '../utils/install'

@@ -1,3 +1,5 @@
+// KEEP (L5): command-contract snapshot projected to frozen v1 capability flags.
+// L5 leftover scan: not zero-ref and not a pure pass-through.
 import type { CommandContract, CommandEffect, StableCommandName } from '../command-contract/registry'
 import { getCommandContracts } from '../command-contract/registry'
 

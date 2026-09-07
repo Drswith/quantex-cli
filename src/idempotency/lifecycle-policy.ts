@@ -1,3 +1,6 @@
+// KEEP (L5): idempotency policy is differential (presence/update replay,
+// provider evidence, CLI observation). L4 only retargeted imports onto
+// Core-internal modules; not a leftover pass-through shell.
 import type { CommandIdempotencyPolicy } from '../command-runtime'
 import type { LifecycleReceipt } from '../core/lifecycle/model'
 import type { LifecycleProviderBinding } from '../core/lifecycle/provider-binding'

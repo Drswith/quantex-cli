@@ -1,6 +1,7 @@
 // L3: Core-internal update planning. Not a leaf (imports the model leaf and
 // utils/version). Do not re-export from src/core/index.ts or packages/core.
 // src/state MUST NOT import this module (ADR 0011 / 0013).
+// L5 leftover scan: KEEP product-path hang here (do not restore src/lifecycle).
 import type {
   LifecycleIntent,
   LifecycleObservation,

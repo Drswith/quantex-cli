@@ -1,3 +1,6 @@
+// KEEP (L5): provider snapshot + v1 installer projection. Differential
+// availability observation and frozen installer-id mapping.
+// L5 leftover scan: not zero-ref and not a pure pass-through.
 import type {
   ProviderAvailability,
   ProviderId,

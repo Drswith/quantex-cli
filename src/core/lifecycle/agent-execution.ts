@@ -2,6 +2,7 @@ import type { AgentExecutableObservation } from './agent-observation'
 // L3: Core-internal execution preflight. Not a leftover pass-through — Core
 // execution-executor wraps it with launch/install. Do not re-export from
 // src/core/index.ts or packages/core. src/state MUST NOT import this module.
+// L5 leftover scan: KEEP product-path hang here (do not restore src/lifecycle).
 import type { LifecycleObservation } from './model'
 
 export type AgentExecutionInstallPolicy = 'always' | 'if-missing' | 'never' | 'prompt'

@@ -1,9 +1,7 @@
 // L3: Core-internal uninstall postcondition retry used by uninstall-executor.
 // Do not re-export from src/core/index.ts or packages/core. src/state MUST NOT
 // import this module (ADR 0011 / 0013 / 0014).
-// Product-path keep so the lifecycle-barrel-core-internal-l4 archive PR still
-// runs the macOS test matrix. Hang leftover classify presence on this existing
-// Core-internal file, not a restored src/lifecycle barrel.
+// L5 leftover scan: KEEP product-path hang here (do not restore src/lifecycle).
 export interface ExecutableAbsenceWaitOptions {
   readonly attempts?: number
   readonly delay?: (milliseconds: number) => Promise<void>

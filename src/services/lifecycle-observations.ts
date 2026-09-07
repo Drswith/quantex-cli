@@ -1,3 +1,6 @@
+// KEEP (L5): CLI observation service over Core-internal observeAgentLifecycle.
+// Adds catalog/PATH/latest-version enrichment and CLI operation context.
+// L5 leftover scan: not zero-ref and not a pure pass-through.
 import type { AgentDefinition, InstallMethod, Platform } from '../agents'
 import type {
   AgentExecutableObservation,

@@ -1,3 +1,6 @@
+// KEEP (L5): CLI read projector over quantex-core/internal inspect/list.
+// Enriches Core observations with v1 catalog/capabilities/latest-version.
+// L5 leftover scan: not zero-ref and not a pure pass-through.
 import type { AgentDefinition, InstallMethod } from '../agents'
 import type { ProviderOperationContext } from '../providers'
 import type { InstalledAgentState } from '../state'
