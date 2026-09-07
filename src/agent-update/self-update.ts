@@ -1,3 +1,5 @@
+// KEEP (S1): agent self-update command runner over package-manager mutation.
+// Reached via the agent-update barrel; differential command fallback loop.
 import type { ProviderMutationEvidence, ProviderOperationContext, ProviderOutcome, ProviderTarget } from '../providers'
 import { runPackageMutationOutcome } from '../package-manager/context-mutation'
 

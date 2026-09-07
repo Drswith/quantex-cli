@@ -1,3 +1,5 @@
+// KEEP (S1): CLI error-code → exit-code mapping. Frozen exit codes; not a
+// leftover pass-through of output/types.
 import type { CommandResult } from './output/types'
 
 export const cliErrorCodes = [

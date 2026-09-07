@@ -1,3 +1,5 @@
+// KEEP (S1): Core/self invocation context over runtime ports. Only reached via
+// the runtime barrel, but still adds cancellation/options behavior.
 import type { RuntimePorts } from './ports'
 
 export type CacheMode = 'default' | 'no-cache' | 'refresh'
