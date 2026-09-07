@@ -2,7 +2,6 @@
 // Do not re-export from src/core/index.ts or packages/core. src/state MUST NOT
 // import this module (ADR 0011 / 0013).
 // Product-path touch so the lifecycle-engines-core-internal-l3 archive PR still runs the macOS test matrix.
-// Product-path touch so the lifecycle-provider-core-internal-l2 archive PR still runs the macOS test matrix.
 export interface ExecutableAbsenceWaitOptions {
   readonly attempts?: number
   readonly delay?: (milliseconds: number) => Promise<void>

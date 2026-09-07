@@ -2,6 +2,7 @@
 // types, L2 moved provider-binding/evidence, L3 moved observation/planner/
 // execution/postcondition. This barrel re-exports them as an existing non-SDK
 // path. Do not delete this directory in L3 (L4).
+// Product-path touch so the lifecycle-provider-core-internal-l2 archive PR still runs the macOS test matrix.
 export {
   type AgentExecutionInstallPolicy,
   type AgentExecutionPreflightInput,
