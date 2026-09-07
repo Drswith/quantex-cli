@@ -1,9 +1,10 @@
-// KEEP (P8): Not a pure re-export — observeLifecycleProvider defaults to the
-// first-party registry. Core uninstall-executor and idempotency consume it via
-// the barrel. Binding helpers remain re-exported for existing import sites.
-import type { ProviderObservation, ProviderOutcome, ProviderRegistry } from '../providers'
+// L2: Core-internal provider observation helper. Not a leftover pass-through —
+// observeLifecycleProvider defaults to the first-party registry. Binding helpers
+// remain re-exported for existing non-SDK import sites. Do not re-export from
+// src/core/index.ts or packages/core. src/state MUST NOT import this module.
+import type { ProviderObservation, ProviderOutcome, ProviderRegistry } from '../../providers'
 import type { LifecycleProviderBinding } from './provider-binding'
-import { firstPartyProviderRegistry } from '../providers'
+import { firstPartyProviderRegistry } from '../../providers'
 
 export type { CatalogProviderEvidence, LifecycleProviderBinding } from './provider-binding'
 export {

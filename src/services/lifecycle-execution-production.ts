@@ -13,7 +13,7 @@ import {
   type LifecycleExecutionObservedAgent,
 } from '../core/execution-executor'
 import { createCoreInstallationCompatibilityExecutor } from '../core/installation-compatibility'
-import { resolveInstallMethodProviderBinding } from '../lifecycle/provider-binding'
+import { resolveInstallMethodProviderBinding } from '../core/lifecycle/provider-binding'
 import { buildInstalledAgentState } from '../package-manager'
 import { createAgentProcessPort, createCliOperationContext } from '../runtime'
 import { resolveCliProviderOutputPolicy } from '../runtime/cli-operation-context'

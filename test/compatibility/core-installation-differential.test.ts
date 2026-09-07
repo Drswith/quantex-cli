@@ -119,12 +119,12 @@ import { decideCoreInstallation } from '../../src/core/installation-decision'
 import { executeCoreInstallation } from '../../src/core/installation-executor'
 import { createProductionCoreInstallationPorts } from '../../src/core/installation-production'
 import { runCoreInvocation } from '../../src/core/invocation'
-import { getExitCodeForResult } from '../../src/errors'
 import {
   resolveInstallMethodProviderBinding,
   resolveReceiptProviderBinding,
   resolveStateProviderBinding,
-} from '../../src/lifecycle/provider-binding'
+} from '../../src/core/lifecycle/provider-binding'
+import { getExitCodeForResult } from '../../src/errors'
 import { createProviderRegistry } from '../../src/providers/registry'
 import { createEmptyStateDocument } from '../../src/state/schema'
 import { LifecycleStateStore } from '../../src/state/store'

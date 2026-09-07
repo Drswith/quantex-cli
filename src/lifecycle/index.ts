@@ -1,6 +1,7 @@
-// KEEP (P8 / L1): Used barrel (Core execution/update/uninstall, services, idempotency).
-// L1 moved receipt types to src/core/lifecycle/model; this barrel re-exports them
-// as an existing non-SDK path. Remaining engines stay here for L2+.
+// KEEP (P8 / L1 / L2): Used barrel (Core execution/update, services, idempotency).
+// L1 moved receipt types to src/core/lifecycle/model; L2 moved provider-binding
+// and provider-evidence. This barrel re-exports them as an existing non-SDK path.
+// Remaining engines stay here for L3+.
 export {
   type AgentExecutionInstallPolicy,
   type AgentExecutionPreflightInput,
@@ -46,4 +47,4 @@ export {
   resolvePersistedProviderBinding,
   resolveReceiptProviderBinding,
   resolveStateProviderBinding,
-} from './provider-evidence'
+} from '../core/lifecycle/provider-evidence'

@@ -1,15 +1,9 @@
 import type { AgentDefinition } from '../agents/types'
-import type { LifecycleProviderBinding } from '../lifecycle/provider-binding'
 import type { ProviderOutcome, ProviderObservation } from '../providers/types'
 import type { InstalledAgentState } from '../state'
 import type { LifecycleReceipt } from './lifecycle/model'
+import type { LifecycleProviderBinding } from './lifecycle/provider-binding'
 import { getAgentByNameOrAlias } from '../agents'
-import {
-  observeLifecycleProvider,
-  providerBindingsEqual,
-  resolveReceiptProviderBinding,
-  resolveStateProviderBinding,
-} from '../lifecycle'
 import { waitForUninstallAbsence } from '../lifecycle/uninstall-postcondition'
 import { uninstallInstalledAgentOutcome, withAgentLifecycleLock } from '../package-manager'
 import {
@@ -23,6 +17,12 @@ import {
 import { isBinaryInPath } from '../utils/detect'
 import { canUninstallInstallType } from '../utils/install'
 import { isResourceLockError, type ResourceLockError } from '../utils/lock'
+import {
+  providerBindingsEqual,
+  resolveReceiptProviderBinding,
+  resolveStateProviderBinding,
+} from './lifecycle/provider-binding'
+import { observeLifecycleProvider } from './lifecycle/provider-evidence'
 
 export type CoreUninstallFailureLifecycle =
   | 'conflicting-source'

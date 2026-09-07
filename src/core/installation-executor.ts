@@ -1,4 +1,3 @@
-import type { LifecycleProviderBinding } from '../lifecycle/provider-binding'
 import type { ProviderOperationContext, ProviderOutcome } from '../providers/types'
 import type { CoreInstallationDirective } from './installation-decision'
 import type {
@@ -14,13 +13,14 @@ import type {
   CoreMutationSideEffect,
 } from './installation-executor-types'
 import type { CoreInvocationContext } from './invocation'
+import type { LifecycleProviderBinding } from './lifecycle/provider-binding'
 import type { CoreAgentObservation } from './production-observation'
+import { decideCoreInstallation } from './installation-decision'
 import {
   providerBindingsEqual,
   resolveReceiptProviderBinding,
   resolveStateProviderBinding,
-} from '../lifecycle/provider-binding'
-import { decideCoreInstallation } from './installation-decision'
+} from './lifecycle/provider-binding'
 import {
   CoreMutationInterruption,
   CoreMutationRecovery,

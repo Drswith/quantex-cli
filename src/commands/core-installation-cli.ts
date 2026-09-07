@@ -15,7 +15,7 @@ import type { MutationFailureDiagnostics } from './installation-failure-diagnost
 import type { InstallationOperation } from './installation-routing'
 import process from 'node:process'
 import { getCliContext, registerCliCancellationHandler } from '../cli-context'
-import { resolveInstallMethodProviderBinding } from '../lifecycle/provider-binding'
+import { resolveInstallMethodProviderBinding } from '../core/lifecycle/provider-binding'
 import { createErrorResult, createSuccessResult, emitCommandEvent } from '../output'
 import { buildInstalledAgentState } from '../package-manager'
 import { resolveCliProviderOutputPolicy } from '../runtime/cli-operation-context'

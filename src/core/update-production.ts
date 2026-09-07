@@ -12,7 +12,6 @@ import type {
 import { executeAgentSelfUpdate } from '../agent-update'
 import { planLifecycleUpdate } from '../lifecycle'
 import { observeAgentLifecycle } from '../lifecycle/agent-observation'
-import { resolveInstallMethodProviderBinding } from '../lifecycle/provider-binding'
 import { getOrderedInstallMethods, withAgentLifecycleLock } from '../package-manager'
 import { firstPartyProviderRegistry } from '../providers'
 import { getInstalledAgentState, getLifecycleReceipt, lifecycleReceiptStore, loadState } from '../state'
@@ -22,6 +21,7 @@ import { executableLookupNamesForAgent } from '../utils/executable-search-paths'
 import { isResourceLockError } from '../utils/lock'
 import { getResolvedBinaryPath, probeInstalledVersion } from '../utils/version'
 import { getCoreAgentByNameOrAlias, getCoreAgents } from './agent-catalog'
+import { resolveInstallMethodProviderBinding } from './lifecycle/provider-binding'
 import { resolveCoreConfigDir } from './production-observation'
 
 export interface CoreUpdateProductionOptions {

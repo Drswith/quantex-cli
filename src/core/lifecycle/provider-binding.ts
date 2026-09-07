@@ -1,10 +1,11 @@
-// KEEP (P8): Differential provider-binding resolution used by Core install/uninstall/
-// update/execution and CLI. Listed as allowed outside-Core in the SDK eager closure.
-import type { AgentDefinition, InstallMethod, Platform } from '../agents'
-import type { LifecycleReceipt } from '../core/lifecycle/model'
-import type { ProviderId, ProviderTarget, ProviderTargetKind } from '../providers/types'
-import type { InstalledAgentState } from '../state'
-import { firstPartyProviderIds } from '../providers/types'
+// L2: Core-internal provider-binding resolution. Not a leaf (imports agents,
+// providers/types, and type-only state). Do not re-export from src/core/index.ts
+// or packages/core. src/state MUST NOT import this module (ADR 0011 / 0012).
+import type { AgentDefinition, InstallMethod, Platform } from '../../agents'
+import type { ProviderId, ProviderTarget, ProviderTargetKind } from '../../providers/types'
+import type { InstalledAgentState } from '../../state'
+import type { LifecycleReceipt } from './model'
+import { firstPartyProviderIds } from '../../providers/types'
 
 export interface LifecycleProviderBinding {
   readonly providerId: ProviderId
