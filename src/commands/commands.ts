@@ -1,3 +1,6 @@
+// KEEP (S2): CLI `commands` catalog command. Frozen command directory.
+// Do not fold into command-contract or schema.
+// S2 leftover scan: KEEP product-path hang here (CLI shell leftover; do not restore src/lifecycle).
 import type { V1CommandDescriptor } from '../command-contract'
 import type { CommandResult } from '../output/types'
 import { getCommandContracts, toV1CommandDescriptor } from '../command-contract'

@@ -1,3 +1,6 @@
+// KEEP (S2): internal install/ensure/update/uninstall engine identity.
+// Always Core after promotion; `QUANTEX_INSTALLATION_ENGINE` is ignored.
+// Debug-only stderr + test seam. Must not leak `engine` / `route` into --json.
 import process from 'node:process'
 import { getCliContext } from '../cli-context'
 

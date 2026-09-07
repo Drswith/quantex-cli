@@ -1,3 +1,5 @@
+// KEEP (S2): CLI session around Core install/ensure (cancel, dry-run preview,
+// v1 payload projection, failure diagnostics). Differential, not a pass-through.
 import type { AgentDefinition } from '../agents'
 import type {
   CoreInstallationCompatibilityExecutor,

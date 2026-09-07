@@ -1,3 +1,6 @@
+// KEEP (S2): CLI `config` command. Do not fold into src/config.
+// Frozen dual-mode get/set/list/reset surface.
+// S2 leftover scan: KEEP product-path hang here (CLI shell leftover; do not restore src/lifecycle).
 import type { CommandResult } from '../output/types'
 import { isDefaultPackageManager, isNpmBunUpdateStrategy, loadConfig, saveConfig } from '../config'
 import { defaultConfig } from '../config/default'

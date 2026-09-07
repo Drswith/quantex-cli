@@ -1,3 +1,5 @@
+// KEEP (S2): Commander action dispatch into command modules + idempotency
+// policy wiring. Lazy imports, exit-code mapping. Not a leftover wrapper.
 import type { CommandResult, CommandTarget } from '../output/types'
 import type { StableCommandName } from './registry'
 import process from 'node:process'

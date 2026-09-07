@@ -1,3 +1,6 @@
+// KEEP (S2): CLI `schema` command. Frozen JSON schema catalog. Do not fold
+// into command-contract/schemas or commands.
+// S2 leftover scan: KEEP product-path hang here (CLI shell leftover; do not restore src/lifecycle).
 import type { SchemaDocument } from '../command-contract/schemas'
 import type { CommandResult } from '../output/types'
 import { getCommandContracts } from '../command-contract'

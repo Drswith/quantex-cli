@@ -1,3 +1,5 @@
+// KEEP (S2): frozen JSON/ndjson schema documents for `quantex schema`.
+// Envelope must not describe engine/route. Not a leftover of commands.ts.
 type JsonSchemaType = 'array' | 'boolean' | 'integer' | 'null' | 'number' | 'object' | 'string'
 
 export interface JsonSchema {

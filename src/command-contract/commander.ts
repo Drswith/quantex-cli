@@ -1,3 +1,5 @@
+// KEEP (S2): Commander program builder from the command-contract registry.
+// Global options, aliases, argv hooks. Differential from handlers/registry.
 import { Command } from 'commander'
 import process from 'node:process'
 import { resetCliContext, resolveCliContext, setCliContext } from '../cli-context'

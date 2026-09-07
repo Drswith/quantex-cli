@@ -1,3 +1,7 @@
+// KEEP (S2): CLI `exec` / shortcut launch facade over Core execution.
+// Owns argv, `--install` policy, exit codes, and process I/O. Not a public
+// SDK `run()` wrapper and not a leftover pass-through.
+// S2 leftover scan: KEEP product-path hang here (CLI shell leftover; do not restore src/lifecycle).
 import type { AgentDefinition, InstallMethod } from '../agents/types'
 import type { AgentExecutionOutcome } from '../core/execution-executor'
 import type { CliErrorCode } from '../errors'
