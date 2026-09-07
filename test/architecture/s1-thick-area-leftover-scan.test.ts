@@ -94,6 +94,7 @@ describe('S1 thick-area leftover scan after L5', () => {
       .filter(([, refs]) => refs.length > 0 && refs.every(ref => ref.startsWith('test/')))
       .map(([path]) => path)
 
+    expect(graph.scanFiles.every(path => !path.includes('\\'))).toBe(true)
     expect(zeroRef, 'S1 scan files must have at least one importer').toEqual([])
     expect(testOnly, 'S1 scan files must have a production importer').toEqual([])
   })
@@ -203,7 +204,7 @@ async function collectImporterFiles(): Promise<string[]> {
 async function listTs(dir: string): Promise<string[]> {
   const files: string[] = []
   for (const entry of await readdir(join(ROOT, dir), { withFileTypes: true })) {
-    const path = join(dir, entry.name)
+    const path = toPosix(join(dir, entry.name))
     if (entry.isDirectory()) files.push(...(await listTs(path)))
     else if (entry.isFile() && entry.name.endsWith('.ts') && !entry.name.endsWith('.d.ts')) files.push(path)
   }
@@ -212,10 +213,14 @@ async function listTs(dir: string): Promise<string[]> {
 
 function resolveImport(fromFile: string, specifier: string, fileSet: Set<string>): string | undefined {
   if (!specifier.startsWith('.') && !specifier.startsWith('/')) return undefined
-  const abs = resolve(join(ROOT, dirname(fromFile)), specifier)
-  const rel = relative(ROOT, abs).replaceAll('\\', '/')
-  const candidates = [rel, `${rel}.ts`, join(rel, 'index.ts').replaceAll('\\', '/')]
+  const abs = resolve(join(ROOT, fromFile), '..', specifier)
+  const rel = toPosix(relative(ROOT, abs))
+  const candidates = [rel, `${rel}.ts`, `${rel}/index.ts`]
   return candidates.find(candidate => fileSet.has(candidate))
+}
+
+function toPosix(path: string): string {
+  return path.replaceAll('\\', '/')
 }
 
 async function source(path: string): Promise<string> {
