@@ -22,6 +22,7 @@ describe('P8 lifecycle→Core closure', () => {
 
     const execution = await source('src/core/execution-executor.ts')
     expect(execution).toContain("from './lifecycle/agent-execution'")
+    expect(execution).toContain("from './lifecycle/agent-observation'")
     expect(execution).toContain('planAgentExecutionPreflight')
     expect(execution).toContain("from './lifecycle/model'")
     expect(execution).not.toContain("from '../lifecycle'")
