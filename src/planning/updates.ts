@@ -1,7 +1,7 @@
 import type { AgentInspection } from '../inspection'
 import type { ManagedInstallType } from '../package-manager'
 import { resolveAgentUpdateProvider } from '../agent-update'
-import { planLifecycleUpdate } from '../lifecycle/update-planner'
+import { planLifecycleUpdate } from '../core/lifecycle/update-planner'
 import { getManagedInstallTypes } from '../package-manager/capabilities'
 
 export interface UpdatePlanEntry {

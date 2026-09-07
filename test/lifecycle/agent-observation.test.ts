@@ -3,7 +3,7 @@ import type { LifecycleReceipt } from '../../src/lifecycle'
 import type { ProviderAdapter, ProviderObservation, ProviderOutcome, ProviderRegistry } from '../../src/providers'
 import type { InstalledAgentState } from '../../src/state'
 import { describe, expect, it, vi } from 'vitest'
-import { type AgentLifecycleObservationPorts, observeAgentLifecycle } from '../../src/lifecycle/agent-observation'
+import { type AgentLifecycleObservationPorts, observeAgentLifecycle } from '../../src/core/lifecycle/agent-observation'
 
 type ObservationOutcome = ProviderOutcome<ProviderObservation>
 

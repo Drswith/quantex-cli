@@ -4,7 +4,6 @@ import type { InstalledAgentState } from '../state'
 import type { LifecycleReceipt } from './lifecycle/model'
 import type { LifecycleProviderBinding } from './lifecycle/provider-binding'
 import { getAgentByNameOrAlias } from '../agents'
-import { waitForUninstallAbsence } from '../lifecycle/uninstall-postcondition'
 import { uninstallInstalledAgentOutcome, withAgentLifecycleLock } from '../package-manager'
 import {
   getInstalledAgentState,
@@ -23,6 +22,7 @@ import {
   resolveStateProviderBinding,
 } from './lifecycle/provider-binding'
 import { observeLifecycleProvider } from './lifecycle/provider-evidence'
+import { waitForUninstallAbsence } from './lifecycle/uninstall-postcondition'
 
 export type CoreUninstallFailureLifecycle =
   | 'conflicting-source'

@@ -1,11 +1,12 @@
-// KEEP (P8): Core production-observation + update-production call observeAgentLifecycle.
-// Shared observation engine also used by CLI lifecycle-observations. Listed as an
-// allowed outside-Core dependency in the published SDK eager closure. Moving into
-// src/core would relocate differential observation, not a zero-ref leftover.
-import type { AgentDefinition, Platform } from '../agents'
-import type { LifecycleObservation, LifecycleReceipt } from '../core/lifecycle/model'
-import type { ProviderOperation, ProviderOutcome, ProviderObservation, ProviderRegistry } from '../providers'
-import type { InstalledAgentState } from '../state'
+// L3: Core-internal agent lifecycle observation. Not a leaf (imports agents,
+// providers, type-only state, provider-binding, and compare-versions). Do not
+// re-export from src/core/index.ts or packages/core. src/state MUST NOT import
+// this module (ADR 0011 / 0013).
+import type { AgentDefinition, Platform } from '../../agents'
+import type { ProviderOperation, ProviderOutcome, ProviderObservation, ProviderRegistry } from '../../providers'
+import type { InstalledAgentState } from '../../state'
+import type { LifecycleObservation, LifecycleReceipt } from './model'
+import { compareVersions } from '../../utils/compare-versions'
 import {
   type LifecycleProviderBinding,
   providerBindingsEqual,
@@ -13,8 +14,7 @@ import {
   resolvePersistedProviderBinding,
   resolveReceiptProviderBinding,
   resolveStateProviderBinding,
-} from '../core/lifecycle/provider-binding'
-import { compareVersions } from '../utils/compare-versions'
+} from './provider-binding'
 
 export interface AgentExecutableObservation {
   readonly path?: string

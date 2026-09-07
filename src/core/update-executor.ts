@@ -1,5 +1,4 @@
 import type { AgentPackageMetadata, AgentSelfUpdate, InstallMethod } from '../agents'
-import type { LifecycleUpdatePlanningInput, LifecycleUpdatePlanningResult } from '../lifecycle'
 import type {
   ProviderAdapter,
   ProviderEvidence,
@@ -12,6 +11,7 @@ import type {
   ProviderTarget,
 } from '../providers/types'
 import type { InstalledAgentState } from '../state'
+import type { LifecycleUpdatePlanningInput, LifecycleUpdatePlanningResult } from './lifecycle/update-planner'
 import { getSupersededPackageMessage } from '../agent-update/messages'
 import { resolveSupersededPackage } from '../agents/superseded'
 import { compareVersions } from '../utils/version'

@@ -6,7 +6,7 @@ import {
   type AgentExecutableObservation,
   type AgentExecutionInstallPolicy,
   planAgentExecutionPreflight,
-} from '../lifecycle'
+} from './lifecycle/agent-execution'
 
 /**
  * In-repo Core agent execution engine (CLI-facing). Absent from the published
