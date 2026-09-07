@@ -20,7 +20,7 @@
 
 ## 4. Validation and delivery
 
-- [ ] 4.1 Run `bun run lint`, `bun run format:check`, `bun run typecheck`
-- [ ] 4.2 Run `bun run test`
-- [ ] 4.3 Run `bun run openspec:validate` and `bun run memory:check`
-- [ ] 4.4 Commit, push, and open a **draft** PR with before/after import map, SDK non-export checklist, freeze checklist, and internal changelog framing
+- [x] 4.1 Run `bun run lint`, `bun run format:check`, `bun run typecheck`
+- [x] 4.2 Run `bun run test`
+- [x] 4.3 Run `bun run openspec:validate` and `bun run memory:check`
+- [x] 4.4 Commit, push, and open a **draft** PR with before/after import map, SDK non-export checklist, freeze checklist, and internal changelog framing
