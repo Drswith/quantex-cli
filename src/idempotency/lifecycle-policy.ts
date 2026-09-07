@@ -1,7 +1,7 @@
 import type { CommandIdempotencyPolicy } from '../command-runtime'
+import type { LifecycleReceipt } from '../core/lifecycle/model'
+import type { LifecycleProviderBinding } from '../core/lifecycle/provider-binding'
 import type { LifecycleUpdateObservedAgent, SingleAgentLifecycleUpdatePlan } from '../core/update-executor'
-import type { LifecycleProviderBinding } from '../lifecycle'
-import type { LifecycleReceipt } from '../lifecycle'
 import type { ProviderId, ProviderObservation, ProviderOutcome, ProviderTargetKind } from '../providers'
 import type {
   LifecycleUpdateBatchInvocation,
@@ -14,8 +14,12 @@ import type {
   IdempotencyReceiptSnapshot,
   IdempotencySinglePostcondition,
 } from './schema'
+import {
+  observeLifecycleProvider,
+  providerBindingsEqual,
+  resolveReceiptProviderBinding,
+} from '../core/lifecycle/provider-evidence'
 import { getSingleAgentLifecycleUpdateResolvedPlanId } from '../core/update-executor'
-import { observeLifecycleProvider, providerBindingsEqual, resolveReceiptProviderBinding } from '../lifecycle'
 import { firstPartyProviderIds } from '../providers'
 import { createCliOperationContext } from '../runtime/cli-operation-context'
 import { resolveAgent } from '../services/agents'

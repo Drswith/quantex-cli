@@ -1,6 +1,7 @@
 import type { AgentDefinition, InstallMethod } from '../../src/agents'
 import type { CoreInstallationRecipe } from '../../src/core/installation-executor'
 import type { CoreInvocationContext } from '../../src/core/invocation'
+import type { LifecycleObservation, LifecycleReceipt } from '../../src/core/lifecycle/model'
 import type { LifecycleProviderBinding } from '../../src/core/lifecycle/provider-binding'
 import type { CoreAgentObservation } from '../../src/core/production-observation'
 import type {
@@ -8,7 +9,6 @@ import type {
   LifecycleUpdateServicePorts,
   ManagedAgentLifecycleUpdatePlan,
 } from '../../src/core/update-executor'
-import type { LifecycleObservation, LifecycleReceipt } from '../../src/lifecycle'
 import type { ProviderAdapter, ProviderId } from '../../src/providers'
 import type { InstalledAgentState, VersionedQuantexState } from '../../src/state/schema'
 import type { StateDocumentPersistence } from '../../src/state/store'

@@ -1,7 +1,7 @@
 import { readdir, readFile } from 'node:fs/promises'
 import { describe, expect, it } from 'vitest'
 
-const lifecycleBarrel = 'src/lifecycle/index.ts'
+const deletedLifecycleBarrel = 'src/lifecycle/index.ts'
 
 const coreInternalLifecycleModules = [
   'src/core/lifecycle/agent-execution.ts',
@@ -17,9 +17,7 @@ const coreInternalModel = 'src/core/lifecycle/model.ts'
 const stateCoreLeafImport = "from '../core/lifecycle/model'"
 
 describe('P8 lifecycle→Core closure', () => {
-  it('keeps the lifecycle barrel as a non-SDK facade outside src/core', async () => {
-    await source(lifecycleBarrel)
-
+  it('keeps Core engines on Core-internal paths after barrel deletion', async () => {
     const execution = await source('src/core/execution-executor.ts')
     expect(execution).toContain("from './lifecycle/agent-execution'")
     expect(execution).toContain("from './lifecycle/agent-observation'")
@@ -130,9 +128,6 @@ describe('L1 lifecycle model Core-internal leaf', () => {
     expect(packageManager).toContain("from '../core/lifecycle/model'")
     expect(packageManager).not.toContain("from '../lifecycle/model'")
 
-    const barrel = await source(lifecycleBarrel)
-    expect(barrel).toContain("from '../core/lifecycle/model'")
-
     const binding = await source('src/core/lifecycle/provider-binding.ts')
     expect(binding).toContain("from './model'")
     expect(binding).not.toContain("from '../lifecycle/model'")
@@ -211,9 +206,6 @@ describe('L3 lifecycle engines Core-internal modules', () => {
       'uninstall-postcondition.ts',
       'update-planner.ts',
     ])
-
-    const lifecycleEntries = await readdir(new URL('../../src/lifecycle', import.meta.url))
-    expect(lifecycleEntries.filter(name => name.endsWith('.ts')).sort()).toEqual(['index.ts'])
   })
 
   it('forbids state and Core-internal engines from depending on Core runtime', async () => {
@@ -244,15 +236,6 @@ describe('L3 lifecycle engines Core-internal modules', () => {
     const postcondition = await source('src/core/lifecycle/uninstall-postcondition.ts')
     expect(postcondition).toContain('waitForUninstallAbsence')
     expect(postcondition).not.toContain('../lifecycle')
-
-    const barrel = await source(lifecycleBarrel)
-    expect(barrel).toContain("from '../core/lifecycle/agent-observation'")
-    expect(barrel).toContain("from '../core/lifecycle/update-planner'")
-    expect(barrel).toContain("from '../core/lifecycle/agent-execution'")
-    expect(barrel).not.toContain("from './agent-observation'")
-    expect(barrel).not.toContain("from './update-planner'")
-    expect(barrel).not.toContain("from './agent-execution'")
-    expect(barrel).not.toContain("from './uninstall-postcondition'")
   })
 
   it('retargets Core, services, and planning onto Core-internal engines', async () => {
@@ -268,6 +251,67 @@ describe('L3 lifecycle engines Core-internal modules', () => {
     const updateExecutor = await source('src/core/update-executor.ts')
     expect(updateExecutor).toContain("from './lifecycle/update-planner'")
     expect(updateExecutor).not.toContain("from '../lifecycle'")
+  })
+})
+
+describe('L4 leftover lifecycle barrel deletion', () => {
+  it('deletes src/lifecycle and keeps Core-internal modules barrel-free', async () => {
+    await expect(source(deletedLifecycleBarrel)).rejects.toThrow()
+    await expect(source('src/lifecycle/model.ts')).rejects.toThrow()
+    await expect(source('src/lifecycle/provider-binding.ts')).rejects.toThrow()
+    await expect(source('src/lifecycle/provider-evidence.ts')).rejects.toThrow()
+    await expect(source('src/lifecycle/agent-observation.ts')).rejects.toThrow()
+    await expect(source('src/lifecycle/update-planner.ts')).rejects.toThrow()
+    await expect(source('src/lifecycle/agent-execution.ts')).rejects.toThrow()
+    await expect(source('src/lifecycle/uninstall-postcondition.ts')).rejects.toThrow()
+    await expect(source('src/core/lifecycle/index.ts')).rejects.toThrow()
+    await expect(readdir(new URL('../../src/lifecycle', import.meta.url))).rejects.toThrow()
+
+    const coreLifecycleEntries = await readdir(new URL('../../src/core/lifecycle', import.meta.url))
+    expect(coreLifecycleEntries.filter(name => name.endsWith('.ts')).sort()).toEqual([
+      'agent-execution.ts',
+      'agent-observation.ts',
+      'model.ts',
+      'provider-binding.ts',
+      'provider-evidence.ts',
+      'uninstall-postcondition.ts',
+      'update-planner.ts',
+    ])
+  })
+
+  it('retargets remaining barrel callers onto Core-internal modules', async () => {
+    const executionProduction = await source('src/services/lifecycle-execution-production.ts')
+    expect(executionProduction).toContain("from '../core/lifecycle/model'")
+    expect(executionProduction).toContain('LifecycleOutcome')
+    expect(executionProduction).not.toContain("from '../lifecycle'")
+
+    const policy = await source('src/idempotency/lifecycle-policy.ts')
+    expect(policy).toContain("from '../core/lifecycle/model'")
+    expect(policy).toContain("from '../core/lifecycle/provider-binding'")
+    expect(policy).toContain("from '../core/lifecycle/provider-evidence'")
+    expect(policy).toContain('observeLifecycleProvider')
+    expect(policy).not.toContain("from '../lifecycle'")
+
+    const relatedTests = [
+      'test/commands/inspect.test.ts',
+      'test/commands/doctor.test.ts',
+      'test/commands/resolve.test.ts',
+      'test/command-runtime.test.ts',
+      'test/compatibility/agent-inspection.test.ts',
+      'test/idempotency/lifecycle-policy.test.ts',
+      'test/services/lifecycle-observations.test.ts',
+      'test/services/lifecycle-updates.test.ts',
+      'test/lifecycle/update-planner.test.ts',
+      'test/lifecycle/provider-evidence.test.ts',
+      'test/lifecycle/provider-binding.test.ts',
+      'test/lifecycle/agent-observation.test.ts',
+      'test/lifecycle/lifecycle-receipt-contract.test.ts',
+    ] as const
+    for (const path of relatedTests) {
+      const text = await source(path)
+      expect(text).not.toContain("from '../../src/lifecycle'")
+      expect(text).not.toContain("from '../src/lifecycle'")
+    }
   })
 })
 
