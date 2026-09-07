@@ -6,7 +6,7 @@ import {
   resolvePersistedProviderBinding,
   resolveReceiptProviderBinding,
   resolveStateProviderBinding,
-} from '../../src/lifecycle/provider-binding'
+} from '../../src/core/lifecycle/provider-binding'
 
 const agent = {
   binaryName: 'demo',

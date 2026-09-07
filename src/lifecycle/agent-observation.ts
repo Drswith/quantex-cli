@@ -6,7 +6,6 @@ import type { AgentDefinition, Platform } from '../agents'
 import type { LifecycleObservation, LifecycleReceipt } from '../core/lifecycle/model'
 import type { ProviderOperation, ProviderOutcome, ProviderObservation, ProviderRegistry } from '../providers'
 import type { InstalledAgentState } from '../state'
-import { compareVersions } from '../utils/compare-versions'
 import {
   type LifecycleProviderBinding,
   providerBindingsEqual,
@@ -14,7 +13,8 @@ import {
   resolvePersistedProviderBinding,
   resolveReceiptProviderBinding,
   resolveStateProviderBinding,
-} from './provider-binding'
+} from '../core/lifecycle/provider-binding'
+import { compareVersions } from '../utils/compare-versions'
 
 export interface AgentExecutableObservation {
   readonly path?: string

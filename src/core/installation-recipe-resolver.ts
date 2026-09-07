@@ -1,17 +1,17 @@
 import type { Platform } from '../agents/types'
-import type { LifecycleProviderBinding } from '../lifecycle/provider-binding'
 import type { ProviderRegistry } from '../providers/registry'
 import type { ProviderAdapter, ProviderOperationContext, ProviderOutcome, ProviderTarget } from '../providers/types'
 import type { InstalledAgentState } from '../state/schema'
 import type { CoreInstallationDirective } from './installation-decision'
 import type { CoreInstallationRecipe, CoreInstallationRecipeResolution } from './installation-executor-types'
+import type { LifecycleProviderBinding } from './lifecycle/provider-binding'
 import type { CoreMutationRecipe, CoreMutationRecipeCatalog } from './mutation-recipe-catalog'
 import type { CoreAgentObservation } from './production-observation'
 import {
   resolveInstallMethodProviderBinding,
   resolveReceiptProviderBinding,
   resolveStateProviderBinding,
-} from '../lifecycle/provider-binding'
+} from './lifecycle/provider-binding'
 
 type MutatingInstallationDirective = Extract<CoreInstallationDirective, { readonly wouldChange: true }>
 

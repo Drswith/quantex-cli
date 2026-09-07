@@ -1,4 +1,3 @@
-import type { LifecycleProviderBinding } from '../lifecycle/provider-binding'
 import type {
   ProviderMutationEvidence,
   ProviderOperationContext,
@@ -8,6 +7,7 @@ import type {
 import type { InstalledAgentState } from '../state/schema'
 import type { CoreInstallationDecision, CoreInstallationDirective } from './installation-decision'
 import type { CoreInvocationContext } from './invocation'
+import type { LifecycleProviderBinding } from './lifecycle/provider-binding'
 import type { CoreAgentObservation } from './production-observation'
 import type { AgentMutationFailureCode, AgentMutationPhase, AgentMutationSideEffect } from './types'
 

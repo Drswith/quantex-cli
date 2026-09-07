@@ -8,7 +8,7 @@ import {
   resolveCatalogProviderEvidence,
   resolveReceiptProviderBinding,
   resolveStateProviderBinding,
-} from '../../src/lifecycle/provider-evidence'
+} from '../../src/core/lifecycle/provider-evidence'
 
 describe('lifecycle provider evidence', () => {
   it('resolves a legacy Bun state through catalog package metadata', () => {

@@ -1,4 +1,4 @@
-import type { LifecycleProviderBinding } from '../lifecycle/provider-binding'
+import type { LifecycleProviderBinding } from './lifecycle/provider-binding'
 import type { CoreAgentObservation } from './production-observation'
 
 export type CoreInstallationDecision = 'already-satisfied' | 'external-preserved' | 'install' | 'reinstall'

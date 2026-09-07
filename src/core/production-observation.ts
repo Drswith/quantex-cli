@@ -1,17 +1,16 @@
 import type { AgentDefinition, AgentVersionProbe, InstallMethod, Platform } from '../agents/types'
 import type { AgentExecutableObservation, AgentLifecycleObservationResult } from '../lifecycle/agent-observation'
-import type { LifecycleProviderBinding } from '../lifecycle/provider-binding'
 import type { ProviderRegistry } from '../providers/registry'
 import type { ProviderOperationContext } from '../providers/types'
 import type { VersionedQuantexState } from '../state/schema'
 import type { CoreInvocationContext } from './invocation'
+import type { LifecycleProviderBinding } from './lifecycle/provider-binding'
 import { constants } from 'node:fs'
 import { access, readFile, realpath } from 'node:fs/promises'
 import { homedir } from 'node:os'
 import { isAbsolute, join, resolve } from 'node:path'
 import process from 'node:process'
 import { observeAgentLifecycle } from '../lifecycle/agent-observation'
-import { resolveInstallMethodProviderBinding } from '../lifecycle/provider-binding'
 import { createEmptyStateDocument, parseStateDocument, StateSchemaError } from '../state/schema'
 import {
   executableLookupNamesForAgent,
@@ -19,6 +18,7 @@ import {
   getKnownAgentInstallDirectories,
 } from '../utils/executable-search-paths'
 import { getCoreAgentByNameOrAlias, getCoreAgents } from './agent-catalog'
+import { resolveInstallMethodProviderBinding } from './lifecycle/provider-binding'
 import { createCoreProviderObservationRegistry } from './provider-observation-registry'
 import { CoreProcessInterruptionError, runReadOnlyCommand } from './read-only-process'
 
