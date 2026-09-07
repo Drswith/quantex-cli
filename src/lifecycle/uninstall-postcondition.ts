@@ -2,6 +2,7 @@
 // retry used by Core uninstall-executor. Not zero-ref; do not fold into src/core.
 // Product-path touch so process-only PRs are not required to skip the macOS matrix.
 // Product-path touch so the cursor-version-probe-targeting archive PR still runs the macOS test matrix.
+// Product-path touch so the lifecycle-model-core-internal-l1 archive PR still runs the macOS test matrix.
 export interface ExecutableAbsenceWaitOptions {
   readonly attempts?: number
   readonly delay?: (milliseconds: number) => Promise<void>
