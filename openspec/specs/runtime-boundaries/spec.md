@@ -335,6 +335,34 @@ Quantex MUST keep the `src/lifecycle` barrel outside `src/core` for the L3 engin
 - **THEN** the directory contains the model leaf, provider-binding, provider-evidence, agent-observation, update-planner, agent-execution, and uninstall-postcondition modules
 - **AND THEN** it does not contain `index.ts`
 
+### Requirement: Provider-binding helpers SHALL live in Core-internal modules
+
+Quantex SHALL own lifecycle provider-binding resolution (`LifecycleProviderBinding`, catalog/state/receipt/install-method resolvers, and equality) and `observeLifecycleProvider` in in-repo Core-internal modules under `src/core/lifecycle/`. Those modules MUST NOT be published from `src/core/index.ts` or `packages/core`. They are not dependency leaves: they MAY import agents, provider types, the Core-internal lifecycle model leaf, and type-only persisted-state types, and `observeLifecycleProvider` MAY default to the first-party provider registry. They MUST NOT import remaining `src/lifecycle` engines, CLI, or Core mutation/execution executors. `src/state` MUST NOT import provider-binding or provider-evidence modules.
+
+#### Scenario: Core no longer imports provider-binding from src/lifecycle
+
+- **WHEN** in-repo Core installation, uninstall, update, or production-observation modules need provider-binding helpers
+- **THEN** they import those symbols from the Core-internal provider-binding module
+- **AND THEN** they do not import `src/lifecycle/provider-binding`
+
+#### Scenario: Core uninstall observes providers through Core-internal evidence
+
+- **WHEN** in-repo Core uninstall needs `observeLifecycleProvider`
+- **THEN** it imports that helper from the Core-internal provider-evidence module
+- **AND THEN** it does not import `src/lifecycle/provider-evidence`
+
+#### Scenario: State stays off binding and evidence
+
+- **WHEN** persisted-state schema or store modules are inspected for Core imports
+- **THEN** they import at most the Core-internal lifecycle model leaf
+- **AND THEN** they do not import provider-binding, provider-evidence, `src/core/index.ts`, `createQuantex`, or Core executors
+
+#### Scenario: Published SDK root stays free of binding and evidence
+
+- **WHEN** a TypeScript consumer inspects `src/core/index.ts` or `packages/core/src/index.ts`
+- **THEN** those entries do not export `LifecycleProviderBinding`, `observeLifecycleProvider`, `resolveInstallMethodProviderBinding`, or other provider-binding/evidence symbols
+- **AND THEN** `createQuantex` remains the only runtime export
+
 ### Requirement: Agent observation and remaining lifecycle engines SHALL live in Core-internal modules
 
 Quantex SHALL own agent lifecycle observation (`observeAgentLifecycle`), update planning (`planLifecycleUpdate`), execution preflight (`planAgentExecutionPreflight`), and uninstall postcondition retry (`waitForUninstallAbsence`) in in-repo Core-internal modules under `src/core/lifecycle/`. Those modules MUST NOT be published from `src/core/index.ts` or `packages/core`. They are not dependency leaves: they MAY import agents, providers, the Core-internal lifecycle model leaf, sibling Core-internal lifecycle modules, type-only persisted-state types, and existing utils. They MUST NOT import CLI, services, planning, or Core mutation/execution executors. `src/state` MUST NOT import these modules.
@@ -374,4 +402,3 @@ Quantex SHALL own agent lifecycle observation (`observeAgentLifecycle`), update 
 - **WHEN** a TypeScript consumer inspects `src/core/index.ts` or `packages/core/src/index.ts`
 - **THEN** those entries do not export `observeAgentLifecycle`, `planLifecycleUpdate`, `planAgentExecutionPreflight`, `waitForUninstallAbsence`, or other L3 engine symbols
 - **AND THEN** `createQuantex` remains the only runtime export
-
