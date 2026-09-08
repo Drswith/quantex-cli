@@ -1,5 +1,8 @@
 // KEEP (L5): v1 inspection projector over lifecycle observations. Differential
 // formatting (source/update labels, unmanaged lifecycle). Not a pass-through.
+// Product-path keep so the inspect-provider-version-fallback archive PR still
+// runs the macOS test matrix. Hang leftover classify presence on this existing
+// projector file, not a restored src/lifecycle barrel.
 import type { AgentInspection } from '../inspection'
 import type { ResolvedAgentObservation } from '../services/lifecycle-observations'
 import { formatInstalledSource, formatUpdateManagement, getInstallLifecycle } from '../utils/install'
