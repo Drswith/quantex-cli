@@ -276,6 +276,47 @@ describe('doctorCommand', () => {
     expect(output).toContain('managed via bun (test-pkg)')
   })
 
+  it('shows the provider version when PATH is present but the version probe yields none', async () => {
+    setProviderAvailability({ bun: true })
+    allAgentsSpy.mockReturnValue([testAgent])
+    const pathExecutable = { path: '/path/test-bin', present: true as const }
+    observeRegisteredAgentsSpy.mockResolvedValueOnce([
+      {
+        agent: testAgent,
+        capabilities: [],
+        catalogMethods: [],
+        executable: { ...pathExecutable, version: '0.85.1' },
+        installedState: {
+          agentName: 'test-agent',
+          installType: 'bun',
+          packageName: 'test-pkg',
+        },
+        latestVersion: '0.85.1',
+        methods: [{ packageName: 'test-pkg', type: 'bun' }],
+        observation: {
+          drift: { kind: 'none' as const },
+          executablePath: pathExecutable.path,
+          kind: 'present' as const,
+          targetId: 'test-agent',
+          version: '0.85.1',
+        },
+        pathExecutable,
+        resolvedBinaryPath: pathExecutable.path,
+      },
+    ])
+
+    const result = await doctorCommand()
+
+    expect(result.data?.agents[0]).toMatchObject({
+      installedVersion: '0.85.1',
+      lifecycle: 'managed',
+    })
+    expect(JSON.stringify(result.data)).not.toMatch(/"(?:engine|route)"/u)
+    const output = logSpy.mock.calls.map((c: any[]) => c[0]).join('\n')
+    expect(output).toContain('0.85.1')
+    expect(output).not.toContain('unknown')
+  })
+
   it('shows no agents installed when none found', async () => {
     setProviderAvailability({ bun: true })
     allAgentsSpy.mockReturnValue([testAgent])

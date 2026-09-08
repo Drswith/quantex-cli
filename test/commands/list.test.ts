@@ -79,6 +79,27 @@ describe('listCommand', () => {
     ])
   })
 
+  it('shows the provider version when PATH is present but the version probe yields none', async () => {
+    observeRegisteredAgentsSpy.mockResolvedValueOnce([
+      observed(testAgent, {
+        installedState: trackedState('test-agent', 'test-pkg'),
+        pathExecutable: { path: '/usr/bin/test-bin', present: true },
+        version: '0.85.1',
+      }),
+    ])
+
+    const result = await listCommand()
+
+    expect(result.data?.agents[0]).toMatchObject({
+      installed: true,
+      installedVersion: '0.85.1',
+    })
+    expect(JSON.stringify(result.data)).not.toMatch(/"(?:engine|route)"/u)
+    const output = logSpy.mock.calls.map((call: unknown[]) => String(call[0])).join('\n')
+    expect(output).toContain('0.85.1')
+    expect(output).not.toContain('unknown')
+  })
+
   it('prioritizes aligned lifecycle summary and an explicit detail path in human output', async () => {
     const selfUpdatingAgent = { ...secondAgent, selfUpdate: { command: ['second-bin', 'update'] } }
     observeRegisteredAgentsSpy.mockResolvedValueOnce([
@@ -303,6 +324,7 @@ function observed(
   options: {
     installedState?: InstalledAgentState
     latestVersion?: string
+    pathExecutable?: ResolvedAgentObservation['pathExecutable']
     present?: boolean
     version?: string
   } = {},
@@ -330,7 +352,7 @@ function observed(
           version: options.version,
         }
       : { drift: { kind: 'none' }, kind: 'absent', targetId: target.name },
-    pathExecutable: executable,
+    pathExecutable: options.pathExecutable ?? executable,
     resolvedBinaryPath: present ? executable.path : undefined,
   }
 }
