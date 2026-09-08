@@ -10,7 +10,7 @@
 
 ## 3. Validation and delivery
 
-- [ ] 3.1 Run `bun run lint`, `bun run format:check`, `bun run typecheck`
-- [ ] 3.2 Run `bun run test`
-- [ ] 3.3 Run `bun run openspec:validate` and `bun run memory:check`
-- [ ] 3.4 Commit, push, and open a draft PR that links #734
+- [x] 3.1 Run `bun run lint`, `bun run format:check`, `bun run typecheck`
+- [x] 3.2 Run `bun run test`
+- [x] 3.3 Run `bun run openspec:validate` and `bun run memory:check`
+- [x] 3.4 Commit, push, and open a draft PR that links #734
