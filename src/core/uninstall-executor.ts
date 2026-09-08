@@ -235,7 +235,7 @@ async function executeLockedUninstall(
         agent,
         kind: 'failed',
         lifecycle: 'conflicting-source',
-        message: `${agent.displayName}'s managed package was removed, but another copy remains on PATH.`,
+        message: `${agent.displayName}'s managed package was removed, but another copy remains on PATH. If Bun left ${agent.binaryName}.exe and ${agent.binaryName}.bunx in its global bin, delete that pair and retry.`,
       }
     }
     await ports.setInstalledState(installedState)

@@ -226,7 +226,7 @@ export async function observeAgentLifecycle(
       outcome: { kind: 'success'; value: Extract<ProviderObservation, { kind: 'present' }> }
     } => candidate.outcome.kind === 'success' && candidate.outcome.value.kind === 'present',
   )
-  const exactProviderUnresolved = exactProviderCandidates.some(candidate => candidate.outcome.kind !== 'success')
+  const exactProviderUnresolved = exactProviderCandidates.some(candidate => isPresenceInconclusive(candidate.outcome))
   const authoritativeLiveCandidates =
     exactOwnershipCandidates.length > 0 ? exactOwnershipCandidates : exactProviderUnresolved ? [] : liveCandidates
   if (authoritativeLiveCandidates.length > 1) {
@@ -253,7 +253,7 @@ export async function observeAgentLifecycle(
     }
   }
 
-  const unresolvedOutcome = candidateOutcomes.map(candidate => candidate.outcome).find(isNonSuccessProviderOutcome)
+  const unresolvedOutcome = candidateOutcomes.map(candidate => candidate.outcome).find(isPresenceInconclusive)
   const interruptedOutcome = candidateOutcomes
     .map(candidate => candidate.outcome)
     .find(outcome => outcome.kind === 'cancelled' || outcome.kind === 'timed-out')
@@ -311,6 +311,27 @@ export async function observeAgentLifecycle(
       capabilities: [],
       observation: { drift: { kind: 'none' }, kind: 'absent', observedAt, targetId: agent.name },
       providerOutcome: absentCandidate.outcome,
+    }
+  }
+
+  const bunAbsentCandidate = candidateOutcomes.find(
+    candidate =>
+      candidate.binding.providerId === 'bun' &&
+      candidate.outcome.kind === 'success' &&
+      candidate.outcome.value.kind === 'absent',
+  )
+  if (
+    executable.present &&
+    isBunGlobalBinPath(executable.path) &&
+    liveCandidates.length === 0 &&
+    bunAbsentCandidate &&
+    !exactProviderUnresolved
+  ) {
+    return {
+      ...base,
+      capabilities: [],
+      observation: { drift: { kind: 'none' }, kind: 'absent', observedAt, targetId: agent.name },
+      providerOutcome: bunAbsentCandidate.outcome,
     }
   }
 
@@ -498,10 +519,14 @@ function providerOutcomeReason(outcome: Exclude<ProviderOutcome<ProviderObservat
   }
 }
 
-function isNonSuccessProviderOutcome(
+function isPresenceInconclusive(
   outcome: ProviderOutcome<ProviderObservation>,
-): outcome is Exclude<ProviderOutcome<ProviderObservation>, { kind: 'success' }> {
-  return outcome.kind !== 'success'
+): outcome is Exclude<ProviderOutcome<ProviderObservation>, { kind: 'success' } | { kind: 'unavailable' }> {
+  return outcome.kind !== 'success' && outcome.kind !== 'unavailable'
+}
+
+function isBunGlobalBinPath(path: string | undefined): boolean {
+  return path !== undefined && path.replaceAll('\\', '/').includes('/.bun/bin/')
 }
 
 function safeProviderRejectionReason(error: unknown): string {

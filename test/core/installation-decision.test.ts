@@ -53,6 +53,22 @@ describe('Core installation decision', () => {
     })
   })
 
+  it('installs when observation is absent despite a leftover PATH executable', () => {
+    const leftover = { path: '/tmp/quantex-home/.bun/bin/fixture-agent', present: true as const }
+    expect(
+      decideCoreInstallation(
+        observed(absent({ kind: 'none' }), {
+          executable: leftover,
+          pathExecutable: leftover,
+        }),
+      ),
+    ).toEqual({
+      decision: 'install',
+      kind: 'ready',
+      wouldChange: true,
+    })
+  })
+
   it('binds stale reinstall to the exact recorded provider source', () => {
     expect(
       decideCoreInstallation(

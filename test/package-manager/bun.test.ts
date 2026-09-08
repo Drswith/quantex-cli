@@ -462,6 +462,68 @@ describe('bun uninstall', () => {
       await rm(sandbox.root, { force: true, recursive: true })
     }
   })
+
+  it('removes an unchanged leftover Windows bun shim pair after package removal', async () => {
+    const sandbox = await createOwnedWindowsShimSandbox()
+    try {
+      vi.stubEnv('BUN_INSTALL_GLOBAL_DIR', sandbox.globalDirectory)
+      mockSpawn
+        .mockReturnValueOnce(createProc(0, `${sandbox.binDirectory}\n`))
+        .mockReturnValueOnce(createProc(0))
+        .mockReturnValueOnce(createProc(1, '', 'error: Lockfile not found\n'))
+
+      const { uninstallOutcome } = await import('../../src/package-manager/bun')
+      await expect(
+        uninstallOutcome('@example/agent', { signal: new AbortController().signal, timeoutMs: 5_000 }, 'agent'),
+      ).resolves.toEqual({ kind: 'success', value: undefined })
+
+      await expect(access(sandbox.exePath)).rejects.toMatchObject({ code: 'ENOENT' })
+      await expect(access(sandbox.bunxPath)).rejects.toMatchObject({ code: 'ENOENT' })
+    } finally {
+      await rm(sandbox.root, { force: true, recursive: true })
+    }
+  })
+
+  it('preserves a Windows shim pair that changes during package removal', async () => {
+    const sandbox = await createOwnedWindowsShimSandbox()
+    try {
+      vi.stubEnv('BUN_INSTALL_GLOBAL_DIR', sandbox.globalDirectory)
+      mockSpawn
+        .mockReturnValueOnce(createProc(0, `${sandbox.binDirectory}\n`))
+        .mockReturnValueOnce(createProc(1, '', 'error: Lockfile not found\n'))
+      mutationRun.mockImplementationOnce(async () => {
+        await writeFile(sandbox.exePath, 'replaced-shim-contents')
+        return { kind: 'success', value: undefined }
+      })
+
+      const { uninstallOutcome } = await import('../../src/package-manager/bun')
+      await uninstallOutcome('@example/agent', { signal: new AbortController().signal }, 'agent')
+
+      await expect(access(sandbox.exePath)).resolves.toBeUndefined()
+      await expect(access(sandbox.bunxPath)).resolves.toBeUndefined()
+    } finally {
+      await rm(sandbox.root, { force: true, recursive: true })
+    }
+  })
+
+  it('preserves a sidecar-less Windows executable instead of deleting an unproven path', async () => {
+    const sandbox = await createOwnedWindowsShimSandbox()
+    try {
+      await unlink(sandbox.bunxPath)
+      vi.stubEnv('BUN_INSTALL_GLOBAL_DIR', sandbox.globalDirectory)
+      mockSpawn
+        .mockReturnValueOnce(createProc(0, `${sandbox.binDirectory}\n`))
+        .mockReturnValueOnce(createProc(0))
+        .mockReturnValueOnce(createProc(1, '', 'error: Lockfile not found\n'))
+
+      const { uninstallOutcome } = await import('../../src/package-manager/bun')
+      await uninstallOutcome('@example/agent', { signal: new AbortController().signal }, 'agent')
+
+      await expect(access(sandbox.exePath)).resolves.toBeUndefined()
+    } finally {
+      await rm(sandbox.root, { force: true, recursive: true })
+    }
+  })
 })
 
 async function createOwnedBinaryLinkSandbox() {
@@ -486,4 +548,25 @@ async function createOwnedBinaryLinkSandbox() {
   await writeFile(targetPath, '#!/bin/sh\n')
   await symlink(targetPath, linkPath)
   return { binDirectory, globalDirectory, linkPath, root, targetPath }
+}
+
+async function createOwnedWindowsShimSandbox() {
+  const root = await mkdtemp(join(tmpdir(), 'qtx-bun-windows-shim-'))
+  const globalDirectory = join(root, 'global')
+  const binDirectory = join(root, 'bin')
+  const packageDirectory = join(globalDirectory, 'node_modules', '@example', 'agent')
+  const exePath = join(binDirectory, 'agent.exe')
+  const bunxPath = join(binDirectory, 'agent.bunx')
+  await mkdir(packageDirectory, { recursive: true })
+  await mkdir(binDirectory, { recursive: true })
+  await writeFile(
+    join(packageDirectory, 'package.json'),
+    JSON.stringify({
+      bin: { agent: 'bin/agent.js' },
+    }),
+  )
+  await writeFile(join(globalDirectory, 'package.json'), '{}')
+  await writeFile(exePath, 'shim')
+  await writeFile(bunxPath, 'sidecar')
+  return { binDirectory, bunxPath, exePath, globalDirectory, root }
 }
