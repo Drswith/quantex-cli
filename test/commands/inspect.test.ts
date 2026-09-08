@@ -137,6 +137,24 @@ describe('inspectCommand', () => {
     })
   })
 
+  it('shows the provider version when PATH is present but the version probe yields none', async () => {
+    const pathExecutable = { path: '/usr/bin/test-bin', present: true as const }
+    resolveAgentObservationSpy.mockResolvedValueOnce({
+      ...observed(present({ kind: 'none' }), trackedState, pathExecutable),
+      executable: { ...pathExecutable, version: '0.85.1' },
+    })
+
+    const result = await inspectCommand('test-agent')
+
+    expect(result.data?.inspection).toMatchObject({
+      binaryPath: '/usr/bin/test-bin',
+      installed: true,
+      installedVersion: '0.85.1',
+    })
+    expect(JSON.stringify(result.data)).not.toMatch(/"(?:engine|route)"/u)
+    expect(logSpy.mock.calls.map((call: unknown[]) => call[0])).toContain('  Version:      0.85.1')
+  })
+
   it.each([
     ['absent', absent({ kind: 'none' }), undefined],
     ['ghost', absent({ kind: 'recorded-absent' }), trackedState],

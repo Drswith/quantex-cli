@@ -34,6 +34,21 @@ describe('v1 agent inspection projection', () => {
     })
   })
 
+  it('displays the provider version when PATH is present and the version probe yields none', () => {
+    const pathExecutable = { path: '/usr/local/bin/test-bin', present: true as const }
+    const result = {
+      ...resolved(present({ kind: 'none' }), trackedState),
+      executable: { ...pathExecutable, version: '0.85.1' },
+      pathExecutable,
+    }
+
+    expect(projectObservationToV1Inspection(result)).toMatchObject({
+      binaryPath: '/usr/local/bin/test-bin',
+      inPath: true,
+      installedVersion: '0.85.1',
+    })
+  })
+
   it.each([
     {
       expected: {
