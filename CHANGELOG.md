@@ -1,6 +1,13 @@
 # Changelog
 
 
+## [1.13.4](https://github.com/Drswith/quantex-cli/compare/v1.13.3...v1.13.4) (2026-09-08)
+
+
+### Bug Fixes
+
+* show the provider-reported agent version when --version fails ([ebb7bb6](https://github.com/Drswith/quantex-cli/commit/ebb7bb6630a118faf193e0f9bcfd0e9646f3390a))
+
 ## [1.13.3](https://github.com/Drswith/quantex-cli/compare/v1.13.2...v1.13.3) (2026-09-08)
 
 
