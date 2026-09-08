@@ -1,6 +1,13 @@
 # Changelog
 
 
+## [1.13.3](https://github.com/Drswith/quantex-cli/compare/v1.13.2...v1.13.3) (2026-09-08)
+
+
+### Bug Fixes
+
+* restore install after leftover Bun shims on Windows ([8b1d58e](https://github.com/Drswith/quantex-cli/commit/8b1d58e85d732be3fbb27090f9accf46b9596535))
+
 ## [1.13.2](https://github.com/Drswith/quantex-cli/compare/v1.13.1...v1.13.2) (2026-09-06)
 
 
