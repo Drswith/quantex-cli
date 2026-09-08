@@ -106,16 +106,41 @@ interface BunOwnedBinaryLink {
   readonly linkTarget: string
 }
 
+interface BunOwnedWindowsShim {
+  readonly bunx: BunOwnedWindowsShimFile
+  readonly exe: BunOwnedWindowsShimFile
+}
+
+interface BunOwnedWindowsShimFile {
+  readonly device: number
+  readonly inode: number
+  readonly mtimeMs: number
+  readonly path: string
+  readonly size: number
+}
+
 async function uninstallWithOwnedLinkCleanup(
   packageName: string,
   context: ProviderOperationContext,
   binaryName?: string,
 ): Promise<PackageMutationOutcome> {
-  const ownedLink = binaryName ? await captureOwnedBunBinaryLink(packageName, binaryName, context) : undefined
+  const globalBinDirectory =
+    binaryName && isSafeBinaryName(binaryName) ? await resolveBunGlobalBinDirectory(context) : undefined
+  const ownedLink =
+    globalBinDirectory && binaryName
+      ? await captureOwnedBunBinaryLink(packageName, binaryName, globalBinDirectory)
+      : undefined
+  const ownedShim =
+    globalBinDirectory && binaryName
+      ? await captureOwnedBunWindowsShim(packageName, binaryName, globalBinDirectory)
+      : undefined
   const outcome = await runPackageMutationOutcome(['bun', 'remove', '-g', packageName], context, 'bun uninstall failed')
-  if (outcome.kind === 'success' && ownedLink) {
+  if (outcome.kind === 'success' && (ownedLink || ownedShim)) {
     const presence = await probePackagePresence(packageName, undefined, context).catch(() => 'unknown' as const)
-    if (presence === 'absent') await removeUnchangedOwnedBunBinaryLink(ownedLink)
+    if (presence === 'absent') {
+      if (ownedLink) await removeUnchangedOwnedBunBinaryLink(ownedLink)
+      if (ownedShim) await removeUnchangedOwnedBunWindowsShim(ownedShim)
+    }
   }
   return outcome
 }
@@ -123,14 +148,11 @@ async function uninstallWithOwnedLinkCleanup(
 async function captureOwnedBunBinaryLink(
   packageName: string,
   binaryName: string,
-  context: ProviderOperationContext,
+  globalBinDirectory: string,
 ): Promise<BunOwnedBinaryLink | undefined> {
-  if (process.platform === 'win32' || !isSafeBinaryName(binaryName)) return undefined
+  if (process.platform === 'win32') return undefined
 
   try {
-    const globalBinDirectory = await resolveBunGlobalBinDirectory(context)
-    if (!globalBinDirectory) return undefined
-
     const globalDirectory = process.env.BUN_INSTALL_GLOBAL_DIR ?? join(homedir(), '.bun', 'install', 'global')
     const packageDirectory = resolvePackageDirectory(globalDirectory, packageName)
     if (!packageDirectory) return undefined
@@ -163,6 +185,81 @@ async function removeUnchangedOwnedBunBinaryLink(link: BunOwnedBinaryLink): Prom
     // Absence is already the desired state. Other failures remain visible to the
     // command-level executable postcondition instead of deleting an uncertain path.
   }
+}
+
+async function captureOwnedBunWindowsShim(
+  packageName: string,
+  binaryName: string,
+  globalBinDirectory: string,
+): Promise<BunOwnedWindowsShim | undefined> {
+  try {
+    const globalDirectory = process.env.BUN_INSTALL_GLOBAL_DIR ?? join(homedir(), '.bun', 'install', 'global')
+    const packageDirectory = resolvePackageDirectory(globalDirectory, packageName)
+    if (!packageDirectory) return undefined
+
+    const manifest = parsePackageManifest(await readFile(join(packageDirectory, 'package.json'), 'utf8'))
+    if (!manifest || !manifestDeclaresBinary(manifest, packageName, binaryName)) return undefined
+
+    const exePath = join(globalBinDirectory, `${binaryName}.exe`)
+    const bunxPath = join(globalBinDirectory, `${binaryName}.bunx`)
+    const [exeStats, bunxStats] = await Promise.all([lstat(exePath), lstat(bunxPath)])
+    if (!exeStats.isFile() || bunxStats.isSymbolicLink() || !bunxStats.isFile() || exeStats.isSymbolicLink()) {
+      return undefined
+    }
+
+    return {
+      bunx: windowsShimFile(bunxPath, bunxStats),
+      exe: windowsShimFile(exePath, exeStats),
+    }
+  } catch {
+    return undefined
+  }
+}
+
+async function removeUnchangedOwnedBunWindowsShim(shim: BunOwnedWindowsShim): Promise<void> {
+  try {
+    const [exeStats, bunxStats] = await Promise.all([lstat(shim.exe.path), lstat(shim.bunx.path)])
+    if (!windowsShimFileUnchanged(shim.exe, exeStats) || !windowsShimFileUnchanged(shim.bunx, bunxStats)) return
+    await unlink(shim.exe.path)
+    await unlink(shim.bunx.path)
+  } catch {
+    // Absence is already the desired state. Other failures remain visible to the
+    // command-level executable postcondition instead of deleting an uncertain path.
+  }
+}
+
+function windowsShimFile(
+  path: string,
+  stats: { readonly dev: number; readonly ino: number; readonly mtimeMs: number; readonly size: number },
+): BunOwnedWindowsShimFile {
+  return {
+    device: stats.dev,
+    inode: stats.ino,
+    mtimeMs: stats.mtimeMs,
+    path,
+    size: stats.size,
+  }
+}
+
+function windowsShimFileUnchanged(
+  captured: BunOwnedWindowsShimFile,
+  stats: {
+    readonly dev: number
+    readonly ino: number
+    readonly isFile: () => boolean
+    readonly isSymbolicLink: () => boolean
+    readonly mtimeMs: number
+    readonly size: number
+  },
+): boolean {
+  return (
+    stats.isFile() &&
+    !stats.isSymbolicLink() &&
+    stats.dev === captured.device &&
+    stats.ino === captured.inode &&
+    stats.size === captured.size &&
+    stats.mtimeMs === captured.mtimeMs
+  )
 }
 
 async function resolveBunGlobalBinDirectory(context: ProviderOperationContext): Promise<string | undefined> {

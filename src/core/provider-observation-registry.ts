@@ -14,7 +14,9 @@ import process from 'node:process'
 import { getExecutableCandidateNames, getKnownAgentInstallDirectories } from '../utils/executable-search-paths'
 import { CoreProcessInterruptionError, runReadOnlyCommand } from './read-only-process'
 
-type PackagePresence = 'absent' | 'present' | 'unknown'
+type PackagePresence = 'absent' | 'present' | 'unavailable' | 'unknown'
+
+const MISSING_EXECUTABLE = 'missing-executable' as const
 
 interface PackageProbe {
   readonly presence: PackagePresence
@@ -87,6 +89,9 @@ function createPackageAdapter<Id extends Exclude<ProviderId, 'binary' | 'script'
     id,
     async observe(request) {
       const result = await probe(request.target, request.context)
+      if (result.presence === 'unavailable') {
+        return { kind: 'unavailable', reason: `${id} executable is unavailable` }
+      }
       if (result.presence === 'unknown') {
         return {
           evidence: [{ kind: 'provider', value: `${id}:${request.target.id}:presence-unknown` }],
@@ -138,7 +143,7 @@ function createExecutableAdapter<Id extends 'binary' | 'script'>(
         request.context,
         dependencies,
       )
-      if (!result) {
+      if (!result || result === MISSING_EXECUTABLE) {
         return {
           kind: 'failed',
           reason: `${id} executable probe failed for ${request.target.id}`,
@@ -203,6 +208,7 @@ async function probeBun(
   dependencies: CoreProviderObservationDependencies,
 ): Promise<PackageProbe> {
   const result = await safelyRun(['bun', 'pm', '-g', 'ls'], context, dependencies)
+  if (result === MISSING_EXECUTABLE) return { presence: 'unavailable' }
   if (!result) return { presence: 'unknown' }
   if (!result.stdout.trim()) {
     if (result.stderr.includes('No package.json was found for directory')) return { presence: 'absent' }
@@ -251,6 +257,7 @@ async function probeNpm(
   dependencies: CoreProviderObservationDependencies,
 ): Promise<PackageProbe> {
   const result = await safelyRun(['npm', 'list', '-g', packageName, '--depth=0', '--json'], context, dependencies)
+  if (result === MISSING_EXECUTABLE) return { presence: 'unavailable' }
   if (!result?.stdout.trim()) return { presence: 'unknown' }
   try {
     const data = JSON.parse(result.stdout) as {
@@ -275,6 +282,7 @@ async function probeBrew(
 ): Promise<PackageProbe> {
   const kind = target.kind === 'cask' ? '--cask' : '--formula'
   const result = await safelyRun(['brew', 'list', kind, '--versions', target.id], context, dependencies)
+  if (result === MISSING_EXECUTABLE) return { presence: 'unavailable' }
   if (!result) return { presence: 'unknown' }
   const version = result.stdout.trim().split(/\s+/u).at(-1)
   if (result.exitCode === 0) {
@@ -292,6 +300,7 @@ async function probeCargo(
   dependencies: CoreProviderObservationDependencies,
 ): Promise<PackageProbe> {
   const result = await safelyRun(['cargo', 'install', '--list'], context, dependencies)
+  if (result === MISSING_EXECUTABLE) return { presence: 'unavailable' }
   if (!result || result.exitCode !== 0) return { presence: 'unknown' }
   const escaped = packageName.replace(/[.*+?^${}()|[\]\\]/gu, '\\$&')
   const version = result.stdout.match(new RegExp(`^${escaped}\\s+v([^:\\s]+):\\s*$`, 'mu'))?.[1]
@@ -324,6 +333,7 @@ async function probeMise(
   dependencies: CoreProviderObservationDependencies,
 ): Promise<PackageProbe> {
   const result = await safelyRun(['mise', 'ls', '--installed', '--json', packageName], context, dependencies)
+  if (result === MISSING_EXECUTABLE) return { presence: 'unavailable' }
   if (!result?.stdout.trim()) return { presence: 'unknown' }
   try {
     const data = JSON.parse(result.stdout) as unknown
@@ -351,10 +361,17 @@ async function probePip(
   dependencies: CoreProviderObservationDependencies,
 ): Promise<PackageProbe> {
   const candidates = [['pip'], ['pip3'], ['python', '-m', 'pip'], ['python3', '-m', 'pip']]
+  let sawRunnableCandidate = false
   for (const candidate of candidates) {
     const available = await safelyRun([...candidate, '--version'], context, dependencies)
-    if (!available || available.exitCode !== 0) continue
+    if (available === MISSING_EXECUTABLE) continue
+    if (!available || available.exitCode !== 0) {
+      if (available) sawRunnableCandidate = true
+      continue
+    }
+    sawRunnableCandidate = true
     const result = await safelyRun([...candidate, 'show', packageName], context, dependencies)
+    if (result === MISSING_EXECUTABLE) return { presence: 'unavailable' }
     if (!result) return { presence: 'unknown' }
     if (result.exitCode === 0) {
       const version = result.stdout
@@ -368,7 +385,7 @@ async function probePip(
       ? { presence: 'absent' }
       : { presence: 'unknown' }
   }
-  return { presence: 'unknown' }
+  return { presence: sawRunnableCandidate ? 'unknown' : 'unavailable' }
 }
 
 async function probeUv(
@@ -377,6 +394,7 @@ async function probeUv(
   dependencies: CoreProviderObservationDependencies,
 ): Promise<PackageProbe> {
   const result = await safelyRun(['uv', 'tool', 'list'], context, dependencies)
+  if (result === MISSING_EXECUTABLE) return { presence: 'unavailable' }
   if (result && isUvEmptyToolInventory(result)) return { presence: 'absent' }
   if (!result?.stdout.trim()) return { presence: 'unknown' }
   const expected = normalizePythonName(packageName)
@@ -405,6 +423,7 @@ async function probeWinget(
   dependencies: CoreProviderObservationDependencies,
 ): Promise<PackageProbe> {
   const result = await safelyRun(['winget', 'list', '--id', packageName, '-e'], context, dependencies)
+  if (result === MISSING_EXECUTABLE) return { presence: 'unavailable' }
   if (!result) return { presence: 'unknown' }
   if (result.exitCode === 0) {
     const normalized = packageName.toLowerCase()
@@ -434,11 +453,12 @@ async function safelyRun(
   argv: readonly string[],
   context: ProviderOperationContext,
   dependencies: CoreProviderObservationDependencies,
-): Promise<ReadOnlyCommandResult | undefined> {
+): Promise<ReadOnlyCommandResult | typeof MISSING_EXECUTABLE | undefined> {
   try {
     return await dependencies.runCommand(argv, context)
   } catch (error) {
     if (error instanceof CoreProcessInterruptionError) throw error
+    if (isMissingFileError(error)) return MISSING_EXECUTABLE
     return undefined
   }
 }

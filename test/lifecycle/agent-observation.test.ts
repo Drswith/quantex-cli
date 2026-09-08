@@ -3,6 +3,7 @@ import type { LifecycleReceipt } from '../../src/core/lifecycle/model'
 import type { ProviderAdapter, ProviderObservation, ProviderOutcome, ProviderRegistry } from '../../src/providers'
 import type { InstalledAgentState } from '../../src/state'
 import { describe, expect, it, vi } from 'vitest'
+import { decideCoreInstallation } from '../../src/core/installation-decision'
 import { type AgentLifecycleObservationPorts, observeAgentLifecycle } from '../../src/core/lifecycle/agent-observation'
 
 type ObservationOutcome = ProviderOutcome<ProviderObservation>
@@ -170,6 +171,63 @@ const scenarios: readonly Scenario[] = [
         kind: 'indeterminate',
         reason: 'npm package presence is unavailable',
       },
+    },
+  },
+  {
+    executable: { path: '/tmp/quantex-home/.bun/bin/test-bin', present: true },
+    expected: {
+      drift: 'none',
+      kind: 'absent',
+      path: '/tmp/quantex-home/.bun/bin/test-bin',
+      providerOutcomeKind: 'success',
+    },
+    name: 'treats a leftover bun global-bin executable as absent when bun is gone and npm is unavailable',
+    outcomes: {
+      npm: { kind: 'unavailable', reason: 'npm executable is unavailable' },
+    },
+  },
+  {
+    executable: { path: '/tmp/quantex-home/.bun/bin/test-bin', present: true },
+    expected: {
+      drift: 'none',
+      kind: 'absent',
+      path: '/tmp/quantex-home/.bun/bin/test-bin',
+      providerOutcomeKind: 'success',
+    },
+    name: 'treats a leftover bun global-bin executable as absent when every exact provider is conclusively absent',
+  },
+  {
+    executable: { path: 'C:\\Users\\drs\\.bun\\bin\\pi.exe', present: true },
+    expected: {
+      drift: 'none',
+      kind: 'absent',
+      path: 'C:\\Users\\drs\\.bun\\bin\\pi.exe',
+      providerOutcomeKind: 'success',
+    },
+    name: 'normalizes Windows leftover bun global-bin paths before treating them as non-ownership',
+    outcomes: {
+      npm: { kind: 'unavailable', reason: 'npm executable is unavailable' },
+    },
+  },
+  {
+    executable: { path: '/tmp/quantex-home/.bun/bin/test-bin', present: true },
+    expected: {
+      drift: 'indeterminate',
+      kind: 'indeterminate',
+      path: '/tmp/quantex-home/.bun/bin/test-bin',
+      providerOutcomeKind: 'indeterminate',
+    },
+    name: 'fails closed when a leftover bun global-bin executable coincides with an inconclusive npm probe',
+    outcomes: {
+      npm: { kind: 'indeterminate', reason: 'npm could not determine whether test-pkg is installed' },
+    },
+  },
+  {
+    executable: { path: '/bin/test-bin', present: true },
+    expected: { drift: 'untracked', kind: 'present', path: '/bin/test-bin' },
+    name: 'keeps a PATH copy outside bun global-bin untracked when bun is absent and npm is unavailable',
+    outcomes: {
+      npm: { kind: 'unavailable', reason: 'npm executable is unavailable' },
     },
   },
   {
@@ -668,6 +726,39 @@ describe('observeAgentLifecycle', () => {
       },
     })
     expect(result.persistedBinding).toEqual(result.binding)
+  })
+
+  it('lets install decide proceed for a leftover bun shim when npm is missing', async () => {
+    const leftoverPath = '/tmp/quantex-home/.bun/bin/test-bin'
+    const result = await observeAgentLifecycle(agent, {
+      clock: () => '2026-07-12T04:00:00.000Z',
+      inspectExecutable: async () => ({ path: leftoverPath, present: true }),
+      platform: 'linux',
+      preferredCatalogBinding: { providerId: 'bun', target: { id: 'test-pkg', kind: 'package' } },
+      providerRegistry: createRegistry({
+        npm: { kind: 'unavailable', reason: 'npm executable is unavailable' },
+      }),
+      readInstalledState: async () => undefined,
+      readReceipt: async () => undefined,
+      signal: new AbortController().signal,
+    })
+
+    expect(result.observation.kind).toBe('absent')
+    expect(result.pathExecutable).toEqual({ path: leftoverPath, present: true })
+    expect(
+      decideCoreInstallation({
+        agent,
+        methods: [
+          { packageName: 'test-pkg', type: 'bun' },
+          { packageName: 'test-pkg', type: 'npm' },
+        ],
+        ...result,
+      }),
+    ).toEqual({
+      decision: 'install',
+      kind: 'ready',
+      wouldChange: true,
+    })
   })
 })
 

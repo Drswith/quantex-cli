@@ -543,6 +543,8 @@ describe('uninstallCommand', () => {
       details: { lifecycle: 'conflicting-source' },
       message: expect.stringContaining('another copy remains on PATH'),
     })
+    expect(result.error?.message).toContain('.exe')
+    expect(result.error?.message).toContain('.bunx')
     expect(setInstalledStateSpy).not.toHaveBeenCalled()
     expect(removeReceiptSpy).toHaveBeenCalledWith('test-agent')
   })

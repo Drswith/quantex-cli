@@ -101,6 +101,23 @@ describe('Core provider observation registry', () => {
     expect(outcome).toMatchObject({ kind: 'indeterminate', reason: expect.stringContaining('could not determine') })
   })
 
+  it('treats a missing npm executable as unavailable rather than inconclusive presence', async () => {
+    const missing = Object.assign(new Error('spawn npm ENOENT'), { code: 'ENOENT' })
+    const runCommand = vi.fn(async (argv: readonly string[]) => {
+      if (argv[0] === 'npm') throw missing
+      return { exitCode: 1, stderr: '', stdout: '' }
+    })
+    const registry = createCoreProviderObservationRegistry(dependencies({ runCommand }))
+
+    const outcome = await registry.get('npm')!.observe({ context: context(), target: targets.npm })
+
+    expect(outcome).toEqual({ kind: 'unavailable', reason: 'npm executable is unavailable' })
+    expect(runCommand).toHaveBeenCalledWith(
+      ['npm', 'list', '-g', 'fixture', '--depth=0', '--json'],
+      expect.objectContaining({ signal: expect.anything() }),
+    )
+  })
+
   it('treats uv successful empty-tool output as conclusive absence', async () => {
     const registry = createCoreProviderObservationRegistry(
       dependencies({
