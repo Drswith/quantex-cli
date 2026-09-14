@@ -441,6 +441,64 @@ describe('updateCommand', () => {
     }
   })
 
+  it('prints a checking line before update --all planning in human mode', async () => {
+    setCliContext({
+      interactive: true,
+      outputMode: 'human',
+      runId: 'update-all-progress-run',
+    })
+    const batchRoot = requireLifecycleBatchRoot()
+    const batchSpy = vi.spyOn(lifecycleUpdateProduction, batchRoot).mockResolvedValue({
+      cancellationRemainder: [],
+      kind: 'lifecycle-update-batch-outcome',
+      plan: {
+        id: 'empty',
+        kind: 'lifecycle-update-batch-plan',
+        providerBuckets: [],
+        resolvedPlanId: 'empty',
+        targets: [],
+      },
+      results: [],
+      success: true,
+    } as never)
+
+    try {
+      await updateCommand(undefined, true)
+      expect(stdoutWriteSpy).toHaveBeenCalledWith(expect.stringContaining('Checking installed agents'))
+    } finally {
+      batchSpy.mockRestore()
+    }
+  })
+
+  it('does not print a checking line before update --all planning in json mode', async () => {
+    setCliContext({
+      interactive: false,
+      outputMode: 'json',
+      runId: 'update-all-json-progress-run',
+    })
+    const batchRoot = requireLifecycleBatchRoot()
+    const batchSpy = vi.spyOn(lifecycleUpdateProduction, batchRoot).mockResolvedValue({
+      cancellationRemainder: [],
+      kind: 'lifecycle-update-batch-outcome',
+      plan: {
+        id: 'empty',
+        kind: 'lifecycle-update-batch-plan',
+        providerBuckets: [],
+        resolvedPlanId: 'empty',
+        targets: [],
+      },
+      results: [],
+      success: true,
+    } as never)
+
+    try {
+      await updateCommand(undefined, true)
+      expect(stdoutWriteSpy).not.toHaveBeenCalledWith(expect.stringContaining('Checking installed agents'))
+    } finally {
+      batchSpy.mockRestore()
+    }
+  })
+
   it('shares one prepared batch invocation between the update-all policy and command run', async () => {
     mockBatchCommandAgents(['alpha', 'beta'])
     const alpha = createBatchCommandTarget('alpha', 'updated')

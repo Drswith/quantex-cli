@@ -425,3 +425,24 @@ describe('getBinaryPath', () => {
     expect(path).toBeUndefined()
   })
 })
+
+describe('probeInstalledVersionForObservation', () => {
+  it('treats a nested probe timeout as an unknown version instead of failing', async () => {
+    const { probeInstalledVersionForObservation } = await import('../../src/utils/version')
+    mockSpawn.mockReturnValue({
+      exitCode: null,
+      exited: new Promise(() => {}),
+      kill: vi.fn(() => true),
+      stderr: new ReadableStream(),
+      stdout: new ReadableStream(),
+      unref: vi.fn(),
+    })
+
+    await expect(
+      probeInstalledVersionForObservation('codex', undefined, {
+        signal: new AbortController().signal,
+        timeoutMs: 30,
+      }),
+    ).resolves.toBeUndefined()
+  })
+})

@@ -17,7 +17,7 @@ import { getPlatform } from '../utils/detect'
 import { resolveAgentExecutablePath } from '../utils/executable-resolution'
 import { executableLookupNamesForAgent } from '../utils/executable-search-paths'
 import { isResourceLockError } from '../utils/lock'
-import { getResolvedBinaryPath, probeInstalledVersion } from '../utils/version'
+import { getResolvedBinaryPath, probeInstalledVersionForObservation } from '../utils/version'
 import { getCoreAgentByNameOrAlias, getCoreAgents } from './agent-catalog'
 import { observeAgentLifecycle } from './lifecycle/agent-observation'
 import { resolveInstallMethodProviderBinding } from './lifecycle/provider-binding'
@@ -125,6 +125,7 @@ async function observeUpdateAgent(
     readReceipt: () => getLifecycleReceipt(agent.name),
     resolveExecutablePath: path => getResolvedBinaryPath(path, context),
     signal: options.signal,
+    skipUnrecordedAbsentCatalogProbes: true,
     timeoutMs: options.timeoutMs,
   })
 
@@ -161,7 +162,7 @@ async function inspectExecutable(
 ): Promise<AgentExecutableObservation> {
   const binaryPath = await resolveAgentExecutablePath(executableLookupNamesForAgent(agent), context)
   if (!binaryPath) return { present: false }
-  const version = await probeInstalledVersion(agent.binaryName, agent.versionProbe, context, binaryPath)
+  const version = await probeInstalledVersionForObservation(agent.binaryName, agent.versionProbe, context, binaryPath)
   const path = (await getResolvedBinaryPath(binaryPath, context)) ?? binaryPath
   return { path, present: true, version }
 }

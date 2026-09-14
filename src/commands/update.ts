@@ -198,6 +198,8 @@ async function updateAllAgents(
     type: 'started',
   })
 
+  if (getCliContext().outputMode === 'human') printInfo('Checking installed agents...')
+
   const outcome = await (scope === 'managed'
     ? (dependencies.runManagedBatch ?? dependencies.runBatch)()
     : dependencies.runBatch())
