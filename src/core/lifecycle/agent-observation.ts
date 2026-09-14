@@ -3,6 +3,9 @@
 // re-export from src/core/index.ts or packages/core. src/state MUST NOT import
 // this module (ADR 0011 / 0013).
 // L5 leftover scan: KEEP product-path hang here (do not restore src/lifecycle).
+// Product-path keep so the fix-codex-update-source-mismatch archive PR still
+// runs the macOS test matrix. Hang leftover classify presence on this existing
+// Core-internal observation file, not a restored src/lifecycle barrel.
 import type { AgentDefinition, Platform } from '../../agents'
 import type { ProviderOperation, ProviderOutcome, ProviderObservation, ProviderRegistry } from '../../providers'
 import type { InstalledAgentState } from '../../state'
