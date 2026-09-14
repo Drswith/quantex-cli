@@ -186,7 +186,9 @@ async function loadCliUpdatePorts(
   operation: ReturnType<typeof createCliOperationContext>,
 ): Promise<CoreUpdateServicePorts> {
   const config = await loadConfig()
-  const observationService = createProductionLifecycleObservationService(operation.context)
+  const observationService = createProductionLifecycleObservationService(operation.context, {
+    skipUnrecordedAbsentCatalogProbes: true,
+  })
   return {
     classifyMutationLockError: (error: unknown) =>
       isResourceLockError(error) ? { reason: error.message, resource: error.resource } : undefined,

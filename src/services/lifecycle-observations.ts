@@ -21,7 +21,12 @@ import { getPlatform } from '../utils/detect'
 import { resolveAgentExecutablePath } from '../utils/executable-resolution'
 import { executableLookupNamesForAgent } from '../utils/executable-search-paths'
 import { getLatestVersionPackage } from '../utils/install'
-import { getLatestVersion, getResolvedBinaryPath, probeInstalledVersion } from '../utils/version'
+import {
+  getLatestVersion,
+  getResolvedBinaryPath,
+  probeInstalledVersion,
+  probeInstalledVersionForObservation,
+} from '../utils/version'
 
 export interface ResolvedAgentObservation extends AgentLifecycleObservationResult {
   readonly agent: AgentDefinition
@@ -64,6 +69,7 @@ export interface LifecycleObservationService {
 
 export interface LifecycleObservationServiceOptions {
   readonly resolveLatestVersion?: boolean
+  readonly skipUnrecordedAbsentCatalogProbes?: boolean
 }
 
 export function createLifecycleObservationService(
@@ -87,6 +93,7 @@ export function createLifecycleObservationService(
       readReceipt: ports.readReceipt,
       resolveExecutablePath: path => ports.getResolvedBinaryPath(path),
       signal: ports.signal,
+      skipUnrecordedAbsentCatalogProbes: options.skipUnrecordedAbsentCatalogProbes,
       timeoutMs: ports.timeoutMs,
     })
     const [latestVersion, resolvedBinaryPath] = await Promise.all([
@@ -143,7 +150,8 @@ export function createProductionLifecycleObservationService(
       getOrderedInstallMethods,
       getPlatform,
       getResolvedBinaryPath: binaryPath => getResolvedBinaryPath(binaryPath, context),
-      inspectExecutable: (agent, installedState) => inspectExecutable(agent, installedState, context),
+      inspectExecutable: (agent, installedState) =>
+        inspectExecutable(agent, installedState, context, options.skipUnrecordedAbsentCatalogProbes),
       observeAgentLifecycle,
       providerRegistry: firstPartyProviderRegistry,
       readInstalledState: getInstalledAgentState,
@@ -172,13 +180,14 @@ async function inspectExecutable(
   agent: AgentDefinition,
   installedState: InstalledAgentState | undefined,
   context?: ProviderOperationContext,
+  boundVersionProbe?: boolean,
 ): Promise<AgentExecutableObservation> {
   // One resolution decides presence and feeds the version probe, so an agent
   // outside the inherited PATH is probed through the path it actually occupies.
   const binaryPath = await resolveAgentExecutablePath(executableLookupNamesForAgent(agent), context)
   if (!binaryPath) return { present: false }
 
-  const version = await getObservedInstalledVersion(agent, installedState, context, binaryPath)
+  const version = await getObservedInstalledVersion(agent, installedState, context, binaryPath, boundVersionProbe)
   const path = (await getResolvedBinaryPath(binaryPath, context)) ?? binaryPath
   return { path, present: true, version }
 }
@@ -188,8 +197,11 @@ async function getObservedInstalledVersion(
   _installedState: InstalledAgentState | undefined,
   context?: ProviderOperationContext,
   executablePath?: string,
+  boundVersionProbe?: boolean,
 ): Promise<string | undefined> {
-  return probeInstalledVersion(agent.binaryName, agent.versionProbe, context, executablePath)
+  return boundVersionProbe
+    ? probeInstalledVersionForObservation(agent.binaryName, agent.versionProbe, context, executablePath)
+    : probeInstalledVersion(agent.binaryName, agent.versionProbe, context, executablePath)
 }
 
 async function resolveLatestVersion(

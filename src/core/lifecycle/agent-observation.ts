@@ -44,6 +44,11 @@ export interface AgentLifecycleObservationPorts {
       readonly timeoutMs?: number
     },
   ) => Promise<ProviderOutcome<ProviderObservation>>
+  /**
+   * Update planning only: catalog-only absent agents cannot appear in `update --all`,
+   * so probing every catalog provider for them is wasted work that can stall the batch.
+   */
+  readonly skipUnrecordedAbsentCatalogProbes?: boolean
 }
 
 export interface AgentLifecycleObservationResult {
@@ -148,20 +153,20 @@ export async function observeAgentLifecycle(
       }
     }
 
-    // A receipt's executable path is evidence for the version that receipt recorded. An installer
-    // that gives every release its own directory relocates the executable on each upgrade, so once
-    // the live version has moved on the recorded path is stale by construction and comparing it
-    // would report a successful update as source drift. Provider-reported and live paths are both
-    // live evidence and stay compared regardless of version.
+    // A receipt's executable path is evidence for the version that receipt recorded. Script and
+    // binary installs still compare that path when versions agree. Package and formula sources
+    // treat live provider presence as source evidence, so a relocated PATH binary (Codex in
+    // ~/.local/bin after a bun/npm install) is not source drift by itself. Provider-reported and
+    // live paths stay compared regardless of version.
     const liveVersion =
       executable.version ?? (providerObservation.kind === 'present' ? providerObservation.version : undefined)
     const [providerPathConflicts, receiptPathConflicts] = await Promise.all([
       providerObservation.kind === 'present'
         ? executablePathsConflict(providerObservation.executablePath, executable.path, ports)
         : false,
-      versionsConflict(receipt?.version, liveVersion)
-        ? false
-        : executablePathsConflict(receipt?.executablePath, executable.path, ports),
+      shouldCompareReceiptExecutablePath(recordedBinding) && !versionsConflict(receipt?.version, liveVersion)
+        ? executablePathsConflict(receipt?.executablePath, executable.path, ports)
+        : false,
     ])
     const evidenceConflicts =
       providerObservation.kind !== (executable.present ? 'present' : 'absent') ||
@@ -190,6 +195,14 @@ export async function observeAgentLifecycle(
         providerObservation.kind === 'present' ? recordedBinding : undefined,
       ),
       providerOutcome,
+    }
+  }
+
+  if (ports.skipUnrecordedAbsentCatalogProbes && !executable.present && !installedState && !receipt) {
+    return {
+      ...base,
+      capabilities: [],
+      observation: { drift: { kind: 'none' }, kind: 'absent', observedAt, targetId: agent.name },
     }
   }
 
@@ -454,6 +467,10 @@ function versionsConflict(left: string | undefined, right: string | undefined): 
   if (left === undefined || right === undefined) return false
   const order = compareVersions(left, right)
   return order === undefined ? left !== right : order !== 0
+}
+
+function shouldCompareReceiptExecutablePath(binding: LifecycleProviderBinding): boolean {
+  return binding.target.kind === 'script' || binding.target.kind === 'binary'
 }
 
 async function executablePathsConflict(

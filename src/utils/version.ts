@@ -90,6 +90,33 @@ export async function probeInstalledVersion(
   }
 }
 
+/** Nested PATH version probes on the update path must not stall the rest of a batch. */
+export const OBSERVATION_VERSION_PROBE_BUDGET_MS = 15_000
+
+export async function probeInstalledVersionForObservation(
+  binaryName: string,
+  versionProbe: AgentVersionProbe | undefined,
+  context: ProviderOperationContext | undefined,
+  executablePath?: string,
+): Promise<string | undefined> {
+  const timeoutMs =
+    context?.timeoutMs === undefined
+      ? OBSERVATION_VERSION_PROBE_BUDGET_MS
+      : Math.min(context.timeoutMs, OBSERVATION_VERSION_PROBE_BUDGET_MS)
+  const signal = context?.signal ?? new AbortController().signal
+  try {
+    return await probeInstalledVersion(
+      binaryName,
+      versionProbe,
+      { ...(context ?? { signal }), signal, timeoutMs },
+      executablePath,
+    )
+  } catch (error) {
+    if (isProcessInterruptionError(error) && error.kind === 'timed-out' && !signal.aborted) return undefined
+    throw error
+  }
+}
+
 export async function getLatestVersion(
   packageName: string,
   distTag: string = 'latest',

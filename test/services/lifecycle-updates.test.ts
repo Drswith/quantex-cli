@@ -830,6 +830,18 @@ describe('single-agent lifecycle update application service', () => {
       version: '3.0.0',
     })
   })
+
+  it('plans a bun-managed update when PATH relocates off the receipt shim', async () => {
+    const harness = createRelocatedPackageInstallHarness()
+    const planned = await requirePlanned(harness.ports)
+
+    expect(planned).toMatchObject({
+      binding: { providerId: 'bun', target: { id: '@openai/codex', kind: 'package' } },
+      plannedTargetVersion: '0.155.0',
+      strategy: 'managed-provider',
+    })
+    expect(planned.planning.decision).toBe('upgrade')
+  })
 })
 
 async function requirePlanned(ports: LifecycleUpdateServicePorts): Promise<SingleAgentLifecycleUpdatePlan> {
@@ -993,6 +1005,83 @@ function createVersionedScriptInstallHarness(options: {
   }
 
   return { executeSelfUpdate, ports, writeReceipt, writtenReceipt: () => receipt }
+}
+
+function createRelocatedPackageInstallHarness() {
+  const agent = {
+    binaryName: 'codex',
+    displayName: 'Codex CLI',
+    homepage: 'https://developers.openai.com/codex/cli',
+    name: 'alpha',
+    packages: { npm: '@openai/codex' },
+    platforms: {
+      linux: [
+        { packageName: '@openai/codex', type: 'bun' as const },
+        { packageName: '@openai/codex', type: 'npm' as const },
+      ],
+    },
+    selfUpdate: { command: ['codex', '--upgrade'] },
+  } satisfies AgentDefinition
+  const receipt: LifecycleReceipt = {
+    executableName: 'codex',
+    executablePath: '/Users/drs/.bun/bin/codex',
+    kind: 'lifecycle-receipt',
+    providerId: 'bun',
+    providerTargetId: '@openai/codex',
+    providerTargetKind: 'package',
+    schemaVersion: 1,
+    targetId: 'alpha',
+    verifiedAt: '2026-09-10T11:02:44.393Z',
+    version: '0.154.0',
+  }
+  const adapter: ProviderAdapter = {
+    availability: async () => ({ kind: 'success', value: { executable: 'bun' } }),
+    id: 'bun',
+    observe: async request => ({
+      kind: 'success',
+      value: { kind: 'present', target: request.target, version: '0.154.0' },
+    }),
+    resolveLatestVersion: async () => ({ kind: 'success', value: { version: '0.155.0' } }),
+    update: async request => ({ kind: 'success', value: { evidence: [], target: request.target } }),
+    verify: async () => ({ kind: 'success', value: { evidence: [], kind: 'satisfied' } }),
+  }
+  const providerRegistry: ProviderRegistry = {
+    get: id => (id === 'bun' ? adapter : undefined),
+    getCapabilities: id =>
+      id === 'bun' ? ['availability', 'observe', 'resolve-latest-version', 'update', 'verify'] : [],
+    list: () => [adapter],
+  }
+  const ports: LifecycleUpdateServicePorts = {
+    clock: () => '2026-09-14T01:20:14.000Z',
+    dryRun: false,
+    observe: async () => {
+      const observed = await observeAgentLifecycle(agent, {
+        clock: () => '2026-09-14T01:20:14.000Z',
+        inspectExecutable: async () => ({
+          path: '/Users/drs/.local/bin/codex',
+          present: true,
+          version: '0.154.0',
+        }),
+        platform: 'linux',
+        providerRegistry,
+        readInstalledState: async () => ({
+          agentName: 'alpha',
+          installType: 'bun',
+          packageName: '@openai/codex',
+        }),
+        readReceipt: async () => receipt,
+        resolveExecutablePath: async path => path,
+        signal: new AbortController().signal,
+      })
+      return { agent, ...observed, methods: agent.platforms.linux }
+    },
+    planLifecycleUpdate,
+    providerRegistry,
+    signal: new AbortController().signal,
+    writeReceipt: async () => undefined,
+  }
+
+  return { ports }
 }
 
 function createSelfUpdateHarness(options: { afterVersion: string; executeOutcome?: ProviderOutcome<never> }) {

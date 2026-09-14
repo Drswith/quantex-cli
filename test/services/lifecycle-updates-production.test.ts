@@ -396,6 +396,7 @@ describe('lifecycle update production composition', () => {
     expect(production.createProductionLifecycleObservationService).toHaveBeenCalledOnce()
     expect(production.createProductionLifecycleObservationService).toHaveBeenCalledWith(
       production.createCliOperationContext.mock.results[0]?.value.context,
+      { skipUnrecordedAbsentCatalogProbes: true },
     )
     expect(production.nestedResolveAgentObservation).not.toHaveBeenCalled()
     expect(production.update).toHaveBeenCalledTimes(1)
@@ -423,6 +424,7 @@ describe('lifecycle update production composition', () => {
     expect(production.createProductionLifecycleObservationService).toHaveBeenCalledOnce()
     expect(production.createProductionLifecycleObservationService).toHaveBeenCalledWith(
       production.createCliOperationContext.mock.results[0]?.value.context,
+      { skipUnrecordedAbsentCatalogProbes: true },
     )
     expect(production.nestedResolveAgentObservation).not.toHaveBeenCalled()
     expect(production.calls).toEqual([

@@ -371,16 +371,83 @@ const scenarios: readonly Scenario[] = [
     expected: {
       binding: { providerId: 'bun', target: { id: 'test-pkg', kind: 'package' } },
       capabilities: ['availability', 'observe', 'update'],
-      drift: 'conflicting-source',
+      drift: 'none',
       kind: 'present',
       path: '/bin/test-bin',
       providerId: 'bun',
       version: '1.2.3',
     },
-    name: 'reports a changed executable path against recorded receipt identity',
+    name: 'ignores a stale package receipt path when live provider path matches PATH',
     outcomes: { bun: present('bun') },
     receipt: { ...receipt, executablePath: '/old/test-bin' },
     resolvedPaths: { '/old/test-bin': '/other/test-bin' },
+    state: legacyState,
+  },
+  {
+    executable: { path: '/Users/drs/.local/bin/codex', present: true, version: '0.154.0' },
+    expected: {
+      binding: { providerId: 'bun', target: { id: 'test-pkg', kind: 'package' } },
+      capabilities: ['availability', 'observe', 'update'],
+      drift: 'none',
+      kind: 'present',
+      path: '/Users/drs/.local/bin/codex',
+      providerId: 'bun',
+      version: '0.154.0',
+    },
+    name: 'keeps a bun package source when PATH relocates off the receipt shim',
+    outcomes: {
+      bun: {
+        kind: 'success',
+        value: {
+          kind: 'present',
+          target: { id: 'test-pkg', kind: 'package' },
+          version: '0.154.0',
+        },
+      },
+    },
+    receipt: {
+      ...receipt,
+      executablePath: '/Users/drs/.bun/bin/codex',
+      version: '0.154.0',
+    },
+    resolvedPaths: {
+      '/Users/drs/.bun/bin/codex': '/Users/drs/.bun/bin/codex',
+      '/Users/drs/.local/bin/codex': '/Users/drs/.local/bin/codex',
+    },
+    state: legacyState,
+  },
+  {
+    executable: { path: '/Users/drs/.local/bin/codex', present: true, version: '0.154.0' },
+    expected: {
+      binding: { providerId: 'bun', target: { id: 'test-pkg', kind: 'package' } },
+      capabilities: ['availability', 'observe', 'update'],
+      drift: 'conflicting-source',
+      kind: 'present',
+      path: '/Users/drs/.local/bin/codex',
+      providerId: 'bun',
+      version: '0.154.0',
+    },
+    name: 'still conflicts when bun reports a live executable path that disagrees with PATH',
+    outcomes: {
+      bun: {
+        kind: 'success',
+        value: {
+          executablePath: '/Users/drs/.bun/bin/codex',
+          kind: 'present',
+          target: { id: 'test-pkg', kind: 'package' },
+          version: '0.154.0',
+        },
+      },
+    },
+    receipt: {
+      ...receipt,
+      executablePath: '/Users/drs/.bun/bin/codex',
+      version: '0.154.0',
+    },
+    resolvedPaths: {
+      '/Users/drs/.bun/bin/codex': '/Users/drs/.bun/bin/codex',
+      '/Users/drs/.local/bin/codex': '/Users/drs/.local/bin/codex',
+    },
     state: legacyState,
   },
   {
@@ -684,6 +751,43 @@ describe('observeAgentLifecycle', () => {
 
     expect(result.observation).toMatchObject({ drift: { kind: 'conflicting-source' }, kind: 'present' })
     expect(result.binding).toBeUndefined()
+  })
+
+  it('skips catalog provider probes for unrecorded absent agents when requested', async () => {
+    const registry = createRegistry()
+    const observeSpies = (['bun', 'npm', 'cargo', 'script'] as const).map(id => vi.spyOn(registry.get(id)!, 'observe'))
+
+    const result = await observeAgentLifecycle(agent, {
+      clock: () => '2026-07-12T04:00:00.000Z',
+      inspectExecutable: async () => ({ present: false }),
+      platform: 'linux',
+      providerRegistry: registry,
+      readInstalledState: async () => undefined,
+      readReceipt: async () => undefined,
+      signal: new AbortController().signal,
+      skipUnrecordedAbsentCatalogProbes: true,
+    })
+
+    expect(result.observation).toMatchObject({ drift: { kind: 'none' }, kind: 'absent' })
+    expect(result.binding).toBeUndefined()
+    for (const spy of observeSpies) expect(spy).not.toHaveBeenCalled()
+  })
+
+  it('still probes catalog providers for unrecorded absent agents during install observation', async () => {
+    const registry = createRegistry()
+    const bunObserve = vi.spyOn(registry.get('bun')!, 'observe')
+
+    await observeAgentLifecycle(agent, {
+      clock: () => '2026-07-12T04:00:00.000Z',
+      inspectExecutable: async () => ({ present: false }),
+      platform: 'linux',
+      providerRegistry: registry,
+      readInstalledState: async () => undefined,
+      readReceipt: async () => undefined,
+      signal: new AbortController().signal,
+    })
+
+    expect(bunObserve).toHaveBeenCalled()
   })
 
   it('preserves recorded Cargo install arguments when a matching receipt is also present', async () => {
