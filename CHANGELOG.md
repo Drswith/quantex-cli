@@ -1,6 +1,13 @@
 # Changelog
 
 
+## [1.13.5](https://github.com/Drswith/quantex-cli/compare/v1.13.4...v1.13.5) (2026-09-14)
+
+
+### Bug Fixes
+
+* allow Codex updates when the recorded package source still matches ([9497655](https://github.com/Drswith/quantex-cli/commit/9497655dcadf5e3700e54232f7f438319edde1a3))
+
 ## [1.13.4](https://github.com/Drswith/quantex-cli/compare/v1.13.3...v1.13.4) (2026-09-08)
 
 
