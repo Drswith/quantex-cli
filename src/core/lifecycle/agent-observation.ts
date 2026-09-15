@@ -160,33 +160,44 @@ export async function observeAgentLifecycle(
     // binary installs still compare that path when versions agree. Package and formula sources
     // treat live provider presence as source evidence, so a relocated PATH binary (Codex in
     // ~/.local/bin after a bun/npm install) is not source drift by itself. Provider-reported and
-    // live paths stay compared regardless of version.
+    // live paths stay compared regardless of version. PATH `--version` lag after that relocation
+    // is also not source drift: the managed version is the bound provider version.
     const liveVersion =
       executable.version ?? (providerObservation.kind === 'present' ? providerObservation.version : undefined)
-    const [providerPathConflicts, receiptPathConflicts] = await Promise.all([
+    const compareReceiptExecutablePath = shouldCompareReceiptExecutablePath(recordedBinding)
+    const [providerPathConflicts, receiptPathConflicts, packageReceiptPathRelocated] = await Promise.all([
       providerObservation.kind === 'present'
         ? executablePathsConflict(providerObservation.executablePath, executable.path, ports)
         : false,
-      shouldCompareReceiptExecutablePath(recordedBinding) && !versionsConflict(receipt?.version, liveVersion)
+      compareReceiptExecutablePath && !versionsConflict(receipt?.version, liveVersion)
         ? executablePathsConflict(receipt?.executablePath, executable.path, ports)
         : false,
+      compareReceiptExecutablePath ? false : executablePathsConflict(receipt?.executablePath, executable.path, ports),
     ])
+    const versionConflicts =
+      providerObservation.kind === 'present' &&
+      versionsConflict(providerObservation.version, executable.version) &&
+      !packageReceiptPathRelocated
     const evidenceConflicts =
       providerObservation.kind !== (executable.present ? 'present' : 'absent') ||
       (executable.present && providerPathConflicts) ||
-      (providerObservation.kind === 'present' && versionsConflict(providerObservation.version, executable.version)) ||
+      versionConflicts ||
       receiptPathConflicts ||
       executableIdentityConflicts(agent, installedState, receipt, recordedBinding)
     const liveExecutable = mergeExecutableObservation(executable, providerObservation)
+    const managedExecutable =
+      packageReceiptPathRelocated && providerObservation.kind === 'present' && providerObservation.version
+        ? { ...liveExecutable, version: providerObservation.version }
+        : liveExecutable
 
     return {
       ...base,
       binding: recordedBinding,
       capabilities,
-      executable: liveExecutable,
+      executable: managedExecutable,
       observation: presentObservation(
         agent,
-        liveExecutable,
+        managedExecutable,
         observedAt,
         evidenceConflicts
           ? {

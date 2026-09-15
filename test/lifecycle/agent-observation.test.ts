@@ -421,6 +421,39 @@ const scenarios: readonly Scenario[] = [
     expected: {
       binding: { providerId: 'bun', target: { id: 'test-pkg', kind: 'package' } },
       capabilities: ['availability', 'observe', 'update'],
+      drift: 'none',
+      kind: 'present',
+      path: '/Users/drs/.local/bin/codex',
+      providerId: 'bun',
+      version: '0.155.0',
+    },
+    name: 'keeps a bun package source when relocated PATH lags the provider version',
+    outcomes: {
+      bun: {
+        kind: 'success',
+        value: {
+          kind: 'present',
+          target: { id: 'test-pkg', kind: 'package' },
+          version: '0.155.0',
+        },
+      },
+    },
+    receipt: {
+      ...receipt,
+      executablePath: '/Users/drs/.bun/bin/codex',
+      version: '0.154.0',
+    },
+    resolvedPaths: {
+      '/Users/drs/.bun/bin/codex': '/Users/drs/.bun/bin/codex',
+      '/Users/drs/.local/bin/codex': '/Users/drs/.local/bin/codex',
+    },
+    state: legacyState,
+  },
+  {
+    executable: { path: '/Users/drs/.local/bin/codex', present: true, version: '0.154.0' },
+    expected: {
+      binding: { providerId: 'bun', target: { id: 'test-pkg', kind: 'package' } },
+      capabilities: ['availability', 'observe', 'update'],
       drift: 'conflicting-source',
       kind: 'present',
       path: '/Users/drs/.local/bin/codex',
