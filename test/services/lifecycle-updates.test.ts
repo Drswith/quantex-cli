@@ -842,6 +842,20 @@ describe('single-agent lifecycle update application service', () => {
     })
     expect(planned.planning.decision).toBe('upgrade')
   })
+
+  it('completes a bun-managed update when relocated PATH lags the provider version', async () => {
+    const harness = createRelocatedPackageInstallHarness()
+    const planned = await requirePlanned(harness.ports)
+    const result = await executeSingleAgentLifecycleUpdate(planned, harness.ports)
+
+    expect(result).toMatchObject({ kind: 'updated' })
+    expect(harness.writtenReceipt()).toMatchObject({
+      executablePath: '/Users/drs/.local/bin/codex',
+      providerId: 'bun',
+      providerTargetId: '@openai/codex',
+      version: '0.155.0',
+    })
+  })
 })
 
 async function requirePlanned(ports: LifecycleUpdateServicePorts): Promise<SingleAgentLifecycleUpdatePlan> {
@@ -1034,15 +1048,20 @@ function createRelocatedPackageInstallHarness() {
     verifiedAt: '2026-09-10T11:02:44.393Z',
     version: '0.154.0',
   }
+  let providerVersion = '0.154.0'
+  let written: LifecycleReceipt | undefined
   const adapter: ProviderAdapter = {
     availability: async () => ({ kind: 'success', value: { executable: 'bun' } }),
     id: 'bun',
     observe: async request => ({
       kind: 'success',
-      value: { kind: 'present', target: request.target, version: '0.154.0' },
+      value: { kind: 'present', target: request.target, version: providerVersion },
     }),
     resolveLatestVersion: async () => ({ kind: 'success', value: { version: '0.155.0' } }),
-    update: async request => ({ kind: 'success', value: { evidence: [], target: request.target } }),
+    update: async request => {
+      providerVersion = '0.155.0'
+      return { kind: 'success', value: { evidence: [], target: request.target } }
+    },
     verify: async () => ({ kind: 'success', value: { evidence: [], kind: 'satisfied' } }),
   }
   const providerRegistry: ProviderRegistry = {
@@ -1078,10 +1097,12 @@ function createRelocatedPackageInstallHarness() {
     planLifecycleUpdate,
     providerRegistry,
     signal: new AbortController().signal,
-    writeReceipt: async () => undefined,
+    writeReceipt: async next => {
+      written = next
+    },
   }
 
-  return { ports }
+  return { ports, writtenReceipt: () => written }
 }
 
 function createSelfUpdateHarness(options: { afterVersion: string; executeOutcome?: ProviderOutcome<never> }) {
