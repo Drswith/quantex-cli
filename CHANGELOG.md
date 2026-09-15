@@ -1,6 +1,13 @@
 # Changelog
 
 
+## [1.13.6](https://github.com/Drswith/quantex-cli/compare/v1.13.5...v1.13.6) (2026-09-15)
+
+
+### Bug Fixes
+
+* verify relocated package updates against the provider version ([2f20270](https://github.com/Drswith/quantex-cli/commit/2f20270c3cc7076b5bb546fcec1eb2ff268132e0))
+
 ## [1.13.5](https://github.com/Drswith/quantex-cli/compare/v1.13.4...v1.13.5) (2026-09-14)
 
 
