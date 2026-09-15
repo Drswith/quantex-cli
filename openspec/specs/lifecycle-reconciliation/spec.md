@@ -64,6 +64,8 @@ When the recorded target kind is `script` or `binary`, Quantex MUST still derive
 
 When the recorded target kind is not `script` or `binary`, and the bound provider observation confirms that same target is present, Quantex MUST NOT derive source drift solely from a receipt executable path that differs from PATH. Provider-reported and live executable paths are both live evidence and MUST continue to be compared regardless of version.
 
+When the recorded target kind is not `script` or `binary`, PATH has relocated off the receipt executable path, and the bound provider observation confirms that same target is present without a conflicting executable path, Quantex MUST NOT derive source drift from PATH `--version` disagreeing with the provider version. In that case the managed observed version MUST be the provider version.
+
 #### Scenario: Symbolic link and target identify the same executable
 
 - **GIVEN** a lifecycle receipt records a symbolic-link or package-manager shim path
@@ -108,6 +110,17 @@ When the recorded target kind is not `script` or `binary`, and the bound provide
 - **WHEN** Quantex reconciles the recorded and live executable evidence
 - **THEN** Quantex does not report conflicting source evidence from the receipt path alone
 - **AND** the observation remains eligible for update planning against the recorded package identity
+
+#### Scenario: Relocated PATH version lag is not package source drift
+
+- **GIVEN** a lifecycle receipt identifies a bun or npm package target and a previous shim path
+- **AND** the bound provider presence probe confirms that package is present at a newer version
+- **AND** PATH resolves a different executable path whose `--version` still reports the previous binary
+- **AND** the provider observation does not report a conflicting executable path
+- **WHEN** Quantex reconciles the recorded and live executable evidence
+- **THEN** Quantex does not report conflicting source evidence from the PATH version lag
+- **AND** the managed observed version is the provider version
+- **AND** the observation remains eligible for update planning and post-mutation verification
 
 #### Scenario: Provider-reported live path still conflicts regardless of version
 
