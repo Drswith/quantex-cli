@@ -35,20 +35,14 @@ const forbiddenSpecifierPatterns = [
   /^(?:commander|picocolors|prompts)$/u,
 ]
 
-const allowedSharedPrefixes = [
-  'src/agents/',
-  'src/providers/',
-  'src/state/',
-  'src/runtime/',
-  'src/agent-update/',
-  'src/utils/',
-] as const
+const allowedSharedPrefixes = ['src/agents/', 'src/state/', 'src/runtime/', 'src/agent-update/', 'src/utils/'] as const
 
-const allowedSharedFiles = new Set(['src/agents.ts', 'src/state.ts', 'src/runtime.ts', 'src/providers.ts'])
+const allowedSharedFiles = new Set(['src/agents.ts', 'src/state.ts', 'src/runtime.ts'])
 
 const documentedLeafImporters = new Set(['src/state/schema.ts', 'src/state/store.ts', 'src/state/index.ts'])
 
 const packageManagerPrefix = 'packages/core/src/package-manager/'
+const providersPrefix = 'packages/core/src/providers/'
 
 describe('Core package boundary', () => {
   it('owns Core implementation under packages/core/src and leaves root src/core empty', async () => {
@@ -96,7 +90,6 @@ describe('Core package boundary', () => {
   it('keeps the eager public runtime dependency closure outside mutation and CLI infrastructure', async () => {
     const closure = await runtimeDependencyClosure(PACKAGE_ENTRY, false)
     const allowedOutsideCore = new Set([
-      'src/providers/types.ts',
       'src/state/schema.ts',
       'src/utils/compare-versions.ts',
       'src/utils/executable-search-paths.ts',
@@ -117,10 +110,10 @@ describe('Core package boundary', () => {
     const completePaths = [...complete].map(repositoryPath)
 
     expect(eagerPaths).not.toContain('packages/core/src/installation-production.ts')
-    expect(eagerPaths).not.toContain('src/providers/first-party.ts')
+    expect(eagerPaths).not.toContain('packages/core/src/providers/first-party.ts')
     expect(completePaths).toContain('packages/core/src/installation-production.ts')
     expect(completePaths).toContain('packages/core/src/installation-provider-registry.ts')
-    expect(completePaths).not.toContain('src/providers/first-party.ts')
+    expect(completePaths).not.toContain('packages/core/src/providers/first-party.ts')
   })
 
   it('allows only documented root-module imports from Core', async () => {
@@ -176,7 +169,12 @@ describe('Core package boundary', () => {
           ? repositoryPath(await resolveTypescriptImport(file, specifier))
           : specifier
         if (resolved !== MODEL_LEAF && !cliOwnedImporter(importer)) {
-          if (resolved.startsWith(packageManagerPrefix) && deferredCoreImporter(importer)) continue
+          if (
+            (resolved.startsWith(packageManagerPrefix) || resolved.startsWith(providersPrefix)) &&
+            deferredCoreImporter(importer)
+          ) {
+            continue
+          }
           violations.push(`${importer} -> ${resolved}`)
         }
       }
@@ -193,12 +191,12 @@ describe('Core package boundary', () => {
   })
 
   it('records product-locked ownership and physical stop points for providers and state', async () => {
-    await access(join(ROOT, 'src', 'providers'))
+    await access(join(CORE_SOURCE, 'providers'))
     await access(join(ROOT, 'src', 'state'))
     await access(join(ROOT, 'src', 'agents'))
     await access(join(CORE_SOURCE, 'package-manager'))
+    await expect(access(join(ROOT, 'src', 'providers'))).rejects.toThrow()
     await expect(access(join(ROOT, 'src', 'package-manager'))).rejects.toThrow()
-    await expect(access(join(CORE_SOURCE, 'providers'))).rejects.toThrow()
     await expect(access(join(CORE_SOURCE, 'state'))).rejects.toThrow()
     await expect(access(join(CORE_SOURCE, 'agents'))).rejects.toThrow()
 
@@ -208,22 +206,24 @@ describe('Core package boundary', () => {
     expect(stateIndex).toContain("from '../self/types'")
     expect(stateSchema).toContain("from '../self/types'")
     expect(stateIndex).toContain("from '../../packages/core/src/lifecycle/model'")
+    expect(stateIndex).not.toContain('packages/core/src/providers')
+    expect(stateSchema).not.toContain('packages/core/src/providers')
+  })
 
-    const providerFiles = await typescriptFiles(join(ROOT, 'src', 'providers'))
+  it('keeps relocated providers under Core without CLI shell imports', async () => {
+    await access(join(CORE_SOURCE, 'providers', 'index.ts'))
+    await expect(access(join(ROOT, 'src', 'providers'))).rejects.toThrow()
+
+    const files = await typescriptFiles(join(CORE_SOURCE, 'providers'))
     const packageManagerImporters: string[] = []
     const cliLeaks: string[] = []
-    for (const file of providerFiles) {
+    for (const file of files) {
       const source = await readFile(file, 'utf8')
       for (const specifier of importSpecifiers(source)) {
         if (specifier.includes('package-manager')) {
           packageManagerImporters.push(`${repositoryPath(file)} -> ${specifier}`)
         }
-        if (
-          /(?:^|\/)cli-context(?:$|\/)/u.test(specifier) ||
-          /(?:^|\/)commands?(?:$|\/)/u.test(specifier) ||
-          /(?:^|\/)self(?:$|\/)/u.test(specifier) ||
-          /(?:^|\/)config(?:$|\/)/u.test(specifier)
-        ) {
+        if (forbiddenSpecifierPatterns.some(pattern => pattern.test(specifier))) {
           cliLeaks.push(`${repositoryPath(file)} -> ${specifier}`)
         }
       }
@@ -231,6 +231,10 @@ describe('Core package boundary', () => {
 
     expect(cliLeaks).toEqual([])
     expect(packageManagerImporters.length).toBeGreaterThan(0)
+
+    const publicEntry = await readFile(PACKAGE_ENTRY, 'utf8')
+    expect(publicEntry).not.toContain('providers')
+    expect(publicEntry).not.toContain('./providers')
   })
 
   it('keeps relocated package-manager under Core without CLI shell imports', async () => {
@@ -259,6 +263,7 @@ describe('Core package boundary', () => {
 
     const publicEntry = await readFile(PACKAGE_ENTRY, 'utf8')
     expect(publicEntry).not.toContain('package-manager')
+    expect(publicEntry).not.toContain('providers')
   })
 })
 
@@ -280,7 +285,6 @@ function cliOwnedImporter(importer: string): boolean {
 }
 
 function deferredCoreImporter(importer: string): boolean {
-  if (importer.startsWith('src/providers/')) return true
   if (importer.startsWith('src/state/')) return true
   if (importer.startsWith('src/agent-update/')) return true
   if (

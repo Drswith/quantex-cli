@@ -1,11 +1,11 @@
-import type { ProviderRegistry } from '../../../src/providers/registry'
+import type { ProviderRegistry } from './providers/registry'
 import type {
   ProviderAdapter,
   ProviderId,
   ProviderOperationContext,
   ProviderOutcome,
   ProviderTarget,
-} from '../../../src/providers/types'
+} from './providers/types'
 import type { ReadOnlyCommandResult } from './read-only-process'
 import { access, readFile } from 'node:fs/promises'
 import { homedir } from 'node:os'

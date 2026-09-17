@@ -46,5 +46,6 @@ Product locked ownership for that issue:
 ## Follow-up
 
 - OpenSpec change `core-physical-source-separation` (issue #741) archived via #751.
-- Slice 1 (issue #752 / OpenSpec `relocate-core-package-manager`): package-manager lives at `packages/core/src/package-manager`. CLI `cli-context` / `config` / `cli-operation-context` / `cli-child-process` edges are inverted through Core-owned host ports bound by `src/runtime/cli-package-manager-host.ts`. Published `quantex-core` stays frozen and does not export package-manager. `src/providers` and `src/state` remain deferred Core root exceptions.
-- Later knives may physically relocate providers, state, and similar remaining shared modules. Default owner remains Core. Catalog and the type-leaf stay the documented neutral boundary.
+- Slice 1 (issue #752 / OpenSpec `relocate-core-package-manager`): package-manager lives at `packages/core/src/package-manager`. CLI `cli-context` / `config` / `cli-operation-context` / `cli-child-process` edges are inverted through Core-owned host ports bound by `src/runtime/cli-package-manager-host.ts`. Published `quantex-core` stays frozen and does not export package-manager.
+- Slice 2 (issue #755 / OpenSpec `relocate-core-providers`): providers live at `packages/core/src/providers`. Direct CLI shell imports were already absent; remaining deferred-Core util and catalog edges stay documented root imports and are not rewritten into CLI-side semantics. Published `quantex-core` stays frozen and does not export providers. `src/state` remains the deferred Core root exception.
+- Later knives may physically relocate state and similar remaining shared modules. Default owner remains Core. Catalog and the type-leaf stay the documented neutral boundary.

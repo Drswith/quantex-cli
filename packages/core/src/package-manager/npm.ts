@@ -1,4 +1,4 @@
-import type { ProviderOperationContext } from '../../../../src/providers'
+import type { ProviderOperationContext } from '../providers'
 import type { RegistryUpdateStrategy } from './bun'
 import type { PackageMutationOutcome } from './context-mutation'
 import {

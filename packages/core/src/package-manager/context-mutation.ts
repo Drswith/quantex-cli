@@ -1,4 +1,4 @@
-import type { ProviderOperationContext, ProviderOutcome } from '../../../../src/providers'
+import type { ProviderOperationContext, ProviderOutcome } from '../providers'
 import { isProcessInterruptionError, runCommandWithContext } from '../../../../src/utils/child-process'
 
 export type PackageMutationOutcome = ProviderOutcome<void>

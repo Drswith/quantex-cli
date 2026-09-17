@@ -3,13 +3,13 @@ import type { CoreInvocationContext } from '../../packages/core/src/invocation'
 import type { LifecycleObservation, LifecycleReceipt } from '../../packages/core/src/lifecycle/model'
 import type { LifecycleProviderBinding } from '../../packages/core/src/lifecycle/provider-binding'
 import type { CoreAgentObservation } from '../../packages/core/src/production-observation'
+import type { ProviderAdapter, ProviderId } from '../../packages/core/src/providers'
 import type {
   LifecycleUpdateObservedAgent,
   LifecycleUpdateServicePorts,
   ManagedAgentLifecycleUpdatePlan,
 } from '../../packages/core/src/update-executor'
 import type { AgentDefinition, InstallMethod } from '../../src/agents'
-import type { ProviderAdapter, ProviderId } from '../../src/providers'
 import type { InstalledAgentState, VersionedQuantexState } from '../../src/state/schema'
 import type { StateDocumentPersistence } from '../../src/state/store'
 import { describe, expect, it } from 'vitest'
@@ -23,9 +23,9 @@ import {
 } from '../../packages/core/src/lifecycle/provider-binding'
 import { planLifecycleUpdate } from '../../packages/core/src/lifecycle/update-planner'
 import { buildInstalledAgentState } from '../../packages/core/src/package-manager'
+import { firstPartyProviderIds } from '../../packages/core/src/providers'
+import { createProviderRegistry } from '../../packages/core/src/providers/registry'
 import { executeSingleAgentLifecycleUpdate } from '../../packages/core/src/update-executor'
-import { firstPartyProviderIds } from '../../src/providers'
-import { createProviderRegistry } from '../../src/providers/registry'
 import { createEmptyStateDocument } from '../../src/state/schema'
 import { LifecycleStateStore } from '../../src/state/store'
 

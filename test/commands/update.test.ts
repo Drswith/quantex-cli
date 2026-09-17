@@ -1,6 +1,6 @@
 import type { ManagedInstallType } from '../../packages/core/src/package-manager'
+import type { ProviderId } from '../../packages/core/src/providers'
 import type { AgentDefinition } from '../../src/agents'
-import type { ProviderId } from '../../src/providers'
 import type { RunSingleAgentLifecycleUpdateOutcome } from '../../src/services/lifecycle-updates-production'
 import type { InstalledAgentState } from '../../src/state'
 import { afterAll, afterEach, beforeEach, describe, expect, it, vi } from 'vitest'

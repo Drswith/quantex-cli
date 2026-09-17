@@ -1,4 +1,4 @@
-import type { Platform } from '../../agents/types'
+import type { Platform } from '../../../../../src/agents/types'
 import type {
   ProviderAdapter,
   ProviderEvidence,
@@ -6,8 +6,8 @@ import type {
   ProviderOperationContext,
   ProviderOutcome,
 } from '../types'
-import { runPackageMutationOutcome } from '../../../packages/core/src/package-manager/context-mutation'
-import { getPlatform, isBinaryInPath } from '../../utils/detect'
+import { getPlatform, isBinaryInPath } from '../../../../../src/utils/detect'
+import { runPackageMutationOutcome } from '../../package-manager/context-mutation'
 import {
   interruptedOutcome,
   isInterruptedOperation,

@@ -1,6 +1,6 @@
+import type { ProviderExecutionEffect } from '../../packages/core/src/providers/types'
 import type { CatalogSourceEntry, NormalizedInstallCandidate } from '../../src/agents/schema'
 import type { AgentDefinition } from '../../src/agents/types'
-import type { ProviderExecutionEffect } from '../../src/providers/types'
 import { mkdir, writeFile } from 'node:fs/promises'
 import { dirname, join } from 'node:path'
 import process from 'node:process'

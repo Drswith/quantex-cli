@@ -5,9 +5,9 @@ import type {
   ProviderOperationContext,
   ProviderOutcome,
   ProviderTarget,
-} from '../../src/providers'
+} from '../../packages/core/src/providers'
 import { describe, expect, it } from 'vitest'
-import { createProviderRegistry, invokeProviderOperation } from '../../src/providers'
+import { createProviderRegistry, invokeProviderOperation } from '../../packages/core/src/providers'
 
 type AdapterOperation = (
   adapter: ProviderAdapter,

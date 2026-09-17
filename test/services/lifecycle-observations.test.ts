@@ -183,18 +183,18 @@ describe('mutation and execution observation boundary', () => {
     await expect(source('src/lifecycle/shadow-planning.ts')).rejects.toThrow()
 
     for (const path of [
-      'src/providers/adapters/brew.ts',
-      'src/providers/adapters/bun.ts',
-      'src/providers/adapters/cargo.ts',
-      'src/providers/adapters/deno.ts',
-      'src/providers/adapters/install-effect.ts',
-      'src/providers/adapters/mise.ts',
-      'src/providers/adapters/npm.ts',
-      'src/providers/adapters/pip.ts',
-      'src/providers/adapters/registry-package.ts',
-      'src/providers/adapters/system-package.ts',
-      'src/providers/adapters/uv.ts',
-      'src/providers/adapters/winget.ts',
+      'packages/core/src/providers/adapters/brew.ts',
+      'packages/core/src/providers/adapters/bun.ts',
+      'packages/core/src/providers/adapters/cargo.ts',
+      'packages/core/src/providers/adapters/deno.ts',
+      'packages/core/src/providers/adapters/install-effect.ts',
+      'packages/core/src/providers/adapters/mise.ts',
+      'packages/core/src/providers/adapters/npm.ts',
+      'packages/core/src/providers/adapters/pip.ts',
+      'packages/core/src/providers/adapters/registry-package.ts',
+      'packages/core/src/providers/adapters/system-package.ts',
+      'packages/core/src/providers/adapters/uv.ts',
+      'packages/core/src/providers/adapters/winget.ts',
     ]) {
       const contents = await source(path)
       expect(contents).not.toContain('legacy-operation')

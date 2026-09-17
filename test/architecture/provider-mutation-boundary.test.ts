@@ -5,7 +5,7 @@ import ts from 'typescript'
 import { describe, expect, it } from 'vitest'
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..', '..')
-const INSTALL_EFFECT_PROVIDER = join(ROOT, 'src', 'providers', 'adapters', 'install-effect.ts')
+const INSTALL_EFFECT_PROVIDER = join(ROOT, 'packages', 'core', 'src', 'providers', 'adapters', 'install-effect.ts')
 const PROVIDER_MUTATION_MODULES = [
   'packages/core/src/package-manager/brew.ts',
   'packages/core/src/package-manager/bun.ts',
@@ -16,7 +16,7 @@ const PROVIDER_MUTATION_MODULES = [
   'packages/core/src/package-manager/pip.ts',
   'packages/core/src/package-manager/uv.ts',
   'packages/core/src/package-manager/winget.ts',
-  'src/providers/adapters/install-effect.ts',
+  'packages/core/src/providers/adapters/install-effect.ts',
 ] as const
 const CLI_GLOBAL_MODULES = new Set([
   'src/cli-context.ts',

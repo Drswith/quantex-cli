@@ -1,6 +1,6 @@
 // KEEP (S1): host-bound operation-context wrapper over package mutation outcomes.
 // Type re-export is convenience; projectLegacyPackageMutation is differential.
-import type { ProviderOperationContext } from '../../../../src/providers'
+import type { ProviderOperationContext } from '../providers'
 import type { PackageMutationOutcome } from './context-mutation'
 import { getPackageManagerHostPorts } from './host'
 

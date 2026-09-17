@@ -4,7 +4,7 @@ import type {
   ProviderOperationContext,
   ProviderOutcome,
   ProviderTarget,
-} from '../../src/providers'
+} from '../../packages/core/src/providers'
 import { describeProviderConformance } from './conformance'
 
 const target: ProviderTarget = {

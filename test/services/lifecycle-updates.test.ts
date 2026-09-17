@@ -1,12 +1,12 @@
 import type { LifecycleObservation, LifecycleReceipt } from '../../packages/core/src/lifecycle/model'
-import type { AgentDefinition } from '../../src/agents'
 import type {
   ProviderAdapter,
   ProviderOperation,
   ProviderOutcome,
   ProviderRegistry,
   ProviderResolvedVersion,
-} from '../../src/providers'
+} from '../../packages/core/src/providers'
+import type { AgentDefinition } from '../../src/agents'
 import { describe, expect, it, vi } from 'vitest'
 import { observeAgentLifecycle } from '../../packages/core/src/lifecycle/agent-observation'
 import { planLifecycleUpdate } from '../../packages/core/src/lifecycle/update-planner'

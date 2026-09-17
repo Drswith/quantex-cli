@@ -1,8 +1,8 @@
-import type { ProviderAdapter, ProviderOperationContext, ProviderTarget } from '../../src/providers'
-import type { SystemPackageAdapterDependencies } from '../../src/providers/adapters/system-package'
+import type { ProviderAdapter, ProviderOperationContext, ProviderTarget } from '../../packages/core/src/providers'
+import type { SystemPackageAdapterDependencies } from '../../packages/core/src/providers/adapters/system-package'
 import { describe, expect, it, vi } from 'vitest'
-import { createCargoProviderAdapter } from '../../src/providers/adapters/cargo'
-import { createDenoProviderAdapter } from '../../src/providers/adapters/deno'
+import { createCargoProviderAdapter } from '../../packages/core/src/providers/adapters/cargo'
+import { createDenoProviderAdapter } from '../../packages/core/src/providers/adapters/deno'
 import { describeProviderConformance } from './conformance'
 
 function mutation(success = true) {

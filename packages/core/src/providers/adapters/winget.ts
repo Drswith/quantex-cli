@@ -1,7 +1,7 @@
 import type { ProviderTarget } from '../types'
 import type { SystemPackageAdapterDependencies } from './system-package'
-import * as wingetPm from '../../../packages/core/src/package-manager/winget'
-import * as detectUtils from '../../utils/detect'
+import * as detectUtils from '../../../../../src/utils/detect'
+import * as wingetPm from '../../package-manager/winget'
 import { createSystemPackageAdapter } from './system-package'
 
 const defaultDependencies: SystemPackageAdapterDependencies = {

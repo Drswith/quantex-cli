@@ -5,19 +5,19 @@ import type { LifecycleObservation, LifecycleReceipt } from '../../packages/core
 import type { LifecycleProviderBinding } from '../../packages/core/src/lifecycle/provider-binding'
 import type { CoreMutationRecipeCatalog } from '../../packages/core/src/mutation-recipe-catalog'
 import type { CoreAgentObservation, CoreReadPorts } from '../../packages/core/src/production-observation'
-import type { AgentDefinition } from '../../src/agents/types'
 import type {
   ProviderAdapter,
   ProviderOperationContext,
   ProviderOutcome,
   ProviderTarget,
-} from '../../src/providers/types'
+} from '../../packages/core/src/providers/types'
+import type { AgentDefinition } from '../../src/agents/types'
 import type { VersionedQuantexState } from '../../src/state/schema'
 import type { StateDocumentPersistence } from '../../src/state/store'
 import { describe, expect, it, vi } from 'vitest'
 import { createProductionCoreInstallationPorts } from '../../packages/core/src/installation-production'
 import { runCoreInvocation } from '../../packages/core/src/invocation'
-import { createProviderRegistry } from '../../src/providers/registry'
+import { createProviderRegistry } from '../../packages/core/src/providers/registry'
 import { createEmptyStateDocument } from '../../src/state/schema'
 import { LifecycleStateStore } from '../../src/state/store'
 

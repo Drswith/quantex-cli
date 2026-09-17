@@ -1,8 +1,8 @@
 import type { RegistryPackageUpdateStrategy } from '../types'
 import type { RegistryPackageAdapterDependencies, RegistryPackageCommandBuilders } from './registry-package'
-import * as bunPm from '../../../packages/core/src/package-manager/bun'
-import * as detectUtils from '../../utils/detect'
-import * as versionUtils from '../../utils/version'
+import * as detectUtils from '../../../../../src/utils/detect'
+import * as versionUtils from '../../../../../src/utils/version'
+import * as bunPm from '../../package-manager/bun'
 import { createRegistryPackageAdapter } from './registry-package'
 
 export interface BunProviderDependencies extends RegistryPackageAdapterDependencies {}

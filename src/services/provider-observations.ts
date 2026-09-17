@@ -8,8 +8,8 @@ import type {
   ProviderOperationContext,
   ProviderOutcome,
   ProviderRegistry,
-} from '../providers'
-import { firstPartyProviderRegistry } from '../providers'
+} from '../../packages/core/src/providers'
+import { firstPartyProviderRegistry } from '../../packages/core/src/providers'
 
 const strictV1InstallerIds = Object.freeze([
   'brew',

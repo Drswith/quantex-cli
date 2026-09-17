@@ -1,4 +1,4 @@
-import type { ProviderOperationContext } from '../providers'
+import type { ProviderOperationContext } from '../../packages/core/src/providers'
 import type { NetworkPort } from '../runtime/ports'
 import type { SelfUpdateChannel } from './types'
 import { basename } from 'node:path'

@@ -1,14 +1,11 @@
 import type {
-  ProviderOutputPolicy,
-  ProviderProcessOperationContext,
-} from '../../../src/providers/internal-operation-context'
-import type { ProviderOperationContext } from '../../../src/providers/types'
-import type {
   CoreInstallationExecutionHooks,
   CoreInstallationExecutionOutcome,
   CoreInstallationExecutorPorts,
 } from './installation-executor-types'
 import type { CoreInvocationOutcome } from './invocation'
+import type { ProviderOutputPolicy, ProviderProcessOperationContext } from './providers/internal-operation-context'
+import type { ProviderOperationContext } from './providers/types'
 import { runCoreInvocation } from './invocation'
 import { resolveCoreConfigDir } from './production-observation'
 

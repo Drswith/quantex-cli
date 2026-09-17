@@ -1,12 +1,12 @@
-import type { ProviderId, ProviderTarget } from '../../src/providers'
+import type { ProviderId, ProviderTarget } from '../../packages/core/src/providers'
 import { existsSync } from 'node:fs'
 import { chmod, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { delimiter, join } from 'node:path'
 import process from 'node:process'
 import { afterEach, describe, expect, it } from 'vitest'
+import { firstPartyProviderRegistry } from '../../packages/core/src/providers'
 import { resolveExecutableFromPath } from '../../scripts/lib/resolve-executable'
-import { firstPartyProviderRegistry } from '../../src/providers'
 
 const availabilityProviders = [
   ['brew', 'brew'],

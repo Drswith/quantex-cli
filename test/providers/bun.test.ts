@@ -1,7 +1,7 @@
-import type { ProviderOperationContext, ProviderTarget } from '../../src/providers'
-import type { BunProviderDependencies } from '../../src/providers/adapters/bun'
+import type { ProviderOperationContext, ProviderTarget } from '../../packages/core/src/providers'
+import type { BunProviderDependencies } from '../../packages/core/src/providers/adapters/bun'
 import { describe, expect, it, vi } from 'vitest'
-import { createBunProviderAdapter } from '../../src/providers/adapters/bun'
+import { createBunProviderAdapter } from '../../packages/core/src/providers/adapters/bun'
 import { describeProviderConformance } from './conformance'
 
 const target: ProviderTarget = {

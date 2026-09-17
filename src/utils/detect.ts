@@ -1,5 +1,5 @@
+import type { ProviderOperationContext } from '../../packages/core/src/providers'
 import type { Platform } from '../agents/types'
-import type { ProviderOperationContext } from '../providers'
 import process from 'node:process'
 import {
   isProcessInterruptionError,

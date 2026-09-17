@@ -2,7 +2,7 @@
 // registry. Published v1 via compatibility. Differential from the frozen
 // hardcoded list in managed-install-types.ts. Do not fold src/commands/capabilities.
 import type { InstallType, ManagedInstallType } from '../../../../src/agents/types'
-import { firstPartyProviderRegistry } from '../../../../src/providers/first-party'
+import { firstPartyProviderRegistry } from '../providers/first-party'
 
 interface InstallerCapabilities {
   canInstall: true

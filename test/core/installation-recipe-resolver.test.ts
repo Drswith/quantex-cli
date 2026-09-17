@@ -3,7 +3,6 @@ import type { LifecycleReceipt } from '../../packages/core/src/lifecycle/model'
 import type { LifecycleProviderBinding } from '../../packages/core/src/lifecycle/provider-binding'
 import type { CoreMutationRecipe, CoreMutationRecipeCatalog } from '../../packages/core/src/mutation-recipe-catalog'
 import type { CoreAgentObservation } from '../../packages/core/src/production-observation'
-import type { AgentDefinition, InstallMethod } from '../../src/agents/types'
 import type {
   ProviderAdapter,
   ProviderAvailability,
@@ -11,7 +10,8 @@ import type {
   ProviderObservation,
   ProviderOutcome,
   ProviderTarget,
-} from '../../src/providers/types'
+} from '../../packages/core/src/providers/types'
+import type { AgentDefinition, InstallMethod } from '../../src/agents/types'
 import type { InstalledAgentState } from '../../src/state/schema'
 import { describe, expect, it, vi } from 'vitest'
 import { resolveCoreInstallationRecipe } from '../../packages/core/src/installation-recipe-resolver'
@@ -19,7 +19,7 @@ import {
   resolveReceiptProviderBinding,
   resolveStateProviderBinding,
 } from '../../packages/core/src/lifecycle/provider-binding'
-import { createProviderRegistry } from '../../src/providers/registry'
+import { createProviderRegistry } from '../../packages/core/src/providers/registry'
 
 const context = Object.freeze({ signal: new AbortController().signal, timeoutMs: 1_000 })
 

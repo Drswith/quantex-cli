@@ -1,5 +1,5 @@
+import type { ProviderOperationContext } from '../../packages/core/src/providers'
 import type { AgentVersionProbe } from '../agents'
-import type { ProviderOperationContext } from '../providers'
 import type { NetworkPort } from '../runtime/ports'
 import { realpath } from 'node:fs/promises'
 import process from 'node:process'

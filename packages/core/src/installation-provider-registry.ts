@@ -1,5 +1,5 @@
 import type { Platform } from '../../../src/agents/types'
-import type { ProviderRegistry } from '../../../src/providers/registry'
+import type { ProviderRegistry } from './providers/registry'
 import type {
   ProviderAdapter,
   ProviderEvidence,
@@ -11,8 +11,7 @@ import type {
   ProviderTarget,
   ProviderTargetRequest,
   ProviderVerification,
-} from '../../../src/providers/types'
-import { firstPartyProviderIds } from '../../../src/providers/types'
+} from './providers/types'
 import { normalizeRegistryUrl } from '../../../src/utils/registry'
 import { installOutcome as installBrew, uninstallOutcome as uninstallBrew } from './package-manager/brew'
 import { installOutcome as installBun, uninstallOutcome as uninstallBun } from './package-manager/bun'
@@ -29,6 +28,7 @@ import { installOutcome as installPip, uninstallOutcome as uninstallPip } from '
 import { installOutcome as installUv, uninstallOutcome as uninstallUv } from './package-manager/uv'
 import { installOutcome as installWinget, uninstallOutcome as uninstallWinget } from './package-manager/winget'
 import { createCoreProviderObservationRegistry } from './provider-observation-registry'
+import { firstPartyProviderIds } from './providers/types'
 
 type PackageProviderId = Exclude<ProviderId, 'binary' | 'script'>
 

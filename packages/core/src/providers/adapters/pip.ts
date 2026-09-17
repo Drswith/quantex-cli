@@ -1,6 +1,6 @@
 import type { SystemPackageAdapterDependencies } from './system-package'
-import * as pipPm from '../../../packages/core/src/package-manager/pip'
-import * as detectUtils from '../../utils/detect'
+import * as detectUtils from '../../../../../src/utils/detect'
+import * as pipPm from '../../package-manager/pip'
 import { createSystemPackageAdapter } from './system-package'
 
 const defaultDependencies: SystemPackageAdapterDependencies = {
