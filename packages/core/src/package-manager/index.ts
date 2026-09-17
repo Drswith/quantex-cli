@@ -2,6 +2,9 @@
 // installers, binary/script effects, state persistence, and lifecycle lock.
 // Not a leftover pass-through of providers or Core.
 // S3 leftover scan: KEEP product-path hang here (Core-internal leftover; do not restore src/lifecycle).
+// Product-path keep so the relocate-core-package-manager archive PR still
+// runs the macOS test matrix. Hang leftover classify presence on this existing
+// packages/core/src/package-manager file, not a restored src/package-manager runtime tree.
 import type { AgentDefinition, InstallMethod, ManagedInstallType } from '../../../../src/agents/types'
 import type { ProviderOperationContext } from '../../../../src/providers'
 import type { ProviderProcessOperationContext } from '../../../../src/providers/internal-operation-context'
