@@ -27,6 +27,33 @@ Quantex SHALL own persisted-state schema, store, file persistence, and convenien
 - **AND THEN** they MUST NOT import `createQuantex`, Core mutation/execution/self-upgrade/doctor executors, or lifecycle engines other than the type-leaf
 - **AND THEN** Core-local engines MAY import state as a sibling rather than a root exception
 
+### Requirement: Slice-3 relocation SHALL relocate only persisted state
+
+This knife MUST physically relocate only `src/state/**` into `packages/core/src/state/**`. It MUST NOT relocate or fold `src/config`, capabilities, commands, schema, catalog (`src/agents`), or the lifecycle type-leaf. Catalog and `packages/core/src/lifecycle/model.ts` MUST remain the documented neutral boundary and MUST NOT be labeled CLI-owned or slimmed down. Cutting CLI seams MUST invert or inject Core-owned host ports so lock path, `loadState`, state schema version 2, receipts, and `--json` outcomes stay frozen. Remaining deferred-Core lock helpers MUST keep calling `acquireResourceLockInConfigDir` / `getResourceLockPathInConfigDir` with the injected directory rather than `acquireResourceLock` / `getConfigDir` CLI wrappers. This knife MUST NOT start GitHub issue #134 or catalog slim-down. Changelog framing MUST stay internal architecture. The published `quantex-core` SDK MUST stay frozen. This knife MUST NOT cut a separate product release.
+
+#### Scenario: Only persisted state moves under Core this knife
+
+- **WHEN** architecture tests inspect physical source layout after this knife
+- **THEN** `packages/core/src/state` exists and root `src/state/` is absent
+- **AND THEN** `src/config` remains and `packages/core/src/config` is absent
+- **AND THEN** `src/agents` remains the catalog boundary and `packages/core/src/agents` is absent
+- **AND THEN** `packages/core/src/lifecycle/model.ts` remains the type-leaf
+- **AND THEN** capabilities, commands, and schema are not relocated with state
+
+#### Scenario: CLI seams stay inverted without CLI-side lock semantics
+
+- **WHEN** relocated state resolves its config directory or acquires the state lock
+- **THEN** the config directory comes from Core-owned host ports (CLI binds `getConfigDir`; unbound Core uses the existing HOME / USERPROFILE / homedir `.quantex` location)
+- **AND THEN** the lock path is taken through `acquireResourceLockInConfigDir` with that injected directory
+- **AND THEN** relocated state does not import `src/config` or call `acquireResourceLock`
+
+#### Scenario: Frozen public contracts and deferred catalog work stay out of this knife
+
+- **WHEN** a contributor inspects this change for #134, catalog slim-down, SDK exports, or a product release
+- **THEN** those work items are absent
+- **AND THEN** `createQuantex` remains the only published runtime export
+- **AND THEN** `--json` / aliases / exit codes / state v2 / receipts are unchanged
+
 ## MODIFIED Requirements
 
 ### Requirement: Lifecycle receipt types SHALL live in a Core-internal leaf

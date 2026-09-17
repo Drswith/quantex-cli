@@ -18,7 +18,21 @@ Slice 1 (#752 / #753 / #754) moved package-manager and inverted its CLI seams. S
 - Core engines, package-manager, and lifecycle helpers import state types and helpers from root `src/state`.
 - Architecture tests currently record those CLI seams as the deferred-state exception and require `packages/core/src/state` to be absent.
 
-Issue #759 is slice 3: physically relocate state into Core. Do not fold config. Do not start #134 or catalog slim-down.
+Issue #759 is slice 3: physically relocate state into Core.
+
+## Product scope lock
+
+Hard stop for this knife (product). Later knives are not authorized by this change.
+
+| Lock | This knife |
+|---|---|
+| Relocate only `src/state` | **Yes.** `src/state/**` → `packages/core/src/state/**`. Keep `src/state.ts`. |
+| Catalog / agents / type-leaf | **Stay the documented neutral boundary.** Do not move, slim, or relabel as CLI. |
+| CLI seams | **Invert / inject only.** Host ports for `getConfigDir`; `SelfInstallSource` owned on the schema. Do **not** change outcomes into CLI-side lock/config semantics (`acquireResourceLock` / `getConfigDir` wrappers). |
+| Frozen contracts | Public SDK, `--json` / NDJSON (no engine/route), aliases, exit codes, state v2, receipts. Changelog internal. No separate release. |
+| Out of scope | Fold config. Start #134 / catalog slim-down. New CLI commands or SDK methods. YAML / workflow / `release-core.yml` / protect-main. Auto-ready the PR. |
+
+Knife order: ownership / seam draft (this file) → OpenSpec spec deltas → migrate → architecture tests.
 
 ## Goals / Non-Goals
 

@@ -3,6 +3,7 @@
 - [x] 1.1 Complete OpenSpec proposal, design (including the ownership / seam draft), and spec deltas for `runtime-boundaries` and `compatibility-contract`
 - [x] 1.2 Record the ADR 0015 follow-up note for deferred relocation slice 3 (state under Core, no CLI reassignment, config still unfolder)
 - [x] 1.3 Point `AGENTS.md` Core/state triggers at `packages/core/src/state/` without expanding the handbook
+- [x] 1.4 Record the product scope lock: relocate only `src/state`; catalog / type-leaf stay neutral; invert/inject CLI seams without CLI-side semantics; freeze SDK / `--json` / state v2 / receipts; no config fold; no #134 / slim-down; changelog internal; no separate release; keep the PR draft
 
 ## 2. Physical move
 
@@ -17,6 +18,7 @@
 - [x] 3.1 Update `test/architecture/core-boundary.test.ts` so state lives under Core, Core → CLI is forbidden, deferred Core root modules may import relocated state, and type-leaf / catalog rules remain
 - [x] 3.2 Retarget leftover scans, lifecycle ownership paths, and hardcoded `src/state/` assertions
 - [x] 3.3 Preserve lazy mutation loading, published SDK freeze, and `first-party` exclusion assertions
+- [x] 3.4 Architecture tests lock the product scope: only state moved; `src/config` / `src/agents` / type-leaf stay put; inverted `*InConfigDir` locks, not CLI-side wrappers
 
 ## 4. Validation and delivery
 
