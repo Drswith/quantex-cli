@@ -23,3 +23,10 @@ Moving Core implementation from root `src/core` into `packages/core/src`, and re
 - **THEN** the runtime export remains `createQuantex`
 - **AND THEN** `packages/core/package.json` still exports only `.` and `./package.json`
 - **AND THEN** lifecycle engines, receipts, package-manager, and route identifiers are not added to that public surface
+
+#### Scenario: CLI packaged declaration snapshot retargets relocated package-manager paths
+
+- **WHEN** the CLI package `dist/index.d.mts` is rebuilt after package-manager moves under `packages/core/src`
+- **THEN** the pinned v1 declaration snapshot may retarget `#region` source paths for those files
+- **AND THEN** `ManagedInstallerUpdateOptions.npmBunUpdateStrategy` may name the equivalent Core-owned `RegistryPackageUpdateStrategy` union instead of the CLI config alias
+- **AND THEN** the snapshot MUST NOT add new exported values, package-manager as a public SDK method, or engine/route identifiers
