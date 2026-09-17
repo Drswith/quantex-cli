@@ -2,6 +2,9 @@
 // Live importers across Core, package-manager, and services. Not a leftover
 // pass-through of a single adapter.
 // S3 leftover scan: KEEP product-path hang here (Core-internal leftover; do not restore src/lifecycle).
+// Product-path keep so the relocate-core-providers archive PR still
+// runs the macOS test matrix. Hang leftover classify presence on this existing
+// packages/core/src/providers file, not a restored src/providers runtime tree.
 export {
   createProviderRegistry,
   defineFirstPartyProviderRegistry,
