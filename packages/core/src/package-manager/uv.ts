@@ -1,40 +1,40 @@
-import type { ProviderOperationContext } from '../providers'
+import type { ProviderOperationContext } from '../../../../src/providers'
 import type { PackageMutationOutcome } from './context-mutation'
 import process from 'node:process'
 import {
-  isProcessInterruptionError,
   readProcessOutput,
   readProcessOutputWithContext,
+  isProcessInterruptionError,
   spawnCommand,
-} from '../utils/child-process'
+} from '../../../../src/utils/child-process'
 import { runPackageMutationOutcome, runPackageMutationSequence } from './context-mutation'
 import { projectLegacyPackageMutation } from './mutation-outcome'
 
-async function runCargoCommand(
-  action: 'install' | 'uninstall',
+async function runUvToolCommand(
+  action: 'install' | 'upgrade',
   packageName: string,
   packageInstallArgs: string[] = [],
 ): Promise<boolean> {
   return projectLegacyPackageMutation(context =>
-    runCargoCommandOutcome(action, packageName, packageInstallArgs, context),
+    runUvToolCommandOutcome(action, packageName, packageInstallArgs, context),
   )
 }
 
-function runCargoCommandOutcome(
-  action: 'install' | 'uninstall',
+function runUvToolCommandOutcome(
+  action: 'install' | 'upgrade',
   packageName: string,
   packageInstallArgs: string[],
   context: ProviderOperationContext,
 ): Promise<PackageMutationOutcome> {
   return runPackageMutationOutcome(
-    ['cargo', action, packageName, ...packageInstallArgs],
+    ['uv', 'tool', action, packageName, ...packageInstallArgs],
     context,
-    `cargo ${action} failed`,
+    `uv ${action} failed`,
   )
 }
 
 export async function install(packageName: string, packageInstallArgs?: string[]): Promise<boolean> {
-  return runCargoCommand('install', packageName, packageInstallArgs)
+  return runUvToolCommand('install', packageName, packageInstallArgs)
 }
 
 export function installOutcome(
@@ -42,11 +42,11 @@ export function installOutcome(
   packageInstallArgs: string[] | undefined,
   context: ProviderOperationContext,
 ): Promise<PackageMutationOutcome> {
-  return runCargoCommandOutcome('install', packageName, packageInstallArgs ?? [], context)
+  return runUvToolCommandOutcome('install', packageName, packageInstallArgs ?? [], context)
 }
 
 export async function update(packageName: string, packageInstallArgs?: string[]): Promise<boolean> {
-  return install(packageName, ['--force', ...(packageInstallArgs ?? [])])
+  return runUvToolCommand('upgrade', packageName, packageInstallArgs)
 }
 
 export function updateOutcome(
@@ -54,7 +54,7 @@ export function updateOutcome(
   packageInstallArgs: string[] | undefined,
   context: ProviderOperationContext,
 ): Promise<PackageMutationOutcome> {
-  return installOutcome(packageName, ['--force', ...(packageInstallArgs ?? [])], context)
+  return runUvToolCommandOutcome('upgrade', packageName, packageInstallArgs ?? [], context)
 }
 
 export async function updateMany(
@@ -68,21 +68,21 @@ export function updateManyOutcome(
   context: ProviderOperationContext,
 ): Promise<PackageMutationOutcome> {
   return runPackageMutationSequence(
-    packages.map(pkg => ['cargo', 'install', pkg.packageName, '--force', ...(pkg.packageInstallArgs ?? [])]),
+    packages.map(pkg => ['uv', 'tool', 'upgrade', pkg.packageName, ...(pkg.packageInstallArgs ?? [])]),
     context,
-    'cargo update failed',
+    'uv update failed',
   )
 }
 
 export async function uninstall(packageName: string): Promise<boolean> {
-  return runCargoCommand('uninstall', packageName)
+  return projectLegacyPackageMutation(context => uninstallOutcome(packageName, context))
 }
 
 export function uninstallOutcome(
   packageName: string,
   context: ProviderOperationContext,
 ): Promise<PackageMutationOutcome> {
-  return runCargoCommandOutcome('uninstall', packageName, [], context)
+  return runPackageMutationOutcome(['uv', 'tool', 'uninstall', packageName], context, 'uv uninstall failed')
 }
 
 export type PackagePresenceProbe = 'present' | 'absent' | 'unknown'
@@ -92,19 +92,19 @@ async function readPackagePresence(
   context?: ProviderOperationContext,
 ): Promise<{ presence: PackagePresenceProbe; version?: string }> {
   try {
-    const proc = spawnCommand(['cargo', 'install', '--list'], {
+    const proc = spawnCommand(['uv', 'tool', 'list'], {
       detached: context !== undefined && process.platform !== 'win32',
       stdio: ['ignore', 'pipe', 'pipe'],
     })
-    const { exitCode, stdout } = context
-      ? await readProcessOutputWithContext(proc, context)
-      : await readProcessOutput(proc)
+    const result = context ? await readProcessOutputWithContext(proc, context) : await readProcessOutput(proc)
+    const { stdout } = result
+    if (isUvEmptyToolInventory(result)) return { presence: 'absent' }
+    if (!stdout.trim()) return { presence: 'unknown' }
 
-    if (exitCode !== 0) return { presence: 'unknown' }
-
-    const version = parseCargoInstalledVersion(stdout, packageName)
+    const version = parseToolListVersion(stdout, packageName)
     if (version) return { presence: 'present', version }
-    if (hasCargoPackageEntry(stdout, packageName)) return { presence: 'present' }
+    if (!hasUvToolEntries(stdout)) return { presence: 'unknown' }
+
     return { presence: 'absent' }
   } catch (error) {
     if (isProcessInterruptionError(error)) throw error
@@ -126,19 +126,34 @@ export async function getInstalledVersion(
   return (await readPackagePresence(packageName, context)).version
 }
 
-export function parseCargoInstalledVersion(output: string, packageName: string): string | undefined {
-  const match = findCargoPackageHeader(output, packageName)
-  if (!match) return undefined
-  const version = match[1]
-  return version && /^\d/.test(version) ? version : undefined
+function hasUvToolEntries(output: string): boolean {
+  return output.split(/\r?\n/).some(line => /^\S+\s+v[^\s]+/.test(line.trim()))
 }
 
-function hasCargoPackageEntry(output: string, packageName: string): boolean {
-  return findCargoPackageHeader(output, packageName) !== undefined
+function isUvEmptyToolInventory(result: { exitCode: number | null; stderr: string; stdout: string }): boolean {
+  if (result.exitCode !== 0) return false
+  const messages = `${result.stdout}\n${result.stderr}`
+    .split(/\r?\n/)
+    .map(line => line.trim())
+    .filter(Boolean)
+  return messages.length === 1 && /^no tools installed\.?$/i.test(messages[0]!)
 }
 
-function findCargoPackageHeader(output: string, packageName: string): RegExpMatchArray | undefined {
-  const escaped = packageName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
-  const pattern = new RegExp(`^${escaped}\\s+v([^:\\s]+):\\s*$`, 'm')
-  return output.match(pattern) ?? undefined
+export function parseToolListVersion(output: string, packageName: string): string | undefined {
+  const expectedName = normalizePythonPackageName(packageName)
+
+  for (const rawLine of output.split(/\r?\n/)) {
+    const line = rawLine.trim()
+    const match = /^(\S+)\s+v([^\s]+)/.exec(line)
+    if (!match) continue
+
+    const [, candidateName, version] = match
+    if (normalizePythonPackageName(candidateName) === expectedName) return version
+  }
+
+  return undefined
+}
+
+function normalizePythonPackageName(packageName: string): string {
+  return packageName.toLowerCase().replaceAll(/[-_.]+/g, '-')
 }

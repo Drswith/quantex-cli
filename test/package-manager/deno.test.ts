@@ -8,8 +8,8 @@ vi.mock('cross-spawn', async () => {
   return { default: createCrossSpawnMock(mockSpawn) }
 })
 
-vi.mock('../../src/package-manager/context-mutation', async importOriginal => {
-  const actual = await importOriginal<typeof import('../../src/package-manager/context-mutation')>()
+vi.mock('../../packages/core/src/package-manager/context-mutation', async importOriginal => {
+  const actual = await importOriginal<typeof import('../../packages/core/src/package-manager/context-mutation')>()
   return {
     ...actual,
     runPackageMutationOutcome: mutationRun,
@@ -46,7 +46,7 @@ async function runMutation(command: readonly string[], _context: unknown, descri
 
 describe('deno install', () => {
   it('runs deno global install for the package', async () => {
-    const { install } = await import('../../src/package-manager/deno')
+    const { install } = await import('../../packages/core/src/package-manager/deno')
     mockSpawn.mockReturnValue({ exited: Promise.resolve(), exitCode: 0 })
 
     expect(await install('npm:@scope/tool')).toBe(true)
@@ -54,7 +54,7 @@ describe('deno install', () => {
   })
 
   it('passes Deno install args before the package name', async () => {
-    const { install } = await import('../../src/package-manager/deno')
+    const { install } = await import('../../packages/core/src/package-manager/deno')
     mockSpawn.mockReturnValue({ exited: Promise.resolve(), exitCode: 0 })
 
     expect(await install('jsr:@scope/tool', ['--allow-net', '--name', 'tool'])).toBe(true)
@@ -65,7 +65,7 @@ describe('deno install', () => {
   })
 
   it('returns false on failure', async () => {
-    const { install } = await import('../../src/package-manager/deno')
+    const { install } = await import('../../packages/core/src/package-manager/deno')
     mockSpawn.mockReturnValue({ exited: Promise.resolve(), exitCode: 1 })
 
     expect(await install('npm:@scope/tool')).toBe(false)
@@ -74,7 +74,7 @@ describe('deno install', () => {
 
 describe('deno update', () => {
   it('reinstalls the global executable with --force', async () => {
-    const { update } = await import('../../src/package-manager/deno')
+    const { update } = await import('../../packages/core/src/package-manager/deno')
     mockSpawn.mockReturnValue({ exited: Promise.resolve(), exitCode: 0 })
 
     expect(await update('jsr:@scope/tool', ['--allow-net'])).toBe(true)
@@ -87,7 +87,7 @@ describe('deno update', () => {
 
 describe('deno updateMany', () => {
   it('updates tools sequentially', async () => {
-    const { updateMany } = await import('../../src/package-manager/deno')
+    const { updateMany } = await import('../../packages/core/src/package-manager/deno')
     mockSpawn.mockReturnValue({ exited: Promise.resolve(), exitCode: 0 })
 
     expect(
@@ -111,7 +111,7 @@ describe('deno updateMany', () => {
 
 describe('deno uninstall', () => {
   it('uninstalls by executable name', async () => {
-    const { uninstall } = await import('../../src/package-manager/deno')
+    const { uninstall } = await import('../../packages/core/src/package-manager/deno')
     mockSpawn.mockReturnValue({ exited: Promise.resolve(), exitCode: 0 })
 
     expect(await uninstall('tool-bin')).toBe(true)
@@ -130,7 +130,7 @@ describe('probePackagePresence', () => {
     try {
       await mkdir(join(root, 'bin'), { recursive: true })
       await writeFile(join(root, 'bin', 'genie'), '#!/bin/sh\n', { mode: 0o755 })
-      const { probePackagePresence } = await import('../../src/package-manager/deno')
+      const { probePackagePresence } = await import('../../packages/core/src/package-manager/deno')
       expect(await probePackagePresence('genie')).toBe('present')
     } finally {
       if (previous === undefined) delete process.env.DENO_INSTALL_ROOT
@@ -148,7 +148,7 @@ describe('probePackagePresence', () => {
     process.env.DENO_INSTALL_ROOT = root
     try {
       await mkdir(join(root, 'bin'), { recursive: true })
-      const { probePackagePresence } = await import('../../src/package-manager/deno')
+      const { probePackagePresence } = await import('../../packages/core/src/package-manager/deno')
       expect(await probePackagePresence('missing-tool')).toBe('absent')
     } finally {
       if (previous === undefined) delete process.env.DENO_INSTALL_ROOT
@@ -160,7 +160,7 @@ describe('probePackagePresence', () => {
 
 describe('inferDenoBinaryName', () => {
   it('prefers an explicit binary name and otherwise uses the package stem', async () => {
-    const { inferDenoBinaryName } = await import('../../src/package-manager/deno')
+    const { inferDenoBinaryName } = await import('../../packages/core/src/package-manager/deno')
     expect(inferDenoBinaryName('jsr:@nicorio/genie', 'custom-bin')).toBe('custom-bin')
     expect(inferDenoBinaryName('jsr:@nicorio/genie')).toBe('genie')
     expect(inferDenoBinaryName('npm:@scope/tool@1.2.3')).toBe('tool')

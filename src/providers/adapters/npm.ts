@@ -1,6 +1,6 @@
 import type { RegistryPackageUpdateStrategy } from '../types'
 import type { RegistryPackageAdapterDependencies, RegistryPackageCommandBuilders } from './registry-package'
-import * as npmPm from '../../package-manager/npm'
+import * as npmPm from '../../../packages/core/src/package-manager/npm'
 import * as detectUtils from '../../utils/detect'
 import * as versionUtils from '../../utils/version'
 import { createRegistryPackageAdapter } from './registry-package'

@@ -93,8 +93,8 @@ export {
   uninstallAgent,
   updateAgent,
   updateAgentsByType,
-} from '../package-manager'
-export type { AgentOperationResult, ManagedPackageSpec } from '../package-manager'
+} from '../../packages/core/src/package-manager'
+export type { AgentOperationResult, ManagedPackageSpec } from '../../packages/core/src/package-manager'
 export {
   canLookupLatestVersionForInstallType,
   canUninstallInstallType,
@@ -102,9 +102,9 @@ export {
   getInstallerCapabilities,
   getInstallLifecycle,
   isManagedInstallType,
-} from '../package-manager/capabilities'
-export { getManagedInstaller } from '../package-manager/installers'
-export type { ManagedInstaller } from '../package-manager/installers'
+} from '../../packages/core/src/package-manager/capabilities'
+export { getManagedInstaller } from '../../packages/core/src/package-manager/installers'
+export type { ManagedInstaller } from '../../packages/core/src/package-manager/installers'
 export { createUpdatePlan, isInspectionUpdateAvailable } from '../planning'
 export type { UpdatePlan, UpdatePlanEntry } from '../planning'
 export {

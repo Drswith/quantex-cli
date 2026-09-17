@@ -8,6 +8,7 @@ import type {
 import type { LifecycleUpdateBatchPlanningPorts } from '../../packages/core/src/update-executor'
 import type { CoreUpdateServicePorts } from '../../packages/core/src/update-production'
 import { planLifecycleUpdate } from '../../packages/core/src/lifecycle/update-planner'
+import { withAgentLifecycleLock } from '../../packages/core/src/package-manager'
 import {
   createCoreSingleAgentUpdateInvocation,
   createCoreUpdateBatchInvocation,
@@ -15,7 +16,6 @@ import {
 import { executeAgentSelfUpdate } from '../agent-update'
 import { getAllAgents } from '../agents'
 import { loadConfig } from '../config'
-import { withAgentLifecycleLock } from '../package-manager'
 import { firstPartyProviderRegistry } from '../providers'
 import { createCliOperationContext } from '../runtime/cli-operation-context'
 import { lifecycleReceiptStore, loadState } from '../state'

@@ -4,14 +4,14 @@
 // S1 leftover scan: KEEP product-path hang here (thick-area zero-ref; do not restore src/lifecycle).
 import type { AgentDefinition, InstallMethod, PackageTargetKind } from '../agents/types'
 import type { InstalledAgentState } from '../state'
-import { getAgentUpdateStrategy } from '../agent-update'
-import { isSupersededPackage } from '../agents/superseded'
 import {
   canLookupLatestVersionForInstallType,
   canUpdateInstallType,
   getInstallLifecycle,
   isManagedInstallType,
-} from '../package-manager/capabilities'
+} from '../../packages/core/src/package-manager/capabilities'
+import { getAgentUpdateStrategy } from '../agent-update'
+import { isSupersededPackage } from '../agents/superseded'
 
 function formatPackageTarget(packageName?: string, packageTargetKind?: PackageTargetKind): string {
   if (!packageName) return ''
@@ -28,7 +28,7 @@ export {
   canUpdateInstallType,
   getInstallLifecycle,
   isManagedInstallType,
-} from '../package-manager/capabilities'
+} from '../../packages/core/src/package-manager/capabilities'
 
 export function getManagedPackageName(
   agent: Pick<AgentDefinition, 'packages'>,

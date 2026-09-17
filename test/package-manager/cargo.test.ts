@@ -8,8 +8,8 @@ vi.mock('cross-spawn', async () => {
   return { default: createCrossSpawnMock(mockSpawn) }
 })
 
-vi.mock('../../src/package-manager/context-mutation', async importOriginal => {
-  const actual = await importOriginal<typeof import('../../src/package-manager/context-mutation')>()
+vi.mock('../../packages/core/src/package-manager/context-mutation', async importOriginal => {
+  const actual = await importOriginal<typeof import('../../packages/core/src/package-manager/context-mutation')>()
   return {
     ...actual,
     runPackageMutationOutcome: mutationRun,
@@ -46,7 +46,7 @@ async function runMutation(command: readonly string[], _context: unknown, descri
 
 describe('cargo install', () => {
   it('returns true on success', async () => {
-    const { install } = await import('../../src/package-manager/cargo')
+    const { install } = await import('../../packages/core/src/package-manager/cargo')
     mockSpawn.mockReturnValue({ exited: Promise.resolve(), exitCode: 0 })
 
     expect(await install('some-crate')).toBe(true)
@@ -54,14 +54,14 @@ describe('cargo install', () => {
   })
 
   it('returns false on failure', async () => {
-    const { install } = await import('../../src/package-manager/cargo')
+    const { install } = await import('../../packages/core/src/package-manager/cargo')
     mockSpawn.mockReturnValue({ exited: Promise.resolve(), exitCode: 1 })
 
     expect(await install('some-crate')).toBe(false)
   })
 
   it('passes cargo install args after the crate name', async () => {
-    const { install } = await import('../../src/package-manager/cargo')
+    const { install } = await import('../../packages/core/src/package-manager/cargo')
     mockSpawn.mockReturnValue({ exited: Promise.resolve(), exitCode: 0 })
 
     expect(await install('some-crate', ['--locked'])).toBe(true)
@@ -71,7 +71,7 @@ describe('cargo install', () => {
 
 describe('cargo update', () => {
   it('re-runs cargo install for the crate', async () => {
-    const { update } = await import('../../src/package-manager/cargo')
+    const { update } = await import('../../packages/core/src/package-manager/cargo')
     mockSpawn.mockReturnValue({ exited: Promise.resolve(), exitCode: 0 })
 
     expect(await update('some-crate', ['--locked'])).toBe(true)
@@ -84,7 +84,7 @@ describe('cargo update', () => {
 
 describe('cargo updateMany', () => {
   it('updates crates sequentially', async () => {
-    const { updateMany } = await import('../../src/package-manager/cargo')
+    const { updateMany } = await import('../../packages/core/src/package-manager/cargo')
     mockSpawn.mockReturnValue({ exited: Promise.resolve(), exitCode: 0 })
 
     expect(
@@ -104,7 +104,7 @@ describe('cargo updateMany', () => {
 
 describe('cargo uninstall', () => {
   it('returns true on success', async () => {
-    const { uninstall } = await import('../../src/package-manager/cargo')
+    const { uninstall } = await import('../../packages/core/src/package-manager/cargo')
     mockSpawn.mockReturnValue({ exited: Promise.resolve(), exitCode: 0 })
 
     expect(await uninstall('some-crate')).toBe(true)
@@ -123,7 +123,7 @@ function createListProc(exitCode: number, stdout: string, stderr = '') {
 
 describe('probePackagePresence', () => {
   it('returns present when cargo install --list reports the crate', async () => {
-    const { probePackagePresence, getInstalledVersion } = await import('../../src/package-manager/cargo')
+    const { probePackagePresence, getInstalledVersion } = await import('../../packages/core/src/package-manager/cargo')
     mockSpawn.mockReturnValue(createListProc(0, 'ripgrep v14.1.1:\n    rg\nvtcode v0.2.0:\n    vtcode\n'))
 
     expect(await probePackagePresence('vtcode')).toBe('present')
@@ -132,14 +132,14 @@ describe('probePackagePresence', () => {
   })
 
   it('returns absent when the crate is missing from a successful list', async () => {
-    const { probePackagePresence } = await import('../../src/package-manager/cargo')
+    const { probePackagePresence } = await import('../../packages/core/src/package-manager/cargo')
     mockSpawn.mockReturnValue(createListProc(0, 'ripgrep v14.1.1:\n    rg\n'))
 
     expect(await probePackagePresence('vtcode')).toBe('absent')
   })
 
   it('returns unknown when cargo install --list fails', async () => {
-    const { probePackagePresence } = await import('../../src/package-manager/cargo')
+    const { probePackagePresence } = await import('../../packages/core/src/package-manager/cargo')
     mockSpawn.mockReturnValue(createListProc(1, '', 'error: failed to list\n'))
 
     expect(await probePackagePresence('vtcode')).toBe('unknown')
@@ -148,7 +148,7 @@ describe('probePackagePresence', () => {
 
 describe('parseCargoInstalledVersion', () => {
   it('extracts the package version from cargo install --list output', async () => {
-    const { parseCargoInstalledVersion } = await import('../../src/package-manager/cargo')
+    const { parseCargoInstalledVersion } = await import('../../packages/core/src/package-manager/cargo')
     expect(parseCargoInstalledVersion('ripgrep v14.1.1:\n    rg\n', 'ripgrep')).toBe('14.1.1')
     expect(parseCargoInstalledVersion('ripgrep v14.1.1:\n    rg\n', 'vtcode')).toBeUndefined()
   })

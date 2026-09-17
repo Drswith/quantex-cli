@@ -12,25 +12,22 @@ import type {
   ProviderTargetRequest,
   ProviderVerification,
 } from '../../../src/providers/types'
-import { installOutcome as installBrew, uninstallOutcome as uninstallBrew } from '../../../src/package-manager/brew'
-import { installOutcome as installBun, uninstallOutcome as uninstallBun } from '../../../src/package-manager/bun'
-import { installOutcome as installCargo, uninstallOutcome as uninstallCargo } from '../../../src/package-manager/cargo'
-import { runPackageMutationOutcome } from '../../../src/package-manager/context-mutation'
+import { firstPartyProviderIds } from '../../../src/providers/types'
+import { normalizeRegistryUrl } from '../../../src/utils/registry'
+import { installOutcome as installBrew, uninstallOutcome as uninstallBrew } from './package-manager/brew'
+import { installOutcome as installBun, uninstallOutcome as uninstallBun } from './package-manager/bun'
+import { installOutcome as installCargo, uninstallOutcome as uninstallCargo } from './package-manager/cargo'
+import { runPackageMutationOutcome } from './package-manager/context-mutation'
 import {
   inferDenoBinaryName,
   installOutcome as installDeno,
   uninstallOutcome as uninstallDeno,
-} from '../../../src/package-manager/deno'
-import { installOutcome as installMise, uninstallOutcome as uninstallMise } from '../../../src/package-manager/mise'
-import { installOutcome as installNpm, uninstallOutcome as uninstallNpm } from '../../../src/package-manager/npm'
-import { installOutcome as installPip, uninstallOutcome as uninstallPip } from '../../../src/package-manager/pip'
-import { installOutcome as installUv, uninstallOutcome as uninstallUv } from '../../../src/package-manager/uv'
-import {
-  installOutcome as installWinget,
-  uninstallOutcome as uninstallWinget,
-} from '../../../src/package-manager/winget'
-import { firstPartyProviderIds } from '../../../src/providers/types'
-import { normalizeRegistryUrl } from '../../../src/utils/registry'
+} from './package-manager/deno'
+import { installOutcome as installMise, uninstallOutcome as uninstallMise } from './package-manager/mise'
+import { installOutcome as installNpm, uninstallOutcome as uninstallNpm } from './package-manager/npm'
+import { installOutcome as installPip, uninstallOutcome as uninstallPip } from './package-manager/pip'
+import { installOutcome as installUv, uninstallOutcome as uninstallUv } from './package-manager/uv'
+import { installOutcome as installWinget, uninstallOutcome as uninstallWinget } from './package-manager/winget'
 import { createCoreProviderObservationRegistry } from './provider-observation-registry'
 
 type PackageProviderId = Exclude<ProviderId, 'binary' | 'script'>

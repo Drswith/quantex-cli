@@ -1,6 +1,6 @@
 import type { ProcessResult } from '../../runtime'
 import type { SelfUpgradeProviderExecutionContext } from './types'
-import { parseUntrustedPackages } from '../../package-manager/bun'
+import { parseUntrustedPackages } from '../../../packages/core/src/package-manager/bun'
 import { ProcessInterruptionError } from '../../utils/child-process'
 
 export async function runManagedSelfInstall(

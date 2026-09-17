@@ -1,7 +1,7 @@
 import type { SelfInspection, SelfUpdateResult, SelfUpgradePlan } from '../types'
 import type { SelfUpgradeProvider, SelfUpgradeProviderExecutionContext } from './types'
+import * as npmPm from '../../../packages/core/src/package-manager/npm'
 import { BUILD_PACKAGE_NAME } from '../../generated/build-meta'
-import * as npmPm from '../../package-manager/npm'
 import { runManagedSelfInstall } from './managed-process'
 
 export const npmSelfUpgradeProvider: SelfUpgradeProvider = {

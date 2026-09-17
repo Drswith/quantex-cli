@@ -1,6 +1,9 @@
 import type { ProviderOperationContext } from '../../src/providers'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import { runPackageMutationOutcome, runPackageMutationSequence } from '../../src/package-manager/context-mutation'
+import {
+  runPackageMutationOutcome,
+  runPackageMutationSequence,
+} from '../../packages/core/src/package-manager/context-mutation'
 import { ProcessInterruptionError } from '../../src/utils/child-process'
 
 const runCommandWithContext = vi.hoisted(() => vi.fn())

@@ -1,4 +1,4 @@
-import type { ProviderOperationContext, ProviderOutcome } from '../providers'
+import type { ProviderOperationContext, ProviderOutcome } from '../../../../src/providers'
 import type { PackageMutationOutcome } from './context-mutation'
 import process from 'node:process'
 import {
@@ -6,7 +6,7 @@ import {
   readProcessOutputWithContext,
   isProcessInterruptionError,
   spawnCommand,
-} from '../utils/child-process'
+} from '../../../../src/utils/child-process'
 import { runPackageMutationOutcome, runPackageMutationSequence } from './context-mutation'
 import { projectLegacyPackageMutation } from './mutation-outcome'
 

@@ -3,9 +3,9 @@ import { access, chmod, cp, mkdir, mkdtemp, readFile, readdir, rm, writeFile } f
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import process from 'node:process'
+import { canUninstallInstallType, getInstallLifecycle } from '../../packages/core/src/package-manager/capabilities'
 import { getAgentByNameOrAlias } from '../../src/agents'
 import { type DefaultPackageManager, loadConfig } from '../../src/config'
-import { canUninstallInstallType, getInstallLifecycle } from '../../src/package-manager/capabilities'
 import { resolveManagedSelfUpdateRegistry } from '../../src/self'
 import { getStateFilePath } from '../../src/state'
 import {

@@ -1,7 +1,7 @@
 import type { SelfInspection, SelfUpdateResult, SelfUpgradePlan } from '../types'
 import type { SelfUpgradeProvider, SelfUpgradeProviderExecutionContext } from './types'
+import * as bunPm from '../../../packages/core/src/package-manager/bun'
 import { BUILD_PACKAGE_NAME } from '../../generated/build-meta'
-import * as bunPm from '../../package-manager/bun'
 import { runBunManagedSelfInstall } from './managed-process'
 
 export const bunSelfUpgradeProvider: SelfUpgradeProvider = {

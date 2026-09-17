@@ -2,13 +2,11 @@ import { existsSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterAll, afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { markCliContextCancelled, resetCliContext, setCliContext } from '../../src/cli-context'
-import * as config from '../../src/config'
-import * as binaryPm from '../../src/package-manager/binary'
-import * as bunPm from '../../src/package-manager/bun'
-import * as cargoPm from '../../src/package-manager/cargo'
-import * as mutationOutcome from '../../src/package-manager/context-mutation'
-import * as denoPm from '../../src/package-manager/deno'
+import * as binaryPm from '../../packages/core/src/package-manager/binary'
+import * as bunPm from '../../packages/core/src/package-manager/bun'
+import * as cargoPm from '../../packages/core/src/package-manager/cargo'
+import * as mutationOutcome from '../../packages/core/src/package-manager/context-mutation'
+import * as denoPm from '../../packages/core/src/package-manager/deno'
 import {
   installAgent,
   installAgentOutcome,
@@ -16,10 +14,12 @@ import {
   uninstallAgent,
   updateAgent,
   updateAgentsByType,
-} from '../../src/package-manager/index'
-import * as misePm from '../../src/package-manager/mise'
-import * as npmPm from '../../src/package-manager/npm'
-import * as uvPm from '../../src/package-manager/uv'
+} from '../../packages/core/src/package-manager/index'
+import * as misePm from '../../packages/core/src/package-manager/mise'
+import * as npmPm from '../../packages/core/src/package-manager/npm'
+import * as uvPm from '../../packages/core/src/package-manager/uv'
+import { markCliContextCancelled, resetCliContext, setCliContext } from '../../src/cli-context'
+import * as config from '../../src/config'
 import { StateFileError } from '../../src/state'
 import * as state from '../../src/state'
 import * as detectUtils from '../../src/utils/detect'

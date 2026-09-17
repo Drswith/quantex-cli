@@ -7,15 +7,15 @@ import { describe, expect, it } from 'vitest'
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..', '..')
 const INSTALL_EFFECT_PROVIDER = join(ROOT, 'src', 'providers', 'adapters', 'install-effect.ts')
 const PROVIDER_MUTATION_MODULES = [
-  'src/package-manager/brew.ts',
-  'src/package-manager/bun.ts',
-  'src/package-manager/cargo.ts',
-  'src/package-manager/deno.ts',
-  'src/package-manager/mise.ts',
-  'src/package-manager/npm.ts',
-  'src/package-manager/pip.ts',
-  'src/package-manager/uv.ts',
-  'src/package-manager/winget.ts',
+  'packages/core/src/package-manager/brew.ts',
+  'packages/core/src/package-manager/bun.ts',
+  'packages/core/src/package-manager/cargo.ts',
+  'packages/core/src/package-manager/deno.ts',
+  'packages/core/src/package-manager/mise.ts',
+  'packages/core/src/package-manager/npm.ts',
+  'packages/core/src/package-manager/pip.ts',
+  'packages/core/src/package-manager/uv.ts',
+  'packages/core/src/package-manager/winget.ts',
   'src/providers/adapters/install-effect.ts',
 ] as const
 const CLI_GLOBAL_MODULES = new Set([
@@ -29,7 +29,7 @@ describe('provider mutation process boundary', () => {
     const closure = await runtimeDependencyClosure(INSTALL_EFFECT_PROVIDER)
     const paths = [...closure].map(repositoryPath)
 
-    expect(paths).toContain('src/package-manager/context-mutation.ts')
+    expect(paths).toContain('packages/core/src/package-manager/context-mutation.ts')
     expect(paths).toContain('src/utils/child-process.ts')
     expect(paths.filter(path => CLI_GLOBAL_MODULES.has(path))).toEqual([])
   })

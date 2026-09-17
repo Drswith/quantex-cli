@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { parseBrewInstalledVersion } from '../../src/package-manager/brew'
+import { parseBrewInstalledVersion } from '../../packages/core/src/package-manager/brew'
 
 const mockSpawn = vi.hoisted(() => vi.fn())
 const mutationRun = vi.hoisted(() => vi.fn())
@@ -9,8 +9,8 @@ vi.mock('cross-spawn', async () => {
   return { default: createCrossSpawnMock(mockSpawn) }
 })
 
-vi.mock('../../src/package-manager/context-mutation', async importOriginal => {
-  const actual = await importOriginal<typeof import('../../src/package-manager/context-mutation')>()
+vi.mock('../../packages/core/src/package-manager/context-mutation', async importOriginal => {
+  const actual = await importOriginal<typeof import('../../packages/core/src/package-manager/context-mutation')>()
   return {
     ...actual,
     runPackageMutationOutcome: mutationRun,
@@ -56,7 +56,7 @@ function createListProc(exitCode: number, stdout: string, stderr = '') {
 
 describe('brew install', () => {
   it('installs formulas without a cask flag', async () => {
-    const { install } = await import('../../src/package-manager/brew')
+    const { install } = await import('../../packages/core/src/package-manager/brew')
     mockSpawn.mockReturnValue({ exited: Promise.resolve(), exitCode: 0 })
 
     expect(await install('example-formula')).toBe(true)
@@ -64,7 +64,7 @@ describe('brew install', () => {
   })
 
   it('installs casks with --cask', async () => {
-    const { install } = await import('../../src/package-manager/brew')
+    const { install } = await import('../../packages/core/src/package-manager/brew')
     mockSpawn.mockReturnValue({ exited: Promise.resolve(), exitCode: 0 })
 
     expect(await install('example-cask', 'cask')).toBe(true)
@@ -74,7 +74,7 @@ describe('brew install', () => {
 
 describe('probePackagePresence', () => {
   it('returns present when brew list reports an installed formula version', async () => {
-    const { probePackagePresence } = await import('../../src/package-manager/brew')
+    const { probePackagePresence } = await import('../../packages/core/src/package-manager/brew')
     mockSpawn.mockReturnValue(createListProc(0, 'example-formula 1.2.3\n'))
 
     expect(await probePackagePresence('example-formula')).toBe('present')
@@ -85,7 +85,7 @@ describe('probePackagePresence', () => {
   })
 
   it('lists casks with --cask', async () => {
-    const { probePackagePresence } = await import('../../src/package-manager/brew')
+    const { probePackagePresence } = await import('../../packages/core/src/package-manager/brew')
     mockSpawn.mockReturnValue(createListProc(0, 'example-cask 9.8.7\n'))
 
     expect(await probePackagePresence('example-cask', 'cask')).toBe('present')
@@ -93,28 +93,28 @@ describe('probePackagePresence', () => {
   })
 
   it('returns absent when brew reports the package is missing', async () => {
-    const { probePackagePresence } = await import('../../src/package-manager/brew')
+    const { probePackagePresence } = await import('../../packages/core/src/package-manager/brew')
     mockSpawn.mockReturnValue(createListProc(1, '', 'Error: No such keg: /opt/homebrew/Cellar/example-formula\n'))
 
     expect(await probePackagePresence('example-formula')).toBe('absent')
   })
 
   it('returns absent when brew reports the package is not installed', async () => {
-    const { probePackagePresence } = await import('../../src/package-manager/brew')
+    const { probePackagePresence } = await import('../../packages/core/src/package-manager/brew')
     mockSpawn.mockReturnValue(createListProc(1, '', 'Error: example-cask is not installed\n'))
 
     expect(await probePackagePresence('example-cask', 'cask')).toBe('absent')
   })
 
   it('returns unknown when brew exits non-zero without a missing-package message', async () => {
-    const { probePackagePresence } = await import('../../src/package-manager/brew')
+    const { probePackagePresence } = await import('../../packages/core/src/package-manager/brew')
     mockSpawn.mockReturnValue(createListProc(1, '', 'Error: Unexpected brew failure\n'))
 
     expect(await probePackagePresence('example-formula')).toBe('unknown')
   })
 
   it('returns present without a version when brew succeeds with unparseable output', async () => {
-    const { probePackagePresence, getInstalledVersion } = await import('../../src/package-manager/brew')
+    const { probePackagePresence, getInstalledVersion } = await import('../../packages/core/src/package-manager/brew')
     mockSpawn.mockReturnValue(createListProc(0, 'example-formula\n'))
 
     expect(await probePackagePresence('example-formula')).toBe('present')

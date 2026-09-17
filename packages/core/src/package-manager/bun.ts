@@ -1,4 +1,4 @@
-import type { ProviderOperationContext, ProviderOutcome } from '../providers'
+import type { ProviderOperationContext, ProviderOutcome } from '../../../../src/providers'
 import type { PackageMutationOutcome } from './context-mutation'
 import { lstat, readFile, readlink, unlink } from 'node:fs/promises'
 import { homedir } from 'node:os'
@@ -9,8 +9,8 @@ import {
   readProcessOutputWithContext,
   isProcessInterruptionError,
   spawnCommand,
-} from '../utils/child-process'
-import { normalizeRegistryUrl } from '../utils/registry'
+} from '../../../../src/utils/child-process'
+import { normalizeRegistryUrl } from '../../../../src/utils/registry'
 import { runPackageMutationOutcome } from './context-mutation'
 import { projectLegacyPackageMutation } from './mutation-outcome'
 

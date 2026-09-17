@@ -22,8 +22,8 @@ import {
   resolveStateProviderBinding,
 } from '../../packages/core/src/lifecycle/provider-binding'
 import { planLifecycleUpdate } from '../../packages/core/src/lifecycle/update-planner'
+import { buildInstalledAgentState } from '../../packages/core/src/package-manager'
 import { executeSingleAgentLifecycleUpdate } from '../../packages/core/src/update-executor'
-import { buildInstalledAgentState } from '../../src/package-manager'
 import { firstPartyProviderIds } from '../../src/providers'
 import { createProviderRegistry } from '../../src/providers/registry'
 import { createEmptyStateDocument } from '../../src/state/schema'

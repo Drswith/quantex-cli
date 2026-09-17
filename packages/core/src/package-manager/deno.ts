@@ -1,10 +1,10 @@
-import type { ProviderOperationContext } from '../providers'
+import type { ProviderOperationContext } from '../../../../src/providers'
 import type { PackageMutationOutcome } from './context-mutation'
 import { access, constants } from 'node:fs/promises'
 import { homedir } from 'node:os'
 import { join } from 'node:path'
 import process from 'node:process'
-import { isProcessInterruptionError } from '../utils/child-process'
+import { isProcessInterruptionError } from '../../../../src/utils/child-process'
 import { runPackageMutationOutcome, runPackageMutationSequence } from './context-mutation'
 import { projectLegacyPackageMutation } from './mutation-outcome'
 

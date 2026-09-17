@@ -1,8 +1,8 @@
 // KEEP (S1): installer capability snapshot over the first-party provider
 // registry. Published v1 via compatibility. Differential from the frozen
 // hardcoded list in managed-install-types.ts. Do not fold src/commands/capabilities.
-import type { InstallType, ManagedInstallType } from '../agents/types'
-import { firstPartyProviderRegistry } from '../providers/first-party'
+import type { InstallType, ManagedInstallType } from '../../../../src/agents/types'
+import { firstPartyProviderRegistry } from '../../../../src/providers/first-party'
 
 interface InstallerCapabilities {
   canInstall: true

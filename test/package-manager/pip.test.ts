@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { parsePipInstalledVersion } from '../../src/package-manager/pip'
+import { parsePipInstalledVersion } from '../../packages/core/src/package-manager/pip'
 
 const mockSpawn = vi.hoisted(() => vi.fn())
 const mutationRun = vi.hoisted(() => vi.fn())
@@ -9,8 +9,8 @@ vi.mock('cross-spawn', async () => {
   return { default: createCrossSpawnMock(mockSpawn) }
 })
 
-vi.mock('../../src/package-manager/context-mutation', async importOriginal => {
-  const actual = await importOriginal<typeof import('../../src/package-manager/context-mutation')>()
+vi.mock('../../packages/core/src/package-manager/context-mutation', async importOriginal => {
+  const actual = await importOriginal<typeof import('../../packages/core/src/package-manager/context-mutation')>()
   return {
     ...actual,
     runPackageMutationOutcome: mutationRun,
@@ -56,7 +56,7 @@ function createShowProc(exitCode: number, stdout: string, stderr = '') {
 
 describe('probePackagePresence', () => {
   it('returns present when pip show reports the package', async () => {
-    const { probePackagePresence, getInstalledVersion } = await import('../../src/package-manager/pip')
+    const { probePackagePresence, getInstalledVersion } = await import('../../packages/core/src/package-manager/pip')
     mockSpawn.mockImplementation((command: string[]) => {
       if (command.includes('--version')) return createShowProc(0, 'pip 24.0\n')
       if (command.includes('show')) return createShowProc(0, 'Name: mistral-vibe\nVersion: 1.2.3\n')
@@ -69,7 +69,7 @@ describe('probePackagePresence', () => {
   })
 
   it('returns absent when pip reports the package is missing', async () => {
-    const { probePackagePresence } = await import('../../src/package-manager/pip')
+    const { probePackagePresence } = await import('../../packages/core/src/package-manager/pip')
     mockSpawn.mockImplementation((command: string[]) => {
       if (command.includes('--version')) return createShowProc(0, 'pip 24.0\n')
       if (command.includes('show')) return createShowProc(1, '', 'WARNING: Package(s) not found: missing-pkg\n')
@@ -80,7 +80,7 @@ describe('probePackagePresence', () => {
   })
 
   it('returns unknown when pip show fails without a missing-package message', async () => {
-    const { probePackagePresence } = await import('../../src/package-manager/pip')
+    const { probePackagePresence } = await import('../../packages/core/src/package-manager/pip')
     mockSpawn.mockImplementation((command: string[]) => {
       if (command.includes('--version')) return createShowProc(0, 'pip 24.0\n')
       if (command.includes('show')) return createShowProc(2, '', 'error: unexpected pip failure\n')

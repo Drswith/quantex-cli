@@ -1,6 +1,6 @@
 import type { AgentDefinition, InstallMethod } from '../agents/types'
 import type { InstalledAgentState } from '../state'
-import { getManagedInstalledPackageVersion, getOrderedInstallMethods } from '../package-manager'
+import { getManagedInstalledPackageVersion, getOrderedInstallMethods } from '../../packages/core/src/package-manager'
 import { getInstalledAgentState } from '../state'
 import { resolveAgentExecutablePath } from '../utils/executable-resolution'
 import { executableLookupNamesForAgent } from '../utils/executable-search-paths'
