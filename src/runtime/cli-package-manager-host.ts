@@ -2,7 +2,6 @@ import process from 'node:process'
 import { setPackageManagerHostPorts, type PackageManagerHostPorts } from '../../packages/core/src/package-manager/host'
 import { getCliContext } from '../cli-context'
 import { loadConfig } from '../config'
-import { spawnWithQuantexStdio, waitForSpawnedCommand } from '../utils/cli-child-process'
 import { createCliOperationContext, resolveCliProviderOutputPolicy } from './cli-operation-context'
 
 export const cliPackageManagerHostPorts: PackageManagerHostPorts = {
@@ -18,6 +17,7 @@ export const cliPackageManagerHostPorts: PackageManagerHostPorts = {
   },
   createOperationContext: () => createCliOperationContext(),
   async runShellCommand(command) {
+    const { spawnWithQuantexStdio, waitForSpawnedCommand } = await import('../utils/cli-child-process')
     const argv =
       process.platform === 'win32'
         ? (['powershell.exe', '-Command', command] as const)

@@ -2,7 +2,7 @@ import type { OutputMode } from '../cli-context'
 import type { ProviderResourceCleanup } from '../providers'
 import type { ProviderOutputPolicy, ProviderProcessOperationContext } from '../providers/internal-operation-context'
 import { getCliContext, registerCliCancellationHandler } from '../cli-context'
-import { ProcessInterruptionError } from '../utils/child-process'
+import { ProcessInterruptionError } from '../utils/process-interruption'
 
 const CLEANUP_GRACE_MS = 500
 const FORCE_GRACE_MS = 250

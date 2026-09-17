@@ -5,7 +5,6 @@ import type {
 } from '../../../../src/providers/internal-operation-context'
 import type { RegistryPackageUpdateStrategy } from '../../../../src/providers/types'
 import process from 'node:process'
-import { spawnWithOutputPolicy } from '../../../../src/utils/child-process'
 
 export interface PackageManagerPreferences {
   readonly defaultPackageManager: ManagedInstallType
@@ -47,6 +46,7 @@ const defaultPorts: PackageManagerHostPorts = {
     }
   },
   async runShellCommand(command) {
+    const { spawnWithOutputPolicy } = await import('../../../../src/utils/child-process')
     const argv =
       process.platform === 'win32'
         ? (['powershell.exe', '-Command', command] as const)
