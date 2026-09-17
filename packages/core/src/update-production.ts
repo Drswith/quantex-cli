@@ -1,8 +1,8 @@
 import type { AgentDefinition, InstallMethod } from '../../../src/agents/types'
-import type { ProviderRegistry } from '../../../src/providers/registry'
-import type { ProviderOperationContext, RegistryPackageUpdateStrategy } from '../../../src/providers/types'
 import type { InstalledAgentState } from '../../../src/state'
 import type { AgentExecutableObservation } from './lifecycle/agent-observation'
+import type { ProviderRegistry } from './providers/registry'
+import type { ProviderOperationContext, RegistryPackageUpdateStrategy } from './providers/types'
 import type {
   LifecycleUpdateBatchExecutionPorts,
   LifecycleUpdateBatchPlanningPorts,
@@ -10,7 +10,6 @@ import type {
   LifecycleUpdateServicePorts,
 } from './update-executor'
 import { executeAgentSelfUpdate } from '../../../src/agent-update'
-import { firstPartyProviderRegistry } from '../../../src/providers'
 import { getInstalledAgentState, getLifecycleReceipt, lifecycleReceiptStore, loadState } from '../../../src/state'
 import { getPlatform } from '../../../src/utils/detect'
 import { resolveAgentExecutablePath } from '../../../src/utils/executable-resolution'
@@ -23,6 +22,7 @@ import { resolveInstallMethodProviderBinding } from './lifecycle/provider-bindin
 import { planLifecycleUpdate } from './lifecycle/update-planner'
 import { getOrderedInstallMethods, withAgentLifecycleLock } from './package-manager'
 import { resolveCoreConfigDir } from './production-observation'
+import { firstPartyProviderRegistry } from './providers'
 
 export interface CoreUpdateProductionOptions {
   readonly configDir?: string

@@ -1,6 +1,9 @@
+import type { ProviderResourceCleanup } from '../../packages/core/src/providers'
+import type {
+  ProviderOutputPolicy,
+  ProviderProcessOperationContext,
+} from '../../packages/core/src/providers/internal-operation-context'
 import type { OutputMode } from '../cli-context'
-import type { ProviderResourceCleanup } from '../providers'
-import type { ProviderOutputPolicy, ProviderProcessOperationContext } from '../providers/internal-operation-context'
 import { getCliContext, registerCliCancellationHandler } from '../cli-context'
 import { ProcessInterruptionError } from '../utils/process-interruption'
 

@@ -5,14 +5,14 @@ import type {
   ProviderOperationContext,
   ProviderOutcome,
   ProviderTarget,
-} from '../../src/providers'
+} from '../../packages/core/src/providers'
 import { describe, expect, it } from 'vitest'
 import {
   createProviderRegistry,
   defineFirstPartyProviderRegistry,
   firstPartyProviderIds,
   invokeProviderOperation,
-} from '../../src/providers'
+} from '../../packages/core/src/providers'
 
 const context: ProviderOperationContext = {
   signal: new AbortController().signal,

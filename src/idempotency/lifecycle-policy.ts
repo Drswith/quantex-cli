@@ -1,6 +1,12 @@
 import type { LifecycleReceipt } from '../../packages/core/src/lifecycle/model'
 import type { LifecycleProviderBinding } from '../../packages/core/src/lifecycle/provider-binding'
 import type {
+  ProviderId,
+  ProviderObservation,
+  ProviderOutcome,
+  ProviderTargetKind,
+} from '../../packages/core/src/providers'
+import type {
   LifecycleUpdateObservedAgent,
   SingleAgentLifecycleUpdatePlan,
 } from '../../packages/core/src/update-executor'
@@ -8,7 +14,6 @@ import type {
 // provider evidence, CLI observation). L4 only retargeted imports onto
 // Core-internal modules; not a leftover pass-through shell.
 import type { CommandIdempotencyPolicy } from '../command-runtime'
-import type { ProviderId, ProviderObservation, ProviderOutcome, ProviderTargetKind } from '../providers'
 import type {
   LifecycleUpdateBatchInvocation,
   SingleAgentLifecycleUpdateInvocation,
@@ -25,8 +30,8 @@ import {
   providerBindingsEqual,
   resolveReceiptProviderBinding,
 } from '../../packages/core/src/lifecycle/provider-evidence'
+import { firstPartyProviderIds } from '../../packages/core/src/providers'
 import { getSingleAgentLifecycleUpdateResolvedPlanId } from '../../packages/core/src/update-executor'
-import { firstPartyProviderIds } from '../providers'
 import { createCliOperationContext } from '../runtime/cli-operation-context'
 import { resolveAgent } from '../services/agents'
 import { resolveAgentObservation, type ResolvedAgentObservation } from '../services/lifecycle-observations'

@@ -7,7 +7,7 @@ const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..', '..')
 const leftoverKeepHang =
   'S1 leftover scan: KEEP product-path hang here (thick-area zero-ref; do not restore src/lifecycle).'
 
-const scanDirs = ['src/agents', 'src/providers', 'src/utils', 'src/agent-update', 'src/runtime'] as const
+const scanDirs = ['src/agents', 'src/utils', 'src/agent-update', 'src/runtime'] as const
 
 const relatedLeftovers = [
   'src/planning',
@@ -20,7 +20,6 @@ const relatedLeftovers = [
 
 const hangFiles = [
   'src/agents/index.ts',
-  'src/providers/index.ts',
   'src/utils/install.ts',
   'src/agent-update/index.ts',
   'src/runtime/index.ts',
@@ -46,6 +45,7 @@ describe('S1 thick-area leftover scan after L5', () => {
     await expect(source('src/services/self-upgrade.ts')).rejects.toThrow()
     await expect(source('src/services/lifecycle-updates.ts')).rejects.toThrow()
     await expect(source('src/services/lifecycle-execution.ts')).rejects.toThrow()
+    await expect(readdir(join(ROOT, 'src/providers'))).rejects.toThrow()
   })
 
   it('hangs product-path KEEP comments on existing thick-area files', async () => {
@@ -96,7 +96,6 @@ describe('S1 thick-area leftover scan after L5', () => {
     const barrels = [
       'src/runtime/index.ts',
       'src/agent-update/index.ts',
-      'src/providers/index.ts',
       'src/planning/index.ts',
       'src/inspection/index.ts',
       'src/state.ts',

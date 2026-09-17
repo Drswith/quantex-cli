@@ -1,13 +1,4 @@
 import type { Platform } from '../../../src/agents/types'
-import type { ProviderRegistry } from '../../../src/providers/registry'
-import type {
-  ProviderMutationEvidence,
-  ProviderOperation,
-  ProviderOperationContext,
-  ProviderOutcome,
-  ProviderTarget,
-  ProviderVerification,
-} from '../../../src/providers/types'
 import type { LifecycleStateStore } from '../../../src/state/store'
 import type {
   CoreInstallationExecutorPorts,
@@ -17,6 +8,15 @@ import type {
 import type { CoreInvocationContext } from './invocation'
 import type { CoreMutationRecipeCatalog } from './mutation-recipe-catalog'
 import type { CoreAgentObservation, CoreReadPorts } from './production-observation'
+import type { ProviderRegistry } from './providers/registry'
+import type {
+  ProviderMutationEvidence,
+  ProviderOperation,
+  ProviderOperationContext,
+  ProviderOutcome,
+  ProviderTarget,
+  ProviderVerification,
+} from './providers/types'
 import { isDeepStrictEqual } from 'node:util'
 import { createFileLifecycleStateStore } from '../../../src/state/file-store'
 import { getPlatform } from '../../../src/utils/detect'

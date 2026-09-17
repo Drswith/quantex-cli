@@ -1,7 +1,7 @@
 import type { ProviderTarget } from '../types'
 import type { SystemPackageAdapterDependencies } from './system-package'
-import * as brewPm from '../../../packages/core/src/package-manager/brew'
-import * as detectUtils from '../../utils/detect'
+import * as detectUtils from '../../../../../src/utils/detect'
+import * as brewPm from '../../package-manager/brew'
 import { createSystemPackageAdapter } from './system-package'
 
 function packageTargetKind(target: ProviderTarget): 'cask' | 'package' {

@@ -1,7 +1,7 @@
-import type { ProviderOperationContext, ProviderTarget } from '../../src/providers'
-import type { NpmProviderDependencies } from '../../src/providers/adapters/npm'
+import type { ProviderOperationContext, ProviderTarget } from '../../packages/core/src/providers'
+import type { NpmProviderDependencies } from '../../packages/core/src/providers/adapters/npm'
 import { describe, expect, it, vi } from 'vitest'
-import { createNpmProviderAdapter } from '../../src/providers/adapters/npm'
+import { createNpmProviderAdapter } from '../../packages/core/src/providers/adapters/npm'
 import { describeProviderConformance } from './conformance'
 
 const target: ProviderTarget = {

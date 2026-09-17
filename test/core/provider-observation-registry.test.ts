@@ -1,5 +1,5 @@
 import type { CoreProviderObservationDependencies } from '../../packages/core/src/provider-observation-registry'
-import type { ProviderId, ProviderTarget } from '../../src/providers/types'
+import type { ProviderId, ProviderTarget } from '../../packages/core/src/providers/types'
 import { join } from 'node:path'
 import { describe, expect, it, vi } from 'vitest'
 import { createCoreProviderObservationRegistry } from '../../packages/core/src/provider-observation-registry'

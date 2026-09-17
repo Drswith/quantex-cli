@@ -1,7 +1,3 @@
-// KEEP (S3): Core install/ensure executor. Decision + mutation + verify + record.
-// Importers: client, compatibility, CLI session. Not a leftover pass-through.
-// S3 leftover scan: KEEP product-path hang here (Core-internal leftover; do not restore src/lifecycle).
-import type { ProviderOperationContext, ProviderOutcome } from '../../../src/providers/types'
 import type { CoreInstallationDirective } from './installation-decision'
 import type {
   CoreInstallationCompatibilityAdoption,
@@ -18,6 +14,10 @@ import type {
 import type { CoreInvocationContext } from './invocation'
 import type { LifecycleProviderBinding } from './lifecycle/provider-binding'
 import type { CoreAgentObservation } from './production-observation'
+// KEEP (S3): Core install/ensure executor. Decision + mutation + verify + record.
+// Importers: client, compatibility, CLI session. Not a leftover pass-through.
+// S3 leftover scan: KEEP product-path hang here (Core-internal leftover; do not restore src/lifecycle).
+import type { ProviderOperationContext, ProviderOutcome } from './providers/types'
 import { decideCoreInstallation } from './installation-decision'
 import {
   providerBindingsEqual,

@@ -1,4 +1,4 @@
-import type { ProviderOperationContext } from '../../src/providers'
+import type { ProviderOperationContext } from '../../packages/core/src/providers'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import {
   runPackageMutationOutcome,

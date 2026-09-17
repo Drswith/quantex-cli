@@ -1,6 +1,13 @@
-import type { ProviderExecutionEffect, ProviderOperationContext, ProviderTarget } from '../../src/providers'
+import type {
+  ProviderExecutionEffect,
+  ProviderOperationContext,
+  ProviderTarget,
+} from '../../packages/core/src/providers'
 import { describe, expect, it, vi } from 'vitest'
-import { createInstallEffectProviderAdapter, getEffectCommand } from '../../src/providers/adapters/install-effect'
+import {
+  createInstallEffectProviderAdapter,
+  getEffectCommand,
+} from '../../packages/core/src/providers/adapters/install-effect'
 import { getPlatform } from '../../src/utils/detect'
 import { describeProviderConformance } from './conformance'
 

@@ -3,10 +3,10 @@
 // or packages/core. src/state MUST NOT import this module (ADR 0011 / 0012).
 // L5 leftover scan: KEEP product-path hang here (do not restore src/lifecycle).
 import type { AgentDefinition, InstallMethod, Platform } from '../../../../src/agents'
-import type { ProviderId, ProviderTarget, ProviderTargetKind } from '../../../../src/providers/types'
 import type { InstalledAgentState } from '../../../../src/state'
+import type { ProviderId, ProviderTarget, ProviderTargetKind } from '../providers/types'
 import type { LifecycleReceipt } from './model'
-import { firstPartyProviderIds } from '../../../../src/providers/types'
+import { firstPartyProviderIds } from '../providers/types'
 
 export interface LifecycleProviderBinding {
   readonly providerId: ProviderId

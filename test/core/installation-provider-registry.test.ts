@@ -1,14 +1,14 @@
-import type { ProviderRegistry } from '../../src/providers/registry'
+import type { ProviderRegistry } from '../../packages/core/src/providers/registry'
 import type {
   ProviderAdapter,
   ProviderId,
   ProviderOperationContext,
   ProviderOutcome,
   ProviderTarget,
-} from '../../src/providers/types'
+} from '../../packages/core/src/providers/types'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { createCoreInstallationProviderRegistry } from '../../packages/core/src/installation-provider-registry'
-import { firstPartyProviderIds } from '../../src/providers/types'
+import { firstPartyProviderIds } from '../../packages/core/src/providers/types'
 
 const packageManagers = vi.hoisted(() => ({
   bun: { install: vi.fn(), uninstall: vi.fn() },

@@ -1,6 +1,6 @@
 import type { LifecycleReceipt } from '../../packages/core/src/lifecycle/model'
+import type { ProviderAdapter, ProviderObservation, ProviderRegistry } from '../../packages/core/src/providers'
 import type { AgentDefinition } from '../../src/agents'
-import type { ProviderAdapter, ProviderObservation, ProviderRegistry } from '../../src/providers'
 import type { InstalledAgentState } from '../../src/state'
 import { describe, expect, it, vi } from 'vitest'
 import {

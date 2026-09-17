@@ -1,5 +1,5 @@
-import type { ProviderRegistry } from '../../src/providers/registry'
-import type { ProviderTargetRequest } from '../../src/providers/types'
+import type { ProviderRegistry } from '../../packages/core/src/providers/registry'
+import type { ProviderTargetRequest } from '../../packages/core/src/providers/types'
 import { chmod, mkdir, mkdtemp, realpath, rm, symlink, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'

@@ -1,4 +1,4 @@
-import type { ProviderOperationContext } from '../providers'
+import type { ProviderOperationContext } from '../../packages/core/src/providers'
 import type { ExecutableSearchInputs } from './executable-search-paths'
 import { constants } from 'node:fs'
 import { access } from 'node:fs/promises'

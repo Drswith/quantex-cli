@@ -7,9 +7,13 @@ import type {
 import type { LifecycleObservation, LifecycleReceipt } from '../../packages/core/src/lifecycle/model'
 import type { LifecycleProviderBinding } from '../../packages/core/src/lifecycle/provider-binding'
 import type { CoreAgentObservation } from '../../packages/core/src/production-observation'
+import type {
+  ProviderMutationEvidence,
+  ProviderOutcome,
+  ProviderVerification,
+} from '../../packages/core/src/providers/types'
 import type { CoreRequestOptions } from '../../packages/core/src/types'
 import type { AgentDefinition } from '../../src/agents/types'
-import type { ProviderMutationEvidence, ProviderOutcome, ProviderVerification } from '../../src/providers/types'
 import type { InstalledAgentState } from '../../src/state/schema'
 import { describe, expect, it } from 'vitest'
 import { executeCoreInstallation } from '../../packages/core/src/installation-executor'

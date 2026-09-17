@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { getInstallerCapabilities, getManagedInstallTypes } from '../../packages/core/src/package-manager/capabilities'
-import { firstPartyProviderRegistry } from '../../src/providers/first-party'
+import { firstPartyProviderRegistry } from '../../packages/core/src/providers/first-party'
 
 describe('first-party provider registry projections', () => {
   it('contains every closed provider in maintained update order', () => {

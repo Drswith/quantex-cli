@@ -1,4 +1,3 @@
-import type { ProviderOperationContext, ProviderOutcome } from '../../../src/providers/types'
 import type {
   CoreInstallationExecutorPorts,
   CoreInstallationRecipe,
@@ -8,6 +7,7 @@ import type {
   CoreMutationSideEffect,
 } from './installation-executor-types'
 import type { CoreInvocationCleanup, CoreInvocationContext } from './invocation'
+import type { ProviderOperationContext, ProviderOutcome } from './providers/types'
 
 export interface CoreMutationRecoveryResult {
   readonly reason?: string

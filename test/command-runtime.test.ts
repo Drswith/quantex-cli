@@ -10,6 +10,7 @@ import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'nod
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { firstPartyProviderRegistry } from '../packages/core/src/providers'
 import { registerCliCancellationHandler, setCliContext } from '../src/cli-context'
 import { executeCommandWithRuntime } from '../src/command-runtime'
 import {
@@ -25,7 +26,6 @@ import { canonicalizeMutationRequest, fingerprintCanonicalValue } from '../src/i
 import { createAgentAbsenceIdempotencyPolicy } from '../src/idempotency/lifecycle-policy'
 import { canonicalizeAllOfPostcondition, canonicalizeReceiptSet } from '../src/idempotency/schema'
 import { createErrorResult, createSuccessResult, emitCommandResult } from '../src/output'
-import { firstPartyProviderRegistry } from '../src/providers'
 import * as selfModule from '../src/self'
 import * as updateNotice from '../src/self/update-notice'
 

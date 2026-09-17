@@ -1,7 +1,7 @@
 import type { ProviderTarget } from '../types'
 import type { SystemPackageAdapterDependencies } from './system-package'
-import * as misePm from '../../../packages/core/src/package-manager/mise'
-import * as detectUtils from '../../utils/detect'
+import * as detectUtils from '../../../../../src/utils/detect'
+import * as misePm from '../../package-manager/mise'
 import { createSystemPackageAdapter } from './system-package'
 
 const defaultDependencies: SystemPackageAdapterDependencies = {

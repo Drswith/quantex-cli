@@ -3,8 +3,8 @@ import { mkdir, readFile, readdir, writeFile } from 'node:fs/promises'
 import { basename, dirname, relative, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { format } from 'oxfmt'
+import { firstPartyProviderIds } from '../../packages/core/src/providers/types'
 import { agentCatalogJsonSchema, catalogSourceEntrySchema } from '../../src/agents/schema'
-import { firstPartyProviderIds } from '../../src/providers/types'
 
 const rootDir = resolve(dirname(fileURLToPath(import.meta.url)), '../..')
 const defaultCatalogDir = resolve(rootDir, 'src/agents/catalog')

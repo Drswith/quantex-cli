@@ -1,5 +1,5 @@
+import type { ProviderId } from '../../packages/core/src/providers'
 import type { AgentDefinition } from '../../src/agents'
-import type { ProviderId } from '../../src/providers'
 import type { ResolvedAgentObservation } from '../../src/services/lifecycle-observations'
 import { afterAll, afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { observeAgentLifecycle } from '../../packages/core/src/lifecycle/agent-observation'

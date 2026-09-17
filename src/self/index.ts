@@ -2,7 +2,7 @@
 // packages/core/src/self-upgrade-executor.ts. Planning, providers, binary, lock, and
 // persistence stay here; production still injects them as Core ports.
 // L5 leftover scan: not zero-ref and not a pure pass-through.
-import type { ProviderOperationContext } from '../providers'
+import type { ProviderOperationContext } from '../../packages/core/src/providers'
 import type { LockPort, NetworkPort, ProcessPort, ProcessStdio, RuntimeOutcome } from '../runtime'
 import type { SelfInspection, SelfInstallSource, SelfUpdateChannel, SelfUpdateResult, SelfUpgradePlan } from './types'
 import process from 'node:process'

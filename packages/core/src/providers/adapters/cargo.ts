@@ -1,7 +1,7 @@
 import type { ProviderTarget } from '../types'
 import type { SystemPackageAdapterDependencies } from './system-package'
-import * as cargoPm from '../../../packages/core/src/package-manager/cargo'
-import * as detectUtils from '../../utils/detect'
+import * as detectUtils from '../../../../../src/utils/detect'
+import * as cargoPm from '../../package-manager/cargo'
 import { createSystemPackageAdapter } from './system-package'
 
 const defaultDependencies: SystemPackageAdapterDependencies = {

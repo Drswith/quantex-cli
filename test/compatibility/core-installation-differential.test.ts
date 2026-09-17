@@ -3,13 +3,13 @@ import type { CoreInvocationOutcome } from '../../packages/core/src/invocation'
 import type { LifecycleReceipt } from '../../packages/core/src/lifecycle/model'
 import type { CoreMutationRecipeCatalog } from '../../packages/core/src/mutation-recipe-catalog'
 import type { CoreAgentObservation } from '../../packages/core/src/production-observation'
-import type { AgentDefinition, InstallMethod } from '../../src/agents/types'
 import type {
   ProviderAdapter,
   ProviderMutationEvidence,
   ProviderOutcome,
   ProviderTarget,
-} from '../../src/providers/types'
+} from '../../packages/core/src/providers/types'
+import type { AgentDefinition, InstallMethod } from '../../src/agents/types'
 import type { InstalledAgentState, VersionedQuantexState } from '../../src/state/schema'
 import { describe, expect, it, vi } from 'vitest'
 
@@ -123,9 +123,9 @@ import {
   resolveReceiptProviderBinding,
   resolveStateProviderBinding,
 } from '../../packages/core/src/lifecycle/provider-binding'
+import { createProviderRegistry } from '../../packages/core/src/providers/registry'
 import { projectCoreInstallationOutcome } from '../../src/commands/core-installation-cli'
 import { getExitCodeForResult } from '../../src/errors'
-import { createProviderRegistry } from '../../src/providers/registry'
 import { createEmptyStateDocument } from '../../src/state/schema'
 import { LifecycleStateStore } from '../../src/state/store'
 

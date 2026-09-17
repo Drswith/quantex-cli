@@ -13,13 +13,8 @@
 // runs the macOS test matrix. Hang leftover classify presence on this existing
 // packages/core/src observation file, not a restored src/core re-export tree.
 import type { AgentDefinition, Platform } from '../../../../src/agents'
-import type {
-  ProviderOperation,
-  ProviderOutcome,
-  ProviderObservation,
-  ProviderRegistry,
-} from '../../../../src/providers'
 import type { InstalledAgentState } from '../../../../src/state'
+import type { ProviderOperation, ProviderOutcome, ProviderObservation, ProviderRegistry } from '../providers'
 import type { LifecycleObservation, LifecycleReceipt } from './model'
 import { compareVersions } from '../../../../src/utils/compare-versions'
 import {

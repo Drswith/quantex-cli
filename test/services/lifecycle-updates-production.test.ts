@@ -219,8 +219,8 @@ vi.mock('../../src/agents', () => ({
 vi.mock('../../packages/core/src/package-manager', () => ({
   withAgentLifecycleLock: production.withAgentLifecycleLock,
 }))
-vi.mock('../../src/providers', async importOriginal => {
-  const actual = await importOriginal<typeof import('../../src/providers')>()
+vi.mock('../../packages/core/src/providers', async importOriginal => {
+  const actual = await importOriginal<typeof import('../../packages/core/src/providers')>()
   production.setScriptAdapter(actual.firstPartyProviderRegistry.get('script')!)
   return { ...actual, firstPartyProviderRegistry: production.registry }
 })

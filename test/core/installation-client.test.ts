@@ -6,8 +6,12 @@ import type { CoreInvocationContext } from '../../packages/core/src/invocation'
 import type { LifecycleObservation, LifecycleReceipt } from '../../packages/core/src/lifecycle/model'
 import type { LifecycleProviderBinding } from '../../packages/core/src/lifecycle/provider-binding'
 import type { CoreAgentObservation, CoreReadPorts } from '../../packages/core/src/production-observation'
+import type {
+  ProviderMutationEvidence,
+  ProviderOutcome,
+  ProviderVerification,
+} from '../../packages/core/src/providers/types'
 import type { AgentDefinition } from '../../src/agents/types'
-import type { ProviderMutationEvidence, ProviderOutcome, ProviderVerification } from '../../src/providers/types'
 import { describe, expect, it, vi } from 'vitest'
 import { createQuantexClient } from '../../packages/core/src/client'
 

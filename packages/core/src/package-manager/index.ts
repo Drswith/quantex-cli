@@ -6,14 +6,13 @@
 // runs the macOS test matrix. Hang leftover classify presence on this existing
 // packages/core/src/package-manager file, not a restored src/package-manager runtime tree.
 import type { AgentDefinition, InstallMethod, ManagedInstallType } from '../../../../src/agents/types'
-import type { ProviderOperationContext } from '../../../../src/providers'
-import type { ProviderProcessOperationContext } from '../../../../src/providers/internal-operation-context'
-import type { RegistryPackageUpdateStrategy } from '../../../../src/providers/types'
 import type { InstalledAgentState } from '../../../../src/state'
 import type { LifecycleOutcome } from '../lifecycle/model'
+import type { ProviderOperationContext } from '../providers'
+import type { ProviderProcessOperationContext } from '../providers/internal-operation-context'
+import type { RegistryPackageUpdateStrategy } from '../providers/types'
 import type { ManagedInstallerUpdateOptions, ManagedMutationOutcome, ManagedPackageSpec } from './installers'
 import { AsyncLocalStorage } from 'node:async_hooks'
-import { binaryProviderAdapter, scriptProviderAdapter } from '../../../../src/providers/adapters/install-effect'
 import { getInstalledAgentState, removeInstalledAgentState, setInstalledAgentState } from '../../../../src/state'
 import { getPlatform } from '../../../../src/utils/detect'
 import {
@@ -23,6 +22,7 @@ import {
   isManagedInstallType,
 } from '../../../../src/utils/install'
 import { withResourceLock } from '../../../../src/utils/lock'
+import { binaryProviderAdapter, scriptProviderAdapter } from '../providers/adapters/install-effect'
 import { runBinaryInstall } from './binary'
 import { getPackageManagerHostPorts } from './host'
 import { getTypedManagedInstaller } from './installers'

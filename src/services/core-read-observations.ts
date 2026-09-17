@@ -1,15 +1,15 @@
+import type { ProviderOperationContext } from '../../packages/core/src/providers'
 // KEEP (L5): CLI read projector over quantex-core/internal inspect/list.
 // Enriches Core observations with v1 catalog/capabilities/latest-version.
 // L5 leftover scan: not zero-ref and not a pure pass-through.
 import type { AgentDefinition, InstallMethod } from '../agents'
-import type { ProviderOperationContext } from '../providers'
 import type { InstalledAgentState } from '../state'
 import type { LifecycleObservationService, ResolvedAgentObservation } from './lifecycle-observations'
 import type { CoreAgentObservation, CoreInvocationContext, CoreReadPorts } from 'quantex-core/internal'
 import { join } from 'node:path'
 import { createProductionCoreReadPorts, resolveCoreConfigDir, runCoreInvocation } from 'quantex-core/internal'
+import { firstPartyProviderRegistry } from '../../packages/core/src/providers'
 import { getAgentByNameOrAlias } from '../agents'
-import { firstPartyProviderRegistry } from '../providers'
 import { createCliOperationContext } from '../runtime/cli-operation-context'
 import { StateFileError } from '../state'
 import { StateSchemaError } from '../state/schema'

@@ -1,7 +1,7 @@
 import type { ProviderTarget } from '../types'
 import type { SystemPackageAdapterDependencies } from './system-package'
-import * as uvPm from '../../../packages/core/src/package-manager/uv'
-import * as detectUtils from '../../utils/detect'
+import * as detectUtils from '../../../../../src/utils/detect'
+import * as uvPm from '../../package-manager/uv'
 import { createSystemPackageAdapter } from './system-package'
 
 const defaultDependencies: SystemPackageAdapterDependencies = {

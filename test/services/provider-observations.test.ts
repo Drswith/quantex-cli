@@ -1,7 +1,7 @@
-import type { ProviderAdapter, ProviderOutcome, ProviderRegistry } from '../../src/providers'
+import type { ProviderAdapter, ProviderOutcome, ProviderRegistry } from '../../packages/core/src/providers'
 import { describe, expect, it, vi } from 'vitest'
+import { createProviderRegistry } from '../../packages/core/src/providers'
 import { getCommandContracts } from '../../src/command-contract/registry'
-import { createProviderRegistry } from '../../src/providers'
 import {
   getCommandCapabilitySnapshot,
   projectCommandCapabilitiesToV1Features,

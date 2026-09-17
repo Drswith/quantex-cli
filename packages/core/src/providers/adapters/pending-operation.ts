@@ -1,5 +1,5 @@
 import type { ProviderOperationContext, ProviderOutcome } from '../types'
-import { isProcessInterruptionError } from '../../utils/child-process'
+import { isProcessInterruptionError } from '../../../../../src/utils/child-process'
 
 export type PendingOperation<T> =
   | { readonly kind: 'cancelled'; readonly reason?: string }

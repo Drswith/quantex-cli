@@ -1,9 +1,6 @@
 import type { ManagedInstallType } from '../../../../src/agents/types'
-import type {
-  ProviderOutputPolicy,
-  ProviderProcessOperationContext,
-} from '../../../../src/providers/internal-operation-context'
-import type { RegistryPackageUpdateStrategy } from '../../../../src/providers/types'
+import type { ProviderOutputPolicy, ProviderProcessOperationContext } from '../providers/internal-operation-context'
+import type { RegistryPackageUpdateStrategy } from '../providers/types'
 import process from 'node:process'
 
 export interface PackageManagerPreferences {

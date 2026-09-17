@@ -1,4 +1,4 @@
-import type { ProviderOperationContext, ProviderOutcome } from '../../../../src/providers'
+import type { ProviderOperationContext, ProviderOutcome } from '../providers'
 import type { PackageMutationOutcome } from './context-mutation'
 import process from 'node:process'
 import {

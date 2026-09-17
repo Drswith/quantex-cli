@@ -1,9 +1,9 @@
-import type { ProviderAdapter, ProviderOperationContext, ProviderTarget } from '../../src/providers'
-import type { SystemPackageAdapterDependencies } from '../../src/providers/adapters/system-package'
+import type { ProviderAdapter, ProviderOperationContext, ProviderTarget } from '../../packages/core/src/providers'
+import type { SystemPackageAdapterDependencies } from '../../packages/core/src/providers/adapters/system-package'
 import { describe, expect, it, vi } from 'vitest'
-import { createMiseProviderAdapter } from '../../src/providers/adapters/mise'
-import { createPipProviderAdapter } from '../../src/providers/adapters/pip'
-import { createUvProviderAdapter } from '../../src/providers/adapters/uv'
+import { createMiseProviderAdapter } from '../../packages/core/src/providers/adapters/mise'
+import { createPipProviderAdapter } from '../../packages/core/src/providers/adapters/pip'
+import { createUvProviderAdapter } from '../../packages/core/src/providers/adapters/uv'
 import { describeProviderConformance } from './conformance'
 
 function mutation(success = true) {

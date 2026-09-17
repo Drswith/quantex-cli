@@ -1,5 +1,5 @@
 import type { Platform } from '../../../src/agents/types'
-import type { ProviderId, ProviderTarget } from '../../../src/providers/types'
+import type { ProviderId, ProviderTarget } from './providers/types'
 
 export type CoreMutationRecipeProbe =
   | 'executable-presence'

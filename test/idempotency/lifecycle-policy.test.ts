@@ -1,7 +1,12 @@
 import type { LifecycleProviderBinding } from '../../packages/core/src/lifecycle/provider-binding'
+import type {
+  ProviderId,
+  ProviderObservation,
+  ProviderOutcome,
+  ProviderTargetKind,
+} from '../../packages/core/src/providers'
 import type { AgentDefinition } from '../../src/agents'
 import type { ReplayLiveEvidence } from '../../src/idempotency/replay'
-import type { ProviderId, ProviderObservation, ProviderOutcome, ProviderTargetKind } from '../../src/providers'
 import type { ResolvedAgentObservation } from '../../src/services/lifecycle-observations'
 import type {
   LifecycleUpdateBatchInvocation,
@@ -9,6 +14,7 @@ import type {
   SingleAgentLifecycleUpdateInvocation,
 } from '../../src/services/lifecycle-updates-production'
 import { describe, expect, it, vi } from 'vitest'
+import { firstPartyProviderIds, firstPartyProviderRegistry } from '../../packages/core/src/providers'
 import { cancelCliContextOperations, setCliContext } from '../../src/cli-context'
 import {
   createAgentAbsenceIdempotencyPolicy,
@@ -24,7 +30,6 @@ import {
   isIdempotencyCompositeReceiptSnapshot,
   type IdempotencyReceiptSnapshot,
 } from '../../src/idempotency/schema'
-import { firstPartyProviderIds, firstPartyProviderRegistry } from '../../src/providers'
 
 const agent: AgentDefinition = {
   binaryName: 'test-bin',

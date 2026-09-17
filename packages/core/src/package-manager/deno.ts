@@ -1,4 +1,4 @@
-import type { ProviderOperationContext } from '../../../../src/providers'
+import type { ProviderOperationContext } from '../providers'
 import type { PackageMutationOutcome } from './context-mutation'
 import { access, constants } from 'node:fs/promises'
 import { homedir } from 'node:os'

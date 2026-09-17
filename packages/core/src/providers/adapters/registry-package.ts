@@ -11,7 +11,7 @@ import type {
   RegistryPackageOperationOptions,
   RegistryPackageUpdateStrategy,
 } from '../types'
-import { normalizeRegistryUrl } from '../../utils/registry'
+import { normalizeRegistryUrl } from '../../../../../src/utils/registry'
 import {
   interruptedOutcome,
   isInterruptedOperation,

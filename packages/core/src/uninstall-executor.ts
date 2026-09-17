@@ -2,10 +2,10 @@
 // state/receipt cleanup. Importer: src/commands/uninstall.ts.
 // S3 leftover scan: KEEP product-path hang here (Core-internal leftover; do not restore src/lifecycle).
 import type { AgentDefinition } from '../../../src/agents/types'
-import type { ProviderOutcome, ProviderObservation } from '../../../src/providers/types'
 import type { InstalledAgentState } from '../../../src/state'
 import type { LifecycleReceipt } from './lifecycle/model'
 import type { LifecycleProviderBinding } from './lifecycle/provider-binding'
+import type { ProviderOutcome, ProviderObservation } from './providers/types'
 import { getAgentByNameOrAlias } from '../../../src/agents'
 import {
   getInstalledAgentState,
