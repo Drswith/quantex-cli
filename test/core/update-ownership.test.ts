@@ -4,7 +4,7 @@ import { describe, expect, it } from 'vitest'
 describe('CLI Core update ownership', () => {
   it('routes update through in-repo Core without a public SDK update()', async () => {
     const updateFacade = await source('src/commands/update.ts')
-    expect(updateFacade).toContain("from '../core/update-executor'")
+    expect(updateFacade).toContain("from '../../packages/core/src/update-executor'")
     expect(updateFacade).toContain("from '../services/lifecycle-updates-production'")
     expect(updateFacade).not.toContain('createQuantex')
     expect(updateFacade).not.toMatch(/from ['"]quantex-core['"]/u)
@@ -12,7 +12,7 @@ describe('CLI Core update ownership', () => {
     expect(updateFacade).toContain("from '../services/lifecycle-updates-production'")
 
     const productionBridge = await source('src/services/lifecycle-updates-production.ts')
-    expect(productionBridge).toContain("from '../core/update-compatibility'")
+    expect(productionBridge).toContain("from '../../packages/core/src/update-compatibility'")
     expect(productionBridge).toContain('createCoreSingleAgentUpdateInvocation')
     expect(productionBridge).toContain('createCoreUpdateBatchInvocation')
     expect(productionBridge).toContain('createProductionLifecycleObservationService')
@@ -22,13 +22,13 @@ describe('CLI Core update ownership', () => {
     expect(productionBridge).not.toContain('createQuantex')
     expect(productionBridge).not.toMatch(/from ['"]quantex-core['"]/u)
 
-    const coreCompatibility = await source('src/core/update-compatibility.ts')
+    const coreCompatibility = await source('packages/core/src/update-compatibility.ts')
     expect(coreCompatibility).toContain('createCoreSingleAgentUpdateInvocation')
     expect(coreCompatibility).toContain("from './update-production'")
     expect(coreCompatibility).not.toContain('cli-context')
     expect(coreCompatibility).not.toContain('createQuantex')
 
-    const publicCore = await source('src/core/index.ts')
+    const publicCore = await source('packages/core/src/index.ts')
     expect(publicCore).not.toContain('update-executor')
     expect(publicCore).not.toContain('update-compatibility')
     expect(publicCore).not.toContain('update-production')

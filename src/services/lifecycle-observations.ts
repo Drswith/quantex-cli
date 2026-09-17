@@ -1,18 +1,18 @@
-// KEEP (L5): CLI observation service over Core-internal observeAgentLifecycle.
-// Adds catalog/PATH/latest-version enrichment and CLI operation context.
-// L5 leftover scan: not zero-ref and not a pure pass-through.
-import type { AgentDefinition, InstallMethod, Platform } from '../agents'
 import type {
   AgentExecutableObservation,
   AgentLifecycleObservationPorts,
   AgentLifecycleObservationResult,
-} from '../core/lifecycle/agent-observation'
-import type { LifecycleReceipt } from '../core/lifecycle/model'
+} from '../../packages/core/src/lifecycle/agent-observation'
+import type { LifecycleReceipt } from '../../packages/core/src/lifecycle/model'
+// KEEP (L5): CLI observation service over Core-internal observeAgentLifecycle.
+// Adds catalog/PATH/latest-version enrichment and CLI operation context.
+// L5 leftover scan: not zero-ref and not a pure pass-through.
+import type { AgentDefinition, InstallMethod, Platform } from '../agents'
 import type { ProviderOperationContext, ProviderRegistry } from '../providers'
 import type { InstalledAgentState } from '../state'
+import { observeAgentLifecycle } from '../../packages/core/src/lifecycle/agent-observation'
+import { resolveInstallMethodProviderBinding } from '../../packages/core/src/lifecycle/provider-binding'
 import * as agentRegistry from '../agents'
-import { observeAgentLifecycle } from '../core/lifecycle/agent-observation'
-import { resolveInstallMethodProviderBinding } from '../core/lifecycle/provider-binding'
 import { getOrderedInstallMethods } from '../package-manager'
 import { firstPartyProviderRegistry } from '../providers'
 import { createCliOperationContext } from '../runtime/cli-operation-context'

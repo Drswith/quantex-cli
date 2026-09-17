@@ -32,12 +32,12 @@ describe('S2 CLI shell leftover scan after S1', () => {
   it('does not restore src/lifecycle and keeps Core-internal modules barrel-free', async () => {
     await expect(source('src/lifecycle/index.ts')).rejects.toThrow()
     await expect(readdir(join(ROOT, 'src/lifecycle'))).rejects.toThrow()
-    await expect(source('src/core/lifecycle/index.ts')).rejects.toThrow()
+    await expect(source('packages/core/src/lifecycle/index.ts')).rejects.toThrow()
   })
 
   it('keeps already-deleted leftover shells absent', async () => {
     await expect(source('src/self/application.ts')).rejects.toThrow()
-    await expect(source('src/core/self-upgrade-production.ts')).rejects.toThrow()
+    await expect(source('packages/core/src/self-upgrade-production.ts')).rejects.toThrow()
     await expect(source('src/services/self-upgrade.ts')).rejects.toThrow()
     await expect(source('src/services/lifecycle-updates.ts')).rejects.toThrow()
     await expect(source('src/services/lifecycle-execution.ts')).rejects.toThrow()
@@ -48,7 +48,7 @@ describe('S2 CLI shell leftover scan after S1', () => {
 
     const packageEntry = await source('packages/core/src/index.ts')
     expect(packageEntry).toContain('createQuantex')
-    expect(packageEntry).not.toContain('lifecycle')
+    expect(packageEntry).not.toContain('./lifecycle')
     expect(packageEntry).not.toContain("from './commands")
   })
 
@@ -154,14 +154,14 @@ describe('S2 CLI shell leftover scan after S1', () => {
   })
 
   it('does not publish engine or route identifiers on Core SDK or CLI JSON helpers', async () => {
-    const publicCore = await source('src/core/index.ts')
+    const publicCore = await source('packages/core/src/index.ts')
     expect(publicCore).not.toContain('./lifecycle')
     expect(publicCore).not.toContain('engine')
     expect(publicCore).not.toContain('route')
 
     const packageEntry = await source('packages/core/src/index.ts')
     expect(packageEntry).toContain('createQuantex')
-    expect(packageEntry).not.toContain('lifecycle')
+    expect(packageEntry).not.toContain('./lifecycle')
     expect(packageEntry).not.toContain('engine')
     expect(packageEntry).not.toContain('route')
 

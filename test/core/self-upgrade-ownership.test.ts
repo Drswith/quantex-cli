@@ -12,21 +12,21 @@ describe('CLI Core self-upgrade ownership', () => {
     expect(upgradeFacade).not.toContain('executeCoreSelfUpgrade')
 
     const productionBridge = await source('src/services/self-upgrade-production.ts')
-    expect(productionBridge).toContain("from '../core/self-upgrade-executor'")
+    expect(productionBridge).toContain("from '../../packages/core/src/self-upgrade-executor'")
     expect(productionBridge).toContain('executeCoreSelfUpgrade')
     expect(productionBridge).toContain('planSelfUpgrade')
     expect(productionBridge).toContain('upgradeSelf')
     expect(productionBridge).not.toContain('createQuantex')
     expect(productionBridge).not.toMatch(/from ['"]quantex-core['"]/u)
 
-    const coreEngine = await source('src/core/self-upgrade-executor.ts')
+    const coreEngine = await source('packages/core/src/self-upgrade-executor.ts')
     expect(coreEngine).toContain('executeCoreSelfUpgrade')
     expect(coreEngine).not.toMatch(/from ['"][^'"]*cli-context['"]/u)
-    expect(coreEngine).not.toMatch(/from ['"]\.\.\/self['"]/u)
-    expect(coreEngine).not.toMatch(/from ['"]\.\.\/self\//u)
+    expect(coreEngine).not.toMatch(/from ['"][^'"]*\/self['"]/u)
+    expect(coreEngine).not.toMatch(/from ['"][^'"]*\/self\//u)
     expect(coreEngine).not.toContain('createQuantex')
 
-    const publicCore = await source('src/core/index.ts')
+    const publicCore = await source('packages/core/src/index.ts')
     expect(publicCore).not.toContain('self-upgrade-executor')
     expect(publicCore).not.toContain('executeCoreSelfUpgrade')
 
@@ -37,7 +37,7 @@ describe('CLI Core self-upgrade ownership', () => {
 
   it('deletes the leftover self-upgrade application shell', async () => {
     await expect(source('src/self/application.ts')).rejects.toThrow()
-    await expect(source('src/core/self-upgrade-production.ts')).rejects.toThrow()
+    await expect(source('packages/core/src/self-upgrade-production.ts')).rejects.toThrow()
     await expect(source('src/services/self-upgrade.ts')).rejects.toThrow()
 
     const barrel = await source('src/services/index.ts')

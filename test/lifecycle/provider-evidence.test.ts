@@ -1,5 +1,5 @@
+import type { LifecycleReceipt } from '../../packages/core/src/lifecycle/model'
 import type { AgentDefinition } from '../../src/agents'
-import type { LifecycleReceipt } from '../../src/core/lifecycle/model'
 import type { ProviderAdapter, ProviderObservation, ProviderRegistry } from '../../src/providers'
 import type { InstalledAgentState } from '../../src/state'
 import { describe, expect, it, vi } from 'vitest'
@@ -8,7 +8,7 @@ import {
   resolveCatalogProviderEvidence,
   resolveReceiptProviderBinding,
   resolveStateProviderBinding,
-} from '../../src/core/lifecycle/provider-evidence'
+} from '../../packages/core/src/lifecycle/provider-evidence'
 
 describe('lifecycle provider evidence', () => {
   it('resolves a legacy Bun state through catalog package metadata', () => {

@@ -1,8 +1,12 @@
-import type { CoreSelfUpgradeInput, CoreSelfUpgradeOutcome, CoreSelfUpgradePorts } from '../core/self-upgrade-executor'
+import type {
+  CoreSelfUpgradeInput,
+  CoreSelfUpgradeOutcome,
+  CoreSelfUpgradePorts,
+} from '../../packages/core/src/self-upgrade-executor'
 import type { RuntimeOutcome, RuntimePorts } from '../runtime'
 import type { SelfUpdateResult, SelfUpgradePlan } from '../self'
+import { executeCoreSelfUpgrade } from '../../packages/core/src/self-upgrade-executor'
 import { getCliContext, registerCliCancellationHandler } from '../cli-context'
-import { executeCoreSelfUpgrade } from '../core/self-upgrade-executor'
 import {
   createChildProcessPort,
   createFetchNetworkPort,

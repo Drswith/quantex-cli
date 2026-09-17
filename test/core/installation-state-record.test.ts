@@ -1,8 +1,8 @@
-import type { LifecycleReceipt } from '../../src/core/lifecycle/model'
+import type { LifecycleReceipt } from '../../packages/core/src/lifecycle/model'
 import type { InstalledAgentState, VersionedQuantexState } from '../../src/state/schema'
 import type { StateDocumentPersistence } from '../../src/state/store'
 import { describe, expect, it, vi } from 'vitest'
-import { prepareCoreInstallationStateRecord } from '../../src/core/installation-state-record'
+import { prepareCoreInstallationStateRecord } from '../../packages/core/src/installation-state-record'
 import { createEmptyStateDocument } from '../../src/state/schema'
 import { LifecycleStateStore } from '../../src/state/store'
 

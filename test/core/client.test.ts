@@ -1,10 +1,10 @@
+import type { LifecycleObservation } from '../../packages/core/src/lifecycle/model'
+import type { LifecycleProviderBinding } from '../../packages/core/src/lifecycle/provider-binding'
+import type { CoreAgentObservation, CoreReadPorts } from '../../packages/core/src/production-observation'
+import type { AgentDescriptor, AgentInspection, CoreResult, Quantex } from '../../packages/core/src/types'
 import type { AgentDefinition } from '../../src/agents/types'
-import type { LifecycleObservation } from '../../src/core/lifecycle/model'
-import type { LifecycleProviderBinding } from '../../src/core/lifecycle/provider-binding'
-import type { CoreAgentObservation, CoreReadPorts } from '../../src/core/production-observation'
-import type { AgentDescriptor, AgentInspection, CoreResult, Quantex } from '../../src/core/types'
 import { describe, expect, expectTypeOf, it, vi } from 'vitest'
-import { createQuantexClient } from '../../src/core/client'
+import { createQuantexClient } from '../../packages/core/src/client'
 
 const agent: AgentDefinition = {
   binaryName: 'fixture-agent',

@@ -1,19 +1,19 @@
-import type { CoreInstallationCompatibilityExecutor } from '../core/installation-compatibility'
-import type { CoreInstallationExecutionOutcome } from '../core/installation-executor-types'
-import type { CoreInvocationOutcome } from '../core/invocation'
-import type { LifecycleOutcome } from '../core/lifecycle/model'
-import type { CoreAgentObservation } from '../core/production-observation'
+import type { CoreInstallationCompatibilityExecutor } from '../../packages/core/src/installation-compatibility'
+import type { CoreInstallationExecutionOutcome } from '../../packages/core/src/installation-executor-types'
+import type { CoreInvocationOutcome } from '../../packages/core/src/invocation'
+import type { LifecycleOutcome } from '../../packages/core/src/lifecycle/model'
+import type { CoreAgentObservation } from '../../packages/core/src/production-observation'
 import type { ProcessPort, RuntimeFailure, RuntimeOutcome } from '../runtime'
 import type { LifecycleObservationService, LifecycleObservationServiceOptions } from './lifecycle-observations'
-import { cancelCliContextOperations } from '../cli-context'
 import {
   type AgentExecutionOutcome,
   type ExecuteAgentLifecycleInput,
   executeAgentLifecycle,
   type LifecycleExecutionObservedAgent,
-} from '../core/execution-executor'
-import { createCoreInstallationCompatibilityExecutor } from '../core/installation-compatibility'
-import { resolveInstallMethodProviderBinding } from '../core/lifecycle/provider-binding'
+} from '../../packages/core/src/execution-executor'
+import { createCoreInstallationCompatibilityExecutor } from '../../packages/core/src/installation-compatibility'
+import { resolveInstallMethodProviderBinding } from '../../packages/core/src/lifecycle/provider-binding'
+import { cancelCliContextOperations } from '../cli-context'
 import { buildInstalledAgentState } from '../package-manager'
 import { createAgentProcessPort, createCliOperationContext } from '../runtime'
 import { resolveCliProviderOutputPolicy } from '../runtime/cli-operation-context'

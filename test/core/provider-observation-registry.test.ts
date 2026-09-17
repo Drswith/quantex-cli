@@ -1,8 +1,8 @@
-import type { CoreProviderObservationDependencies } from '../../src/core/provider-observation-registry'
+import type { CoreProviderObservationDependencies } from '../../packages/core/src/provider-observation-registry'
 import type { ProviderId, ProviderTarget } from '../../src/providers/types'
 import { join } from 'node:path'
 import { describe, expect, it, vi } from 'vitest'
-import { createCoreProviderObservationRegistry } from '../../src/core/provider-observation-registry'
+import { createCoreProviderObservationRegistry } from '../../packages/core/src/provider-observation-registry'
 
 const targets: Record<ProviderId, ProviderTarget> = {
   binary: { binaryName: 'fixture', id: 'fixture', kind: 'binary' },

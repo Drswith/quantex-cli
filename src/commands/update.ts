@@ -1,9 +1,9 @@
-import type { AgentDefinition } from '../agents'
-import type { CommandIdempotencyPolicyFactory } from '../command-runtime'
 import type {
   LifecycleUpdateBatchCancellationRemainder,
   LifecycleUpdateBatchTargetOutcome,
-} from '../core/update-executor'
+} from '../../packages/core/src/update-executor'
+import type { AgentDefinition } from '../agents'
+import type { CommandIdempotencyPolicyFactory } from '../command-runtime'
 import type { CommandResult, CommandWarning } from '../output/types'
 import {
   createSupersededPackageWarning,
@@ -656,11 +656,15 @@ function staleStateWarning(agent: Pick<AgentDefinition, 'displayName' | 'name'>)
   }
 }
 
-function planLatestVersion(plan: import('../core/update-executor').SingleAgentLifecycleUpdatePlan | undefined) {
+function planLatestVersion(
+  plan: import('../../packages/core/src/update-executor').SingleAgentLifecycleUpdatePlan | undefined,
+) {
   return plan?.strategy === 'managed-provider' ? plan.plannedTargetVersion : undefined
 }
 
-function planStrategy(plan: import('../core/update-executor').SingleAgentLifecycleUpdatePlan | undefined) {
+function planStrategy(
+  plan: import('../../packages/core/src/update-executor').SingleAgentLifecycleUpdatePlan | undefined,
+) {
   if (!plan) return undefined
   return plan.strategy === 'self-update' ? 'self-update' : `managed/${plan.binding.providerId}`
 }

@@ -1,28 +1,28 @@
-import type { AgentDefinition, InstallMethod } from '../../src/agents'
-import type { CoreInstallationRecipe } from '../../src/core/installation-executor'
-import type { CoreInvocationContext } from '../../src/core/invocation'
-import type { LifecycleObservation, LifecycleReceipt } from '../../src/core/lifecycle/model'
-import type { LifecycleProviderBinding } from '../../src/core/lifecycle/provider-binding'
-import type { CoreAgentObservation } from '../../src/core/production-observation'
+import type { CoreInstallationRecipe } from '../../packages/core/src/installation-executor'
+import type { CoreInvocationContext } from '../../packages/core/src/invocation'
+import type { LifecycleObservation, LifecycleReceipt } from '../../packages/core/src/lifecycle/model'
+import type { LifecycleProviderBinding } from '../../packages/core/src/lifecycle/provider-binding'
+import type { CoreAgentObservation } from '../../packages/core/src/production-observation'
 import type {
   LifecycleUpdateObservedAgent,
   LifecycleUpdateServicePorts,
   ManagedAgentLifecycleUpdatePlan,
-} from '../../src/core/update-executor'
+} from '../../packages/core/src/update-executor'
+import type { AgentDefinition, InstallMethod } from '../../src/agents'
 import type { ProviderAdapter, ProviderId } from '../../src/providers'
 import type { InstalledAgentState, VersionedQuantexState } from '../../src/state/schema'
 import type { StateDocumentPersistence } from '../../src/state/store'
 import { describe, expect, it } from 'vitest'
-import { createProductionCoreInstallationPorts } from '../../src/core/installation-production'
+import { createProductionCoreInstallationPorts } from '../../packages/core/src/installation-production'
 import {
   providerBindingsEqual,
   resolveInstallMethodProviderBinding,
   resolvePersistedProviderBinding,
   resolveReceiptProviderBinding,
   resolveStateProviderBinding,
-} from '../../src/core/lifecycle/provider-binding'
-import { planLifecycleUpdate } from '../../src/core/lifecycle/update-planner'
-import { executeSingleAgentLifecycleUpdate } from '../../src/core/update-executor'
+} from '../../packages/core/src/lifecycle/provider-binding'
+import { planLifecycleUpdate } from '../../packages/core/src/lifecycle/update-planner'
+import { executeSingleAgentLifecycleUpdate } from '../../packages/core/src/update-executor'
 import { buildInstalledAgentState } from '../../src/package-manager'
 import { firstPartyProviderIds } from '../../src/providers'
 import { createProviderRegistry } from '../../src/providers/registry'

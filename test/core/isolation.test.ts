@@ -1,7 +1,7 @@
+import type { CoreAgentObservation, CoreReadPorts } from '../../packages/core/src/production-observation'
 import type { AgentDefinition } from '../../src/agents/types'
-import type { CoreAgentObservation, CoreReadPorts } from '../../src/core/production-observation'
 import { describe, expect, it, vi } from 'vitest'
-import { createQuantexClient } from '../../src/core/client'
+import { createQuantexClient } from '../../packages/core/src/client'
 
 const agent: AgentDefinition = {
   binaryName: 'fixture-agent',

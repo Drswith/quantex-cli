@@ -1,10 +1,10 @@
+import type { LifecycleObservation } from '../../packages/core/src/lifecycle/model'
+import type { LifecycleProviderBinding } from '../../packages/core/src/lifecycle/provider-binding'
+import type { CoreAgentObservation } from '../../packages/core/src/production-observation'
 import type { AgentDefinition } from '../../src/agents/types'
-import type { LifecycleObservation } from '../../src/core/lifecycle/model'
-import type { LifecycleProviderBinding } from '../../src/core/lifecycle/provider-binding'
-import type { CoreAgentObservation } from '../../src/core/production-observation'
 import type { ProviderOutcome, ProviderObservation } from '../../src/providers/types'
 import { describe, expect, it } from 'vitest'
-import { decideCoreInstallation } from '../../src/core/installation-decision'
+import { decideCoreInstallation } from '../../packages/core/src/installation-decision'
 
 const agent: AgentDefinition = {
   binaryName: 'fixture-agent',

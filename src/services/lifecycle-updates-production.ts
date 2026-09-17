@@ -4,14 +4,17 @@ import type {
   CoreUpdateBatchOutcome,
   CoreUpdateCompatibilityExecutorOptions,
   CoreUpdateSingleOutcome,
-} from '../core/update-compatibility'
-import type { LifecycleUpdateBatchPlanningPorts } from '../core/update-executor'
-import type { CoreUpdateServicePorts } from '../core/update-production'
+} from '../../packages/core/src/update-compatibility'
+import type { LifecycleUpdateBatchPlanningPorts } from '../../packages/core/src/update-executor'
+import type { CoreUpdateServicePorts } from '../../packages/core/src/update-production'
+import { planLifecycleUpdate } from '../../packages/core/src/lifecycle/update-planner'
+import {
+  createCoreSingleAgentUpdateInvocation,
+  createCoreUpdateBatchInvocation,
+} from '../../packages/core/src/update-compatibility'
 import { executeAgentSelfUpdate } from '../agent-update'
 import { getAllAgents } from '../agents'
 import { loadConfig } from '../config'
-import { planLifecycleUpdate } from '../core/lifecycle/update-planner'
-import { createCoreSingleAgentUpdateInvocation, createCoreUpdateBatchInvocation } from '../core/update-compatibility'
 import { withAgentLifecycleLock } from '../package-manager'
 import { firstPartyProviderRegistry } from '../providers'
 import { createCliOperationContext } from '../runtime/cli-operation-context'

@@ -1,12 +1,12 @@
+import type { LifecycleReceipt } from '../../packages/core/src/lifecycle/model'
 import type { AgentDefinition } from '../../src/agents'
-import type { LifecycleReceipt } from '../../src/core/lifecycle/model'
 import type { InstalledAgentState } from '../../src/state'
 import { describe, expect, it } from 'vitest'
 import {
   resolvePersistedProviderBinding,
   resolveReceiptProviderBinding,
   resolveStateProviderBinding,
-} from '../../src/core/lifecycle/provider-binding'
+} from '../../packages/core/src/lifecycle/provider-binding'
 
 const agent = {
   binaryName: 'demo',

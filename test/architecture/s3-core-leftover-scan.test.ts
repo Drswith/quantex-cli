@@ -7,21 +7,24 @@ const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..', '..')
 const leftoverKeepHang =
   'S3 leftover scan: KEEP product-path hang here (Core-internal leftover; do not restore src/lifecycle).'
 
-const scanDirs = ['src/core'] as const
+const scanDirs = ['packages/core/src'] as const
 const publishedFacades = ['packages/core/src/index.ts', 'packages/core/src/internal.ts'] as const
-const generatedFiles = ['src/core/generated/agent-catalog.ts', 'src/core/generated/mutation-recipe-catalog.ts'] as const
+const generatedFiles = [
+  'packages/core/src/generated/agent-catalog.ts',
+  'packages/core/src/generated/mutation-recipe-catalog.ts',
+] as const
 
 const hangFiles = [
-  'src/core/index.ts',
-  'src/core/client.ts',
-  'src/core/types.ts',
-  'src/core/installation-executor.ts',
-  'src/core/update-executor.ts',
-  'src/core/execution-executor.ts',
-  'src/core/self-upgrade-executor.ts',
-  'src/core/uninstall-executor.ts',
-  'src/core/doctor-diagnosis.ts',
-  'src/core/lifecycle/model.ts',
+  'packages/core/src/index.ts',
+  'packages/core/src/client.ts',
+  'packages/core/src/types.ts',
+  'packages/core/src/installation-executor.ts',
+  'packages/core/src/update-executor.ts',
+  'packages/core/src/execution-executor.ts',
+  'packages/core/src/self-upgrade-executor.ts',
+  'packages/core/src/uninstall-executor.ts',
+  'packages/core/src/doctor-diagnosis.ts',
+  'packages/core/src/lifecycle/model.ts',
 ] as const
 
 const importerRoots = ['src', 'test', 'packages', 'scripts'] as const
@@ -36,9 +39,11 @@ describe('S3 Core leftover scan after S2', () => {
   it('does not restore src/lifecycle and keeps Core-internal modules barrel-free', async () => {
     await expect(source('src/lifecycle/index.ts')).rejects.toThrow()
     await expect(readdir(join(ROOT, 'src/lifecycle'))).rejects.toThrow()
-    await expect(source('src/core/lifecycle/index.ts')).rejects.toThrow()
+    await expect(source('packages/core/src/lifecycle/index.ts')).rejects.toThrow()
+    await expect(source('packages/core/src/self-upgrade-production.ts')).rejects.toThrow()
+    await expect(readdir(join(ROOT, 'src/core'))).rejects.toThrow()
 
-    const coreLifecycleEntries = await readdir(join(ROOT, 'src/core/lifecycle'))
+    const coreLifecycleEntries = await readdir(join(ROOT, 'packages/core/src/lifecycle'))
     expect(coreLifecycleEntries.filter(name => name.endsWith('.ts')).sort()).toEqual([
       'agent-execution.ts',
       'agent-observation.ts',
@@ -52,7 +57,7 @@ describe('S3 Core leftover scan after S2', () => {
 
   it('keeps already-deleted leftover shells absent', async () => {
     await expect(source('src/self/application.ts')).rejects.toThrow()
-    await expect(source('src/core/self-upgrade-production.ts')).rejects.toThrow()
+    await expect(source('packages/core/src/self-upgrade-production.ts')).rejects.toThrow()
     await expect(source('src/services/self-upgrade.ts')).rejects.toThrow()
     await expect(source('src/services/lifecycle-updates.ts')).rejects.toThrow()
     await expect(source('src/services/lifecycle-execution.ts')).rejects.toThrow()
@@ -83,7 +88,7 @@ describe('S3 Core leftover scan after S2', () => {
   })
 
   it('keeps the published Core SDK frozen at createQuantex', async () => {
-    const publicCore = await source('src/core/index.ts')
+    const publicCore = await source('packages/core/src/index.ts')
     expect(publicCore).toContain("export { createQuantex } from './client'")
     expect(publicCore).toContain("from './types'")
     expect(publicCore).not.toContain('./lifecycle')
@@ -92,17 +97,16 @@ describe('S3 Core leftover scan after S2', () => {
     expect(publicCore).not.toContain('route')
 
     const packageEntry = await source('packages/core/src/index.ts')
-    expect(packageEntry).toContain("from '../../../src/core/index'")
+    expect(packageEntry).toContain("export { createQuantex } from './client'")
     expect(packageEntry).toContain('createQuantex')
-    expect(packageEntry).not.toContain('lifecycle')
+    expect(packageEntry).not.toContain('./lifecycle')
     expect(packageEntry).not.toContain('engine')
     expect(packageEntry).not.toContain('route')
-    expect(packageEntry).not.toContain('KEEP (S3)')
 
     const packageInternal = await source('packages/core/src/internal.ts')
-    expect(packageInternal).toContain("from '../../../src/core/invocation'")
-    expect(packageInternal).toContain("from '../../../src/core/mutation-recipe-catalog'")
-    expect(packageInternal).toContain("from '../../../src/core/production-observation'")
+    expect(packageInternal).toContain("from './invocation'")
+    expect(packageInternal).toContain("from './mutation-recipe-catalog'")
+    expect(packageInternal).toContain("from './production-observation'")
     expect(packageInternal).not.toContain('lifecycle')
     expect(packageInternal).not.toContain('KEEP (S3)')
 
@@ -131,28 +135,28 @@ describe('S3 Core leftover scan after S2', () => {
   it('keeps Core engines and published facades as live modules, not foldable leftovers', async () => {
     const graph = await buildImportGraph()
     const engines = [
-      'src/core/index.ts',
-      'src/core/client.ts',
-      'src/core/types.ts',
-      'src/core/invocation.ts',
-      'src/core/installation-executor.ts',
-      'src/core/installation-compatibility.ts',
-      'src/core/installation-production.ts',
-      'src/core/update-executor.ts',
-      'src/core/update-compatibility.ts',
-      'src/core/update-production.ts',
-      'src/core/execution-executor.ts',
-      'src/core/self-upgrade-executor.ts',
-      'src/core/uninstall-executor.ts',
-      'src/core/doctor-diagnosis.ts',
-      'src/core/production-observation.ts',
-      'src/core/lifecycle/model.ts',
-      'src/core/lifecycle/provider-binding.ts',
-      'src/core/lifecycle/provider-evidence.ts',
-      'src/core/lifecycle/agent-observation.ts',
-      'src/core/lifecycle/agent-execution.ts',
-      'src/core/lifecycle/update-planner.ts',
-      'src/core/lifecycle/uninstall-postcondition.ts',
+      'packages/core/src/index.ts',
+      'packages/core/src/client.ts',
+      'packages/core/src/types.ts',
+      'packages/core/src/invocation.ts',
+      'packages/core/src/installation-executor.ts',
+      'packages/core/src/installation-compatibility.ts',
+      'packages/core/src/installation-production.ts',
+      'packages/core/src/update-executor.ts',
+      'packages/core/src/update-compatibility.ts',
+      'packages/core/src/update-production.ts',
+      'packages/core/src/execution-executor.ts',
+      'packages/core/src/self-upgrade-executor.ts',
+      'packages/core/src/uninstall-executor.ts',
+      'packages/core/src/doctor-diagnosis.ts',
+      'packages/core/src/production-observation.ts',
+      'packages/core/src/lifecycle/model.ts',
+      'packages/core/src/lifecycle/provider-binding.ts',
+      'packages/core/src/lifecycle/provider-evidence.ts',
+      'packages/core/src/lifecycle/agent-observation.ts',
+      'packages/core/src/lifecycle/agent-execution.ts',
+      'packages/core/src/lifecycle/update-planner.ts',
+      'packages/core/src/lifecycle/uninstall-postcondition.ts',
       'packages/core/src/index.ts',
       'packages/core/src/internal.ts',
     ] as const
@@ -164,7 +168,7 @@ describe('S3 Core leftover scan after S2', () => {
       expect(productionImporters.length, `${path} must keep production importers`).toBeGreaterThan(0)
     }
 
-    const providerEvidence = await source('src/core/lifecycle/provider-evidence.ts')
+    const providerEvidence = await source('packages/core/src/lifecycle/provider-evidence.ts')
     expect(providerEvidence).toContain('export async function observeLifecycleProvider')
     expect(providerEvidence).toContain("from './provider-binding'")
 
@@ -176,14 +180,14 @@ describe('S3 Core leftover scan after S2', () => {
   })
 
   it('does not publish engine or route identifiers on Core SDK or CLI JSON helpers', async () => {
-    const publicCore = await source('src/core/index.ts')
+    const publicCore = await source('packages/core/src/index.ts')
     expect(publicCore).not.toContain('./lifecycle')
     expect(publicCore).not.toContain('engine')
     expect(publicCore).not.toContain('route')
 
     const packageEntry = await source('packages/core/src/index.ts')
     expect(packageEntry).toContain('createQuantex')
-    expect(packageEntry).not.toContain('lifecycle')
+    expect(packageEntry).not.toContain('./lifecycle')
     expect(packageEntry).not.toContain('engine')
     expect(packageEntry).not.toContain('route')
 

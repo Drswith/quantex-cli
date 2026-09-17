@@ -1,4 +1,4 @@
-import type { AgentExecutionOutcome, LifecycleExecutionObservedAgent } from '../../src/core/execution-executor'
+import type { AgentExecutionOutcome, LifecycleExecutionObservedAgent } from '../../packages/core/src/execution-executor'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { setCliContext } from '../../src/cli-context'
 import { runCommand, type RunCommandDependencies } from '../../src/commands/run'

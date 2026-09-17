@@ -1,7 +1,7 @@
 import type { CacheLookup, RuntimeOutcome, RuntimePorts } from '../../src/runtime'
 import type { SelfUpgradePlan } from '../../src/self'
 import { describe, expect, it, vi } from 'vitest'
-import { executeCoreSelfUpgrade } from '../../src/core/self-upgrade-executor'
+import { executeCoreSelfUpgrade } from '../../packages/core/src/self-upgrade-executor'
 import { createInvocationContext } from '../../src/runtime'
 
 describe('executeCoreSelfUpgrade', () => {

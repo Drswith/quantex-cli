@@ -1,5 +1,5 @@
+import type { CoreInstallationCompatibilityExecutor } from '../../packages/core/src/installation-compatibility'
 import type { AgentDefinition } from '../../src/agents'
-import type { CoreInstallationCompatibilityExecutor } from '../../src/core/installation-compatibility'
 import type { LifecycleObservationService } from '../../src/services/lifecycle-observations'
 import { describe, expect, it, vi } from 'vitest'
 import {
@@ -85,7 +85,7 @@ describe('createProductionLifecycleExecutionService', () => {
       fs.readFile(new URL('../../src/services/lifecycle-execution-production.ts', import.meta.url), 'utf8'),
     )
     expect(source).toContain('createCoreInstallationCompatibilityExecutor')
-    expect(source).toContain("from '../core/installation-compatibility'")
+    expect(source).toContain("from '../../packages/core/src/installation-compatibility'")
     expect(source).not.toContain('reconcileAgentInstallation')
   })
 })

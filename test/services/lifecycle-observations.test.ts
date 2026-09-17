@@ -1,8 +1,8 @@
-import type { AgentDefinition, InstallMethod } from '../../src/agents'
 import type {
   AgentLifecycleObservationPorts,
   AgentLifecycleObservationResult,
-} from '../../src/core/lifecycle/agent-observation'
+} from '../../packages/core/src/lifecycle/agent-observation'
+import type { AgentDefinition, InstallMethod } from '../../src/agents'
 import type { InstalledAgentState } from '../../src/state'
 import { readFile } from 'node:fs/promises'
 import { describe, expect, it, vi } from 'vitest'
@@ -207,7 +207,7 @@ describe('mutation and execution observation boundary', () => {
   it('routes execution through Core via the lifecycle application service bridge', async () => {
     const runSource = await source('src/commands/run.ts')
 
-    expect(runSource).toContain("from '../core/execution-executor'")
+    expect(runSource).toContain("from '../../packages/core/src/execution-executor'")
     expect(runSource).toContain("from '../services/lifecycle-execution-production'")
     expect(runSource).toContain('createProductionLifecycleExecutionService')
     expect(runSource).not.toContain('resolveAgentInspection')
@@ -215,9 +215,9 @@ describe('mutation and execution observation boundary', () => {
     expect(runSource).not.toContain('createQuantex')
 
     const productionSource = await source('src/services/lifecycle-execution-production.ts')
-    expect(productionSource).toContain("from '../core/execution-executor'")
+    expect(productionSource).toContain("from '../../packages/core/src/execution-executor'")
     expect(productionSource).toContain('executeAgentLifecycle')
-    expect(productionSource).toContain("from '../core/installation-compatibility'")
+    expect(productionSource).toContain("from '../../packages/core/src/installation-compatibility'")
     expect(productionSource).toContain('createCoreInstallationCompatibilityExecutor')
     expect(productionSource).not.toContain('reconcileAgentInstallation')
   })

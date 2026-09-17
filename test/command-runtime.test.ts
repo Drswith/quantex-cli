@@ -1,4 +1,4 @@
-import type { LifecycleProviderBinding } from '../src/core/lifecycle/provider-binding'
+import type { LifecycleProviderBinding } from '../packages/core/src/lifecycle/provider-binding'
 import type {
   IdempotencyPostcondition,
   IdempotencyReceiptEvidence,

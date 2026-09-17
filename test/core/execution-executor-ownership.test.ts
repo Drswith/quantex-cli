@@ -4,15 +4,15 @@ import { describe, expect, it } from 'vitest'
 describe('CLI Core execution ownership', () => {
   it('routes exec and shortcut launch through in-repo Core without a public SDK run()', async () => {
     const runFacade = await source('src/commands/run.ts')
-    expect(runFacade).toContain("from '../core/execution-executor'")
+    expect(runFacade).toContain("from '../../packages/core/src/execution-executor'")
     expect(runFacade).toContain("from '../services/lifecycle-execution-production'")
     expect(runFacade).not.toContain('createQuantex')
     expect(runFacade).not.toMatch(/from ['"]quantex-core['"]/u)
 
     const productionBridge = await source('src/services/lifecycle-execution-production.ts')
-    expect(productionBridge).toContain("from '../core/execution-executor'")
+    expect(productionBridge).toContain("from '../../packages/core/src/execution-executor'")
     expect(productionBridge).toContain('executeAgentLifecycle')
-    expect(productionBridge).toContain("from '../core/installation-compatibility'")
+    expect(productionBridge).toContain("from '../../packages/core/src/installation-compatibility'")
     expect(productionBridge).toContain('createCoreInstallationCompatibilityExecutor')
     expect(productionBridge).toContain("stdio: options.outputMode === 'human'")
     expect(productionBridge).not.toContain('reconcileAgentInstallation')
@@ -21,13 +21,13 @@ describe('CLI Core execution ownership', () => {
 
     await expect(source('src/services/lifecycle-execution.ts')).rejects.toThrow()
 
-    const coreEngine = await source('src/core/execution-executor.ts')
+    const coreEngine = await source('packages/core/src/execution-executor.ts')
     expect(coreEngine).toContain('executeAgentLifecycle')
     expect(coreEngine).toContain('ports.stdio')
     expect(coreEngine).not.toContain('cli-context')
     expect(coreEngine).not.toContain('createQuantex')
 
-    const publicCore = await source('src/core/index.ts')
+    const publicCore = await source('packages/core/src/index.ts')
     expect(publicCore).not.toContain('execution-executor')
     expect(publicCore).not.toContain('executeAgentLifecycle')
 
