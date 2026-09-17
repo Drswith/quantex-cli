@@ -11,8 +11,8 @@ import type {
   ProviderOutcome,
   ProviderTarget,
 } from '../../packages/core/src/providers/types'
+import type { InstalledAgentState } from '../../packages/core/src/state/schema'
 import type { AgentDefinition, InstallMethod } from '../../src/agents/types'
-import type { InstalledAgentState } from '../../src/state/schema'
 import { describe, expect, it, vi } from 'vitest'
 import { resolveCoreInstallationRecipe } from '../../packages/core/src/installation-recipe-resolver'
 import {

@@ -7,7 +7,7 @@ import process from 'node:process'
 import { describe, expect, it } from 'vitest'
 import { runCoreInvocation } from '../../packages/core/src/invocation'
 import { createProductionCoreReadPorts } from '../../packages/core/src/production-observation'
-import { createEmptyStateDocument } from '../../src/state/schema'
+import { createEmptyStateDocument } from '../../packages/core/src/state/schema'
 
 describe('production Core observation', () => {
   it.skipIf(process.platform === 'win32')(

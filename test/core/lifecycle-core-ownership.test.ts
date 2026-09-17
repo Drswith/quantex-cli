@@ -14,7 +14,7 @@ const coreInternalLifecycleModules = [
 ] as const
 
 const coreInternalModel = 'packages/core/src/lifecycle/model.ts'
-const stateCoreLeafImport = "from '../../packages/core/src/lifecycle/model'"
+const stateCoreLeafImport = "from '../lifecycle/model'"
 
 describe('P8 lifecycle→Core closure', () => {
   it('keeps Core engines on Core-internal paths after barrel deletion', async () => {
@@ -95,29 +95,32 @@ describe('L1 lifecycle model Core-internal leaf', () => {
   })
 
   it('lets state import only the Core-internal leaf, not Core runtime', async () => {
-    const stateFiles = ['src/state/schema.ts', 'src/state/store.ts', 'src/state/index.ts'] as const
+    const stateFiles = [
+      'packages/core/src/state/schema.ts',
+      'packages/core/src/state/store.ts',
+      'packages/core/src/state/index.ts',
+    ] as const
     for (const path of stateFiles) {
       const text = await source(path)
       expect(text).toContain(stateCoreLeafImport)
-      expect(text).not.toContain("from '../lifecycle/model'")
+      expect(text).not.toContain("from '../../packages/core/src/lifecycle/model'")
       expect(text).not.toContain('provider-binding')
       expect(text).not.toContain('provider-evidence')
       expect(text).not.toContain('agent-observation')
       expect(text).not.toContain('update-planner')
       expect(text).not.toContain('agent-execution')
       expect(text).not.toContain('uninstall-postcondition')
-      const coreImports = [...text.matchAll(/from ['"]([^'"]*packages\/core\/src[^'"]*)['"]/gu)].map(match => match[1])
-      const expectedCoreImports =
-        path === 'src/state/schema.ts'
-          ? ['../../packages/core/src/lifecycle/model', '../../packages/core/src/package-manager/managed-install-types']
-          : ['../../packages/core/src/lifecycle/model']
-      expect(coreImports).toEqual(expectedCoreImports)
+      const siblingLifecycleImports = [...text.matchAll(/from ['"](\.\.\/lifecycle\/[^'"]+)['"]/gu)].map(
+        match => match[1],
+      )
+      expect(siblingLifecycleImports).toEqual(['../lifecycle/model'])
       expect(text).not.toContain('createQuantex')
       expect(text).not.toContain('packages/core/src/index')
     }
 
-    const schema = await source('src/state/schema.ts')
+    const schema = await source('packages/core/src/state/schema.ts')
     expect(schema).toContain('export { LIFECYCLE_RECEIPT_SCHEMA_VERSION }')
+    expect(schema).toContain("from '../package-manager/managed-install-types'")
   })
 
   it('retargets former lifecycle/model importers onto the Core-internal leaf', async () => {

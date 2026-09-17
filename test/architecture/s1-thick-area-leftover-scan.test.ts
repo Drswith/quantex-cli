@@ -46,6 +46,7 @@ describe('S1 thick-area leftover scan after L5', () => {
     await expect(source('src/services/lifecycle-updates.ts')).rejects.toThrow()
     await expect(source('src/services/lifecycle-execution.ts')).rejects.toThrow()
     await expect(readdir(join(ROOT, 'src/providers'))).rejects.toThrow()
+    await expect(readdir(join(ROOT, 'src/state'))).rejects.toThrow()
   })
 
   it('hangs product-path KEEP comments on existing thick-area files', async () => {
@@ -114,12 +115,13 @@ describe('S1 thick-area leftover scan after L5', () => {
     expect(runtimeBarrel).toContain("export * from './ports'")
 
     const stateBarrel = await source('src/state.ts')
-    expect(stateBarrel).toContain("from './state/index'")
+    expect(stateBarrel).toContain("from '../packages/core/src/state'")
 
     const managedTypes = await source('packages/core/src/package-manager/managed-install-types.ts')
     expect(managedTypes).toContain('frozen hardcoded managed-install-type list')
-    const schema = await source('src/state/schema.ts')
-    expect(schema).toContain("from '../../packages/core/src/package-manager/managed-install-types'")
+    const schema = await source('packages/core/src/state/schema.ts')
+    expect(schema).toContain("from '../package-manager/managed-install-types'")
+    expect(schema).not.toContain("from '../package-manager/capabilities'")
     expect(schema).not.toContain("from '../../packages/core/src/package-manager/capabilities'")
   })
 

@@ -1,13 +1,17 @@
 import type { LifecycleReceipt } from '../../packages/core/src/lifecycle/model'
-import type { StateFileSystem } from '../../src/state/store'
+import type { StateFileSystem } from '../../packages/core/src/state/store'
 import { describe, expect, it } from 'vitest'
 import {
   CURRENT_STATE_SCHEMA_VERSION,
   LIFECYCLE_RECEIPT_SCHEMA_VERSION,
   StateSchemaError,
   type VersionedQuantexState,
-} from '../../src/state/schema'
-import { FileStateDocumentPersistence, LifecycleStateStore, StateRecoveryError } from '../../src/state/store'
+} from '../../packages/core/src/state/schema'
+import {
+  FileStateDocumentPersistence,
+  LifecycleStateStore,
+  StateRecoveryError,
+} from '../../packages/core/src/state/store'
 
 const STATE_PATH = '/config/state.json'
 const BACKUP_PATH = `${STATE_PATH}.v1.bak`

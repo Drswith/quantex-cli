@@ -1,6 +1,7 @@
+import type { SelfInstallSource } from '../../packages/core/src/state/schema'
 import type { BinaryReleaseAsset } from './release'
 
-export type SelfInstallSource = 'binary' | 'bun' | 'npm' | 'source' | 'unknown'
+export type { SelfInstallSource }
 export type SelfUpdateChannel = 'beta' | 'stable'
 export type SelfUpgradePlanStatus = 'check-unavailable' | 'manual-required' | 'up-to-date' | 'update-available'
 

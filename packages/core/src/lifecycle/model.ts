@@ -1,9 +1,9 @@
 // L1: Core-internal leaf for receipt/observation types. Zero imports so
-// src/state may share this module without depending on Core runtime (ADR 0011).
+// packages/core/src/state may share this module without depending on Core runtime (ADR 0011).
 // Do not re-export from src/core/index.ts or packages/core.
 // L5 leftover scan: KEEP product-path hang here (do not restore src/lifecycle).
 // KEEP (S3): Core-internal receipt/observation leaf. Live importers include
-// src/state (ADR 0011). Not a leftover; do not restore src/lifecycle.
+// packages/core/src/state (ADR 0011). Not a leftover; do not restore src/lifecycle.
 // S3 leftover scan: KEEP product-path hang here (Core-internal leftover; do not restore src/lifecycle).
 export type ProviderCapability = `${string}-${string}`
 

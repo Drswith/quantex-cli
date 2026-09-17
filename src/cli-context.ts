@@ -3,6 +3,7 @@
 import { randomUUID } from 'node:crypto'
 import process from 'node:process'
 import { bindCliPackageManagerHost } from './runtime/cli-package-manager-host'
+import { bindCliStateHost } from './runtime/cli-state-host'
 import { parseDurationToMs } from './utils/duration'
 
 export type OutputMode = 'human' | 'json' | 'ndjson'
@@ -67,6 +68,7 @@ export function setCliContext(context: CliContext): void {
     cancelled: context.cancelled ?? false,
   }
   bindCliPackageManagerHost()
+  bindCliStateHost()
 }
 
 export function resetCliContext(): void {
@@ -171,3 +173,4 @@ function resolveLogLevel(value: string | undefined): LogLevel {
 }
 
 bindCliPackageManagerHost()
+bindCliStateHost()

@@ -22,6 +22,7 @@ const forbiddenSpecifierPatterns = [
   /(?:^|\/)self(?:$|\/)/u,
   /runtime\/cli-operation-context/u,
   /runtime\/cli-package-manager-host/u,
+  /runtime\/cli-state-host/u,
   /(?:^|\/)services(?:$|\/)/u,
   /(?:^|\/)compatibility(?:$|\/)/u,
   /(?:^|\/)idempotency(?:$|\/)/u,
@@ -35,14 +36,19 @@ const forbiddenSpecifierPatterns = [
   /^(?:commander|picocolors|prompts)$/u,
 ]
 
-const allowedSharedPrefixes = ['src/agents/', 'src/state/', 'src/runtime/', 'src/agent-update/', 'src/utils/'] as const
+const allowedSharedPrefixes = ['src/agents/', 'src/runtime/', 'src/agent-update/', 'src/utils/'] as const
 
 const allowedSharedFiles = new Set(['src/agents.ts', 'src/state.ts', 'src/runtime.ts'])
 
-const documentedLeafImporters = new Set(['src/state/schema.ts', 'src/state/store.ts', 'src/state/index.ts'])
+const documentedLeafImporters = new Set([
+  'packages/core/src/state/schema.ts',
+  'packages/core/src/state/store.ts',
+  'packages/core/src/state/index.ts',
+])
 
 const packageManagerPrefix = 'packages/core/src/package-manager/'
 const providersPrefix = 'packages/core/src/providers/'
+const statePrefix = 'packages/core/src/state/'
 
 describe('Core package boundary', () => {
   it('owns Core implementation under packages/core/src and leaves root src/core empty', async () => {
@@ -89,11 +95,7 @@ describe('Core package boundary', () => {
 
   it('keeps the eager public runtime dependency closure outside mutation and CLI infrastructure', async () => {
     const closure = await runtimeDependencyClosure(PACKAGE_ENTRY, false)
-    const allowedOutsideCore = new Set([
-      'src/state/schema.ts',
-      'src/utils/compare-versions.ts',
-      'src/utils/executable-search-paths.ts',
-    ])
+    const allowedOutsideCore = new Set(['src/utils/compare-versions.ts', 'src/utils/executable-search-paths.ts'])
     const violations = [...closure]
       .map(repositoryPath)
       .filter(file => !file.startsWith('packages/core/src/'))
@@ -133,6 +135,7 @@ describe('Core package boundary', () => {
         if (
           path === 'src/runtime/cli-operation-context.ts' ||
           path === 'src/runtime/cli-package-manager-host.ts' ||
+          path === 'src/runtime/cli-state-host.ts' ||
           path === 'src/runtime/index.ts'
         ) {
           violations.push(`${repositoryPath(file)} -> ${path}`)
@@ -170,7 +173,9 @@ describe('Core package boundary', () => {
           : specifier
         if (resolved !== MODEL_LEAF && !cliOwnedImporter(importer)) {
           if (
-            (resolved.startsWith(packageManagerPrefix) || resolved.startsWith(providersPrefix)) &&
+            (resolved.startsWith(packageManagerPrefix) ||
+              resolved.startsWith(providersPrefix) ||
+              resolved.startsWith(statePrefix)) &&
             deferredCoreImporter(importer)
           ) {
             continue
@@ -182,9 +187,11 @@ describe('Core package boundary', () => {
 
     for (const importer of documentedLeafImporters) {
       const text = await readFile(join(ROOT, importer), 'utf8')
-      expect(text).toContain("from '../../packages/core/src/lifecycle/model'")
+      expect(text).toContain("from '../lifecycle/model'")
       expect(text).not.toContain('createQuantex')
       expect(text).not.toContain('packages/core/src/index')
+      expect(text).not.toContain('../config')
+      expect(text).not.toContain('self/types')
     }
 
     expect(violations).toEqual([])
@@ -192,20 +199,21 @@ describe('Core package boundary', () => {
 
   it('records product-locked ownership and physical stop points for providers and state', async () => {
     await access(join(CORE_SOURCE, 'providers'))
-    await access(join(ROOT, 'src', 'state'))
+    await access(join(CORE_SOURCE, 'state'))
     await access(join(ROOT, 'src', 'agents'))
     await access(join(CORE_SOURCE, 'package-manager'))
+    await access(join(ROOT, 'src', 'state.ts'))
     await expect(access(join(ROOT, 'src', 'providers'))).rejects.toThrow()
     await expect(access(join(ROOT, 'src', 'package-manager'))).rejects.toThrow()
-    await expect(access(join(CORE_SOURCE, 'state'))).rejects.toThrow()
+    await expect(access(join(ROOT, 'src', 'state'))).rejects.toThrow()
     await expect(access(join(CORE_SOURCE, 'agents'))).rejects.toThrow()
 
-    const stateIndex = await readFile(join(ROOT, 'src', 'state', 'index.ts'), 'utf8')
-    const stateSchema = await readFile(join(ROOT, 'src', 'state', 'schema.ts'), 'utf8')
-    expect(stateIndex).toContain("from '../config'")
-    expect(stateIndex).toContain("from '../self/types'")
-    expect(stateSchema).toContain("from '../self/types'")
-    expect(stateIndex).toContain("from '../../packages/core/src/lifecycle/model'")
+    const stateIndex = await readFile(join(CORE_SOURCE, 'state', 'index.ts'), 'utf8')
+    const stateSchema = await readFile(join(CORE_SOURCE, 'state', 'schema.ts'), 'utf8')
+    expect(stateIndex).not.toContain("from '../config'")
+    expect(stateIndex).not.toContain("from '../self/types'")
+    expect(stateSchema).not.toContain("from '../self/types'")
+    expect(stateIndex).toContain("from '../lifecycle/model'")
     expect(stateIndex).not.toContain('packages/core/src/providers')
     expect(stateSchema).not.toContain('packages/core/src/providers')
   })
@@ -265,6 +273,38 @@ describe('Core package boundary', () => {
     expect(publicEntry).not.toContain('package-manager')
     expect(publicEntry).not.toContain('providers')
   })
+
+  it('keeps relocated state under Core without CLI shell imports', async () => {
+    await access(join(CORE_SOURCE, 'state', 'index.ts'))
+    await expect(access(join(ROOT, 'src', 'state'))).rejects.toThrow()
+    await access(join(ROOT, 'src', 'state.ts'))
+
+    const files = await typescriptFiles(join(CORE_SOURCE, 'state'))
+    const cliLeaks: string[] = []
+    for (const file of files) {
+      const source = await readFile(file, 'utf8')
+      for (const specifier of importSpecifiers(source)) {
+        if (forbiddenSpecifierPatterns.some(pattern => pattern.test(specifier))) {
+          cliLeaks.push(`${repositoryPath(file)} -> ${specifier}`)
+        }
+      }
+    }
+
+    expect(cliLeaks).toEqual([])
+
+    const binder = await readFile(join(ROOT, 'src', 'runtime', 'cli-state-host.ts'), 'utf8')
+    expect(binder).toContain('setStateHostPorts')
+    expect(binder).toContain('getConfigDir')
+
+    const facade = await readFile(join(ROOT, 'src', 'state.ts'), 'utf8')
+    expect(facade).toContain('bindCliStateHost')
+    expect(facade).toContain("from '../packages/core/src/state'")
+
+    const publicEntry = await readFile(PACKAGE_ENTRY, 'utf8')
+    expect(publicEntry).not.toContain('./state')
+    expect(publicEntry).not.toContain('package-manager')
+    expect(publicEntry).not.toContain('providers')
+  })
 })
 
 function cliOwnedImporter(importer: string): boolean {
@@ -280,17 +320,19 @@ function cliOwnedImporter(importer: string): boolean {
     importer === 'src/cli-context.ts' ||
     importer === 'src/command-runtime.ts' ||
     importer === 'src/runtime/cli-package-manager-host.ts' ||
-    importer === 'src/runtime/cli-operation-context.ts'
+    importer === 'src/runtime/cli-state-host.ts' ||
+    importer === 'src/runtime/cli-operation-context.ts' ||
+    importer === 'src/state.ts'
   )
 }
 
 function deferredCoreImporter(importer: string): boolean {
-  if (importer.startsWith('src/state/')) return true
   if (importer.startsWith('src/agent-update/')) return true
   if (
     importer.startsWith('src/runtime/') &&
     importer !== 'src/runtime/cli-operation-context.ts' &&
-    importer !== 'src/runtime/cli-package-manager-host.ts'
+    importer !== 'src/runtime/cli-package-manager-host.ts' &&
+    importer !== 'src/runtime/cli-state-host.ts'
   ) {
     return true
   }

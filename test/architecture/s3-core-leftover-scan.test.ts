@@ -27,6 +27,7 @@ const hangFiles = [
   'packages/core/src/lifecycle/model.ts',
   'packages/core/src/package-manager/index.ts',
   'packages/core/src/providers/index.ts',
+  'packages/core/src/state/index.ts',
 ] as const
 
 const importerRoots = ['src', 'test', 'packages', 'scripts'] as const
@@ -160,6 +161,7 @@ describe('S3 Core leftover scan after S2', () => {
       'packages/core/src/lifecycle/update-planner.ts',
       'packages/core/src/lifecycle/uninstall-postcondition.ts',
       'packages/core/src/providers/index.ts',
+      'packages/core/src/state/index.ts',
       'packages/core/src/index.ts',
       'packages/core/src/internal.ts',
     ] as const

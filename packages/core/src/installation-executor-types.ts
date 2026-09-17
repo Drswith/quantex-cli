@@ -1,4 +1,3 @@
-import type { InstalledAgentState } from '../../../src/state/schema'
 import type { CoreInstallationDecision, CoreInstallationDirective } from './installation-decision'
 import type { CoreInvocationContext } from './invocation'
 import type { LifecycleProviderBinding } from './lifecycle/provider-binding'
@@ -9,6 +8,7 @@ import type {
   ProviderOutcome,
   ProviderVerification,
 } from './providers/types'
+import type { InstalledAgentState } from './state/schema'
 import type { AgentMutationFailureCode, AgentMutationPhase, AgentMutationSideEffect } from './types'
 
 export type CoreMutationPhase = AgentMutationPhase
