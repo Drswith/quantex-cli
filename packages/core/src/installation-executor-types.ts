@@ -3,8 +3,8 @@ import type {
   ProviderOperationContext,
   ProviderOutcome,
   ProviderVerification,
-} from '../providers/types'
-import type { InstalledAgentState } from '../state/schema'
+} from '../../../src/providers/types'
+import type { InstalledAgentState } from '../../../src/state/schema'
 import type { CoreInstallationDecision, CoreInstallationDirective } from './installation-decision'
 import type { CoreInvocationContext } from './invocation'
 import type { LifecycleProviderBinding } from './lifecycle/provider-binding'

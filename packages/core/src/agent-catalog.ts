@@ -1,4 +1,4 @@
-import type { AgentDefinition } from '../agents/types'
+import type { AgentDefinition } from '../../../src/agents/types'
 import { coreAgentCatalog } from './generated/agent-catalog'
 
 export function getCoreAgents(): readonly AgentDefinition[] {

@@ -1,9 +1,9 @@
+import type { CoreInstallationExecutionOutcome } from '../../packages/core/src/installation-executor'
+import type { CoreInvocationOutcome } from '../../packages/core/src/invocation'
+import type { LifecycleReceipt } from '../../packages/core/src/lifecycle/model'
+import type { CoreMutationRecipeCatalog } from '../../packages/core/src/mutation-recipe-catalog'
+import type { CoreAgentObservation } from '../../packages/core/src/production-observation'
 import type { AgentDefinition, InstallMethod } from '../../src/agents/types'
-import type { CoreInstallationExecutionOutcome } from '../../src/core/installation-executor'
-import type { CoreInvocationOutcome } from '../../src/core/invocation'
-import type { LifecycleReceipt } from '../../src/core/lifecycle/model'
-import type { CoreMutationRecipeCatalog } from '../../src/core/mutation-recipe-catalog'
-import type { CoreAgentObservation } from '../../src/core/production-observation'
 import type {
   ProviderAdapter,
   ProviderMutationEvidence,
@@ -114,16 +114,16 @@ vi.mock('../../src/utils/user-output', () => ({
 }))
 
 import type { CommandResult } from '../../src/output/types'
-import { projectCoreInstallationOutcome } from '../../src/commands/core-installation-cli'
-import { decideCoreInstallation } from '../../src/core/installation-decision'
-import { executeCoreInstallation } from '../../src/core/installation-executor'
-import { createProductionCoreInstallationPorts } from '../../src/core/installation-production'
-import { runCoreInvocation } from '../../src/core/invocation'
+import { decideCoreInstallation } from '../../packages/core/src/installation-decision'
+import { executeCoreInstallation } from '../../packages/core/src/installation-executor'
+import { createProductionCoreInstallationPorts } from '../../packages/core/src/installation-production'
+import { runCoreInvocation } from '../../packages/core/src/invocation'
 import {
   resolveInstallMethodProviderBinding,
   resolveReceiptProviderBinding,
   resolveStateProviderBinding,
-} from '../../src/core/lifecycle/provider-binding'
+} from '../../packages/core/src/lifecycle/provider-binding'
+import { projectCoreInstallationOutcome } from '../../src/commands/core-installation-cli'
 import { getExitCodeForResult } from '../../src/errors'
 import { createProviderRegistry } from '../../src/providers/registry'
 import { createEmptyStateDocument } from '../../src/state/schema'

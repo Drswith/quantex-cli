@@ -254,7 +254,7 @@ describe('lifecycle update production composition', () => {
     const source = await import('node:fs/promises').then(fs =>
       fs.readFile(new URL('../../src/services/lifecycle-updates-production.ts', import.meta.url), 'utf8'),
     )
-    expect(source).toContain("from '../core/update-compatibility'")
+    expect(source).toContain("from '../../packages/core/src/update-compatibility'")
     expect(source).toContain('createCoreSingleAgentUpdateInvocation')
     expect(source).toContain('createCoreUpdateBatchInvocation')
     expect(source).toContain('createProductionLifecycleObservationService')

@@ -67,7 +67,9 @@ Issue #741 requires an ownership decision before the move. Shared modules are us
 
 6. **Type-only runtime barrel imports are retargeted.** Core currently type-imports `../runtime`, whose barrel re-exports CLI operation context. After the move, Core type-imports `src/runtime/ports` (and invocation-context if needed) so the specifier graph does not name the CLI operation-context module.
 
-7. **Changelog framing is internal architecture.** Commit as `chore(core):` so release-please does not invent a user-facing feature. Behavior and schema stay frozen.
+7. **Core does not read CLI config.** `loadProductionCoreUpdatePorts` defaults `npmBunUpdateStrategy` to `latest-major` (the frozen config default). CLI production already injects the user-config value. This removes a direct Core → `src/config` edge without changing CLI update behavior.
+
+8. **Changelog framing is internal architecture.** Commit as `chore(core):` so release-please does not invent a user-facing feature. Behavior and schema stay frozen.
 
 ## Risks / Trade-offs
 

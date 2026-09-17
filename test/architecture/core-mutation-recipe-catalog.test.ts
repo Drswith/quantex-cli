@@ -2,10 +2,10 @@ import type { CatalogSourceEntry, NormalizedInstallCandidate } from '../../src/a
 import { readFile } from 'node:fs/promises'
 import { join } from 'node:path'
 import { describe, expect, it } from 'vitest'
+import { loadCoreMutationRecipeCatalog } from '../../packages/core/src/mutation-recipe-catalog'
 import { projectCoreMutationRecipeCatalog } from '../../scripts/build/write-core-agent-catalog'
 import { catalogData } from '../../src/agents/generated/catalog-data'
 import { catalogSourceSchema } from '../../src/agents/schema'
-import { loadCoreMutationRecipeCatalog } from '../../src/core/mutation-recipe-catalog'
 
 describe('Core internal mutation recipe catalog', () => {
   it('preserves every validated normalized target without the legacy command projection', async () => {
@@ -55,8 +55,11 @@ describe('Core internal mutation recipe catalog', () => {
   it('loads one generated module lazily without a Zod runtime dependency', async () => {
     const first = await loadCoreMutationRecipeCatalog()
     const second = await loadCoreMutationRecipeCatalog()
-    const loaderSource = await readFile(join(process.cwd(), 'src/core/mutation-recipe-catalog.ts'), 'utf8')
-    const generatedSource = await readFile(join(process.cwd(), 'src/core/generated/mutation-recipe-catalog.ts'), 'utf8')
+    const loaderSource = await readFile(join(process.cwd(), 'packages/core/src/mutation-recipe-catalog.ts'), 'utf8')
+    const generatedSource = await readFile(
+      join(process.cwd(), 'packages/core/src/generated/mutation-recipe-catalog.ts'),
+      'utf8',
+    )
 
     expect(second).toBe(first)
     expect(loaderSource).toContain("import('./generated/mutation-recipe-catalog')")

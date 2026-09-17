@@ -1,16 +1,16 @@
 // KEEP (S3): Core self-upgrade engine (CLI-facing). Plan/check/apply over
 // injected ports. Absent from published SDK. Not a leftover of src/self.
 // S3 leftover scan: KEEP product-path hang here (Core-internal leftover; do not restore src/lifecycle).
+import type { InvocationContext } from '../../../src/runtime/invocation-context'
 import type {
   CachePort,
-  InvocationContext,
   LockPort,
   NetworkPort,
   PersistencePort,
   ProcessPort,
   ProcessStdio,
   RuntimeFailure,
-} from '../runtime'
+} from '../../../src/runtime/ports'
 
 /**
  * KEEP (P6 / P7): in-repo Core self-upgrade engine (CLI-facing). Absent from

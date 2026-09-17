@@ -1,7 +1,7 @@
-import type { AgentDefinition, InstallMethod } from '../agents/types'
-import type { ProviderRegistry } from '../providers/registry'
-import type { ProviderOperationContext, RegistryPackageUpdateStrategy } from '../providers/types'
-import type { InstalledAgentState } from '../state'
+import type { AgentDefinition, InstallMethod } from '../../../src/agents/types'
+import type { ProviderRegistry } from '../../../src/providers/registry'
+import type { ProviderOperationContext, RegistryPackageUpdateStrategy } from '../../../src/providers/types'
+import type { InstalledAgentState } from '../../../src/state'
 import type { AgentExecutableObservation } from './lifecycle/agent-observation'
 import type {
   LifecycleUpdateBatchExecutionPorts,
@@ -9,15 +9,15 @@ import type {
   LifecycleUpdateObservedAgent,
   LifecycleUpdateServicePorts,
 } from './update-executor'
-import { executeAgentSelfUpdate } from '../agent-update'
-import { getOrderedInstallMethods, withAgentLifecycleLock } from '../package-manager'
-import { firstPartyProviderRegistry } from '../providers'
-import { getInstalledAgentState, getLifecycleReceipt, lifecycleReceiptStore, loadState } from '../state'
-import { getPlatform } from '../utils/detect'
-import { resolveAgentExecutablePath } from '../utils/executable-resolution'
-import { executableLookupNamesForAgent } from '../utils/executable-search-paths'
-import { isResourceLockError } from '../utils/lock'
-import { getResolvedBinaryPath, probeInstalledVersionForObservation } from '../utils/version'
+import { executeAgentSelfUpdate } from '../../../src/agent-update'
+import { getOrderedInstallMethods, withAgentLifecycleLock } from '../../../src/package-manager'
+import { firstPartyProviderRegistry } from '../../../src/providers'
+import { getInstalledAgentState, getLifecycleReceipt, lifecycleReceiptStore, loadState } from '../../../src/state'
+import { getPlatform } from '../../../src/utils/detect'
+import { resolveAgentExecutablePath } from '../../../src/utils/executable-resolution'
+import { executableLookupNamesForAgent } from '../../../src/utils/executable-search-paths'
+import { isResourceLockError } from '../../../src/utils/lock'
+import { getResolvedBinaryPath, probeInstalledVersionForObservation } from '../../../src/utils/version'
 import { getCoreAgentByNameOrAlias, getCoreAgents } from './agent-catalog'
 import { observeAgentLifecycle } from './lifecycle/agent-observation'
 import { resolveInstallMethodProviderBinding } from './lifecycle/provider-binding'
@@ -39,18 +39,17 @@ export type CoreUpdateServicePorts = LifecycleUpdateBatchPlanningPorts & Lifecyc
 
 /**
  * KEEP (P2): default Core update production ports + managed name loader.
- * Importers: src/core/update-compatibility.ts (defaults); types used by lifecycle-updates-production.
+ * Importers: packages/core/src/update-compatibility.ts (defaults); types used by lifecycle-updates-production.
+ * Callers that need the user config strategy pass npmBunUpdateStrategy; Core does not import src/config.
  * Absent from the published SDK entry.
  */
 export async function loadProductionCoreUpdatePorts(
   options: CoreUpdateProductionOptions = {},
 ): Promise<CoreUpdateServicePorts> {
-  const npmBunUpdateStrategy =
-    options.npmBunUpdateStrategy ?? (await import('../config')).loadConfig().then(c => c.npmBunUpdateStrategy)
   return createProductionCoreUpdatePorts({
     ...options,
     configDir: resolveCoreConfigDir(options.configDir),
-    npmBunUpdateStrategy: typeof npmBunUpdateStrategy === 'string' ? npmBunUpdateStrategy : await npmBunUpdateStrategy,
+    npmBunUpdateStrategy: options.npmBunUpdateStrategy ?? 'latest-major',
   })
 }
 

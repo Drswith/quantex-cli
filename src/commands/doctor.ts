@@ -1,11 +1,11 @@
-import type { DoctorData } from '../core/doctor-diagnosis'
+import type { DoctorData } from '../../packages/core/src/doctor-diagnosis'
 import type { CommandResult } from '../output/types'
 import { createSuccessResult, emitCommandResult } from '../output'
 import { getHumanTerminalWidth, renderHumanFields, renderHumanTable, renderHumanWrapped } from '../output/human'
 import { observeAndDiagnoseDoctorEnvironment } from '../services/doctor-diagnosis-production'
 import { pc } from '../utils/color'
 
-export type { DoctorData } from '../core/doctor-diagnosis'
+export type { DoctorData } from '../../packages/core/src/doctor-diagnosis'
 
 export async function doctorCommand(): Promise<CommandResult<DoctorData>> {
   // Core owns diagnosis synthesis; gather CLI-coupled observations through the

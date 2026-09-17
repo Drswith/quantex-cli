@@ -1,10 +1,13 @@
+import type { LifecycleReceipt } from '../../packages/core/src/lifecycle/model'
 import type { AgentDefinition } from '../../src/agents'
-import type { LifecycleReceipt } from '../../src/core/lifecycle/model'
 import type { ProviderAdapter, ProviderObservation, ProviderOutcome, ProviderRegistry } from '../../src/providers'
 import type { InstalledAgentState } from '../../src/state'
 import { describe, expect, it, vi } from 'vitest'
-import { decideCoreInstallation } from '../../src/core/installation-decision'
-import { type AgentLifecycleObservationPorts, observeAgentLifecycle } from '../../src/core/lifecycle/agent-observation'
+import { decideCoreInstallation } from '../../packages/core/src/installation-decision'
+import {
+  type AgentLifecycleObservationPorts,
+  observeAgentLifecycle,
+} from '../../packages/core/src/lifecycle/agent-observation'
 
 type ObservationOutcome = ProviderOutcome<ProviderObservation>
 

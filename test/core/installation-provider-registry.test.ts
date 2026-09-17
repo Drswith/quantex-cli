@@ -7,7 +7,7 @@ import type {
   ProviderTarget,
 } from '../../src/providers/types'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import { createCoreInstallationProviderRegistry } from '../../src/core/installation-provider-registry'
+import { createCoreInstallationProviderRegistry } from '../../packages/core/src/installation-provider-registry'
 import { firstPartyProviderIds } from '../../src/providers/types'
 
 const packageManagers = vi.hoisted(() => ({

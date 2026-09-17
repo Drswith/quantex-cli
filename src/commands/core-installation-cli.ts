@@ -1,23 +1,23 @@
-// KEEP (S2): CLI session around Core install/ensure (cancel, dry-run preview,
-// v1 payload projection, failure diagnostics). Differential, not a pass-through.
-import type { AgentDefinition } from '../agents'
 import type {
   CoreInstallationCompatibilityExecutor,
   CoreInstallationCompatibilityRequest,
-} from '../core/installation-compatibility'
+} from '../../packages/core/src/installation-compatibility'
 import type {
   CoreInstallationExecutionOutcome,
   CoreInstallationExecutionValue,
   CoreMutationFailure,
-} from '../core/installation-executor'
-import type { CoreInvocationOutcome } from '../core/invocation'
-import type { CoreAgentObservation } from '../core/production-observation'
+} from '../../packages/core/src/installation-executor'
+import type { CoreInvocationOutcome } from '../../packages/core/src/invocation'
+import type { CoreAgentObservation } from '../../packages/core/src/production-observation'
+// KEEP (S2): CLI session around Core install/ensure (cancel, dry-run preview,
+// v1 payload projection, failure diagnostics). Differential, not a pass-through.
+import type { AgentDefinition } from '../agents'
 import type { CommandError, CommandResult } from '../output/types'
 import type { MutationFailureDiagnostics } from './installation-failure-diagnostics'
 import type { InstallationOperation } from './installation-routing'
 import process from 'node:process'
+import { resolveInstallMethodProviderBinding } from '../../packages/core/src/lifecycle/provider-binding'
 import { getCliContext, registerCliCancellationHandler } from '../cli-context'
-import { resolveInstallMethodProviderBinding } from '../core/lifecycle/provider-binding'
 import { createErrorResult, createSuccessResult, emitCommandEvent } from '../output'
 import { buildInstalledAgentState } from '../package-manager'
 import { resolveCliProviderOutputPolicy } from '../runtime/cli-operation-context'
@@ -485,7 +485,7 @@ function emitInstallationStarted(operation: InstallationOperation, agent: AgentD
 }
 
 async function loadProductionExecutor(): Promise<CoreInstallationCompatibilityExecutor> {
-  const compatibility = await import('../core/installation-compatibility')
+  const compatibility = await import('../../packages/core/src/installation-compatibility')
   return compatibility.createCoreInstallationCompatibilityExecutor()
 }
 

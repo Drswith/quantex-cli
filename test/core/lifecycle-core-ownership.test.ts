@@ -4,21 +4,21 @@ import { describe, expect, it } from 'vitest'
 const deletedLifecycleBarrel = 'src/lifecycle/index.ts'
 
 const coreInternalLifecycleModules = [
-  'src/core/lifecycle/agent-execution.ts',
-  'src/core/lifecycle/agent-observation.ts',
-  'src/core/lifecycle/model.ts',
-  'src/core/lifecycle/provider-binding.ts',
-  'src/core/lifecycle/provider-evidence.ts',
-  'src/core/lifecycle/uninstall-postcondition.ts',
-  'src/core/lifecycle/update-planner.ts',
+  'packages/core/src/lifecycle/agent-execution.ts',
+  'packages/core/src/lifecycle/agent-observation.ts',
+  'packages/core/src/lifecycle/model.ts',
+  'packages/core/src/lifecycle/provider-binding.ts',
+  'packages/core/src/lifecycle/provider-evidence.ts',
+  'packages/core/src/lifecycle/uninstall-postcondition.ts',
+  'packages/core/src/lifecycle/update-planner.ts',
 ] as const
 
-const coreInternalModel = 'src/core/lifecycle/model.ts'
-const stateCoreLeafImport = "from '../core/lifecycle/model'"
+const coreInternalModel = 'packages/core/src/lifecycle/model.ts'
+const stateCoreLeafImport = "from '../../packages/core/src/lifecycle/model'"
 
 describe('P8 lifecycle→Core closure', () => {
   it('keeps Core engines on Core-internal paths after barrel deletion', async () => {
-    const execution = await source('src/core/execution-executor.ts')
+    const execution = await source('packages/core/src/execution-executor.ts')
     expect(execution).toContain("from './lifecycle/agent-execution'")
     expect(execution).toContain("from './lifecycle/agent-observation'")
     expect(execution).toContain('planAgentExecutionPreflight')
@@ -26,14 +26,14 @@ describe('P8 lifecycle→Core closure', () => {
     expect(execution).not.toContain("from '../lifecycle'")
     expect(execution).not.toContain('createQuantex')
 
-    const observation = await source('src/core/production-observation.ts')
+    const observation = await source('packages/core/src/production-observation.ts')
     expect(observation).toContain("from './lifecycle/agent-observation'")
     expect(observation).toContain('observeAgentLifecycle')
     expect(observation).toContain("from './lifecycle/provider-binding'")
     expect(observation).not.toContain("from '../lifecycle/agent-observation'")
     expect(observation).not.toContain("from '../lifecycle/provider-binding'")
 
-    const updateProduction = await source('src/core/update-production.ts')
+    const updateProduction = await source('packages/core/src/update-production.ts')
     expect(updateProduction).toContain("from './lifecycle/update-planner'")
     expect(updateProduction).toContain('planLifecycleUpdate')
     expect(updateProduction).toContain("from './lifecycle/agent-observation'")
@@ -42,7 +42,7 @@ describe('P8 lifecycle→Core closure', () => {
     expect(updateProduction).not.toContain("from '../lifecycle/agent-observation'")
     expect(updateProduction).not.toContain("from '../lifecycle/provider-binding'")
 
-    const uninstall = await source('src/core/uninstall-executor.ts')
+    const uninstall = await source('packages/core/src/uninstall-executor.ts')
     expect(uninstall).toContain("from './lifecycle/uninstall-postcondition'")
     expect(uninstall).toContain('waitForUninstallAbsence')
     expect(uninstall).toContain('observeLifecycleProvider')
@@ -54,13 +54,13 @@ describe('P8 lifecycle→Core closure', () => {
     expect(uninstall).not.toContain("from '../lifecycle/provider-evidence'")
 
     const planning = await source('src/planning/updates.ts')
-    expect(planning).toContain("from '../core/lifecycle/update-planner'")
+    expect(planning).toContain("from '../../packages/core/src/lifecycle/update-planner'")
     expect(planning).toContain('planLifecycleUpdate')
     expect(planning).not.toContain("from '../lifecycle/update-planner'")
   })
 
   it('does not publish lifecycle engines on the Core SDK surface', async () => {
-    const publicCore = await source('src/core/index.ts')
+    const publicCore = await source('packages/core/src/index.ts')
     expect(publicCore).not.toContain('observeAgentLifecycle')
     expect(publicCore).not.toContain('planLifecycleUpdate')
     expect(publicCore).not.toContain('waitForUninstallAbsence')
@@ -106,10 +106,10 @@ describe('L1 lifecycle model Core-internal leaf', () => {
       expect(text).not.toContain('update-planner')
       expect(text).not.toContain('agent-execution')
       expect(text).not.toContain('uninstall-postcondition')
-      const coreImports = [...text.matchAll(/from ['"](\.\.\/core[^'"]*)['"]/gu)].map(match => match[1])
-      expect(coreImports).toEqual(['../core/lifecycle/model'])
+      const coreImports = [...text.matchAll(/from ['"]([^'"]*packages\/core\/src[^'"]*)['"]/gu)].map(match => match[1])
+      expect(coreImports).toEqual(['../../packages/core/src/lifecycle/model'])
       expect(text).not.toContain('createQuantex')
-      expect(text).not.toContain('../core/index')
+      expect(text).not.toContain('packages/core/src/index')
     }
 
     const schema = await source('src/state/schema.ts')
@@ -117,29 +117,29 @@ describe('L1 lifecycle model Core-internal leaf', () => {
   })
 
   it('retargets former lifecycle/model importers onto the Core-internal leaf', async () => {
-    const installation = await source('src/core/installation-production.ts')
+    const installation = await source('packages/core/src/installation-production.ts')
     expect(installation).toContain("from './lifecycle/model'")
     expect(installation).not.toContain("from '../lifecycle/model'")
 
-    const stateRecord = await source('src/core/installation-state-record.ts')
+    const stateRecord = await source('packages/core/src/installation-state-record.ts')
     expect(stateRecord).toContain("from './lifecycle/model'")
 
     const packageManager = await source('src/package-manager/index.ts')
-    expect(packageManager).toContain("from '../core/lifecycle/model'")
+    expect(packageManager).toContain("from '../../packages/core/src/lifecycle/model'")
     expect(packageManager).not.toContain("from '../lifecycle/model'")
 
-    const binding = await source('src/core/lifecycle/provider-binding.ts')
+    const binding = await source('packages/core/src/lifecycle/provider-binding.ts')
     expect(binding).toContain("from './model'")
     expect(binding).not.toContain("from '../lifecycle/model'")
 
-    const observation = await source('src/core/lifecycle/agent-observation.ts')
+    const observation = await source('packages/core/src/lifecycle/agent-observation.ts')
     expect(observation).toContain("from './model'")
     expect(observation).not.toContain("from '../lifecycle/model'")
 
-    const planner = await source('src/core/lifecycle/update-planner.ts')
+    const planner = await source('packages/core/src/lifecycle/update-planner.ts')
     expect(planner).toContain("from './model'")
 
-    const execution = await source('src/core/lifecycle/agent-execution.ts')
+    const execution = await source('packages/core/src/lifecycle/agent-execution.ts')
     expect(execution).toContain("from './model'")
   })
 })
@@ -152,15 +152,15 @@ describe('L2 lifecycle provider-binding Core-internal modules', () => {
     await expect(source('src/lifecycle/provider-evidence.ts')).rejects.toThrow()
     await expect(source('src/lifecycle/model.ts')).rejects.toThrow()
     await expect(source('src/lifecycle/shadow-planning.ts')).rejects.toThrow()
-    await expect(source('src/core/lifecycle/index.ts')).rejects.toThrow()
+    await expect(source('packages/core/src/lifecycle/index.ts')).rejects.toThrow()
 
-    const binding = await source('src/core/lifecycle/provider-binding.ts')
+    const binding = await source('packages/core/src/lifecycle/provider-binding.ts')
     expect(binding).toContain('export interface LifecycleProviderBinding')
     expect(binding).toContain('resolveInstallMethodProviderBinding')
     expect(binding).not.toContain('../lifecycle')
     expect(binding).not.toContain('createQuantex')
 
-    const evidence = await source('src/core/lifecycle/provider-evidence.ts')
+    const evidence = await source('packages/core/src/lifecycle/provider-evidence.ts')
     expect(evidence).toContain('observeLifecycleProvider')
     expect(evidence).toContain('firstPartyProviderRegistry')
     expect(evidence).toContain("from './provider-binding'")
@@ -169,19 +169,19 @@ describe('L2 lifecycle provider-binding Core-internal modules', () => {
   })
 
   it('retargets former lifecycle/provider-binding importers onto Core-internal modules', async () => {
-    const installation = await source('src/core/installation-executor.ts')
+    const installation = await source('packages/core/src/installation-executor.ts')
     expect(installation).toContain("from './lifecycle/provider-binding'")
     expect(installation).not.toContain("from '../lifecycle/provider-binding'")
 
-    const recipe = await source('src/core/installation-recipe-resolver.ts')
+    const recipe = await source('packages/core/src/installation-recipe-resolver.ts')
     expect(recipe).toContain("from './lifecycle/provider-binding'")
 
-    const client = await source('src/core/client.ts')
+    const client = await source('packages/core/src/client.ts')
     expect(client).toContain("from './lifecycle/provider-binding'")
     expect(client).not.toContain('provider-evidence')
 
     const cli = await source('src/commands/core-installation-cli.ts')
-    expect(cli).toContain("from '../core/lifecycle/provider-binding'")
+    expect(cli).toContain("from '../../packages/core/src/lifecycle/provider-binding'")
     expect(cli).not.toContain("from '../lifecycle/provider-binding'")
   })
 })
@@ -194,9 +194,9 @@ describe('L3 lifecycle engines Core-internal modules', () => {
     await expect(source('src/lifecycle/update-planner.ts')).rejects.toThrow()
     await expect(source('src/lifecycle/agent-execution.ts')).rejects.toThrow()
     await expect(source('src/lifecycle/uninstall-postcondition.ts')).rejects.toThrow()
-    await expect(source('src/core/lifecycle/index.ts')).rejects.toThrow()
+    await expect(source('packages/core/src/lifecycle/index.ts')).rejects.toThrow()
 
-    const coreLifecycleEntries = await readdir(new URL('../../src/core/lifecycle', import.meta.url))
+    const coreLifecycleEntries = await readdir(new URL('../../packages/core/src/lifecycle', import.meta.url))
     expect(coreLifecycleEntries.filter(name => name.endsWith('.ts')).sort()).toEqual([
       'agent-execution.ts',
       'agent-observation.ts',
@@ -220,35 +220,35 @@ describe('L3 lifecycle engines Core-internal modules', () => {
       expect(text).not.toContain('../execution-executor')
     }
 
-    const observation = await source('src/core/lifecycle/agent-observation.ts')
+    const observation = await source('packages/core/src/lifecycle/agent-observation.ts')
     expect(observation).toContain("from './provider-binding'")
     expect(observation).toContain('observeAgentLifecycle')
     expect(observation).not.toContain('../lifecycle')
 
-    const planner = await source('src/core/lifecycle/update-planner.ts')
+    const planner = await source('packages/core/src/lifecycle/update-planner.ts')
     expect(planner).toContain('planLifecycleUpdate')
     expect(planner).not.toContain('../lifecycle')
 
-    const execution = await source('src/core/lifecycle/agent-execution.ts')
+    const execution = await source('packages/core/src/lifecycle/agent-execution.ts')
     expect(execution).toContain('planAgentExecutionPreflight')
     expect(execution).toContain("from './agent-observation'")
 
-    const postcondition = await source('src/core/lifecycle/uninstall-postcondition.ts')
+    const postcondition = await source('packages/core/src/lifecycle/uninstall-postcondition.ts')
     expect(postcondition).toContain('waitForUninstallAbsence')
     expect(postcondition).not.toContain('../lifecycle')
   })
 
   it('retargets Core, services, and planning onto Core-internal engines', async () => {
     const services = await source('src/services/lifecycle-observations.ts')
-    expect(services).toContain("from '../core/lifecycle/agent-observation'")
+    expect(services).toContain("from '../../packages/core/src/lifecycle/agent-observation'")
     expect(services).toContain('observeAgentLifecycle')
     expect(services).not.toContain("from '../lifecycle/agent-observation'")
 
     const updates = await source('src/services/lifecycle-updates-production.ts')
-    expect(updates).toContain("from '../core/lifecycle/update-planner'")
+    expect(updates).toContain("from '../../packages/core/src/lifecycle/update-planner'")
     expect(updates).not.toContain("from '../lifecycle'")
 
-    const updateExecutor = await source('src/core/update-executor.ts')
+    const updateExecutor = await source('packages/core/src/update-executor.ts')
     expect(updateExecutor).toContain("from './lifecycle/update-planner'")
     expect(updateExecutor).not.toContain("from '../lifecycle'")
   })
@@ -260,7 +260,7 @@ describe('L5 leftover scan after lifecycle barrel deletion', () => {
   it('does not restore src/lifecycle and keeps Core-internal modules barrel-free', async () => {
     await expect(source(deletedLifecycleBarrel)).rejects.toThrow()
     await expect(readdir(new URL('../../src/lifecycle', import.meta.url))).rejects.toThrow()
-    await expect(source('src/core/lifecycle/index.ts')).rejects.toThrow()
+    await expect(source('packages/core/src/lifecycle/index.ts')).rejects.toThrow()
 
     for (const path of coreInternalLifecycleModules) {
       const text = await source(path)
@@ -270,7 +270,7 @@ describe('L5 leftover scan after lifecycle barrel deletion', () => {
 
   it('keeps already-deleted leftover shells absent', async () => {
     await expect(source('src/self/application.ts')).rejects.toThrow()
-    await expect(source('src/core/self-upgrade-production.ts')).rejects.toThrow()
+    await expect(source('packages/core/src/self-upgrade-production.ts')).rejects.toThrow()
     await expect(source('src/services/self-upgrade.ts')).rejects.toThrow()
     await expect(source('src/services/lifecycle-updates.ts')).rejects.toThrow()
     await expect(source('src/services/lifecycle-execution.ts')).rejects.toThrow()
@@ -306,9 +306,9 @@ describe('L5 leftover scan after lifecycle barrel deletion', () => {
     expect(selfPlanning).toContain('KEEP (P7 / L5)')
 
     const policy = await source('src/idempotency/lifecycle-policy.ts')
-    expect(policy).toContain("from '../core/lifecycle/model'")
-    expect(policy).toContain("from '../core/lifecycle/provider-binding'")
-    expect(policy).toContain("from '../core/lifecycle/provider-evidence'")
+    expect(policy).toContain("from '../../packages/core/src/lifecycle/model'")
+    expect(policy).toContain("from '../../packages/core/src/lifecycle/provider-binding'")
+    expect(policy).toContain("from '../../packages/core/src/lifecycle/provider-evidence'")
     expect(policy).toContain('observeLifecycleProvider')
     expect(policy).not.toContain("from '../lifecycle'")
     expect(policy).toContain('KEEP (L5): idempotency policy is differential')
@@ -408,13 +408,13 @@ describe('L5 leftover scan after lifecycle barrel deletion', () => {
   })
 
   it('does not publish leftover engine or route identifiers on Core SDK or CLI JSON helpers', async () => {
-    const publicCore = await source('src/core/index.ts')
+    const publicCore = await source('packages/core/src/index.ts')
     expect(publicCore).not.toContain('./lifecycle')
     expect(publicCore).not.toContain('engine')
     expect(publicCore).not.toContain('route')
 
     const packageEntry = await source('packages/core/src/index.ts')
-    expect(packageEntry).not.toContain('lifecycle')
+    expect(packageEntry).not.toContain('./lifecycle')
     expect(packageEntry).not.toContain('engine')
     expect(packageEntry).not.toContain('route')
   })
@@ -430,10 +430,10 @@ describe('L4 leftover lifecycle barrel deletion', () => {
     await expect(source('src/lifecycle/update-planner.ts')).rejects.toThrow()
     await expect(source('src/lifecycle/agent-execution.ts')).rejects.toThrow()
     await expect(source('src/lifecycle/uninstall-postcondition.ts')).rejects.toThrow()
-    await expect(source('src/core/lifecycle/index.ts')).rejects.toThrow()
+    await expect(source('packages/core/src/lifecycle/index.ts')).rejects.toThrow()
     await expect(readdir(new URL('../../src/lifecycle', import.meta.url))).rejects.toThrow()
 
-    const coreLifecycleEntries = await readdir(new URL('../../src/core/lifecycle', import.meta.url))
+    const coreLifecycleEntries = await readdir(new URL('../../packages/core/src/lifecycle', import.meta.url))
     expect(coreLifecycleEntries.filter(name => name.endsWith('.ts')).sort()).toEqual([
       'agent-execution.ts',
       'agent-observation.ts',
@@ -447,14 +447,14 @@ describe('L4 leftover lifecycle barrel deletion', () => {
 
   it('retargets remaining barrel callers onto Core-internal modules', async () => {
     const executionProduction = await source('src/services/lifecycle-execution-production.ts')
-    expect(executionProduction).toContain("from '../core/lifecycle/model'")
+    expect(executionProduction).toContain("from '../../packages/core/src/lifecycle/model'")
     expect(executionProduction).toContain('LifecycleOutcome')
     expect(executionProduction).not.toContain("from '../lifecycle'")
 
     const policy = await source('src/idempotency/lifecycle-policy.ts')
-    expect(policy).toContain("from '../core/lifecycle/model'")
-    expect(policy).toContain("from '../core/lifecycle/provider-binding'")
-    expect(policy).toContain("from '../core/lifecycle/provider-evidence'")
+    expect(policy).toContain("from '../../packages/core/src/lifecycle/model'")
+    expect(policy).toContain("from '../../packages/core/src/lifecycle/provider-binding'")
+    expect(policy).toContain("from '../../packages/core/src/lifecycle/provider-evidence'")
     expect(policy).toContain('observeLifecycleProvider')
     expect(policy).not.toContain("from '../lifecycle'")
 

@@ -1,7 +1,7 @@
 // KEEP (S3): Core agent-update executor (single + batch). Differential planning
 // and mutation. Importers: CLI update, compatibility, idempotency policy.
 // S3 leftover scan: KEEP product-path hang here (Core-internal leftover; do not restore src/lifecycle).
-import type { AgentPackageMetadata, AgentSelfUpdate, InstallMethod } from '../agents'
+import type { AgentPackageMetadata, AgentSelfUpdate, InstallMethod } from '../../../src/agents'
 import type {
   ProviderAdapter,
   ProviderEvidence,
@@ -12,12 +12,12 @@ import type {
   ProviderOutcome,
   RegistryPackageOperationOptions,
   ProviderTarget,
-} from '../providers/types'
-import type { InstalledAgentState } from '../state'
+} from '../../../src/providers/types'
+import type { InstalledAgentState } from '../../../src/state'
 import type { LifecycleUpdatePlanningInput, LifecycleUpdatePlanningResult } from './lifecycle/update-planner'
-import { getSupersededPackageMessage } from '../agent-update/messages'
-import { resolveSupersededPackage } from '../agents/superseded'
-import { compareVersions } from '../utils/version'
+import { getSupersededPackageMessage } from '../../../src/agent-update/messages'
+import { resolveSupersededPackage } from '../../../src/agents/superseded'
+import { compareVersions } from '../../../src/utils/version'
 import {
   LIFECYCLE_RECEIPT_SCHEMA_VERSION,
   type LifecycleObservation,

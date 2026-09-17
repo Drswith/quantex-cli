@@ -1,7 +1,7 @@
-import type { AgentDefinition, AgentVersionProbe, InstallMethod, Platform } from '../agents/types'
-import type { ProviderRegistry } from '../providers/registry'
-import type { ProviderOperationContext } from '../providers/types'
-import type { VersionedQuantexState } from '../state/schema'
+import type { AgentDefinition, AgentVersionProbe, InstallMethod, Platform } from '../../../src/agents/types'
+import type { ProviderRegistry } from '../../../src/providers/registry'
+import type { ProviderOperationContext } from '../../../src/providers/types'
+import type { VersionedQuantexState } from '../../../src/state/schema'
 import type { CoreInvocationContext } from './invocation'
 import type { AgentExecutableObservation, AgentLifecycleObservationResult } from './lifecycle/agent-observation'
 import type { LifecycleProviderBinding } from './lifecycle/provider-binding'
@@ -10,12 +10,12 @@ import { access, readFile, realpath } from 'node:fs/promises'
 import { homedir } from 'node:os'
 import { isAbsolute, join, resolve } from 'node:path'
 import process from 'node:process'
-import { createEmptyStateDocument, parseStateDocument, StateSchemaError } from '../state/schema'
+import { createEmptyStateDocument, parseStateDocument, StateSchemaError } from '../../../src/state/schema'
 import {
   executableLookupNamesForAgent,
   getExecutableCandidateNames,
   getKnownAgentInstallDirectories,
-} from '../utils/executable-search-paths'
+} from '../../../src/utils/executable-search-paths'
 import { getCoreAgentByNameOrAlias, getCoreAgents } from './agent-catalog'
 import { observeAgentLifecycle } from './lifecycle/agent-observation'
 import { resolveInstallMethodProviderBinding } from './lifecycle/provider-binding'

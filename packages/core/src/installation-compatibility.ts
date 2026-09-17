@@ -1,5 +1,8 @@
-import type { ProviderOutputPolicy, ProviderProcessOperationContext } from '../providers/internal-operation-context'
-import type { ProviderOperationContext } from '../providers/types'
+import type {
+  ProviderOutputPolicy,
+  ProviderProcessOperationContext,
+} from '../../../src/providers/internal-operation-context'
+import type { ProviderOperationContext } from '../../../src/providers/types'
 import type {
   CoreInstallationExecutionHooks,
   CoreInstallationExecutionOutcome,

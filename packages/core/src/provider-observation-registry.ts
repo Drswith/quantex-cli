@@ -1,17 +1,20 @@
-import type { ProviderRegistry } from '../providers/registry'
+import type { ProviderRegistry } from '../../../src/providers/registry'
 import type {
   ProviderAdapter,
   ProviderId,
   ProviderOperationContext,
   ProviderOutcome,
   ProviderTarget,
-} from '../providers/types'
+} from '../../../src/providers/types'
 import type { ReadOnlyCommandResult } from './read-only-process'
 import { access, readFile } from 'node:fs/promises'
 import { homedir } from 'node:os'
 import { join } from 'node:path'
 import process from 'node:process'
-import { getExecutableCandidateNames, getKnownAgentInstallDirectories } from '../utils/executable-search-paths'
+import {
+  getExecutableCandidateNames,
+  getKnownAgentInstallDirectories,
+} from '../../../src/utils/executable-search-paths'
 import { CoreProcessInterruptionError, runReadOnlyCommand } from './read-only-process'
 
 type PackagePresence = 'absent' | 'present' | 'unavailable' | 'unknown'

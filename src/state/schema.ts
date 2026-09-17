@@ -1,6 +1,6 @@
 import type { InstallType, PackageTargetKind } from '../agents/types'
 import type { SelfInstallSource } from '../self/types'
-import { LIFECYCLE_RECEIPT_SCHEMA_VERSION, type LifecycleReceipt } from '../core/lifecycle/model'
+import { LIFECYCLE_RECEIPT_SCHEMA_VERSION, type LifecycleReceipt } from '../../packages/core/src/lifecycle/model'
 import { isManagedInstallType } from '../package-manager/managed-install-types'
 
 export const CURRENT_STATE_SCHEMA_VERSION = 2 as const

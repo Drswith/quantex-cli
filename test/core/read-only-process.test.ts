@@ -9,7 +9,7 @@ import {
   CoreProcessInterruptionError,
   runReadOnlyCommand,
   terminateWindowsTree,
-} from '../../src/core/read-only-process'
+} from '../../packages/core/src/read-only-process'
 
 describe('Core read-only process cleanup', () => {
   it('bounds a stuck Windows taskkill helper before falling back', async () => {

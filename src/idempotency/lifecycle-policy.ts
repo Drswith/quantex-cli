@@ -1,10 +1,13 @@
+import type { LifecycleReceipt } from '../../packages/core/src/lifecycle/model'
+import type { LifecycleProviderBinding } from '../../packages/core/src/lifecycle/provider-binding'
+import type {
+  LifecycleUpdateObservedAgent,
+  SingleAgentLifecycleUpdatePlan,
+} from '../../packages/core/src/update-executor'
 // KEEP (L5): idempotency policy is differential (presence/update replay,
 // provider evidence, CLI observation). L4 only retargeted imports onto
 // Core-internal modules; not a leftover pass-through shell.
 import type { CommandIdempotencyPolicy } from '../command-runtime'
-import type { LifecycleReceipt } from '../core/lifecycle/model'
-import type { LifecycleProviderBinding } from '../core/lifecycle/provider-binding'
-import type { LifecycleUpdateObservedAgent, SingleAgentLifecycleUpdatePlan } from '../core/update-executor'
 import type { ProviderId, ProviderObservation, ProviderOutcome, ProviderTargetKind } from '../providers'
 import type {
   LifecycleUpdateBatchInvocation,
@@ -21,8 +24,8 @@ import {
   observeLifecycleProvider,
   providerBindingsEqual,
   resolveReceiptProviderBinding,
-} from '../core/lifecycle/provider-evidence'
-import { getSingleAgentLifecycleUpdateResolvedPlanId } from '../core/update-executor'
+} from '../../packages/core/src/lifecycle/provider-evidence'
+import { getSingleAgentLifecycleUpdateResolvedPlanId } from '../../packages/core/src/update-executor'
 import { firstPartyProviderIds } from '../providers'
 import { createCliOperationContext } from '../runtime/cli-operation-context'
 import { resolveAgent } from '../services/agents'

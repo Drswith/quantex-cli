@@ -5,8 +5,8 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import process from 'node:process'
 import { describe, expect, it } from 'vitest'
-import { runCoreInvocation } from '../../src/core/invocation'
-import { createProductionCoreReadPorts } from '../../src/core/production-observation'
+import { runCoreInvocation } from '../../packages/core/src/invocation'
+import { createProductionCoreReadPorts } from '../../packages/core/src/production-observation'
 import { createEmptyStateDocument } from '../../src/state/schema'
 
 describe('production Core observation', () => {

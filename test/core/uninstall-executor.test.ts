@@ -1,6 +1,6 @@
-import type { CoreUninstallExecutorPorts } from '../../src/core/uninstall-executor'
+import type { CoreUninstallExecutorPorts } from '../../packages/core/src/uninstall-executor'
 import { describe, expect, it, vi } from 'vitest'
-import { executeCoreUninstall } from '../../src/core/uninstall-executor'
+import { executeCoreUninstall } from '../../packages/core/src/uninstall-executor'
 import { ResourceLockError } from '../../src/utils/lock'
 
 const agent = {

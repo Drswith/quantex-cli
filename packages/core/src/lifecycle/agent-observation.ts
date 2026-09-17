@@ -9,11 +9,16 @@
 // Product-path keep so the fix-relocated-package-update-verification archive PR still
 // runs the macOS test matrix. Hang leftover classify presence on this existing
 // observation file, not a restored src/lifecycle barrel.
-import type { AgentDefinition, Platform } from '../../agents'
-import type { ProviderOperation, ProviderOutcome, ProviderObservation, ProviderRegistry } from '../../providers'
-import type { InstalledAgentState } from '../../state'
+import type { AgentDefinition, Platform } from '../../../../src/agents'
+import type {
+  ProviderOperation,
+  ProviderOutcome,
+  ProviderObservation,
+  ProviderRegistry,
+} from '../../../../src/providers'
+import type { InstalledAgentState } from '../../../../src/state'
 import type { LifecycleObservation, LifecycleReceipt } from './model'
-import { compareVersions } from '../../utils/compare-versions'
+import { compareVersions } from '../../../../src/utils/compare-versions'
 import {
   type LifecycleProviderBinding,
   providerBindingsEqual,

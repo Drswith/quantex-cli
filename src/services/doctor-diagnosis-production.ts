@@ -1,6 +1,6 @@
-import type { DoctorData, DoctorDiagnosisAgentInput } from '../core/doctor-diagnosis'
+import type { DoctorData, DoctorDiagnosisAgentInput } from '../../packages/core/src/doctor-diagnosis'
+import { diagnoseDoctorEnvironment } from '../../packages/core/src/doctor-diagnosis'
 import { projectObservationToV1Inspection } from '../compatibility/agent-inspection'
-import { diagnoseDoctorEnvironment } from '../core/doctor-diagnosis'
 import { BUILD_PACKAGE_NAME } from '../generated/build-meta'
 import { createCliOperationContext } from '../runtime/cli-operation-context'
 import { getSelfUpgradeRecoveryHintForInspection, inspectSelfReadOnly } from '../self'

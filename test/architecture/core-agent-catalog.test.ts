@@ -1,7 +1,7 @@
 import type { AgentDefinition } from '../../src/agents/types'
 import { describe, expect, it } from 'vitest'
+import { coreAgentCatalog } from '../../packages/core/src/generated/agent-catalog'
 import { getAllAgents } from '../../src/agents'
-import { coreAgentCatalog } from '../../src/core/generated/agent-catalog'
 
 describe('Core read-only agent catalog', () => {
   it('stays equivalent to the maintained catalog without mutation-only metadata', () => {

@@ -1,21 +1,21 @@
-import type { AgentDefinition } from '../../src/agents'
 import type {
   CoreInstallationCompatibilityExecutor,
   CoreInstallationCompatibilityRequest,
-} from '../../src/core/installation-compatibility'
-import type { CoreInstallationExecutionOutcome } from '../../src/core/installation-executor'
-import type { LifecycleObservation, LifecycleReceipt } from '../../src/core/lifecycle/model'
-import type { LifecycleProviderBinding } from '../../src/core/lifecycle/provider-binding'
-import type { CoreAgentObservation } from '../../src/core/production-observation'
+} from '../../packages/core/src/installation-compatibility'
+import type { CoreInstallationExecutionOutcome } from '../../packages/core/src/installation-executor'
+import type { LifecycleObservation, LifecycleReceipt } from '../../packages/core/src/lifecycle/model'
+import type { LifecycleProviderBinding } from '../../packages/core/src/lifecycle/provider-binding'
+import type { CoreAgentObservation } from '../../packages/core/src/production-observation'
+import type { AgentDefinition } from '../../src/agents'
 import type { InstalledAgentState } from '../../src/state'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { runCoreInvocation, type CoreInvocationOutcome } from '../../packages/core/src/invocation'
 import { cancelCliContextOperations, setCliContext } from '../../src/cli-context'
 import { executeCommandWithRuntime } from '../../src/command-runtime'
 import {
   createCoreInstallationCliSession,
   projectCoreInstallationOutcome,
 } from '../../src/commands/core-installation-cli'
-import { runCoreInvocation, type CoreInvocationOutcome } from '../../src/core/invocation'
 import { StateSchemaError } from '../../src/state/schema'
 import { ResourceLockError } from '../../src/utils/lock'
 

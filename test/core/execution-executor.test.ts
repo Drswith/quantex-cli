@@ -4,7 +4,7 @@ import {
   executeAgentLifecycle,
   type LifecycleExecutionObservedAgent,
   type LifecycleExecutionServicePorts,
-} from '../../src/core/execution-executor'
+} from '../../packages/core/src/execution-executor'
 
 const controller = new AbortController()
 

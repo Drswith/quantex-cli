@@ -1,13 +1,13 @@
 // KEEP (S3): Core uninstall executor (CLI-facing). Postcondition wait +
 // state/receipt cleanup. Importer: src/commands/uninstall.ts.
 // S3 leftover scan: KEEP product-path hang here (Core-internal leftover; do not restore src/lifecycle).
-import type { AgentDefinition } from '../agents/types'
-import type { ProviderOutcome, ProviderObservation } from '../providers/types'
-import type { InstalledAgentState } from '../state'
+import type { AgentDefinition } from '../../../src/agents/types'
+import type { ProviderOutcome, ProviderObservation } from '../../../src/providers/types'
+import type { InstalledAgentState } from '../../../src/state'
 import type { LifecycleReceipt } from './lifecycle/model'
 import type { LifecycleProviderBinding } from './lifecycle/provider-binding'
-import { getAgentByNameOrAlias } from '../agents'
-import { uninstallInstalledAgentOutcome, withAgentLifecycleLock } from '../package-manager'
+import { getAgentByNameOrAlias } from '../../../src/agents'
+import { uninstallInstalledAgentOutcome, withAgentLifecycleLock } from '../../../src/package-manager'
 import {
   getInstalledAgentState,
   getLifecycleReceipt,
@@ -15,10 +15,10 @@ import {
   removeLifecycleReceipt,
   setInstalledAgentState,
   setLifecycleReceipt,
-} from '../state'
-import { isBinaryInPath } from '../utils/detect'
-import { canUninstallInstallType } from '../utils/install'
-import { isResourceLockError, type ResourceLockError } from '../utils/lock'
+} from '../../../src/state'
+import { isBinaryInPath } from '../../../src/utils/detect'
+import { canUninstallInstallType } from '../../../src/utils/install'
+import { isResourceLockError, type ResourceLockError } from '../../../src/utils/lock'
 import {
   providerBindingsEqual,
   resolveReceiptProviderBinding,

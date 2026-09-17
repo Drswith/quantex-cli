@@ -1,7 +1,12 @@
-import type { Platform } from '../agents/types'
-import type { ProviderRegistry } from '../providers/registry'
-import type { ProviderAdapter, ProviderOperationContext, ProviderOutcome, ProviderTarget } from '../providers/types'
-import type { InstalledAgentState } from '../state/schema'
+import type { Platform } from '../../../src/agents/types'
+import type { ProviderRegistry } from '../../../src/providers/registry'
+import type {
+  ProviderAdapter,
+  ProviderOperationContext,
+  ProviderOutcome,
+  ProviderTarget,
+} from '../../../src/providers/types'
+import type { InstalledAgentState } from '../../../src/state/schema'
 import type { CoreInstallationDirective } from './installation-decision'
 import type { CoreInstallationRecipe, CoreInstallationRecipeResolution } from './installation-executor-types'
 import type { LifecycleProviderBinding } from './lifecycle/provider-binding'

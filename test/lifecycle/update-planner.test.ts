@@ -1,7 +1,10 @@
-import type { LifecycleObservation, LifecyclePlanningProvider } from '../../src/core/lifecycle/model'
+import type { LifecycleObservation, LifecyclePlanningProvider } from '../../packages/core/src/lifecycle/model'
 import type { AgentInspection } from '../../src/inspection'
 import { describe, expect, it } from 'vitest'
-import { planLifecycleUpdate, projectLifecycleProviderCapabilities } from '../../src/core/lifecycle/update-planner'
+import {
+  planLifecycleUpdate,
+  projectLifecycleProviderCapabilities,
+} from '../../packages/core/src/lifecycle/update-planner'
 import { createUpdatePlan, isInspectionUpdateAvailable } from '../../src/planning/updates'
 
 describe('planLifecycleUpdate', () => {

@@ -1,13 +1,16 @@
+import type {
+  CoreInstallationExecutorPorts,
+  CoreInstallationRecipe,
+} from '../../packages/core/src/installation-executor'
+import type { CoreInvocationContext } from '../../packages/core/src/invocation'
+import type { LifecycleObservation } from '../../packages/core/src/lifecycle/model'
+import type { LifecycleProviderBinding } from '../../packages/core/src/lifecycle/provider-binding'
+import type { CoreAgentObservation } from '../../packages/core/src/production-observation'
 import type { AgentDefinition } from '../../src/agents/types'
-import type { CoreInstallationExecutorPorts, CoreInstallationRecipe } from '../../src/core/installation-executor'
-import type { CoreInvocationContext } from '../../src/core/invocation'
-import type { LifecycleObservation } from '../../src/core/lifecycle/model'
-import type { LifecycleProviderBinding } from '../../src/core/lifecycle/provider-binding'
-import type { CoreAgentObservation } from '../../src/core/production-observation'
 import type { ProviderProcessOperationContext } from '../../src/providers/internal-operation-context'
 import type { ProviderOperationContext } from '../../src/providers/types'
 import { describe, expect, it, vi } from 'vitest'
-import { createCoreInstallationCompatibilityExecutor } from '../../src/core/installation-compatibility'
+import { createCoreInstallationCompatibilityExecutor } from '../../packages/core/src/installation-compatibility'
 
 const agent: AgentDefinition = {
   binaryName: 'fixture-agent',

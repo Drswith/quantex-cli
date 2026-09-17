@@ -1,9 +1,9 @@
 // KEEP (S3): Core agent-execution engine (CLI-facing). Wraps lifecycle
 // preflight with launch/install. Absent from published SDK.
 // S3 leftover scan: KEEP product-path hang here (Core-internal leftover; do not restore src/lifecycle).
-import type { AgentDefinition, InstallMethod } from '../agents'
-import type { ProcessPort, ProcessStdio, RuntimeFailure, RuntimeOutcome } from '../runtime'
-import type { InstalledAgentState } from '../state'
+import type { AgentDefinition, InstallMethod } from '../../../src/agents'
+import type { ProcessPort, ProcessStdio, RuntimeFailure, RuntimeOutcome } from '../../../src/runtime/ports'
+import type { InstalledAgentState } from '../../../src/state'
 import type { AgentExecutableObservation } from './lifecycle/agent-observation'
 import type { LifecycleObservation, LifecycleOutcome } from './lifecycle/model'
 import { type AgentExecutionInstallPolicy, planAgentExecutionPreflight } from './lifecycle/agent-execution'

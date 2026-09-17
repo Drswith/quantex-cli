@@ -1,19 +1,19 @@
-import type { AgentDefinition } from '../../src/agents/types'
 import type {
   CoreInstallationExecutionHooks,
   CoreInstallationExecutionOutcome,
   CoreInstallationExecutorPorts,
   CoreInstallationRecipe,
-} from '../../src/core/installation-executor'
-import type { LifecycleObservation, LifecycleReceipt } from '../../src/core/lifecycle/model'
-import type { LifecycleProviderBinding } from '../../src/core/lifecycle/provider-binding'
-import type { CoreAgentObservation } from '../../src/core/production-observation'
-import type { CoreRequestOptions } from '../../src/core/types'
+} from '../../packages/core/src/installation-executor'
+import type { LifecycleObservation, LifecycleReceipt } from '../../packages/core/src/lifecycle/model'
+import type { LifecycleProviderBinding } from '../../packages/core/src/lifecycle/provider-binding'
+import type { CoreAgentObservation } from '../../packages/core/src/production-observation'
+import type { CoreRequestOptions } from '../../packages/core/src/types'
+import type { AgentDefinition } from '../../src/agents/types'
 import type { ProviderMutationEvidence, ProviderOutcome, ProviderVerification } from '../../src/providers/types'
 import type { InstalledAgentState } from '../../src/state/schema'
 import { describe, expect, it } from 'vitest'
-import { executeCoreInstallation } from '../../src/core/installation-executor'
-import { runCoreInvocation } from '../../src/core/invocation'
+import { executeCoreInstallation } from '../../packages/core/src/installation-executor'
+import { runCoreInvocation } from '../../packages/core/src/invocation'
 
 const agent: AgentDefinition = {
   binaryName: 'fixture-agent',

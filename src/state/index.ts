@@ -1,4 +1,4 @@
-import type { LifecycleReceipt } from '../core/lifecycle/model'
+import type { LifecycleReceipt } from '../../packages/core/src/lifecycle/model'
 import type { SelfInstallSource } from '../self/types'
 import type { InstalledAgentState, QuantexState, SelfState } from './schema'
 import type { LifecycleStateStore } from './store'

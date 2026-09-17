@@ -10,7 +10,7 @@ import type {
   LifecycleStep,
   ProviderCapability,
 } from './model'
-import { compareVersions } from '../../utils/version'
+import { compareVersions } from '../../../../src/utils/version'
 
 export type LifecycleUpdateDecision =
   | 'blocked-downgrade'

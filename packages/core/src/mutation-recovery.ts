@@ -1,4 +1,4 @@
-import type { ProviderOperationContext, ProviderOutcome } from '../providers/types'
+import type { ProviderOperationContext, ProviderOutcome } from '../../../src/providers/types'
 import type {
   CoreInstallationExecutorPorts,
   CoreInstallationRecipe,

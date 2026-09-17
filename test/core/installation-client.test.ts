@@ -1,12 +1,15 @@
+import type {
+  CoreInstallationExecutorPorts,
+  CoreInstallationRecipe,
+} from '../../packages/core/src/installation-executor'
+import type { CoreInvocationContext } from '../../packages/core/src/invocation'
+import type { LifecycleObservation, LifecycleReceipt } from '../../packages/core/src/lifecycle/model'
+import type { LifecycleProviderBinding } from '../../packages/core/src/lifecycle/provider-binding'
+import type { CoreAgentObservation, CoreReadPorts } from '../../packages/core/src/production-observation'
 import type { AgentDefinition } from '../../src/agents/types'
-import type { CoreInstallationExecutorPorts, CoreInstallationRecipe } from '../../src/core/installation-executor'
-import type { CoreInvocationContext } from '../../src/core/invocation'
-import type { LifecycleObservation, LifecycleReceipt } from '../../src/core/lifecycle/model'
-import type { LifecycleProviderBinding } from '../../src/core/lifecycle/provider-binding'
-import type { CoreAgentObservation, CoreReadPorts } from '../../src/core/production-observation'
 import type { ProviderMutationEvidence, ProviderOutcome, ProviderVerification } from '../../src/providers/types'
 import { describe, expect, it, vi } from 'vitest'
-import { createQuantexClient } from '../../src/core/client'
+import { createQuantexClient } from '../../packages/core/src/client'
 
 const agent: AgentDefinition = {
   binaryName: 'fixture-agent',

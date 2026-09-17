@@ -1,5 +1,5 @@
+import type { LifecycleObservation, LifecycleReceipt } from '../../packages/core/src/lifecycle/model'
 import type { AgentDefinition } from '../../src/agents'
-import type { LifecycleObservation, LifecycleReceipt } from '../../src/core/lifecycle/model'
 import type {
   ProviderAdapter,
   ProviderOperation,
@@ -8,8 +8,8 @@ import type {
   ProviderResolvedVersion,
 } from '../../src/providers'
 import { describe, expect, it, vi } from 'vitest'
-import { observeAgentLifecycle } from '../../src/core/lifecycle/agent-observation'
-import { planLifecycleUpdate } from '../../src/core/lifecycle/update-planner'
+import { observeAgentLifecycle } from '../../packages/core/src/lifecycle/agent-observation'
+import { planLifecycleUpdate } from '../../packages/core/src/lifecycle/update-planner'
 import {
   executeLifecycleUpdateBatch,
   executeSingleAgentLifecycleUpdate,
@@ -19,7 +19,7 @@ import {
   type LifecycleUpdateBatchPlanningPorts,
   type LifecycleUpdateServicePorts,
   type SingleAgentLifecycleUpdatePlan,
-} from '../../src/core/update-executor'
+} from '../../packages/core/src/update-executor'
 
 describe('registered-agent lifecycle update batch planning', () => {
   it('plans equivalent registered inputs with one deterministic resolved identity', async () => {

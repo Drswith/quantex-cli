@@ -1,5 +1,5 @@
-import type { Platform } from '../agents/types'
-import type { ProviderRegistry } from '../providers/registry'
+import type { Platform } from '../../../src/agents/types'
+import type { ProviderRegistry } from '../../../src/providers/registry'
 import type {
   ProviderMutationEvidence,
   ProviderOperation,
@@ -7,8 +7,8 @@ import type {
   ProviderOutcome,
   ProviderTarget,
   ProviderVerification,
-} from '../providers/types'
-import type { LifecycleStateStore } from '../state/store'
+} from '../../../src/providers/types'
+import type { LifecycleStateStore } from '../../../src/state/store'
 import type {
   CoreInstallationExecutorPorts,
   CoreInstallationRecipe,
@@ -18,9 +18,9 @@ import type { CoreInvocationContext } from './invocation'
 import type { CoreMutationRecipeCatalog } from './mutation-recipe-catalog'
 import type { CoreAgentObservation, CoreReadPorts } from './production-observation'
 import { isDeepStrictEqual } from 'node:util'
-import { createFileLifecycleStateStore } from '../state/file-store'
-import { getPlatform } from '../utils/detect'
-import { acquireResourceLockInConfigDir } from '../utils/lock'
+import { createFileLifecycleStateStore } from '../../../src/state/file-store'
+import { getPlatform } from '../../../src/utils/detect'
+import { acquireResourceLockInConfigDir } from '../../../src/utils/lock'
 import { resolveCoreInstallationRecipe } from './installation-recipe-resolver'
 import { prepareCoreInstallationStateRecord } from './installation-state-record'
 import { LIFECYCLE_RECEIPT_SCHEMA_VERSION, type LifecycleReceipt } from './lifecycle/model'

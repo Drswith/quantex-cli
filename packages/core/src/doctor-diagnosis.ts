@@ -1,7 +1,7 @@
 // KEEP (S3): Core doctor diagnosis engine (CLI-facing). Absent from published
 // SDK. Importers: commands/doctor and doctor-diagnosis-production.
 // S3 leftover scan: KEEP product-path hang here (Core-internal leftover; do not restore src/lifecycle).
-import { compareVersions } from '../utils/version'
+import { compareVersions } from '../../../src/utils/version'
 
 /**
  * In-repo Core doctor diagnosis engine (CLI-facing). Absent from the published

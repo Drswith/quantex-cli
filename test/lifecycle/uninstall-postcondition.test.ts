@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest'
-import { waitForUninstallAbsence } from '../../src/core/lifecycle/uninstall-postcondition'
+import { waitForUninstallAbsence } from '../../packages/core/src/lifecycle/uninstall-postcondition'
 
 describe('waitForUninstallAbsence', () => {
   it('allows bounded provider and executable visibility delay', async () => {
