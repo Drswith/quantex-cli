@@ -18,10 +18,10 @@ import {
 import * as misePm from '../../packages/core/src/package-manager/mise'
 import * as npmPm from '../../packages/core/src/package-manager/npm'
 import * as uvPm from '../../packages/core/src/package-manager/uv'
+import * as state from '../../packages/core/src/state'
 import { markCliContextCancelled, resetCliContext, setCliContext } from '../../src/cli-context'
 import * as config from '../../src/config'
 import { StateFileError } from '../../src/state'
-import * as state from '../../src/state'
 import * as detectUtils from '../../src/utils/detect'
 
 const mutationSuccess = { kind: 'success', value: undefined } as const
