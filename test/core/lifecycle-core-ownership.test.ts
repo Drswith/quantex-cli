@@ -87,7 +87,7 @@ describe('P8 lifecycle→Core closure', () => {
 })
 
 describe('L1 lifecycle model Core-internal leaf', () => {
-  it('owns receipt types in src/core/lifecycle/model without Core runtime imports', async () => {
+  it('owns receipt types in packages/core/src/lifecycle/model without Core runtime imports', async () => {
     const model = await source(coreInternalModel)
     expect(model).toContain('export interface LifecycleReceipt')
     expect(model).toContain('export const LIFECYCLE_RECEIPT_SCHEMA_VERSION')
@@ -145,7 +145,7 @@ describe('L1 lifecycle model Core-internal leaf', () => {
 })
 
 describe('L2 lifecycle provider-binding Core-internal modules', () => {
-  it('owns binding and evidence under src/core/lifecycle without a Core lifecycle barrel', async () => {
+  it('owns binding and evidence under packages/core/src/lifecycle without a Core lifecycle barrel', async () => {
     for (const path of coreInternalLifecycleModules) await source(path)
 
     await expect(source('src/lifecycle/provider-binding.ts')).rejects.toThrow()
@@ -187,7 +187,7 @@ describe('L2 lifecycle provider-binding Core-internal modules', () => {
 })
 
 describe('L3 lifecycle engines Core-internal modules', () => {
-  it('owns observation, planner, execution, and postcondition under src/core/lifecycle', async () => {
+  it('owns observation, planner, execution, and postcondition under packages/core/src/lifecycle', async () => {
     for (const path of coreInternalLifecycleModules) await source(path)
 
     await expect(source('src/lifecycle/agent-observation.ts')).rejects.toThrow()
