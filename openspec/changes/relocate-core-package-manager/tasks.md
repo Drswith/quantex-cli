@@ -19,7 +19,7 @@
 
 ## 4. Validation and delivery
 
-- [ ] 4.1 Run `bun run lint`, `bun run format:check`, `bun run typecheck`
-- [ ] 4.2 Run `bun run test`
-- [ ] 4.3 Run `bun run openspec:validate` and `bun run memory:check`
-- [ ] 4.4 Commit, push, and open a **draft** PR for #752 that includes the seam/ownership notes, moved vs deferred modules, and architecture-only changelog framing. Do not auto-ready. Do not cut a release.
+- [x] 4.1 Run `bun run lint`, `bun run format:check`, `bun run typecheck`
+- [x] 4.2 Run `bun run test`
+- [x] 4.3 Run `bun run openspec:validate` and `bun run memory:check`
+- [x] 4.4 Commit, push, and open a **draft** PR for #752 that includes the seam/ownership notes, moved vs deferred modules, and architecture-only changelog framing. Do not auto-ready. Do not cut a release.
