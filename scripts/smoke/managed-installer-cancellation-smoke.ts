@@ -1,8 +1,8 @@
 import type { AgentDefinition } from '../../src/agents'
+import { installAgentOutcome } from '../../packages/core/src/package-manager'
 import { resetCliContext, setCliContext } from '../../src/cli-context'
 import { executeCommandWithRuntime } from '../../src/command-runtime'
 import { createErrorResult, createSuccessResult } from '../../src/output'
-import { installAgentOutcome } from '../../src/package-manager'
 import { getInstalledAgentState } from '../../src/state'
 
 const agent: AgentDefinition = {

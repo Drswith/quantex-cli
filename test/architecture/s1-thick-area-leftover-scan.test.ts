@@ -7,14 +7,7 @@ const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..', '..')
 const leftoverKeepHang =
   'S1 leftover scan: KEEP product-path hang here (thick-area zero-ref; do not restore src/lifecycle).'
 
-const scanDirs = [
-  'src/agents',
-  'src/providers',
-  'src/package-manager',
-  'src/utils',
-  'src/agent-update',
-  'src/runtime',
-] as const
+const scanDirs = ['src/agents', 'src/providers', 'src/utils', 'src/agent-update', 'src/runtime'] as const
 
 const relatedLeftovers = [
   'src/planning',
@@ -28,7 +21,6 @@ const relatedLeftovers = [
 const hangFiles = [
   'src/agents/index.ts',
   'src/providers/index.ts',
-  'src/package-manager/index.ts',
   'src/utils/install.ts',
   'src/agent-update/index.ts',
   'src/runtime/index.ts',
@@ -68,8 +60,8 @@ describe('S1 thick-area leftover scan after L5', () => {
     const compatibility = await source('src/compatibility/index.ts')
     expect(compatibility).toContain("from '../agent-update'")
     expect(compatibility).toContain("from '../agents'")
-    expect(compatibility).toContain("from '../package-manager'")
-    expect(compatibility).toContain("from '../package-manager/capabilities'")
+    expect(compatibility).toContain("from '../../packages/core/src/package-manager'")
+    expect(compatibility).toContain("from '../../packages/core/src/package-manager/capabilities'")
     expect(compatibility).toContain("from '../inspection'")
     expect(compatibility).toContain("from '../planning'")
     expect(compatibility).toContain("from '../state'")
@@ -109,7 +101,6 @@ describe('S1 thick-area leftover scan after L5', () => {
       'src/inspection/index.ts',
       'src/state.ts',
       'src/agents/index.ts',
-      'src/package-manager/index.ts',
     ] as const
 
     for (const path of barrels) {
@@ -126,11 +117,11 @@ describe('S1 thick-area leftover scan after L5', () => {
     const stateBarrel = await source('src/state.ts')
     expect(stateBarrel).toContain("from './state/index'")
 
-    const managedTypes = await source('src/package-manager/managed-install-types.ts')
+    const managedTypes = await source('packages/core/src/package-manager/managed-install-types.ts')
     expect(managedTypes).toContain('frozen hardcoded managed-install-type list')
     const schema = await source('src/state/schema.ts')
-    expect(schema).toContain("from '../package-manager/managed-install-types'")
-    expect(schema).not.toContain("from '../package-manager/capabilities'")
+    expect(schema).toContain("from '../../packages/core/src/package-manager/managed-install-types'")
+    expect(schema).not.toContain("from '../../packages/core/src/package-manager/capabilities'")
   })
 
   it('does not publish engine or route identifiers on Core SDK or CLI JSON helpers', async () => {

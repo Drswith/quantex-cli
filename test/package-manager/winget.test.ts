@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { parseWingetInstalledVersion } from '../../src/package-manager/winget'
+import { parseWingetInstalledVersion } from '../../packages/core/src/package-manager/winget'
 
 const mockSpawn = vi.hoisted(() => vi.fn())
 const mutationRun = vi.hoisted(() => vi.fn())
@@ -9,8 +9,8 @@ vi.mock('cross-spawn', async () => {
   return { default: createCrossSpawnMock(mockSpawn) }
 })
 
-vi.mock('../../src/package-manager/context-mutation', async importOriginal => {
-  const actual = await importOriginal<typeof import('../../src/package-manager/context-mutation')>()
+vi.mock('../../packages/core/src/package-manager/context-mutation', async importOriginal => {
+  const actual = await importOriginal<typeof import('../../packages/core/src/package-manager/context-mutation')>()
   return {
     ...actual,
     runPackageMutationOutcome: mutationRun,
@@ -56,7 +56,7 @@ function createListProc(exitCode: number, stdout: string, stderr = '') {
 
 describe('probePackagePresence', () => {
   it('returns present when winget list reports the package id', async () => {
-    const { probePackagePresence, getInstalledVersion } = await import('../../src/package-manager/winget')
+    const { probePackagePresence, getInstalledVersion } = await import('../../packages/core/src/package-manager/winget')
     mockSpawn.mockReturnValue(
       createListProc(
         0,
@@ -70,14 +70,14 @@ describe('probePackagePresence', () => {
   })
 
   it('returns absent when winget reports no matching installed package', async () => {
-    const { probePackagePresence } = await import('../../src/package-manager/winget')
+    const { probePackagePresence } = await import('../../packages/core/src/package-manager/winget')
     mockSpawn.mockReturnValue(createListProc(1, '', 'No installed package found matching input criteria.\n'))
 
     expect(await probePackagePresence('GitHub.Copilot')).toBe('absent')
   })
 
   it('returns unknown when winget exits non-zero without a missing-package message', async () => {
-    const { probePackagePresence } = await import('../../src/package-manager/winget')
+    const { probePackagePresence } = await import('../../packages/core/src/package-manager/winget')
     mockSpawn.mockReturnValue(createListProc(1, '', 'Error: unexpected winget failure\n'))
 
     expect(await probePackagePresence('GitHub.Copilot')).toBe('unknown')

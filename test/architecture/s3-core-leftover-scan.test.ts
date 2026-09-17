@@ -25,6 +25,7 @@ const hangFiles = [
   'packages/core/src/uninstall-executor.ts',
   'packages/core/src/doctor-diagnosis.ts',
   'packages/core/src/lifecycle/model.ts',
+  'packages/core/src/package-manager/index.ts',
 ] as const
 
 const importerRoots = ['src', 'test', 'packages', 'scripts'] as const

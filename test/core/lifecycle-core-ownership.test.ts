@@ -107,7 +107,11 @@ describe('L1 lifecycle model Core-internal leaf', () => {
       expect(text).not.toContain('agent-execution')
       expect(text).not.toContain('uninstall-postcondition')
       const coreImports = [...text.matchAll(/from ['"]([^'"]*packages\/core\/src[^'"]*)['"]/gu)].map(match => match[1])
-      expect(coreImports).toEqual(['../../packages/core/src/lifecycle/model'])
+      const expectedCoreImports =
+        path === 'src/state/schema.ts'
+          ? ['../../packages/core/src/lifecycle/model', '../../packages/core/src/package-manager/managed-install-types']
+          : ['../../packages/core/src/lifecycle/model']
+      expect(coreImports).toEqual(expectedCoreImports)
       expect(text).not.toContain('createQuantex')
       expect(text).not.toContain('packages/core/src/index')
     }
@@ -124,9 +128,9 @@ describe('L1 lifecycle model Core-internal leaf', () => {
     const stateRecord = await source('packages/core/src/installation-state-record.ts')
     expect(stateRecord).toContain("from './lifecycle/model'")
 
-    const packageManager = await source('src/package-manager/index.ts')
-    expect(packageManager).toContain("from '../../packages/core/src/lifecycle/model'")
-    expect(packageManager).not.toContain("from '../lifecycle/model'")
+    const packageManager = await source('packages/core/src/package-manager/index.ts')
+    expect(packageManager).toContain("from '../lifecycle/model'")
+    expect(packageManager).not.toMatch(/\b(?:from|import)\s+['"][^'"]*src\/lifecycle/u)
 
     const binding = await source('packages/core/src/lifecycle/provider-binding.ts')
     expect(binding).toContain("from './model'")

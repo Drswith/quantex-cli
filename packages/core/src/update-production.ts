@@ -10,7 +10,6 @@ import type {
   LifecycleUpdateServicePorts,
 } from './update-executor'
 import { executeAgentSelfUpdate } from '../../../src/agent-update'
-import { getOrderedInstallMethods, withAgentLifecycleLock } from '../../../src/package-manager'
 import { firstPartyProviderRegistry } from '../../../src/providers'
 import { getInstalledAgentState, getLifecycleReceipt, lifecycleReceiptStore, loadState } from '../../../src/state'
 import { getPlatform } from '../../../src/utils/detect'
@@ -22,6 +21,7 @@ import { getCoreAgentByNameOrAlias, getCoreAgents } from './agent-catalog'
 import { observeAgentLifecycle } from './lifecycle/agent-observation'
 import { resolveInstallMethodProviderBinding } from './lifecycle/provider-binding'
 import { planLifecycleUpdate } from './lifecycle/update-planner'
+import { getOrderedInstallMethods, withAgentLifecycleLock } from './package-manager'
 import { resolveCoreConfigDir } from './production-observation'
 
 export interface CoreUpdateProductionOptions {

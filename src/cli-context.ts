@@ -2,6 +2,7 @@
 // Frozen dual-mode surface. Not a leftover pass-through.
 import { randomUUID } from 'node:crypto'
 import process from 'node:process'
+import { bindCliPackageManagerHost } from './runtime/cli-package-manager-host'
 import { parseDurationToMs } from './utils/duration'
 
 export type OutputMode = 'human' | 'json' | 'ndjson'
@@ -65,6 +66,7 @@ export function setCliContext(context: CliContext): void {
     cacheMode: context.cacheMode ?? 'default',
     cancelled: context.cancelled ?? false,
   }
+  bindCliPackageManagerHost()
 }
 
 export function resetCliContext(): void {
@@ -167,3 +169,5 @@ function resolveLogLevel(value: string | undefined): LogLevel {
 
   throw new Error(`Invalid log level: ${value}`)
 }
+
+bindCliPackageManagerHost()

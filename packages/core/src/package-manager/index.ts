@@ -1,32 +1,30 @@
-import type { LifecycleOutcome } from '../../packages/core/src/lifecycle/model'
-// KEEP (S1): agent install/update/uninstall orchestration over managed
+// KEEP (S3): agent install/update/uninstall orchestration over managed
 // installers, binary/script effects, state persistence, and lifecycle lock.
 // Not a leftover pass-through of providers or Core.
-// S1 leftover scan: KEEP product-path hang here (thick-area zero-ref; do not restore src/lifecycle).
-import type { AgentDefinition, InstallMethod, ManagedInstallType } from '../agents/types'
-import type { NpmBunUpdateStrategy } from '../config'
-import type { ProviderOperationContext } from '../providers'
-import type { ProviderProcessOperationContext } from '../providers/internal-operation-context'
-import type { InstalledAgentState } from '../state'
+// S3 leftover scan: KEEP product-path hang here (Core-internal leftover; do not restore src/lifecycle).
+import type { AgentDefinition, InstallMethod, ManagedInstallType } from '../../../../src/agents/types'
+import type { ProviderOperationContext } from '../../../../src/providers'
+import type { ProviderProcessOperationContext } from '../../../../src/providers/internal-operation-context'
+import type { RegistryPackageUpdateStrategy } from '../../../../src/providers/types'
+import type { InstalledAgentState } from '../../../../src/state'
+import type { LifecycleOutcome } from '../lifecycle/model'
 import type { ManagedInstallerUpdateOptions, ManagedMutationOutcome, ManagedPackageSpec } from './installers'
 import { AsyncLocalStorage } from 'node:async_hooks'
-import { getCliContext } from '../cli-context'
-import { loadConfig } from '../config'
-import { binaryProviderAdapter, scriptProviderAdapter } from '../providers/adapters/install-effect'
-import { createCliOperationContext, resolveCliProviderOutputPolicy } from '../runtime/cli-operation-context'
-import { getInstalledAgentState, removeInstalledAgentState, setInstalledAgentState } from '../state'
-import { getPlatform } from '../utils/detect'
+import { binaryProviderAdapter, scriptProviderAdapter } from '../../../../src/providers/adapters/install-effect'
+import { getInstalledAgentState, removeInstalledAgentState, setInstalledAgentState } from '../../../../src/state'
+import { getPlatform } from '../../../../src/utils/detect'
 import {
   canUninstallInstallType,
   canUpdateInstallType,
   getManagedPackageName,
   isManagedInstallType,
-} from '../utils/install'
-import { withResourceLock } from '../utils/lock'
+} from '../../../../src/utils/install'
+import { withResourceLock } from '../../../../src/utils/lock'
 import { runBinaryInstall } from './binary'
+import { getPackageManagerHostPorts } from './host'
 import { getTypedManagedInstaller } from './installers'
 
-export type { ManagedInstallType } from '../agents/types'
+export type { ManagedInstallType } from '../../../../src/agents/types'
 export type { ManagedPackageSpec } from './installers'
 
 export interface AgentOperationResult {
@@ -52,14 +50,14 @@ export function withAgentLifecycleLock<T>(run: () => Promise<T>): Promise<T> {
 }
 
 async function getPreferredManagedInstallType(): Promise<ManagedInstallType | undefined> {
-  const config = await loadConfig()
-  return config.defaultPackageManager
+  const { defaultPackageManager } = await getPackageManagerHostPorts().loadPreferences()
+  return defaultPackageManager
 }
 
 async function getManagedUpdateOptions(): Promise<ManagedInstallerUpdateOptions> {
-  const config = await loadConfig()
+  const { npmBunUpdateStrategy } = await getPackageManagerHostPorts().loadPreferences()
   return {
-    npmBunUpdateStrategy: config.npmBunUpdateStrategy,
+    npmBunUpdateStrategy,
   }
 }
 
@@ -84,11 +82,11 @@ async function executeManagedMethod(
   packageInstallArgs: string[] | undefined,
   packageTargetKind: InstalledAgentState['packageTargetKind'],
   action: 'install' | 'update' | 'uninstall',
-  updateStrategy?: NpmBunUpdateStrategy,
+  updateStrategy?: RegistryPackageUpdateStrategy,
   context?: ProviderOperationContext,
 ): Promise<ManagedMutationOutcome> {
   if (!context) {
-    const operation = createCliOperationContext()
+    const operation = getPackageManagerHostPorts().createOperationContext()
     try {
       return await executeManagedMethod(
         type,
@@ -131,7 +129,7 @@ async function executeMethod(
   agent: AgentDefinition,
   method: InstallMethod,
   action: 'install' | 'update',
-  updateStrategy?: NpmBunUpdateStrategy,
+  updateStrategy?: RegistryPackageUpdateStrategy,
 ): Promise<ManagedMutationOutcome> {
   if (isManagedInstallType(method.type)) {
     const packageName = getManagedPackageName(agent, method)
@@ -157,7 +155,7 @@ async function executeMethod(
   if (!method.command)
     return { kind: 'failed', reason: `install effect is missing for ${agent.name}`, retryable: false }
   const adapter = method.type === 'script' ? scriptProviderAdapter : binaryProviderAdapter
-  const operation = createCliOperationContext()
+  const operation = getPackageManagerHostPorts().createOperationContext()
   try {
     const outcome = await adapter.install?.({
       context: operation.context,
@@ -189,7 +187,7 @@ async function executeInstalledState(
   action: 'install' | 'update' | 'uninstall',
   options?: {
     agent?: Pick<AgentDefinition, 'binaryName' | 'packages'>
-    updateStrategy?: NpmBunUpdateStrategy
+    updateStrategy?: RegistryPackageUpdateStrategy
   },
 ): Promise<ManagedMutationOutcome> {
   if (isManagedInstallType(state.installType)) {
@@ -266,13 +264,13 @@ async function persistInstalledStateIfNotCancelled(
   agent: AgentDefinition,
   method: InstallMethod,
 ): Promise<InstalledAgentState | null> {
-  if (getCliContext().cancelled) return null
+  if (getPackageManagerHostPorts().isCancelled()) return null
 
   const installedState = buildInstalledAgentState(agent, method)
-  if (getCliContext().cancelled) return null
+  if (getPackageManagerHostPorts().isCancelled()) return null
 
   await setInstalledAgentState(installedState)
-  if (getCliContext().cancelled) {
+  if (getPackageManagerHostPorts().isCancelled()) {
     await removeInstalledAgentState(agent.name)
     return null
   }
@@ -296,13 +294,13 @@ export async function installAgentOutcome(
     let lastFailure: AgentMutationOutcome | undefined
 
     for (const method of methods) {
-      if (getCliContext().cancelled) {
+      if (getPackageManagerHostPorts().isCancelled()) {
         return { kind: 'cancelled', reason: 'install-cancelled' }
       }
 
       const execution = await executeMethod(agent, method, 'install')
       if (execution.kind === 'success') {
-        if (getCliContext().cancelled) {
+        if (getPackageManagerHostPorts().isCancelled()) {
           await rollbackManagedInstall(agent, method)
           return { kind: 'cancelled', reason: 'install-cancelled' }
         }
@@ -314,7 +312,7 @@ export async function installAgentOutcome(
       if (typedFailure.kind === 'cancelled' || typedFailure.kind === 'timed-out') return typedFailure
       lastFailure = typedFailure
 
-      if (getCliContext().cancelled) {
+      if (getPackageManagerHostPorts().isCancelled()) {
         await rollbackManagedInstall(agent, method)
         return { kind: 'cancelled', reason: 'install-cancelled' }
       }
@@ -330,12 +328,12 @@ export async function installAgent(agent: AgentDefinition): Promise<AgentOperati
     if (outcome.kind !== 'success' || !outcome.value.installedState) return projectAgentMutationOutcome(outcome)
 
     try {
-      if (getCliContext().cancelled) {
+      if (getPackageManagerHostPorts().isCancelled()) {
         await rollbackInstalledAgentInstallation(agent, outcome.value.installedState)
         return { success: false }
       }
       await setInstalledAgentState(outcome.value.installedState)
-      if (getCliContext().cancelled) {
+      if (getPackageManagerHostPorts().isCancelled()) {
         await removeInstalledAgentState(agent.name)
         await rollbackInstalledAgentInstallation(agent, outcome.value.installedState)
         return { success: false }
@@ -368,10 +366,10 @@ export async function updateAgentOutcome(
         })
       : undefined
     if (preferredState && preferredExecution?.kind === 'success') {
-      if (getCliContext().cancelled) return { kind: 'cancelled', reason: 'update-cancelled' }
+      if (getPackageManagerHostPorts().isCancelled()) return { kind: 'cancelled', reason: 'update-cancelled' }
 
       await setInstalledAgentState(preferredState)
-      if (getCliContext().cancelled) return { kind: 'cancelled', reason: 'update-cancelled' }
+      if (getPackageManagerHostPorts().isCancelled()) return { kind: 'cancelled', reason: 'update-cancelled' }
 
       return { kind: 'success', value: { installedState: preferredState } }
     }
@@ -547,10 +545,10 @@ export async function rollbackInstalledAgentInstallation(
 }
 
 function createCompensationContext(): ProviderProcessOperationContext {
-  const cliContext = getCliContext()
-  const timeoutMs = cliContext.timeoutMs
+  const host = getPackageManagerHostPorts()
+  const timeoutMs = host.timeoutMs()
   return {
-    outputPolicy: resolveCliProviderOutputPolicy(cliContext.outputMode),
+    outputPolicy: host.outputPolicy(),
     signal: new AbortController().signal,
     timeoutMs: timeoutMs === undefined ? 5_000 : Math.max(10, Math.min(timeoutMs, 5_000)),
   }

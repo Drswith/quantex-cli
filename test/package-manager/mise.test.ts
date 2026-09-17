@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { parseMiseInstalledVersion } from '../../src/package-manager/mise'
+import { parseMiseInstalledVersion } from '../../packages/core/src/package-manager/mise'
 
 const mockSpawn = vi.hoisted(() => vi.fn())
 const mutationRun = vi.hoisted(() => vi.fn())
@@ -9,8 +9,8 @@ vi.mock('cross-spawn', async () => {
   return { default: createCrossSpawnMock(mockSpawn) }
 })
 
-vi.mock('../../src/package-manager/context-mutation', async importOriginal => {
-  const actual = await importOriginal<typeof import('../../src/package-manager/context-mutation')>()
+vi.mock('../../packages/core/src/package-manager/context-mutation', async importOriginal => {
+  const actual = await importOriginal<typeof import('../../packages/core/src/package-manager/context-mutation')>()
   return {
     ...actual,
     runPackageMutationOutcome: mutationRun,
@@ -47,7 +47,7 @@ async function runMutation(command: readonly string[], _context: unknown, descri
 
 describe('mise install', () => {
   it('runs mise use against global config', async () => {
-    const { install } = await import('../../src/package-manager/mise')
+    const { install } = await import('../../packages/core/src/package-manager/mise')
     mockSpawn.mockReturnValue({ exited: Promise.resolve(), exitCode: 0 })
 
     expect(await install('npm:@openai/codex')).toBe(true)
@@ -55,7 +55,7 @@ describe('mise install', () => {
   })
 
   it('returns false on failure', async () => {
-    const { install } = await import('../../src/package-manager/mise')
+    const { install } = await import('../../packages/core/src/package-manager/mise')
     mockSpawn.mockReturnValue({ exited: Promise.resolve(), exitCode: 1 })
 
     expect(await install('npm:@openai/codex')).toBe(false)
@@ -64,7 +64,7 @@ describe('mise install', () => {
 
 describe('mise update', () => {
   it('forces a global mise use for the recorded tool ref', async () => {
-    const { update } = await import('../../src/package-manager/mise')
+    const { update } = await import('../../packages/core/src/package-manager/mise')
     mockSpawn.mockReturnValue({ exited: Promise.resolve(), exitCode: 0 })
 
     expect(await update('npm:@openai/codex')).toBe(true)
@@ -77,7 +77,7 @@ describe('mise update', () => {
 
 describe('mise updateMany', () => {
   it('updates tool refs sequentially', async () => {
-    const { updateMany } = await import('../../src/package-manager/mise')
+    const { updateMany } = await import('../../packages/core/src/package-manager/mise')
     mockSpawn.mockReturnValue({ exited: Promise.resolve(), exitCode: 0 })
 
     expect(
@@ -98,7 +98,7 @@ describe('mise updateMany', () => {
 
 describe('mise uninstall', () => {
   it('removes the global mise tool ref', async () => {
-    const { uninstall } = await import('../../src/package-manager/mise')
+    const { uninstall } = await import('../../packages/core/src/package-manager/mise')
     mockSpawn.mockReturnValue({ exited: Promise.resolve(), exitCode: 0 })
 
     expect(await uninstall('npm:@openai/codex')).toBe(true)
@@ -108,7 +108,7 @@ describe('mise uninstall', () => {
 
 describe('probePackagePresence', () => {
   it('returns present when scoped mise ls json includes the tool', async () => {
-    const { probePackagePresence } = await import('../../src/package-manager/mise')
+    const { probePackagePresence } = await import('../../packages/core/src/package-manager/mise')
     mockSpawn.mockReturnValue({
       exited: Promise.resolve(),
       exitCode: 1,
@@ -125,7 +125,7 @@ describe('probePackagePresence', () => {
   })
 
   it('returns absent when scoped mise ls json omits the tool', async () => {
-    const { probePackagePresence } = await import('../../src/package-manager/mise')
+    const { probePackagePresence } = await import('../../packages/core/src/package-manager/mise')
     mockSpawn.mockReturnValue({
       exited: Promise.resolve(),
       exitCode: 0,
@@ -136,7 +136,7 @@ describe('probePackagePresence', () => {
   })
 
   it('returns unknown when mise ls output is empty', async () => {
-    const { probePackagePresence } = await import('../../src/package-manager/mise')
+    const { probePackagePresence } = await import('../../packages/core/src/package-manager/mise')
     mockSpawn.mockReturnValue({
       exited: Promise.resolve(),
       exitCode: 1,
@@ -147,7 +147,7 @@ describe('probePackagePresence', () => {
   })
 
   it('returns unknown when mise ls output is not valid JSON', async () => {
-    const { probePackagePresence } = await import('../../src/package-manager/mise')
+    const { probePackagePresence } = await import('../../packages/core/src/package-manager/mise')
     mockSpawn.mockReturnValue({
       exited: Promise.resolve(),
       exitCode: 1,

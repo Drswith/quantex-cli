@@ -1,6 +1,6 @@
 import type { ProviderTarget } from '../types'
 import type { SystemPackageAdapterDependencies } from './system-package'
-import * as brewPm from '../../package-manager/brew'
+import * as brewPm from '../../../packages/core/src/package-manager/brew'
 import * as detectUtils from '../../utils/detect'
 import { createSystemPackageAdapter } from './system-package'
 

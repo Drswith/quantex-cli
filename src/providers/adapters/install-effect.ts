@@ -6,7 +6,7 @@ import type {
   ProviderOperationContext,
   ProviderOutcome,
 } from '../types'
-import { runPackageMutationOutcome } from '../../package-manager/context-mutation'
+import { runPackageMutationOutcome } from '../../../packages/core/src/package-manager/context-mutation'
 import { getPlatform, isBinaryInPath } from '../../utils/detect'
 import {
   interruptedOutcome,

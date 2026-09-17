@@ -1,6 +1,11 @@
 import type { AgentDefinition } from '../../src/agents'
+import {
+  getManagedInstalledPackageVersion,
+  installAgent,
+  uninstallAgent,
+  updateAgent,
+} from '../../packages/core/src/package-manager'
 import { getAgentByNameOrAlias } from '../../src/agents'
-import { getManagedInstalledPackageVersion, installAgent, uninstallAgent, updateAgent } from '../../src/package-manager'
 import { getInstalledAgentState } from '../../src/state'
 import { getPlatform } from '../../src/utils/detect'
 import { getInstalledVersion } from '../../src/utils/version'

@@ -216,7 +216,7 @@ vi.mock('../../src/agents', () => ({
     { binaryName: 'alpha', displayName: 'Alpha', name: 'alpha' },
   ],
 }))
-vi.mock('../../src/package-manager', () => ({
+vi.mock('../../packages/core/src/package-manager', () => ({
   withAgentLifecycleLock: production.withAgentLifecycleLock,
 }))
 vi.mock('../../src/providers', async importOriginal => {

@@ -21,8 +21,8 @@ vi.mock('../../src/utils/child-process', async importOriginal => {
   }
 })
 
-vi.mock('../../src/package-manager/context-mutation', async importOriginal => {
-  const actual = await importOriginal<typeof import('../../src/package-manager/context-mutation')>()
+vi.mock('../../packages/core/src/package-manager/context-mutation', async importOriginal => {
+  const actual = await importOriginal<typeof import('../../packages/core/src/package-manager/context-mutation')>()
   return {
     ...actual,
     runPackageMutationOutcome: mutationRun,
@@ -69,7 +69,7 @@ async function runMutation(command: readonly string[], _context: unknown, descri
 
 describe('bun install', () => {
   it('returns true on success', async () => {
-    const { install } = await import('../../src/package-manager/bun')
+    const { install } = await import('../../packages/core/src/package-manager/bun')
     mockSpawn
       .mockReturnValueOnce(createProc(0, '', 'No package.json was found for directory'))
       .mockReturnValueOnce(createProc(0))
@@ -81,7 +81,7 @@ describe('bun install', () => {
   })
 
   it('supports explicit tags and registries', async () => {
-    const { install } = await import('../../src/package-manager/bun')
+    const { install } = await import('../../packages/core/src/package-manager/bun')
     mockSpawn
       .mockReturnValueOnce(createProc(0, '', 'No package.json was found for directory'))
       .mockReturnValueOnce(createProc(0))
@@ -94,13 +94,13 @@ describe('bun install', () => {
   })
 
   it('returns false on failure', async () => {
-    const { install } = await import('../../src/package-manager/bun')
+    const { install } = await import('../../packages/core/src/package-manager/bun')
     mockSpawn.mockReturnValue(createProc(1))
     expect(await install('some-package')).toBe(false)
   })
 
   it('returns false when the untrusted probe fails after install', async () => {
-    const { install } = await import('../../src/package-manager/bun')
+    const { install } = await import('../../packages/core/src/package-manager/bun')
     mockSpawn
       .mockReturnValueOnce(createProc(0, '', 'No package.json was found for directory'))
       .mockReturnValueOnce(createProc(0))
@@ -115,7 +115,7 @@ describe('bun install', () => {
   })
 
   it('trusts blocked postinstall packages after install', async () => {
-    const { install } = await import('../../src/package-manager/bun')
+    const { install } = await import('../../packages/core/src/package-manager/bun')
     mockSpawn
       .mockReturnValueOnce(createProc(0, '', 'No package.json was found for directory'))
       .mockReturnValueOnce(createProc(0))
@@ -127,7 +127,7 @@ describe('bun install', () => {
   })
 
   it('returns the typed trust failure and compensates only a newly added package', async () => {
-    const { installOutcome } = await import('../../src/package-manager/bun')
+    const { installOutcome } = await import('../../packages/core/src/package-manager/bun')
     mockSpawn
       .mockReturnValueOnce(createProc(0, '', 'No package.json was found for directory'))
       .mockReturnValueOnce(createProc(0))
@@ -153,7 +153,7 @@ describe('bun install', () => {
   })
 
   it('returns the typed trust failure without compensating a pre-existing package', async () => {
-    const { installOutcome } = await import('../../src/package-manager/bun')
+    const { installOutcome } = await import('../../packages/core/src/package-manager/bun')
     mockSpawn
       .mockReturnValueOnce(createProc(0, '├── some-package@1.0.0\n'))
       .mockReturnValueOnce(createProc(0))
@@ -180,27 +180,27 @@ describe('bun install', () => {
 
 describe('bun update', () => {
   it('uses latest-major strategy by default', async () => {
-    const { update } = await import('../../src/package-manager/bun')
+    const { update } = await import('../../packages/core/src/package-manager/bun')
     mockSpawn.mockReturnValueOnce(createProc(0)).mockReturnValueOnce(createProc(0, ''))
     expect(await update('some-package')).toBe(true)
     expect(mockSpawn).toHaveBeenCalledWith(['bun', 'update', '-g', '--latest', 'some-package'], expect.any(Object))
   })
 
   it('supports respect-semver strategy', async () => {
-    const { update } = await import('../../src/package-manager/bun')
+    const { update } = await import('../../packages/core/src/package-manager/bun')
     mockSpawn.mockReturnValueOnce(createProc(0)).mockReturnValueOnce(createProc(0, ''))
     expect(await update('some-package', 'respect-semver')).toBe(true)
     expect(mockSpawn).toHaveBeenCalledWith(['bun', 'update', '-g', 'some-package'], expect.any(Object))
   })
 
   it('returns false on failure', async () => {
-    const { update } = await import('../../src/package-manager/bun')
+    const { update } = await import('../../packages/core/src/package-manager/bun')
     mockSpawn.mockReturnValue(createProc(1))
     expect(await update('some-package')).toBe(false)
   })
 
   it('returns false when the untrusted probe fails after update', async () => {
-    const { update } = await import('../../src/package-manager/bun')
+    const { update } = await import('../../packages/core/src/package-manager/bun')
     mockSpawn.mockReturnValueOnce(createProc(0)).mockReturnValueOnce(createProc(1))
 
     expect(await update('some-package')).toBe(false)
@@ -209,7 +209,7 @@ describe('bun update', () => {
   })
 
   it('returns false when trust fails for a blocked package', async () => {
-    const { update } = await import('../../src/package-manager/bun')
+    const { update } = await import('../../packages/core/src/package-manager/bun')
     mockSpawn
       .mockReturnValueOnce(createProc(0))
       .mockReturnValueOnce(createProc(0, './node_modules/some-package @1.0.0\n » [postinstall]: node install.cjs\n'))
@@ -223,7 +223,7 @@ describe('bun update', () => {
 
 describe('bun updateMany', () => {
   it('uses latest-major strategy by default', async () => {
-    const { updateMany } = await import('../../src/package-manager/bun')
+    const { updateMany } = await import('../../packages/core/src/package-manager/bun')
     mockSpawn.mockReturnValueOnce(createProc(0)).mockReturnValueOnce(createProc(0, ''))
     expect(await updateMany(['some-package', 'other-package'])).toBe(true)
     expect(mockSpawn).toHaveBeenCalledWith(
@@ -233,14 +233,14 @@ describe('bun updateMany', () => {
   })
 
   it('supports respect-semver strategy', async () => {
-    const { updateMany } = await import('../../src/package-manager/bun')
+    const { updateMany } = await import('../../packages/core/src/package-manager/bun')
     mockSpawn.mockReturnValueOnce(createProc(0)).mockReturnValueOnce(createProc(0, ''))
     expect(await updateMany(['some-package', 'other-package'], 'respect-semver')).toBe(true)
     expect(mockSpawn).toHaveBeenCalledWith(['bun', 'update', '-g', 'some-package', 'other-package'], expect.any(Object))
   })
 
   it('trusts only blocked packages from the current batch', async () => {
-    const { updateMany } = await import('../../src/package-manager/bun')
+    const { updateMany } = await import('../../packages/core/src/package-manager/bun')
     mockSpawn
       .mockReturnValueOnce(createProc(0))
       .mockReturnValueOnce(
@@ -261,7 +261,7 @@ describe('bun updateMany', () => {
   })
 
   it('trusts requested scoped packages from Windows untrusted output', async () => {
-    const { updateMany } = await import('../../src/package-manager/bun')
+    const { updateMany } = await import('../../packages/core/src/package-manager/bun')
     mockSpawn
       .mockReturnValueOnce(createProc(0))
       .mockReturnValueOnce(
@@ -288,7 +288,7 @@ describe('bun updateMany', () => {
 
 describe('parseUntrustedPackages', () => {
   it('parses scoped package names from POSIX and Windows node_modules paths', async () => {
-    const { parseUntrustedPackages } = await import('../../src/package-manager/bun')
+    const { parseUntrustedPackages } = await import('../../packages/core/src/package-manager/bun')
 
     expect(
       parseUntrustedPackages(
@@ -304,7 +304,7 @@ describe('parseUntrustedPackages', () => {
 
 describe('parseGlobalPackageVersion', () => {
   it('parses scoped and unscoped packages from Bun global list output', async () => {
-    const { parseGlobalPackageVersion } = await import('../../src/package-manager/bun')
+    const { parseGlobalPackageVersion } = await import('../../packages/core/src/package-manager/bun')
     const output = [
       '/Users/test/.bun/install/global node_modules (534)',
       '├── @github/copilot@1.0.43',
@@ -321,7 +321,7 @@ describe('parseGlobalPackageVersion', () => {
 
 describe('probePackagePresence', () => {
   it('returns present when bun global list output includes the package', async () => {
-    const { probePackagePresence } = await import('../../src/package-manager/bun')
+    const { probePackagePresence } = await import('../../packages/core/src/package-manager/bun')
     mockSpawn.mockReturnValue(createProc(1, ['├── test-pkg@1.2.3', '└── other-pkg@2.0.0'].join('\n')))
 
     expect(await probePackagePresence('test-pkg')).toBe('present')
@@ -329,28 +329,28 @@ describe('probePackagePresence', () => {
   })
 
   it('returns absent when bun global list output omits the package', async () => {
-    const { probePackagePresence } = await import('../../src/package-manager/bun')
+    const { probePackagePresence } = await import('../../packages/core/src/package-manager/bun')
     mockSpawn.mockReturnValue(createProc(1, '└── other-pkg@2.0.0'))
 
     expect(await probePackagePresence('test-pkg')).toBe('absent')
   })
 
   it('returns present when the package entry exists without a readable version', async () => {
-    const { probePackagePresence } = await import('../../src/package-manager/bun')
+    const { probePackagePresence } = await import('../../packages/core/src/package-manager/bun')
     mockSpawn.mockReturnValue(createProc(1, '└── test-pkg@'))
 
     expect(await probePackagePresence('test-pkg')).toBe('present')
   })
 
   it('returns unknown when bun global list output is empty', async () => {
-    const { probePackagePresence } = await import('../../src/package-manager/bun')
+    const { probePackagePresence } = await import('../../packages/core/src/package-manager/bun')
     mockSpawn.mockReturnValue(createProc(1, ''))
 
     expect(await probePackagePresence('test-pkg')).toBe('unknown')
   })
 
   it('returns absent when Bun reports an uninitialized empty global package root', async () => {
-    const { probePackagePresence } = await import('../../src/package-manager/bun')
+    const { probePackagePresence } = await import('../../packages/core/src/package-manager/bun')
     mockSpawn.mockReturnValue(
       createProc(
         1,
@@ -363,7 +363,7 @@ describe('probePackagePresence', () => {
   })
 
   it('uses an empty global manifest to classify Bun missing-lockfile output as absent', async () => {
-    const { probePackagePresence } = await import('../../src/package-manager/bun')
+    const { probePackagePresence } = await import('../../packages/core/src/package-manager/bun')
     mockSpawn.mockReturnValue(createProc(1, '', 'error: Lockfile not found\n'))
 
     expect(
@@ -374,7 +374,7 @@ describe('probePackagePresence', () => {
   })
 
   it('fails closed when a missing-lockfile manifest still records the package', async () => {
-    const { probePackagePresence } = await import('../../src/package-manager/bun')
+    const { probePackagePresence } = await import('../../packages/core/src/package-manager/bun')
     mockSpawn.mockReturnValue(createProc(1, '', 'error: Lockfile not found\n'))
 
     expect(
@@ -385,7 +385,7 @@ describe('probePackagePresence', () => {
   })
 
   it('fails closed when a missing-lockfile manifest has a malformed dependency map', async () => {
-    const { probePackagePresence } = await import('../../src/package-manager/bun')
+    const { probePackagePresence } = await import('../../packages/core/src/package-manager/bun')
     mockSpawn.mockReturnValue(createProc(1, '', 'error: Lockfile not found\n'))
 
     expect(
@@ -398,14 +398,14 @@ describe('probePackagePresence', () => {
 
 describe('bun uninstall', () => {
   it('returns true on success', async () => {
-    const { uninstall } = await import('../../src/package-manager/bun')
+    const { uninstall } = await import('../../packages/core/src/package-manager/bun')
     mockSpawn.mockReturnValue(createProc(0))
     expect(await uninstall('some-package')).toBe(true)
     expect(mockSpawn).toHaveBeenCalledWith(['bun', 'remove', '-g', 'some-package'], expect.any(Object))
   })
 
   it('returns false on failure', async () => {
-    const { uninstall } = await import('../../src/package-manager/bun')
+    const { uninstall } = await import('../../packages/core/src/package-manager/bun')
     mockSpawn.mockReturnValue(createProc(1))
     expect(await uninstall('some-package')).toBe(false)
   })
@@ -421,7 +421,7 @@ describe('bun uninstall', () => {
         .mockReturnValueOnce(createProc(0))
         .mockReturnValueOnce(createProc(1, '', 'error: Lockfile not found\n'))
 
-      const { uninstallOutcome } = await import('../../src/package-manager/bun')
+      const { uninstallOutcome } = await import('../../packages/core/src/package-manager/bun')
       await expect(
         uninstallOutcome('@example/agent', { signal: new AbortController().signal, timeoutMs: 5_000 }, 'agent'),
       ).resolves.toEqual({ kind: 'success', value: undefined })
@@ -454,7 +454,7 @@ describe('bun uninstall', () => {
         return { kind: 'success', value: undefined }
       })
 
-      const { uninstallOutcome } = await import('../../src/package-manager/bun')
+      const { uninstallOutcome } = await import('../../packages/core/src/package-manager/bun')
       await uninstallOutcome('@example/agent', { signal: new AbortController().signal }, 'agent')
 
       await expect(readlink(sandbox.linkPath)).resolves.toBe(replacementTarget)
@@ -472,7 +472,7 @@ describe('bun uninstall', () => {
         .mockReturnValueOnce(createProc(0))
         .mockReturnValueOnce(createProc(1, '', 'error: Lockfile not found\n'))
 
-      const { uninstallOutcome } = await import('../../src/package-manager/bun')
+      const { uninstallOutcome } = await import('../../packages/core/src/package-manager/bun')
       await expect(
         uninstallOutcome('@example/agent', { signal: new AbortController().signal, timeoutMs: 5_000 }, 'agent'),
       ).resolves.toEqual({ kind: 'success', value: undefined })
@@ -496,7 +496,7 @@ describe('bun uninstall', () => {
         return { kind: 'success', value: undefined }
       })
 
-      const { uninstallOutcome } = await import('../../src/package-manager/bun')
+      const { uninstallOutcome } = await import('../../packages/core/src/package-manager/bun')
       await uninstallOutcome('@example/agent', { signal: new AbortController().signal }, 'agent')
 
       await expect(access(sandbox.exePath)).resolves.toBeUndefined()
@@ -516,7 +516,7 @@ describe('bun uninstall', () => {
         .mockReturnValueOnce(createProc(0))
         .mockReturnValueOnce(createProc(1, '', 'error: Lockfile not found\n'))
 
-      const { uninstallOutcome } = await import('../../src/package-manager/bun')
+      const { uninstallOutcome } = await import('../../packages/core/src/package-manager/bun')
       await uninstallOutcome('@example/agent', { signal: new AbortController().signal }, 'agent')
 
       await expect(access(sandbox.exePath)).resolves.toBeUndefined()

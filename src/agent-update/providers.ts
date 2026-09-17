@@ -1,6 +1,6 @@
 import type { ManagedInstallType } from '../agents/types'
 import type { AgentUpdateContext, AgentUpdateProvider } from './types'
-import { canUpdateInstallType, isManagedInstallType } from '../package-manager/capabilities'
+import { canUpdateInstallType, isManagedInstallType } from '../../packages/core/src/package-manager/capabilities'
 import { canAutoUpdateAgent, canUpdateInstalledState } from '../utils/install'
 
 function getManagedInstallerTypeFromContext(context: AgentUpdateContext): ManagedInstallType | undefined {

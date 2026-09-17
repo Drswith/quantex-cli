@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { parseToolListVersion } from '../../src/package-manager/uv'
+import { parseToolListVersion } from '../../packages/core/src/package-manager/uv'
 
 const mockSpawn = vi.hoisted(() => vi.fn())
 const mutationRun = vi.hoisted(() => vi.fn())
@@ -9,8 +9,8 @@ vi.mock('cross-spawn', async () => {
   return { default: createCrossSpawnMock(mockSpawn) }
 })
 
-vi.mock('../../src/package-manager/context-mutation', async importOriginal => {
-  const actual = await importOriginal<typeof import('../../src/package-manager/context-mutation')>()
+vi.mock('../../packages/core/src/package-manager/context-mutation', async importOriginal => {
+  const actual = await importOriginal<typeof import('../../packages/core/src/package-manager/context-mutation')>()
   return {
     ...actual,
     runPackageMutationOutcome: mutationRun,
@@ -47,7 +47,7 @@ async function runMutation(command: readonly string[], _context: unknown, descri
 
 describe('uv install', () => {
   it('returns true on success', async () => {
-    const { install } = await import('../../src/package-manager/uv')
+    const { install } = await import('../../packages/core/src/package-manager/uv')
     mockSpawn.mockReturnValue({ exited: Promise.resolve(), exitCode: 0 })
 
     expect(await install('some-tool')).toBe(true)
@@ -55,7 +55,7 @@ describe('uv install', () => {
   })
 
   it('passes uv tool install args after the package name', async () => {
-    const { install } = await import('../../src/package-manager/uv')
+    const { install } = await import('../../packages/core/src/package-manager/uv')
     mockSpawn.mockReturnValue({ exited: Promise.resolve(), exitCode: 0 })
 
     expect(await install('some-tool', ['--python', '3.12'])).toBe(true)
@@ -66,7 +66,7 @@ describe('uv install', () => {
   })
 
   it('returns false on failure', async () => {
-    const { install } = await import('../../src/package-manager/uv')
+    const { install } = await import('../../packages/core/src/package-manager/uv')
     mockSpawn.mockReturnValue({ exited: Promise.resolve(), exitCode: 1 })
 
     expect(await install('some-tool')).toBe(false)
@@ -75,7 +75,7 @@ describe('uv install', () => {
 
 describe('uv update', () => {
   it('runs uv tool upgrade for the package', async () => {
-    const { update } = await import('../../src/package-manager/uv')
+    const { update } = await import('../../packages/core/src/package-manager/uv')
     mockSpawn.mockReturnValue({ exited: Promise.resolve(), exitCode: 0 })
 
     expect(await update('some-tool', ['--python', '3.12'])).toBe(true)
@@ -88,7 +88,7 @@ describe('uv update', () => {
 
 describe('uv updateMany', () => {
   it('updates tools sequentially', async () => {
-    const { updateMany } = await import('../../src/package-manager/uv')
+    const { updateMany } = await import('../../packages/core/src/package-manager/uv')
     mockSpawn.mockReturnValue({ exited: Promise.resolve(), exitCode: 0 })
 
     expect(
@@ -108,7 +108,7 @@ describe('uv updateMany', () => {
 
 describe('uv uninstall', () => {
   it('returns true on success', async () => {
-    const { uninstall } = await import('../../src/package-manager/uv')
+    const { uninstall } = await import('../../packages/core/src/package-manager/uv')
     mockSpawn.mockReturnValue({ exited: Promise.resolve(), exitCode: 0 })
 
     expect(await uninstall('some-tool')).toBe(true)
@@ -118,7 +118,7 @@ describe('uv uninstall', () => {
 
 describe('probePackagePresence', () => {
   it('returns present when uv tool list includes the package', async () => {
-    const { probePackagePresence } = await import('../../src/package-manager/uv')
+    const { probePackagePresence } = await import('../../packages/core/src/package-manager/uv')
     mockSpawn.mockReturnValue({
       exited: Promise.resolve(),
       exitCode: 1,
@@ -130,7 +130,7 @@ describe('probePackagePresence', () => {
   })
 
   it('returns absent when uv tool list omits the package', async () => {
-    const { probePackagePresence } = await import('../../src/package-manager/uv')
+    const { probePackagePresence } = await import('../../packages/core/src/package-manager/uv')
     mockSpawn.mockReturnValue({
       exited: Promise.resolve(),
       exitCode: 0,
@@ -141,7 +141,7 @@ describe('probePackagePresence', () => {
   })
 
   it('returns absent when uv reports a successful empty tool inventory', async () => {
-    const { probePackagePresence } = await import('../../src/package-manager/uv')
+    const { probePackagePresence } = await import('../../packages/core/src/package-manager/uv')
     mockSpawn.mockReturnValue({
       exited: Promise.resolve(),
       exitCode: 0,
@@ -153,7 +153,7 @@ describe('probePackagePresence', () => {
   })
 
   it('returns unknown when uv tool list output is empty', async () => {
-    const { probePackagePresence } = await import('../../src/package-manager/uv')
+    const { probePackagePresence } = await import('../../packages/core/src/package-manager/uv')
     mockSpawn.mockReturnValue({
       exited: Promise.resolve(),
       exitCode: 1,
@@ -164,7 +164,7 @@ describe('probePackagePresence', () => {
   })
 
   it('returns unknown when uv tool list output has no parseable tool entries', async () => {
-    const { probePackagePresence } = await import('../../src/package-manager/uv')
+    const { probePackagePresence } = await import('../../packages/core/src/package-manager/uv')
     mockSpawn.mockReturnValue({
       exited: Promise.resolve(),
       exitCode: 1,

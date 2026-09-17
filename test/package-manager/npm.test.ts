@@ -8,8 +8,8 @@ vi.mock('cross-spawn', async () => {
   return { default: createCrossSpawnMock(mockSpawn) }
 })
 
-vi.mock('../../src/package-manager/context-mutation', async importOriginal => {
-  const actual = await importOriginal<typeof import('../../src/package-manager/context-mutation')>()
+vi.mock('../../packages/core/src/package-manager/context-mutation', async importOriginal => {
+  const actual = await importOriginal<typeof import('../../packages/core/src/package-manager/context-mutation')>()
   return {
     ...actual,
     runPackageMutationOutcome: mutationRun,
@@ -46,14 +46,14 @@ async function runMutation(command: readonly string[], _context: unknown, descri
 
 describe('npm install', () => {
   it('returns true on success', async () => {
-    const { install } = await import('../../src/package-manager/npm')
+    const { install } = await import('../../packages/core/src/package-manager/npm')
     mockSpawn.mockReturnValue({ exited: Promise.resolve(), exitCode: 0 })
     expect(await install('some-package')).toBe(true)
     expect(mockSpawn).toHaveBeenCalledWith(['npm', 'install', '-g', 'some-package'], expect.any(Object))
   })
 
   it('supports explicit tags and registries', async () => {
-    const { install } = await import('../../src/package-manager/npm')
+    const { install } = await import('../../packages/core/src/package-manager/npm')
     mockSpawn.mockReturnValue({ exited: Promise.resolve(), exitCode: 0 })
     expect(await install('some-package', 'latest', 'https://registry.npmjs.org/')).toBe(true)
     expect(mockSpawn).toHaveBeenCalledWith(
@@ -63,7 +63,7 @@ describe('npm install', () => {
   })
 
   it('returns false on failure', async () => {
-    const { install } = await import('../../src/package-manager/npm')
+    const { install } = await import('../../packages/core/src/package-manager/npm')
     mockSpawn.mockReturnValue({ exited: Promise.resolve(), exitCode: 1 })
     expect(await install('some-package')).toBe(false)
   })
@@ -71,21 +71,21 @@ describe('npm install', () => {
 
 describe('npm update', () => {
   it('uses latest-major strategy by default', async () => {
-    const { update } = await import('../../src/package-manager/npm')
+    const { update } = await import('../../packages/core/src/package-manager/npm')
     mockSpawn.mockReturnValue({ exited: Promise.resolve(), exitCode: 0 })
     expect(await update('some-package')).toBe(true)
     expect(mockSpawn).toHaveBeenCalledWith(['npm', 'install', '-g', 'some-package@latest'], expect.any(Object))
   })
 
   it('supports respect-semver strategy', async () => {
-    const { update } = await import('../../src/package-manager/npm')
+    const { update } = await import('../../packages/core/src/package-manager/npm')
     mockSpawn.mockReturnValue({ exited: Promise.resolve(), exitCode: 0 })
     expect(await update('some-package', 'respect-semver')).toBe(true)
     expect(mockSpawn).toHaveBeenCalledWith(['npm', 'update', '-g', 'some-package'], expect.any(Object))
   })
 
   it('returns false on failure', async () => {
-    const { update } = await import('../../src/package-manager/npm')
+    const { update } = await import('../../packages/core/src/package-manager/npm')
     mockSpawn.mockReturnValue({ exited: Promise.resolve(), exitCode: 1 })
     expect(await update('some-package')).toBe(false)
   })
@@ -93,7 +93,7 @@ describe('npm update', () => {
 
 describe('npm updateMany', () => {
   it('uses latest-major strategy by default', async () => {
-    const { updateMany } = await import('../../src/package-manager/npm')
+    const { updateMany } = await import('../../packages/core/src/package-manager/npm')
     mockSpawn.mockReturnValue({ exited: Promise.resolve(), exitCode: 0 })
     expect(await updateMany(['some-package', 'other-package'])).toBe(true)
     expect(mockSpawn).toHaveBeenCalledWith(
@@ -103,7 +103,7 @@ describe('npm updateMany', () => {
   })
 
   it('supports respect-semver strategy', async () => {
-    const { updateMany } = await import('../../src/package-manager/npm')
+    const { updateMany } = await import('../../packages/core/src/package-manager/npm')
     mockSpawn.mockReturnValue({ exited: Promise.resolve(), exitCode: 0 })
     expect(await updateMany(['some-package', 'other-package'], 'respect-semver')).toBe(true)
     expect(mockSpawn).toHaveBeenCalledWith(['npm', 'update', '-g', 'some-package', 'other-package'], expect.any(Object))
@@ -112,14 +112,14 @@ describe('npm updateMany', () => {
 
 describe('npm uninstall', () => {
   it('returns true on success', async () => {
-    const { uninstall } = await import('../../src/package-manager/npm')
+    const { uninstall } = await import('../../packages/core/src/package-manager/npm')
     mockSpawn.mockReturnValue({ exited: Promise.resolve(), exitCode: 0 })
     expect(await uninstall('some-package')).toBe(true)
     expect(mockSpawn).toHaveBeenCalledWith(['npm', 'uninstall', '-g', 'some-package'], expect.any(Object))
   })
 
   it('returns false on failure', async () => {
-    const { uninstall } = await import('../../src/package-manager/npm')
+    const { uninstall } = await import('../../packages/core/src/package-manager/npm')
     mockSpawn.mockReturnValue({ exited: Promise.resolve(), exitCode: 1 })
     expect(await uninstall('some-package')).toBe(false)
   })
@@ -135,7 +135,7 @@ function createListProc(exitCode: number, stdout: string) {
 
 describe('parseGlobalPackageVersion', () => {
   it('parses scoped and unscoped packages from npm global list JSON', async () => {
-    const { parseGlobalPackageVersion } = await import('../../src/package-manager/npm')
+    const { parseGlobalPackageVersion } = await import('../../packages/core/src/package-manager/npm')
     const output = JSON.stringify({
       dependencies: {
         'test-pkg': { version: '1.2.3' },
@@ -151,7 +151,7 @@ describe('parseGlobalPackageVersion', () => {
 
 describe('probePackagePresence', () => {
   it('returns present when scoped npm list JSON includes the package', async () => {
-    const { probePackagePresence } = await import('../../src/package-manager/npm')
+    const { probePackagePresence } = await import('../../packages/core/src/package-manager/npm')
     mockSpawn.mockReturnValue(
       createListProc(
         1,
@@ -168,7 +168,7 @@ describe('probePackagePresence', () => {
   })
 
   it('returns absent when scoped npm list JSON omits the package', async () => {
-    const { probePackagePresence } = await import('../../src/package-manager/npm')
+    const { probePackagePresence } = await import('../../packages/core/src/package-manager/npm')
     mockSpawn.mockReturnValue(
       createListProc(
         1,
@@ -182,7 +182,7 @@ describe('probePackagePresence', () => {
   })
 
   it('returns present when the package entry exists without a readable version', async () => {
-    const { probePackagePresence } = await import('../../src/package-manager/npm')
+    const { probePackagePresence } = await import('../../packages/core/src/package-manager/npm')
     mockSpawn.mockReturnValue(
       createListProc(
         1,
@@ -198,7 +198,7 @@ describe('probePackagePresence', () => {
   })
 
   it('returns unknown when npm reports a structured error', async () => {
-    const { probePackagePresence } = await import('../../src/package-manager/npm')
+    const { probePackagePresence } = await import('../../packages/core/src/package-manager/npm')
     mockSpawn.mockReturnValue(
       createListProc(
         1,
@@ -215,14 +215,14 @@ describe('probePackagePresence', () => {
   })
 
   it('returns unknown when npm list output is empty', async () => {
-    const { probePackagePresence } = await import('../../src/package-manager/npm')
+    const { probePackagePresence } = await import('../../packages/core/src/package-manager/npm')
     mockSpawn.mockReturnValue(createListProc(1, ''))
 
     expect(await probePackagePresence('test-pkg')).toBe('unknown')
   })
 
   it('returns unknown when npm list output is not valid JSON', async () => {
-    const { probePackagePresence } = await import('../../src/package-manager/npm')
+    const { probePackagePresence } = await import('../../packages/core/src/package-manager/npm')
     mockSpawn.mockReturnValue(createListProc(1, 'npm ERR! broken'))
 
     expect(await probePackagePresence('test-pkg')).toBe('unknown')
@@ -231,7 +231,7 @@ describe('probePackagePresence', () => {
 
 describe('getInstalledVersion', () => {
   it('returns the version when scoped npm list JSON includes the package', async () => {
-    const { getInstalledVersion } = await import('../../src/package-manager/npm')
+    const { getInstalledVersion } = await import('../../packages/core/src/package-manager/npm')
     mockSpawn.mockReturnValue(
       createListProc(
         1,

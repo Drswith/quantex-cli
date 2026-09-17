@@ -1,14 +1,14 @@
+import type { ManagedPackageSpec } from '../../packages/core/src/package-manager'
 // KEEP (L5): published v1 update-planning facade (planAgentUpdates grouping).
 // L5 leftover scan: not zero-ref; still re-exported by src/services/index.ts.
 import type { AgentUpdateStrategy } from '../agent-update'
 import type { AgentDefinition } from '../agents'
 import type { InstallMethod, ManagedInstallType } from '../agents/types'
 import type { AgentInspection } from '../inspection'
-import type { ManagedPackageSpec } from '../package-manager'
 import type { InstalledAgentState } from '../state'
+import { getManagedInstallTypes } from '../../packages/core/src/package-manager/capabilities'
 import { resolveAgentUpdateProvider } from '../agent-update'
 import * as inspectionService from '../inspection'
-import { getManagedInstallTypes } from '../package-manager/capabilities'
 import * as updatePlanning from '../planning'
 import { getManagedPackageName } from '../utils/install'
 import { inspectRegisteredAgents } from './agents'

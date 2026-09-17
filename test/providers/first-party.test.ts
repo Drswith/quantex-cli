@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { getInstallerCapabilities, getManagedInstallTypes } from '../../src/package-manager/capabilities'
+import { getInstallerCapabilities, getManagedInstallTypes } from '../../packages/core/src/package-manager/capabilities'
 import { firstPartyProviderRegistry } from '../../src/providers/first-party'
 
 describe('first-party provider registry projections', () => {

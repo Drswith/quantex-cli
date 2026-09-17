@@ -1,26 +1,26 @@
-import type { ManagedInstallType, PackageTargetKind } from '../agents/types'
-import type { NpmBunUpdateStrategy } from '../config'
+import type { ManagedInstallType, PackageTargetKind } from '../../../../src/agents/types'
 import type {
   ProviderAdapter,
   ProviderOperationContext,
   ProviderOutcome,
   ProviderTarget,
   RegistryPackageOperationOptions,
-} from '../providers'
-import { brewProviderAdapter } from '../providers/adapters/brew'
-import { bunProviderAdapter } from '../providers/adapters/bun'
-import { cargoProviderAdapter } from '../providers/adapters/cargo'
-import { denoProviderAdapter } from '../providers/adapters/deno'
-import { miseProviderAdapter } from '../providers/adapters/mise'
-import { npmProviderAdapter } from '../providers/adapters/npm'
-import { pipProviderAdapter } from '../providers/adapters/pip'
-import { uvProviderAdapter } from '../providers/adapters/uv'
-import { wingetProviderAdapter } from '../providers/adapters/winget'
-import { createCliOperationContext } from '../runtime/cli-operation-context'
+  RegistryPackageUpdateStrategy,
+} from '../../../../src/providers'
+import { brewProviderAdapter } from '../../../../src/providers/adapters/brew'
+import { bunProviderAdapter } from '../../../../src/providers/adapters/bun'
+import { cargoProviderAdapter } from '../../../../src/providers/adapters/cargo'
+import { denoProviderAdapter } from '../../../../src/providers/adapters/deno'
+import { miseProviderAdapter } from '../../../../src/providers/adapters/mise'
+import { npmProviderAdapter } from '../../../../src/providers/adapters/npm'
+import { pipProviderAdapter } from '../../../../src/providers/adapters/pip'
+import { uvProviderAdapter } from '../../../../src/providers/adapters/uv'
+import { wingetProviderAdapter } from '../../../../src/providers/adapters/winget'
 import * as brewPm from './brew'
 import * as bunPm from './bun'
 import * as cargoPm from './cargo'
 import * as denoPm from './deno'
+import { getPackageManagerHostPorts } from './host'
 import * as misePm from './mise'
 import * as npmPm from './npm'
 import * as pipPm from './pip'
@@ -36,7 +36,7 @@ export interface ManagedPackageSpec {
 
 export interface ManagedInstallerUpdateOptions {
   binaryName?: string
-  npmBunUpdateStrategy?: NpmBunUpdateStrategy
+  npmBunUpdateStrategy?: RegistryPackageUpdateStrategy
   packageInstallArgs?: string[]
 }
 
@@ -170,7 +170,7 @@ async function withProviderContext<T>(
   invoke: (context: ProviderOperationContext) => Promise<T>,
 ): Promise<T> {
   if (context) return invoke(context)
-  const operation = createCliOperationContext()
+  const operation = getPackageManagerHostPorts().createOperationContext()
   try {
     return await invoke(operation.context)
   } finally {

@@ -1,5 +1,5 @@
 import type { SystemPackageAdapterDependencies } from './system-package'
-import * as pipPm from '../../package-manager/pip'
+import * as pipPm from '../../../packages/core/src/package-manager/pip'
 import * as detectUtils from '../../utils/detect'
 import { createSystemPackageAdapter } from './system-package'
 

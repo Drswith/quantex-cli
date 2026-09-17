@@ -22,41 +22,41 @@ const packageManagers = vi.hoisted(() => ({
   winget: { install: vi.fn(), uninstall: vi.fn() },
 }))
 
-vi.mock('../../src/package-manager/bun', () => ({
+vi.mock('../../packages/core/src/package-manager/bun', () => ({
   installOutcome: packageManagers.bun.install,
   uninstallOutcome: packageManagers.bun.uninstall,
 }))
-vi.mock('../../src/package-manager/brew', () => ({
+vi.mock('../../packages/core/src/package-manager/brew', () => ({
   installOutcome: packageManagers.brew.install,
   uninstallOutcome: packageManagers.brew.uninstall,
 }))
-vi.mock('../../src/package-manager/cargo', () => ({
+vi.mock('../../packages/core/src/package-manager/cargo', () => ({
   installOutcome: packageManagers.cargo.install,
   uninstallOutcome: packageManagers.cargo.uninstall,
 }))
-vi.mock('../../src/package-manager/deno', () => ({
+vi.mock('../../packages/core/src/package-manager/deno', () => ({
   inferDenoBinaryName: (packageName: string, binaryName?: string) =>
     binaryName?.trim() || packageName.trim().split('/').pop()?.replace(/@.*$/u, '') || packageName.trim(),
   installOutcome: packageManagers.deno.install,
   uninstallOutcome: packageManagers.deno.uninstall,
 }))
-vi.mock('../../src/package-manager/mise', () => ({
+vi.mock('../../packages/core/src/package-manager/mise', () => ({
   installOutcome: packageManagers.mise.install,
   uninstallOutcome: packageManagers.mise.uninstall,
 }))
-vi.mock('../../src/package-manager/npm', () => ({
+vi.mock('../../packages/core/src/package-manager/npm', () => ({
   installOutcome: packageManagers.npm.install,
   uninstallOutcome: packageManagers.npm.uninstall,
 }))
-vi.mock('../../src/package-manager/pip', () => ({
+vi.mock('../../packages/core/src/package-manager/pip', () => ({
   installOutcome: packageManagers.pip.install,
   uninstallOutcome: packageManagers.pip.uninstall,
 }))
-vi.mock('../../src/package-manager/uv', () => ({
+vi.mock('../../packages/core/src/package-manager/uv', () => ({
   installOutcome: packageManagers.uv.install,
   uninstallOutcome: packageManagers.uv.uninstall,
 }))
-vi.mock('../../src/package-manager/winget', () => ({
+vi.mock('../../packages/core/src/package-manager/winget', () => ({
   installOutcome: packageManagers.winget.install,
   uninstallOutcome: packageManagers.winget.uninstall,
 }))

@@ -21,6 +21,7 @@ const forbiddenSpecifierPatterns = [
   /(?:^|\/)release-artifacts?(?:$|\/)/u,
   /(?:^|\/)self(?:$|\/)/u,
   /runtime\/cli-operation-context/u,
+  /runtime\/cli-package-manager-host/u,
   /(?:^|\/)services(?:$|\/)/u,
   /(?:^|\/)compatibility(?:$|\/)/u,
   /(?:^|\/)idempotency(?:$|\/)/u,
@@ -38,7 +39,6 @@ const allowedSharedPrefixes = [
   'src/agents/',
   'src/providers/',
   'src/state/',
-  'src/package-manager/',
   'src/runtime/',
   'src/agent-update/',
   'src/utils/',
@@ -46,17 +46,9 @@ const allowedSharedPrefixes = [
 
 const allowedSharedFiles = new Set(['src/agents.ts', 'src/state.ts', 'src/runtime.ts', 'src/providers.ts'])
 
-const documentedLeafImporters = new Set([
-  'src/state/schema.ts',
-  'src/state/store.ts',
-  'src/state/index.ts',
-  'src/package-manager/index.ts',
-])
+const documentedLeafImporters = new Set(['src/state/schema.ts', 'src/state/store.ts', 'src/state/index.ts'])
 
-const deferredPackageManagerCliCoupling = new Set([
-  'packages/core/src/update-production.ts',
-  'packages/core/src/uninstall-executor.ts',
-])
+const packageManagerPrefix = 'packages/core/src/package-manager/'
 
 describe('Core package boundary', () => {
   it('owns Core implementation under packages/core/src and leaves root src/core empty', async () => {
@@ -104,7 +96,6 @@ describe('Core package boundary', () => {
   it('keeps the eager public runtime dependency closure outside mutation and CLI infrastructure', async () => {
     const closure = await runtimeDependencyClosure(PACKAGE_ENTRY, false)
     const allowedOutsideCore = new Set([
-      'src/package-manager/managed-install-types.ts',
       'src/providers/types.ts',
       'src/state/schema.ts',
       'src/utils/compare-versions.ts',
@@ -146,7 +137,11 @@ describe('Core package boundary', () => {
         if (path.startsWith('packages/core/src/')) continue
         const allowed = allowedSharedFiles.has(path) || allowedSharedPrefixes.some(prefix => path.startsWith(prefix))
         if (!allowed) violations.push(`${repositoryPath(file)} -> ${path}`)
-        if (path === 'src/runtime/cli-operation-context.ts' || path === 'src/runtime/index.ts') {
+        if (
+          path === 'src/runtime/cli-operation-context.ts' ||
+          path === 'src/runtime/cli-package-manager-host.ts' ||
+          path === 'src/runtime/index.ts'
+        ) {
           violations.push(`${repositoryPath(file)} -> ${path}`)
         }
       }
@@ -181,6 +176,7 @@ describe('Core package boundary', () => {
           ? repositoryPath(await resolveTypescriptImport(file, specifier))
           : specifier
         if (resolved !== MODEL_LEAF && !cliOwnedImporter(importer)) {
+          if (resolved.startsWith(packageManagerPrefix) && deferredCoreImporter(importer)) continue
           violations.push(`${importer} -> ${resolved}`)
         }
       }
@@ -200,6 +196,8 @@ describe('Core package boundary', () => {
     await access(join(ROOT, 'src', 'providers'))
     await access(join(ROOT, 'src', 'state'))
     await access(join(ROOT, 'src', 'agents'))
+    await access(join(CORE_SOURCE, 'package-manager'))
+    await expect(access(join(ROOT, 'src', 'package-manager'))).rejects.toThrow()
     await expect(access(join(CORE_SOURCE, 'providers'))).rejects.toThrow()
     await expect(access(join(CORE_SOURCE, 'state'))).rejects.toThrow()
     await expect(access(join(CORE_SOURCE, 'agents'))).rejects.toThrow()
@@ -235,23 +233,32 @@ describe('Core package boundary', () => {
     expect(packageManagerImporters.length).toBeGreaterThan(0)
   })
 
-  it('records the deferred package-manager CLI coupling without allowing new Core to CLI leaks', async () => {
-    const files = await typescriptFiles(CORE_SOURCE)
-    const packageManagerIndexImporters: string[] = []
+  it('keeps relocated package-manager under Core without CLI shell imports', async () => {
+    await access(join(CORE_SOURCE, 'package-manager', 'index.ts'))
+    await expect(access(join(ROOT, 'src', 'package-manager'))).rejects.toThrow()
 
+    const files = await typescriptFiles(join(CORE_SOURCE, 'package-manager'))
+    const cliLeaks: string[] = []
     for (const file of files) {
       const source = await readFile(file, 'utf8')
-      const sourceFile = ts.createSourceFile(file, source, ts.ScriptTarget.Latest, true, ts.ScriptKind.TS)
-      for (const specifier of [...staticSpecifiers(sourceFile, false), ...dynamicImportSpecifiers(sourceFile)]) {
-        if (!specifier.startsWith('.')) continue
-        const resolved = repositoryPath(await resolveTypescriptImport(file, specifier))
-        if (resolved === 'src/package-manager/index.ts' || resolved === 'src/package-manager.ts') {
-          packageManagerIndexImporters.push(repositoryPath(file))
+      for (const specifier of importSpecifiers(source)) {
+        if (forbiddenSpecifierPatterns.some(pattern => pattern.test(specifier))) {
+          cliLeaks.push(`${repositoryPath(file)} -> ${specifier}`)
         }
       }
     }
 
-    expect(new Set(packageManagerIndexImporters)).toEqual(deferredPackageManagerCliCoupling)
+    expect(cliLeaks).toEqual([])
+
+    const binder = await readFile(join(ROOT, 'src', 'runtime', 'cli-package-manager-host.ts'), 'utf8')
+    expect(binder).toContain('setPackageManagerHostPorts')
+    expect(binder).toContain('getCliContext')
+    expect(binder).toContain('loadConfig')
+    expect(binder).toContain('createCliOperationContext')
+    expect(binder).toContain('spawnWithQuantexStdio')
+
+    const publicEntry = await readFile(PACKAGE_ENTRY, 'utf8')
+    expect(publicEntry).not.toContain('package-manager')
   })
 })
 
@@ -266,8 +273,32 @@ function cliOwnedImporter(importer: string): boolean {
     importer.startsWith('src/self/') ||
     importer === 'src/cli.ts' ||
     importer === 'src/cli-context.ts' ||
-    importer === 'src/command-runtime.ts'
+    importer === 'src/command-runtime.ts' ||
+    importer === 'src/runtime/cli-package-manager-host.ts' ||
+    importer === 'src/runtime/cli-operation-context.ts'
   )
+}
+
+function deferredCoreImporter(importer: string): boolean {
+  if (importer.startsWith('src/providers/')) return true
+  if (importer.startsWith('src/state/')) return true
+  if (importer.startsWith('src/agent-update/')) return true
+  if (
+    importer.startsWith('src/runtime/') &&
+    importer !== 'src/runtime/cli-operation-context.ts' &&
+    importer !== 'src/runtime/cli-package-manager-host.ts'
+  ) {
+    return true
+  }
+  if (
+    importer.startsWith('src/utils/') &&
+    importer !== 'src/utils/user-output.ts' &&
+    importer !== 'src/utils/color.ts' &&
+    importer !== 'src/utils/cli-child-process.ts'
+  ) {
+    return true
+  }
+  return false
 }
 
 function repositoryPath(file: string): string {
