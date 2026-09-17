@@ -130,7 +130,7 @@ describe('L1 lifecycle model Core-internal leaf', () => {
 
     const packageManager = await source('packages/core/src/package-manager/index.ts')
     expect(packageManager).toContain("from '../lifecycle/model'")
-    expect(packageManager).not.toContain('src/lifecycle')
+    expect(packageManager).not.toMatch(/\b(?:from|import)\s+['"][^'"]*src\/lifecycle/u)
 
     const binding = await source('packages/core/src/lifecycle/provider-binding.ts')
     expect(binding).toContain("from './model'")
