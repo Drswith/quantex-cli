@@ -1,11 +1,11 @@
-import type { StateDocumentPersistence, StateFileSystem } from '../../src/state/store'
+import type { StateDocumentPersistence, StateFileSystem } from '../../packages/core/src/state/store'
 import { describe, expect, it } from 'vitest'
 import {
   CURRENT_STATE_SCHEMA_VERSION,
   LIFECYCLE_RECEIPT_SCHEMA_VERSION,
   type VersionedQuantexState,
-} from '../../src/state/schema'
-import { FileStateDocumentPersistence, LifecycleStateStore } from '../../src/state/store'
+} from '../../packages/core/src/state/schema'
+import { FileStateDocumentPersistence, LifecycleStateStore } from '../../packages/core/src/state/store'
 
 class MemoryPersistence implements StateDocumentPersistence {
   saved: VersionedQuantexState[] = []

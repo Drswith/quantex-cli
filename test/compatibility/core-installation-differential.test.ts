@@ -9,8 +9,8 @@ import type {
   ProviderOutcome,
   ProviderTarget,
 } from '../../packages/core/src/providers/types'
+import type { InstalledAgentState, VersionedQuantexState } from '../../packages/core/src/state/schema'
 import type { AgentDefinition, InstallMethod } from '../../src/agents/types'
-import type { InstalledAgentState, VersionedQuantexState } from '../../src/state/schema'
 import { describe, expect, it, vi } from 'vitest'
 
 /**
@@ -124,10 +124,10 @@ import {
   resolveStateProviderBinding,
 } from '../../packages/core/src/lifecycle/provider-binding'
 import { createProviderRegistry } from '../../packages/core/src/providers/registry'
+import { createEmptyStateDocument } from '../../packages/core/src/state/schema'
+import { LifecycleStateStore } from '../../packages/core/src/state/store'
 import { projectCoreInstallationOutcome } from '../../src/commands/core-installation-cli'
 import { getExitCodeForResult } from '../../src/errors'
-import { createEmptyStateDocument } from '../../src/state/schema'
-import { LifecycleStateStore } from '../../src/state/store'
 
 const CONFIG_DIR = '/isolated/quantex-config'
 const SCRIPT_COMMAND = 'curl -fsSL https://example.com/fixture-agent | sh'

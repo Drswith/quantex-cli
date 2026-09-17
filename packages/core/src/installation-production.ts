@@ -1,5 +1,4 @@
 import type { Platform } from '../../../src/agents/types'
-import type { LifecycleStateStore } from '../../../src/state/store'
 import type {
   CoreInstallationExecutorPorts,
   CoreInstallationRecipe,
@@ -17,8 +16,8 @@ import type {
   ProviderTarget,
   ProviderVerification,
 } from './providers/types'
+import type { LifecycleStateStore } from './state/store'
 import { isDeepStrictEqual } from 'node:util'
-import { createFileLifecycleStateStore } from '../../../src/state/file-store'
 import { getPlatform } from '../../../src/utils/detect'
 import { acquireResourceLockInConfigDir } from '../../../src/utils/lock'
 import { resolveCoreInstallationRecipe } from './installation-recipe-resolver'
@@ -26,6 +25,7 @@ import { prepareCoreInstallationStateRecord } from './installation-state-record'
 import { LIFECYCLE_RECEIPT_SCHEMA_VERSION, type LifecycleReceipt } from './lifecycle/model'
 import { loadCoreMutationRecipeCatalog } from './mutation-recipe-catalog'
 import { createProductionCoreReadPorts } from './production-observation'
+import { createFileLifecycleStateStore } from './state/file-store'
 
 type AcquireResourceLock = typeof acquireResourceLockInConfigDir
 

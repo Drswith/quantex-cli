@@ -1,10 +1,13 @@
-import type { LifecycleReceipt } from '../../packages/core/src/lifecycle/model'
-import type { SelfInstallSource } from '../self/types'
-import type { InstalledAgentState, QuantexState, SelfState } from './schema'
+// KEEP (S3): Core-owned persisted state (schema, store, receipts, self projection).
+// Live importers across Core engines, package-manager, and the CLI v1 barrel.
+// Not a leftover pass-through of config or self-upgrade UI.
+// S3 leftover scan: KEEP product-path hang here (Core-internal leftover; do not restore src/lifecycle).
+import type { LifecycleReceipt } from '../lifecycle/model'
+import type { InstalledAgentState, QuantexState, SelfInstallSource, SelfState } from './schema'
 import type { LifecycleStateStore } from './store'
-import { getConfigDir } from '../config'
-import { acquireResourceLock, getResourceLockPath } from '../utils/lock'
+import { acquireResourceLockInConfigDir, getResourceLockPathInConfigDir } from '../../../../src/utils/lock'
 import { createFileLifecycleStateStore, getStateFilePathInConfigDir } from './file-store'
+import { getStateHostPorts } from './host'
 import { StateSchemaError } from './schema'
 
 export type { InstalledAgentState, QuantexState, SelfState } from './schema'
@@ -21,12 +24,23 @@ const defaultState: QuantexState = {
   self: {},
 }
 
+function configDir(): string {
+  return getStateHostPorts().configDir()
+}
+
+async function acquireStateLock(): Promise<() => Promise<void>> {
+  return await acquireResourceLockInConfigDir(configDir(), {
+    resource: 'state',
+    scope: ['state'],
+  })
+}
+
 export function getStateFilePath(): string {
-  return getStateFilePathInConfigDir(getConfigDir())
+  return getStateFilePathInConfigDir(configDir())
 }
 
 export function getStateLockPath(): string {
-  return getResourceLockPath(['state'])
+  return getResourceLockPathInConfigDir(configDir(), ['state'])
 }
 
 export async function loadState(): Promise<QuantexState> {
@@ -34,10 +48,7 @@ export async function loadState(): Promise<QuantexState> {
 }
 
 export async function saveState(state: QuantexState): Promise<void> {
-  const release = await acquireResourceLock({
-    resource: 'state',
-    scope: ['state'],
-  })
+  const release = await acquireStateLock()
 
   try {
     await writeState(state)
@@ -61,10 +72,7 @@ export async function getLifecycleReceipt(targetId: string): Promise<LifecycleRe
 }
 
 export async function setLifecycleReceipt(receipt: LifecycleReceipt): Promise<void> {
-  const release = await acquireResourceLock({
-    resource: 'state',
-    scope: ['state'],
-  })
+  const release = await acquireStateLock()
 
   try {
     await createStateStore().setReceipt(receipt)
@@ -80,10 +88,7 @@ export async function setAgentLifecycleEvidence(
   installedState: InstalledAgentState,
   receipt: LifecycleReceipt,
 ): Promise<void> {
-  const release = await acquireResourceLock({
-    resource: 'state',
-    scope: ['state'],
-  })
+  const release = await acquireStateLock()
 
   try {
     await createStateStore().setAgentLifecycleEvidence(installedState, receipt)
@@ -96,10 +101,7 @@ export async function setAgentLifecycleEvidence(
 }
 
 export async function removeLifecycleReceipt(targetId: string): Promise<void> {
-  const release = await acquireResourceLock({
-    resource: 'state',
-    scope: ['state'],
-  })
+  const release = await acquireStateLock()
 
   try {
     await createStateStore().removeReceipt(targetId)
@@ -178,7 +180,7 @@ async function writeState(state: QuantexState): Promise<void> {
 }
 
 function createStateStore(): LifecycleStateStore {
-  return createFileLifecycleStateStore(getConfigDir())
+  return createFileLifecycleStateStore(configDir())
 }
 
 function isMissingStateFileError(error: unknown): boolean {
@@ -189,10 +191,7 @@ function isMissingStateFileError(error: unknown): boolean {
 }
 
 async function mutateState(mutator: (state: QuantexState) => void | Promise<void>): Promise<void> {
-  const release = await acquireResourceLock({
-    resource: 'state',
-    scope: ['state'],
-  })
+  const release = await acquireStateLock()
 
   try {
     const state = await readState()

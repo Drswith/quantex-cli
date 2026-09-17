@@ -1,5 +1,5 @@
 import type { ProviderOperationContext } from '../../packages/core/src/providers'
-import type { VersionedQuantexState } from '../../src/state/schema'
+import type { VersionedQuantexState } from '../../packages/core/src/state/schema'
 import { chmod, mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { delimiter, join } from 'node:path'

@@ -4,14 +4,14 @@ import type { LifecycleObservation, LifecycleReceipt } from '../../packages/core
 import type { LifecycleProviderBinding } from '../../packages/core/src/lifecycle/provider-binding'
 import type { CoreAgentObservation } from '../../packages/core/src/production-observation'
 import type { ProviderAdapter, ProviderId } from '../../packages/core/src/providers'
+import type { InstalledAgentState, VersionedQuantexState } from '../../packages/core/src/state/schema'
+import type { StateDocumentPersistence } from '../../packages/core/src/state/store'
 import type {
   LifecycleUpdateObservedAgent,
   LifecycleUpdateServicePorts,
   ManagedAgentLifecycleUpdatePlan,
 } from '../../packages/core/src/update-executor'
 import type { AgentDefinition, InstallMethod } from '../../src/agents'
-import type { InstalledAgentState, VersionedQuantexState } from '../../src/state/schema'
-import type { StateDocumentPersistence } from '../../src/state/store'
 import { describe, expect, it } from 'vitest'
 import { createProductionCoreInstallationPorts } from '../../packages/core/src/installation-production'
 import {
@@ -25,9 +25,9 @@ import { planLifecycleUpdate } from '../../packages/core/src/lifecycle/update-pl
 import { buildInstalledAgentState } from '../../packages/core/src/package-manager'
 import { firstPartyProviderIds } from '../../packages/core/src/providers'
 import { createProviderRegistry } from '../../packages/core/src/providers/registry'
+import { createEmptyStateDocument } from '../../packages/core/src/state/schema'
+import { LifecycleStateStore } from '../../packages/core/src/state/store'
 import { executeSingleAgentLifecycleUpdate } from '../../packages/core/src/update-executor'
-import { createEmptyStateDocument } from '../../src/state/schema'
-import { LifecycleStateStore } from '../../src/state/store'
 
 const VERIFIED_AT = '2026-08-15T01:02:03.000Z'
 

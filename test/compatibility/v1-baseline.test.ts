@@ -5,6 +5,7 @@ import { join } from 'node:path'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import * as packageManager from '../../packages/core/src/package-manager'
 import * as bunPackageManager from '../../packages/core/src/package-manager/bun'
+import * as stateStore from '../../packages/core/src/state'
 import * as agents from '../../src/agents'
 import { setCliContext } from '../../src/cli-context'
 import { executeCommandWithRuntime } from '../../src/command-runtime'
@@ -18,7 +19,6 @@ import { cliErrorCodes, getExitCodeForResult } from '../../src/errors'
 import * as legacyAgentsService from '../../src/services/agents'
 import * as coreReadObservations from '../../src/services/core-read-observations'
 import * as lifecycleUpdateProduction from '../../src/services/lifecycle-updates-production'
-import * as stateStore from '../../src/state'
 import { loadState, StateFileError } from '../../src/state'
 import * as detect from '../../src/utils/detect'
 import * as executableResolution from '../../src/utils/executable-resolution'
@@ -354,7 +354,7 @@ async function captureUpdateCompatibility(
   mode: 'json' | 'ndjson',
 ): Promise<UpdateCompatibilityFixture> {
   const batchRootSpy = scope === 'all' ? vi.spyOn(lifecycleUpdateProduction, requireLifecycleBatchRoot()) : undefined
-  const lifecycleLockSpy = vi.spyOn(resourceLock, 'acquireResourceLock').mockResolvedValue(async () => {})
+  const lifecycleLockSpy = vi.spyOn(resourceLock, 'acquireResourceLockInConfigDir').mockResolvedValue(async () => {})
   const agent = v1UpdateAgent()
   const installedVersionSpy = vi.spyOn(version, 'getInstalledVersion')
   installedVersionSpy.mockResolvedValueOnce('1.9.0').mockResolvedValue('1.10.0')

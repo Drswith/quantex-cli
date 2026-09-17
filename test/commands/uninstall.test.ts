@@ -1,10 +1,10 @@
 import { afterAll, afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import * as providerEvidence from '../../packages/core/src/lifecycle/provider-evidence'
 import * as pm from '../../packages/core/src/package-manager'
+import * as state from '../../packages/core/src/state'
 import * as agents from '../../src/agents'
 import { cancelCliContextOperations, setCliContext } from '../../src/cli-context'
 import { uninstallCommand } from '../../src/commands/uninstall'
-import * as state from '../../src/state'
 import * as detect from '../../src/utils/detect'
 import { ResourceLockError } from '../../src/utils/lock'
 

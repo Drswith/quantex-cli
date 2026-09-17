@@ -1,7 +1,7 @@
 // L2: Core-internal provider observation helper. Not a leftover pass-through —
 // observeLifecycleProvider defaults to the first-party registry. Binding helpers
 // remain re-exported for existing non-SDK import sites. Do not re-export from
-// src/core/index.ts or packages/core. src/state MUST NOT import this module.
+// src/core/index.ts or packages/core. packages/core/src/state MUST NOT import this module.
 // L5 leftover scan: KEEP product-path hang here (do not restore src/lifecycle).
 import type { ProviderObservation, ProviderOutcome, ProviderRegistry } from '../providers'
 import type { LifecycleProviderBinding } from './provider-binding'
