@@ -14,36 +14,36 @@ Product locked ownership for that issue:
 - Core owns the lifecycle domain, provider adapters, persisted state, and receipts.
 - CLI owns commands, presentation, exit policy, and self-upgrade UI.
 - Shared catalog (`src/agents`) and the lifecycle type-leaf are a neutral boundary.
-- Ambiguous remaining modules must be called out rather than guessed into a wide move.
+- Ambiguous remaining **physical** seams must be called out rather than guessed into a wide move. Deferred shared modules are not reassigned to CLI because they still live under root `src/`.
 
 ## Decision
 
 - Core runtime that is clear to move lives in `packages/core/src` (former `src/core/**`, including the lifecycle domain and receipt leaf). Root `src/core/` is absent after the move. Do not leave a re-export shim.
 - Published `quantex-core` remains frozen: `createQuantex` plus the existing supported types. `quantex-core/internal` stays in-repo only. Do not publish providers, state, or receipts.
 - CLI may import Core. Core MUST NOT import CLI commands, presentation, exit policy, config, services, compatibility facades, idempotency, planning, inspection, `src/self`, or `src/runtime/cli-operation-context`.
-- `src/providers` and `src/state` are Core-owned logically. They stay in root `src/` this knife because of named physical stop points: providers import `src/package-manager/*` (ownership unlocked); state imports CLI `src/config` and `src/self/types`.
-- `src/agents` remains the documented **neutral catalog boundary**. `packages/core/src/lifecycle/model.ts` remains the documented **type-leaf reverse-import boundary**. `src/state` and `src/package-manager/index.ts` MAY import that leaf only. They MUST NOT import Core runtime.
-- `src/package-manager`, runtime ports except CLI operation context, and `src/agent-update` stay unlocked. `src/package-manager/index.ts` currently imports CLI `cli-context`, `config`, and `cli-operation-context`. That mixed coupling is a deferred split, not a reason to move package-manager into Core.
-- Architecture tests, not comments, enforce direction, the type-leaf boundary, the deferred package-manager exception, and the provider/state stop points.
+- `src/providers`, `src/state`, `src/package-manager`, and similar shared modules keep Core as the default owner (lifecycle domain / provider / state / receipt). This knife **defers relocation**; temporary root placement is an exception, not a reassignment to CLI. Named seams: providers still import `src/package-manager/*`; state still imports CLI `src/config` and `src/self/types`; `src/package-manager/index.ts` still imports CLI `cli-context` / `config`. Those seams do not make the modules CLI-owned.
+- `src/agents` remains the documented **neutral catalog boundary**. `packages/core/src/lifecycle/model.ts` remains the documented **type-leaf reverse-import boundary**. Neither boundary is CLI ownership. `src/state` and `src/package-manager/index.ts` MAY import that leaf only. They MUST NOT import Core runtime.
+- Runtime ports except CLI operation context, and `src/agent-update`, follow the same deferred-Core rule. Do not label them CLI-owned because they remain in root `src/` this knife.
+- Architecture tests, not comments, enforce direction, the type-leaf boundary, the deferred package-manager seam, and deferred Core relocation of providers/state/package-manager without treating root placement as CLI ownership.
 - Changelog framing is internal/architecture. No separate release unless product says otherwise.
 - This ADR supersedes the **physical path** in ADRs 0011–0014 (`src/core/...` → `packages/core/src/...`). Those ADRs remain in force for leaf vs runtime, no lifecycle barrel, and unpublished engines.
 
 ## Consequences
 
-- Contributors look in `packages/core/src` for Core engines and receipts, in root `src/` for CLI shell plus Core-owned modules that are physically blocked, and in `src/agents` for the neutral catalog.
+- Contributors look in `packages/core/src` for relocated Core engines and receipts, in root `src/` for CLI shell plus **deferred Core** modules whose relocation is an exception this knife, and in `src/agents` for the neutral catalog boundary.
 - Import paths from Core into remaining root modules are explicit (`../../../src/...`) and reviewable.
-- A later move of providers or state needs a product decision that lifts the named stop points; this directory is not a dump.
+- A later physical move of providers, state, or package-manager lifts named seams; it does not re-decide ownership away from Core. This directory is not a dump.
 - Published SDK consumers and CLI JSON contracts are unchanged by the relocation.
 
 ## Alternatives Considered
 
 - Keep re-exporting root `src/core` from `packages/core`. Rejected: that is the incomplete boundary #741 exists to remove.
-- Move providers and state into `packages/core` in the same knife because product assigned Core ownership. Rejected: state imports CLI config/self; providers import unlocked package-manager. That would guess mixed seams.
-- Move package-manager, runtime, and agent-update with providers. Rejected: product did not lock those owners.
+- Move providers and state into `packages/core` in the same knife because product assigned Core ownership. Rejected for this knife: state still imports CLI config/self; providers still import package-manager. Those are physical seams, not a reason to call the modules CLI-owned.
+- Move package-manager, runtime, and agent-update with providers in the same knife. Rejected for this knife: relocation is deferred. Default owner remains Core; root placement is an exception, not CLI ownership.
 - Introduce a third shared package for catalog/types/infrastructure. Rejected by ADR 0007.
 - Leave a `src/core` re-export shim for CLI convenience. Rejected: it preserves the old path and looks like a leftover.
 
 ## Follow-up
 
 - OpenSpec change `core-physical-source-separation` (issue #741).
-- Later knives may relocate providers/state only after product decides the `SelfInstallSource` / config-dir and package-manager-leaf questions.
+- Later knives may physically relocate providers, state, package-manager, and similar shared modules. Default owner remains Core. Catalog and the type-leaf stay the documented neutral boundary.

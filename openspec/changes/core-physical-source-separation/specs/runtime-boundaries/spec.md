@@ -36,11 +36,11 @@ Quantex SHALL allow CLI shell, presentation, commands, services, compatibility, 
 
 Quantex SHALL treat source ownership as:
 
-- Core-owned: lifecycle domain, provider adapters, persisted state, and receipts
+- Core-owned: lifecycle domain, provider adapters, persisted state, receipts, and similar shared modules (`src/providers`, `src/state`, `src/package-manager`, runtime ports except CLI operation context, `src/agent-update`, non-presentation utils)
 - CLI-owned: commands, presentation, exit policy, and self-upgrade UI
 - Neutral boundary: shared agent catalog (`src/agents`) and the Core-internal lifecycle type-leaf reverse-import seam (`packages/core/src/lifecycle/model.ts`)
 
-This knife MUST physically locate clear Core-owned runtime (former `src/core/**`, including lifecycle domain and receipts) under `packages/core/src`. It MUST NOT physically move `src/providers` or `src/state` into `packages/core` until product lifts the named stop points. It MUST NOT guess owners for `src/package-manager`, `src/runtime` except `cli-operation-context`, or `src/agent-update`. Architecture tests MUST allowlist the remaining root imports Core still needs, MUST fail on undocumented Core → CLI leaks, and MUST record the provider/state stop points. `src/package-manager/index.ts` MAY keep its existing CLI `cli-context` / `config` coupling as a named deferred exception; that coupling MUST NOT be treated as permission to import CLI shell from Core directly.
+This knife MUST physically locate former `src/core/**` (lifecycle domain and receipts) under `packages/core/src`. It MUST defer relocation of `src/providers`, `src/state`, `src/package-manager`, and similar shared modules. Default ownership for those modules remains Core. Temporary root placement MUST be documented as an exception and MUST NOT be treated as a reassignment to CLI. Catalog and the type-leaf MUST remain the documented neutral boundary and MUST NOT be labeled CLI-owned. Architecture tests MUST allowlist the remaining root imports Core still needs, MUST fail on undocumented Core → CLI leaks, and MUST record the deferred-relocation stop points. `src/package-manager/index.ts` MAY keep its existing CLI `cli-context` / `config` coupling as a named deferred seam; that coupling MUST NOT be treated as CLI ownership of package-manager or as permission to import CLI shell from Core directly.
 
 #### Scenario: Core may import documented root modules that are not CLI shell
 
@@ -54,18 +54,20 @@ This knife MUST physically locate clear Core-owned runtime (former `src/core/**`
 - **THEN** the architecture test fails
 - **AND THEN** the deferred package-manager exception does not authorize that new edge
 
-#### Scenario: Providers and state stay in root until stop points lift
+#### Scenario: Deferred Core modules stay in root without becoming CLI-owned
 
 - **WHEN** architecture tests inspect physical source layout after this knife
-- **THEN** `src/providers` and `src/state` still exist under root `src/`
+- **THEN** `src/providers`, `src/state`, and `src/package-manager` still exist under root `src/`
 - **AND THEN** `packages/core/src/providers` and `packages/core/src/state` are absent
-- **AND THEN** `src/state/index.ts` still imports `src/config` and `src/self/types` as the recorded state blocker
+- **AND THEN** that root placement is recorded as deferred Core relocation, not CLI ownership
+- **AND THEN** `src/state/index.ts` still imports `src/config` and `src/self/types` as the recorded state seam
 - **AND THEN** Core-owned provider adapters still import `src/package-manager` installer leaves rather than CLI commands
 
 #### Scenario: Catalog and type-leaf remain the neutral boundary
 
 - **WHEN** a contributor looks up shared catalog types or the receipt type leaf
-- **THEN** catalog modules remain under `src/agents`
+- **THEN** catalog modules remain under `src/agents` as the documented neutral boundary
+- **AND THEN** that root placement is not labeled CLI ownership
 - **AND THEN** `src/state` and `src/package-manager/index.ts` may import `packages/core/src/lifecycle/model.ts` only
 - **AND THEN** those reverse imports do not become published `quantex-core` SDK exports
 
@@ -87,7 +89,7 @@ Outside CLI-owned modules, root `src/` MUST NOT import Core runtime (`packages/c
 
 ### Requirement: Architecture tests SHALL prove Core source ownership
 
-The repository SHALL keep AST or import-graph architecture tests that (1) require Core implementation to live under `packages/core/src`, (2) forbid root `src/core` runtime files, (3) forbid Core → CLI shell edges, (4) forbid undocumented cycles, (5) allow the documented type-leaf reverse-import boundary and remaining root-import exceptions, and (6) record that Core-owned `src/providers` and `src/state` have not been physically moved while their stop points remain. Those tests MUST continue to prove lazy mutation loading, the published Core export freeze, and the absence of engine/route identifiers on the public SDK entry.
+The repository SHALL keep AST or import-graph architecture tests that (1) require Core implementation to live under `packages/core/src`, (2) forbid root `src/core` runtime files, (3) forbid Core → CLI shell edges, (4) forbid undocumented cycles, (5) allow the documented type-leaf reverse-import boundary and remaining root-import exceptions, and (6) record that Core-owned `src/providers`, `src/state`, and similar shared modules have deferred relocation this knife without being reassigned to CLI. Those tests MUST continue to prove lazy mutation loading, the published Core export freeze, and the absence of engine/route identifiers on the public SDK entry.
 
 #### Scenario: Physical ownership regression fails CI
 

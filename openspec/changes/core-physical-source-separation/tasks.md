@@ -27,6 +27,7 @@
 ## 5. Product-locked ownership alignment
 
 - [x] 5.1 Rewrite the ownership table to Core = lifecycle domain + provider/state/receipt, CLI = commands / presentation / exit policy / self-upgrade UI, and neutral boundary = shared catalog + type-leaf
-- [x] 5.2 Record physical stop points: do not move `src/providers` (package-manager unlocked) or `src/state` (CLI `config` + `self/types`) in this knife; do not guess package-manager / runtime / agent-update
+- [x] 5.2 Record deferred relocation for `src/providers`, `src/state`, `src/package-manager`, and similar shared modules: default owner remains Core; root placement is an exception, not CLI reassignment
 - [x] 5.3 Encode the product lock and stop points in architecture tests
 - [x] 5.4 Keep the PR draft. Do not auto-ready. Do not cut a release. Changelog remains internal/architecture.
+- [x] 5.5 Tighten ownership wording so deferred shared modules are not labeled CLI-owned or "unlocked"; catalog and type-leaf stay the documented neutral boundary
