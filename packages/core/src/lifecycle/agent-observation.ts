@@ -9,6 +9,9 @@
 // Product-path keep so the fix-relocated-package-update-verification archive PR still
 // runs the macOS test matrix. Hang leftover classify presence on this existing
 // observation file, not a restored src/lifecycle barrel.
+// Product-path keep so the core-physical-source-separation archive PR still
+// runs the macOS test matrix. Hang leftover classify presence on this existing
+// packages/core/src observation file, not a restored src/core re-export tree.
 import type { AgentDefinition, Platform } from '../../../../src/agents'
 import type {
   ProviderOperation,
