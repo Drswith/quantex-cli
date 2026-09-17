@@ -132,7 +132,7 @@ describe('Core package boundary', () => {
     expect(completePaths).not.toContain('src/providers/first-party.ts')
   })
 
-  it('allows only documented shared-module imports from Core', async () => {
+  it('allows only documented root-module imports from Core', async () => {
     const files = await typescriptFiles(CORE_SOURCE)
     const violations: string[] = []
 
@@ -194,6 +194,45 @@ describe('Core package boundary', () => {
     }
 
     expect(violations).toEqual([])
+  })
+
+  it('records product-locked ownership and physical stop points for providers and state', async () => {
+    await access(join(ROOT, 'src', 'providers'))
+    await access(join(ROOT, 'src', 'state'))
+    await access(join(ROOT, 'src', 'agents'))
+    await expect(access(join(CORE_SOURCE, 'providers'))).rejects.toThrow()
+    await expect(access(join(CORE_SOURCE, 'state'))).rejects.toThrow()
+    await expect(access(join(CORE_SOURCE, 'agents'))).rejects.toThrow()
+
+    const stateIndex = await readFile(join(ROOT, 'src', 'state', 'index.ts'), 'utf8')
+    const stateSchema = await readFile(join(ROOT, 'src', 'state', 'schema.ts'), 'utf8')
+    expect(stateIndex).toContain("from '../config'")
+    expect(stateIndex).toContain("from '../self/types'")
+    expect(stateSchema).toContain("from '../self/types'")
+    expect(stateIndex).toContain("from '../../packages/core/src/lifecycle/model'")
+
+    const providerFiles = await typescriptFiles(join(ROOT, 'src', 'providers'))
+    const packageManagerImporters: string[] = []
+    const cliLeaks: string[] = []
+    for (const file of providerFiles) {
+      const source = await readFile(file, 'utf8')
+      for (const specifier of importSpecifiers(source)) {
+        if (specifier.includes('package-manager')) {
+          packageManagerImporters.push(`${repositoryPath(file)} -> ${specifier}`)
+        }
+        if (
+          /(?:^|\/)cli-context(?:$|\/)/u.test(specifier) ||
+          /(?:^|\/)commands?(?:$|\/)/u.test(specifier) ||
+          /(?:^|\/)self(?:$|\/)/u.test(specifier) ||
+          /(?:^|\/)config(?:$|\/)/u.test(specifier)
+        ) {
+          cliLeaks.push(`${repositoryPath(file)} -> ${specifier}`)
+        }
+      }
+    }
+
+    expect(cliLeaks).toEqual([])
+    expect(packageManagerImporters.length).toBeGreaterThan(0)
   })
 
   it('records the deferred package-manager CLI coupling without allowing new Core to CLI leaks', async () => {

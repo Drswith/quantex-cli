@@ -23,3 +23,10 @@
 - [x] 4.2 Run `bun run test`
 - [x] 4.3 Run `bun run openspec:validate` and `bun run memory:check`
 - [x] 4.4 Commit, push, and open a draft PR for #741 that includes the ownership table, moved vs deferred modules, and architecture-only changelog framing. Do not auto-ready. Do not cut a release.
+
+## 5. Product-locked ownership alignment
+
+- [x] 5.1 Rewrite the ownership table to Core = lifecycle domain + provider/state/receipt, CLI = commands / presentation / exit policy / self-upgrade UI, and neutral boundary = shared catalog + type-leaf
+- [x] 5.2 Record physical stop points: do not move `src/providers` (package-manager unlocked) or `src/state` (CLI `config` + `self/types`) in this knife; do not guess package-manager / runtime / agent-update
+- [x] 5.3 Encode the product lock and stop points in architecture tests
+- [x] 5.4 Keep the PR draft. Do not auto-ready. Do not cut a release. Changelog remains internal/architecture.

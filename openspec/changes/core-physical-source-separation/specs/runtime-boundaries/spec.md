@@ -32,11 +32,17 @@ Quantex SHALL allow CLI shell, presentation, commands, services, compatibility, 
 - **THEN** it imports that module from `packages/core/src` or `quantex-core/internal`
 - **AND THEN** `packages/core/package.json` exports remain `.` and `./package.json`
 
-### Requirement: Shared infrastructure SHALL remain a documented neutral exception until a later knife
+### Requirement: Product-locked source ownership SHALL classify Core, CLI, and documented stop points
 
-Until a separately approved ownership change, Quantex SHALL keep `src/agents`, `src/providers`, `src/state`, `src/package-manager`, `src/runtime` except `cli-operation-context`, `src/agent-update`, and non-presentation `src/utils` in root `src/` as shared/neutral modules. Core MAY import those modules. Architecture tests MUST allowlist those edges and MUST fail on undocumented Core → CLI leaks. `src/package-manager/index.ts` MAY keep its existing CLI `cli-context` / `config` coupling as a named deferred exception; that coupling MUST NOT be treated as permission to import CLI shell from Core directly.
+Quantex SHALL treat source ownership as:
 
-#### Scenario: Core may import documented shared modules
+- Core-owned: lifecycle domain, provider adapters, persisted state, and receipts
+- CLI-owned: commands, presentation, exit policy, and self-upgrade UI
+- Neutral boundary: shared agent catalog (`src/agents`) and the Core-internal lifecycle type-leaf reverse-import seam (`packages/core/src/lifecycle/model.ts`)
+
+This knife MUST physically locate clear Core-owned runtime (former `src/core/**`, including lifecycle domain and receipts) under `packages/core/src`. It MUST NOT physically move `src/providers` or `src/state` into `packages/core` until product lifts the named stop points. It MUST NOT guess owners for `src/package-manager`, `src/runtime` except `cli-operation-context`, or `src/agent-update`. Architecture tests MUST allowlist the remaining root imports Core still needs, MUST fail on undocumented Core → CLI leaks, and MUST record the provider/state stop points. `src/package-manager/index.ts` MAY keep its existing CLI `cli-context` / `config` coupling as a named deferred exception; that coupling MUST NOT be treated as permission to import CLI shell from Core directly.
+
+#### Scenario: Core may import documented root modules that are not CLI shell
 
 - **WHEN** a Core engine needs catalog types, provider adapters, state schema, package-manager installers, runtime ports, or agent-update helpers
 - **THEN** it may import those modules from root `src/`
@@ -47,6 +53,21 @@ Until a separately approved ownership change, Quantex SHALL keep `src/agents`, `
 - **WHEN** a Core module adds a direct import of `src/commands`, `src/cli-context`, `src/self`, or another CLI-owned path
 - **THEN** the architecture test fails
 - **AND THEN** the deferred package-manager exception does not authorize that new edge
+
+#### Scenario: Providers and state stay in root until stop points lift
+
+- **WHEN** architecture tests inspect physical source layout after this knife
+- **THEN** `src/providers` and `src/state` still exist under root `src/`
+- **AND THEN** `packages/core/src/providers` and `packages/core/src/state` are absent
+- **AND THEN** `src/state/index.ts` still imports `src/config` and `src/self/types` as the recorded state blocker
+- **AND THEN** Core-owned provider adapters still import `src/package-manager` installer leaves rather than CLI commands
+
+#### Scenario: Catalog and type-leaf remain the neutral boundary
+
+- **WHEN** a contributor looks up shared catalog types or the receipt type leaf
+- **THEN** catalog modules remain under `src/agents`
+- **AND THEN** `src/state` and `src/package-manager/index.ts` may import `packages/core/src/lifecycle/model.ts` only
+- **AND THEN** those reverse imports do not become published `quantex-core` SDK exports
 
 ### Requirement: Reverse imports into Core SHALL be limited to the documented type leaf
 
@@ -66,7 +87,7 @@ Outside CLI-owned modules, root `src/` MUST NOT import Core runtime (`packages/c
 
 ### Requirement: Architecture tests SHALL prove Core source ownership
 
-The repository SHALL keep AST or import-graph architecture tests that (1) require Core implementation to live under `packages/core/src`, (2) forbid root `src/core` runtime files, (3) forbid Core → CLI shell edges, (4) forbid undocumented cycles, and (5) allow the documented type-leaf reverse edges and shared-module exceptions. Those tests MUST continue to prove lazy mutation loading, the published Core export freeze, and the absence of engine/route identifiers on the public SDK entry.
+The repository SHALL keep AST or import-graph architecture tests that (1) require Core implementation to live under `packages/core/src`, (2) forbid root `src/core` runtime files, (3) forbid Core → CLI shell edges, (4) forbid undocumented cycles, (5) allow the documented type-leaf reverse-import boundary and remaining root-import exceptions, and (6) record that Core-owned `src/providers` and `src/state` have not been physically moved while their stop points remain. Those tests MUST continue to prove lazy mutation loading, the published Core export freeze, and the absence of engine/route identifiers on the public SDK entry.
 
 #### Scenario: Physical ownership regression fails CI
 
