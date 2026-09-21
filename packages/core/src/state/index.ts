@@ -2,6 +2,9 @@
 // Live importers across Core engines, package-manager, and the CLI v1 barrel.
 // Not a leftover pass-through of config or self-upgrade UI.
 // S3 leftover scan: KEEP product-path hang here (Core-internal leftover; do not restore src/lifecycle).
+// Product-path keep so the relocate-core-state archive PR still
+// runs the macOS test matrix. Hang leftover classify presence on this existing
+// packages/core/src/state file, not a restored src/state runtime tree.
 import type { LifecycleReceipt } from '../lifecycle/model'
 import type { InstalledAgentState, QuantexState, SelfInstallSource, SelfState } from './schema'
 import type { LifecycleStateStore } from './store'
