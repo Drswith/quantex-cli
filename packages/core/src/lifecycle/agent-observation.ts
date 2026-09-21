@@ -1,6 +1,6 @@
 // L3: Core-internal agent lifecycle observation. Not a leaf (imports agents,
 // providers, type-only state, provider-binding, and compare-versions). Do not
-// re-export from src/core/index.ts or packages/core. src/state MUST NOT import
+// re-export from src/core/index.ts or packages/core. packages/core/src/state MUST NOT import
 // this module (ADR 0011 / 0013).
 // L5 leftover scan: KEEP product-path hang here (do not restore src/lifecycle).
 // Product-path keep so the fix-codex-update-source-mismatch archive PR still
@@ -13,8 +13,8 @@
 // runs the macOS test matrix. Hang leftover classify presence on this existing
 // packages/core/src observation file, not a restored src/core re-export tree.
 import type { AgentDefinition, Platform } from '../../../../src/agents'
-import type { InstalledAgentState } from '../../../../src/state'
 import type { ProviderOperation, ProviderOutcome, ProviderObservation, ProviderRegistry } from '../providers'
+import type { InstalledAgentState } from '../state'
 import type { LifecycleObservation, LifecycleReceipt } from './model'
 import { compareVersions } from '../../../../src/utils/compare-versions'
 import {

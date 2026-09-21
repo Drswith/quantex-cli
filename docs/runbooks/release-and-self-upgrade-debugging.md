@@ -210,7 +210,7 @@ If the wrong provider is chosen, inspect install-source detection before touchin
 Relevant code paths:
 
 - `src/self/index.ts`
-- `src/state/index.ts`
+- `packages/core/src/state/index.ts`
 
 Useful checks:
 

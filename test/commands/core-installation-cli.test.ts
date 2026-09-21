@@ -10,13 +10,13 @@ import type { AgentDefinition } from '../../src/agents'
 import type { InstalledAgentState } from '../../src/state'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { runCoreInvocation, type CoreInvocationOutcome } from '../../packages/core/src/invocation'
+import { StateSchemaError } from '../../packages/core/src/state/schema'
 import { cancelCliContextOperations, setCliContext } from '../../src/cli-context'
 import { executeCommandWithRuntime } from '../../src/command-runtime'
 import {
   createCoreInstallationCliSession,
   projectCoreInstallationOutcome,
 } from '../../src/commands/core-installation-cli'
-import { StateSchemaError } from '../../src/state/schema'
 import { ResourceLockError } from '../../src/utils/lock'
 
 const agent: AgentDefinition = {

@@ -6,7 +6,7 @@ import {
   parseStateDocument,
   projectQuantexState,
   replaceLegacyProjection,
-} from '../../src/state/schema'
+} from '../../packages/core/src/state/schema'
 
 describe('state schema', () => {
   it('normalizes legacy state into the current internal document', () => {

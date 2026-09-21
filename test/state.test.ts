@@ -2,6 +2,7 @@ import { existsSync, mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterAll, afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { CURRENT_STATE_SCHEMA_VERSION, LIFECYCLE_RECEIPT_SCHEMA_VERSION } from '../packages/core/src/state/schema'
 import * as config from '../src/config'
 import {
   getLifecycleReceipt,
@@ -17,7 +18,6 @@ import {
   setSelfUpdateNoticeState,
   StateFileError,
 } from '../src/state'
-import { CURRENT_STATE_SCHEMA_VERSION, LIFECYCLE_RECEIPT_SCHEMA_VERSION } from '../src/state/schema'
 import { acquireResourceLock } from '../src/utils/lock'
 
 const tempHome = join(tmpdir(), `quantex-state-test-${Date.now()}`)

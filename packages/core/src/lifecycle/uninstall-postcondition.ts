@@ -1,5 +1,5 @@
 // L3: Core-internal uninstall postcondition retry used by uninstall-executor.
-// Do not re-export from src/core/index.ts or packages/core. src/state MUST NOT
+// Do not re-export from src/core/index.ts or packages/core. packages/core/src/state MUST NOT
 // import this module (ADR 0011 / 0013 / 0014).
 // L5 leftover scan: KEEP product-path hang here (do not restore src/lifecycle).
 export interface ExecutableAbsenceWaitOptions {

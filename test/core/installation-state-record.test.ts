@@ -1,10 +1,10 @@
 import type { LifecycleReceipt } from '../../packages/core/src/lifecycle/model'
-import type { InstalledAgentState, VersionedQuantexState } from '../../src/state/schema'
-import type { StateDocumentPersistence } from '../../src/state/store'
+import type { InstalledAgentState, VersionedQuantexState } from '../../packages/core/src/state/schema'
+import type { StateDocumentPersistence } from '../../packages/core/src/state/store'
 import { describe, expect, it, vi } from 'vitest'
 import { prepareCoreInstallationStateRecord } from '../../packages/core/src/installation-state-record'
-import { createEmptyStateDocument } from '../../src/state/schema'
-import { LifecycleStateStore } from '../../src/state/store'
+import { createEmptyStateDocument } from '../../packages/core/src/state/schema'
+import { LifecycleStateStore } from '../../packages/core/src/state/store'
 
 const installedState: InstalledAgentState = {
   agentName: 'fixture-agent',

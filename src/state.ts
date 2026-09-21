@@ -1,7 +1,11 @@
-// KEEP (S1): published v1 state convenience barrel over src/state/index.
+// KEEP (S1): published v1 state convenience barrel over packages/core/src/state.
 // Compatibility and production importers use this path. Frozen state v2;
 // not a leftover pass-through to fold.
 // S1 leftover scan: KEEP product-path hang here (thick-area zero-ref; do not restore src/lifecycle).
+import { bindCliStateHost } from './runtime/cli-state-host'
+
+bindCliStateHost()
+
 export {
   getInstalledAgentState,
   getLifecycleReceipt,
@@ -20,5 +24,5 @@ export {
   setSelfInstallSource,
   setSelfUpdateNoticeState,
   StateFileError,
-} from './state/index'
-export type { InstalledAgentState, QuantexState, SelfState } from './state/index'
+} from '../packages/core/src/state'
+export type { InstalledAgentState, QuantexState, SelfState } from '../packages/core/src/state'

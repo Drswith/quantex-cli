@@ -2,19 +2,11 @@
 // state/receipt cleanup. Importer: src/commands/uninstall.ts.
 // S3 leftover scan: KEEP product-path hang here (Core-internal leftover; do not restore src/lifecycle).
 import type { AgentDefinition } from '../../../src/agents/types'
-import type { InstalledAgentState } from '../../../src/state'
 import type { LifecycleReceipt } from './lifecycle/model'
 import type { LifecycleProviderBinding } from './lifecycle/provider-binding'
 import type { ProviderOutcome, ProviderObservation } from './providers/types'
+import type { InstalledAgentState } from './state'
 import { getAgentByNameOrAlias } from '../../../src/agents'
-import {
-  getInstalledAgentState,
-  getLifecycleReceipt,
-  removeInstalledAgentState,
-  removeLifecycleReceipt,
-  setInstalledAgentState,
-  setLifecycleReceipt,
-} from '../../../src/state'
 import { isBinaryInPath } from '../../../src/utils/detect'
 import { canUninstallInstallType } from '../../../src/utils/install'
 import { isResourceLockError, type ResourceLockError } from '../../../src/utils/lock'
@@ -26,6 +18,14 @@ import {
 import { observeLifecycleProvider } from './lifecycle/provider-evidence'
 import { waitForUninstallAbsence } from './lifecycle/uninstall-postcondition'
 import { uninstallInstalledAgentOutcome, withAgentLifecycleLock } from './package-manager'
+import {
+  getInstalledAgentState,
+  getLifecycleReceipt,
+  removeInstalledAgentState,
+  removeLifecycleReceipt,
+  setInstalledAgentState,
+  setLifecycleReceipt,
+} from './state'
 
 export type CoreUninstallFailureLifecycle =
   | 'conflicting-source'

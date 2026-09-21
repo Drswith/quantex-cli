@@ -12,9 +12,9 @@ import type {
   ProviderOutcome,
   ProviderVerification,
 } from '../../packages/core/src/providers/types'
+import type { InstalledAgentState } from '../../packages/core/src/state/schema'
 import type { CoreRequestOptions } from '../../packages/core/src/types'
 import type { AgentDefinition } from '../../src/agents/types'
-import type { InstalledAgentState } from '../../src/state/schema'
 import { describe, expect, it } from 'vitest'
 import { executeCoreInstallation } from '../../packages/core/src/installation-executor'
 import { runCoreInvocation } from '../../packages/core/src/invocation'

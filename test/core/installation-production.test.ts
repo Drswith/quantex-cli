@@ -11,15 +11,15 @@ import type {
   ProviderOutcome,
   ProviderTarget,
 } from '../../packages/core/src/providers/types'
+import type { VersionedQuantexState } from '../../packages/core/src/state/schema'
+import type { StateDocumentPersistence } from '../../packages/core/src/state/store'
 import type { AgentDefinition } from '../../src/agents/types'
-import type { VersionedQuantexState } from '../../src/state/schema'
-import type { StateDocumentPersistence } from '../../src/state/store'
 import { describe, expect, it, vi } from 'vitest'
 import { createProductionCoreInstallationPorts } from '../../packages/core/src/installation-production'
 import { runCoreInvocation } from '../../packages/core/src/invocation'
 import { createProviderRegistry } from '../../packages/core/src/providers/registry'
-import { createEmptyStateDocument } from '../../src/state/schema'
-import { LifecycleStateStore } from '../../src/state/store'
+import { createEmptyStateDocument } from '../../packages/core/src/state/schema'
+import { LifecycleStateStore } from '../../packages/core/src/state/store'
 
 const configDir = '/isolated/quantex-config'
 const verifiedAt = '2026-07-23T01:02:03.000Z'

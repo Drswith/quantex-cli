@@ -1,6 +1,6 @@
 // KEEP (S1): frozen hardcoded managed-install-type list for state v2 schema
 // validation. Differential from package-manager/capabilities (live registry).
-// src/state MUST NOT depend on the first-party provider registry.
+// packages/core/src/state MUST NOT depend on the first-party provider registry.
 import type { InstallType, ManagedInstallType } from '../../../../src/agents/types'
 
 const managedInstallTypes = Object.freeze([

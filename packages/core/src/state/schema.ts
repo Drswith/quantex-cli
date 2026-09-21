@@ -1,10 +1,11 @@
-import type { InstallType, PackageTargetKind } from '../agents/types'
-import type { SelfInstallSource } from '../self/types'
-import { LIFECYCLE_RECEIPT_SCHEMA_VERSION, type LifecycleReceipt } from '../../packages/core/src/lifecycle/model'
-import { isManagedInstallType } from '../../packages/core/src/package-manager/managed-install-types'
+import type { InstallType, PackageTargetKind } from '../../../../src/agents/types'
+import { LIFECYCLE_RECEIPT_SCHEMA_VERSION, type LifecycleReceipt } from '../lifecycle/model'
+import { isManagedInstallType } from '../package-manager/managed-install-types'
 
 export const CURRENT_STATE_SCHEMA_VERSION = 2 as const
 export { LIFECYCLE_RECEIPT_SCHEMA_VERSION }
+
+export type SelfInstallSource = 'binary' | 'bun' | 'npm' | 'source' | 'unknown'
 
 export class StateSchemaError extends Error {
   constructor(message: string) {

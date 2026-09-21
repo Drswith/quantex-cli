@@ -6,7 +6,7 @@ import { tmpdir } from 'node:os'
 import { dirname, join } from 'node:path'
 import process from 'node:process'
 import { fileURLToPath } from 'node:url'
-import { parseStateDocument } from '../../src/state/schema'
+import { parseStateDocument } from '../../packages/core/src/state/schema'
 import { assertReadOnlyCommand } from '../lib/read-only-spawn-guard'
 import { resolveExecutableFromPath } from '../lib/resolve-executable'
 

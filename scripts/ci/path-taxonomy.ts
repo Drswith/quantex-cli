@@ -36,7 +36,6 @@ export const sandboxRelevantPrefixes = [
   'src/config/',
   'src/inspection/',
   'src/self/',
-  'src/state/',
   'src/testing/',
   'src/utils/',
   'test/testing/',
