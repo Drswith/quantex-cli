@@ -251,7 +251,18 @@ impl Sandbox {
         for (key, value) in &self.env {
             command.env(key, value);
         }
-        let output = command.output().expect("failed to spawn the quantex binary");
+        // A binary copied a moment ago can be briefly busy on Linux while another test
+        // thread forks; retry instead of failing on that race.
+        let mut attempts = 0;
+        let output = loop {
+            match command.output() {
+                Err(error) if error.kind() == std::io::ErrorKind::ExecutableFileBusy && attempts < 50 => {
+                    attempts += 1;
+                    std::thread::sleep(std::time::Duration::from_millis(20));
+                }
+                result => break result.expect("failed to spawn the quantex binary"),
+            }
+        };
         Run {
             code: output.status.code().unwrap_or(-1),
             stdout: String::from_utf8_lossy(&output.stdout).into_owned(),

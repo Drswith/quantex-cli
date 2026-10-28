@@ -58,7 +58,15 @@ fn a_windows_binary_is_replaced_once_upgrade_exits() {
             .map(|entry| entry.unwrap().file_name().to_string_lossy().into_owned())
             .collect();
         let log = fs::read_to_string(&helper_log).unwrap_or_else(|error| format!("<no helper log: {error}>"));
-        format!("files: {files:?}\nhelper log:\n{log}")
+        let processes = std::process::Command::new("tasklist")
+            .args(["/FI", "IMAGENAME eq powershell.exe"])
+            .output()
+            .map(|output| String::from_utf8_lossy(&output.stdout).into_owned())
+            .unwrap_or_default();
+        format!(
+            "files: {files:?}\nupgrade stderr:\n{}\nhelper log:\n{log}\nprocesses:\n{processes}",
+            run.stderr
+        )
     };
     assert_eq!(reported, "9.9.9", "the executable was replaced\n{}", describe());
 

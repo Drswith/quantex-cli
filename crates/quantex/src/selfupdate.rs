@@ -941,6 +941,7 @@ fn schedule_windows_replacement(
         format!("$expectedVersion = '{}'", version.unwrap_or_default().replace('\'', "''")),
         format!("$peerPath = '{peer}'"),
         "while (Get-Process -Id $pidToWait -ErrorAction SilentlyContinue) { Start-Sleep -Milliseconds 200 }".into(),
+        "Write-Output \"waited for $pidToWait\"".into(),
         "$backupReady = $false".into(),
         "for ($attempt = 0; $attempt -lt 50; $attempt++) {".into(),
         "  try {".into(),
@@ -967,6 +968,7 @@ fn schedule_windows_replacement(
         "  Remove-Item -LiteralPath $tempDir -Force -Recurse -ErrorAction SilentlyContinue".into(),
         "  exit 1".into(),
         "}".into(),
+        "Write-Output 'swapped'".into(),
         "if ($expectedVersion -ne '') {".into(),
         "  $output = & $targetPath --version 2>$null".into(),
         "  if ($LASTEXITCODE -ne 0 -or ($output -notmatch [regex]::Escape($expectedVersion))) {".into(),
@@ -979,6 +981,7 @@ fn schedule_windows_replacement(
         "if ($peerPath -ne '' -and (Test-Path -LiteralPath $peerPath)) {".into(),
         "  Copy-Item -LiteralPath $targetPath -Destination $peerPath -Force".into(),
         "}".into(),
+        "Write-Output 'verified'".into(),
         "Remove-Item -LiteralPath $backupPath -Force -ErrorAction SilentlyContinue".into(),
         "Remove-Item -LiteralPath $tempDir -Force -Recurse -ErrorAction SilentlyContinue".into(),
     ]
