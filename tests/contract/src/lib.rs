@@ -185,8 +185,29 @@ impl Sandbox {
         I: IntoIterator<Item = S>,
         S: AsRef<OsStr>,
     {
+        self.run_program(quantex_bin(), args)
+    }
+
+    /// A private copy of the binary under test, for commands that replace their own
+    /// executable.
+    pub fn copy_quantex(&self) -> PathBuf {
+        let dir = self.root().join("app");
+        fs::create_dir_all(&dir).unwrap();
+        let name = if cfg!(windows) { "quantex.exe" } else { "quantex" };
+        let copy = dir.join(name);
+        fs::copy(quantex_bin(), &copy).unwrap();
+        make_executable(&copy);
+        copy
+    }
+
+    /// Runs `program` in the sandbox, as `run` runs quantex.
+    pub fn run_program<I, S>(&self, program: &Path, args: I) -> Run
+    where
+        I: IntoIterator<Item = S>,
+        S: AsRef<OsStr>,
+    {
         let home = self.home();
-        let mut command = Command::new(quantex_bin());
+        let mut command = Command::new(program);
         command
             .args(args)
             .env_clear()
@@ -308,13 +329,19 @@ pub struct HttpStub {
 impl HttpStub {
     /// Serves `routes` (path → (status, body)) until the stub is dropped with the test.
     pub fn start(routes: Vec<(&str, u16, &str)>) -> Self {
+        Self::serve(
+            routes
+                .into_iter()
+                .map(|(path, status, body)| (path.to_owned(), status, body.as_bytes().to_vec()))
+                .collect(),
+        )
+    }
+
+    /// `start` with binary bodies.
+    pub fn serve(routes: Vec<(String, u16, Vec<u8>)>) -> Self {
         use std::io::{BufRead, BufReader, Write};
         let listener = std::net::TcpListener::bind("127.0.0.1:0").unwrap();
         let address = format!("http://{}", listener.local_addr().unwrap());
-        let routes: Vec<(String, u16, String)> = routes
-            .into_iter()
-            .map(|(path, status, body)| (path.to_owned(), status, body.to_owned()))
-            .collect();
         let hits = std::sync::Arc::new(std::sync::Mutex::new(Vec::new()));
         let recorded = std::sync::Arc::clone(&hits);
         std::thread::spawn(move || {
@@ -336,12 +363,13 @@ impl HttpStub {
                 let (status, body) = routes
                     .iter()
                     .find(|(route, _, _)| *route == path)
-                    .map_or((404, "{}".to_owned()), |(_, status, body)| (*status, body.clone()));
-                let response = format!(
-                    "HTTP/1.1 {status} OK\r\nContent-Type: application/json\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{body}",
+                    .map_or((404, b"{}".to_vec()), |(_, status, body)| (*status, body.clone()));
+                let head = format!(
+                    "HTTP/1.1 {status} OK\r\nContent-Type: application/octet-stream\r\nContent-Length: {}\r\nConnection: close\r\n\r\n",
                     body.len()
                 );
-                let _ = stream.write_all(response.as_bytes());
+                let _ = stream.write_all(head.as_bytes());
+                let _ = stream.write_all(&body);
             }
         });
         Self { address, hits }
@@ -406,6 +434,55 @@ case "$1" in
 esac
 exit 0"#;
     sandbox.fake_tool("npm", script, "exit /b 1");
+}
+
+/// Stores `body` under `key` in the response cache, fresh for an hour.
+pub fn seed_cache(sandbox: &Sandbox, key: &str, body: &str) {
+    let now = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .unwrap()
+        .as_millis() as i64;
+    let path = sandbox.quantex_dir().join("cache").join("versions.json");
+    let mut cache: Value = fs::read_to_string(&path)
+        .ok()
+        .and_then(|text| serde_json::from_str(&text).ok())
+        .unwrap_or_else(|| serde_json::json!({ "entries": {} }));
+    cache["entries"][key] = serde_json::json!({ "body": body, "expiresAt": now + 3_600_000, "fetchedAt": now });
+    fs::create_dir_all(path.parent().unwrap()).unwrap();
+    fs::write(&path, serde_json::to_string_pretty(&cache).unwrap()).unwrap();
+}
+
+/// A release `.tar.gz` holding one executable `name` with `contents`.
+pub fn release_tar_gz(name: &str, contents: &[u8]) -> Vec<u8> {
+    use std::io::Write;
+    let mut header = [0u8; 512];
+    header[..name.len()].copy_from_slice(name.as_bytes());
+    header[100..108].copy_from_slice(b"0000755\0");
+    header[108..116].copy_from_slice(b"0000000\0");
+    header[116..124].copy_from_slice(b"0000000\0");
+    header[124..136].copy_from_slice(format!("{:011o}\0", contents.len()).as_bytes());
+    header[136..148].copy_from_slice(b"00000000000\0");
+    header[156] = b'0';
+    header[257..263].copy_from_slice(b"ustar\0");
+    header[263..265].copy_from_slice(b"00");
+    header[148..156].fill(b' ');
+    let checksum: u32 = header.iter().map(|&byte| u32::from(byte)).sum();
+    header[148..156].copy_from_slice(format!("{checksum:06o}\0 ").as_bytes());
+    let mut tar = header.to_vec();
+    tar.extend_from_slice(contents);
+    tar.resize(tar.len() + (512 - contents.len() % 512) % 512 + 1024, 0);
+    let mut encoder = flate2::write::GzEncoder::new(Vec::new(), flate2::Compression::default());
+    encoder.write_all(&tar).unwrap();
+    encoder.finish().unwrap()
+}
+
+/// Lowercase hex SHA-256.
+pub fn sha256_hex(bytes: &[u8]) -> String {
+    use sha2::Digest;
+    sha2::Sha256::digest(bytes)
+        .iter()
+        .map(|byte| format!("{byte:02x}"))
+        .collect()
 }
 
 /// Seeds the version cache so the `latest` dist-tag of `package` resolves to `version`

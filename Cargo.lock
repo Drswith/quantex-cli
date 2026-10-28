@@ -520,6 +520,7 @@ version = "2.0.0-alpha.0"
 dependencies = [
  "clap",
  "ctrlc",
+ "flate2",
  "libc",
  "serde",
  "serde_json",
@@ -538,7 +539,9 @@ dependencies = [
 name = "quantex-contract-tests"
 version = "2.0.0-alpha.0"
 dependencies = [
+ "flate2",
  "serde_json",
+ "sha2",
  "tempfile",
 ]
 

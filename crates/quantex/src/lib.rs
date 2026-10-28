@@ -7,6 +7,7 @@ use std::ffi::OsString;
 use std::io::Write;
 use std::sync::Arc;
 
+pub mod archive;
 pub mod catalog;
 pub mod cli;
 pub mod commands;

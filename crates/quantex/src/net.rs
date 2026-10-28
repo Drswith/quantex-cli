@@ -143,25 +143,30 @@ fn fetch_with_retries(ctx: &Context, url: &str, etag: Option<&str>, timeout_ms: 
 
 /// Fetches `url` through the response cache, as v1's `fetchTextWithCache` did.
 pub fn fetch_text_with_cache(ctx: &Context, url: &str, key: &str, expect_json: bool) -> Option<String> {
+    fetch_text_with_mode(ctx, url, key, expect_json, ctx.cache_mode)
+}
+
+/// `fetch_text_with_cache` with an explicit cache mode instead of the invocation's.
+pub fn fetch_text_with_mode(ctx: &Context, url: &str, key: &str, expect_json: bool, mode: CacheMode) -> Option<String> {
     let dir = ctx.quantex_dir();
     let config = store::load_config(&dir);
     let ttl_ms = (config.version_cache_ttl_hours() * 3_600_000) as i64;
     let path = cache_path(&dir);
-    let cached = if ctx.cache_mode == CacheMode::NoCache {
+    let cached = if mode == CacheMode::NoCache {
         None
     } else {
         let _guard = CACHE_LOCK.lock().unwrap();
         load_cache(&path).get(key).and_then(parse_entry)
     };
     let now = crate::time::now_millis();
-    if ctx.cache_mode == CacheMode::Default
+    if mode == CacheMode::Default
         && let Some(entry) = &cached
         && entry.expires_at > now
     {
         record_cached(ctx, entry, ttl_ms);
         return Some(entry.body.clone());
     }
-    let etag = if ctx.cache_mode == CacheMode::NoCache {
+    let etag = if mode == CacheMode::NoCache {
         None
     } else {
         cached.as_ref().and_then(|entry| entry.etag.clone())
@@ -185,7 +190,7 @@ pub fn fetch_text_with_cache(ctx: &Context, url: &str, key: &str, expect_json: b
     if response.status == 304
         && let Some(entry) = &cached
     {
-        if ctx.cache_mode != CacheMode::NoCache {
+        if mode != CacheMode::NoCache {
             let _guard = CACHE_LOCK.lock().unwrap();
             let mut entries = load_cache(&path);
             entries.insert(
@@ -203,7 +208,7 @@ pub fn fetch_text_with_cache(ctx: &Context, url: &str, key: &str, expect_json: b
     if expect_json && serde_json::from_str::<Value>(&body).is_err() {
         return fallback(cached);
     }
-    if ctx.cache_mode != CacheMode::NoCache {
+    if mode != CacheMode::NoCache {
         let _guard = CACHE_LOCK.lock().unwrap();
         let mut entries = load_cache(&path);
         let mut entry = Map::new();
@@ -222,6 +227,58 @@ pub fn fetch_text_with_cache(ctx: &Context, url: &str, key: &str, expect_json: b
 
 pub fn fetch_json_with_cache(ctx: &Context, url: &str, key: &str) -> Option<Value> {
     fetch_text_with_cache(ctx, url, key, true).and_then(|body| serde_json::from_str(&body).ok())
+}
+
+pub fn fetch_json_with_mode(ctx: &Context, url: &str, key: &str, mode: CacheMode) -> Option<Value> {
+    fetch_text_with_mode(ctx, url, key, true, mode).and_then(|body| serde_json::from_str(&body).ok())
+}
+
+/// Why a download did not produce a body.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum DownloadError {
+    Status(u16),
+    Failed(String),
+    TimedOut,
+}
+
+/// Largest release archive a download accepts.
+const DOWNLOAD_LIMIT: u64 = 512 * 1024 * 1024;
+
+/// GETs `url` without the cache, bounded only by the invocation deadline.
+pub fn download(ctx: &Context, url: &str) -> Result<Vec<u8>, DownloadError> {
+    let timeout = match ctx.deadline() {
+        Some(deadline) => {
+            let remaining = deadline.saturating_duration_since(Instant::now());
+            if remaining.is_zero() {
+                ctx.mark_deadline_hit();
+                return Err(DownloadError::TimedOut);
+            }
+            Some(remaining)
+        }
+        None => None,
+    };
+    let agent: ureq::Agent = ureq::Agent::config_builder()
+        .timeout_global(timeout)
+        .http_status_as_error(false)
+        .user_agent(user_agent())
+        .build()
+        .into();
+    let outcome = agent.get(url).call().and_then(|mut response| {
+        let status = response.status().as_u16();
+        if !(200..300).contains(&status) {
+            return Ok(Err(DownloadError::Status(status)));
+        }
+        let body = response.body_mut().with_config().limit(DOWNLOAD_LIMIT).read_to_vec()?;
+        Ok(Ok(body))
+    });
+    match outcome {
+        Ok(result) => result,
+        Err(_) if ctx.deadline_passed() => {
+            ctx.mark_deadline_hit();
+            Err(DownloadError::TimedOut)
+        }
+        Err(error) => Err(DownloadError::Failed(error.to_string())),
+    }
 }
 
 /// `encodeURIComponent`.
@@ -250,6 +307,16 @@ pub fn npm_registry() -> String {
 
 /// The `version` published under `dist_tag` for an npm package.
 pub fn latest_npm_version(ctx: &Context, package: &str, dist_tag: &str, registry: &str) -> Option<String> {
+    latest_npm_version_with_mode(ctx, package, dist_tag, registry, ctx.cache_mode)
+}
+
+pub fn latest_npm_version_with_mode(
+    ctx: &Context,
+    package: &str,
+    dist_tag: &str,
+    registry: &str,
+    mode: CacheMode,
+) -> Option<String> {
     let registry = store::normalize_registry_url(registry).unwrap_or_else(|| OFFICIAL_NPM_REGISTRY.to_owned());
     let url = format!(
         "{registry}/{}/{}",
@@ -257,10 +324,41 @@ pub fn latest_npm_version(ctx: &Context, package: &str, dist_tag: &str, registry
         encode_component(dist_tag)
     );
     let key = format!("npm:{registry}:{package}:{dist_tag}");
-    fetch_json_with_cache(ctx, &url, &key)?
+    fetch_json_with_mode(ctx, &url, &key, mode)?
         .get("version")?
         .as_str()
         .map(str::to_owned)
+}
+
+/// Stores a JSON value in the response cache, as v1's version-cache port did.
+pub fn cache_write(ctx: &Context, key: &str, value: &Value, expires_at: i64) {
+    if ctx.cache_mode == CacheMode::NoCache {
+        return;
+    }
+    let path = cache_path(&ctx.quantex_dir());
+    let _guard = CACHE_LOCK.lock().unwrap();
+    let mut entries = load_cache(&path);
+    entries.insert(
+        key.into(),
+        json!({ "body": value.to_string(), "expiresAt": expires_at, "fetchedAt": crate::time::now_millis() }),
+    );
+    save_cache(&path, &entries);
+}
+
+/// A value `cache_write` stored, while it is fresh.
+pub fn cache_read(ctx: &Context, key: &str) -> Option<Value> {
+    if ctx.cache_mode == CacheMode::NoCache {
+        return None;
+    }
+    let path = cache_path(&ctx.quantex_dir());
+    let entry = {
+        let _guard = CACHE_LOCK.lock().unwrap();
+        load_cache(&path).get(key).and_then(parse_entry)?
+    };
+    if entry.expires_at <= crate::time::now_millis() {
+        return None;
+    }
+    serde_json::from_str(&entry.body).ok()
 }
 
 #[cfg(test)]

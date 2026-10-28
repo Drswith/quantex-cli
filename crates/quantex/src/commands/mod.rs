@@ -13,6 +13,7 @@ mod config;
 pub mod mutate;
 mod system;
 mod update;
+mod upgrade;
 
 /// Runs a management command and returns the process exit code.
 pub fn dispatch(ctx: Arc<Context>, invocation: Invocation) -> i32 {
@@ -115,6 +116,14 @@ pub fn dispatch(ctx: Arc<Context>, invocation: Invocation) -> i32 {
                 update::update(ctx, agent.as_deref(), all, managed)
             })
         }
+        "upgrade" => {
+            let check = invocation.flag("check");
+            let channel = invocation.value("channel").map(str::to_owned);
+            let target = Target::new(crate::protocol::TargetKind::SelfTarget, Some("quantex"));
+            runtime::execute(ctx, "upgrade", Some(target), move |ctx| {
+                upgrade::upgrade(ctx, check, channel.as_deref())
+            })
+        }
         other => {
             let outcome = Outcome::failure(
                 other,
@@ -130,5 +139,7 @@ pub fn dispatch(ctx: Arc<Context>, invocation: Invocation) -> i32 {
     }
 }
 
-/// Work that runs after a result has been written, such as the update notice.
-pub fn after_success(_ctx: &Context, _outcome: &Outcome) {}
+/// Work that runs after a result has been written: the update notice.
+pub fn after_success(ctx: &Context, outcome: &Outcome) {
+    upgrade::update_notice(ctx, outcome);
+}
