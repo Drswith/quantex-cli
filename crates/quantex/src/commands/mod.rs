@@ -10,6 +10,7 @@ use crate::runtime;
 mod agents;
 mod catalog_commands;
 mod config;
+pub mod mutate;
 mod system;
 
 /// Runs a management command and returns the process exit code.
@@ -51,6 +52,21 @@ pub fn dispatch(ctx: Arc<Context>, invocation: Invocation) -> i32 {
             system::capabilities,
         ),
         "doctor" => runtime::execute(ctx, "doctor", Some(Target::system("doctor")), system::doctor),
+        "install" => {
+            let agents = invocation.args("agents").to_vec();
+            let targets = mutate::normalize_targets(&agents);
+            let target = match targets.as_slice() {
+                [only] => Target::agent(only),
+                many => Target::agent(&many.join(",")),
+            };
+            runtime::execute(ctx, "install", Some(target), move |ctx| mutate::install(ctx, &agents))
+        }
+        "ensure" => {
+            let agent = invocation.arg("agent").unwrap_or_default().to_owned();
+            runtime::execute(ctx, "ensure", Some(Target::agent(&agent)), move |ctx| {
+                mutate::ensure(ctx, &agent)
+            })
+        }
         other => {
             let outcome = Outcome::failure(
                 other,

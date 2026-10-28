@@ -19,6 +19,7 @@ pub mod observe;
 pub mod probe;
 pub mod process;
 pub mod protocol;
+pub mod providers;
 pub mod runtime;
 pub mod selfupdate;
 pub mod store;

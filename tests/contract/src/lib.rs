@@ -372,3 +372,43 @@ pub fn fake_agent(sandbox: &Sandbox, name: &str, version_line: &str) -> PathBuf 
         &format!("echo {version_line}"),
     )
 }
+
+/// A stateful fake `npm` for lifecycle tests. `install -g <pkg>` creates the package's
+/// executable in the sandbox bin directory, `uninstall -g` removes it, `list -g` reports
+/// it, and every call is appended to `npm-calls.log` in the sandbox root.
+/// Unix only: Windows lifecycle cases need batch equivalents.
+pub fn fake_npm(sandbox: &Sandbox) {
+    let script = r#"ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+echo "npm $*" >> "$ROOT/npm-calls.log"
+bin_for() { case "$1" in @openai/codex*) echo codex;; @google/gemini-cli*) echo gemini;; @anthropic-ai/claude-code*) echo claude;; *) echo "";; esac; }
+case "$1" in
+  --version) echo 10.9.0 ;;
+  install|i)
+    for a in "$@"; do case "$a" in @*) pkg="${a%@latest}"; b=$(bin_for "$pkg"); [ -n "$b" ] || exit 1
+      [ -f "$ROOT/npm-fail" ] && exit 1
+      printf '#!/bin/sh\necho "%s 0.50.0"\n' "$b" > "$ROOT/bin/$b"; chmod +x "$ROOT/bin/$b"; echo "$pkg" >> "$ROOT/npm-installed.txt";; esac; done ;;
+  uninstall)
+    pkg="$3"; b=$(bin_for "$pkg"); rm -f "$ROOT/bin/$b"
+    grep -v -x "$pkg" "$ROOT/npm-installed.txt" > "$ROOT/npm-installed.tmp" 2>/dev/null; mv "$ROOT/npm-installed.tmp" "$ROOT/npm-installed.txt" ;;
+  list|ls)
+    if grep -q -x "$3" "$ROOT/npm-installed.txt" 2>/dev/null; then printf '{"dependencies":{"%s":{"version":"0.50.0"}}}\n' "$3"; else echo '{}'; fi ;;
+esac
+exit 0"#;
+    sandbox.fake_tool("npm", script, "exit /b 1");
+}
+
+impl Sandbox {
+    /// The sandbox root: `home/`, `bin/`, and fake-tool logs live here.
+    pub fn root(&self) -> PathBuf {
+        self.root.path().to_path_buf()
+    }
+
+    /// Lines the fake `npm` logged.
+    pub fn npm_calls(&self) -> Vec<String> {
+        fs::read_to_string(self.root().join("npm-calls.log"))
+            .unwrap_or_default()
+            .lines()
+            .map(str::to_owned)
+            .collect()
+    }
+}
