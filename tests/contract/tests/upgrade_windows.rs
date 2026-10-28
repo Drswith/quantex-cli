@@ -14,7 +14,9 @@ fn a_windows_binary_is_replaced_once_upgrade_exits() {
     if is_reference() {
         return;
     }
-    let sandbox = Sandbox::new();
+    let mut sandbox = Sandbox::new();
+    let helper_log = sandbox.root().join("helper.log");
+    sandbox.env("QUANTEX_UPGRADE_HELPER_LOG", &helper_log.to_string_lossy());
     let exe = sandbox.copy_quantex();
     let newer = fs::read(env!("CARGO_BIN_EXE_print-version")).unwrap();
     let archive = release_zip("quantex-windows-x64.exe", &newer);
@@ -49,9 +51,17 @@ fn a_windows_binary_is_replaced_once_upgrade_exits() {
         }
         std::thread::sleep(Duration::from_secs(2));
     }
-    assert_eq!(reported, "9.9.9", "the executable was replaced");
-
     let dir = exe.parent().unwrap();
+    let describe = || {
+        let files: Vec<String> = fs::read_dir(dir)
+            .unwrap()
+            .map(|entry| entry.unwrap().file_name().to_string_lossy().into_owned())
+            .collect();
+        let log = fs::read_to_string(&helper_log).unwrap_or_else(|error| format!("<no helper log: {error}>"));
+        format!("files: {files:?}\nhelper log:\n{log}")
+    };
+    assert_eq!(reported, "9.9.9", "the executable was replaced\n{}", describe());
+
     let mut leftovers = Vec::new();
     while Instant::now() < deadline {
         leftovers = fs::read_dir(dir)
@@ -66,6 +76,7 @@ fn a_windows_binary_is_replaced_once_upgrade_exits() {
     }
     assert!(
         leftovers.is_empty(),
-        "no backup or staging directory is left: {leftovers:?}"
+        "no backup or staging directory is left\n{}",
+        describe()
     );
 }

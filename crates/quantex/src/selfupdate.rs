@@ -1003,9 +1003,18 @@ fn schedule_windows_replacement(
                 "-EncodedCommand",
                 &encoded,
             ])
-            .stdin(std::process::Stdio::null())
-            .stdout(std::process::Stdio::null())
-            .stderr(std::process::Stdio::null());
+            .stdin(std::process::Stdio::null());
+        // `QUANTEX_UPGRADE_HELPER_LOG` exists only so tests can see what the helper did.
+        match std::env::var_os("QUANTEX_UPGRADE_HELPER_LOG").map(fs::File::create) {
+            Some(Ok(log)) => {
+                command.stdout(log.try_clone()?).stderr(log);
+            }
+            _ => {
+                command
+                    .stdout(std::process::Stdio::null())
+                    .stderr(std::process::Stdio::null());
+            }
+        }
         #[cfg(windows)]
         {
             use std::os::windows::process::CommandExt;
