@@ -91,20 +91,18 @@ Prefer NDJSON for long-running operations where incremental progress matters mor
 
 Quantex is `human-friendly + agent-friendly`.
 
-Agent-friendly defaults apply when:
+Structured output is selected only by:
 
-- `--json` is used
-- `--output json` is used
-- `--output ndjson` is used
+- `--json`
+- `--output json`
+- `--output ndjson`
+
+Interactivity is disabled when:
+
 - `--non-interactive` is used
 - `stdin` or `stdout` is not a TTY
 
-When `stdin` or `stdout` is non-TTY:
-
-- interactivity is disabled
-- the default surface becomes structured
-
-Even with this auto-switching behavior, explicit flags are still recommended in automation.
+Human output stays the default on non-TTY streams, so pass an explicit output flag in automation.
 
 ## Stream contract
 

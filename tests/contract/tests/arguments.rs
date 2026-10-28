@@ -35,22 +35,10 @@ fn invalid_global_option_values_are_invalid_arguments() {
     if is_reference() {
         return;
     }
-    assert_invalid_argument(
-        &["commands", "--color", "rainbow", "--output", "json"],
-        "commands",
-    );
-    assert_invalid_argument(
-        &["commands", "--log-level", "loud", "--output", "json"],
-        "commands",
-    );
-    assert_invalid_argument(
-        &["commands", "--timeout", "soon", "--output", "json"],
-        "commands",
-    );
-    assert_invalid_argument(
-        &["list", "--refresh", "--no-cache", "--output", "json"],
-        "list",
-    );
+    assert_invalid_argument(&["commands", "--color", "rainbow", "--output", "json"], "commands");
+    assert_invalid_argument(&["commands", "--log-level", "loud", "--output", "json"], "commands");
+    assert_invalid_argument(&["commands", "--timeout", "soon", "--output", "json"], "commands");
+    assert_invalid_argument(&["list", "--refresh", "--no-cache", "--output", "json"], "list");
 }
 
 #[test]

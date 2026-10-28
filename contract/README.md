@@ -39,4 +39,7 @@ The reference binary is the published TypeScript release `v1.13.6`. Its source s
 ## v1.13.6 defects the Rust build fixes
 
 - Piped stdout is truncated at 64 KiB, so `quantex schema --json | jq` fails.
-- With a non-TTY stdin or stdout the documented default is structured output; the v1.13.6 binary still prints human output unless `--json` or `--output` is passed.
+
+## Output mode without an explicit flag
+
+Human output is the default whether or not stdin and stdout are terminals. The v1 documentation promised a switch to structured output on non-TTY streams, but v1 never did it (Node and Bun report `isTTY` as `undefined` for pipes), and changing it now would break `qtx list | grep` style use. Automation passes `--json` or `--output json|ndjson`. Interactive prompts are only offered when both stdin and stdout are terminals.

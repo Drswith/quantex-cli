@@ -18,11 +18,7 @@ fn version_flags_print_the_version() {
     for flag in ["--version", "-V"] {
         let run = sandbox.run([flag]);
         assert_eq!(run.code, 0, "{flag}: {run:?}");
-        assert!(
-            is_version(run.stdout.trim()),
-            "{flag} printed {:?}",
-            run.stdout
-        );
+        assert!(is_version(run.stdout.trim()), "{flag} printed {:?}", run.stdout);
     }
 }
 
@@ -53,10 +49,7 @@ fn commands_returns_the_stable_catalog() {
     let envelope = run.json();
     assert_envelope(&envelope, "commands", "json");
     assert_eq!(envelope["ok"], true);
-    assert_eq!(
-        envelope["target"],
-        json!({ "kind": "system", "name": "commands" })
-    );
+    assert_eq!(envelope["target"], json!({ "kind": "system", "name": "commands" }));
     assert_eq!(envelope["data"]["commands"], expected_command_descriptors());
 }
 
@@ -71,14 +64,16 @@ fn json_flag_selects_json_mode_in_any_position() {
 }
 
 #[test]
-fn non_tty_streams_default_to_json_mode() {
-    // Documented in skills/quantex-cli; the v1.13.6 binary still printed human output.
-    if is_reference() {
-        return;
-    }
+fn output_defaults_to_human_without_an_explicit_mode() {
+    // v1 never switched to JSON on non-TTY streams (Node and Bun report isTTY as
+    // undefined for pipes), so structured output always needs --json or --output.
     let run = Sandbox::new().run(["commands"]);
     assert_eq!(run.code, 0, "{run:?}");
-    assert_envelope(&run.json(), "commands", "json");
+    assert!(!run.stdout.trim().is_empty(), "{run:?}");
+    assert!(
+        serde_json::from_str::<serde_json::Value>(&run.stdout).is_err(),
+        "{run:?}"
+    );
 }
 
 #[test]
@@ -91,14 +86,8 @@ fn schema_returns_every_document() {
     assert_eq!(run.code, 0, "{run:?}");
     let envelope = run.json();
     assert_envelope(&envelope, "schema", "json");
-    assert_eq!(
-        envelope["target"],
-        json!({ "kind": "system", "name": "schema" })
-    );
-    assert_eq!(
-        envelope["data"]["commands"],
-        contract_json("cli/schemas.json")
-    );
+    assert_eq!(envelope["target"], json!({ "kind": "system", "name": "schema" }));
+    assert_eq!(envelope["data"]["commands"], contract_json("cli/schemas.json"));
 }
 
 #[test]
@@ -122,10 +111,7 @@ fn schema_rejects_an_unknown_target() {
     let envelope = run.json();
     assert_envelope(&envelope, "schema", "json");
     assert_eq!(envelope["ok"], false);
-    assert!(
-        envelope.get("data").is_none(),
-        "failed results omit data: {envelope}"
-    );
+    assert!(envelope.get("data").is_none(), "failed results omit data: {envelope}");
     assert_eq!(
         envelope["error"],
         json!({
@@ -148,10 +134,7 @@ fn ndjson_wraps_the_result_envelope_in_a_result_event() {
     assert_eq!(event["meta"]["mode"], "ndjson");
     assert_eq!(event["target"], event["data"]["target"]);
     assert_envelope(&event["data"], "commands", "ndjson");
-    assert_eq!(
-        event["data"]["data"]["commands"],
-        expected_command_descriptors()
-    );
+    assert_eq!(event["data"]["data"]["commands"], expected_command_descriptors());
 }
 
 #[test]

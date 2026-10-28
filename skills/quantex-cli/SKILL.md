@@ -63,7 +63,7 @@ Quantex is `human-friendly + agent-friendly`.
 - Use `--json` or `--output ndjson` when another agent or tool will parse the result
 - Use `--non-interactive` when prompts would be unsafe
 
-Quantex now auto-switches to agent-friendly defaults when `stdin` or `stdout` is not a TTY. Even so, prefer explicit flags in automation so the contract is obvious.
+Quantex does not switch to structured output on its own when `stdin` or `stdout` is not a TTY. Always pass `--json` or `--output json|ndjson` in automation; prompts are skipped when either stream is not a terminal.
 
 ### 4. Add reliability controls when work is stateful or long-running
 

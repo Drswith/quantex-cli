@@ -70,10 +70,7 @@ impl Run {
         self.stdout
             .lines()
             .filter(|line| !line.trim().is_empty())
-            .map(|line| {
-                serde_json::from_str(line)
-                    .unwrap_or_else(|error| panic!("line is not JSON ({error}): {line}"))
-            })
+            .map(|line| serde_json::from_str(line).unwrap_or_else(|error| panic!("line is not JSON ({error}): {line}")))
             .collect()
     }
 }
@@ -169,10 +166,7 @@ impl Sandbox {
             dirs.push(PathBuf::from("/usr/bin"));
             dirs.push(PathBuf::from("/bin"));
         }
-        std::env::join_paths(dirs)
-            .unwrap()
-            .to_string_lossy()
-            .into_owned()
+        std::env::join_paths(dirs).unwrap().to_string_lossy().into_owned()
     }
 
     /// Runs quantex with `args` and stdin closed.
@@ -213,9 +207,7 @@ impl Sandbox {
         for (key, value) in &self.env {
             command.env(key, value);
         }
-        let output = command
-            .output()
-            .expect("failed to spawn the quantex binary");
+        let output = command.output().expect("failed to spawn the quantex binary");
         Run {
             code: output.status.code().unwrap_or(-1),
             stdout: String::from_utf8_lossy(&output.stdout).into_owned(),
@@ -245,27 +237,13 @@ fn normalize_with_key(value: &Value, key: Option<&str>) -> Value {
     match value {
         Value::Object(map) => Value::Object(
             map.iter()
-                .map(|(child_key, child)| {
-                    (
-                        child_key.clone(),
-                        normalize_with_key(child, Some(child_key)),
-                    )
-                })
+                .map(|(child_key, child)| (child_key.clone(), normalize_with_key(child, Some(child_key))))
                 .collect(),
         ),
-        Value::Array(items) => Value::Array(
-            items
-                .iter()
-                .map(|item| normalize_with_key(item, None))
-                .collect(),
-        ),
+        Value::Array(items) => Value::Array(items.iter().map(|item| normalize_with_key(item, None)).collect()),
         Value::String(_) => match key {
-            Some(name @ ("runId" | "timestamp" | "fetchedAt" | "staleAfter")) => {
-                Value::String(format!("<{name}>"))
-            }
-            Some("version" | "currentVersion" | "latestVersion") => {
-                Value::String("<version>".into())
-            }
+            Some(name @ ("runId" | "timestamp" | "fetchedAt" | "staleAfter")) => Value::String(format!("<{name}>")),
+            Some("version" | "currentVersion" | "latestVersion") => Value::String("<version>".into()),
             _ => value.clone(),
         },
         _ => value.clone(),
@@ -275,27 +253,18 @@ fn normalize_with_key(value: &Value, key: Option<&str>) -> Value {
 /// Asserts the envelope invariants every structured result must satisfy.
 pub fn assert_envelope(envelope: &Value, action: &str, mode: &str) {
     assert_eq!(envelope["action"], action, "action in {envelope}");
-    assert!(
-        envelope["ok"].is_boolean(),
-        "ok must be boolean in {envelope}"
-    );
+    assert!(envelope["ok"].is_boolean(), "ok must be boolean in {envelope}");
     assert_eq!(envelope["meta"]["mode"], mode, "meta.mode in {envelope}");
     assert_eq!(
         envelope["meta"]["schemaVersion"], "1",
         "meta.schemaVersion in {envelope}"
     );
-    assert!(
-        envelope["meta"]["runId"].is_string(),
-        "meta.runId in {envelope}"
-    );
+    assert!(envelope["meta"]["runId"].is_string(), "meta.runId in {envelope}");
     assert!(
         envelope["meta"]["timestamp"].is_string(),
         "meta.timestamp in {envelope}"
     );
-    assert!(
-        envelope["meta"]["version"].is_string(),
-        "meta.version in {envelope}"
-    );
+    assert!(envelope["meta"]["version"].is_string(), "meta.version in {envelope}");
     assert!(envelope["warnings"].is_array(), "warnings in {envelope}");
     if envelope["ok"] == true {
         assert!(
@@ -303,14 +272,8 @@ pub fn assert_envelope(envelope: &Value, action: &str, mode: &str) {
             "error must be null on success in {envelope}"
         );
     } else {
-        assert!(
-            envelope["error"]["code"].is_string(),
-            "error.code in {envelope}"
-        );
-        assert!(
-            envelope["error"]["message"].is_string(),
-            "error.message in {envelope}"
-        );
+        assert!(envelope["error"]["code"].is_string(), "error.code in {envelope}");
+        assert!(envelope["error"]["message"].is_string(), "error.message in {envelope}");
     }
 }
 
@@ -322,8 +285,6 @@ pub fn contract_dir() -> PathBuf {
 /// Reads a JSON file under `contract/`.
 pub fn contract_json(relative: &str) -> Value {
     let path = contract_dir().join(relative);
-    let text = fs::read_to_string(&path)
-        .unwrap_or_else(|error| panic!("cannot read {}: {error}", path.display()));
-    serde_json::from_str(&text)
-        .unwrap_or_else(|error| panic!("{} is not JSON: {error}", path.display()))
+    let text = fs::read_to_string(&path).unwrap_or_else(|error| panic!("cannot read {}: {error}", path.display()));
+    serde_json::from_str(&text).unwrap_or_else(|error| panic!("{} is not JSON: {error}", path.display()))
 }
