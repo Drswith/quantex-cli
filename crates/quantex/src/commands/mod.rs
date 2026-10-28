@@ -12,6 +12,7 @@ mod catalog_commands;
 mod config;
 pub mod mutate;
 mod system;
+mod update;
 
 /// Runs a management command and returns the process exit code.
 pub fn dispatch(ctx: Arc<Context>, invocation: Invocation) -> i32 {
@@ -71,6 +72,18 @@ pub fn dispatch(ctx: Arc<Context>, invocation: Invocation) -> i32 {
             let agent = invocation.arg("agent").unwrap_or_default().to_owned();
             runtime::execute(ctx, "ensure", Some(Target::agent(&agent)), move |ctx| {
                 mutate::ensure(ctx, &agent)
+            })
+        }
+        "update" => {
+            let agent = invocation.arg("agent").map(str::to_owned);
+            let all = invocation.flag("all");
+            let managed = invocation.flag("managed");
+            let target = match (&agent, all) {
+                (Some(agent), false) => Target::agent(agent),
+                _ => Target::new(crate::protocol::TargetKind::Agent, None::<String>),
+            };
+            runtime::execute(ctx, "update", Some(target), move |ctx| {
+                update::update(ctx, agent.as_deref(), all, managed)
             })
         }
         other => {

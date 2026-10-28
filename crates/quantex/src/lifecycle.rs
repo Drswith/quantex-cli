@@ -100,6 +100,18 @@ pub fn observe_lifecycle(
     state: &State,
     observation_binding: Option<&Binding>,
 ) -> View {
+    observe_lifecycle_with(ctx, agent, state, observation_binding, false)
+}
+
+/// `observe_lifecycle`, optionally treating an agent with no executable and no Quantex
+/// record as absent without probing every catalog provider, as `update` does.
+pub fn observe_lifecycle_with(
+    ctx: &Context,
+    agent: &'static Agent,
+    state: &State,
+    observation_binding: Option<&Binding>,
+    skip_unrecorded_absent: bool,
+) -> View {
     let summary = observe::observe(ctx, agent, state, ObserveOptions { latest_version: false });
     let executable = Executable {
         present: summary.present,
@@ -228,6 +240,11 @@ pub fn observe_lifecycle(
         if !matches!(observed, Observed::Present { .. }) {
             view.binding = Some(recorded.clone());
         }
+        return view;
+    }
+
+    if skip_unrecorded_absent && !executable.present && installed.is_none() && receipt.is_none() {
+        view.kind = Kind::Absent;
         return view;
     }
 
