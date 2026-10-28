@@ -5,115 +5,29 @@
 [![npm version][npm-version-src]][npm-version-href]
 [![npm downloads][npm-downloads-src]][npm-downloads-href]
 [![Release][release-src]][release-href]
-[![Release downloads][release-downloads-src]][release-downloads-href]
 [![CI][ci-src]][ci-href]
-
-<br />
-
-[![Node.js >=20][node-src]][node-href]
-[![Bun][bun-src]][bun-href]
 [![Platforms][platforms-src]][release-href]
 [![License][license-src]][license-href]
-[![GitHub stars][stars-src]][stars-href]
 
-统一管理 AI 编程助手 CLI 的安装、检查、更新、卸载与启动。
+用一个对 agent 友好的命令行，安装、检查、更新、卸载和启动各类 AI 编码助手 CLI。
 
 [English](./README.md) | **简体中文**
 
 </div>
 
-Quantex 是一个 `human-friendly + agent-friendly` 的 AI 编程助手 CLI lifecycle manager。它帮你把 Codex CLI、Claude Code、Gemini CLI、Cursor CLI、OpenCode、Antigravity CLI、Command Code、MiMoCode、Amp、Kilo CLI 等终端 coding agent 的安装、检查、更新、卸载、启动和自动化调用统一到一组稳定命令里：人可以直接用，脚本和 coding agent 也可以通过结构化输出可靠调用。本文默认使用更短的 `qtx` 作为推荐入口，`quantex` 是完全等价的完整命令名。
+Quantex 是面向 AI 编码助手和终端编码 agent 的生命周期 CLI，人和 agent 都能直接用。一个 `qtx` 命令就能安装、检查、更新、卸载和启动 Codex CLI、Claude Code、Gemini CLI、Cursor CLI、OpenCode 等 33 个 agent，并提供稳定的机器可读输出。`qtx` 和 `quantex` 是同一个命令，本文用较短的 `qtx`。
 
 ## 为什么用 Quantex
 
-- 一个生命周期命令管理多个 AI 编程助手 CLI：安装、确保可用、查询状态、更新、卸载、启动。
-- 适合脚本和 agent 调用：支持 `--json`、`--output ndjson`、`--non-interactive`、`--dry-run` 等适合机器读取的稳定契约。
-- 记住真实安装来源：`update --all` 会优先按已记录来源分组更新，避免混合安装环境下误用更新方式。
-- 支持通过可用的 Bun、npm、Homebrew、winget provider 以及官方安装脚本管理 agent 安装。Cargo、Deno、mise、pip、uv 仍支持已记录的历史安装，但不再用于目录中的新安装。
-- 支持 Quantex 自升级：Bun、npm、独立二进制安装来源都有对应升级路径。
-
-## 生命周期与兼容性保证
-
-默认的 agent 生命周期命令会先核对实时可执行文件、provider、已保存状态与 receipt 证据，再执行变更。安装、确保可用、更新、卸载和执行预检都使用 typed provider outcome，并在写入新的生命周期证据前验证实际后置条件。
-
-内部引擎可以继续演进，但不会改变当前维护的 v1 命令语法、JSON/NDJSON envelope、退出语义、state/config 投影、`qtx`/`quantex` 二进制入口或 root package exports。未来如需删除任何受维护的 root export，必须另行提出并批准 deprecation proposal；这不属于本次 lifecycle engine 重构。
-
-## TypeScript Core SDK 预览
-
-Quantex 提供非交互式 TypeScript SDK：[`quantex-core`](https://www.npmjs.com/package/quantex-core)。它独立版本化，并已通过 Node.js、Bun 与 TypeScript NodeNext 的干净 consumer 验证；CLI 的 npm 与 GitHub 发布仍与 Core 发布相互独立。
-
-1.2 阶段确立了只读、仅 ESM 的 `createQuantex`、`list` 和 `inspect` surface。1.3 集成 surface 在保持 Node.js 20+ 与 Bun 支持的同时，新增经过 gate 的 `install` 和 `ensure`。下面的 import 表示已发布的包 API：
-
-```ts
-import { createQuantex } from 'quantex-core'
-
-const quantex = createQuantex()
-const result = await quantex.inspect('codex')
-const preview = await quantex.ensure('codex', { mode: 'preview' })
-
-if (result.ok) {
-  console.log(result.value.status)
-}
-
-if (preview.ok && preview.value.mode === 'preview') {
-  console.log(preview.value.decision, preview.value.wouldChange)
-}
-```
-
-Core 不提示、不打印、不调用 `process.exit`，也不决定 CLI 退出码；它只向调用方返回类型化结果。`install` 与 `ensure` 默认执行 apply，也提供显式且无副作用的 preview；它们会保留 PATH-only external agent，并返回包含阶段与副作用状态的类型化失败。`qtx` / `quantex` CLI 仍负责提示、human 与 JSON/NDJSON 展示、退出码策略和命令行执行。公开发布的 SDK 仍不提供 `update`、`uninstall`、`run`、`doctor` 或 `upgrade`；在 1.12 中，CLI 将 `install`、`ensure`、`update` 与 `uninstall` 路由到仓内 Core 引擎，通过仓内 Core 只读观察路径承接 `inspect`、`info`、`resolve` 与 `list`，通过仓内 Core 执行引擎承接 `exec` / shortcut 启动（授权的 `--install` 缺失安装与 CLI install/ensure 共用同一套 Core install/ensure 引擎），并通过仓内 Core 诊断引擎承接 `doctor`，同时 CLI `upgrade` / `qtx upgrade` 的 plan、check 与 apply 走仓内 Core 自升级引擎，但不会把这些未发布方法加入公开 SDK。
-
-兼容过渡延续到 1.12：1.2 引入只读 Core，1.3 新增经过 gate 的变更方法组，1.4 让 Core 成为 CLI `install` 与 `ensure` 的 apply 默认引擎，1.12 将 CLI `update` 与 `uninstall` 迁入同一套仓内 Core 引擎，让 CLI `inspect`、`info`、`resolve` 与 `list` 继续走 Core 只读观察，让 CLI `exec` / shortcut 走 Core 执行引擎且 `--install` 共用 Core install/ensure，并让 CLI `doctor` 走 Core 诊断且不扩展公开 SDK。后续 1.x 将 CLI `upgrade` 迁入仓内 Core 自升级引擎，同样不发布 SDK `upgrade`。CLI `install` 与 `ensure` 的 apply 路径已变为 Core-only：`--dry-run` 走 Core preview 并保持已冻结的 dry-run 计划契约且不会产生生命周期副作用，原先的 `QUANTEX_INSTALLATION_ENGINE=legacy` whole-invocation apply 逃生通道已退役。持久化 state schema 在整个 1.x 中保持为 version 2。引擎必须在单次调用前选定，变更操作一旦开始产生副作用就绝不会切换引擎重试。删除其他受维护的 v1 surface 仍须在后续 major 版本另行提出并批准提案。
-
-## Agent 快速接入
-
-如果你正在让 coding agent 使用 Quantex，可以先安装仓库里的面向用户的 Quantex CLI skill：
-
-```bash
-npx skills add Drswith/quantex-cli --skill quantex-cli -a codex -a claude-code -a opencode -y
-```
-
-只想先查看这个仓库暴露了哪些 skills：
-
-```bash
-npx skills add Drswith/quantex-cli --list
-```
-
-随后让 agent 发现 Quantex 的稳定命令和输出契约：
-
-```bash
-npm exec --yes --package quantex-cli -- qtx capabilities --json
-npm exec --yes --package quantex-cli -- qtx commands --json
-npm exec --yes --package quantex-cli -- qtx schema --json
-```
-
-如果 agent 正在这个仓库内参与开发，请把下面这段作为启动提示：
-
-```text
-Read AGENTS.md, openspec/README.md, skills/quantex-agent-runtime/SKILL.md, and skills/quantex-cli/SKILL.md.
-For non-trivial changes, use OpenSpec through the Quantex agent runtime.
-Before finishing, run bun run lint, bun run format:check, and bun run typecheck.
-If command behavior changed, also run bun run test.
-```
-
-仓库内置的面向用户的 Quantex CLI skill 位于 [`skills/quantex-cli/`](./skills/quantex-cli/)。它可以通过 [skills.sh](https://skills.sh/) 的 `npx skills add` 从 GitHub 安装，但仍然以本仓库为发布源，不是单独的 npm package。单独的 [`skills/quantex-agent-runtime/`](./skills/quantex-agent-runtime/) 是面向本仓库开发协作的 contributor runtime，不是普通外部用户的默认 skill；安装和同步方式见 [skill 分发说明](./docs/skill-installation-and-distribution.md)。
+- 多个 agent CLI 共用一套生命周期命令：`install`、`ensure`、`inspect`、`resolve`、`update`、`uninstall`、`exec`。
+- 为脚本和 agent 设计：`--json`、`--output ndjson`、`--non-interactive`、`--dry-run`、`--timeout`、`--idempotency-key`，错误码和退出码都有文档。
+- 记录每个 agent 真实的安装来源（npm、Bun、Homebrew、winget、官方安装脚本或独立二进制），`update --all` 按记录的来源更新，而不是凭 `PATH` 猜。
+- 先验证再记录：每次安装、更新、卸载之后都会重新观测一次再写入状态。
+- 单个原生二进制（约 3 MB），不需要安装运行时，用 `quantex upgrade` 保持最新。
 
 ## 安装
 
-使用 Bun：
-
-```bash
-bun add -g quantex-cli
-```
-
-使用 npm（Node.js 20+）：
-
-```bash
-npm i -g quantex-cli
-```
-
-已发布的 JS CLI 在安装后通过 Node 运行。Bun 仍然是受支持的安装与自升级路径，而独立二进制仍然是完全不依赖额外运行时的选项。
-
-也可以从 [GitHub Releases](https://github.com/Drswith/quantex-cli/releases) 下载独立二进制，或使用安装脚本：
+macOS 与 Linux：
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/Drswith/quantex-cli/main/install.sh | sh
@@ -125,49 +39,45 @@ Windows PowerShell：
 irm https://raw.githubusercontent.com/Drswith/quantex-cli/main/install.ps1 | iex
 ```
 
-安装后推荐直接使用 `qtx`；如果你更偏好完整命令名，也可以使用完全等价的 `quantex`。
+脚本会先用 `SHA256SUMS.txt` 校验下载内容，再把 `quantex` 和 `qtx` 装到 `~/.local/bin`（用 `QUANTEX_INSTALL_DIR` 改目录，用 `QUANTEX_VERSION=v<版本>` 固定版本）。
 
-## 免安装试用
-
-如果你的环境已经有 Node.js 20 或更高版本，可以先不做全局安装，直接试用只读命令：
+也可以用 npm 或 Bun 安装，它们会通过对应平台的子包装上同一个原生二进制：
 
 ```bash
-bunx quantex-cli list
-npx --yes --package quantex-cli qtx capabilities --json
-npm exec --yes --package quantex-cli -- qtx inspect codex --json
-pnpm --package=quantex-cli dlx qtx doctor
+npm install -g quantex-cli
 ```
 
-注意事项：
+```bash
+bun add -g quantex-cli
+```
 
-- 这些命令适合 `list`、`info`、`inspect`、`doctor`、`capabilities`、`commands`、`schema` 这类只读或发现型操作。
-- `npx`、`npm exec`、`pnpm dlx` 会通过 Node 运行已发布的 JS CLI，不要求环境里存在 `bun`。
-- `bunx` 仍然需要 Bun，因为它本身就是 Bun 提供的启动器。
-- `install`、`ensure`、`update`、`uninstall`、`upgrade` 这类会写状态或依赖已记录安装来源的操作，仍然建议先按上面的方式正常安装再执行。
+每个 [GitHub release](https://github.com/Drswith/quantex-cli/releases) 都附带 macOS（arm64、x64）、Linux（arm64、x64，静态链接）和 Windows（x64）的二进制。
 
-## 快速开始
+预发布版本发布在 npm 的 `next` 标签（`npm install -g quantex-cli@next`）和 GitHub 预发布中；stable 通道的安装永远不会被推送预发布版本。
 
-安装并启动一个 agent：
+## 快速上手
+
+安装并启动 agent：
 
 ```bash
 qtx install claude codex
 qtx exec claude --install if-missing -- --help
 ```
 
-确保 agent 可用，适合脚本或其他 agent 调用：
+确保 agent 可用（幂等，适合脚本和 agent）：
 
 ```bash
 qtx ensure codex --json
 ```
 
-查看 agent 状态和可执行入口：
+查看 agent 状态、解析可执行文件：
 
 ```bash
 qtx inspect codex --json
 qtx resolve codex --json
 ```
 
-更新单个 agent 或全部已安装 agent：
+更新单个 agent，或更新 Quantex 管理的全部 agent：
 
 ```bash
 qtx update claude
@@ -177,106 +87,116 @@ qtx update --all
 升级 Quantex 自身：
 
 ```bash
-qtx upgrade
 qtx upgrade --check
+qtx upgrade
 ```
 
-稳定版是 Quantex 的常规发布线。CLI 仍接受 `qtx upgrade --channel beta`，用于明确存在的 prerelease；但本仓库不再维护 beta 发布渠道，因此该选择器可能没有可用的对应版本。
+## 命令
 
-提示：`qtx upgrade` 会跟随当前 Bun/npm 自升级实际使用的 registry。若你使用镜像源，镜像未同步最新发布时，当前源可安装版本可能会暂时落后于官方 npm。此时可稍后重试，或单独设置 `selfUpdateRegistry` / `QTX_SELF_UPDATE_REGISTRY` 让 Quantex 自升级使用不同的 registry，而不影响其他项目。
+| 命令 | 说明 |
+|---|---|
+| `qtx install <agent> [更多...]`（`i`） | 安装一个或多个 agent |
+| `qtx ensure <agent>` | 只在缺失时安装 agent |
+| `qtx update <agent>`（`u`）、`qtx update --all [--managed]` | 更新某个 agent，或全部已安装的 agent |
+| `qtx uninstall <agent>`（`rm`） | 卸载由 Quantex 安装的 agent |
+| `qtx list`（`ls`） | 列出支持的 agent 及安装情况 |
+| `qtx info <agent>` | 查看 agent 详情和安装方式 |
+| `qtx inspect <agent>` | 返回 agent 完整的生命周期状态 |
+| `qtx resolve <agent>` | 解析要启动的可执行文件 |
+| `qtx exec <agent> [--install never\|if-missing\|always] -- [参数...]` | 按明确的安装策略启动 agent |
+| `qtx <agent> [参数...]` | 启动 agent，缺失时询问是否安装 |
+| `qtx doctor` | 诊断环境并给出恢复步骤 |
+| `qtx capabilities` | 查看安装器、平台和功能开关 |
+| `qtx commands` | 查看稳定的命令目录 |
+| `qtx schema [command]` | 查看结构化输出的 schema |
+| `qtx config [list\|get\|set\|reset] [key] [value]` | 查看和修改配置 |
+| `qtx upgrade [--check] [--channel stable\|beta]` | 升级 Quantex 自身 |
 
-## 常用命令
+`qtx uninstall` 只处理 Quantex 记录的安装来源，不会删除 `PATH` 上另外安装的副本；用 `qtx inspect <agent> --json` 可以看清各个副本的来源。
 
-| 推荐命令 | 等价长命令 | 作用 |
-|------|------|------|
-| `qtx i <agent> [more-agents...]` | `quantex install <agent> [more-agents...]` | 安装一个或多个 agent |
-| `qtx ensure <agent>` | `quantex ensure <agent>` | 幂等确保 agent 已安装 |
-| `qtx u <agent>` | `quantex update <agent>` | 更新 agent |
-| `qtx update --all` | `quantex update --all` | 更新所有已安装 agent |
-| `qtx rm <agent>` | `quantex uninstall <agent>` | 卸载 agent |
-| `qtx ls` | `quantex list` | 列出所有支持的 agent |
-| `qtx info <agent>` | `quantex info <agent>` | 查看 agent 详情 |
-| `qtx inspect <agent>` | `quantex inspect <agent>` | 查看结构化状态 |
-| `qtx resolve <agent>` | `quantex resolve <agent>` | 解析可执行入口 |
-| `qtx exec <agent> -- [args...]` | `quantex exec <agent> -- [args...]` | 以显式策略运行 agent |
-| `qtx <agent> [args...]` | `quantex <agent> [args...]` | 快捷启动 agent |
-| `qtx capabilities` | `quantex capabilities` | 查看当前环境能力 |
-| `qtx commands` | `quantex commands` | 查看稳定命令目录 |
-| `qtx schema` | `quantex schema` | 查看结构化输出 schema |
-| `qtx config` | `quantex config` | 管理配置 |
-| `qtx doctor` | `quantex doctor` | 检查环境和恢复建议 |
+## 支持的 agent
 
-`qtx rm` / `quantex uninstall` 只处理 Quantex 记录的安装来源，不会删除仍在 `PATH` 中、由其他来源独立安装的副本。如果 managed package 已移除但仍有其他副本留在 `PATH`，Quantex 会报告 conflicting source。请使用 `qtx inspect <agent> --json` 和 `qtx resolve <agent> --json` 确认路径，再通过该副本的实际所有者删除或重新安装。
-
-## 支持的 Agent
-
-| Agent | 启动命令 | 描述 |
-|-------|----------|------|
-| Antigravity CLI | `qtx antigravity` | Google Antigravity 终端编程 Agent CLI |
-| Auggie CLI | `qtx auggie` | Augment 官方终端编程 Agent CLI |
-| Autohand Code CLI | `qtx autohand` | Autohand 官方自主终端编程 Agent CLI |
-| Amp | `qtx amp` | Sourcegraph 前沿 AI 编程 Agent CLI |
-| Claude Code | `qtx claude` | Anthropic 官方 AI 编程助手 CLI |
-| CodeBuddy Code | `qtx codebuddy` | 腾讯官方 AI 编程助手 CLI |
-| Codex CLI | `qtx codex` | OpenAI 官方 AI 编程助手 CLI |
-| Command Code | `qtx commandcode` | Command Code AI 编程助手 CLI |
-| Crush | `qtx crush` | Charmbracelet 终端 AI 编程 Agent CLI |
-| Cursor CLI | `qtx cursor` | Cursor AI 编程助手命令行工具 |
-| CodeWhale | `qtx codewhale` | DeepSeek 优先的终端编程 Agent |
-| DeepSeek Harness | `qtx dsh` | DeepSeek 官方插件化 Agent Harness CLI |
-| Devin for Terminal | `qtx devin` | Cognition 本地编程 Agent CLI |
-| Droid | `qtx droid` | Factory AI 软件工程 Agent CLI |
-| Gemini CLI | `qtx gemini` | Google 开源 AI 编程助手 CLI |
+| Agent | 启动命令 | 说明 |
+|---|---|---|
+| Amp | `qtx amp` | Sourcegraph 的前沿 AI 编码 agent CLI |
+| Antigravity CLI | `qtx antigravity` | Google 的 Antigravity 终端编码 agent CLI |
+| Auggie CLI | `qtx auggie` | Augment 官方终端编码 agent |
+| Autohand Code CLI | `qtx autohand` | Autohand 的自主终端编码 agent CLI |
+| Claude Code | `qtx claude` | Anthropic 官方 AI 编码助手 CLI |
+| CodeBuddy Code | `qtx codebuddy` | 腾讯官方 AI 编码助手 CLI |
+| CodeWhale | `qtx codewhale` | 以 DeepSeek 为先的编码模型 agent 终端 |
+| Codex CLI | `qtx codex` | OpenAI 官方 AI 编码助手 CLI |
+| Command Code | `qtx commandcode` | Command Code 的 AI 编码助手 CLI |
+| Crush | `qtx crush` | Charmbracelet 的终端 AI 编码 agent CLI |
+| Cursor CLI | `qtx cursor` | Cursor AI 编码助手 CLI |
+| DeepSeek Harness | `qtx dsh` | DeepSeek 官方插件化 agent harness CLI |
+| Devin for Terminal | `qtx devin` | Cognition 的本地编码 agent CLI |
+| Droid | `qtx droid` | Factory AI 软件工程 agent CLI |
+| Gemini CLI | `qtx gemini` | Google 开源 AI 编码助手 CLI |
 | GitHub Copilot CLI | `qtx copilot` | GitHub Copilot 命令行工具 |
-| Goose | `qtx goose` | Block 开源可扩展 AI Agent CLI |
-| Grok Build | `qtx grok` | xAI 终端编程 Agent CLI |
-| Hermes Agent | `qtx hermes` | Nous Research 自我进化的 AI Agent CLI |
-| Junie CLI | `qtx junie` | JetBrains 官方 AI 编程 Agent CLI |
-| Kilo CLI | `qtx kilo` | Kilo 官方 AI 编程助手 CLI |
-| Kimi Code | `qtx kimi` | Moonshot AI 编程助手 CLI |
-| Kiro CLI | `qtx kiro` | Amazon AI 编程 Agent CLI |
-| MiMoCode | `qtx mimo` | 小米终端原生 AI 编程助手 CLI |
-| Mistral Vibe | `qtx vibe` | Mistral 开源终端编程助手 |
-| OpenClaw | `qtx openclaw` | OpenClaw 开源 AI Agent 运行时 CLI |
-| OpenHands CLI | `qtx openhands` | OpenHands 开源软件开发 Agent CLI |
-| OpenCode | `qtx opencode` | 开源 AI 编程 CLI |
-| oh-my-pi (OMP) | `qtx omp` | oh-my-pi coding agent CLI |
-| Pi | `qtx pi` | 极简可扩展的终端编程 Agent |
-| Qoder CLI | `qtx qoder` | Qoder 官方 AI 编程助手 CLI |
-| Qwen Code | `qtx qwen` | Qwen AI 编程助手 CLI |
-| Reasonix | `qtx reasonix` | DeepSeek 原生终端编程 Agent |
+| Goose | `qtx goose` | Block 开源、可扩展的 AI agent CLI |
+| Grok Build | `qtx grok` | xAI 的终端编码 agent CLI |
+| Hermes Agent | `qtx hermes` | Nous Research 的自我改进 AI agent CLI |
+| Junie CLI | `qtx junie` | JetBrains 的 AI 编码 agent CLI |
+| Kilo CLI | `qtx kilo` | Kilo 官方 AI 编码助手 CLI |
+| Kimi Code | `qtx kimi` | 月之暗面的编码助手 CLI |
+| Kiro CLI | `qtx kiro` | Amazon 的 AI 编码 agent CLI |
+| MiMoCode | `qtx mimo` | 小米的终端原生 AI 编码助手 CLI |
+| Mistral Vibe | `qtx vibe` | Mistral 开源 CLI 编码助手 |
+| oh-my-pi (OMP) | `qtx omp` | oh-my-pi 编码 agent CLI |
+| OpenClaw | `qtx openclaw` | OpenClaw 开源 AI agent 运行时 CLI |
+| OpenCode | `qtx opencode` | 开源 AI 编码 CLI |
+| OpenHands CLI | `qtx openhands` | OpenHands 开源软件开发 agent CLI |
+| Pi | `qtx pi` | 精简、可扩展的终端编码 agent |
+| Qoder CLI | `qtx qoder` | Qoder 官方 AI 编码助手 CLI |
+| Qwen Code | `qtx qwen` | 通义千问的 AI 编码助手 CLI |
+| Reasonix | `qtx reasonix` | DeepSeek 原生终端编码 agent |
 
-如果你更偏好显式长命令，上表里的 `qtx` 都可以直接替换成 `quantex`。
+## 给 agent 和自动化使用
 
-## 面向自动化和 Agent
-
-Quantex 的主线不是工作流编排平台，而是稳定的 agent lifecycle surface。自动化场景建议显式使用结构化参数：
+Quantex 是生命周期工具，不是工作流编排平台。使用它的 agent 应先安装 Quantex skill，里面有命令用法和输出契约：
 
 ```bash
-quantex inspect claude --json --refresh
-quantex install claude --json --dry-run
-quantex exec claude --install if-missing --yes -- --help
+npx skills add Drswith/quantex-cli --skill quantex-cli -a codex -a claude-code -a opencode -y
 ```
 
-常用契约：
-
-- `--json` / `--output <human|json|ndjson>` 控制输出格式。
-- `--non-interactive`、`--yes`、`--quiet` 适合 CI 和 agent 调用。
-- `--dry-run` 用于预览安装或更新计划。
-- `--refresh` / `--no-cache` 控制版本和 release 元数据缓存。
-- `stdout` 用于结构化结果，`stderr` 用于日志、警告和底层安装器输出。
-
-如果你正在为上层 agent 集成 Quantex，优先从这些命令发现能力和类型：
+然后发现稳定的命令面：
 
 ```bash
-quantex capabilities --json
-quantex commands --json
-quantex schema --json
+qtx capabilities --json
+qtx commands --json
+qtx schema --json
 ```
+
+agent 可以依赖的契约：
+
+- `--json` 或 `--output json` 输出一个结果信封 `{ action, ok, data, error, warnings, meta, target }`；`--output ndjson` 流式输出 `started` / `progress` 事件，最后是 `result` 事件。
+- `json` 与 `ndjson` 模式下 stdout 只输出协议内容；日志、警告、提示和安装器输出都走 stderr。
+- `--non-interactive` 从不提示（需要确认时返回 `INTERACTION_REQUIRED`）；`--yes` 自动确认；`--quiet` 关闭提示性输出。
+- `--dry-run` 报告 `install`、`ensure`、`update`、`uninstall`、`exec`、`upgrade` 将会做什么，但不执行。
+- `--timeout <时长>`（`500ms`、`30s`、`2m`）限制命令时长；`--refresh` 与 `--no-cache` 控制版本缓存；`--run-id` 设置 `meta.runId`。
+- `--idempotency-key <key>` 让重试的 `install`、`ensure`、`update`、`uninstall` 在效果仍然成立时直接返回记录的结果；同一个 key 用于不同请求会被拒绝。
+
+| 退出码 | 含义 |
+|---|---|
+| 0 | 成功 |
+| 1 | `INSTALL_FAILED`、`UPDATE_FAILED`、`UNINSTALL_FAILED`、`UNINSTALL_UNMANAGED`、`UPGRADE_FAILED`（以及有可用更新时的 `upgrade --check`） |
+| 2 | `INVALID_ARGUMENT`，包括未知选项和缺少参数 |
+| 3 | `AGENT_NOT_FOUND` |
+| 4 | `AGENT_NOT_INSTALLED` |
+| 6 | `NETWORK_ERROR` |
+| 7 | `INTERACTION_REQUIRED` |
+| 8 | `MANUAL_ACTION_REQUIRED` |
+| 9 | `RESOURCE_LOCKED` |
+| 10 | `TIMEOUT` |
+| 11 | `CANCELLED` |
+| 12 | `STATE_READ_ERROR` |
+
+agent 启动之后，`qtx exec` 和 `qtx <agent>` 以 agent 自己的退出码退出。
 
 ## 配置与状态
 
-用户配置位于 `~/.quantex/config.json`：
+配置在 `~/.quantex/config.json`，用 `qtx config` 管理：
 
 ```json
 {
@@ -289,58 +209,32 @@ quantex schema --json
 }
 ```
 
-`defaultPackageManager` 可以是 `bun`、`npm`、`mise` 或 `uv`。它只会在目标 agent 暴露对应 managed installer 时调整 agent 安装方式排序；对应的 package manager 可执行文件必须已经存在，Quantex 不会自动替你安装。当前目录中已没有 agent 声明 mise 或 uv 安装方式，因此这两个偏好暂时不会改变任何排序。
+- `defaultPackageManager`（`bun`、`npm`、`mise`、`uv`）：agent 提供该安装器时把它排在最前。
+- `npmBunUpdateStrategy`：`latest-major`（安装 `@latest`）或 `respect-semver`（`npm update` / `bun update`）。
+- `selfUpdateRegistry`（默认不设置）：npm 和 Bun 安装执行 `qtx upgrade` 时使用的 registry；`QTX_SELF_UPDATE_REGISTRY` 可以单次覆盖，不影响其他项目。
 
-`selfUpdateRegistry` 默认不设置。未设置时，Quantex 自升级会跟随当前 Bun/npm 实际使用的 registry。设置 `selfUpdateRegistry` 后，它只影响 Quantex 自身通过 Bun/npm 执行 `qtx upgrade` 的 registry 选择，不会修改你其他项目的默认安装源。一次性覆盖可使用环境变量 `QTX_SELF_UPDATE_REGISTRY`。
+Quantex 在 `~/.quantex/state.json` 中记录每个 agent 的安装来源和验证后的收据；版本查询缓存在 `~/.quantex/cache/`，幂等记录在 `~/.quantex/idempotency/`，锁在 `~/.quantex/locks/`。
 
-运行时状态位于 `~/.quantex/state.json`。Quantex 会记录 agent 和自身的实际安装来源，用于 `update --all` 分组更新、`doctor` 恢复建议和 self upgrade 来源判断。
+## 从 1.x 升级
 
-## 发布
+Quantex 2 用 Rust 重写，保留 1.x 的命令行：命令、选项、JSON 和 NDJSON 字段、错误码、`~/.quantex` 下的文件都不变。1.x 安装可以直接 `qtx upgrade` 升级，1.x 与 2.x 可以共用同一个 home 目录。变化如下：
 
-Quantex 使用 release-please 维护 Release PR，发布说明以 GitHub Releases 为准：
+- 参数错误（未知选项、缺少参数、取值无效）退出码为 2，在 `json` / `ndjson` 模式下输出 `INVALID_ARGUMENT` 信封；1.x 打印纯文本错误并以 1 退出。
+- human 输出不属于契约，排版与 1.x 不同，含义一致。
+- npm 包不再导出 JavaScript 库，这条线也不再发布 `quantex-core`。
+- 修复了若干 1.x 缺陷，逐条列在 [`contract/README.md`](./contract/README.md)。
 
-- [GitHub Releases](https://github.com/Drswith/quantex-cli/releases)
-- [docs/releases.md](./docs/releases.md)
-- [CHANGELOG.md](./CHANGELOG.md)
+## 参与开发
 
-## 维护者与 Agent 协作
-
-如果你要参与开发或让 coding agent 在本仓库内工作，请从这些入口开始：
-
-- [AGENTS.md](./AGENTS.md)：仓库级 agent 执行手册，包含流程守卫、验证门槛和 trigger-based pointers。
-- [docs/README.md](./docs/README.md)：ADR、runbook、session、postmortem 等项目文档入口。
-- [openspec/README.md](./openspec/README.md)：OpenSpec 变更流程。
-- [docs/github-collaboration.md](./docs/github-collaboration.md)：Issue、PR、Discussion 协作流程。
-- [skills/quantex-cli/SKILL.md](./skills/quantex-cli/SKILL.md)：面向 agent 使用 Quantex 的 repo-native skill。
-- [skills/quantex-agent-runtime/SKILL.md](./skills/quantex-agent-runtime/SKILL.md)：面向本仓库开发协作的 agent runtime。
-
-本地开发常用命令：
+先读 [AGENTS.md](./AGENTS.md)。接口定义在 [`contract/`](./contract/README.md)，由 [`tests/contract/`](./tests/contract) 中的黑盒测试检查，这些测试也会对 v1.13.6 发布二进制运行。设计记录在 [`docs/design/`](./docs/design/)，发布流程见 [`docs/runbooks/releasing.md`](./docs/runbooks/releasing.md)。
 
 ```bash
-bun install
-bun run dev
-bun run lint
-bun run format:check
-bun run typecheck
-bun run test
-bun run test:container
-bun run test:sandbox
-bun run build
+cargo fmt --all --check
+cargo clippy --workspace --all-targets -- -D warnings
+cargo test --workspace
 ```
 
-`bun run test:container` 是本地隔离验证的首选路径，适合在不安装 Modal 的情况下，用干净 Linux 环境验证对宿主机敏感的生命周期检查。它运行的是 Quantex 针对所选 agent 的真实 CLI lifecycle smoke flow，包括采用已预装 agent 和 Quantex 独立二进制自检，不是单元测试套件。`bun run test:sandbox` 会通过 Modal 运行同一套 smoke flow，适合验证远程传输或专用 GitHub Actions workflow。
-
-如果要高频验证真实上游 agent、又不想污染日常的全局 agent 状态，可以使用一次性的 HOME 运行 focused probe：
-
-```bash
-canary_home="$(mktemp -d)"
-trap 'rm -rf "$canary_home"' EXIT
-HOME="$canary_home" BUN_INSTALL="$canary_home/.bun" PATH="$canary_home/.bun/bin:$PATH" QTX_ISOLATION_SCENARIOS=probe QTX_CANARY_REQUIRE_VERSION=true QTX_ISOLATION_AGENTS=pi bun run scripts/smoke/lifecycle-smoke.ts
-```
-
-advisory 的 `Agent Canaries` GitHub Actions workflow 会在相关 pull request 上运行 quick anchor，并在手动触发时运行完整 catalog。范围和排障顺序见[隔离测试 runbook](./docs/runbooks/modal-sandbox-testing.md)。
-
-## License
+## 许可证
 
 Apache-2.0
 
@@ -348,18 +242,10 @@ Apache-2.0
 [npm-version-href]: https://www.npmjs.com/package/quantex-cli
 [npm-downloads-src]: https://img.shields.io/npm/dm/quantex-cli?style=flat-square
 [npm-downloads-href]: https://www.npmjs.com/package/quantex-cli
-[stars-src]: https://img.shields.io/github/stars/Drswith/quantex-cli?style=flat-square
-[stars-href]: https://github.com/Drswith/quantex-cli/stargazers
 [ci-src]: https://img.shields.io/github/actions/workflow/status/Drswith/quantex-cli/ci.yml?branch=main&style=flat-square&label=ci
 [ci-href]: https://github.com/Drswith/quantex-cli/actions/workflows/ci.yml
 [release-src]: https://img.shields.io/github/v/release/Drswith/quantex-cli?display_name=tag&sort=semver&style=flat-square
 [release-href]: https://github.com/Drswith/quantex-cli/releases
-[release-downloads-src]: https://img.shields.io/github/downloads/Drswith/quantex-cli/total?style=flat-square&label=release%20downloads
-[release-downloads-href]: https://github.com/Drswith/quantex-cli/releases
-[node-src]: https://img.shields.io/badge/node-%3E%3D20-339933?style=flat-square&logo=node.js&logoColor=white
-[node-href]: https://nodejs.org/
-[bun-src]: https://img.shields.io/badge/bun-1.3.14-fbf0df?style=flat-square&logo=bun&logoColor=000
-[bun-href]: https://bun.sh/
 [platforms-src]: https://img.shields.io/badge/platform-macOS%20%7C%20Linux%20%7C%20Windows-555?style=flat-square
 [license-src]: https://img.shields.io/npm/l/quantex-cli?style=flat-square
 [license-href]: ./LICENSE

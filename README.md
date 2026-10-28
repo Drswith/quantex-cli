@@ -5,16 +5,9 @@
 [![npm version][npm-version-src]][npm-version-href]
 [![npm downloads][npm-downloads-src]][npm-downloads-href]
 [![Release][release-src]][release-href]
-[![Release downloads][release-downloads-src]][release-downloads-href]
 [![CI][ci-src]][ci-href]
-
-<br />
-
-[![Node.js >=20][node-src]][node-href]
-[![Bun][bun-src]][bun-href]
 [![Platforms][platforms-src]][release-href]
 [![License][license-src]][license-href]
-[![GitHub stars][stars-src]][stars-href]
 
 Install, inspect, update, uninstall, and run AI coding assistant CLIs from one agent-friendly command line.
 
@@ -22,98 +15,19 @@ Install, inspect, update, uninstall, and run AI coding assistant CLIs from one a
 
 </div>
 
-Quantex is a `human-friendly + agent-friendly` lifecycle CLI for AI coding assistants and terminal coding agents. Use one `qtx` surface to install, inspect, update, uninstall, run, and automate Codex CLI, Claude Code, Gemini CLI, Cursor CLI, OpenCode, Antigravity CLI, Command Code, MiMoCode, Amp, Kilo CLI, and other assistant CLIs with stable machine-readable output. This README uses the shorter `qtx` form as the recommended entry point, while `quantex` remains the fully equivalent long command name.
+Quantex is a lifecycle CLI for AI coding assistants and terminal coding agents, built for people and for agents. One `qtx` command installs, inspects, updates, uninstalls, and runs Codex CLI, Claude Code, Gemini CLI, Cursor CLI, OpenCode, and 28 more, with stable machine-readable output. `qtx` and `quantex` are the same command; this README uses the shorter one.
 
 ## Why Quantex
 
-- Manage multiple AI coding assistant CLIs from one lifecycle command: install, ensure, inspect, update, uninstall, and run.
-- Designed for scripts and coding agents: stable `--json`, `--output ndjson`, `--non-interactive`, and `--dry-run` contracts for machine-readable automation.
-- Tracks real install sources: `update --all` groups updates by recorded source instead of guessing from PATH alone.
-- Supports managed agent installs through available Bun, npm, Homebrew, and winget providers, plus official install scripts. Cargo, Deno, mise, pip, and uv stay supported for installations already recorded in state, but are no longer offered for new catalog installs.
-- Supports Quantex self-upgrade across Bun, npm, and standalone binary installs.
-
-## Lifecycle and compatibility guarantees
-
-Default agent lifecycle commands reconcile live executable, provider, saved-state, and receipt evidence before they mutate anything. Install, ensure, update, uninstall, and execution preflight use typed provider outcomes and verify their postconditions before recording new lifecycle evidence.
-
-The internal engine can evolve without changing the maintained v1 command syntax, JSON/NDJSON envelopes, exit meanings, state/config projection, `qtx`/`quantex` binaries, or root-package exports. Any future removal of a maintained root export requires a separate deprecation proposal; it is not part of the lifecycle-engine redesign.
-
-## TypeScript Core SDK preview
-
-Quantex provides a non-interactive TypeScript SDK as [`quantex-core`](https://www.npmjs.com/package/quantex-core). It is independently versioned and validated through clean Node.js, Bun, and TypeScript NodeNext consumers. CLI npm and GitHub releases remain independent from Core publication.
-
-The 1.2 SDK stage established the read-only, ESM-only `createQuantex`, `list`, and `inspect` surface. The 1.3 integration surface adds gated `install` and `ensure` methods while retaining Node.js 20+ and Bun support. The import below is the published package API:
-
-```ts
-import { createQuantex } from 'quantex-core'
-
-const quantex = createQuantex()
-const result = await quantex.inspect('codex')
-const preview = await quantex.ensure('codex', { mode: 'preview' })
-
-if (result.ok) {
-  console.log(result.value.status)
-}
-
-if (preview.ok && preview.value.mode === 'preview') {
-  console.log(preview.value.decision, preview.value.wouldChange)
-}
-```
-
-Core does not prompt, print, call `process.exit`, or choose CLI exit codes; it returns typed results to its caller. `install` and `ensure` default to apply mode, expose an explicit side-effect-free preview mode, preserve PATH-only external agents, and return typed phase/side-effect failures. The `qtx` / `quantex` CLI remains responsible for prompts, human and JSON/NDJSON presentation, exit-code policy, and command-line execution. The published SDK still does not expose `update`, `uninstall`, `run`, `doctor`, or `upgrade`; in 1.12 the CLI routes `install`, `ensure`, `update`, and `uninstall` through in-repo Core engines, observes `inspect`, `info`, `resolve`, and `list` through in-repo Core read ports, launches `exec` / shortcut through an in-repo Core execution engine (with authorized `--install` missing-agent mutation sharing the same Core install/ensure engine as CLI install/ensure), and diagnoses `doctor` through an in-repo Core diagnosis engine, and routes CLI `upgrade` / `qtx upgrade` plan, check, and apply through an in-repo Core self-upgrade engine, while keeping those unpublished SDK methods absent.
-
-The compatibility transition continues through 1.12: 1.2 introduced read-only Core, 1.3 added gated mutation families, 1.4 made Core the CLI apply default for `install` and `ensure`, 1.12 moves CLI `update` and `uninstall` onto the same in-repo Core engines, keeps CLI `inspect`, `info`, `resolve`, and `list` on Core read observation, launches CLI `exec` / shortcut through Core execution with `--install` sharing Core install/ensure, and diagnoses CLI `doctor` through Core without expanding the published SDK. A later 1.x knife routes CLI `upgrade` through an in-repo Core self-upgrade engine without publishing SDK `upgrade`. CLI `install` and `ensure` are Core-only for apply: `--dry-run` uses Core preview while preserving the frozen dry-run plan and making no lifecycle side effect, and the former `QUANTEX_INSTALLATION_ENGINE=legacy` whole-invocation apply escape is retired. The persisted state schema remains version 2 throughout 1.x. Engine selection happens before an invocation, and a mutating call never falls back after side effects begin. Removing other maintained v1 surfaces still requires a separately approved later-major proposal.
-
-## Agent Quick Start
-
-If you are using a coding agent with Quantex, start by installing the repo-provided user-facing Quantex CLI skill:
-
-```bash
-npx skills add Drswith/quantex-cli --skill quantex-cli -a codex -a claude-code -a opencode -y
-```
-
-To preview the skills exposed by this repository:
-
-```bash
-npx skills add Drswith/quantex-cli --list
-```
-
-Then let the agent discover Quantex's stable commands and output contracts:
-
-```bash
-npm exec --yes --package quantex-cli -- qtx capabilities --json
-npm exec --yes --package quantex-cli -- qtx commands --json
-npm exec --yes --package quantex-cli -- qtx schema --json
-```
-
-If the agent is contributing inside this repository, use this as the bootstrap prompt:
-
-```text
-Read AGENTS.md, openspec/README.md, skills/quantex-agent-runtime/SKILL.md, and skills/quantex-cli/SKILL.md.
-For non-trivial changes, use OpenSpec through the Quantex agent runtime.
-Before finishing, run bun run lint, bun run format:check, and bun run typecheck.
-If command behavior changed, also run bun run test.
-```
-
-The repo-local user-facing Quantex CLI skill lives in [`skills/quantex-cli/`](./skills/quantex-cli/). It can be installed from GitHub through [skills.sh](https://skills.sh/) with `npx skills add`, but this repository remains the publishing source; it is not a separate npm package. The separate [`skills/quantex-agent-runtime/`](./skills/quantex-agent-runtime/) directory is contributor-facing runtime for agents working inside this repository, not the normal external user skill. See the [skill distribution notes](./docs/skill-installation-and-distribution.md) for installation and sync options.
+- One lifecycle surface for many agent CLIs: `install`, `ensure`, `inspect`, `resolve`, `update`, `uninstall`, `exec`.
+- Built for scripts and agents: `--json`, `--output ndjson`, `--non-interactive`, `--dry-run`, `--timeout`, and `--idempotency-key`, with documented error codes and exit codes.
+- Tracks where each agent actually came from (npm, Bun, Homebrew, winget, an official install script, or a standalone binary), so `update --all` uses the recorded source instead of guessing from `PATH`.
+- Verifies before it records: every install, update, and uninstall is checked against a fresh observation.
+- A single native binary (about 3 MB) with no runtime to install, and a `quantex upgrade` that keeps it current.
 
 ## Install
 
-With Bun:
-
-```bash
-bun add -g quantex-cli
-```
-
-With npm (Node.js 20+):
-
-```bash
-npm i -g quantex-cli
-```
-
-The published JS CLI runs on Node after installation. Bun remains a supported package-manager path for install and self-upgrade, while the standalone binary release remains the zero-runtime option.
-
-You can also download standalone binaries from [GitHub Releases](https://github.com/Drswith/quantex-cli/releases), or use the install script:
+macOS and Linux:
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/Drswith/quantex-cli/main/install.sh | sh
@@ -125,49 +39,45 @@ Windows PowerShell:
 irm https://raw.githubusercontent.com/Drswith/quantex-cli/main/install.ps1 | iex
 ```
 
-After installation, prefer `qtx` for the shortest copyable path. If you prefer the explicit long form, `quantex` is fully equivalent.
+The scripts install `quantex` and `qtx` into `~/.local/bin` (set `QUANTEX_INSTALL_DIR` to change it, or `QUANTEX_VERSION=v<version>` to pin a release) after checking the download against `SHA256SUMS.txt`.
 
-## Try It Without Installing
-
-If your environment already provides Node.js 20 or newer, you can try read-only commands before doing a global install:
+With npm or Bun, which install the same native binary through a per-platform package:
 
 ```bash
-bunx quantex-cli list
-npx --yes --package quantex-cli qtx capabilities --json
-npm exec --yes --package quantex-cli -- qtx inspect codex --json
-pnpm --package=quantex-cli dlx qtx doctor
+npm install -g quantex-cli
 ```
 
-Notes:
+```bash
+bun add -g quantex-cli
+```
 
-- These commands are intended for read-only and discovery-oriented flows such as `list`, `info`, `inspect`, `doctor`, `capabilities`, `commands`, and `schema`.
-- `npx`, `npm exec`, and `pnpm dlx` run the published JS CLI through Node and do not require `bun` on `PATH`.
-- `bunx` still requires Bun because `bunx` itself is Bun's launcher.
-- For `install`, `ensure`, `update`, `uninstall`, `upgrade`, or any flow that should record install-source state, prefer a normal install first.
+Binaries for macOS (arm64, x64), Linux (arm64, x64, statically linked), and Windows (x64) are also attached to every [GitHub release](https://github.com/Drswith/quantex-cli/releases).
 
-## Quick Start
+Prereleases are published to npm under the `next` tag (`npm install -g quantex-cli@next`) and as GitHub prereleases; installs on the stable channel are never offered them.
 
-Install and run an agent:
+## Quick start
+
+Install agents and run one:
 
 ```bash
 qtx install claude codex
 qtx exec claude --install if-missing -- --help
 ```
 
-Ensure an agent is available, which is useful for scripts and other agents:
+Make sure an agent is available, the idempotent form for scripts and agents:
 
 ```bash
 qtx ensure codex --json
 ```
 
-Inspect agent state and resolve its executable:
+Inspect an agent and resolve its executable:
 
 ```bash
 qtx inspect codex --json
 qtx resolve codex --json
 ```
 
-Update one agent or all installed agents:
+Update one agent, or everything Quantex manages:
 
 ```bash
 qtx update claude
@@ -177,52 +87,48 @@ qtx update --all
 Upgrade Quantex itself:
 
 ```bash
-qtx upgrade
 qtx upgrade --check
+qtx upgrade
 ```
 
-Stable is the normal Quantex release line. The CLI still accepts `qtx upgrade --channel beta` for an explicitly published prerelease, but this repository does not maintain a beta release channel, so that selector may have no matching release.
+## Commands
 
-Note: `qtx upgrade` follows the registry actually used by the current Bun/npm self-upgrade path. If you use a mirror and it lags behind npm, the newest upstream release may not be installable from that registry yet. In that case, retry later or set `selfUpdateRegistry` / `QTX_SELF_UPDATE_REGISTRY` so Quantex self-upgrade uses a different registry without affecting your other projects.
+| Command | Description |
+|---|---|
+| `qtx install <agent> [more...]` (`i`) | Install one or more agents |
+| `qtx ensure <agent>` | Install an agent only if it is missing |
+| `qtx update <agent>` (`u`), `qtx update --all [--managed]` | Update an agent, or every installed one |
+| `qtx uninstall <agent>` (`rm`) | Uninstall an agent Quantex installed |
+| `qtx list` (`ls`) | List supported agents and what is installed |
+| `qtx info <agent>` | Show an agent's details and install methods |
+| `qtx inspect <agent>` | Return an agent's full lifecycle state |
+| `qtx resolve <agent>` | Resolve the executable to launch |
+| `qtx exec <agent> [--install never\|if-missing\|always] -- [args...]` | Run an agent with an explicit install policy |
+| `qtx <agent> [args...]` | Run an agent, offering to install it when missing |
+| `qtx doctor` | Diagnose the environment, with recovery steps |
+| `qtx capabilities` | Show installers, platform, and feature flags |
+| `qtx commands` | Show the stable command catalog |
+| `qtx schema [command]` | Show structured output schemas |
+| `qtx config [list\|get\|set\|reset] [key] [value]` | Read and change configuration |
+| `qtx upgrade [--check] [--channel stable\|beta]` | Upgrade Quantex itself |
 
-## Common Commands
+`qtx uninstall` acts on the install source Quantex recorded. It does not remove a separately installed copy that is still on `PATH`; `qtx inspect <agent> --json` shows which copy is which.
 
-| Preferred Command | Equivalent Long Form | Description |
-|---------|-------------|-------------|
-| `qtx i <agent> [more-agents...]` | `quantex install <agent> [more-agents...]` | Install one or more agents |
-| `qtx ensure <agent>` | `quantex ensure <agent>` | Idempotently ensure an agent is installed |
-| `qtx u <agent>` | `quantex update <agent>` | Update an agent |
-| `qtx update --all` | `quantex update --all` | Update all installed agents |
-| `qtx rm <agent>` | `quantex uninstall <agent>` | Uninstall an agent |
-| `qtx ls` | `quantex list` | List supported agents |
-| `qtx info <agent>` | `quantex info <agent>` | Show agent details |
-| `qtx inspect <agent>` | `quantex inspect <agent>` | Return structured agent state |
-| `qtx resolve <agent>` | `quantex resolve <agent>` | Resolve the executable entrypoint |
-| `qtx exec <agent> -- [args...]` | `quantex exec <agent> -- [args...]` | Run an agent with explicit policy |
-| `qtx <agent> [args...]` | `quantex <agent> [args...]` | Shortcut-run an agent |
-| `qtx capabilities` | `quantex capabilities` | Show environment capabilities |
-| `qtx commands` | `quantex commands` | Show the stable command catalog |
-| `qtx schema` | `quantex schema` | Show structured output schemas |
-| `qtx config` | `quantex config` | Manage configuration |
-| `qtx doctor` | `quantex doctor` | Diagnose environment and recovery guidance |
+## Supported agents
 
-`qtx rm` / `quantex uninstall` acts on the install source recorded by Quantex. It does not remove an independently installed copy that remains on `PATH`; if the managed package is gone but another copy remains, Quantex reports a conflicting source. Use `qtx inspect <agent> --json` and `qtx resolve <agent> --json`, then remove or reinstall the remaining copy through its actual owner.
-
-## Supported Agents
-
-| Agent | Run Command | Description |
-|-------|-------------|-------------|
+| Agent | Run command | Description |
+|---|---|---|
+| Amp | `qtx amp` | Sourcegraph's frontier AI coding agent CLI |
 | Antigravity CLI | `qtx antigravity` | Google's Antigravity terminal coding agent CLI |
 | Auggie CLI | `qtx auggie` | Augment's official terminal coding agent |
 | Autohand Code CLI | `qtx autohand` | Autohand's autonomous terminal coding agent CLI |
-| Amp | `qtx amp` | Sourcegraph's frontier AI coding agent CLI |
 | Claude Code | `qtx claude` | Anthropic's official AI coding assistant CLI |
 | CodeBuddy Code | `qtx codebuddy` | Tencent's official AI coding assistant CLI |
+| CodeWhale | `qtx codewhale` | DeepSeek-first agentic terminal for coding models |
 | Codex CLI | `qtx codex` | OpenAI's official AI coding assistant CLI |
 | Command Code | `qtx commandcode` | Command Code's AI coding assistant CLI |
 | Crush | `qtx crush` | Charmbracelet's terminal AI coding agent CLI |
 | Cursor CLI | `qtx cursor` | Cursor AI coding assistant CLI |
-| CodeWhale | `qtx codewhale` | DeepSeek-first agentic terminal for coding models |
 | DeepSeek Harness | `qtx dsh` | DeepSeek's official plugin-architecture agent harness CLI |
 | Devin for Terminal | `qtx devin` | Cognition's local coding agent CLI |
 | Droid | `qtx droid` | Factory AI software engineering agent CLI |
@@ -237,46 +143,60 @@ Note: `qtx upgrade` follows the registry actually used by the current Bun/npm se
 | Kiro CLI | `qtx kiro` | Amazon's AI coding agent CLI |
 | MiMoCode | `qtx mimo` | Xiaomi's terminal-native AI coding assistant CLI |
 | Mistral Vibe | `qtx vibe` | Mistral's open-source CLI coding assistant |
-| OpenClaw | `qtx openclaw` | OpenClaw's open-source AI agent runtime CLI |
-| OpenHands CLI | `qtx openhands` | OpenHands' open-source software development agent CLI |
-| OpenCode | `qtx opencode` | Open-source AI coding CLI |
 | oh-my-pi (OMP) | `qtx omp` | oh-my-pi coding agent CLI |
+| OpenClaw | `qtx openclaw` | OpenClaw's open-source AI agent runtime CLI |
+| OpenCode | `qtx opencode` | Open-source AI coding CLI |
+| OpenHands CLI | `qtx openhands` | OpenHands' open-source software development agent CLI |
 | Pi | `qtx pi` | Minimal and extensible terminal coding agent |
 | Qoder CLI | `qtx qoder` | Qoder's official AI coding assistant CLI |
 | Qwen Code | `qtx qwen` | Qwen's AI coding assistant CLI |
 | Reasonix | `qtx reasonix` | DeepSeek-native terminal coding agent |
 
-If you prefer the explicit long form, replace `qtx` with `quantex` in the examples above.
+## For agents and automation
 
-## Automation And Agents
-
-Quantex is not a workflow orchestration platform. Its core job is to provide a stable lifecycle surface for AI coding assistant CLIs. For automation, prefer explicit structured flags:
+Quantex is a lifecycle tool, not a workflow orchestration platform. Agents that use it should install the Quantex skill, which teaches the command recipes and output contracts:
 
 ```bash
-quantex inspect claude --json --refresh
-quantex install claude --json --dry-run
-quantex exec claude --install if-missing --yes -- --help
+npx skills add Drswith/quantex-cli --skill quantex-cli -a codex -a claude-code -a opencode -y
 ```
 
-Useful contracts:
-
-- `--json` / `--output <human|json|ndjson>` controls output format.
-- `--non-interactive`, `--yes`, and `--quiet` are designed for CI and agent calls.
-- `--dry-run` previews install or update plans.
-- `--refresh` / `--no-cache` controls version and release metadata caches.
-- `stdout` is reserved for structured results; `stderr` carries logs, warnings, and underlying installer output.
-
-For upper-layer agent integrations, start with capability and schema discovery:
+Then discover the stable surface:
 
 ```bash
-quantex capabilities --json
-quantex commands --json
-quantex schema --json
+qtx capabilities --json
+qtx commands --json
+qtx schema --json
 ```
 
-## Configuration And State
+The contract an agent can rely on:
 
-User configuration lives at `~/.quantex/config.json`:
+- `--json` or `--output json` prints one result envelope `{ action, ok, data, error, warnings, meta, target }`. `--output ndjson` streams `started` / `progress` events and ends with a `result` event.
+- In `json` and `ndjson` mode stdout carries only protocol output. Logs, warnings, prompts, and installer output go to stderr.
+- `--non-interactive` never prompts (a needed confirmation becomes `INTERACTION_REQUIRED`); `--yes` accepts prompts; `--quiet` silences informational output.
+- `--dry-run` reports what `install`, `ensure`, `update`, `uninstall`, `exec`, and `upgrade` would do, without doing it.
+- `--timeout <duration>` (`500ms`, `30s`, `2m`) bounds a command; `--refresh` and `--no-cache` control the version cache; `--run-id` sets `meta.runId`.
+- `--idempotency-key <key>` makes a retried `install`, `ensure`, `update`, or `uninstall` return the recorded result while its effect still holds. Reusing a key for a different request is refused.
+
+| Exit code | Meaning |
+|---|---|
+| 0 | Success |
+| 1 | `INSTALL_FAILED`, `UPDATE_FAILED`, `UNINSTALL_FAILED`, `UNINSTALL_UNMANAGED`, `UPGRADE_FAILED` (and `upgrade --check` when an update exists) |
+| 2 | `INVALID_ARGUMENT`, including unknown options and missing arguments |
+| 3 | `AGENT_NOT_FOUND` |
+| 4 | `AGENT_NOT_INSTALLED` |
+| 6 | `NETWORK_ERROR` |
+| 7 | `INTERACTION_REQUIRED` |
+| 8 | `MANUAL_ACTION_REQUIRED` |
+| 9 | `RESOURCE_LOCKED` |
+| 10 | `TIMEOUT` |
+| 11 | `CANCELLED` |
+| 12 | `STATE_READ_ERROR` |
+
+`qtx exec` and `qtx <agent>` exit with the agent's own exit code once the agent runs.
+
+## Configuration and state
+
+Configuration lives in `~/.quantex/config.json` and is managed with `qtx config`:
 
 ```json
 {
@@ -289,56 +209,30 @@ User configuration lives at `~/.quantex/config.json`:
 }
 ```
 
-`defaultPackageManager` can be `bun`, `npm`, `mise`, or `uv`. It only changes agent install-method ordering when the selected agent exposes that managed installer; the corresponding package-manager executable must already be available because Quantex does not install it for you. No catalog agent declares a mise or uv install method today, so those two preferences currently change no ordering.
+- `defaultPackageManager` (`bun`, `npm`, `mise`, `uv`) moves that installer first when an agent offers it.
+- `npmBunUpdateStrategy` is `latest-major` (install `@latest`) or `respect-semver` (`npm update` / `bun update`).
+- `selfUpdateRegistry` (unset by default) is the registry `qtx upgrade` uses for npm and Bun installs; `QTX_SELF_UPDATE_REGISTRY` overrides it for one run. It does not affect other projects.
 
-`selfUpdateRegistry` is unset by default. When unset, Quantex follows the active Bun/npm registry for self-upgrade. If you set `selfUpdateRegistry`, it only affects the registry used when Quantex upgrades itself through Bun/npm and does not change the default install source for your other projects. For a one-off override, use the `QTX_SELF_UPDATE_REGISTRY` environment variable.
+Quantex records each agent's install source and a verified receipt in `~/.quantex/state.json`. Version lookups are cached in `~/.quantex/cache/`, idempotency records live in `~/.quantex/idempotency/`, and locks in `~/.quantex/locks/`.
 
-Runtime state lives at `~/.quantex/state.json`. Quantex records the actual install source for agents and itself, which powers grouped `update --all` execution, `doctor` recovery guidance, and self-upgrade source detection.
+## Upgrading from 1.x
 
-## Releases
+Quantex 2 is a rewrite in Rust that keeps the 1.x command line: the same commands, options, JSON and NDJSON fields, error codes, and `~/.quantex` files. A 1.x install upgrades with `qtx upgrade`, and 1.x and 2.x can share one home directory. What changes:
 
-Quantex uses release-please Release PRs. GitHub Releases are the canonical release notes:
+- Argument errors (unknown option, missing argument, invalid value) exit with code 2 and, in `json` / `ndjson` mode, print an `INVALID_ARGUMENT` envelope. 1.x printed a plain error and exited 1.
+- Human-readable output is not part of the contract; its layout differs from 1.x while meaning the same thing.
+- The npm package no longer exports a JavaScript library, and `quantex-core` is not published from this line.
+- A number of 1.x defects are fixed; [`contract/README.md`](./contract/README.md) lists each one.
 
-- [GitHub Releases](https://github.com/Drswith/quantex-cli/releases)
-- [docs/releases.md](./docs/releases.md)
-- [CHANGELOG.md](./CHANGELOG.md)
+## Contributing
 
-## Maintainers And Agent Collaboration
-
-If you are contributing to this repository or letting a coding agent work here, start from these entry points:
-
-- [AGENTS.md](./AGENTS.md): repository-level execution handbook with workflow guardrails, validation gates, and trigger-based pointers.
-- [docs/README.md](./docs/README.md): project docs for ADRs, runbooks, sessions, and postmortems.
-- [openspec/README.md](./openspec/README.md): OpenSpec change workflow.
-- [docs/github-collaboration.md](./docs/github-collaboration.md): Issue, PR, and Discussion collaboration flow.
-- [skills/quantex-cli/SKILL.md](./skills/quantex-cli/SKILL.md): repo-native skill for agents using Quantex.
-- [skills/quantex-agent-runtime/SKILL.md](./skills/quantex-agent-runtime/SKILL.md): contributor-facing runtime for agents working inside this repository.
-
-Common local development commands:
+Read [AGENTS.md](./AGENTS.md) first. The interface is defined in [`contract/`](./contract/README.md) and checked by the black-box suite in [`tests/contract/`](./tests/contract), which also runs against the v1.13.6 release binary. Design records live in [`docs/design/`](./docs/design/), and [`docs/runbooks/releasing.md`](./docs/runbooks/releasing.md) describes how releases are built.
 
 ```bash
-bun install
-bun run dev
-bun run lint
-bun run format:check
-bun run typecheck
-bun run test
-bun run test:container
-bun run test:sandbox
-bun run build
+cargo fmt --all --check
+cargo clippy --workspace --all-targets -- -D warnings
+cargo test --workspace
 ```
-
-`bun run test:container` is the preferred local isolation pass for host-sensitive lifecycle checks when you want a clean Linux environment without installing Modal locally. It runs Quantex's real CLI lifecycle smoke flow for selected agents, including preinstalled-agent adoption and Quantex standalone-binary self checks, not the unit test suite. `bun run test:sandbox` runs the same smoke flow through Modal and is intended for validating the remote transport or the dedicated GitHub Actions workflow.
-
-For a fast real-upstream check without touching your normal global agent state, run the focused probe in a disposable HOME:
-
-```bash
-canary_home="$(mktemp -d)"
-trap 'rm -rf "$canary_home"' EXIT
-HOME="$canary_home" BUN_INSTALL="$canary_home/.bun" PATH="$canary_home/.bun/bin:$PATH" QTX_ISOLATION_SCENARIOS=probe QTX_CANARY_REQUIRE_VERSION=true QTX_ISOLATION_AGENTS=pi bun run scripts/smoke/lifecycle-smoke.ts
-```
-
-The advisory `Agent Canaries` GitHub Actions workflow runs this probe for quick anchors on relevant pull requests and for the full catalog on manual dispatch. See [the isolation runbook](./docs/runbooks/modal-sandbox-testing.md) for scope and triage guidance.
 
 ## License
 
@@ -348,18 +242,10 @@ Apache-2.0
 [npm-version-href]: https://www.npmjs.com/package/quantex-cli
 [npm-downloads-src]: https://img.shields.io/npm/dm/quantex-cli?style=flat-square
 [npm-downloads-href]: https://www.npmjs.com/package/quantex-cli
-[stars-src]: https://img.shields.io/github/stars/Drswith/quantex-cli?style=flat-square
-[stars-href]: https://github.com/Drswith/quantex-cli/stargazers
 [ci-src]: https://img.shields.io/github/actions/workflow/status/Drswith/quantex-cli/ci.yml?branch=main&style=flat-square&label=ci
 [ci-href]: https://github.com/Drswith/quantex-cli/actions/workflows/ci.yml
 [release-src]: https://img.shields.io/github/v/release/Drswith/quantex-cli?display_name=tag&sort=semver&style=flat-square
 [release-href]: https://github.com/Drswith/quantex-cli/releases
-[release-downloads-src]: https://img.shields.io/github/downloads/Drswith/quantex-cli/total?style=flat-square&label=release%20downloads
-[release-downloads-href]: https://github.com/Drswith/quantex-cli/releases
-[node-src]: https://img.shields.io/badge/node-%3E%3D20-339933?style=flat-square&logo=node.js&logoColor=white
-[node-href]: https://nodejs.org/
-[bun-src]: https://img.shields.io/badge/bun-1.3.14-fbf0df?style=flat-square&logo=bun&logoColor=000
-[bun-href]: https://bun.sh/
 [platforms-src]: https://img.shields.io/badge/platform-macOS%20%7C%20Linux%20%7C%20Windows-555?style=flat-square
 [license-src]: https://img.shields.io/npm/l/quantex-cli?style=flat-square
 [license-href]: ./LICENSE

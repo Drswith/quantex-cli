@@ -137,9 +137,26 @@ In structured modes, failure information lives in:
 
 - `error.code`
 - `error.message`
-- optionally `exitCode`
+- optionally `error.details` and `exitCode`
 
-Check `ok` first, then inspect `error`.
+Check `ok` first, then inspect `error`. Argument errors (an unknown option, a missing argument, an invalid value) are reported the same way, as `INVALID_ARGUMENT` with exit code 2.
+
+| Exit code | Error codes |
+|---|---|
+| 0 | none (success) |
+| 1 | `INSTALL_FAILED`, `UPDATE_FAILED`, `UNINSTALL_FAILED`, `UNINSTALL_UNMANAGED`, `UPGRADE_FAILED`; also `upgrade --check` when an update exists (`ok: true`, `exitCode: 1`) |
+| 2 | `INVALID_ARGUMENT` |
+| 3 | `AGENT_NOT_FOUND` |
+| 4 | `AGENT_NOT_INSTALLED` |
+| 6 | `NETWORK_ERROR` |
+| 7 | `INTERACTION_REQUIRED` |
+| 8 | `MANUAL_ACTION_REQUIRED` |
+| 9 | `RESOURCE_LOCKED` |
+| 10 | `TIMEOUT` |
+| 11 | `CANCELLED` |
+| 12 | `STATE_READ_ERROR` |
+
+Once an agent runs, `quantex exec` exits with the agent's own exit code.
 
 When the exact command envelope matters, use:
 
@@ -188,7 +205,7 @@ quantex exec codex --install if-missing -- --help
 
 ### Reliability controls
 
-- Use `--idempotency-key` on mutating commands (`install`, `ensure`, `update`, `uninstall`, `upgrade`) so retries return the prior result instead of repeating side effects.
+- Use `--idempotency-key` on `install`, `ensure`, `update`, and `uninstall`. A retry with the same key and request returns the recorded result while its effect still holds (the agent is still installed, removed, or at the version reached), and otherwise runs normally. Reusing a key for a different request fails with `INVALID_ARGUMENT`. `--dry-run` neither replays nor records.
 - Use `--timeout` to bound operations; timeout and cancellation map to stable error handling.
 - Use `--run-id` or `QUANTEX_RUN_ID` to correlate JSON envelopes, NDJSON progress streams, and logs.
 

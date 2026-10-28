@@ -13,11 +13,8 @@ run_quantex() {
     return
   fi
 
-  if [[ -f "${REPO_ROOT}/package.json" ]] && command -v bun >/dev/null 2>&1; then
-    (
-      cd "${REPO_ROOT}"
-      bun run src/cli.ts "$@"
-    )
+  if [[ -f "${REPO_ROOT}/crates/quantex/Cargo.toml" ]] && command -v cargo >/dev/null 2>&1; then
+    cargo run --quiet --manifest-path "${REPO_ROOT}/Cargo.toml" -p quantex -- "$@"
     return
   fi
 
@@ -26,7 +23,7 @@ run_quantex() {
     return
   fi
 
-  echo "Unable to locate quantex. Set QUANTEX_BIN or run from the repo root with bun installed." >&2
+  echo "Unable to locate quantex. Set QUANTEX_BIN, run from the repository with cargo installed, or put quantex on PATH." >&2
   exit 1
 }
 
