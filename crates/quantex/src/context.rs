@@ -232,14 +232,9 @@ pub fn parse_duration_ms(text: &str) -> Option<u64> {
     amount.checked_mul(factor)
 }
 
-/// The user's home directory: `HOME`, then `USERPROFILE` on Windows.
+/// The user's home directory: `HOME`, then `USERPROFILE`, as v1 resolved it.
 pub fn home_dir() -> PathBuf {
-    let candidates: &[&str] = if cfg!(windows) {
-        &["USERPROFILE", "HOME"]
-    } else {
-        &["HOME", "USERPROFILE"]
-    };
-    for key in candidates {
+    for key in ["HOME", "USERPROFILE"] {
         if let Some(value) = std::env::var_os(key).filter(|value| !value.is_empty()) {
             return PathBuf::from(value);
         }

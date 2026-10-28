@@ -12,6 +12,7 @@ pub mod contract;
 pub mod process;
 pub mod protocol;
 pub mod runtime;
+pub mod store;
 pub mod term;
 pub mod time;
 
