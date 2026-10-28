@@ -66,7 +66,7 @@ pub fn run(ctx: &Context, action: Option<&str>, key: Option<&str>, value: Option
                 "selfUpdateRegistry" if store::normalize_registry_url(raw).is_none() => {
                     Some("selfUpdateRegistry must be a valid absolute URL".to_owned())
                 }
-                _ if CONFIG_INTEGER_KEYS.contains(&key) && !store::parse_int_prefix(raw).is_some_and(|n| n > 0) => {
+                _ if CONFIG_INTEGER_KEYS.contains(&key) && store::parse_int_prefix(raw).is_none_or(|n| n == 0) => {
                     Some(format!("{key} must be a positive integer"))
                 }
                 _ => None,
