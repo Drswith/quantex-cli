@@ -1,0 +1,329 @@
+//! Harness for black-box contract tests.
+//!
+//! Every test spawns a quantex binary in an isolated home directory. The binary is
+//! `QUANTEX_BIN` when set (for example the v1.13.6 reference release), otherwise the
+//! workspace build of `quantex`, compiled on first use.
+//!
+//! Set `QUANTEX_CONTRACT_REFERENCE=1` when `QUANTEX_BIN` is the TypeScript reference.
+//! Cases that encode an intentional difference from v1.13.6 are then skipped.
+
+use std::collections::BTreeMap;
+use std::ffi::OsStr;
+use std::fs;
+use std::path::{Path, PathBuf};
+use std::process::{Command, Stdio};
+use std::sync::OnceLock;
+
+use serde_json::Value;
+use tempfile::TempDir;
+
+/// Path to the binary under test.
+pub fn quantex_bin() -> &'static Path {
+    static BIN: OnceLock<PathBuf> = OnceLock::new();
+    BIN.get_or_init(|| {
+        if let Some(path) = std::env::var_os("QUANTEX_BIN") {
+            return PathBuf::from(path);
+        }
+        build_workspace_binary()
+    })
+}
+
+/// True when the binary under test is the TypeScript reference release.
+pub fn is_reference() -> bool {
+    std::env::var("QUANTEX_CONTRACT_REFERENCE").is_ok_and(|value| value == "1")
+}
+
+fn build_workspace_binary() -> PathBuf {
+    let cargo = std::env::var_os("CARGO").unwrap_or_else(|| "cargo".into());
+    let workspace = Path::new(env!("CARGO_MANIFEST_DIR")).join("../..");
+    let status = Command::new(cargo)
+        .args(["build", "--quiet", "-p", "quantex", "--bin", "quantex"])
+        .current_dir(&workspace)
+        .status()
+        .expect("failed to run cargo build for the quantex binary");
+    assert!(status.success(), "cargo build -p quantex failed");
+    let target = std::env::var_os("CARGO_TARGET_DIR")
+        .map(PathBuf::from)
+        .unwrap_or_else(|| workspace.join("target"));
+    target
+        .join("debug")
+        .join(format!("quantex{}", std::env::consts::EXE_SUFFIX))
+}
+
+/// Output of one quantex invocation.
+#[derive(Debug)]
+pub struct Run {
+    pub code: i32,
+    pub stdout: String,
+    pub stderr: String,
+}
+
+impl Run {
+    /// Parses stdout as one JSON document.
+    pub fn json(&self) -> Value {
+        serde_json::from_str(&self.stdout)
+            .unwrap_or_else(|error| panic!("stdout is not JSON ({error}):\n{}", self.stdout))
+    }
+
+    /// Parses stdout as NDJSON, one value per non-empty line.
+    pub fn ndjson(&self) -> Vec<Value> {
+        self.stdout
+            .lines()
+            .filter(|line| !line.trim().is_empty())
+            .map(|line| {
+                serde_json::from_str(line)
+                    .unwrap_or_else(|error| panic!("line is not JSON ({error}): {line}"))
+            })
+            .collect()
+    }
+}
+
+/// An isolated environment: a temporary home, a private bin directory on `PATH`,
+/// and a config that disables network retries.
+pub struct Sandbox {
+    root: TempDir,
+    env: BTreeMap<String, String>,
+}
+
+impl Default for Sandbox {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+impl Sandbox {
+    pub fn new() -> Self {
+        let root = tempfile::Builder::new()
+            .prefix("quantex-contract-")
+            .tempdir()
+            .expect("failed to create sandbox directory");
+        let sandbox = Self {
+            root,
+            env: BTreeMap::new(),
+        };
+        fs::create_dir_all(sandbox.bin_dir()).unwrap();
+        fs::create_dir_all(sandbox.quantex_dir()).unwrap();
+        sandbox.write_config(&serde_json::json!({ "networkRetries": 0, "networkTimeoutMs": 1 }));
+        sandbox
+    }
+
+    pub fn home(&self) -> PathBuf {
+        self.root.path().join("home")
+    }
+
+    pub fn bin_dir(&self) -> PathBuf {
+        self.root.path().join("bin")
+    }
+
+    pub fn quantex_dir(&self) -> PathBuf {
+        self.home().join(".quantex")
+    }
+
+    pub fn write_config(&self, config: &Value) {
+        fs::write(
+            self.quantex_dir().join("config.json"),
+            format!("{}\n", serde_json::to_string_pretty(config).unwrap()),
+        )
+        .unwrap();
+    }
+
+    pub fn write_state(&self, contents: &str) {
+        fs::write(self.quantex_dir().join("state.json"), contents).unwrap();
+    }
+
+    pub fn read_state(&self) -> Option<Value> {
+        let text = fs::read_to_string(self.quantex_dir().join("state.json")).ok()?;
+        serde_json::from_str(&text).ok()
+    }
+
+    /// Sets an extra environment variable for every run.
+    pub fn env(&mut self, key: &str, value: &str) -> &mut Self {
+        self.env.insert(key.to_owned(), value.to_owned());
+        self
+    }
+
+    /// Installs a fake executable named `name` on the sandbox `PATH`. On Unix the body
+    /// is a POSIX shell script; on Windows it is a batch file.
+    pub fn fake_tool(&self, name: &str, unix_script: &str, windows_batch: &str) -> PathBuf {
+        if cfg!(windows) {
+            let path = self.bin_dir().join(format!("{name}.cmd"));
+            fs::write(&path, format!("@echo off\r\n{windows_batch}\r\n")).unwrap();
+            path
+        } else {
+            let path = self.bin_dir().join(name);
+            fs::write(&path, format!("#!/bin/sh\n{unix_script}\n")).unwrap();
+            make_executable(&path);
+            path
+        }
+    }
+
+    fn path_value(&self) -> String {
+        let mut dirs = vec![self.bin_dir()];
+        if cfg!(windows) {
+            if let Some(system_root) = std::env::var_os("SystemRoot") {
+                let system_root = PathBuf::from(system_root);
+                dirs.push(system_root.join("System32"));
+                dirs.push(system_root.clone());
+            }
+        } else {
+            dirs.push(PathBuf::from("/usr/bin"));
+            dirs.push(PathBuf::from("/bin"));
+        }
+        std::env::join_paths(dirs)
+            .unwrap()
+            .to_string_lossy()
+            .into_owned()
+    }
+
+    /// Runs quantex with `args` and stdin closed.
+    pub fn run<I, S>(&self, args: I) -> Run
+    where
+        I: IntoIterator<Item = S>,
+        S: AsRef<OsStr>,
+    {
+        let home = self.home();
+        let mut command = Command::new(quantex_bin());
+        command
+            .args(args)
+            .env_clear()
+            .env("HOME", &home)
+            .env("USERPROFILE", &home)
+            .env("PATH", self.path_value())
+            .env("NO_COLOR", "1")
+            .stdin(Stdio::null())
+            .stdout(Stdio::piped())
+            .stderr(Stdio::piped());
+        for key in [
+            "SystemRoot",
+            "SYSTEMROOT",
+            "TEMP",
+            "TMP",
+            "TMPDIR",
+            "PATHEXT",
+            "COMSPEC",
+        ] {
+            if let Some(value) = std::env::var_os(key) {
+                command.env(key, value);
+            }
+        }
+        if cfg!(windows) {
+            command.env("APPDATA", home.join("AppData").join("Roaming"));
+            command.env("LOCALAPPDATA", home.join("AppData").join("Local"));
+        }
+        for (key, value) in &self.env {
+            command.env(key, value);
+        }
+        let output = command
+            .output()
+            .expect("failed to spawn the quantex binary");
+        Run {
+            code: output.status.code().unwrap_or(-1),
+            stdout: String::from_utf8_lossy(&output.stdout).into_owned(),
+            stderr: String::from_utf8_lossy(&output.stderr).into_owned(),
+        }
+    }
+}
+
+#[cfg(unix)]
+fn make_executable(path: &Path) {
+    use std::os::unix::fs::PermissionsExt;
+    let mut permissions = fs::metadata(path).unwrap().permissions();
+    permissions.set_mode(0o755);
+    fs::set_permissions(path, permissions).unwrap();
+}
+
+#[cfg(not(unix))]
+fn make_executable(_path: &Path) {}
+
+/// Replaces values that legitimately differ between runs and implementations, so two
+/// envelopes can be compared structurally.
+pub fn normalize(value: &Value) -> Value {
+    normalize_with_key(value, None)
+}
+
+fn normalize_with_key(value: &Value, key: Option<&str>) -> Value {
+    match value {
+        Value::Object(map) => Value::Object(
+            map.iter()
+                .map(|(child_key, child)| {
+                    (
+                        child_key.clone(),
+                        normalize_with_key(child, Some(child_key)),
+                    )
+                })
+                .collect(),
+        ),
+        Value::Array(items) => Value::Array(
+            items
+                .iter()
+                .map(|item| normalize_with_key(item, None))
+                .collect(),
+        ),
+        Value::String(_) => match key {
+            Some(name @ ("runId" | "timestamp" | "fetchedAt" | "staleAfter")) => {
+                Value::String(format!("<{name}>"))
+            }
+            Some("version" | "currentVersion" | "latestVersion") => {
+                Value::String("<version>".into())
+            }
+            _ => value.clone(),
+        },
+        _ => value.clone(),
+    }
+}
+
+/// Asserts the envelope invariants every structured result must satisfy.
+pub fn assert_envelope(envelope: &Value, action: &str, mode: &str) {
+    assert_eq!(envelope["action"], action, "action in {envelope}");
+    assert!(
+        envelope["ok"].is_boolean(),
+        "ok must be boolean in {envelope}"
+    );
+    assert_eq!(envelope["meta"]["mode"], mode, "meta.mode in {envelope}");
+    assert_eq!(
+        envelope["meta"]["schemaVersion"], "1",
+        "meta.schemaVersion in {envelope}"
+    );
+    assert!(
+        envelope["meta"]["runId"].is_string(),
+        "meta.runId in {envelope}"
+    );
+    assert!(
+        envelope["meta"]["timestamp"].is_string(),
+        "meta.timestamp in {envelope}"
+    );
+    assert!(
+        envelope["meta"]["version"].is_string(),
+        "meta.version in {envelope}"
+    );
+    assert!(envelope["warnings"].is_array(), "warnings in {envelope}");
+    if envelope["ok"] == true {
+        assert!(
+            envelope["error"].is_null(),
+            "error must be null on success in {envelope}"
+        );
+    } else {
+        assert!(
+            envelope["error"]["code"].is_string(),
+            "error.code in {envelope}"
+        );
+        assert!(
+            envelope["error"]["message"].is_string(),
+            "error.message in {envelope}"
+        );
+    }
+}
+
+/// Root of the repository `contract/` directory.
+pub fn contract_dir() -> PathBuf {
+    Path::new(env!("CARGO_MANIFEST_DIR")).join("../../contract")
+}
+
+/// Reads a JSON file under `contract/`.
+pub fn contract_json(relative: &str) -> Value {
+    let path = contract_dir().join(relative);
+    let text = fs::read_to_string(&path)
+        .unwrap_or_else(|error| panic!("cannot read {}: {error}", path.display()));
+    serde_json::from_str(&text)
+        .unwrap_or_else(|error| panic!("{} is not JSON: {error}", path.display()))
+}

@@ -35,3 +35,8 @@ The reference binary is the published TypeScript release `v1.13.6`. Its source s
 - Human (non-JSON) output is not contract. Wording keeps its meaning; layout, wrapping, width handling, and `--help` text may change.
 - Argument-parse errors (unknown option, missing argument, invalid option value) report `INVALID_ARGUMENT` with exit code 2, and emit the error envelope in `json` / `ndjson` mode. v1.13.6 prints a plain stderr line and exits 1.
 - The npm package no longer exports a JavaScript library API, and `quantex-core` is not published from this line.
+
+## v1.13.6 defects the Rust build fixes
+
+- Piped stdout is truncated at 64 KiB, so `quantex schema --json | jq` fails.
+- With a non-TTY stdin or stdout the documented default is structured output; the v1.13.6 binary still prints human output unless `--json` or `--output` is passed.

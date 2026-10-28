@@ -1,0 +1,69 @@
+name: CI
+
+on:
+  push:
+    branches: [claude/quantex-cli-rust-rewrite-1b3c4a]
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+env:
+  CARGO_TERM_COLOR: always
+  RUST_BACKTRACE: short
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+      - uses: Swatinem/rust-cache@v2
+      - run: cargo fmt --all --check
+      - run: cargo clippy --workspace --all-targets -- -D warnings
+
+  test:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+      - run: cargo test --workspace
+
+  # Runs the contract suite against the published v1.13.6 TypeScript binary, so the
+  # suite itself stays honest about what v1 does. Cases for intentional differences
+  # are skipped through QUANTEX_CONTRACT_REFERENCE.
+  reference:
+    runs-on: ubuntu-latest
+    env:
+      REFERENCE_VERSION: v1.13.6
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+      - name: Download the reference binary
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          mkdir -p "$RUNNER_TEMP/reference"
+          cd "$RUNNER_TEMP/reference"
+          gh release download "$REFERENCE_VERSION" --repo Drswith/quantex-cli \
+            --pattern quantex-linux-x64.tar.gz --pattern SHA256SUMS.txt
+          grep ' quantex-linux-x64.tar.gz$' SHA256SUMS.txt | sha256sum --check
+          tar -xzf quantex-linux-x64.tar.gz quantex-linux-x64
+          chmod +x quantex-linux-x64
+          echo "QUANTEX_BIN=$RUNNER_TEMP/reference/quantex-linux-x64" >> "$GITHUB_ENV"
+      - run: cargo test -p quantex-contract-tests
+        env:
+          QUANTEX_CONTRACT_REFERENCE: "1"
