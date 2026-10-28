@@ -1,5 +1,0 @@
-{
-  "aliasPackage": "quantex",
-  "binaryNames": ["qtx", "quantex"],
-  "primaryPackage": "quantex-cli"
-}

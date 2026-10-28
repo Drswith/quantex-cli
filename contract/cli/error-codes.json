@@ -1,0 +1,62 @@
+[
+  {
+    "code": "AGENT_NOT_FOUND",
+    "exitCode": 3
+  },
+  {
+    "code": "AGENT_NOT_INSTALLED",
+    "exitCode": 4
+  },
+  {
+    "code": "CANCELLED",
+    "exitCode": 11
+  },
+  {
+    "code": "INSTALL_FAILED",
+    "exitCode": 1
+  },
+  {
+    "code": "INTERACTION_REQUIRED",
+    "exitCode": 7
+  },
+  {
+    "code": "INVALID_ARGUMENT",
+    "exitCode": 2
+  },
+  {
+    "code": "MANUAL_ACTION_REQUIRED",
+    "exitCode": 8
+  },
+  {
+    "code": "NETWORK_ERROR",
+    "exitCode": 6
+  },
+  {
+    "code": "RESOURCE_LOCKED",
+    "exitCode": 9
+  },
+  {
+    "code": "STATE_READ_ERROR",
+    "exitCode": 12
+  },
+  {
+    "code": "TIMEOUT",
+    "exitCode": 10
+  },
+  {
+    "code": "UNINSTALL_FAILED",
+    "exitCode": 1
+  },
+  {
+    "code": "UNINSTALL_UNMANAGED",
+    "exitCode": 1
+  },
+  {
+    "code": "UPDATE_FAILED",
+    "exitCode": 1
+  },
+  {
+    "code": "UPGRADE_FAILED",
+    "exitCode": 1
+  }
+]

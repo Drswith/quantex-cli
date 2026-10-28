@@ -1,0 +1,743 @@
+{
+  "program": {
+    "name": "quantex",
+    "description": "统一的 AI Agent CLI 管理工具"
+  },
+  "globalOptions": [
+    {
+      "id": "json",
+      "flags": "--json",
+      "description": "Output structured JSON",
+      "value": "boolean"
+    },
+    {
+      "id": "output",
+      "flags": "--output <mode>",
+      "description": "Output mode: human, json, or ndjson",
+      "value": "string"
+    },
+    {
+      "id": "nonInteractive",
+      "flags": "--non-interactive",
+      "description": "Disable interactive prompts and confirmations",
+      "value": "boolean"
+    },
+    {
+      "id": "yes",
+      "flags": "--yes",
+      "description": "Automatically accept safe default confirmations",
+      "value": "boolean"
+    },
+    {
+      "id": "quiet",
+      "flags": "--quiet",
+      "description": "Suppress non-essential human logs",
+      "value": "boolean"
+    },
+    {
+      "id": "color",
+      "flags": "--color <mode>",
+      "description": "Color mode: auto, always, or never",
+      "value": "string"
+    },
+    {
+      "id": "logLevel",
+      "flags": "--log-level <level>",
+      "description": "Log level: silent, error, warn, info, or debug",
+      "value": "string"
+    },
+    {
+      "id": "dryRun",
+      "flags": "--dry-run",
+      "description": "Show what would happen without making changes",
+      "value": "boolean"
+    },
+    {
+      "id": "refresh",
+      "flags": "--refresh",
+      "description": "Refresh cached version metadata before returning results",
+      "value": "boolean"
+    },
+    {
+      "id": "noCache",
+      "flags": "--no-cache",
+      "description": "Bypass the local version cache for this command",
+      "value": "boolean"
+    },
+    {
+      "id": "runId",
+      "flags": "--run-id <id>",
+      "description": "Attach a run id to structured output and logs",
+      "value": "string"
+    },
+    {
+      "id": "idempotencyKey",
+      "flags": "--idempotency-key <key>",
+      "description": "Deduplicate repeated mutating requests by client-supplied key",
+      "value": "string"
+    },
+    {
+      "id": "timeout",
+      "flags": "--timeout <duration>",
+      "description": "Abort a command after the given duration, e.g. 500ms, 30s, 5m",
+      "value": "string"
+    }
+  ],
+  "commands": [
+    {
+      "name": "capabilities",
+      "aliases": [],
+      "summary": "Return environment and surface capabilities",
+      "description": "查看当前环境与 surface 能力",
+      "arguments": [],
+      "options": [],
+      "catalogTokens": [],
+      "allowUnknownOptions": false,
+      "effects": [
+        "filesystem",
+        "network",
+        "process"
+      ],
+      "globalOptions": [
+        "json",
+        "output",
+        "nonInteractive",
+        "quiet",
+        "color",
+        "logLevel",
+        "refresh",
+        "noCache",
+        "timeout"
+      ],
+      "flags": [
+        "--json",
+        "--output",
+        "--non-interactive",
+        "--quiet",
+        "--color",
+        "--log-level",
+        "--refresh",
+        "--no-cache",
+        "--timeout"
+      ]
+    },
+    {
+      "name": "commands",
+      "aliases": [],
+      "summary": "Return the stable command catalog",
+      "description": "查看命令目录与稳定能力",
+      "arguments": [],
+      "options": [],
+      "catalogTokens": [],
+      "allowUnknownOptions": false,
+      "effects": [],
+      "globalOptions": [
+        "json",
+        "output",
+        "quiet",
+        "color",
+        "logLevel",
+        "timeout"
+      ],
+      "flags": [
+        "--json",
+        "--output",
+        "--quiet",
+        "--color",
+        "--log-level",
+        "--timeout"
+      ]
+    },
+    {
+      "name": "config",
+      "aliases": [],
+      "summary": "Read and modify Quantex configuration",
+      "description": "配置管理",
+      "arguments": [
+        {
+          "description": "Action: get, set, reset",
+          "name": "action",
+          "syntax": "[action]"
+        },
+        {
+          "description": "Config key",
+          "name": "key",
+          "syntax": "[key]"
+        },
+        {
+          "description": "Config value",
+          "name": "value",
+          "syntax": "[value]"
+        }
+      ],
+      "options": [],
+      "catalogTokens": [
+        "get",
+        "set",
+        "reset"
+      ],
+      "allowUnknownOptions": false,
+      "effects": [
+        "filesystem",
+        "mutation"
+      ],
+      "globalOptions": [
+        "json",
+        "output",
+        "quiet",
+        "color",
+        "logLevel",
+        "timeout"
+      ],
+      "flags": [
+        "get",
+        "set",
+        "reset",
+        "--json",
+        "--output",
+        "--quiet",
+        "--color",
+        "--log-level",
+        "--timeout"
+      ]
+    },
+    {
+      "name": "doctor",
+      "aliases": [],
+      "summary": "Diagnose the current environment and installed tools",
+      "description": "检查环境",
+      "arguments": [],
+      "options": [],
+      "catalogTokens": [],
+      "allowUnknownOptions": false,
+      "effects": [
+        "filesystem",
+        "network",
+        "process"
+      ],
+      "globalOptions": [
+        "json",
+        "output",
+        "quiet",
+        "color",
+        "logLevel",
+        "refresh",
+        "noCache",
+        "timeout"
+      ],
+      "flags": [
+        "--json",
+        "--output",
+        "--quiet",
+        "--color",
+        "--log-level",
+        "--refresh",
+        "--no-cache",
+        "--timeout"
+      ]
+    },
+    {
+      "name": "exec",
+      "aliases": [],
+      "summary": "Run an agent with explicit install policy",
+      "description": "以显式策略启动 agent",
+      "arguments": [
+        {
+          "description": "Agent name or alias",
+          "name": "agent",
+          "syntax": "<agent>"
+        },
+        {
+          "description": "Arguments passed through to the agent",
+          "name": "args",
+          "syntax": "[args...]"
+        }
+      ],
+      "options": [
+        {
+          "defaultValue": "never",
+          "description": "Install policy: never, if-missing, always",
+          "flags": "--install <policy>",
+          "id": "install",
+          "value": "string"
+        }
+      ],
+      "catalogTokens": [],
+      "allowUnknownOptions": true,
+      "effects": [
+        "filesystem",
+        "interaction",
+        "mutation",
+        "network",
+        "process"
+      ],
+      "globalOptions": [
+        "nonInteractive",
+        "yes",
+        "quiet",
+        "color",
+        "logLevel",
+        "dryRun",
+        "output"
+      ],
+      "flags": [
+        "--install",
+        "--non-interactive",
+        "--yes",
+        "--quiet",
+        "--color",
+        "--log-level",
+        "--dry-run",
+        "--output"
+      ]
+    },
+    {
+      "name": "ensure",
+      "aliases": [],
+      "summary": "Ensure an agent is installed",
+      "description": "确保指定 agent 已安装",
+      "arguments": [
+        {
+          "description": "Agent name or alias",
+          "name": "agent",
+          "syntax": "<agent>"
+        }
+      ],
+      "options": [],
+      "catalogTokens": [],
+      "allowUnknownOptions": false,
+      "effects": [
+        "filesystem",
+        "interaction",
+        "mutation",
+        "network",
+        "process"
+      ],
+      "globalOptions": [
+        "json",
+        "output",
+        "yes",
+        "quiet",
+        "color",
+        "logLevel",
+        "dryRun",
+        "timeout",
+        "idempotencyKey"
+      ],
+      "flags": [
+        "--json",
+        "--output",
+        "--yes",
+        "--quiet",
+        "--color",
+        "--log-level",
+        "--dry-run",
+        "--timeout",
+        "--idempotency-key"
+      ]
+    },
+    {
+      "name": "info",
+      "aliases": [],
+      "summary": "Show human-friendly agent details",
+      "description": "查看 agent 详细信息",
+      "arguments": [
+        {
+          "description": "Agent name or alias",
+          "name": "agent",
+          "syntax": "<agent>"
+        }
+      ],
+      "options": [],
+      "catalogTokens": [],
+      "allowUnknownOptions": false,
+      "effects": [
+        "filesystem",
+        "network",
+        "process"
+      ],
+      "globalOptions": [
+        "json",
+        "output",
+        "quiet",
+        "color",
+        "logLevel",
+        "refresh",
+        "noCache",
+        "timeout"
+      ],
+      "flags": [
+        "--json",
+        "--output",
+        "--quiet",
+        "--color",
+        "--log-level",
+        "--refresh",
+        "--no-cache",
+        "--timeout"
+      ]
+    },
+    {
+      "name": "inspect",
+      "aliases": [],
+      "summary": "Return structured agent state",
+      "description": "查看 agent 结构化状态",
+      "arguments": [
+        {
+          "description": "Agent name or alias",
+          "name": "agent",
+          "syntax": "<agent>"
+        }
+      ],
+      "options": [],
+      "catalogTokens": [],
+      "allowUnknownOptions": false,
+      "effects": [
+        "filesystem",
+        "network",
+        "process"
+      ],
+      "globalOptions": [
+        "json",
+        "output",
+        "quiet",
+        "color",
+        "logLevel",
+        "refresh",
+        "noCache",
+        "timeout"
+      ],
+      "flags": [
+        "--json",
+        "--output",
+        "--quiet",
+        "--color",
+        "--log-level",
+        "--refresh",
+        "--no-cache",
+        "--timeout"
+      ]
+    },
+    {
+      "name": "install",
+      "aliases": [
+        "i"
+      ],
+      "summary": "Install one or more agents",
+      "description": "安装指定 agent",
+      "arguments": [
+        {
+          "description": "Agent names or aliases",
+          "name": "agents",
+          "syntax": "<agents...>"
+        }
+      ],
+      "options": [],
+      "catalogTokens": [],
+      "allowUnknownOptions": false,
+      "effects": [
+        "filesystem",
+        "interaction",
+        "mutation",
+        "network",
+        "process"
+      ],
+      "globalOptions": [
+        "json",
+        "output",
+        "yes",
+        "quiet",
+        "color",
+        "logLevel",
+        "dryRun",
+        "timeout",
+        "idempotencyKey"
+      ],
+      "flags": [
+        "--json",
+        "--output",
+        "--yes",
+        "--quiet",
+        "--color",
+        "--log-level",
+        "--dry-run",
+        "--timeout",
+        "--idempotency-key"
+      ]
+    },
+    {
+      "name": "list",
+      "aliases": [
+        "ls"
+      ],
+      "summary": "List supported agents",
+      "description": "列出所有支持的 agent",
+      "arguments": [],
+      "options": [],
+      "catalogTokens": [],
+      "allowUnknownOptions": false,
+      "effects": [
+        "filesystem",
+        "network",
+        "process"
+      ],
+      "globalOptions": [
+        "json",
+        "output",
+        "quiet",
+        "color",
+        "logLevel",
+        "refresh",
+        "noCache",
+        "timeout"
+      ],
+      "flags": [
+        "--json",
+        "--output",
+        "--quiet",
+        "--color",
+        "--log-level",
+        "--refresh",
+        "--no-cache",
+        "--timeout"
+      ]
+    },
+    {
+      "name": "resolve",
+      "aliases": [],
+      "summary": "Resolve an agent executable entrypoint",
+      "description": "解析 agent 可执行入口",
+      "arguments": [
+        {
+          "description": "Agent name or alias",
+          "name": "agent",
+          "syntax": "<agent>"
+        }
+      ],
+      "options": [],
+      "catalogTokens": [],
+      "allowUnknownOptions": false,
+      "effects": [
+        "filesystem",
+        "network",
+        "process"
+      ],
+      "globalOptions": [
+        "json",
+        "output",
+        "quiet",
+        "color",
+        "logLevel",
+        "refresh",
+        "noCache",
+        "timeout"
+      ],
+      "flags": [
+        "--json",
+        "--output",
+        "--quiet",
+        "--color",
+        "--log-level",
+        "--refresh",
+        "--no-cache",
+        "--timeout"
+      ]
+    },
+    {
+      "name": "schema",
+      "aliases": [],
+      "summary": "Return structured output schemas",
+      "description": "查看结构化输出 schema",
+      "arguments": [
+        {
+          "description": "Optional command name",
+          "name": "command",
+          "syntax": "[command]"
+        }
+      ],
+      "options": [],
+      "catalogTokens": [],
+      "allowUnknownOptions": false,
+      "effects": [],
+      "globalOptions": [
+        "json",
+        "output",
+        "quiet",
+        "color",
+        "logLevel",
+        "timeout"
+      ],
+      "flags": [
+        "--json",
+        "--output",
+        "--quiet",
+        "--color",
+        "--log-level",
+        "--timeout"
+      ]
+    },
+    {
+      "name": "update",
+      "aliases": [
+        "u"
+      ],
+      "summary": "Update one or all agents",
+      "description": "更新指定 agent",
+      "arguments": [
+        {
+          "description": "Agent name or alias",
+          "name": "agent",
+          "syntax": "[agent]"
+        }
+      ],
+      "options": [
+        {
+          "description": "Update all installed agents",
+          "flags": "--all",
+          "id": "all",
+          "value": "boolean"
+        },
+        {
+          "description": "With --all, limit the batch to persisted Quantex-managed agents",
+          "flags": "--managed",
+          "id": "managed",
+          "value": "boolean"
+        }
+      ],
+      "catalogTokens": [],
+      "allowUnknownOptions": false,
+      "effects": [
+        "filesystem",
+        "mutation",
+        "network",
+        "process"
+      ],
+      "globalOptions": [
+        "json",
+        "output",
+        "nonInteractive",
+        "quiet",
+        "color",
+        "logLevel",
+        "dryRun",
+        "refresh",
+        "noCache",
+        "timeout",
+        "idempotencyKey"
+      ],
+      "flags": [
+        "--all",
+        "--managed",
+        "--json",
+        "--output",
+        "--non-interactive",
+        "--quiet",
+        "--color",
+        "--log-level",
+        "--dry-run",
+        "--refresh",
+        "--no-cache",
+        "--timeout",
+        "--idempotency-key"
+      ]
+    },
+    {
+      "name": "uninstall",
+      "aliases": [
+        "rm"
+      ],
+      "summary": "Uninstall an agent",
+      "description": "卸载指定 agent",
+      "arguments": [
+        {
+          "description": "Agent name or alias",
+          "name": "agent",
+          "syntax": "<agent>"
+        }
+      ],
+      "options": [],
+      "catalogTokens": [],
+      "allowUnknownOptions": false,
+      "effects": [
+        "filesystem",
+        "mutation",
+        "process"
+      ],
+      "globalOptions": [
+        "json",
+        "output",
+        "quiet",
+        "color",
+        "logLevel",
+        "dryRun",
+        "timeout",
+        "idempotencyKey"
+      ],
+      "flags": [
+        "--json",
+        "--output",
+        "--quiet",
+        "--color",
+        "--log-level",
+        "--dry-run",
+        "--timeout",
+        "--idempotency-key"
+      ]
+    },
+    {
+      "name": "upgrade",
+      "aliases": [],
+      "summary": "Upgrade Quantex CLI itself",
+      "description": "升级 Quantex CLI",
+      "arguments": [],
+      "options": [
+        {
+          "description": "Only check whether an update is available",
+          "flags": "--check",
+          "id": "check",
+          "value": "boolean"
+        },
+        {
+          "description": "Update channel: stable or beta",
+          "flags": "--channel <channel>",
+          "id": "channel",
+          "value": "string"
+        }
+      ],
+      "catalogTokens": [],
+      "allowUnknownOptions": false,
+      "effects": [
+        "filesystem",
+        "mutation",
+        "network",
+        "process"
+      ],
+      "globalOptions": [
+        "json",
+        "output",
+        "quiet",
+        "color",
+        "logLevel",
+        "dryRun",
+        "refresh",
+        "noCache",
+        "timeout",
+        "idempotencyKey"
+      ],
+      "flags": [
+        "--check",
+        "--channel",
+        "--json",
+        "--output",
+        "--quiet",
+        "--color",
+        "--log-level",
+        "--dry-run",
+        "--refresh",
+        "--no-cache",
+        "--timeout",
+        "--idempotency-key"
+      ]
+    }
+  ]
+}

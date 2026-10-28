@@ -1,18 +1,11 @@
-.bun
-.tmp
-.cache
+/target
+/dist
+node_modules
 .DS_Store
 .idea
 *.log
 *.tgz
-coverage
-dist
-lib-cov
-logs
-node_modules
-# Local output of `bun run release:dry-run`; the real assets are built in CI.
-release-candidate
 tmp
-temp
-# Claude Code local worktree state (the tracked skill entry lives at .claude/skills/)
+.tmp
+# Claude Code local worktree state
 .claude/worktrees/

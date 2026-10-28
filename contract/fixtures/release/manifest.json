@@ -1,0 +1,46 @@
+{
+  "assets": [
+    {
+      "arch": "arm64",
+      "checksum": "8cdc2cd177dfe228bb67d3e9307e8d38dae85a5998479940782ceb59657c198e",
+      "downloadUrl": "https://github.com/Drswith/quantex-cli/releases/download/v1.13.6/quantex-darwin-arm64.tar.gz",
+      "name": "quantex-darwin-arm64.tar.gz",
+      "platform": "darwin",
+      "size": 24980937
+    },
+    {
+      "arch": "x64",
+      "checksum": "e0f175fd55c36aaa9286b38815e9299917cdb6acbb5e58d87a0546b1c539511c",
+      "downloadUrl": "https://github.com/Drswith/quantex-cli/releases/download/v1.13.6/quantex-darwin-x64.tar.gz",
+      "name": "quantex-darwin-x64.tar.gz",
+      "platform": "darwin",
+      "size": 27251531
+    },
+    {
+      "arch": "arm64",
+      "checksum": "cbc41c5fd576c6afe42fadef6986499fdd4144b88d89068075d21794fbbbc6ab",
+      "downloadUrl": "https://github.com/Drswith/quantex-cli/releases/download/v1.13.6/quantex-linux-arm64.tar.gz",
+      "name": "quantex-linux-arm64.tar.gz",
+      "platform": "linux",
+      "size": 37269182
+    },
+    {
+      "arch": "x64",
+      "checksum": "e69b72ba24ce59958ac838515302b80a5349311ce5ab470faf4ab728fb6559e4",
+      "downloadUrl": "https://github.com/Drswith/quantex-cli/releases/download/v1.13.6/quantex-linux-x64.tar.gz",
+      "name": "quantex-linux-x64.tar.gz",
+      "platform": "linux",
+      "size": 37137434
+    },
+    {
+      "arch": "x64",
+      "checksum": "bf2a6452aebc4d7ff88eac69e00016ed4f1c59568faa48654098f80ba107c2f7",
+      "downloadUrl": "https://github.com/Drswith/quantex-cli/releases/download/v1.13.6/quantex-windows-x64.exe.zip",
+      "name": "quantex-windows-x64.exe.zip",
+      "platform": "win32",
+      "size": 39857629
+    }
+  ],
+  "channel": "stable",
+  "version": "1.13.6"
+}
