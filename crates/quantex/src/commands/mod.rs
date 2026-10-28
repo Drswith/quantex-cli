@@ -7,8 +7,10 @@ use crate::context::Context;
 use crate::protocol::{CommandError, ErrorCode, Outcome, Target};
 use crate::runtime;
 
+mod agents;
 mod catalog_commands;
 mod config;
+mod system;
 
 /// Runs a management command and returns the process exit code.
 pub fn dispatch(ctx: Arc<Context>, invocation: Invocation) -> i32 {
@@ -31,6 +33,24 @@ pub fn dispatch(ctx: Arc<Context>, invocation: Invocation) -> i32 {
                 config::run(ctx, action.as_deref(), key.as_deref(), value.as_deref())
             })
         }
+        "list" => runtime::execute(ctx, "list", Some(Target::system("agents")), agents::list),
+        "info" | "inspect" | "resolve" => {
+            let name = invocation.name;
+            let agent = invocation.arg("agent").unwrap_or_default().to_owned();
+            let target = Target::agent(&agent);
+            runtime::execute(ctx, name, Some(target), move |ctx| match name {
+                "info" => agents::info(ctx, &agent),
+                "inspect" => agents::inspect(ctx, &agent),
+                _ => agents::resolve(ctx, &agent),
+            })
+        }
+        "capabilities" => runtime::execute(
+            ctx,
+            "capabilities",
+            Some(Target::system("capabilities")),
+            system::capabilities,
+        ),
+        "doctor" => runtime::execute(ctx, "doctor", Some(Target::system("doctor")), system::doctor),
         other => {
             let outcome = Outcome::failure(
                 other,

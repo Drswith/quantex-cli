@@ -8,6 +8,7 @@ use std::process::{Child, Command, Stdio};
 use std::sync::Mutex;
 use std::time::{Duration, Instant};
 
+/// Captured children, each the leader of its own process group on Unix.
 static TRACKED: Mutex<Vec<u32>> = Mutex::new(Vec::new());
 
 fn track(pid: u32) {
@@ -18,30 +19,38 @@ fn untrack(pid: u32) {
     TRACKED.lock().unwrap().retain(|&tracked| tracked != pid);
 }
 
-/// Kills every child started through this module that is still running.
+/// Kills every captured child still running, with its descendants.
 pub fn kill_tracked_children() {
     let pids: Vec<u32> = TRACKED.lock().unwrap().drain(..).collect();
     for pid in pids {
-        kill_pid(pid);
+        kill_tree(pid);
     }
 }
 
+/// Kills a process and everything it started. Captured children lead their own
+/// process group, so a shell wrapper cannot leave a grandchild holding the pipes.
 #[cfg(unix)]
-fn kill_pid(pid: u32) {
-    // SAFETY: kill(2) has no memory-safety preconditions.
+fn kill_tree(pid: u32) {
+    // SAFETY: killpg(2) / kill(2) have no memory-safety preconditions.
     unsafe {
-        libc::kill(pid as libc::pid_t, libc::SIGTERM);
+        if libc::killpg(pid as libc::pid_t, libc::SIGKILL) != 0 {
+            libc::kill(pid as libc::pid_t, libc::SIGKILL);
+        }
     }
 }
 
 #[cfg(windows)]
-fn kill_pid(pid: u32) {
+fn kill_tree(pid: u32) {
     let _ = Command::new("taskkill")
         .args(["/PID", &pid.to_string(), "/T", "/F"])
         .stdout(Stdio::null())
         .stderr(Stdio::null())
         .status();
 }
+
+/// How long output readers may keep draining after the process itself has exited, for
+/// descendants that inherited the pipes.
+const READER_GRACE: Duration = Duration::from_millis(500);
 
 /// Captured output of a finished process.
 #[derive(Debug, Clone)]
@@ -93,6 +102,11 @@ where
 
 /// Runs a prepared command to completion with captured output.
 pub fn run_command_captured(mut command: Command, timeout: Option<Duration>) -> std::io::Result<Captured> {
+    #[cfg(unix)]
+    {
+        use std::os::unix::process::CommandExt;
+        command.process_group(0);
+    }
     let mut child = command.spawn()?;
     let pid = child.id();
     track(pid);
@@ -102,22 +116,29 @@ pub fn run_command_captured(mut command: Command, timeout: Option<Duration>) -> 
 }
 
 fn wait_captured(child: &mut Child, timeout: Option<Duration>) -> std::io::Result<Captured> {
-    let mut stdout = child.stdout.take();
-    let mut stderr = child.stderr.take();
-    let out_reader = std::thread::spawn(move || {
-        let mut buffer = Vec::new();
-        if let Some(stream) = stdout.as_mut() {
-            let _ = stream.read_to_end(&mut buffer);
-        }
-        buffer
-    });
-    let err_reader = std::thread::spawn(move || {
-        let mut buffer = Vec::new();
-        if let Some(stream) = stderr.as_mut() {
-            let _ = stream.read_to_end(&mut buffer);
-        }
-        buffer
-    });
+    let spawn_reader = |stream: Option<Box<dyn Read + Send>>| {
+        let (sender, receiver) = std::sync::mpsc::channel();
+        std::thread::spawn(move || {
+            let mut buffer = Vec::new();
+            if let Some(mut stream) = stream {
+                let _ = stream.read_to_end(&mut buffer);
+            }
+            let _ = sender.send(buffer);
+        });
+        receiver
+    };
+    let out_reader = spawn_reader(
+        child
+            .stdout
+            .take()
+            .map(|stream| Box::new(stream) as Box<dyn Read + Send>),
+    );
+    let err_reader = spawn_reader(
+        child
+            .stderr
+            .take()
+            .map(|stream| Box::new(stream) as Box<dyn Read + Send>),
+    );
     let started = Instant::now();
     let mut timed_out = false;
     let status = loop {
@@ -125,14 +146,15 @@ fn wait_captured(child: &mut Child, timeout: Option<Duration>) -> std::io::Resul
             break status;
         }
         if timeout.is_some_and(|limit| started.elapsed() >= limit) {
+            kill_tree(child.id());
             let _ = child.kill();
             timed_out = true;
             break child.wait()?;
         }
         std::thread::sleep(Duration::from_millis(5));
     };
-    let stdout = out_reader.join().unwrap_or_default();
-    let stderr = err_reader.join().unwrap_or_default();
+    let stdout = out_reader.recv_timeout(READER_GRACE).unwrap_or_default();
+    let stderr = err_reader.recv_timeout(READER_GRACE).unwrap_or_default();
     Ok(Captured {
         code: status.code(),
         stdout: String::from_utf8_lossy(&stdout).into_owned(),

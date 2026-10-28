@@ -1,5 +1,8 @@
 //! Quantex: an agent lifecycle CLI for humans and agents.
 
+// Commands return a finished `Outcome` as their error value; it is not a hot path.
+#![allow(clippy::result_large_err)]
+
 use std::ffi::OsString;
 use std::io::Write;
 use std::sync::Arc;
@@ -9,9 +12,13 @@ pub mod cli;
 pub mod commands;
 pub mod context;
 pub mod contract;
+pub mod net;
+pub mod observe;
+pub mod probe;
 pub mod process;
 pub mod protocol;
 pub mod runtime;
+pub mod selfupdate;
 pub mod store;
 pub mod term;
 pub mod time;

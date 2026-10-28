@@ -89,6 +89,24 @@ impl Provider {
         !matches!(self, Self::Script | Self::Binary)
     }
 
+    /// Package managers can update and uninstall what they installed; installers cannot.
+    pub fn can_update(self) -> bool {
+        self.is_managed()
+    }
+
+    pub fn can_uninstall(self) -> bool {
+        self.is_managed()
+    }
+
+    /// Only npm-registry providers can answer "what is the latest version".
+    pub fn can_lookup_latest(self) -> bool {
+        matches!(self, Self::Bun | Self::Npm)
+    }
+
+    pub fn lifecycle(self) -> &'static str {
+        if self.is_managed() { "managed" } else { "unmanaged" }
+    }
+
     /// The `packages` metadata key a provider's target identifier lives under.
     pub fn package_key(self) -> Option<&'static str> {
         match self {

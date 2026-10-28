@@ -36,15 +36,20 @@ pub fn is_reference() -> bool {
 fn build_workspace_binary() -> PathBuf {
     let cargo = std::env::var_os("CARGO").unwrap_or_else(|| "cargo".into());
     let workspace = Path::new(env!("CARGO_MANIFEST_DIR")).join("../..");
+    // A separate target directory: `cargo build -p quantex` resolves features differently
+    // from the surrounding `cargo test --workspace`, and sharing one directory would make
+    // each of them rebuild the other's artifacts.
+    let target = std::env::var_os("CARGO_TARGET_DIR")
+        .map(PathBuf::from)
+        .unwrap_or_else(|| workspace.join("target"))
+        .join("contract-bin");
     let status = Command::new(cargo)
-        .args(["build", "--quiet", "-p", "quantex", "--bin", "quantex"])
+        .args(["build", "--quiet", "-p", "quantex", "--bin", "quantex", "--target-dir"])
+        .arg(&target)
         .current_dir(&workspace)
         .status()
         .expect("failed to run cargo build for the quantex binary");
     assert!(status.success(), "cargo build -p quantex failed");
-    let target = std::env::var_os("CARGO_TARGET_DIR")
-        .map(PathBuf::from)
-        .unwrap_or_else(|| workspace.join("target"));
     target
         .join("debug")
         .join(format!("quantex{}", std::env::consts::EXE_SUFFIX))
@@ -75,6 +80,9 @@ impl Run {
     }
 }
 
+/// A URL nothing listens on.
+pub const OFFLINE_URL: &str = "http://127.0.0.1:9";
+
 /// An isolated environment: a temporary home, a private bin directory on `PATH`,
 /// and a config that disables network retries.
 pub struct Sandbox {
@@ -94,10 +102,12 @@ impl Sandbox {
             .prefix("quantex-contract-")
             .tempdir()
             .expect("failed to create sandbox directory");
-        let sandbox = Self {
-            root,
-            env: BTreeMap::new(),
-        };
+        // Rust-build test hooks; the reference binary ignores them. A closed local port
+        // keeps lookups off the real network.
+        let mut env = BTreeMap::new();
+        env.insert("QUANTEX_NPM_REGISTRY_URL".to_owned(), OFFLINE_URL.to_owned());
+        env.insert("QUANTEX_RELEASE_BASE_URL".to_owned(), OFFLINE_URL.to_owned());
+        let sandbox = Self { root, env };
         fs::create_dir_all(sandbox.bin_dir()).unwrap();
         fs::create_dir_all(sandbox.quantex_dir()).unwrap();
         sandbox.write_config(&serde_json::json!({ "networkRetries": 0, "networkTimeoutMs": 1 }));
@@ -287,4 +297,78 @@ pub fn contract_json(relative: &str) -> Value {
     let path = contract_dir().join(relative);
     let text = fs::read_to_string(&path).unwrap_or_else(|error| panic!("cannot read {}: {error}", path.display()));
     serde_json::from_str(&text).unwrap_or_else(|error| panic!("{} is not JSON: {error}", path.display()))
+}
+
+/// A tiny HTTP/1.1 server answering fixed routes, for registry and release lookups.
+pub struct HttpStub {
+    address: String,
+    hits: std::sync::Arc<std::sync::Mutex<Vec<String>>>,
+}
+
+impl HttpStub {
+    /// Serves `routes` (path → (status, body)) until the stub is dropped with the test.
+    pub fn start(routes: Vec<(&str, u16, &str)>) -> Self {
+        use std::io::{BufRead, BufReader, Write};
+        let listener = std::net::TcpListener::bind("127.0.0.1:0").unwrap();
+        let address = format!("http://{}", listener.local_addr().unwrap());
+        let routes: Vec<(String, u16, String)> = routes
+            .into_iter()
+            .map(|(path, status, body)| (path.to_owned(), status, body.to_owned()))
+            .collect();
+        let hits = std::sync::Arc::new(std::sync::Mutex::new(Vec::new()));
+        let recorded = std::sync::Arc::clone(&hits);
+        std::thread::spawn(move || {
+            for stream in listener.incoming() {
+                let Ok(mut stream) = stream else { continue };
+                let mut reader = BufReader::new(stream.try_clone().unwrap());
+                let mut request_line = String::new();
+                if reader.read_line(&mut request_line).is_err() {
+                    continue;
+                }
+                loop {
+                    let mut header = String::new();
+                    if reader.read_line(&mut header).is_err() || header.trim().is_empty() {
+                        break;
+                    }
+                }
+                let path = request_line.split_whitespace().nth(1).unwrap_or("/").to_owned();
+                recorded.lock().unwrap().push(path.clone());
+                let (status, body) = routes
+                    .iter()
+                    .find(|(route, _, _)| *route == path)
+                    .map_or((404, "{}".to_owned()), |(_, status, body)| (*status, body.clone()));
+                let response = format!(
+                    "HTTP/1.1 {status} OK\r\nContent-Type: application/json\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{body}",
+                    body.len()
+                );
+                let _ = stream.write_all(response.as_bytes());
+            }
+        });
+        Self { address, hits }
+    }
+
+    pub fn url(&self) -> &str {
+        &self.address
+    }
+
+    /// Paths requested so far.
+    pub fn hits(&self) -> Vec<String> {
+        self.hits.lock().unwrap().clone()
+    }
+}
+
+/// The canonical form of a path, as quantex reports resolved executables.
+pub fn real_path(path: &Path) -> String {
+    let resolved = fs::canonicalize(path).unwrap_or_else(|_| path.to_path_buf());
+    let text = resolved.to_string_lossy().into_owned();
+    text.strip_prefix(r"\\?\").map(str::to_owned).unwrap_or(text)
+}
+
+/// Writes a fake agent that prints `version_line` for any arguments.
+pub fn fake_agent(sandbox: &Sandbox, name: &str, version_line: &str) -> PathBuf {
+    sandbox.fake_tool(
+        name,
+        &format!("echo \"{version_line}\""),
+        &format!("echo {version_line}"),
+    )
 }

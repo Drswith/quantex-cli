@@ -81,16 +81,18 @@ where
             None => Duration::from_millis(20),
         };
         match receiver.recv_timeout(wait) {
-            Ok(outcome) => return finish(&ctx, outcome),
+            Ok(outcome) if !ctx.deadline_hit() => return finish(&ctx, outcome),
+            Ok(_) => return timeout(&ctx, action, target.as_ref()),
             Err(RecvTimeoutError::Timeout) => {
                 let Some(deadline) = deadline else { continue };
                 if Instant::now() < deadline {
                     continue;
                 }
-                let timeout_ms = ctx.timeout_ms.unwrap_or_default();
-                // A command that is just finishing still gets to report its own result.
-                let grace = Duration::from_millis(timeout_ms.min(250));
+                // A command that is just finishing still gets to report its own result,
+                // unless the deadline already cut part of its work short.
+                let grace = Duration::from_millis(ctx.timeout_ms.unwrap_or_default().min(250));
                 if let Ok(outcome) = receiver.recv_timeout(grace)
+                    && !ctx.deadline_hit()
                     && outcome
                         .error
                         .as_ref()
@@ -98,14 +100,7 @@ where
                 {
                     return finish(&ctx, outcome);
                 }
-                return cancel(
-                    &ctx,
-                    action,
-                    target.as_ref(),
-                    json!({ "reason": "timeout", "timeoutMs": timeout_ms }),
-                    CommandError::new(ErrorCode::Timeout, format!("Command timed out after {timeout_ms}ms."))
-                        .details(json!({ "timeoutMs": timeout_ms })),
-                );
+                return timeout(&ctx, action, target.as_ref());
             }
             Err(RecvTimeoutError::Disconnected) => {
                 eprintln!("quantex: {action} stopped unexpectedly");
@@ -122,6 +117,18 @@ fn finish(ctx: &Context, outcome: Outcome) -> i32 {
     protocol::emit(ctx, &outcome);
     crate::commands::after_success(ctx, &outcome);
     outcome.process_exit_code()
+}
+
+fn timeout(ctx: &Context, action: &str, target: Option<&Target>) -> i32 {
+    let timeout_ms = ctx.timeout_ms.unwrap_or_default();
+    cancel(
+        ctx,
+        action,
+        target,
+        json!({ "reason": "timeout", "timeoutMs": timeout_ms }),
+        CommandError::new(ErrorCode::Timeout, format!("Command timed out after {timeout_ms}ms."))
+            .details(json!({ "timeoutMs": timeout_ms })),
+    )
 }
 
 fn cancel(ctx: &Context, action: &str, target: Option<&Target>, event: serde_json::Value, error: CommandError) -> i32 {

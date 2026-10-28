@@ -4,6 +4,7 @@ use std::io::IsTerminal;
 use std::path::PathBuf;
 use std::sync::Mutex;
 use std::sync::atomic::{AtomicBool, Ordering};
+use std::time::{Duration, Instant};
 
 use crate::protocol::{CommandError, ErrorCode, OutputMode};
 
@@ -87,8 +88,10 @@ pub struct Context {
     pub timeout_ms: Option<u64>,
     pub idempotency_key: Option<String>,
     pub home: PathBuf,
+    started: Instant,
     freshness: Mutex<Option<Freshness>>,
     cancelled: AtomicBool,
+    deadline_hit: AtomicBool,
 }
 
 impl Context {
@@ -152,8 +155,10 @@ impl Context {
             timeout_ms,
             idempotency_key: args.idempotency_key.clone(),
             home: home_dir(),
+            started: Instant::now(),
             freshness: Mutex::new(None),
             cancelled: AtomicBool::new(false),
+            deadline_hit: AtomicBool::new(false),
         })
     }
 
@@ -193,6 +198,32 @@ impl Context {
                 stale_after: std::cmp::min(current.stale_after, next.stale_after),
             },
         });
+    }
+
+    /// When `--timeout` expires, if one was given.
+    pub fn deadline(&self) -> Option<Instant> {
+        self.timeout_ms.map(|ms| self.started + Duration::from_millis(ms))
+    }
+
+    /// Time left before `--timeout` expires.
+    pub fn remaining(&self) -> Option<Duration> {
+        self.deadline()
+            .map(|deadline| deadline.saturating_duration_since(Instant::now()))
+    }
+
+    /// Whether `--timeout` has expired.
+    pub fn deadline_passed(&self) -> bool {
+        self.remaining().is_some_and(|left| left.is_zero())
+    }
+
+    /// Records that work was cut short by `--timeout`, so the command reports `TIMEOUT`
+    /// instead of a partial result.
+    pub fn mark_deadline_hit(&self) {
+        self.deadline_hit.store(true, Ordering::SeqCst);
+    }
+
+    pub fn deadline_hit(&self) -> bool {
+        self.deadline_hit.load(Ordering::SeqCst)
     }
 
     pub fn is_cancelled(&self) -> bool {
