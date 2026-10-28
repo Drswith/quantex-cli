@@ -933,6 +933,7 @@ fn schedule_windows_replacement(
         .unwrap_or_default();
     let script = [
         "$ErrorActionPreference = 'Stop'".to_owned(),
+        "$ProgressPreference = 'SilentlyContinue'".into(),
         format!("$pidToWait = {}", std::process::id()),
         format!("$tempPath = '{}'", powershell_literal(temp_path)),
         format!("$targetPath = '{}'", powershell_literal(executable)),
@@ -1027,11 +1028,13 @@ fn schedule_windows_replacement(
         let _ = flags;
         command.spawn().map(|_| ())
     };
-    // The helper has to outlive this process, so it is detached and leaves any job that
-    // would end it with this process, when the job allows that.
-    const DETACHED_PROCESS: u32 = 0x0000_0008;
+    // The helper runs in its own hidden console, so it neither shows a window nor gets
+    // this console's Ctrl-C. DETACHED_PROCESS is not an option: PowerShell started that
+    // way exits at once without running its command. Leaving the job keeps a parent's
+    // kill-on-close job from ending the helper; jobs that forbid it refuse the spawn.
+    const CREATE_NO_WINDOW: u32 = 0x0800_0000;
     const CREATE_BREAKAWAY_FROM_JOB: u32 = 0x0100_0000;
-    spawn(DETACHED_PROCESS | CREATE_BREAKAWAY_FROM_JOB).or_else(|_| spawn(DETACHED_PROCESS))
+    spawn(CREATE_NO_WINDOW | CREATE_BREAKAWAY_FROM_JOB).or_else(|_| spawn(CREATE_NO_WINDOW))
 }
 
 #[cfg(test)]
