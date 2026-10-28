@@ -309,7 +309,9 @@ fn an_npm_install_upgrades_through_npm() {
     sandbox.fake_tool(
         "npm",
         &format!(
-            "echo \"npm $*\" >> \"{log}\"\n[ \"$1\" = install ] && printf '#!/bin/sh\\necho 9.9.9\\n' > \"{exe}\"\nexit 0",
+            // Like npm, replace the file rather than rewrite it: Linux refuses writes to a
+            // running executable.
+            "echo \"npm $*\" >> \"{log}\"\nif [ \"$1\" = install ]; then printf '#!/bin/sh\\necho 9.9.9\\n' > \"{exe}.new\" && chmod +x \"{exe}.new\" && mv \"{exe}.new\" \"{exe}\"; fi\nexit 0",
             log = sandbox.root().join("npm-calls.log").display(),
             exe = exe.display()
         ),
