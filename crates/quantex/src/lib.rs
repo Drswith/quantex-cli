@@ -12,6 +12,8 @@ pub mod cli;
 pub mod commands;
 pub mod context;
 pub mod contract;
+pub mod launch;
+pub mod lifecycle;
 pub mod net;
 pub mod observe;
 pub mod probe;
@@ -57,14 +59,35 @@ pub fn run(args: Vec<OsString>) -> i32 {
             }
             Err(error) => report_error(invocation.name, &invocation.globals, error),
         },
-        Parsed::Shortcut { globals, .. } | Parsed::Exec { globals, .. } => report_error(
-            "exec",
-            &globals,
-            CommandError::new(
-                protocol::ErrorCode::InvalidArgument,
-                "Agent launch is not implemented in this build yet",
-            ),
-        ),
+        Parsed::Shortcut { agent, args, globals } => match Context::resolve(&globals) {
+            Ok(ctx) => {
+                runtime::install_signal_handlers();
+                launch::run(&ctx, &agent, &args, launch::InstallPolicy::Prompt)
+            }
+            Err(error) => report_error("exec", &globals, error),
+        },
+        Parsed::Exec {
+            agent,
+            args,
+            install,
+            globals,
+        } => {
+            let Some(policy) = launch::InstallPolicy::parse(&install) else {
+                let error = CommandError::new(
+                    protocol::ErrorCode::InvalidArgument,
+                    format!("Unknown install policy: {install}"),
+                )
+                .details(serde_json::json!({ "option": "--install", "value": install }));
+                return report_error("exec", &globals, error);
+            };
+            match Context::resolve(&globals) {
+                Ok(ctx) => {
+                    runtime::install_signal_handlers();
+                    launch::run(&ctx, &agent, &args, policy)
+                }
+                Err(error) => report_error("exec", &globals, error),
+            }
+        }
     }
 }
 

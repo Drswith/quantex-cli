@@ -240,6 +240,9 @@ fn parse_exec(argv: &[String], exec_index: usize, prescan: GlobalArgs) -> Parsed
     let mut install = "never".to_owned();
     let mut agent: Option<String> = None;
     let mut passthrough = Vec::new();
+    // Like commander: once an unknown option has been passed through, a later `--` is
+    // passed through too.
+    let mut saw_unknown_option = false;
     let mut index = 0;
     let error = |message: String, globals: GlobalArgs| Parsed::Error {
         action: "exec".into(),
@@ -253,6 +256,9 @@ fn parse_exec(argv: &[String], exec_index: usize, prescan: GlobalArgs) -> Parsed
             continue;
         }
         if token == "--" {
+            if saw_unknown_option {
+                passthrough.push(token.clone());
+            }
             passthrough.extend(argv[index + 1..].iter().cloned());
             break;
         }
@@ -301,9 +307,11 @@ fn parse_exec(argv: &[String], exec_index: usize, prescan: GlobalArgs) -> Parsed
                 continue;
             }
         }
-        if agent.is_none() && !token.starts_with('-') {
+        let option_like = token.starts_with('-') && token.len() > 1;
+        if agent.is_none() && !option_like {
             agent = Some(token.clone());
         } else {
+            saw_unknown_option |= option_like;
             passthrough.push(token.clone());
         }
         index += 1;
@@ -622,7 +630,11 @@ mod tests {
         assert_eq!(agent, "claude");
         assert_eq!(install, "if-missing");
         assert!(globals.yes);
-        assert_eq!(rest, vec!["-p", "hi", "--yes"]);
+        assert_eq!(rest, vec!["-p", "hi", "--", "--yes"]);
+        let Parsed::Exec { args: rest, .. } = parse(&args("exec claude --yes -- --model x")) else {
+            panic!("expected exec");
+        };
+        assert_eq!(rest, vec!["--model", "x"]);
     }
 
     #[test]

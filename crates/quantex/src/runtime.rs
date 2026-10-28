@@ -40,7 +40,8 @@ pub fn install_signal_handlers() {
     }
 }
 
-fn take_signal() -> Option<&'static str> {
+/// The first pending SIGINT / SIGTERM, if any, clearing it.
+pub fn take_signal() -> Option<&'static str> {
     if SIGINT.swap(false, Ordering::SeqCst) {
         return Some("SIGINT");
     }
