@@ -135,6 +135,10 @@ fn shortcut_without_a_terminal_does_not_prompt_for_a_missing_agent() {
 
 #[test]
 fn exec_timeout_stops_the_agent() {
+    // v1 reported a launch timeout as a generic failure with exit code 1.
+    if is_reference() {
+        return;
+    }
     let sandbox = Sandbox::new();
     sandbox.fake_tool(
         "codex",
@@ -142,9 +146,12 @@ fn exec_timeout_stops_the_agent() {
         "if \"%1\"==\"--version\" (echo 0.48.0& exit /b 0)\r\nping -n 11 127.0.0.1 > nul",
     );
     let started = std::time::Instant::now();
-    let run = sandbox.run(["exec", "codex", "--timeout", "300ms"]);
+    let run = sandbox.run(["exec", "codex", "--timeout", "300ms", "--output", "json"]);
     assert_eq!(run.code, 10, "{run:?}");
-    assert!(started.elapsed().as_secs() < 8);
+    assert!(
+        started.elapsed().as_secs() < 8,
+        "the agent and its children are stopped"
+    );
 }
 
 #[test]
@@ -155,6 +162,6 @@ fn a_timeout_during_preflight_is_a_timeout() {
     }
     let sandbox = Sandbox::new();
     sandbox.fake_tool("codex", "sleep 10", "ping -n 11 127.0.0.1 > nul");
-    let run = sandbox.run(["exec", "codex", "--timeout", "300ms"]);
+    let run = sandbox.run(["exec", "codex", "--timeout", "300ms", "--output", "json"]);
     assert_eq!(run.code, 10, "{run:?}");
 }
