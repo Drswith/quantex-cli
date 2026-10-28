@@ -1,5 +1,24 @@
 # Changelog
 
+## [2.0.0-alpha.1](https://github.com/Drswith/quantex-cli/releases/tag/v2.0.0-alpha.1)
+
+The first prerelease of Quantex 2, a rewrite in Rust. It keeps the 1.x command line: the same commands, options, JSON and NDJSON fields, error codes, exit codes, and `~/.quantex` files. A 1.x standalone binary upgrades to it with `qtx upgrade --channel beta`; npm and Bun users install `quantex-cli@next`. 1.x and 2.x can share one home directory.
+
+### Changes from 1.x
+
+* Argument errors (unknown option, missing argument, invalid value) exit with code 2 and, in `json` / `ndjson` mode, print an `INVALID_ARGUMENT` envelope instead of a plain error with exit code 1.
+* Human-readable output has a new layout with the same meaning. It is not part of the contract.
+* The npm package installs a native binary through per-platform packages (`quantex-cli-<platform>-<arch>`) and no longer exports a JavaScript library. `quantex-core` is not published from this line.
+* Release binaries are about 3 MB instead of 25 to 37 MB; Linux binaries are statically linked.
+
+### Bug Fixes
+
+* stdout is no longer truncated at 64 KiB when piped.
+* `exec` and the agent shortcut keep stdout protocol-only in `json` / `ndjson` mode, and report `--install` and output-mode errors as `INVALID_ARGUMENT`.
+* `--timeout` during `exec` reports `TIMEOUT` (exit 10) instead of a generic failure.
+* A missing package manager no longer makes every agent indeterminate, so `doctor` reports untracked agents and `update --all` reports them as `manual-required` instead of failing.
+* The agent shortcut reports `INTERACTION_REQUIRED` when there is no terminal instead of treating the closed stdin as "no".
+* `--idempotency-key` no longer crashes for multi-agent `install` or an empty `update --all`, and `uninstall` replays.
 
 ## [1.13.6](https://github.com/Drswith/quantex-cli/compare/v1.13.5...v1.13.6) (2026-09-15)
 
