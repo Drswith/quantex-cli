@@ -42,6 +42,7 @@ The reference binary is the published TypeScript release `v1.13.6`. Its source s
 - In `json` / `ndjson` mode, `exec` and the shortcut print plain-text lines into stdout ("Dry run: would install …", "Installation cancelled.", launch failures). They now go to stderr; exit codes are unchanged.
 - `exec --install <unknown>` and the shortcut's structured-output refusal printed plain text; they now report `INVALID_ARGUMENT` like every other argument error.
 - `--timeout` expiring while `exec` observes or runs the agent reported a generic failure with exit code 1. It now reports `TIMEOUT` with exit code 10, as management commands always did.
+- `doctor` almost never reported `AGENT_UNTRACKED_IN_PATH`: its read path treated a missing package manager (for example no `bun`) as "could not determine", which made every catalog agent indeterminate. A missing package manager now counts as unavailable, as it already did for `install`, so untracked agents on disk are reported.
 - The shortcut tried to prompt "Would you like to install it?" even without a terminal, and treated the closed stdin as "no" (exit 1). Without a terminal it now reports `INTERACTION_REQUIRED` (exit 7) instead, as `--non-interactive` already did. `data.execution.interactive` reflects the real terminal state accordingly.
 
 ## Output mode without an explicit flag

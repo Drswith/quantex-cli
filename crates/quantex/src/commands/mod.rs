@@ -61,6 +61,12 @@ pub fn dispatch(ctx: Arc<Context>, invocation: Invocation) -> i32 {
             };
             runtime::execute(ctx, "install", Some(target), move |ctx| mutate::install(ctx, &agents))
         }
+        "uninstall" => {
+            let agent = invocation.arg("agent").unwrap_or_default().to_owned();
+            runtime::execute(ctx, "uninstall", Some(Target::agent(&agent)), move |ctx| {
+                mutate::uninstall(ctx, &agent)
+            })
+        }
         "ensure" => {
             let agent = invocation.arg("agent").unwrap_or_default().to_owned();
             runtime::execute(ctx, "ensure", Some(Target::agent(&agent)), move |ctx| {

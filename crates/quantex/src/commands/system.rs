@@ -134,8 +134,32 @@ pub fn doctor(ctx: &Context) -> Outcome {
         let availability = scope.spawn(probe::installer_availability);
         let inspection = scope.spawn(|| selfupdate::inspect(ctx, None));
         let observations = observe::observe_all(ctx, &state, ObserveOptions::default());
-        (availability.join().unwrap(), inspection.join().unwrap(), observations)
+        // Untracked means the lifecycle observation found the agent present without a
+        // recorded source, which needs provider evidence; only agents on disk need it.
+        let untracked: Vec<String> = std::thread::scope(|scope| {
+            let handles: Vec<_> = observations
+                .iter()
+                .filter(|observation| observation.present)
+                .map(|observation| {
+                    let state = &state;
+                    scope.spawn(move || {
+                        let view = crate::lifecycle::observe_lifecycle(ctx, observation.agent, state, None);
+                        (view.drift == crate::lifecycle::Drift::Untracked).then(|| observation.agent.name.clone())
+                    })
+                })
+                .collect();
+            handles
+                .into_iter()
+                .filter_map(|handle| handle.join().unwrap())
+                .collect()
+        });
+        (
+            availability.join().unwrap(),
+            inspection.join().unwrap(),
+            (observations, untracked),
+        )
     });
+    let (observations, untracked) = observations;
     let available = |provider: Provider| {
         availability
             .iter()
@@ -242,7 +266,7 @@ pub fn doctor(ctx: &Context) -> Outcome {
         agents.push(Value::Object(summary));
 
         let subject = json!({ "kind": "agent", "name": agent.name });
-        if observation.installed.is_none() {
+        if untracked.contains(&agent.name) {
             issues.push(issue(
                 "agent",
                 "AGENT_UNTRACKED_IN_PATH",
