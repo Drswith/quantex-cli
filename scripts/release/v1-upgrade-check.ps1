@@ -56,14 +56,21 @@ try {
     throw "upgrade did not succeed: $output"
   }
 
-  # The swap happens after the upgrading process exits.
+  # The swap happens after the upgrading process exits. Running the binary while the
+  # helper moves it would make the move fail, so the first check waits a while.
+  Start-Sleep -Seconds 10
   $after = ''
-  for ($attempt = 0; $attempt -lt 60; $attempt++) {
-    Start-Sleep -Seconds 1
+  for ($attempt = 0; $attempt -lt 25; $attempt++) {
     try { $after = (& $exe --version).Trim() } catch { $after = '' }
     if ($after -eq $Expected) { break }
+    Start-Sleep -Seconds 2
   }
   if ($after -ne $Expected) {
+    Write-Host 'Files next to the binary:'
+    Get-ChildItem -LiteralPath $app -Recurse -Force | ForEach-Object { Write-Host "  $($_.FullName.Substring($app.Length))" }
+    Write-Host 'PowerShell processes:'
+    Get-Process powershell, pwsh -ErrorAction SilentlyContinue | ForEach-Object { Write-Host "  $($_.Id) $($_.ProcessName) $($_.StartTime)" }
+    Write-Host "upgrade output: $output"
     throw "upgraded binary reports '$after', expected $Expected"
   }
   for ($attempt = 0; $attempt -lt 20; $attempt++) {
