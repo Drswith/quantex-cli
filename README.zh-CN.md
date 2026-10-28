@@ -217,7 +217,7 @@ Quantex 在 `~/.quantex/state.json` 中记录每个 agent 的安装来源和验�
 
 ## 从 1.x 升级
 
-Quantex 2 用 Rust 重写，保留 1.x 的命令行：命令、选项、JSON 和 NDJSON 字段、错误码、`~/.quantex` 下的文件都不变。1.x 安装可以直接 `qtx upgrade` 升级，1.x 与 2.x 可以共用同一个 home 目录。变化如下：
+Quantex 2 用 Rust 重写，保留 1.x 的命令行：命令、选项、JSON 和 NDJSON 字段、错误码、`~/.quantex` 下的文件都不变。1.x 安装可以直接 `qtx upgrade` 升级，1.x 与 2.x 可以共用同一个 home 目录。Windows 上的 1.x 独立二进制从来无法完成自升级（会报告 `updated`，但文件没有被替换），请改为重新运行 `install.ps1`。变化如下：
 
 - 参数错误（未知选项、缺少参数、取值无效）退出码为 2，在 `json` / `ndjson` 模式下输出 `INVALID_ARGUMENT` 信封；1.x 打印纯文本错误并以 1 退出。
 - human 输出不属于契约，排版与 1.x 不同，含义一致。

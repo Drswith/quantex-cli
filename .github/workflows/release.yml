@@ -246,7 +246,9 @@ jobs:
             --pattern "$asset.tar.gz" --pattern SHA256SUMS.txt
           (cd "$RUNNER_TEMP/v1" && grep " $asset.tar.gz\$" SHA256SUMS.txt | shasum -a 256 --check && tar -xzf "$asset.tar.gz" "$asset")
           sh scripts/release/v1-upgrade-check.sh release/assets "$RUNNER_TEMP/v1/$asset" "$VERSION"
-      - name: v1 installs can upgrade to the release (Windows)
+      # v1.13.x never completes a Windows self-upgrade (its replacement helper dies
+      # with v1), so this checks the part v1 does: unpacking the release.
+      - name: v1 Windows installs can unpack the release
         if: runner.os == 'Windows'
         shell: pwsh
         env:
@@ -262,7 +264,7 @@ jobs:
           if ($actual -ne $expected) { throw "v1 archive checksum mismatch" }
           Expand-Archive -LiteralPath $zip -DestinationPath $dir -Force
           ./scripts/release/v1-upgrade-check.ps1 -Assets release/assets `
-            -V1Binary (Join-Path $dir 'quantex-windows-x64.exe') -Expected $env:VERSION
+            -V1Binary (Join-Path $dir 'quantex-windows-x64.exe') -Expected $env:VERSION -ExtractionOnly
       - uses: actions/setup-node@v4
         with:
           node-version: 24

@@ -2,12 +2,17 @@
 # here. The Windows-only parts: v1's own zip extraction, and the delayed replacement
 # that swaps the executable once the upgrading process exits.
 #
-# Usage: v1-upgrade-check.ps1 -Assets <dir> -V1Binary <quantex-windows-x64.exe> -Expected <version>
+# v1.13.x never completes that swap: its helper process does not survive v1's exit,
+# even between two v1 releases. -ExtractionOnly checks what v1 still does, which is
+# unpack the release into `.quantex-upgrade-*` next to the executable.
+#
+# Usage: v1-upgrade-check.ps1 -Assets <dir> -V1Binary <quantex-windows-x64.exe> -Expected <version> [-ExtractionOnly]
 
 param(
   [Parameter(Mandatory = $true)][string]$Assets,
   [Parameter(Mandatory = $true)][string]$V1Binary,
-  [Parameter(Mandatory = $true)][string]$Expected
+  [Parameter(Mandatory = $true)][string]$Expected,
+  [switch]$ExtractionOnly
 )
 
 $ErrorActionPreference = 'Stop'
@@ -54,6 +59,16 @@ try {
   $result = $output | ConvertFrom-Json
   if (-not $result.ok -or $result.data.status -ne 'updated') {
     throw "upgrade did not succeed: $output"
+  }
+
+  if ($ExtractionOnly) {
+    $staged = Get-ChildItem -LiteralPath $app -Directory -Force -Filter '.quantex-upgrade-*' |
+      ForEach-Object { Join-Path $_.FullName 'quantex.exe' } | Where-Object { Test-Path -LiteralPath $_ } | Select-Object -First 1
+    if (-not $staged) { throw 'v1 did not unpack the release next to the executable' }
+    $unpacked = (& $staged --version).Trim()
+    if ($unpacked -ne $Expected) { throw "unpacked binary reports '$unpacked', expected $Expected" }
+    Write-Host "v1 unpacked $unpacked"
+    return
   }
 
   # The swap happens after the upgrading process exits. Running the binary while the

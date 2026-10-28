@@ -959,29 +959,40 @@ fn schedule_windows_replacement(
         "Remove-Item -LiteralPath $tempDir -Force -Recurse -ErrorAction SilentlyContinue".into(),
     ]
     .join("; ");
-    let mut command = std::process::Command::new("powershell.exe");
-    command
-        .args([
-            "-NoProfile",
-            "-NonInteractive",
-            "-ExecutionPolicy",
-            "Bypass",
-            "-WindowStyle",
-            "Hidden",
-            "-Command",
-            &script,
-        ])
-        .stdin(std::process::Stdio::null())
-        .stdout(std::process::Stdio::null())
-        .stderr(std::process::Stdio::null());
-    #[cfg(windows)]
-    {
-        use std::os::windows::process::CommandExt;
-        const DETACHED_PROCESS: u32 = 0x0000_0008;
-        const CREATE_NO_WINDOW: u32 = 0x0800_0000;
-        command.creation_flags(DETACHED_PROCESS | CREATE_NO_WINDOW);
-    }
-    command.spawn().map(|_| ())
+    let powershell = std::env::var_os("SystemRoot")
+        .map(|root| PathBuf::from(root).join(r"System32\WindowsPowerShell\v1.0\powershell.exe"))
+        .filter(|path| path.is_file())
+        .unwrap_or_else(|| PathBuf::from("powershell.exe"));
+    let spawn = |flags: u32| {
+        let mut command = std::process::Command::new(&powershell);
+        command
+            .args([
+                "-NoProfile",
+                "-NonInteractive",
+                "-ExecutionPolicy",
+                "Bypass",
+                "-WindowStyle",
+                "Hidden",
+                "-Command",
+                &script,
+            ])
+            .stdin(std::process::Stdio::null())
+            .stdout(std::process::Stdio::null())
+            .stderr(std::process::Stdio::null());
+        #[cfg(windows)]
+        {
+            use std::os::windows::process::CommandExt;
+            command.creation_flags(flags);
+        }
+        #[cfg(not(windows))]
+        let _ = flags;
+        command.spawn().map(|_| ())
+    };
+    // The helper has to outlive this process. v1 lost it when it exited, because the
+    // child stayed in a kill-on-close job; leave any job when the job allows it.
+    const DETACHED_PROCESS: u32 = 0x0000_0008;
+    const CREATE_BREAKAWAY_FROM_JOB: u32 = 0x0100_0000;
+    spawn(DETACHED_PROCESS | CREATE_BREAKAWAY_FROM_JOB).or_else(|_| spawn(DETACHED_PROCESS))
 }
 
 #[cfg(test)]

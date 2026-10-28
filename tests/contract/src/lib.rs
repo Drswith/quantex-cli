@@ -476,6 +476,54 @@ pub fn release_tar_gz(name: &str, contents: &[u8]) -> Vec<u8> {
     encoder.finish().unwrap()
 }
 
+/// A release `.zip` holding one stored (uncompressed) entry `name` with `contents`,
+/// in the layout releases use: no data descriptor, one central directory record.
+pub fn release_zip(name: &str, contents: &[u8]) -> Vec<u8> {
+    let crc = {
+        let mut crc = 0xffff_ffffu32;
+        for &byte in contents {
+            crc ^= u32::from(byte);
+            for _ in 0..8 {
+                crc = if crc & 1 == 0 {
+                    crc >> 1
+                } else {
+                    (crc >> 1) ^ 0xedb8_8320
+                };
+            }
+        }
+        crc ^ 0xffff_ffff
+    };
+    let size = contents.len() as u32;
+    let name_length = name.len() as u16;
+    let mut zip = Vec::new();
+    zip.extend_from_slice(&0x0403_4b50u32.to_le_bytes());
+    zip.extend_from_slice(&[20, 0, 0, 0, 0, 0, 0, 0, 0, 0]);
+    zip.extend_from_slice(&crc.to_le_bytes());
+    zip.extend_from_slice(&size.to_le_bytes());
+    zip.extend_from_slice(&size.to_le_bytes());
+    zip.extend_from_slice(&name_length.to_le_bytes());
+    zip.extend_from_slice(&[0, 0]);
+    zip.extend_from_slice(name.as_bytes());
+    zip.extend_from_slice(contents);
+    let central = zip.len() as u32;
+    zip.extend_from_slice(&0x0201_4b50u32.to_le_bytes());
+    zip.extend_from_slice(&[20, 0, 20, 0, 0, 0, 0, 0, 0, 0, 0, 0]);
+    zip.extend_from_slice(&crc.to_le_bytes());
+    zip.extend_from_slice(&size.to_le_bytes());
+    zip.extend_from_slice(&size.to_le_bytes());
+    zip.extend_from_slice(&name_length.to_le_bytes());
+    zip.extend_from_slice(&[0; 12]);
+    zip.extend_from_slice(&0u32.to_le_bytes());
+    zip.extend_from_slice(name.as_bytes());
+    let central_size = zip.len() as u32 - central;
+    zip.extend_from_slice(&0x0605_4b50u32.to_le_bytes());
+    zip.extend_from_slice(&[0, 0, 0, 0, 1, 0, 1, 0]);
+    zip.extend_from_slice(&central_size.to_le_bytes());
+    zip.extend_from_slice(&central.to_le_bytes());
+    zip.extend_from_slice(&[0, 0]);
+    zip
+}
+
 /// Lowercase hex SHA-256.
 pub fn sha256_hex(bytes: &[u8]) -> String {
     use sha2::Digest;

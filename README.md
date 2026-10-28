@@ -217,7 +217,7 @@ Quantex records each agent's install source and a verified receipt in `~/.quante
 
 ## Upgrading from 1.x
 
-Quantex 2 is a rewrite in Rust that keeps the 1.x command line: the same commands, options, JSON and NDJSON fields, error codes, and `~/.quantex` files. A 1.x install upgrades with `qtx upgrade`, and 1.x and 2.x can share one home directory. What changes:
+Quantex 2 is a rewrite in Rust that keeps the 1.x command line: the same commands, options, JSON and NDJSON fields, error codes, and `~/.quantex` files. A 1.x install upgrades with `qtx upgrade`, and 1.x and 2.x can share one home directory. On Windows, a 1.x standalone binary never completes a self-upgrade (it reports `updated` but nothing is replaced), so rerun `install.ps1` there. What changes:
 
 - Argument errors (unknown option, missing argument, invalid value) exit with code 2 and, in `json` / `ndjson` mode, print an `INVALID_ARGUMENT` envelope. 1.x printed a plain error and exited 1.
 - Human-readable output is not part of the contract; its layout differs from 1.x while meaning the same thing.
