@@ -14,8 +14,16 @@ fn encode(script: &str) -> String {
             | u32::from(chunk.get(2).copied().unwrap_or(0));
         out.push(TABLE[(n >> 18) as usize & 63] as char);
         out.push(TABLE[(n >> 12) as usize & 63] as char);
-        out.push(if chunk.len() > 1 { TABLE[(n >> 6) as usize & 63] as char } else { '=' });
-        out.push(if chunk.len() > 2 { TABLE[n as usize & 63] as char } else { '=' });
+        out.push(if chunk.len() > 1 {
+            TABLE[(n >> 6) as usize & 63] as char
+        } else {
+            '='
+        });
+        out.push(if chunk.len() > 2 {
+            TABLE[n as usize & 63] as char
+        } else {
+            '='
+        });
     }
     out
 }
@@ -35,7 +43,9 @@ fn probe_powershell_start() {
     ] {
         for hidden in [false, true] {
             for stripped in [false, true] {
-                let log = dir.path().join(format!("{flag_name}-{hidden}-{stripped}.log").replace('|', "_"));
+                let log = dir
+                    .path()
+                    .join(format!("{flag_name}-{hidden}-{stripped}.log").replace('|', "_"));
                 let file = std::fs::File::create(&log).unwrap();
                 let mut command = Command::new(&powershell);
                 command.args(["-NoProfile", "-NonInteractive", "-ExecutionPolicy", "Bypass"]);
@@ -50,7 +60,15 @@ fn probe_powershell_start() {
                     .creation_flags(flags);
                 if stripped {
                     command.env_clear();
-                    for key in ["SystemRoot", "windir", "SystemDrive", "TEMP", "TMP", "PATHEXT", "COMSPEC"] {
+                    for key in [
+                        "SystemRoot",
+                        "windir",
+                        "SystemDrive",
+                        "TEMP",
+                        "TMP",
+                        "PATHEXT",
+                        "COMSPEC",
+                    ] {
                         if let Some(value) = std::env::var_os(key) {
                             command.env(key, value);
                         }
