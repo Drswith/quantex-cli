@@ -246,6 +246,23 @@ jobs:
             --pattern "$asset.tar.gz" --pattern SHA256SUMS.txt
           (cd "$RUNNER_TEMP/v1" && grep " $asset.tar.gz\$" SHA256SUMS.txt | shasum -a 256 --check && tar -xzf "$asset.tar.gz" "$asset")
           sh scripts/release/v1-upgrade-check.sh release/assets "$RUNNER_TEMP/v1/$asset" "$VERSION"
+      - name: v1 installs can upgrade to the release (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ needs.prepare.outputs.version }}
+        run: |
+          $dir = Join-Path $env:RUNNER_TEMP 'v1'
+          gh release download $env:V1_REFERENCE --repo Drswith/quantex-cli --dir $dir `
+            --pattern quantex-windows-x64.exe.zip --pattern SHA256SUMS.txt
+          $zip = Join-Path $dir 'quantex-windows-x64.exe.zip'
+          $expected = (Get-Content (Join-Path $dir 'SHA256SUMS.txt') | Where-Object { $_ -match ' quantex-windows-x64\.exe\.zip$' }).Split(' ')[0]
+          $actual = (Get-FileHash -LiteralPath $zip -Algorithm SHA256).Hash.ToLowerInvariant()
+          if ($actual -ne $expected) { throw "v1 archive checksum mismatch" }
+          Expand-Archive -LiteralPath $zip -DestinationPath $dir -Force
+          ./scripts/release/v1-upgrade-check.ps1 -Assets release/assets `
+            -V1Binary (Join-Path $dir 'quantex-windows-x64.exe') -Expected $env:VERSION
       - uses: actions/setup-node@v4
         with:
           node-version: 24
