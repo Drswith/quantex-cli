@@ -246,8 +246,8 @@ jobs:
             --pattern "$asset.tar.gz" --pattern SHA256SUMS.txt
           (cd "$RUNNER_TEMP/v1" && grep " $asset.tar.gz\$" SHA256SUMS.txt | shasum -a 256 --check && tar -xzf "$asset.tar.gz" "$asset")
           sh scripts/release/v1-upgrade-check.sh release/assets "$RUNNER_TEMP/v1/$asset" "$VERSION"
-      # v1.13.x never completes a Windows self-upgrade (its replacement helper dies
-      # with v1), so this checks the part v1 does: unpacking the release.
+      # v1.13.x never completes a Windows self-upgrade (its replacement script fails to
+      # parse), so this checks the part v1 does: unpacking the release.
       - name: v1 Windows installs can unpack the release
         if: runner.os == 'Windows'
         shell: pwsh

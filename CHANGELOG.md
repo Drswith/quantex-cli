@@ -2,7 +2,7 @@
 
 ## [2.0.0-alpha.1](https://github.com/Drswith/quantex-cli/releases/tag/v2.0.0-alpha.1)
 
-The first prerelease of Quantex 2, a rewrite in Rust. It keeps the 1.x command line: the same commands, options, JSON and NDJSON fields, error codes, exit codes, and `~/.quantex` files. A 1.x standalone binary upgrades to it with `qtx upgrade --channel beta`; npm and Bun users install `quantex-cli@next`. On Windows, a 1.x standalone binary cannot complete any self-upgrade (it reports `updated` but its replacement helper exits with it), so reinstall with `install.ps1` instead. 1.x and 2.x can share one home directory.
+The first prerelease of Quantex 2, a rewrite in Rust. It keeps the 1.x command line: the same commands, options, JSON and NDJSON fields, error codes, exit codes, and `~/.quantex` files. A 1.x standalone binary upgrades to it with `qtx upgrade --channel beta`; npm and Bun users install `quantex-cli@next`. On Windows, a 1.x standalone binary cannot complete any self-upgrade (it reports `updated`, but the PowerShell script that should swap the executable fails to parse, so nothing is replaced), so reinstall with `install.ps1` instead. 1.x and 2.x can share one home directory.
 
 ### Changes from 1.x
 

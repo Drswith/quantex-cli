@@ -2,8 +2,8 @@
 # here. The Windows-only parts: v1's own zip extraction, and the delayed replacement
 # that swaps the executable once the upgrading process exits.
 #
-# v1.13.x never completes that swap: its helper process does not survive v1's exit,
-# even between two v1 releases. -ExtractionOnly checks what v1 still does, which is
+# v1.13.x never completes that swap: its replacement script fails to parse, so it never
+# runs, even between two v1 releases. -ExtractionOnly checks what v1 still does, which is
 # unpack the release into `.quantex-upgrade-*` next to the executable.
 #
 # Usage: v1-upgrade-check.ps1 -Assets <dir> -V1Binary <quantex-windows-x64.exe> -Expected <version> [-ExtractionOnly]

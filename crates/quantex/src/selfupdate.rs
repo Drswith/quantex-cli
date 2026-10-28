@@ -895,6 +895,30 @@ fn powershell_literal(path: &Path) -> String {
     path.to_string_lossy().replace('\'', "''")
 }
 
+/// Standard base64, for PowerShell's `-EncodedCommand`.
+fn base64(bytes: &[u8]) -> String {
+    const TABLE: &[u8; 64] = b"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
+    let mut out = String::with_capacity(bytes.len().div_ceil(3) * 4);
+    for chunk in bytes.chunks(3) {
+        let triple = (u32::from(chunk[0]) << 16)
+            | (u32::from(chunk.get(1).copied().unwrap_or(0)) << 8)
+            | u32::from(chunk.get(2).copied().unwrap_or(0));
+        out.push(TABLE[(triple >> 18) as usize & 63] as char);
+        out.push(TABLE[(triple >> 12) as usize & 63] as char);
+        out.push(if chunk.len() > 1 {
+            TABLE[(triple >> 6) as usize & 63] as char
+        } else {
+            '='
+        });
+        out.push(if chunk.len() > 2 {
+            TABLE[triple as usize & 63] as char
+        } else {
+            '='
+        });
+    }
+    out
+}
+
 /// v1's delayed replacement: a hidden PowerShell waits for this process to exit, swaps
 /// the executable, checks `--version`, and rolls back on failure.
 fn schedule_windows_replacement(
@@ -952,13 +976,16 @@ fn schedule_windows_replacement(
         "    exit 1".into(),
         "  }".into(),
         "}".into(),
-        "if ($peerPath -ne '') {".into(),
+        "if ($peerPath -ne '' -and (Test-Path -LiteralPath $peerPath)) {".into(),
         "  Copy-Item -LiteralPath $targetPath -Destination $peerPath -Force".into(),
         "}".into(),
         "Remove-Item -LiteralPath $backupPath -Force -ErrorAction SilentlyContinue".into(),
         "Remove-Item -LiteralPath $tempDir -Force -Recurse -ErrorAction SilentlyContinue".into(),
     ]
-    .join("; ");
+    // One statement per line: v1 joined these with "; ", which separates each `try {}`
+    // from its `catch {}`, so PowerShell rejected the whole script and nothing ran.
+    .join("\n");
+    let encoded = base64(&script.encode_utf16().flat_map(u16::to_le_bytes).collect::<Vec<u8>>());
     let powershell = std::env::var_os("SystemRoot")
         .map(|root| PathBuf::from(root).join(r"System32\WindowsPowerShell\v1.0\powershell.exe"))
         .filter(|path| path.is_file())
@@ -973,8 +1000,8 @@ fn schedule_windows_replacement(
                 "Bypass",
                 "-WindowStyle",
                 "Hidden",
-                "-Command",
-                &script,
+                "-EncodedCommand",
+                &encoded,
             ])
             .stdin(std::process::Stdio::null())
             .stdout(std::process::Stdio::null())
@@ -988,8 +1015,8 @@ fn schedule_windows_replacement(
         let _ = flags;
         command.spawn().map(|_| ())
     };
-    // The helper has to outlive this process. v1 lost it when it exited, because the
-    // child stayed in a kill-on-close job; leave any job when the job allows it.
+    // The helper has to outlive this process, so it is detached and leaves any job that
+    // would end it with this process, when the job allows that.
     const DETACHED_PROCESS: u32 = 0x0000_0008;
     const CREATE_BREAKAWAY_FROM_JOB: u32 = 0x0100_0000;
     spawn(DETACHED_PROCESS | CREATE_BREAKAWAY_FROM_JOB).or_else(|_| spawn(DETACHED_PROCESS))
@@ -1016,6 +1043,17 @@ mod tests {
         );
         assert_eq!(detect("/repo/target/debug/quantex"), InstallSource::Source);
         assert_eq!(detect("/Users/a/.local/bin/quantex"), InstallSource::Binary);
+    }
+
+    #[test]
+    fn base64_matches_the_standard_alphabet() {
+        assert_eq!(base64(b""), "");
+        assert_eq!(base64(b"f"), "Zg==");
+        assert_eq!(base64(b"fo"), "Zm8=");
+        assert_eq!(base64(b"foobar"), "Zm9vYmFy");
+        // PowerShell's -EncodedCommand takes UTF-16LE.
+        let utf16: Vec<u8> = "dir".encode_utf16().flat_map(u16::to_le_bytes).collect();
+        assert_eq!(base64(&utf16), "ZABpAHIA");
     }
 
     #[test]

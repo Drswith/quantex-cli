@@ -10,7 +10,7 @@ use serde_json::json;
 
 #[test]
 fn a_windows_binary_is_replaced_once_upgrade_exits() {
-    // v1.13.x reported "updated" but its helper died with it, so nothing was replaced.
+    // v1.13.x reported "updated", but its replacement script failed to parse.
     if is_reference() {
         return;
     }

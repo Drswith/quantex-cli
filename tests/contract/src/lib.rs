@@ -218,9 +218,22 @@ impl Sandbox {
             .stdin(Stdio::null())
             .stdout(Stdio::piped())
             .stderr(Stdio::piped());
+        // Process-level system variables; Windows PowerShell, which a Windows upgrade
+        // starts, needs several of them.
         for key in [
             "SystemRoot",
             "SYSTEMROOT",
+            "SystemDrive",
+            "windir",
+            "ProgramFiles",
+            "ProgramFiles(x86)",
+            "ProgramW6432",
+            "ProgramData",
+            "CommonProgramFiles",
+            "ALLUSERSPROFILE",
+            "PROCESSOR_ARCHITECTURE",
+            "NUMBER_OF_PROCESSORS",
+            "OS",
             "TEMP",
             "TMP",
             "TMPDIR",

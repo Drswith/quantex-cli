@@ -41,7 +41,7 @@ v1 installs upgrade by downloading `https://github.com/Drswith/quantex-cli/relea
 
 The beta channel in v1 picks the newest GitHub prerelease, so v1 installs set to `beta` are offered Rust prereleases; stable installs are not.
 
-On Windows, v1.13.x downloads and unpacks the release but never replaces itself: the PowerShell helper that should swap the executable after v1 exits is ended together with v1, even between two v1 releases. The `verify` job therefore checks that v1 unpacks the Windows release, and Rust's own delayed replacement is covered by `tests/contract/tests/upgrade_windows.rs`. Windows users on a 1.x standalone binary move to 2.x by rerunning `install.ps1`.
+On Windows, v1.13.x downloads and unpacks the release but never replaces itself: the PowerShell script that should swap the executable after v1 exits joins its lines with `; `, which PowerShell rejects (`try {}` and `catch {}` end up as separate statements), so it never runs, even between two v1 releases. The `verify` job therefore checks that v1 unpacks the Windows release, and Rust's own delayed replacement is covered by `tests/contract/tests/upgrade_windows.rs`. Windows users on a 1.x standalone binary move to 2.x by rerunning `install.ps1`.
 
 ## npm packages
 
