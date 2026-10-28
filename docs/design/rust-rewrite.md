@@ -40,7 +40,7 @@ One Cargo workspace:
 | `crates/quantex` | The binary and its library. Modules below. |
 | `tests/contract` | Black-box contract suite. Spawns `QUANTEX_BIN` in a temporary home with fake package managers on `PATH` and a local HTTP stub. |
 | `contract/` | Interface data embedded into the binary at build time (`include_str!`). |
-| `npm/` | npm launcher package and per-platform packages (M4). |
+| `crates/release` | `quantex-release`: packages built binaries into the GitHub release assets and the npm packages (a `quantex-cli` launcher plus one `quantex-cli-<platform>-<arch>` package per binary). See [`docs/runbooks/releasing.md`](../runbooks/releasing.md). |
 
 Modules inside `crates/quantex`:
 

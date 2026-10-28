@@ -1,6 +1,6 @@
 [workspace]
 resolver = "3"
-members = ["crates/quantex", "tests/contract"]
+members = ["crates/quantex", "crates/release", "tests/contract"]
 
 [workspace.package]
 version = "2.0.0-alpha.0"

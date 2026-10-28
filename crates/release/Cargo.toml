@@ -1,0 +1,17 @@
+[package]
+name = "quantex-release"
+description = "Packages quantex release binaries into GitHub release assets and npm packages"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+publish = false
+
+[dependencies]
+quantex = { path = "../quantex" }
+serde_json.workspace = true
+sha2 = "0.10"
+
+[dev-dependencies]
+tempfile.workspace = true

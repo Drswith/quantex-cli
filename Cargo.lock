@@ -546,6 +546,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "quantex-release"
+version = "2.0.0-alpha.0"
+dependencies = [
+ "quantex",
+ "serde_json",
+ "sha2",
+ "tempfile",
+]
+
+[[package]]
 name = "quote"
 version = "1.0.47"
 source = "registry+https://github.com/rust-lang/crates.io-index"
