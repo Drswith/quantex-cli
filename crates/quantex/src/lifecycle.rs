@@ -51,6 +51,8 @@ pub struct View {
     pub kind: Kind,
     pub drift: Drift,
     pub interrupted: bool,
+    /// What the provider reported for `binding`, when the observation probed it.
+    pub provider_observed: Option<Observed>,
 }
 
 fn versions_conflict(left: Option<&str>, right: Option<&str>) -> bool {
@@ -166,6 +168,7 @@ pub fn observe_lifecycle_with(
         kind: Kind::Absent,
         drift: Drift::None,
         interrupted: false,
+        provider_observed: None,
     };
     let indeterminate = |mut view: View, reason: &str| {
         view.kind = Kind::Indeterminate(reason.to_owned());
@@ -188,6 +191,7 @@ pub fn observe_lifecycle_with(
     if let Some(recorded) = &persisted_binding {
         let observed = providers::observe(ctx, recorded);
         view.binding = Some(recorded.clone());
+        view.provider_observed = Some(observed.clone());
         if matches!(observed, Observed::TimedOut) {
             view.interrupted = true;
         }
@@ -302,6 +306,7 @@ pub fn observe_lifecycle_with(
         let conflicts =
             !executable.present || versions_conflict(observed_version(observed), executable.version.as_deref());
         view.binding = Some(binding.clone());
+        view.provider_observed = Some(observed.clone());
         view.executable = merged;
         view.kind = Kind::Present;
         view.drift = if conflicts {
