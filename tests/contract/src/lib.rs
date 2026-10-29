@@ -93,7 +93,7 @@ impl Sandbox {
         let sandbox = Self { root, env };
         fs::create_dir_all(sandbox.bin_dir()).unwrap();
         fs::create_dir_all(sandbox.quantex_dir()).unwrap();
-        sandbox.write_config(&serde_json::json!({ "networkRetries": 0, "networkTimeoutMs": 1 }));
+        sandbox.write_config(&serde_json::json!({ "networkTimeoutMs": 1 }));
         sandbox
     }
 

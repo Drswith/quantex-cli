@@ -150,7 +150,7 @@ pub fn fetch_text_with_cache(ctx: &Context, url: &str, key: &str, expect_json: b
 pub fn fetch_text_with_mode(ctx: &Context, url: &str, key: &str, expect_json: bool, mode: CacheMode) -> Option<String> {
     let dir = ctx.quantex_dir();
     let config = store::load_config(&dir);
-    let ttl_ms = (config.version_cache_ttl_hours() * 3_600_000) as i64;
+    let ttl_ms = (store::VERSION_CACHE_TTL_HOURS * 3_600_000) as i64;
     let path = cache_path(&dir);
     let cached = if mode == CacheMode::NoCache {
         None
@@ -176,7 +176,7 @@ pub fn fetch_text_with_mode(ctx: &Context, url: &str, key: &str, expect_json: bo
         url,
         etag.as_deref(),
         config.network_timeout_ms(),
-        config.network_retries(),
+        store::NETWORK_RETRIES,
     );
     let fallback = |cached: Option<CachedEntry>| {
         cached.map(|entry| {

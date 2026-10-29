@@ -246,7 +246,7 @@ fn latest_versions_come_from_the_registry_and_the_cache() {
     let stub = HttpStub::start(vec![("/%40sourcegraph%2Famp/latest", 200, r#"{"version":"9.9.9"}"#)]);
     let mut sandbox = Sandbox::new();
     sandbox.env("QUANTEX_NPM_REGISTRY_URL", stub.url());
-    sandbox.write_config(&json!({ "networkRetries": 1, "networkTimeoutMs": 2000 }));
+    sandbox.write_config(&json!({ "networkTimeoutMs": 2000 }));
     fake_agent(&sandbox, "amp", "1.0.0");
 
     let (_, envelope) = json_run(&sandbox, &["info", "amp"]);

@@ -17,16 +17,25 @@ use crate::protocol::{CommandError, ErrorCode, Target};
 // ---------------------------------------------------------------------------
 // Config
 
-pub const CONFIG_INTEGER_KEYS: [&str; 3] = ["networkRetries", "networkTimeoutMs", "versionCacheTtlHours"];
+/// The keys `config set` accepts.
+pub const CONFIG_KEYS: [&str; 4] = [
+    "defaultPackageManager",
+    "networkTimeoutMs",
+    "selfUpdateChannel",
+    "selfUpdateRegistry",
+];
+
+/// Retries for a failed metadata request.
+pub const NETWORK_RETRIES: u64 = 2;
+
+/// How long cached version metadata stays fresh.
+pub const VERSION_CACHE_TTL_HOURS: u64 = 6;
 
 pub fn default_config() -> Map<String, Value> {
     let mut map = Map::new();
     map.insert("defaultPackageManager".into(), "bun".into());
-    map.insert("networkRetries".into(), 2.into());
     map.insert("networkTimeoutMs".into(), 10000.into());
-    map.insert("npmBunUpdateStrategy".into(), "latest-major".into());
     map.insert("selfUpdateChannel".into(), "stable".into());
-    map.insert("versionCacheTtlHours".into(), 6.into());
     map
 }
 
@@ -37,24 +46,12 @@ pub struct Config {
 }
 
 impl Config {
-    pub fn network_retries(&self) -> u64 {
-        self.values["networkRetries"].as_u64().unwrap_or(2)
-    }
-
     pub fn network_timeout_ms(&self) -> u64 {
         self.values["networkTimeoutMs"].as_u64().unwrap_or(10_000)
     }
 
-    pub fn version_cache_ttl_hours(&self) -> u64 {
-        self.values["versionCacheTtlHours"].as_u64().unwrap_or(6)
-    }
-
     pub fn default_package_manager(&self) -> &str {
         self.values["defaultPackageManager"].as_str().unwrap_or("bun")
-    }
-
-    pub fn npm_bun_update_strategy(&self) -> &str {
-        self.values["npmBunUpdateStrategy"].as_str().unwrap_or("latest-major")
     }
 
     pub fn self_update_channel(&self) -> &str {
@@ -124,20 +121,8 @@ pub fn load_config(dir: &Path) -> Config {
         "bun".to_owned()
     };
     values.insert("defaultPackageManager".into(), manager.into());
-    for (key, fallback) in [
-        ("networkRetries", 2),
-        ("networkTimeoutMs", 10_000),
-        ("versionCacheTtlHours", 6),
-    ] {
-        let normalized = positive_integer(values.get(key), fallback);
-        values.insert(key.into(), normalized.into());
-    }
-    let strategy = if values.get("npmBunUpdateStrategy").and_then(Value::as_str) == Some("respect-semver") {
-        "respect-semver"
-    } else {
-        "latest-major"
-    };
-    values.insert("npmBunUpdateStrategy".into(), strategy.into());
+    let timeout = positive_integer(values.get("networkTimeoutMs"), 10_000);
+    values.insert("networkTimeoutMs".into(), timeout.into());
     let channel = if values.get("selfUpdateChannel").and_then(Value::as_str) == Some("beta") {
         "beta"
     } else {
@@ -679,11 +664,10 @@ mod tests {
         let dir = tempfile::tempdir().unwrap();
         fs::write(
             dir.path().join("config.json"),
-            r#"{"networkRetries":0,"networkTimeoutMs":"250","defaultPackageManager":"pnpm","custom":true}"#,
+            r#"{"networkTimeoutMs":"250","defaultPackageManager":"pnpm","custom":true}"#,
         )
         .unwrap();
         let config = load_config(dir.path());
-        assert_eq!(config.network_retries(), 2, "zero falls back to the default");
         assert_eq!(config.network_timeout_ms(), 250);
         assert_eq!(config.default_package_manager(), "bun");
         assert_eq!(config.values["custom"], true);

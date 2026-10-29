@@ -4,7 +4,7 @@ use serde_json::{Map, Value, json};
 
 use crate::context::Context;
 use crate::protocol::{CommandError, ErrorCode, Outcome, Target, TargetKind, Warning};
-use crate::store::{self, CONFIG_INTEGER_KEYS};
+use crate::store::{self, CONFIG_KEYS};
 use crate::term::Human;
 
 fn target(key: Option<&str>) -> Option<Target> {
@@ -54,11 +54,12 @@ pub fn run(ctx: &Context, action: Option<&str>, key: Option<&str>, value: Option
                 return invalid(None, "Please specify both key and value");
             };
             let invalid_value = match key {
+                _ if !CONFIG_KEYS.contains(&key) => Some(format!(
+                    "Unknown config key: {key}. Supported keys: {}",
+                    CONFIG_KEYS.join(", ")
+                )),
                 "defaultPackageManager" if !matches!(raw, "bun" | "npm") => {
                     Some("defaultPackageManager must be bun or npm".to_owned())
-                }
-                "npmBunUpdateStrategy" if !matches!(raw, "latest-major" | "respect-semver") => {
-                    Some("npmBunUpdateStrategy must be latest-major or respect-semver".to_owned())
                 }
                 "selfUpdateChannel" if !matches!(raw, "stable" | "beta") => {
                     Some("selfUpdateChannel must be stable or beta".to_owned())
@@ -66,7 +67,7 @@ pub fn run(ctx: &Context, action: Option<&str>, key: Option<&str>, value: Option
                 "selfUpdateRegistry" if store::normalize_registry_url(raw).is_none() => {
                     Some("selfUpdateRegistry must be a valid absolute URL".to_owned())
                 }
-                _ if CONFIG_INTEGER_KEYS.contains(&key) && store::parse_int_prefix(raw).is_none_or(|n| n == 0) => {
+                "networkTimeoutMs" if store::parse_int_prefix(raw).is_none_or(|n| n == 0) => {
                     Some(format!("{key} must be a positive integer"))
                 }
                 _ => None,
@@ -74,7 +75,7 @@ pub fn run(ctx: &Context, action: Option<&str>, key: Option<&str>, value: Option
             if let Some(message) = invalid_value {
                 return invalid(Some(key), &message);
             }
-            let stored: Value = if CONFIG_INTEGER_KEYS.contains(&key) {
+            let stored: Value = if key == "networkTimeoutMs" {
                 store::parse_int_prefix(raw).unwrap_or_default().into()
             } else if key == "selfUpdateRegistry" {
                 store::normalize_registry_url(raw).unwrap_or_default().into()

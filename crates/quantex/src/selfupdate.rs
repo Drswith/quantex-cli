@@ -494,7 +494,7 @@ pub fn plan(ctx: &Context, requested_channel: Option<&str>) -> Inspection {
         && let Some(version) = &target.latest_version
         && ctx.cache_mode != CacheMode::NoCache
     {
-        let ttl_ms = store::load_config(&ctx.quantex_dir()).version_cache_ttl_hours() as i64 * 3_600_000;
+        let ttl_ms = store::VERSION_CACHE_TTL_HOURS as i64 * 3_600_000;
         let now = crate::time::now_millis();
         net::cache_write(
             ctx,

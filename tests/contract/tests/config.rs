@@ -27,16 +27,10 @@ fn list_returns_the_effective_configuration() {
     assert_eq!(envelope["target"], json!({ "kind": "config" }));
     assert_eq!(envelope["data"]["action"], "list");
     let config = &envelope["data"]["config"];
-    assert_eq!(config["defaultPackageManager"], "bun");
     assert_eq!(
-        config["networkRetries"], 2,
-        "non-positive integers fall back to the default"
+        config,
+        &json!({ "defaultPackageManager": "bun", "networkTimeoutMs": 1, "selfUpdateChannel": "stable" })
     );
-    assert_eq!(config["networkTimeoutMs"], 1);
-    assert_eq!(config["npmBunUpdateStrategy"], "latest-major");
-    assert_eq!(config["selfUpdateChannel"], "stable");
-    assert_eq!(config["versionCacheTtlHours"], 6);
-    assert!(config.get("selfUpdateRegistry").is_none());
 }
 
 #[test]
@@ -80,6 +74,11 @@ fn set_validates_and_persists() {
     assert_eq!(envelope["data"]["value"], "https://registry.example.com/npm");
 
     for (key, value, message) in [
+        (
+            "networkRetries",
+            "3",
+            "Unknown config key: networkRetries. Supported keys: defaultPackageManager, networkTimeoutMs, selfUpdateChannel, selfUpdateRegistry",
+        ),
         (
             "networkTimeoutMs",
             "zero",
@@ -127,11 +126,8 @@ fn reset_restores_defaults() {
     assert_eq!(run.code, 0, "{run:?}");
     let defaults = json!({
         "defaultPackageManager": "bun",
-        "networkRetries": 2,
         "networkTimeoutMs": 10000,
-        "npmBunUpdateStrategy": "latest-major",
         "selfUpdateChannel": "stable",
-        "versionCacheTtlHours": 6,
     });
     assert_eq!(envelope["data"], json!({ "action": "reset", "config": defaults }));
     assert_eq!(file(&sandbox), defaults);

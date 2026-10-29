@@ -464,29 +464,12 @@ fn shell(command: &str) -> Vec<String> {
     }
 }
 
-/// The command that updates `binding` in place.
-pub fn update_command(binding: &Binding, latest_major: bool, dist_tag: &str) -> Option<Vec<String>> {
+/// The command that updates `binding` in place, to the latest release.
+pub fn update_command(binding: &Binding) -> Option<Vec<String>> {
     let target = &binding.target;
     Some(match binding.provider {
-        Provider::Npm => {
-            if latest_major {
-                owned(&["npm", "install", "-g", &format!("{}@{dist_tag}", target.id)])
-            } else {
-                owned(&["npm", "update", "-g", &target.id])
-            }
-        }
-        Provider::Bun => {
-            let mut argv = owned(&["bun", "update", "-g"]);
-            if latest_major {
-                argv.push("--latest".into());
-            }
-            argv.push(if dist_tag == "latest" {
-                target.id.clone()
-            } else {
-                format!("{}@{dist_tag}", target.id)
-            });
-            argv
-        }
+        Provider::Npm => owned(&["npm", "install", "-g", &format!("{}@latest", target.id)]),
+        Provider::Bun => owned(&["bun", "update", "-g", "--latest", &target.id]),
         Provider::Brew => {
             let mut argv = owned(&["brew", "upgrade"]);
             if target.kind == "cask" {

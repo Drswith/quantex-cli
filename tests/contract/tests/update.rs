@@ -103,20 +103,6 @@ fn an_outdated_agent_is_updated_and_recorded() {
 }
 
 #[test]
-fn respect_semver_uses_npm_update() {
-    let sandbox = installed_codex("0.51.0");
-    sandbox.write_config(&json!({
-        "networkRetries": 0,
-        "networkTimeoutMs": 1,
-        "npmBunUpdateStrategy": "respect-semver",
-    }));
-    next_npm_version(&sandbox, "0.51.0");
-    let (code, envelope) = run_json(&sandbox, &["update", "codex"]);
-    assert_eq!(code, 0, "{envelope}");
-    assert_eq!(mutations(&sandbox).last().unwrap(), "npm update -g @openai/codex");
-}
-
-#[test]
 fn an_update_that_does_not_reach_the_target_fails_verification() {
     let sandbox = installed_codex("0.51.0");
     let (code, envelope) = run_json(&sandbox, &["update", "codex"]);

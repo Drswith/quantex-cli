@@ -331,9 +331,7 @@ fn execute(ctx: &Context, plan: &Plan) -> Execution {
 }
 
 fn run_provider_update(ctx: &Context, binding: &Binding) -> Result<(), MutationFailure> {
-    let config = store::load_config(&ctx.quantex_dir());
-    let latest_major = config.npm_bun_update_strategy() != "respect-semver";
-    let Some(command) = providers::update_command(binding, latest_major, "latest") else {
+    let Some(command) = providers::update_command(binding) else {
         return Err(MutationFailure::Failed(format!(
             "Provider {} does not support update.",
             binding.provider.as_str()
