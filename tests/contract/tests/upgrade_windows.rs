@@ -5,15 +5,11 @@
 use std::fs;
 use std::time::{Duration, Instant};
 
-use quantex_contract_tests::{HttpStub, Sandbox, is_reference, release_zip, seed_cache, sha256_hex};
+use quantex_contract_tests::{HttpStub, Sandbox, release_zip, seed_cache, sha256_hex};
 use serde_json::json;
 
 #[test]
 fn a_windows_binary_is_replaced_once_upgrade_exits() {
-    // v1.13.x reported "updated", but its replacement script failed to parse.
-    if is_reference() {
-        return;
-    }
     let mut sandbox = Sandbox::new();
     let helper_log = sandbox.root().join("helper.log");
     sandbox.env("QUANTEX_UPGRADE_HELPER_LOG", &helper_log.to_string_lossy());

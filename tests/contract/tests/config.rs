@@ -2,7 +2,7 @@
 
 use std::fs;
 
-use quantex_contract_tests::{Run, Sandbox, assert_envelope, is_reference};
+use quantex_contract_tests::{Run, Sandbox, assert_envelope};
 use serde_json::{Value, json};
 
 fn config_json(sandbox: &Sandbox, args: &[&str]) -> (Run, Value) {
@@ -104,10 +104,7 @@ fn set_validates_and_persists() {
         let (run, envelope) = config_json(&sandbox, &["set", key, value]);
         assert_eq!(run.code, 2, "{key}={value}: {run:?}");
         assert_eq!(envelope["error"]["code"], "INVALID_ARGUMENT");
-        // v1.13.6 also accepted mise and uv, and its message says so.
-        if !(is_reference() && key == "defaultPackageManager") {
-            assert_eq!(envelope["error"]["message"], message);
-        }
+        assert_eq!(envelope["error"]["message"], message);
         assert_eq!(envelope["target"], json!({ "kind": "config", "name": key }));
     }
 }

@@ -1,6 +1,6 @@
 //! `capabilities` and `doctor`.
 
-use quantex_contract_tests::{Sandbox, assert_envelope, fake_agent, is_reference};
+use quantex_contract_tests::{Sandbox, assert_envelope, fake_agent};
 use serde_json::{Value, json};
 
 /// The package managers the catalog installs with on this platform.
@@ -29,11 +29,8 @@ fn capabilities_describe_the_surface() {
         ["agents", "features", "installers", "outputModes", "platform"]
     );
     assert_eq!(data["outputModes"], json!(["human", "json", "ndjson"]));
-    // v1.13.6 lists all 33 agents and nine installers; 2.0.0-beta.2 trimmed both.
-    if !is_reference() {
-        assert_eq!(data["agents"].as_array().unwrap().len(), 22);
-        assert_eq!(keys(&data["installers"]), INSTALLERS);
-    }
+    assert_eq!(data["agents"].as_array().unwrap().len(), 22);
+    assert_eq!(keys(&data["installers"]), INSTALLERS);
     for installer in keys(&data["installers"]) {
         let installer = installer.as_str();
         let entry = &data["installers"][installer];
@@ -43,9 +40,7 @@ fn capabilities_describe_the_surface() {
                 matches!(entry["reason"].as_str(), Some("not-found" | "not-on-platform")),
                 "{installer}: {entry}"
             );
-            if !is_reference() {
-                assert_eq!(entry["reason"], "not-found", "{installer}: {entry}");
-            }
+            assert_eq!(entry["reason"], "not-found", "{installer}: {entry}");
         }
     }
     assert!(matches!(
@@ -92,9 +87,7 @@ fn doctor_reports_installers_agents_and_self() {
     assert_eq!(envelope["target"], json!({ "kind": "system", "name": "doctor" }));
     let data = &envelope["data"];
     assert_eq!(keys(data), ["agents", "installers", "issues", "self"]);
-    if !is_reference() {
-        assert_eq!(keys(&data["installers"]), INSTALLERS);
-    }
+    assert_eq!(keys(&data["installers"]), INSTALLERS);
     assert_eq!(
         data["agents"],
         json!([{

@@ -4,7 +4,7 @@
 use std::fs;
 use std::path::PathBuf;
 
-use quantex_contract_tests::{Sandbox, fake_npm, is_reference, seed_latest_version};
+use quantex_contract_tests::{Sandbox, fake_npm, seed_latest_version};
 use serde_json::{Value, json};
 
 fn sandbox() -> Sandbox {
@@ -189,10 +189,6 @@ fn update_replays_once_the_target_version_holds() {
 
 #[test]
 fn uninstall_replays_while_the_agent_stays_removed() {
-    // v1 never replayed uninstall: a missing package manager made the check inconclusive.
-    if is_reference() {
-        return;
-    }
     let sandbox = sandbox();
     run_json(&sandbox, &["install", "codex"]);
     let (code, first) = run_json(&sandbox, &with_key(&["uninstall", "codex"], "job-1"));
@@ -204,10 +200,6 @@ fn uninstall_replays_while_the_agent_stays_removed() {
 
 #[test]
 fn batch_install_records_and_replays() {
-    // v1 printed the result, then failed to write its own record and exited 1.
-    if is_reference() {
-        return;
-    }
     let sandbox = sandbox();
     let (code, first) = run_json(&sandbox, &with_key(&["install", "codex", "kilo"], "job-1"));
     assert_eq!(code, 0, "{first}");
@@ -219,10 +211,6 @@ fn batch_install_records_and_replays() {
 
 #[test]
 fn an_empty_batch_update_with_a_key_succeeds() {
-    // v1 failed to build evidence for an empty batch and exited 1.
-    if is_reference() {
-        return;
-    }
     let (code, envelope) = run_json(&sandbox(), &with_key(&["update", "--all"], "job-1"));
     assert_eq!(code, 0, "{envelope}");
     assert_eq!(envelope["data"], json!({ "results": [], "scope": "all" }));

@@ -1,11 +1,8 @@
 //! Harness for black-box contract tests.
 //!
 //! Every test spawns a quantex binary in an isolated home directory. The binary is
-//! `QUANTEX_BIN` when set (for example the v1.13.6 reference release), otherwise the
-//! workspace build of `quantex`, compiled on first use.
-//!
-//! Set `QUANTEX_CONTRACT_REFERENCE=1` when `QUANTEX_BIN` is the TypeScript reference.
-//! Cases that encode an intentional difference from v1.13.6 are then skipped.
+//! `QUANTEX_BIN` when set, otherwise the workspace build of `quantex`, compiled on
+//! first use.
 
 use std::collections::BTreeMap;
 use std::ffi::OsStr;
@@ -29,9 +26,6 @@ pub fn quantex_bin() -> &'static Path {
 }
 
 /// True when the binary under test is the TypeScript reference release.
-pub fn is_reference() -> bool {
-    std::env::var("QUANTEX_CONTRACT_REFERENCE").is_ok_and(|value| value == "1")
-}
 
 fn build_workspace_binary() -> PathBuf {
     let cargo = std::env::var_os("CARGO").unwrap_or_else(|| "cargo".into());

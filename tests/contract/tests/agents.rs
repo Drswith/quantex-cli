@@ -1,6 +1,6 @@
 //! Read-only agent commands: `list`, `info`, `inspect`, `resolve`.
 
-use quantex_contract_tests::{HttpStub, Sandbox, assert_envelope, contract_dir, fake_agent, is_reference, real_path};
+use quantex_contract_tests::{HttpStub, Sandbox, assert_envelope, contract_dir, fake_agent, real_path};
 use serde_json::{Value, json};
 
 const CODEX_NPM_STATE: &str = r#"{"installedAgents":{"codex":{"agentName":"codex","binaryName":"codex","installType":"npm","packageName":"@openai/codex"}},"self":{}}"#;
@@ -50,10 +50,7 @@ fn list_covers_the_catalog_and_reports_installs() {
         .iter()
         .map(|agent| agent["name"].as_str().unwrap().to_owned())
         .collect();
-    // 2.0.0-beta.2 trimmed the catalog that v1.13.6 still lists in full.
-    if !is_reference() {
-        assert_eq!(names, catalog_names());
-    }
+    assert_eq!(names, catalog_names());
 
     assert_eq!(
         find(agents, "codex"),
@@ -245,10 +242,6 @@ fn unreadable_state_is_a_state_read_error() {
 
 #[test]
 fn latest_versions_come_from_the_registry_and_the_cache() {
-    // QUANTEX_NPM_REGISTRY_URL is a test hook of the Rust build only.
-    if is_reference() {
-        return;
-    }
     let stub = HttpStub::start(vec![("/%40sourcegraph%2Famp/latest", 200, r#"{"version":"9.9.9"}"#)]);
     let mut sandbox = Sandbox::new();
     sandbox.env("QUANTEX_NPM_REGISTRY_URL", stub.url());

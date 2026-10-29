@@ -292,10 +292,6 @@ fn a_found_update_is_mentioned_after_later_commands() {
 
 #[test]
 fn an_npm_install_upgrades_through_npm() {
-    // v1's compiled binary always reported itself as a standalone binary install.
-    if quantex_contract_tests::is_reference() {
-        return;
-    }
     let sandbox = Sandbox::new();
     let (os, arch) = platform();
     let package_bin = sandbox

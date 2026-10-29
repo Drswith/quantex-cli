@@ -3,7 +3,7 @@
 
 use std::fs;
 
-use quantex_contract_tests::{Sandbox, assert_envelope, fake_npm, is_reference, seed_latest_version};
+use quantex_contract_tests::{Sandbox, assert_envelope, fake_npm, seed_latest_version};
 use serde_json::{Value, json};
 
 const CODEX: &str = "@openai/codex";
@@ -258,10 +258,6 @@ fn stale_state_points_at_uninstall() {
 
 #[test]
 fn an_untracked_agent_needs_manual_action() {
-    // v1 reported this as a failed "unsafe source" whenever a package manager was missing.
-    if is_reference() {
-        return;
-    }
     let sandbox = sandbox();
     sandbox.fake_tool("kilo", "echo 1.0.0", "echo 1.0.0");
     let (code, envelope) = run_json(&sandbox, &["update", "kilo"]);

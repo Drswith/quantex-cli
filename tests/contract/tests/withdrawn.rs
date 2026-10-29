@@ -1,14 +1,10 @@
 //! Agents and providers removed in 2.0.0-beta.2.
 
-use quantex_contract_tests::{Sandbox, is_reference};
+use quantex_contract_tests::Sandbox;
 use serde_json::json;
 
 #[test]
 fn withdrawn_agents_are_unknown() {
-    // v1.13.6 still ships them.
-    if is_reference() {
-        return;
-    }
     let sandbox = Sandbox::new();
     for agent in ["gemini", "qwen", "reasonix"] {
         let run = sandbox.run(["info", agent, "--output", "json"]);

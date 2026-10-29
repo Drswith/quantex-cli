@@ -1,6 +1,6 @@
 //! `--version`, `commands`, and `schema`: the discovery surface agents read first.
 
-use quantex_contract_tests::{Sandbox, assert_envelope, contract_json, is_reference};
+use quantex_contract_tests::{Sandbox, assert_envelope, contract_json};
 use serde_json::{Value, json};
 
 fn is_version(text: &str) -> bool {
@@ -78,10 +78,6 @@ fn output_defaults_to_human_without_an_explicit_mode() {
 
 #[test]
 fn schema_returns_every_document() {
-    // The v1.13.6 binary truncates piped stdout at 64 KiB, and this document is larger.
-    if is_reference() {
-        return;
-    }
     let run = Sandbox::new().run(["schema", "--output", "json"]);
     assert_eq!(run.code, 0, "{run:?}");
     let envelope = run.json();

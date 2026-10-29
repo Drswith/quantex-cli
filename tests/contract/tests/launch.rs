@@ -2,7 +2,7 @@
 
 use std::fs;
 
-use quantex_contract_tests::{Sandbox, assert_envelope, is_reference};
+use quantex_contract_tests::{Sandbox, assert_envelope};
 use serde_json::json;
 
 /// A fake `codex` that records its arguments and exits with status 5.
@@ -133,28 +133,18 @@ fn shortcut_rejects_structured_output() {
     let run = sandbox.run(["--json", "codex"]);
     assert_eq!(run.code, 2, "{run:?}");
     assert!(!record.exists());
-    if !is_reference() {
-        let envelope = run.json();
-        assert_eq!(envelope["error"]["code"], "INVALID_ARGUMENT");
-    }
+    let envelope = run.json();
+    assert_eq!(envelope["error"]["code"], "INVALID_ARGUMENT");
 }
 
 #[test]
 fn shortcut_without_a_terminal_does_not_prompt_for_a_missing_agent() {
-    // v1 tried to prompt even with no terminal and treated the closed stdin as "no".
-    if is_reference() {
-        return;
-    }
     let run = Sandbox::new().run(["kilo"]);
     assert_eq!(run.code, 7, "{run:?}");
 }
 
 #[test]
 fn exec_timeout_stops_the_agent() {
-    // v1 reported a launch timeout as a generic failure with exit code 1.
-    if is_reference() {
-        return;
-    }
     let sandbox = Sandbox::new();
     sandbox.fake_tool(
         "codex",
@@ -172,10 +162,6 @@ fn exec_timeout_stops_the_agent() {
 
 #[test]
 fn a_timeout_during_preflight_is_a_timeout() {
-    // v1 reported a hung version probe as INSTALL_FAILED with exit code 1.
-    if is_reference() {
-        return;
-    }
     let sandbox = Sandbox::new();
     sandbox.fake_tool("codex", "sleep 10", "ping -n 11 127.0.0.1 > nul");
     let run = sandbox.run(["exec", "codex", "--timeout", "300ms", "--output", "json"]);

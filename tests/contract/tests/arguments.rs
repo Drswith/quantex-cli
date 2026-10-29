@@ -1,9 +1,8 @@
 //! Argument errors report `INVALID_ARGUMENT` with exit code 2.
 //!
-//! This is an intentional difference from v1.13.6, which printed a plain stderr line and
-//! exited 1 for parse errors. These cases are skipped against the reference binary.
+//! v1.13.6 printed a plain stderr line and exited 1 for parse errors.
 
-use quantex_contract_tests::{Sandbox, assert_envelope, is_reference};
+use quantex_contract_tests::{Sandbox, assert_envelope};
 
 fn assert_invalid_argument(args: &[&str], action: &str) {
     let run = Sandbox::new().run(args);
@@ -16,25 +15,16 @@ fn assert_invalid_argument(args: &[&str], action: &str) {
 
 #[test]
 fn unknown_option_is_an_invalid_argument() {
-    if is_reference() {
-        return;
-    }
     assert_invalid_argument(&["list", "--bogus", "--output", "json"], "list");
 }
 
 #[test]
 fn missing_required_argument_is_an_invalid_argument() {
-    if is_reference() {
-        return;
-    }
     assert_invalid_argument(&["info", "--output", "json"], "info");
 }
 
 #[test]
 fn invalid_global_option_values_are_invalid_arguments() {
-    if is_reference() {
-        return;
-    }
     assert_invalid_argument(&["commands", "--color", "rainbow", "--output", "json"], "commands");
     assert_invalid_argument(&["commands", "--log-level", "loud", "--output", "json"], "commands");
     assert_invalid_argument(&["commands", "--timeout", "soon", "--output", "json"], "commands");
@@ -43,17 +33,11 @@ fn invalid_global_option_values_are_invalid_arguments() {
 
 #[test]
 fn unknown_command_is_an_invalid_argument() {
-    if is_reference() {
-        return;
-    }
     assert_invalid_argument(&["definitely-not-a-command", "--output", "json"], "quantex");
 }
 
 #[test]
 fn argument_errors_go_to_stderr_in_human_mode() {
-    if is_reference() {
-        return;
-    }
     let run = Sandbox::new().run(["list", "--bogus", "--output", "human"]);
     assert_eq!(run.code, 2, "{run:?}");
     assert_eq!(run.stdout, "");
