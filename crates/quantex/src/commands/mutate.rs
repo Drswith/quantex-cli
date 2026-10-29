@@ -229,6 +229,14 @@ fn apply_install(ctx: &Context, view: &View) -> Outcome {
     };
     let remediation = (!recipe.binding.provider.is_managed())
         .then_some("Review the installer output and upstream installation instructions.");
+    crate::term::progress(
+        ctx,
+        &format!(
+            "Installing {} via {}...",
+            agent.display_name,
+            recipe.binding.provider.as_str()
+        ),
+    );
     if let Err(failure) = providers::run_mutation(ctx, &command, &description) {
         return install_failed(agent, &failure.reason(), remediation);
     }
@@ -618,6 +626,14 @@ fn uninstall_recorded(ctx: &Context, agent: &'static Agent, installed: &Installe
         };
     };
     let description = format!("{} uninstall failed", binding.provider.as_str());
+    crate::term::progress(
+        ctx,
+        &format!(
+            "Uninstalling {} via {}...",
+            agent.display_name,
+            binding.provider.as_str()
+        ),
+    );
     if providers::run_mutation(ctx, &command, &description).is_err()
         && providers::observe(ctx, &binding) != Observed::Absent
     {

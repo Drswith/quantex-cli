@@ -273,6 +273,22 @@ fn execute(ctx: &Context, plan: &Plan) -> Execution {
         }
     };
     let agent = plan.before.agent;
+    let target = plan.latest_version().unwrap_or_else(|| "latest".into());
+    let versions = plan
+        .before
+        .executable
+        .version
+        .as_deref()
+        .map(|installed| format!(" ({installed} -> {target})"))
+        .unwrap_or_default();
+    crate::term::progress(
+        ctx,
+        &format!(
+            "Updating {} via {}...{versions}",
+            agent.display_name,
+            plan.strategy_label()
+        ),
+    );
     let ran = match &plan.strategy {
         Strategy::Managed { .. } => run_provider_update(ctx, &plan.binding),
         Strategy::SelfUpdate { commands, .. } => run_self_update(ctx, commands),

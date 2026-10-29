@@ -275,6 +275,14 @@ fn render_doctor(outcome: &Outcome, human: &mut Human) {
             ),
         ),
         (
+            "Latest",
+            match self_data["latestVersion"].as_str() {
+                Some(latest) if self_data["outdated"] == true => human.yellow(latest),
+                Some(latest) => latest.to_owned(),
+                None => human.dim("unknown"),
+            },
+        ),
+        (
             "Auto update",
             if self_data["canAutoUpdate"] == true {
                 human.green("yes")

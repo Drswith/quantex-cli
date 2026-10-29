@@ -231,8 +231,16 @@ fn agent_fields(human: &Human, data: &Value) -> Vec<(&'static str, String)> {
             },
         ),
     ];
-    if let Some(label) = inspection["updateLabel"].as_str() {
-        fields.push(("Update mode", label.to_owned()));
+    // `updateLabel` is a contract value; say who runs the update in words instead.
+    if inspection["installed"] == true
+        && let Some(label) = inspection["updateLabel"].as_str()
+    {
+        let via = match label {
+            "managed update" => "qtx update",
+            "command update" => "the agent's own updater",
+            _ => "manual steps",
+        };
+        fields.push(("Updates via", via.to_owned()));
     }
     fields.push((
         "Self update",

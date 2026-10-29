@@ -306,9 +306,7 @@ pub fn run(ctx: &Context, agent_name: &str, args: &[String], policy: InstallPoli
             status_line(ctx, "Installation cancelled.");
             return 1;
         }
-        if !ctx.quiet || ctx.output_mode.is_structured() {
-            status_line(ctx, &format!("Installing {}...", agent.display_name));
-        }
+        // The install announces itself; see `term::progress`.
         if let Err(failure) = crate::lifecycle::install_for_launch(ctx, agent) {
             return match failure {
                 crate::lifecycle::LaunchInstallFailure::TimedOut => {

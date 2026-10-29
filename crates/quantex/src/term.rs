@@ -139,6 +139,17 @@ impl<'a> Column<'a> {
     }
 }
 
+/// Announces a step that hands the terminal to a package manager, so the wait is not
+/// silent. Human mode only; `--quiet` drops it.
+pub fn progress(ctx: &Context, text: &str) {
+    if ctx.output_mode.is_structured() || ctx.quiet {
+        return;
+    }
+    let mut human = Human::new(ctx);
+    let text = human.cyan(text);
+    human.line(&text);
+}
+
 /// Writes human output for one invocation.
 pub struct Human {
     color: bool,

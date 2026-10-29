@@ -24,6 +24,23 @@ fn missing_required_argument_is_an_invalid_argument() {
 }
 
 #[test]
+fn missing_arguments_are_named_without_placeholder_syntax() {
+    for (args, argument) in [(["info", "--json"], "agent"), (["install", "--json"], "agents")] {
+        let envelope = Sandbox::new().run(args).json();
+        assert_eq!(
+            envelope["error"]["details"],
+            serde_json::json!({ "argument": argument, "reason": "missing-argument" }),
+            "{args:?}"
+        );
+        assert_eq!(
+            envelope["error"]["message"],
+            format!("Missing required argument '{argument}'"),
+            "{args:?}"
+        );
+    }
+}
+
+#[test]
 fn invalid_global_option_values_are_invalid_arguments() {
     assert_invalid_argument(&["commands", "--color", "rainbow", "--json"], "commands");
     assert_invalid_argument(&["commands", "--timeout", "soon", "--json"], "commands");

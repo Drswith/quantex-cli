@@ -1,5 +1,17 @@
 # Changelog
 
+## Unreleased
+
+### Fixed
+
+* A missing `install` argument is reported as `'agents'`, in both the message and `error.details.argument`, instead of `'agents>'`.
+
+### Changed
+
+* `install`, `update`, and `uninstall` print what they are about to do (for example `Updating Command Code via managed/npm... (1.88.1 -> 1.88.2)`) before the package manager starts, as 1.x did. `--quiet` and `--json` leave it out.
+* `doctor` shows the latest Quantex version, or `unknown` when it could not be checked.
+* `info` says who updates an installed agent (`Updates via: qtx update`) instead of printing `updateLabel` values such as `command update`. The JSON is unchanged.
+
 ## [2.0.0-beta.3](https://github.com/Drswith/quantex-cli/releases/tag/v2.0.0-beta.3)
 
 Quantex 2 still reads every `~/.quantex` a 1.x build wrote, so upgrading from 1.x keeps all records, but it no longer keeps in step with 1.x on a shared home directory. Going back to 1.x after upgrading is not supported.

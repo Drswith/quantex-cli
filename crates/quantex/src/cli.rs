@@ -523,10 +523,11 @@ fn clap_error(error: clap::Error, action: String, prescan: GlobalArgs) -> Parsed
         }
         ErrorKind::MissingRequiredArgument => {
             let argument = invalid.unwrap_or_default();
+            // clap names a repeated positional `<agents>...`.
             let argument = argument
+                .trim_end_matches("...")
                 .trim_start_matches('<')
-                .trim_end_matches('>')
-                .trim_end_matches("...");
+                .trim_end_matches('>');
             (
                 format!("Missing required argument '{argument}'"),
                 json!({ "reason": "missing-argument", "argument": argument }),
