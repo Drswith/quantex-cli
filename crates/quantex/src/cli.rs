@@ -135,7 +135,6 @@ fn set_global_flag(globals: &mut GlobalArgs, id: &str) {
         "quiet" => globals.quiet = true,
         "dryRun" => globals.dry_run = true,
         "refresh" => globals.refresh = true,
-        "noCache" => globals.no_cache = true,
         _ => {}
     }
 }
@@ -143,7 +142,6 @@ fn set_global_flag(globals: &mut GlobalArgs, id: &str) {
 fn set_global_value(globals: &mut GlobalArgs, id: &str, value: String) {
     match id {
         "color" => globals.color = Some(value),
-        "runId" => globals.run_id = Some(value),
         "timeout" => globals.timeout = Some(value),
         _ => {}
     }
@@ -475,8 +473,6 @@ fn globals_from(matches: &clap::ArgMatches) -> GlobalArgs {
         color: value("color"),
         dry_run: flag("dryRun"),
         refresh: flag("refresh"),
-        no_cache: flag("noCache"),
-        run_id: value("runId"),
         timeout: value("timeout"),
     }
 }

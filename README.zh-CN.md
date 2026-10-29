@@ -157,7 +157,7 @@ agent 可以依赖的契约：
 - 使用 `--json` 时 stdout 只输出信封；日志、警告、提示以及安装器和 agent 的输出都走 stderr。
 - `--non-interactive` 从不提示（需要确认时返回 `INTERACTION_REQUIRED`）；`--yes` 自动确认；`--quiet` 关闭提示性输出。
 - `--dry-run` 报告 `install`、`update`、`uninstall`、`exec`、`upgrade` 将会做什么，但不执行。
-- `--timeout <时长>`（`500ms`、`30s`、`2m`）限制命令时长；`--refresh` 与 `--no-cache` 控制版本缓存；`--run-id` 设置 `meta.runId`。
+- `--timeout <时长>`（`500ms`、`30s`、`2m`）限制命令时长；`--refresh` 跳过版本缓存。
 - `install`、`update`、`uninstall` 都可以重试：已经没有事要做时直接成功，不做改动。
 
 | 退出码 | 含义 |
@@ -194,13 +194,13 @@ agent 启动之后，`qtx exec` 和 `qtx <agent>` 以 agent 自己的退出码�
 - npm 和 Bun 安装的 agent 总是更新到最新版本。
 - `selfUpdateRegistry`（默认不设置）：npm 和 Bun 安装执行 `qtx upgrade` 时使用的 registry；`QTX_SELF_UPDATE_REGISTRY` 可以单次覆盖，不影响其他项目。
 
-Quantex 在 `~/.quantex/state.json` 中记录每个 agent 的安装来源和验证后的收据；版本查询缓存在 `~/.quantex/cache/`，锁在 `~/.quantex/locks/`。
+Quantex 在 `~/.quantex/state.json` 中记录每个 agent 的安装来源；版本查询缓存在 `~/.quantex/cache/`，锁在 `~/.quantex/locks/`。
 
 ## 从 1.x 升级
 
-Quantex 2 用 Rust 重写，保留 1.x 的核心命令行、JSON 字段、错误码和 `~/.quantex` 下的文件，去掉了很少有人用的部分。1.x 安装可以直接 `qtx upgrade` 升级，1.x 与 2.x 可以共用同一个 home 目录。Windows 上的 1.x 独立二进制从来无法完成自升级（会报告 `updated`，但文件没有被替换），请改为重新运行 `install.ps1`。变化如下：
+Quantex 2 用 Rust 重写，保留 1.x 的核心命令行、JSON 字段、错误码和 `~/.quantex` 下的文件，去掉了很少有人用的部分。1.x 安装可以直接 `qtx upgrade` 升级，记录都会保留；升级后不支持再退回 1.x。Windows 上的 1.x 独立二进制从来无法完成自升级（会报告 `updated`，但文件没有被替换），请改为重新运行 `install.ps1`。变化如下：
 
-- 删除：11 个很少使用的 agent；Homebrew、winget、Cargo、Deno、mise、pip、uv 这些安装途径；NDJSON 输出和 `--output`（改用 `--json`）；`--log-level`；`--idempotency-key`；`capabilities` 和 `schema` 命令；配置项 `npmBunUpdateStrategy`、`networkRetries`、`versionCacheTtlHours`。`ensure` 和 `inspect` 保留为 `install` 和 `info` 的别名。完整列表见 [`CHANGELOG.md`](./CHANGELOG.md)。
+- 删除：11 个很少使用的 agent；Homebrew、winget、Cargo、Deno、mise、pip、uv 这些安装途径；NDJSON 输出和 `--output`（改用 `--json`）；`--log-level`；`--idempotency-key`；`--no-cache`（改用 `--refresh`）；`--run-id` 和 `meta.runId`；`capabilities` 和 `schema` 命令；配置项 `npmBunUpdateStrategy`、`networkRetries`、`versionCacheTtlHours`。`ensure` 和 `inspect` 保留为 `install` 和 `info` 的别名。完整列表见 [`CHANGELOG.md`](./CHANGELOG.md)。
 - 参数错误（未知选项、缺少参数、取值无效）退出码为 2，使用 `--json` 时输出 `INVALID_ARGUMENT` 信封；1.x 打印纯文本错误并以 1 退出。
 - human 输出不属于契约，排版与 1.x 不同，含义一致。
 - npm 包不再导出 JavaScript 库，这条线也不再发布 `quantex-core`。

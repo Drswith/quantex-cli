@@ -15,12 +15,10 @@ use crate::store::InstalledAgent;
 /// Default bound for one read-only provider probe.
 const PROBE_BUDGET: Duration = Duration::from_secs(60);
 
-/// What a provider installs: a package or a script.
+/// What a provider installs: a package name, or a script's install command.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ProviderTarget {
     pub id: String,
-    pub kind: &'static str,
-    pub arguments: Vec<String>,
     pub binary_name: Option<String>,
 }
 
@@ -31,15 +29,8 @@ pub struct Binding {
     pub target: ProviderTarget,
 }
 
-fn target_kind(provider: Provider) -> &'static str {
-    match provider {
-        Provider::Script => "script",
-        Provider::Bun | Provider::Npm => "package",
-    }
-}
-
 impl Binding {
-    /// v1 `resolveStateProviderBinding`.
+    /// The source an `installedAgents` record names.
     pub fn from_installed(agent: &Agent, state: &InstalledAgent) -> Option<Self> {
         let provider = state.install_type;
         let id = state
@@ -59,54 +50,18 @@ impl Binding {
         };
         Some(Self {
             provider,
-            target: ProviderTarget {
-                id,
-                kind: target_kind(provider),
-                arguments: state.package_install_args.clone().unwrap_or_default(),
-                binary_name,
-            },
+            target: ProviderTarget { id, binary_name },
         })
     }
 
-    /// v1 `resolveInstallMethodProviderBinding`.
+    /// The source an install method names.
     pub fn from_method(agent: &Agent, method: &InstallMethod) -> Option<Self> {
-        Self::from_installed(agent, &installed_state_for_method(agent, method, false))
-    }
-
-    /// v1 `resolveReceiptProviderBinding`.
-    pub fn from_receipt(receipt: &Value) -> Option<Self> {
-        let provider = Provider::parse(receipt["providerId"].as_str()?)?;
-        let id = receipt["providerTargetId"].as_str().filter(|id| !id.is_empty())?;
-        let kind = receipt["providerTargetKind"].as_str();
-        let kind = match kind {
-            Some("package") => "package",
-            Some("script") => "script",
-            _ => target_kind(provider),
-        };
-        Some(Self {
-            provider,
-            target: ProviderTarget {
-                id: id.to_owned(),
-                kind,
-                arguments: Vec::new(),
-                binary_name: receipt["executableName"].as_str().map(str::to_owned),
-            },
-        })
-    }
-
-    /// v1 `providerBindingsEqual`: provider, target id and kind, and executable name
-    /// (defaulting to the agent's binary).
-    pub fn same_source(&self, other: &Binding, default_executable: &str) -> bool {
-        self.provider == other.provider
-            && self.target.id == other.target.id
-            && self.target.kind == other.target.kind
-            && self.target.binary_name.as_deref().unwrap_or(default_executable)
-                == other.target.binary_name.as_deref().unwrap_or(default_executable)
+        Self::from_installed(agent, &installed_state_for_method(agent, method))
     }
 }
 
-/// v1 `buildInstalledAgentState`: the `installedAgents` record for a method.
-pub fn installed_state_for_method(agent: &Agent, method: &InstallMethod, _recorded: bool) -> InstalledAgent {
+/// The `installedAgents` record for a method.
+pub fn installed_state_for_method(agent: &Agent, method: &InstallMethod) -> InstalledAgent {
     let binary_name = method.binary_name.clone();
     InstalledAgent {
         agent_name: agent.name.clone(),
@@ -114,24 +69,8 @@ pub fn installed_state_for_method(agent: &Agent, method: &InstallMethod, _record
         binary_name,
         package_install_args: (!method.package_install_args.is_empty()).then(|| method.package_install_args.clone()),
         package_name: crate::observe::method_package(agent, method),
-        package_target_kind: None,
         command: method.command.clone(),
     }
-}
-
-/// Catalog bindings for this platform, deduplicated by source.
-pub fn catalog_bindings(agent: &Agent) -> Vec<Binding> {
-    let mut bindings: Vec<Binding> = Vec::new();
-    for method in agent.install_methods() {
-        if let Some(binding) = Binding::from_method(agent, &method)
-            && !bindings
-                .iter()
-                .any(|existing| existing.same_source(&binding, &agent.binary_name))
-        {
-            bindings.push(binding);
-        }
-    }
-    bindings
 }
 
 /// The result of probing one provider target.
@@ -151,11 +90,6 @@ pub enum Observed {
 }
 
 impl Observed {
-    /// Inconclusive in v1's sense: not a success and not merely unavailable.
-    pub fn is_inconclusive(&self) -> bool {
-        matches!(self, Self::Indeterminate(_) | Self::Failed(_) | Self::TimedOut)
-    }
-
     pub fn reason(&self) -> String {
         match self {
             Self::Unavailable(reason) | Self::Indeterminate(reason) | Self::Failed(reason) => reason.clone(),
@@ -545,12 +479,15 @@ mod tests {
     #[test]
     fn script_bindings_target_the_install_command() {
         let claude = crate::catalog::find("claude").unwrap();
-        let bindings = catalog_bindings(claude);
+        let bindings: Vec<Binding> = claude
+            .install_methods()
+            .iter()
+            .filter_map(|method| Binding::from_method(claude, method))
+            .collect();
         let script = bindings
             .iter()
             .find(|binding| binding.provider == Provider::Script)
             .unwrap();
-        assert_eq!(script.target.kind, "script");
         assert_eq!(script.target.binary_name.as_deref(), Some("claude"));
         assert!(script.target.id.contains("install"));
         let npm = bindings
@@ -558,7 +495,6 @@ mod tests {
             .find(|binding| binding.provider == Provider::Npm)
             .unwrap();
         assert_eq!(npm.target.id, "@anthropic-ai/claude-code");
-        assert_eq!(npm.target.kind, "package");
     }
 
     #[test]

@@ -18,7 +18,6 @@ pub enum ColorMode {
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum CacheMode {
     Default,
-    NoCache,
     Refresh,
 }
 
@@ -40,8 +39,6 @@ pub struct GlobalArgs {
     pub color: Option<String>,
     pub dry_run: bool,
     pub refresh: bool,
-    pub no_cache: bool,
-    pub run_id: Option<String>,
     pub timeout: Option<String>,
 }
 
@@ -64,7 +61,6 @@ pub struct Context {
     /// True when prompts may be shown: not disabled and both streams are terminals.
     pub interactive: bool,
     pub cache_mode: CacheMode,
-    pub run_id: String,
     pub timeout_ms: Option<u64>,
     pub home: PathBuf,
     started: Instant,
@@ -92,18 +88,7 @@ impl Context {
                 }
             },
         };
-        if args.refresh && args.no_cache {
-            return Err(
-                CommandError::new(ErrorCode::InvalidArgument, "Cannot combine --refresh with --no-cache.")
-                    .details(serde_json::json!({ "options": ["--refresh", "--no-cache"] })),
-            );
-        }
         let terminals = std::io::stdin().is_terminal() && std::io::stdout().is_terminal();
-        let run_id = args
-            .run_id
-            .clone()
-            .or_else(|| std::env::var("QUANTEX_RUN_ID").ok().filter(|value| !value.is_empty()))
-            .unwrap_or_else(|| uuid::Uuid::new_v4().to_string());
         Ok(Self {
             output_mode: args.output_mode(),
             color_mode,
@@ -112,14 +97,11 @@ impl Context {
             dry_run: args.dry_run,
             non_interactive: args.non_interactive,
             interactive: !args.non_interactive && terminals,
-            cache_mode: if args.no_cache {
-                CacheMode::NoCache
-            } else if args.refresh {
+            cache_mode: if args.refresh {
                 CacheMode::Refresh
             } else {
                 CacheMode::Default
             },
-            run_id,
             timeout_ms,
             home: home_dir(),
             started: Instant::now(),
@@ -135,7 +117,6 @@ impl Context {
         let mut relaxed = args.clone();
         relaxed.color = None;
         relaxed.timeout = None;
-        relaxed.no_cache = false;
         Self::resolve(&relaxed).expect("default options always resolve")
     }
 

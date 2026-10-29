@@ -1,4 +1,4 @@
-//! What 2.0.0-beta.2 removed: agents, providers, options, and commands.
+//! What 2.0.0 betas removed: agents, providers, options, commands, and 1.x receipts.
 
 use quantex_contract_tests::Sandbox;
 use serde_json::json;
@@ -38,6 +38,38 @@ fn records_from_removed_providers_are_kept() {
     assert_eq!(state["installedAgents"]["codex"], brew);
 }
 
+/// 1.x cross-checked every action against `lifecycleReceipts`; a receipt that disagrees
+/// with the record no longer blocks anything, and the receipts are dropped on write.
+#[cfg(unix)]
+#[test]
+fn receipts_written_by_1x_are_ignored() {
+    let sandbox = Sandbox::new();
+    quantex_contract_tests::fake_npm(&sandbox);
+    assert_eq!(sandbox.run(["install", "codex", "--json"]).code, 0);
+    let mut state = sandbox.read_state().unwrap();
+    state["lifecycleReceipts"] = json!({
+        "codex": {
+            "executablePath": "/nowhere/codex",
+            "kind": "lifecycle-receipt",
+            "providerId": "bun",
+            "providerTargetId": "@openai/codex",
+            "schemaVersion": 1,
+            "targetId": "codex",
+            "verifiedAt": "2026-01-01T00:00:00.000Z",
+            "version": "0.1.0",
+        },
+    });
+    sandbox.write_state(&state.to_string());
+    let run = sandbox.run(["install", "codex", "--json"]);
+    assert_eq!(run.code, 0, "{run:?}");
+    assert_eq!(run.json()["warnings"][0]["code"], "ALREADY_INSTALLED", "{run:?}");
+    let run = sandbox.run(["uninstall", "codex", "--json"]);
+    assert_eq!(run.code, 0, "{run:?}");
+    let state = sandbox.read_state().unwrap();
+    assert_eq!(state["installedAgents"], json!({}));
+    assert_eq!(state["lifecycleReceipts"], json!({}));
+}
+
 #[test]
 fn removed_options_are_invalid_arguments() {
     let sandbox = Sandbox::new();
@@ -45,6 +77,8 @@ fn removed_options_are_invalid_arguments() {
         &["list", "--output", "json"][..],
         &["list", "--log-level", "info", "--json"],
         &["install", "codex", "--idempotency-key", "k1", "--json"],
+        &["list", "--no-cache", "--json"],
+        &["commands", "--run-id", "r1", "--json"],
     ] {
         let run = sandbox.run(args);
         assert_eq!(run.code, 2, "{args:?}: {run:?}");

@@ -48,7 +48,7 @@ Quantex was installed through npm or Bun, but that package manager is no longer 
 
 `MIRROR_LAG` means that registry installs an older version than npm has. Wait for the mirror, or point `selfUpdateRegistry` / `QTX_SELF_UPDATE_REGISTRY` at another registry.
 
-`STALE_LATEST_VERSION` means the resolved latest is older than the running build, which happens on a stale cache or mirror. Quantex never downgrades; rerun with `--refresh` or `--no-cache`.
+`STALE_LATEST_VERSION` means the resolved latest is older than the running build, which happens on a stale cache or mirror. Quantex never downgrades; rerun with `--refresh`.
 
 ## Channels
 

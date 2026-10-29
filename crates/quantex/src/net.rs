@@ -152,9 +152,7 @@ pub fn fetch_text_with_mode(ctx: &Context, url: &str, key: &str, expect_json: bo
     let config = store::load_config(&dir);
     let ttl_ms = (store::VERSION_CACHE_TTL_HOURS * 3_600_000) as i64;
     let path = cache_path(&dir);
-    let cached = if mode == CacheMode::NoCache {
-        None
-    } else {
+    let cached = {
         let _guard = CACHE_LOCK.lock().unwrap();
         load_cache(&path).get(key).and_then(parse_entry)
     };
@@ -166,11 +164,7 @@ pub fn fetch_text_with_mode(ctx: &Context, url: &str, key: &str, expect_json: bo
         record_cached(ctx, entry, ttl_ms);
         return Some(entry.body.clone());
     }
-    let etag = if mode == CacheMode::NoCache {
-        None
-    } else {
-        cached.as_ref().and_then(|entry| entry.etag.clone())
-    };
+    let etag = cached.as_ref().and_then(|entry| entry.etag.clone());
     let response = fetch_with_retries(
         ctx,
         url,
@@ -190,15 +184,13 @@ pub fn fetch_text_with_mode(ctx: &Context, url: &str, key: &str, expect_json: bo
     if response.status == 304
         && let Some(entry) = &cached
     {
-        if mode != CacheMode::NoCache {
-            let _guard = CACHE_LOCK.lock().unwrap();
-            let mut entries = load_cache(&path);
-            entries.insert(
-                key.into(),
-                json!({ "body": entry.body, "etag": entry.etag, "expiresAt": now + ttl_ms, "fetchedAt": now }),
-            );
-            save_cache(&path, &entries);
-        }
+        let _guard = CACHE_LOCK.lock().unwrap();
+        let mut entries = load_cache(&path);
+        entries.insert(
+            key.into(),
+            json!({ "body": entry.body, "etag": entry.etag, "expiresAt": now + ttl_ms, "fetchedAt": now }),
+        );
+        save_cache(&path, &entries);
         record_network(ctx, now, now + ttl_ms);
         return Some(entry.body.clone());
     }
@@ -208,7 +200,7 @@ pub fn fetch_text_with_mode(ctx: &Context, url: &str, key: &str, expect_json: bo
     if expect_json && serde_json::from_str::<Value>(&body).is_err() {
         return fallback(cached);
     }
-    if mode != CacheMode::NoCache {
+    {
         let _guard = CACHE_LOCK.lock().unwrap();
         let mut entries = load_cache(&path);
         let mut entry = Map::new();
@@ -332,9 +324,6 @@ pub fn latest_npm_version_with_mode(
 
 /// Stores a JSON value in the response cache, as v1's version-cache port did.
 pub fn cache_write(ctx: &Context, key: &str, value: &Value, expires_at: i64) {
-    if ctx.cache_mode == CacheMode::NoCache {
-        return;
-    }
     let path = cache_path(&ctx.quantex_dir());
     let _guard = CACHE_LOCK.lock().unwrap();
     let mut entries = load_cache(&path);
@@ -347,9 +336,6 @@ pub fn cache_write(ctx: &Context, key: &str, value: &Value, expires_at: i64) {
 
 /// A value `cache_write` stored, while it is fresh.
 pub fn cache_read(ctx: &Context, key: &str) -> Option<Value> {
-    if ctx.cache_mode == CacheMode::NoCache {
-        return None;
-    }
     let path = cache_path(&ctx.quantex_dir());
     let entry = {
         let _guard = CACHE_LOCK.lock().unwrap();

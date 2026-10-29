@@ -157,7 +157,7 @@ The contract an agent can rely on:
 - With `--json`, stdout carries only the envelope. Logs, warnings, prompts, and installer and agent output go to stderr.
 - `--non-interactive` never prompts (a needed confirmation becomes `INTERACTION_REQUIRED`); `--yes` accepts prompts; `--quiet` silences informational output.
 - `--dry-run` reports what `install`, `update`, `uninstall`, `exec`, and `upgrade` would do, without doing it.
-- `--timeout <duration>` (`500ms`, `30s`, `2m`) bounds a command; `--refresh` and `--no-cache` control the version cache; `--run-id` sets `meta.runId`.
+- `--timeout <duration>` (`500ms`, `30s`, `2m`) bounds a command; `--refresh` skips the version cache.
 - `install`, `update`, and `uninstall` can be retried: one that has nothing left to do succeeds without changes.
 
 | Exit code | Meaning |
@@ -194,13 +194,13 @@ Configuration lives in `~/.quantex/config.json` and is managed with `qtx config`
 - Updates of npm and Bun installs always go to the latest release.
 - `selfUpdateRegistry` (unset by default) is the registry `qtx upgrade` uses for npm and Bun installs; `QTX_SELF_UPDATE_REGISTRY` overrides it for one run. It does not affect other projects.
 
-Quantex records each agent's install source and a verified receipt in `~/.quantex/state.json`. Version lookups are cached in `~/.quantex/cache/`, and locks live in `~/.quantex/locks/`.
+Quantex records each agent's install source in `~/.quantex/state.json`. Version lookups are cached in `~/.quantex/cache/`, and locks live in `~/.quantex/locks/`.
 
 ## Upgrading from 1.x
 
-Quantex 2 is a rewrite in Rust. It keeps the core 1.x command line, JSON fields, error codes, and `~/.quantex` files, and drops what few people used. A 1.x install upgrades with `qtx upgrade`, and 1.x and 2.x can share one home directory. On Windows, a 1.x standalone binary never completes a self-upgrade (it reports `updated` but nothing is replaced), so rerun `install.ps1` there. What changes:
+Quantex 2 is a rewrite in Rust. It keeps the core 1.x command line, JSON fields, error codes, and `~/.quantex` files, and drops what few people used. A 1.x install upgrades with `qtx upgrade` and keeps its records. Going back to 1.x afterwards is not supported. On Windows, a 1.x standalone binary never completes a self-upgrade (it reports `updated` but nothing is replaced), so rerun `install.ps1` there. What changes:
 
-- Removed: 11 rarely used agents, the Homebrew, winget, Cargo, Deno, mise, pip, and uv install routes, NDJSON output and `--output` (use `--json`), `--log-level`, `--idempotency-key`, the `capabilities` and `schema` commands, and the config keys `npmBunUpdateStrategy`, `networkRetries`, and `versionCacheTtlHours`. `ensure` and `inspect` remain as aliases of `install` and `info`. [`CHANGELOG.md`](./CHANGELOG.md) has the full list.
+- Removed: 11 rarely used agents, the Homebrew, winget, Cargo, Deno, mise, pip, and uv install routes, NDJSON output and `--output` (use `--json`), `--log-level`, `--idempotency-key`, `--no-cache` (use `--refresh`), `--run-id` and `meta.runId`, the `capabilities` and `schema` commands, and the config keys `npmBunUpdateStrategy`, `networkRetries`, and `versionCacheTtlHours`. `ensure` and `inspect` remain as aliases of `install` and `info`. [`CHANGELOG.md`](./CHANGELOG.md) has the full list.
 - Argument errors (unknown option, missing argument, invalid value) exit with code 2 and, with `--json`, print an `INVALID_ARGUMENT` envelope. 1.x printed a plain error and exited 1.
 - Human-readable output is not part of the contract; its layout differs from 1.x while meaning the same thing.
 - The npm package no longer exports a JavaScript library, and `quantex-core` is not published from this line.

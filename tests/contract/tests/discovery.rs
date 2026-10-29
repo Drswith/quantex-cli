@@ -73,13 +73,3 @@ fn output_defaults_to_human_without_an_explicit_mode() {
         "{run:?}"
     );
 }
-
-#[test]
-fn run_id_comes_from_the_flag_or_the_environment() {
-    let mut sandbox = Sandbox::new();
-    let run = sandbox.run(["commands", "--json", "--run-id", "flag-run"]);
-    assert_eq!(run.json()["meta"]["runId"], "flag-run");
-    sandbox.env("QUANTEX_RUN_ID", "env-run");
-    let run = sandbox.run(["commands", "--json"]);
-    assert_eq!(run.json()["meta"]["runId"], "env-run");
-}

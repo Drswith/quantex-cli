@@ -56,7 +56,7 @@ if payload["ok"] is not True:
     raise SystemExit(f"{label}: command failed: {code} {message}".strip())
 
 meta = payload["meta"]
-for key in ("schemaVersion", "runId", "timestamp", "version"):
+for key in ("schemaVersion", "timestamp", "version"):
     if key not in meta:
         raise SystemExit(f"{label}: missing meta.{key}")
 

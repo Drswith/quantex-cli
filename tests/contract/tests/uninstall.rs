@@ -73,7 +73,7 @@ fn stale_records_for_an_absent_agent_are_reconciled() {
     assert_eq!(code, 0, "{envelope}");
     assert_eq!(
         envelope["warnings"][0]["message"],
-        "Dry run: would reconcile stale lifecycle evidence."
+        "Dry run: would remove the stale record."
     );
     let (code, envelope) = run_json(&sandbox, &["uninstall", "codex"]);
     assert_eq!(code, 0, "{envelope}");

@@ -1,7 +1,7 @@
 //! Files under `~/.quantex`: `config.json`, `state.json`, and directory locks.
 //!
-//! Every format here is shared with v1.13.6, so a TypeScript build and this build can
-//! use the same home directory.
+//! This build reads a home directory a 1.x build wrote, so upgrading keeps every record.
+//! `state.json` keeps the 1.x layout, but the lifecycle receipts 1.x kept are ignored.
 
 use std::collections::BTreeMap;
 use std::fs;
@@ -151,11 +151,6 @@ pub fn save_config(dir: &Path, values: &Map<String, Value>) -> std::io::Result<(
 
 pub const STATE_SCHEMA_VERSION: u64 = 2;
 
-/// Install types earlier releases recorded but this one no longer manages. Their
-/// records are kept as they are, so the file stays readable and nothing is lost.
-const RETIRED_INSTALL_TYPES: [&str; 8] = ["binary", "brew", "cargo", "deno", "mise", "pip", "uv", "winget"];
-pub const RECEIPT_SCHEMA_VERSION: u64 = 1;
-
 /// One `installedAgents` entry: how Quantex installed an agent.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct InstalledAgent {
@@ -164,7 +159,6 @@ pub struct InstalledAgent {
     pub binary_name: Option<String>,
     pub package_install_args: Option<Vec<String>>,
     pub package_name: Option<String>,
-    pub package_target_kind: Option<String>,
     pub command: Option<String>,
 }
 
@@ -185,9 +179,6 @@ impl InstalledAgent {
         if let Some(package_name) = &self.package_name {
             map.insert("packageName".into(), package_name.clone().into());
         }
-        if let Some(kind) = &self.package_target_kind {
-            map.insert("packageTargetKind".into(), kind.clone().into());
-        }
         Value::Object(map)
     }
 }
@@ -196,21 +187,20 @@ impl InstalledAgent {
 #[derive(Debug, Clone, Default)]
 pub struct State {
     pub installed_agents: BTreeMap<String, InstalledAgent>,
-    /// `installedAgents` records with a retired install type, unchanged.
-    pub retired_agents: Map<String, Value>,
-    pub lifecycle_receipts: BTreeMap<String, Value>,
+    /// `installedAgents` records this build cannot manage (an install type that was
+    /// removed, or a shape it does not know), written back unchanged.
+    pub other_agents: Map<String, Value>,
     pub self_state: Map<String, Value>,
 }
 
 impl State {
+    /// The document as written. `lifecycleReceipts` stays, empty, so the 1.x layout holds.
     pub fn to_value(&self) -> Value {
         json!({
-            "installedAgents": self.retired_agents.clone().into_iter()
+            "installedAgents": self.other_agents.clone().into_iter()
                 .chain(self.installed_agents.iter().map(|(name, agent)| (name.clone(), agent.to_value())))
                 .collect::<Map<String, Value>>(),
-            "lifecycleReceipts": self.lifecycle_receipts.iter()
-                .map(|(name, receipt)| (name.clone(), receipt.clone()))
-                .collect::<Map<String, Value>>(),
+            "lifecycleReceipts": {},
             "schemaVersion": STATE_SCHEMA_VERSION,
             "self": Value::Object(self.self_state.clone()),
         })
@@ -239,118 +229,45 @@ pub fn state_path(dir: &Path) -> PathBuf {
     dir.join("state.json")
 }
 
-fn schema_error(reason: impl Into<String>) -> String {
-    reason.into()
-}
-
-fn is_non_empty(value: Option<&Value>) -> Option<&str> {
-    value.and_then(Value::as_str).filter(|text| !text.is_empty())
-}
-
-fn normalize_installed_agent(name: &str, value: &Value) -> Result<InstalledAgent, String> {
-    let Value::Object(map) = value else {
-        return Err(schema_error(format!("installed agent \"{name}\" must be an object.")));
-    };
+/// One `installedAgents` record this build manages, or `None` to keep it unchanged.
+fn parse_installed_agent(name: &str, value: &Value) -> Option<InstalledAgent> {
+    let map = value.as_object()?;
     if map.get("agentName").and_then(Value::as_str) != Some(name) {
-        return Err(format!("installed agent \"{name}\" has an invalid agentName."));
+        return None;
     }
-    let install_type = map
-        .get("installType")
-        .and_then(Value::as_str)
-        .and_then(Provider::parse)
-        .ok_or_else(|| format!("installed agent \"{name}\" has an invalid installType."))?;
-    let package_name = map.get("packageName").and_then(Value::as_str).map(str::to_owned);
+    let install_type = Provider::parse(map.get("installType")?.as_str()?)?;
+    let text = |key: &str| map.get(key).and_then(Value::as_str).map(str::to_owned);
+    let package_name = text("packageName");
     if package_name.as_deref() == Some("") && install_type.is_managed() {
-        return Err(format!("installed agent \"{name}\" has an empty packageName."));
+        return None;
     }
     let package_install_args = map.get("packageInstallArgs").and_then(|value| {
-        let items = value.as_array()?;
-        items
+        value
+            .as_array()?
             .iter()
             .map(|item| item.as_str().map(str::to_owned))
             .collect::<Option<Vec<_>>>()
     });
-    let package_target_kind = map
-        .get("packageTargetKind")
-        .and_then(Value::as_str)
-        .filter(|kind| matches!(*kind, "package" | "cask" | "id"))
-        .map(str::to_owned);
-    Ok(InstalledAgent {
+    Some(InstalledAgent {
         agent_name: name.to_owned(),
         install_type,
-        binary_name: map.get("binaryName").and_then(Value::as_str).map(str::to_owned),
+        binary_name: text("binaryName"),
         package_install_args,
         package_name,
-        package_target_kind,
-        command: map.get("command").and_then(Value::as_str).map(str::to_owned),
+        command: text("command"),
     })
 }
 
-const PROVIDER_TARGET_KINDS: [&str; 7] = ["binary", "cask", "formula", "id", "package", "script", "tool"];
-
-/// Validates and normalises one lifecycle receipt.
-pub fn normalize_receipt(target_id: &str, value: &Value) -> Result<Value, String> {
-    let Value::Object(map) = value else {
-        return Err(format!("lifecycle receipt \"{target_id}\" must be an object."));
-    };
-    let fail = |field: &str| format!("lifecycle receipt \"{target_id}\" has an invalid {field}.");
-    if map.get("kind").and_then(Value::as_str) != Some("lifecycle-receipt") {
-        return Err(fail("kind"));
-    }
-    if map.get("schemaVersion").and_then(Value::as_u64) != Some(RECEIPT_SCHEMA_VERSION) {
-        return Err(format!(
-            "lifecycle receipt \"{target_id}\" has an unsupported schemaVersion."
-        ));
-    }
-    if is_non_empty(map.get("targetId")) != Some(target_id) {
-        return Err(fail("targetId"));
-    }
-    let provider_id = is_non_empty(map.get("providerId")).ok_or_else(|| fail("providerId"))?;
-    let provider_target_id = is_non_empty(map.get("providerTargetId")).ok_or_else(|| fail("providerTargetId"))?;
-    let target_kind = map.get("providerTargetKind");
-    if target_kind.is_some_and(|kind| !kind.as_str().is_some_and(|kind| PROVIDER_TARGET_KINDS.contains(&kind))) {
-        return Err(fail("providerTargetKind"));
-    }
-    let verified_at = is_non_empty(map.get("verifiedAt"))
-        .filter(|text| crate::time::parse_iso(text).is_some() || looks_like_date(text))
-        .ok_or_else(|| fail("verifiedAt"))?;
-    let mut receipt = Map::new();
-    if let Some(name) = is_non_empty(map.get("executableName")) {
-        receipt.insert("executableName".into(), name.into());
-    }
-    if let Some(path) = is_non_empty(map.get("executablePath")) {
-        receipt.insert("executablePath".into(), path.into());
-    }
-    receipt.insert("kind".into(), "lifecycle-receipt".into());
-    receipt.insert("providerId".into(), provider_id.into());
-    receipt.insert("providerTargetId".into(), provider_target_id.into());
-    if let Some(kind) = target_kind.and_then(Value::as_str) {
-        receipt.insert("providerTargetKind".into(), kind.into());
-    }
-    receipt.insert("schemaVersion".into(), RECEIPT_SCHEMA_VERSION.into());
-    receipt.insert("targetId".into(), target_id.into());
-    receipt.insert("verifiedAt".into(), verified_at.into());
-    if let Some(version) = is_non_empty(map.get("version")) {
-        receipt.insert("version".into(), version.into());
-    }
-    Ok(Value::Object(receipt))
-}
-
-/// `Date.parse` accepts more than strict ISO; keep plain `YYYY-MM-DD` and friends.
-fn looks_like_date(text: &str) -> bool {
-    let bytes = text.as_bytes();
-    bytes.len() >= 10 && bytes[..4].iter().all(u8::is_ascii_digit) && bytes[4] == b'-' && bytes[7] == b'-'
-}
-
-/// Parses a `state.json` value. Returns the state and whether it was a legacy
-/// (unversioned) document.
-pub fn parse_state(value: &Value) -> Result<(State, bool), String> {
+/// Parses a `state.json` value: schema version 2, or an unversioned document from an
+/// early 1.x release.
+pub fn parse_state(value: &Value) -> Result<State, String> {
     let Value::Object(map) = value else {
         return Err("root value must be an object.".into());
     };
-    let legacy = !map.contains_key("schemaVersion");
-    if !legacy && map.get("schemaVersion").and_then(Value::as_u64) != Some(STATE_SCHEMA_VERSION) {
-        let shown = match &map["schemaVersion"] {
+    if let Some(version) = map.get("schemaVersion")
+        && version.as_u64() != Some(STATE_SCHEMA_VERSION)
+    {
+        let shown = match version {
             Value::String(text) => text.clone(),
             other => other.to_string(),
         };
@@ -361,29 +278,17 @@ pub fn parse_state(value: &Value) -> Result<(State, bool), String> {
         None => {}
         Some(Value::Object(agents)) => {
             for (name, agent) in agents {
-                let install_type = agent.get("installType").and_then(Value::as_str);
-                if install_type.is_some_and(|kind| RETIRED_INSTALL_TYPES.contains(&kind)) {
-                    state.retired_agents.insert(name.clone(), agent.clone());
-                    continue;
+                match parse_installed_agent(name, agent) {
+                    Some(installed) => {
+                        state.installed_agents.insert(name.clone(), installed);
+                    }
+                    None => {
+                        state.other_agents.insert(name.clone(), agent.clone());
+                    }
                 }
-                state
-                    .installed_agents
-                    .insert(name.clone(), normalize_installed_agent(name, agent)?);
             }
         }
         Some(_) => return Err("installedAgents must be an object.".into()),
-    }
-    if !legacy {
-        match map.get("lifecycleReceipts") {
-            Some(Value::Object(receipts)) => {
-                for (target_id, receipt) in receipts {
-                    state
-                        .lifecycle_receipts
-                        .insert(target_id.clone(), normalize_receipt(target_id, receipt)?);
-                }
-            }
-            _ => return Err("lifecycleReceipts must be an object.".into()),
-        }
     }
     if let Some(Value::Object(self_map)) = map.get("self") {
         let mut self_state = self_map.clone();
@@ -401,7 +306,7 @@ pub fn parse_state(value: &Value) -> Result<(State, bool), String> {
         }
         state.self_state = self_state;
     }
-    Ok((state, legacy))
+    Ok(state)
 }
 
 /// Loads `state.json`; a missing file is an empty state.
@@ -423,37 +328,22 @@ pub fn load_state(dir: &Path) -> Result<State, StateError> {
             "Failed to read Quantex state file: state.json contains invalid JSON: {parse}"
         ))
     })?;
-    parse_state(&value)
-        .map(|(state, _)| state)
-        .map_err(|reason| error(format!("Failed to read Quantex state file: {reason}")))
+    parse_state(&value).map_err(|reason| error(format!("Failed to read Quantex state file: {reason}")))
 }
 
-/// Writes `state.json` atomically. A legacy document is first backed up to
-/// `state.json.v1.bak`, as v1 did.
+/// Writes `state.json` atomically.
 pub fn save_state(dir: &Path, state: &State) -> Result<(), StateError> {
     let path = state_path(dir);
-    let fail = |message: &str, cause: &dyn std::fmt::Display| StateError {
-        message: format!("{message}: {cause}"),
+    let fail = |io: std::io::Error| StateError {
+        message: format!("Failed to write Quantex state file: {io}"),
         path: path.clone(),
     };
-    fs::create_dir_all(dir).map_err(|io| fail("Failed to write Quantex state file", &io))?;
-    let suffix = std::process::id();
-    let original = fs::read_to_string(&path).ok();
-    if let Some(original) = &original
-        && let Ok(value) = serde_json::from_str::<Value>(original)
-        && matches!(parse_state(&value), Ok((_, true)))
-    {
-        let backup = dir.join("state.json.v1.bak");
-        let backup_temp = dir.join(format!("state.json.v1.bak.tmp-{suffix}"));
-        fs::write(&backup_temp, original).map_err(|io| fail("Failed to back up Quantex state file", &io))?;
-        fs::rename(&backup_temp, &backup).map_err(|io| fail("Failed to back up Quantex state file", &io))?;
-    }
+    fs::create_dir_all(dir).map_err(fail)?;
     let payload = format!("{}\n", serde_json::to_string_pretty(&state.to_value()).unwrap());
-    let temp = dir.join(format!("state.json.tmp-{suffix}"));
-    let result = fs::write(&temp, &payload).and_then(|()| fs::rename(&temp, &path));
-    if let Err(io) = result {
+    let temp = dir.join(format!("state.json.tmp-{}", std::process::id()));
+    if let Err(io) = fs::write(&temp, &payload).and_then(|()| fs::rename(&temp, &path)) {
         let _ = fs::remove_file(&temp);
-        return Err(fail("Failed to write Quantex state file", &io));
+        return Err(fail(io));
     }
     Ok(())
 }
@@ -693,29 +583,41 @@ mod tests {
         for name in ["valid.json", "ghost.json", "untracked.json"] {
             let text = fs::read_to_string(fixtures.join(name)).unwrap();
             let value: Value = serde_json::from_str(&text).unwrap();
-            let (state, legacy) = parse_state(&value).unwrap();
-            assert!(legacy, "{name} is a legacy document");
-            let _ = state;
+            parse_state(&value).unwrap();
         }
         let corrupt = fs::read_to_string(fixtures.join("corrupt.txt")).unwrap();
         assert!(serde_json::from_str::<Value>(&corrupt).is_err());
     }
 
     #[test]
-    fn records_with_retired_install_types_are_kept() {
+    fn records_this_build_cannot_manage_are_kept() {
         let uv = json!({ "agentName": "openhands", "installType": "uv", "packageName": "openhands" });
+        let odd = json!({ "agentName": "someone-else", "installType": "npm" });
         let value = json!({
             "installedAgents": {
                 "codex": { "agentName": "codex", "installType": "npm", "packageName": "@openai/codex" },
                 "openhands": uv,
+                "odd": odd,
             },
             "lifecycleReceipts": {},
             "schemaVersion": 2,
         });
-        let (state, _) = parse_state(&value).unwrap();
-        assert!(state.installed_agents.contains_key("codex"));
-        assert!(!state.installed_agents.contains_key("openhands"));
-        assert_eq!(state.to_value()["installedAgents"]["openhands"], uv);
+        let state = parse_state(&value).unwrap();
+        assert_eq!(state.installed_agents.keys().collect::<Vec<_>>(), ["codex"]);
+        let written = state.to_value();
+        assert_eq!(written["installedAgents"]["openhands"], uv);
+        assert_eq!(written["installedAgents"]["odd"], odd);
+    }
+
+    #[test]
+    fn receipts_from_1x_are_ignored() {
+        let value = json!({
+            "installedAgents": {},
+            "lifecycleReceipts": { "codex": { "kind": "something 1.x wrote" } },
+            "schemaVersion": 2,
+        });
+        let state = parse_state(&value).unwrap();
+        assert_eq!(state.to_value()["lifecycleReceipts"], json!({}));
     }
 
     #[test]
@@ -725,16 +627,12 @@ mod tests {
     }
 
     #[test]
-    fn legacy_state_is_backed_up_on_first_write() {
+    fn unversioned_state_is_upgraded_on_first_write() {
         let dir = tempfile::tempdir().unwrap();
         let legacy = r#"{"installedAgents":{"codex":{"agentName":"codex","installType":"npm","packageName":"@openai/codex"}},"self":{}}"#;
         fs::write(dir.path().join("state.json"), legacy).unwrap();
         let state = load_state(dir.path()).unwrap();
         save_state(dir.path(), &state).unwrap();
-        assert_eq!(
-            fs::read_to_string(dir.path().join("state.json.v1.bak")).unwrap(),
-            legacy
-        );
         let saved: Value = serde_json::from_str(&fs::read_to_string(dir.path().join("state.json")).unwrap()).unwrap();
         assert_eq!(saved["schemaVersion"], 2);
         assert_eq!(saved["installedAgents"]["codex"]["packageName"], "@openai/codex");

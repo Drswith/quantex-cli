@@ -18,7 +18,7 @@ fn run_json(sandbox: &Sandbox, args: &[&str]) -> (i32, Value) {
 }
 
 #[test]
-fn install_records_state_and_a_receipt() {
+fn install_records_state() {
     let sandbox = sandbox();
     let (code, envelope) = run_json(&sandbox, &["install", "codex"]);
     assert_eq!(code, 0, "{envelope}");
@@ -39,16 +39,7 @@ fn install_records_state_and_a_receipt() {
         state["installedAgents"]["codex"],
         json!({ "agentName": "codex", "installType": "npm", "packageName": "@openai/codex" })
     );
-    let receipt = &state["lifecycleReceipts"]["codex"];
-    assert_eq!(receipt["kind"], "lifecycle-receipt");
-    assert_eq!(receipt["providerId"], "npm");
-    assert_eq!(receipt["providerTargetId"], "@openai/codex");
-    assert_eq!(receipt["providerTargetKind"], "package");
-    assert_eq!(receipt["schemaVersion"], 1);
-    assert_eq!(receipt["targetId"], "codex");
-    assert_eq!(receipt["version"], "0.50.0");
-    assert!(receipt["verifiedAt"].is_string());
-    assert!(receipt["executablePath"].as_str().unwrap().ends_with("/bin/codex"));
+    assert_eq!(state["lifecycleReceipts"], json!({}));
 }
 
 #[test]
@@ -136,20 +127,18 @@ fn a_failing_installer_is_install_failed() {
 }
 
 #[test]
-fn a_recorded_but_missing_agent_is_reinstalled_from_its_source() {
+fn a_recorded_but_missing_agent_is_installed_again_from_its_source() {
     let sandbox = sandbox();
     sandbox.write_state(
         r#"{"installedAgents":{"codex":{"agentName":"codex","installType":"npm","packageName":"@openai/codex"}},"self":{}}"#,
     );
     let (code, envelope) = run_json(&sandbox, &["install", "codex", "--dry-run"]);
     assert_eq!(code, 0, "{envelope}");
-    assert_eq!(
-        envelope["warnings"][0]["message"],
-        "Dry run: would reinstall Codex CLI only if its recorded provider target is confirmed absent."
-    );
+    assert_eq!(envelope["warnings"][0]["message"], "Dry run: would install Codex CLI.");
     let (code, envelope) = run_json(&sandbox, &["install", "codex"]);
     assert_eq!(code, 0, "{envelope}");
     assert_eq!(envelope["data"]["changed"], true);
+    assert!(sandbox.npm_calls().contains(&"npm install -g @openai/codex".to_owned()));
 }
 
 #[test]

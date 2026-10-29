@@ -62,7 +62,6 @@ Typical `meta` fields include:
 
 - `schemaVersion`
 - `version`
-- `runId`
 - `timestamp`
 - `fetchedAt`
 - `staleAfter`
@@ -145,9 +144,8 @@ quantex exec codex --install never -- --help
 
 Use:
 
-- `--run-id` for correlation
 - `--timeout` to bound runtime
-- `--refresh` or `--no-cache` when freshness matters
+- `--refresh` when freshness matters
 
 ### Safe command patterns
 
@@ -175,7 +173,6 @@ quantex exec codex --install if-missing -- --help
 
 - `install`, `update`, and `uninstall` are safe to retry. An agent that is already installed, already current, or already removed is reported without changes (`changed: false`, or an `ALREADY_INSTALLED` warning).
 - Use `--timeout` to bound operations; timeout and cancellation map to stable error handling.
-- Use `--run-id` or `QUANTEX_RUN_ID` to correlate JSON envelopes and logs.
 
 ## Discovery-first automation
 

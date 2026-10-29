@@ -130,7 +130,7 @@ mod tests {
     #[test]
     fn long_flags_are_extracted() {
         assert_eq!(long_flag("--timeout <duration>"), "timeout");
-        assert_eq!(long_flag("--no-cache"), "no-cache");
+        assert_eq!(long_flag("--non-interactive"), "non-interactive");
     }
 
     #[test]

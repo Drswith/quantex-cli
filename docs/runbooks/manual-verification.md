@@ -34,11 +34,11 @@ MiMoCode (`mimo`, `@mimo-ai/cli`, about 20 KB) is a quick agent to install and r
 | Uninstall | `quantex uninstall mimo --dry-run`, `quantex uninstall mimo` | Dry run changes nothing; then `mimo` is gone |
 | Prompt | `quantex mimo` while it is not installed | Asks "Would you like to install it? (Y/n)"; answering n exits 1 |
 | Ctrl-C | Install an interactive agent (for example `quantex install pi`), run `quantex pi`, press Ctrl-C | The agent handles Ctrl-C, quantex exits with the agent's code, and the terminal is usable |
-| Shared home | `quantex-v1 install mimo`, `quantex list`; then `quantex uninstall mimo`, `quantex-v1 list` | Each build sees what the other one did |
+| From 1.x | `quantex-v1 install mimo`, then `quantex info mimo`, `quantex update mimo --dry-run`, `quantex uninstall mimo` | 2.x manages what 1.x installed: managed via npm, then removed, and `lifecycleReceipts` in `state.json` is empty |
 | Aliases | `quantex ensure mimo --json`, `quantex inspect mimo --json` | `action` is `install` and `info` |
 | Argument errors | `quantex instal mimo; echo $?`, `quantex list --bogus --json; echo $?` | Exit 2; the second prints an `INVALID_ARGUMENT` envelope on stdout |
 | Other errors | `quantex install nope --json; echo $?`, `quantex config set defaultPackageManager mise; echo $?` | `AGENT_NOT_FOUND` with exit 3; `INVALID_ARGUMENT` with exit 2 |
-| Removed surface | `quantex list --output json; echo $?`, `quantex capabilities --json; echo $?`, `quantex config set networkRetries 3; echo $?` | Each exits 2 with `INVALID_ARGUMENT` |
+| Removed surface | `quantex list --output json; echo $?`, `quantex list --no-cache --json; echo $?`, `quantex capabilities --json; echo $?`, `quantex config set networkRetries 3; echo $?` | Each exits 2 with `INVALID_ARGUMENT` |
 | Self-upgrade | `quantex upgrade --check`, `quantex upgrade --check --channel beta` | Stable: up to date with `STALE_LATEST_VERSION` while 1.13.6 is the latest stable. Beta: `check-unavailable` until a 2.x prerelease exists |
 
 ## 3. Against your real ~/.quantex

@@ -280,7 +280,7 @@ fn normalize_with_key(value: &Value, key: Option<&str>) -> Value {
         ),
         Value::Array(items) => Value::Array(items.iter().map(|item| normalize_with_key(item, None)).collect()),
         Value::String(_) => match key {
-            Some(name @ ("runId" | "timestamp" | "fetchedAt" | "staleAfter")) => Value::String(format!("<{name}>")),
+            Some(name @ ("timestamp" | "fetchedAt" | "staleAfter")) => Value::String(format!("<{name}>")),
             Some("version" | "currentVersion" | "latestVersion") => Value::String("<version>".into()),
             _ => value.clone(),
         },
@@ -297,7 +297,7 @@ pub fn assert_envelope(envelope: &Value, action: &str) {
         envelope["meta"]["schemaVersion"], "1",
         "meta.schemaVersion in {envelope}"
     );
-    assert!(envelope["meta"]["runId"].is_string(), "meta.runId in {envelope}");
+    assert!(envelope["meta"].get("runId").is_none(), "meta.runId in {envelope}");
     assert!(
         envelope["meta"]["timestamp"].is_string(),
         "meta.timestamp in {envelope}"

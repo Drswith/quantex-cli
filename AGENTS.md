@@ -37,7 +37,7 @@ cargo test --workspace
 ## 红线
 
 - 未经维护者明确同意，不改命令名、别名、参数、JSON 字段名和类型、错误码、exit code。
-- `~/.quantex` 下的文件格式和锁协议必须能和 v1.13.6 互相读写。
+- 必须能读 v1.13.6 写下的 `~/.quantex`，升级不能丢记录；`state.json` 保持 schema v2 的结构。不再保证 1.x 能正确使用 2.x 写过的目录。
 - release 资产名、`SHA256SUMS.txt` 和 `manifest.json` 格式不能变，发布必须从 `Drswith/quantex-cli` 出。老版本的二进制靠它们升级。
 - `--json` 模式下 stdout 只能输出协议内容，日志、提示和 agent 自己的输出一律走 stderr。
 - Windows 是一等平台：路径、`.cmd` 包装、PATHEXT、Ctrl-C、替换正在运行的二进制都要考虑到。

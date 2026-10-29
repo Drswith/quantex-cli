@@ -72,7 +72,7 @@ Another Quantex process holds the agent lifecycle lock (`~/.quantex/locks/agent-
 
 ### `TIMEOUT` and `NETWORK_ERROR`
 
-`--timeout` bounds the whole command, including version lookups and installer runs. Version lookups use `networkTimeoutMs` from `quantex config`, retry twice, and fall back to the cache when the network fails. Use `--refresh` to revalidate the cache or `--no-cache` to bypass it when a version looks stale.
+`--timeout` bounds the whole command, including version lookups and installer runs. Version lookups use `networkTimeoutMs` from `quantex config`, retry twice, and fall back to the cache when the network fails. Use `--refresh` to look the version up again when it looks stale.
 
 ### `INTERACTION_REQUIRED`
 

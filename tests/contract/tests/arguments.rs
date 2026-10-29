@@ -27,7 +27,6 @@ fn missing_required_argument_is_an_invalid_argument() {
 fn invalid_global_option_values_are_invalid_arguments() {
     assert_invalid_argument(&["commands", "--color", "rainbow", "--json"], "commands");
     assert_invalid_argument(&["commands", "--timeout", "soon", "--json"], "commands");
-    assert_invalid_argument(&["list", "--refresh", "--no-cache", "--json"], "list");
 }
 
 #[test]

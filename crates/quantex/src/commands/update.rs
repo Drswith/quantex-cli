@@ -1,13 +1,13 @@
 //! `update`: one agent, `--all`, or `--all --managed`.
 //!
-//! Each target is observed, planned against a confirmed recorded source, executed under
-//! the lifecycle lock, verified by a fresh observation, and recorded as a receipt.
+//! Each target is observed, planned against its confirmed recorded source, executed
+//! under the lifecycle lock, and verified by a fresh observation.
 
 use serde_json::{Map, Value, json};
 
 use crate::catalog::{self, Agent, Provider};
 use crate::context::Context;
-use crate::lifecycle::{self, Drift, Kind, View};
+use crate::lifecycle::{self, Status, View};
 use crate::observe::{self, UpdateStrategy};
 use crate::protocol::{CommandError, ErrorCode, Outcome, Target, TargetKind, Warning};
 use crate::providers::{self, Binding, MutationFailure};
@@ -19,9 +19,10 @@ const LIFECYCLE_LOCK: &str = "agent lifecycle";
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 enum Blocked {
+    NotInstalled,
     StaleState,
     Untracked,
-    UnsafeSource,
+    UnknownSource,
     Superseded,
     ManualRequired,
 }
@@ -37,7 +38,7 @@ enum Strategy {
     },
 }
 
-/// v1 `planLifecycleUpdate` decisions a confirmed npm or bun source can reach.
+/// What a confirmed npm or bun source's latest version means for the install.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 enum Decision {
     Upgrade,
@@ -107,18 +108,17 @@ impl Planning {
 enum Execution {
     NotExecuted,
     DryRun,
-    /// `receipt` is what was recorded after the update was verified.
+    /// The version a fresh observation found after the update.
     Updated {
-        receipt: Value,
+        version: Option<String>,
     },
     UpToDate {
-        receipt: Value,
+        version: Option<String>,
     },
     ProviderFailed,
     TimedOut,
     Cancelled,
     Unsatisfied(String),
-    ReceiptFailed(String),
     Locked {
         message: String,
         resource: String,
@@ -127,22 +127,6 @@ enum Execution {
 
 // ---------------------------------------------------------------------------
 // Planning
-
-fn observe_for_update(ctx: &Context, agent: &'static Agent, state: &State) -> View {
-    lifecycle::observe_lifecycle_with(ctx, agent, state, None, true)
-}
-
-/// v1 `confirmedBinding`: the recorded source, when a fresh observation agrees with it.
-fn confirmed_binding(view: &View) -> Option<Binding> {
-    let binding = view.binding.as_ref()?;
-    let persisted = view.persisted_binding.as_ref()?;
-    if view.kind != Kind::Present || view.drift != Drift::None {
-        return None;
-    }
-    binding
-        .same_source(persisted, &view.agent.binary_name)
-        .then(|| binding.clone())
-}
 
 fn tracked_unmanaged(view: &View) -> bool {
     view.installed
@@ -166,36 +150,31 @@ fn plan(ctx: &Context, name: &str, state: &State) -> Planning {
     let Some(agent) = catalog::find(name) else {
         return Planning::UnknownAgent;
     };
-    let before = observe_for_update(ctx, agent, state);
+    let before = lifecycle::observe_lifecycle(ctx, agent, state);
     if ctx.is_cancelled() {
         return Planning::Cancelled { before };
     }
-    let Some(binding) = confirmed_binding(&before) else {
-        let stale = before.kind == Kind::Absent && before.drift == Drift::RecordedAbsent;
-        let (category, reason) = if stale {
-            (
-                Blocked::StaleState,
-                format!(
-                    "{} has stale lifecycle evidence. Run `quantex uninstall {}` to reconcile it.",
-                    agent.display_name, agent.name
-                ),
-            )
-        } else {
-            let category = if before.drift == Drift::Untracked {
-                Blocked::Untracked
-            } else {
-                Blocked::UnsafeSource
-            };
-            (
-                category,
-                "The recorded update source does not match live provider evidence.".to_owned(),
-            )
-        };
-        return Planning::Blocked {
-            before,
-            category,
-            reason,
-        };
+    let blocked = |before: View, category: Blocked, reason: String| Planning::Blocked {
+        before,
+        category,
+        reason,
+    };
+    let binding = match &before.status {
+        Status::Managed => before.binding.clone().expect("a managed agent has a recorded source"),
+        Status::Absent => return blocked(before, Blocked::NotInstalled, String::new()),
+        Status::Stale => {
+            let reason = format!(
+                "{} has a stale record. Run `quantex uninstall {}` to reconcile it.",
+                agent.display_name, agent.name
+            );
+            return blocked(before, Blocked::StaleState, reason);
+        }
+        Status::Untracked => return blocked(before, Blocked::Untracked, String::new()),
+        Status::Unknown(reason) => {
+            let reason = reason.clone();
+            return blocked(before, Blocked::UnknownSource, reason);
+        }
+        Status::TimedOut => return Planning::TimedOut { before },
     };
     // The recorded package no longer receives releases, so its latest version says nothing.
     if let Some(warning) = observe::superseded_warning(agent, before.installed.as_ref()) {
@@ -308,25 +287,15 @@ fn execute(ctx: &Context, plan: &Plan) -> Execution {
         Ok(state) => state,
         Err(error) => return Execution::Unsatisfied(error.into_command_error().message),
     };
-    let after = observe_for_update(ctx, agent, &state);
+    let after = lifecycle::observe_lifecycle(ctx, agent, &state);
     if ctx.is_cancelled() {
         return Execution::Cancelled;
     }
-    let changed = match verify(plan, &after) {
-        Ok(changed) => changed,
-        Err(reason) => return Execution::Unsatisfied(reason),
-    };
-    let receipt = update_receipt(&after, &plan.binding);
-    let name = agent.name.clone();
-    if let Err(error) = store::mutate_state(&dir, |state| {
-        state.lifecycle_receipts.insert(name.clone(), receipt.clone());
-    }) {
-        return Execution::ReceiptFailed(error.into_command_error().message);
-    }
-    if changed {
-        Execution::Updated { receipt }
-    } else {
-        Execution::UpToDate { receipt }
+    let version = after.executable.version.clone();
+    match verify(plan, &after) {
+        Ok(true) => Execution::Updated { version },
+        Ok(false) => Execution::UpToDate { version },
+        Err(reason) => Execution::Unsatisfied(reason),
     }
 }
 
@@ -344,7 +313,7 @@ fn run_provider_update(ctx: &Context, binding: &Binding) -> Result<(), MutationF
     Ok(())
 }
 
-/// v1 `executeAgentSelfUpdate`: the first command that succeeds wins.
+/// Runs the agent's own update commands; the first that succeeds wins.
 fn run_self_update(ctx: &Context, commands: &[Vec<String>]) -> Result<(), MutationFailure> {
     let mut last = MutationFailure::Failed("No self-update command is configured.".into());
     for command in commands {
@@ -357,39 +326,17 @@ fn run_self_update(ctx: &Context, commands: &[Vec<String>]) -> Result<(), Mutati
     Err(last)
 }
 
-fn drift_label(drift: &Drift) -> &'static str {
-    match drift {
-        Drift::None => "none",
-        Drift::Untracked => "untracked",
-        Drift::RecordedAbsent => "recorded-absent",
-        Drift::ConflictingSource => "conflicting-source",
-        Drift::Indeterminate(_) => "indeterminate",
-    }
-}
-
-/// v1 `verifyUpdatedObservation` / `verifySelfUpdatedObservation`. Returns whether the
-/// version moved.
+/// Whether the update reached its target. Returns whether the version moved.
 fn verify(plan: &Plan, after: &View) -> Result<bool, String> {
-    let exe = after.agent.binary_name.as_str();
-    let same = after
-        .binding
-        .as_ref()
-        .is_some_and(|binding| binding.same_source(&plan.binding, exe));
+    if after.status != Status::Managed {
+        return Err(format!(
+            "{} is no longer present through its recorded source after the update.",
+            after.agent.display_name
+        ));
+    }
     let version = after.executable.version.as_deref();
     match &plan.strategy {
         Strategy::Managed { target_version } => {
-            if !same {
-                return Err("Fresh observation no longer matches the planned provider binding.".into());
-            }
-            if after.drift != Drift::None {
-                return Err(format!(
-                    "Fresh observation contains {} drift.",
-                    drift_label(&after.drift)
-                ));
-            }
-            if after.kind != Kind::Present || !after.executable.present {
-                return Err("The provider target or executable is not present after update.".into());
-            }
             let satisfied = version
                 .and_then(|version| probe::compare_versions(version, target_version))
                 .is_some_and(|order| order != std::cmp::Ordering::Less);
@@ -402,12 +349,6 @@ fn verify(plan: &Plan, after: &View) -> Result<bool, String> {
             Ok(true)
         }
         Strategy::SelfUpdate { before_version, .. } => {
-            if !same || after.drift != Drift::None {
-                return Err("Fresh observation no longer matches the recorded self-update source.".into());
-            }
-            if after.kind != Kind::Present || !after.executable.present {
-                return Err("The executable is not present after self-update.".into());
-            }
             match version.and_then(|version| probe::compare_versions(version, before_version)) {
                 Some(order) if order != std::cmp::Ordering::Less => Ok(order == std::cmp::Ordering::Greater),
                 _ => Err(format!(
@@ -417,13 +358,6 @@ fn verify(plan: &Plan, after: &View) -> Result<bool, String> {
             }
         }
     }
-}
-
-/// The receipt v1 records after a verified update; it always names the executable.
-fn update_receipt(after: &View, binding: &Binding) -> Value {
-    let mut receipt = lifecycle::receipt(after, binding);
-    receipt["executableName"] = after.agent.binary_name.clone().into();
-    receipt
 }
 
 // ---------------------------------------------------------------------------
@@ -456,14 +390,8 @@ impl Item {
     }
 }
 
-fn receipt_version(receipt: &Value) -> Option<String> {
-    receipt["version"].as_str().map(str::to_owned)
-}
-
 fn installed_version(view: &View) -> Option<String> {
-    (view.kind == Kind::Present)
-        .then(|| view.executable.version.clone())
-        .flatten()
+    view.present().then(|| view.executable.version.clone()).flatten()
 }
 
 fn manual_message(agent: &Agent) -> String {
@@ -486,7 +414,7 @@ fn timed_out_message(ctx: &Context) -> String {
 
 const CANCELLED_MESSAGE: &str = "Update was cancelled before it could complete.";
 
-/// v1 `toSingleUpdateResult`.
+/// One `results` entry.
 fn result_item(ctx: &Context, agent: &Agent, planning: &Planning, execution: Option<&Execution>) -> Item {
     let (display, name) = (agent.display_name.as_str(), agent.name.as_str());
     let Some(before) = planning.before() else {
@@ -501,7 +429,7 @@ fn result_item(ctx: &Context, agent: &Agent, planning: &Planning, execution: Opt
                     Blocked::Untracked => ("manual-required", untracked_message(agent)),
                     Blocked::ManualRequired => ("manual-required", manual_message(agent)),
                     Blocked::Superseded => ("manual-required", reason.clone()),
-                    Blocked::StaleState | Blocked::UnsafeSource => ("failed", reason.clone()),
+                    Blocked::NotInstalled | Blocked::StaleState | Blocked::UnknownSource => ("failed", reason.clone()),
                 };
                 Item::new(display, name, status)
                     .set("installedVersion", installed)
@@ -528,12 +456,12 @@ fn result_item(ctx: &Context, agent: &Agent, planning: &Planning, execution: Opt
             .set("latestVersion", latest.clone())
     };
     match execution.unwrap_or(&Execution::NotExecuted) {
-        Execution::Updated { receipt, .. } => Item::new(display, name, "updated")
+        Execution::Updated { version } => Item::new(display, name, "updated")
             .set("installedVersion", installed.clone())
-            .set("latestVersion", receipt_version(receipt).or(latest.clone()))
+            .set("latestVersion", version.clone().or(latest.clone()))
             .set("strategy", strategy),
-        Execution::UpToDate { receipt, .. } => Item::new(display, name, "up-to-date")
-            .set("installedVersion", receipt_version(receipt).or(installed.clone()))
+        Execution::UpToDate { version } => Item::new(display, name, "up-to-date")
+            .set("installedVersion", version.clone().or(installed.clone()))
             .set("strategy", strategy),
         Execution::DryRun => base("planned")
             .set("message", Some(format!("Dry run: would update {display}.")))
@@ -547,7 +475,7 @@ fn result_item(ctx: &Context, agent: &Agent, planning: &Planning, execution: Opt
             .set("message", Some(timed_out_message(ctx)))
             .set("strategy", strategy),
         Execution::ProviderFailed => base("failed").set("strategy", strategy),
-        Execution::Unsatisfied(reason) | Execution::ReceiptFailed(reason) => base("failed")
+        Execution::Unsatisfied(reason) => base("failed")
             .set("message", Some(reason.clone()))
             .set("strategy", strategy),
         Execution::Locked { message, resource } => base("locked")
@@ -572,7 +500,7 @@ fn stale_state_warning(agent: &Agent) -> Warning {
     Warning::new(
         "AGENT_STALE_STATE",
         format!(
-            "{} is not installed but has stale lifecycle evidence. Run `quantex uninstall {}` to reconcile it.",
+            "{} is not installed but has a stale record. Run `quantex uninstall {}` to reconcile it.",
             agent.display_name, agent.name
         ),
     )
@@ -667,7 +595,7 @@ fn single_outcome(
         .with_data(json!({ "results": [locked.into_value()], "scope": "single" }));
     }
     if let Some(before) = planning.before()
-        && before.kind == Kind::Absent
+        && matches!(before.status, Status::Absent | Status::Stale)
     {
         let outcome = Outcome::failure(
             "update",
@@ -677,7 +605,7 @@ fn single_outcome(
                 format!("{} is not installed.", agent.display_name),
             ),
         );
-        return if before.drift == Drift::RecordedAbsent {
+        return if before.status == Status::Stale {
             outcome.with_warning(stale_state_warning(agent))
         } else {
             outcome
@@ -723,11 +651,9 @@ fn single_outcome(
     outcome
 }
 
-/// v1 `isCatalogOnlyAbsentTarget`: a catalog agent with nothing on disk and no record.
+/// A catalog agent with nothing on disk and no record.
 fn catalog_only_absent(planning: &Planning) -> bool {
-    planning
-        .before()
-        .is_some_and(|before| !before.executable.present && before.installed.is_none() && before.receipt.is_none())
+    planning.before().is_some_and(|before| before.status == Status::Absent)
 }
 
 /// Plans every batch target. Planning only reads, so targets are observed at once.

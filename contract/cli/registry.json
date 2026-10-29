@@ -47,18 +47,6 @@
       "value": "boolean"
     },
     {
-      "id": "noCache",
-      "flags": "--no-cache",
-      "description": "Bypass the local version cache for this command",
-      "value": "boolean"
-    },
-    {
-      "id": "runId",
-      "flags": "--run-id <id>",
-      "description": "Attach a run id to structured output and logs",
-      "value": "string"
-    },
-    {
       "id": "timeout",
       "flags": "--timeout <duration>",
       "description": "Abort a command after the given duration, e.g. 500ms, 30s, 5m",
@@ -157,7 +145,6 @@
         "quiet",
         "color",
         "refresh",
-        "noCache",
         "timeout"
       ],
       "flags": [
@@ -165,7 +152,6 @@
         "--quiet",
         "--color",
         "--refresh",
-        "--no-cache",
         "--timeout"
       ]
     },
@@ -247,7 +233,6 @@
         "quiet",
         "color",
         "refresh",
-        "noCache",
         "timeout"
       ],
       "flags": [
@@ -255,7 +240,6 @@
         "--quiet",
         "--color",
         "--refresh",
-        "--no-cache",
         "--timeout"
       ]
     },
@@ -322,7 +306,6 @@
         "quiet",
         "color",
         "refresh",
-        "noCache",
         "timeout"
       ],
       "flags": [
@@ -330,7 +313,6 @@
         "--quiet",
         "--color",
         "--refresh",
-        "--no-cache",
         "--timeout"
       ]
     },
@@ -359,7 +341,6 @@
         "quiet",
         "color",
         "refresh",
-        "noCache",
         "timeout"
       ],
       "flags": [
@@ -367,7 +348,6 @@
         "--quiet",
         "--color",
         "--refresh",
-        "--no-cache",
         "--timeout"
       ]
     },
@@ -414,7 +394,6 @@
         "color",
         "dryRun",
         "refresh",
-        "noCache",
         "timeout"
       ],
       "flags": [
@@ -426,7 +405,6 @@
         "--color",
         "--dry-run",
         "--refresh",
-        "--no-cache",
         "--timeout"
       ]
     },
@@ -501,7 +479,6 @@
         "color",
         "dryRun",
         "refresh",
-        "noCache",
         "timeout"
       ],
       "flags": [
@@ -512,7 +489,6 @@
         "--color",
         "--dry-run",
         "--refresh",
-        "--no-cache",
         "--timeout"
       ]
     }

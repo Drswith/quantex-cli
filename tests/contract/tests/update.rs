@@ -76,7 +76,7 @@ fn an_agent_on_the_latest_version_is_up_to_date() {
 }
 
 #[test]
-fn an_outdated_agent_is_updated_and_recorded() {
+fn an_outdated_agent_is_updated() {
     let sandbox = installed_codex("0.51.0");
     next_npm_version(&sandbox, "0.51.0");
     let (code, envelope) = run_json(&sandbox, &["update", "codex"]);
@@ -96,10 +96,9 @@ fn an_outdated_agent_is_updated_and_recorded() {
         mutations(&sandbox),
         ["npm install -g @openai/codex", "npm install -g @openai/codex@latest"]
     );
-    let receipt = &sandbox.read_state().unwrap()["lifecycleReceipts"]["codex"];
-    assert_eq!(receipt["version"], "0.51.0");
-    assert_eq!(receipt["executableName"], "codex");
-    assert_eq!(receipt["providerId"], "npm");
+    let (_, envelope) = run_json(&sandbox, &["update", "codex"]);
+    assert_eq!(envelope["data"]["results"][0]["status"], "up-to-date");
+    assert_eq!(envelope["data"]["results"][0]["installedVersion"], "0.51.0");
 }
 
 #[test]
@@ -116,10 +115,6 @@ fn an_update_that_does_not_reach_the_target_fails_verification() {
     assert_eq!(
         result["message"],
         "Observed version 0.50.0 does not satisfy target 0.51.0."
-    );
-    assert_eq!(
-        sandbox.read_state().unwrap()["lifecycleReceipts"]["codex"]["version"],
-        "0.50.0"
     );
 }
 
@@ -223,7 +218,7 @@ fn stale_state_points_at_uninstall() {
                 "suggestedAction": "reconcile-agent-state",
                 "suggestedCommands": ["quantex uninstall codex"],
             },
-            "message": "Codex CLI is not installed but has stale lifecycle evidence. Run `quantex uninstall codex` to reconcile it.",
+            "message": "Codex CLI is not installed but has a stale record. Run `quantex uninstall codex` to reconcile it.",
         }])
     );
 }
@@ -338,9 +333,10 @@ fn a_script_install_updates_itself() {
             "strategy": "self-update",
         }])
     );
-    let receipt = &sandbox.read_state().unwrap()["lifecycleReceipts"]["cursor"];
-    assert_eq!(receipt["version"], "2025.11.01");
-    assert_eq!(receipt["providerId"], "script");
+    assert_eq!(
+        sandbox.read_state().unwrap()["installedAgents"]["cursor"]["installType"],
+        "script"
+    );
 }
 
 #[test]

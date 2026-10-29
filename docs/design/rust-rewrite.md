@@ -17,12 +17,13 @@ Re-implement `quantex` / `qtx` from scratch in Rust as a drop-in replacement for
 1. **Scope.** TypeScript internals, the Core/CLI package split, the `quantex-core` SDK, the npm root library exports, and the v1/v2 staged-migration governance are not constraints. The CLI-facing interface is.
 2. **Human output is not contract.** Only JSON, exit codes, error codes, and stdout / stderr routing are locked. Human text keeps its meaning; layout may change.
 3. **Argument-parse errors become `INVALID_ARGUMENT`.** Exit code 2, and the error envelope in JSON mode. v1.13.6 prints `error: unknown option '--bogus'` to stderr and exits 1, which contradicts its own error table.
-4. **`~/.quantex` formats are kept exactly**, including the lock protocol, so the TypeScript and Rust builds can share one home directory and users can roll back.
+4. **`~/.quantex` formats are kept exactly**, including the lock protocol, so the TypeScript and Rust builds can share one home directory and users can roll back. Superseded by decision 10 from 2.0.0-beta.3.
 5. **OpenSpec is retired.** Contract data plus contract tests replace it. Decisions that need a record go here or in `docs/design/`.
 6. **CI, `AGENTS.md`, and agent-instruction files are rewritten from scratch.** One `AGENTS.md`; `CLAUDE.md` imports it.
 7. **Releases ship from `Drswith/quantex-cli`.** v1 binaries hard-code `https://github.com/Drswith/quantex-cli` and download `releases/latest/download/<asset>`, so asset names, `SHA256SUMS.txt`, and `manifest.json` keep their v1.13.6 shape.
 8. **`skills/quantex-cli/` keeps its path.** Users install it with `npx skills add Drswith/quantex-cli --skill quantex-cli` from the default branch.
 9. **After 2.0.0-beta.1, trim instead of matching v1.** `2.0.0-beta.1` is the v1.13.6-compatible baseline. From 2.0.0-beta.2 the aim is a small, light tool: rarely used agents and the providers only they needed are removed, and v1 behaviour is kept only where users depend on it. Reading and writing `~/.quantex` alongside 1.x, the release assets, and the self-upgrade path stay fixed.
+10. **From 2.0.0-beta.3, read 1.x homes but stop keeping in step with 1.x.** 1.x wrote a lifecycle receipt after every verified change and blocked whenever a receipt, the record, and the disk disagreed; matching that took most of the install, update, and uninstall code. 2.x now trusts the `installedAgents` record, confirmed by the package manager, and ignores receipts. It still reads every home directory 1.x wrote, so upgrading keeps all records, and `state.json` keeps the schema v2 layout with an empty `lifecycleReceipts`. Rolling back to 1.x is no longer promised. The release assets and the v1 self-upgrade path stay fixed. `--no-cache` and `--run-id` went at the same time.
 
 ## Branch plan
 

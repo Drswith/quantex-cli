@@ -58,8 +58,8 @@ pub fn doctor(ctx: &Context) -> Outcome {
         let availability = scope.spawn(probe::installer_availability);
         let inspection = scope.spawn(|| selfupdate::inspect(ctx, None));
         let observations = observe::observe_all(ctx, &state, ObserveOptions::default());
-        // Untracked means the lifecycle observation found the agent present without a
-        // recorded source, which needs provider evidence; only agents on disk need it.
+        // Untracked: on disk with no record that accounts for it, which for a recorded
+        // agent takes a provider probe; only agents on disk need one.
         let untracked: Vec<String> = std::thread::scope(|scope| {
             let handles: Vec<_> = observations
                 .iter()
@@ -67,8 +67,8 @@ pub fn doctor(ctx: &Context) -> Outcome {
                 .map(|observation| {
                     let state = &state;
                     scope.spawn(move || {
-                        let view = crate::lifecycle::observe_lifecycle(ctx, observation.agent, state, None);
-                        (view.drift == crate::lifecycle::Drift::Untracked).then(|| observation.agent.name.clone())
+                        let view = crate::lifecycle::observe_lifecycle(ctx, observation.agent, state);
+                        (view.status == crate::lifecycle::Status::Untracked).then(|| observation.agent.name.clone())
                     })
                 })
                 .collect();

@@ -1,5 +1,23 @@
 # Changelog
 
+## Unreleased (2.0.0-beta.3)
+
+Quantex 2 still reads every `~/.quantex` a 1.x build wrote, so upgrading from 1.x keeps all records, but it no longer keeps in step with 1.x on a shared home directory. Going back to 1.x after upgrading is not supported.
+
+### Removed
+
+* Lifecycle receipts. 1.x recorded a receipt (`lifecycleReceipts` in `state.json`) after every verified change and refused to install, update, or uninstall when a receipt, the record, and the disk disagreed. Quantex now trusts the `installedAgents` record, confirmed by the package manager, ignores the receipts 1.x wrote, and writes `lifecycleReceipts` back empty.
+* `--no-cache`. Use `--refresh`, which skips the cached version and stores the new answer.
+* `--run-id`, `QUANTEX_RUN_ID`, and `meta.runId`, which only echoed a value back.
+* The `state.json.v1.bak` copy made when rewriting an unversioned `state.json`.
+
+### Changed
+
+* A stale record (the agent was removed outside Quantex) is installed again the normal way, trying the recorded package manager first, instead of only from the exact recorded source. `install --dry-run` reports it as `Dry run: would install …`.
+* An untracked executable is adopted only when its package manager lists the package.
+* `update` on an agent whose recorded package manager cannot answer reports that manager's reason instead of "The recorded update source does not match live provider evidence."
+* `installedAgents` records this build cannot use (an unknown shape as well as a removed install type) are kept unchanged instead of failing with `STATE_READ_ERROR`.
+
 ## [2.0.0-beta.2](https://github.com/Drswith/quantex-cli/releases/tag/v2.0.0-beta.2)
 
 From this release the goal is a small, light tool rather than matching 1.x in every detail. The `~/.quantex` files, the release assets, and the 1.x upgrade path are unchanged, so 1.x and 2.x still share one home directory.

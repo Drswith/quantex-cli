@@ -484,15 +484,9 @@ pub fn inspect(ctx: &Context, requested_channel: Option<&str>) -> Inspection {
 /// recorded, and the result cached for the update notice.
 pub fn plan(ctx: &Context, requested_channel: Option<&str>) -> Inspection {
     let facts = reconciled_facts(ctx, requested_channel);
-    let mode = if ctx.cache_mode == CacheMode::NoCache {
-        CacheMode::NoCache
-    } else {
-        CacheMode::Refresh
-    };
-    let target = resolve_target(ctx, &facts, mode);
+    let target = resolve_target(ctx, &facts, CacheMode::Refresh);
     if facts.can_auto_update()
         && let Some(version) = &target.latest_version
-        && ctx.cache_mode != CacheMode::NoCache
     {
         let ttl_ms = store::VERSION_CACHE_TTL_HOURS as i64 * 3_600_000;
         let now = crate::time::now_millis();
@@ -526,7 +520,7 @@ fn metadata_key(facts: &Facts) -> String {
 /// touches the network, so any command can afford it.
 pub fn cached_newer_version(ctx: &Context) -> Option<(String, &'static str)> {
     let facts = facts(ctx, None);
-    if !facts.can_auto_update() || ctx.cache_mode == CacheMode::NoCache {
+    if !facts.can_auto_update() {
         return None;
     }
     let metadata = net::cache_read(ctx, &metadata_key(&facts))?;
@@ -769,7 +763,11 @@ fn upgrade_binary(ctx: &Context, inspection: &Inspection) -> Result<(), Option<U
         |error: std::io::Error| binary_failure(io_kind(&error), "Failed to replace the current Quantex binary.", url);
     let executable = inspection.facts.executable_path.clone();
     let directory = executable.parent().map(Path::to_path_buf).unwrap_or_default();
-    let temp_dir = directory.join(format!(".quantex-upgrade-{}", uuid::Uuid::new_v4().simple()));
+    let temp_dir = directory.join(format!(
+        ".quantex-upgrade-{}-{}",
+        std::process::id(),
+        crate::time::now_millis()
+    ));
     fs::create_dir(&temp_dir).map_err(swap_failed)?;
     let temp_path = temp_dir.join(executable.file_name().unwrap_or_default());
     let result = swap(

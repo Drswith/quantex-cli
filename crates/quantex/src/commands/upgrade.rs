@@ -57,7 +57,7 @@ fn stale_latest(inspection: &Inspection) -> Option<Warning> {
         Warning::new(
             "STALE_LATEST_VERSION",
             format!(
-                "The resolved latest version {latest} is older than the installed Quantex CLI {current}. Quantex will not downgrade; retry with --refresh or --no-cache if you need a fresh check."
+                "The resolved latest version {latest} is older than the installed Quantex CLI {current}. Quantex will not downgrade; retry with --refresh if you need a fresh check."
             ),
         )
         .details(json!({ "currentVersion": current, "latestVersion": latest })),

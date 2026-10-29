@@ -115,8 +115,6 @@ These flags matter most in agent workflows:
 - `--quiet`
 - `--dry-run`
 - `--refresh`
-- `--no-cache`
-- `--run-id <id>`
 - `--timeout <duration>`
 
 ## Heuristics

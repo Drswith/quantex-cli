@@ -269,7 +269,6 @@ fn meta(ctx: &Context, mode: OutputMode) -> Value {
         map.insert("staleAfter".into(), freshness.stale_after.into());
     }
     map.insert("mode".into(), mode.as_str().into());
-    map.insert("runId".into(), ctx.run_id.clone().into());
     map.insert("schemaVersion".into(), SCHEMA_VERSION.into());
     map.insert("timestamp".into(), crate::time::now_iso().into());
     map.insert("version".into(), crate::VERSION.into());

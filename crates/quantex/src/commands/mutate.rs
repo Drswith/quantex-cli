@@ -1,10 +1,10 @@
-//! `install` and `ensure`.
+//! `install` (and its alias `ensure`) and `uninstall`.
 
 use serde_json::{Map, Value, json};
 
 use crate::catalog::{self, Agent};
 use crate::context::Context;
-use crate::lifecycle::{self, Decision, Kind, View};
+use crate::lifecycle::{self, Decision, View};
 use crate::protocol::{CommandError, ErrorCode, Outcome, Target, Warning};
 use crate::providers::{self, Binding, Observed};
 use crate::store::{self, InstalledAgent};
@@ -96,10 +96,6 @@ fn dry_run(agent: &Agent, route: &str) -> Outcome {
             "Dry run: would record the existing {} install in Quantex state.",
             agent.display_name
         ),
-        "reinstall" => format!(
-            "Dry run: would reinstall {} only if its recorded provider target is confirmed absent.",
-            agent.display_name
-        ),
         _ => format!("Dry run: would install {}.", agent.display_name),
     };
     success(agent, agent_data(agent, false, route == "adopt", None)).with_warning(Warning::new("DRY_RUN", message))
@@ -132,34 +128,6 @@ fn install_failed(agent: &Agent, reason: &str, remediation: Option<&str>) -> Out
     )
 }
 
-/// The catalog source an untracked executable can be adopted as, if any.
-fn adoptable(view: &View) -> Option<(crate::catalog::InstallMethod, Binding)> {
-    let method = providers::adoptable_method(&view.methods, view.path_executable.path.as_deref())?;
-    let binding = Binding::from_method(view.agent, &method)?;
-    Some((method, binding))
-}
-
-/// v1 `invalidAdoptionReason`: adoption must keep the source the observation found.
-fn invalid_adoption(view: &View, method: &crate::catalog::InstallMethod, binding: &Binding) -> Option<&'static str> {
-    if view.kind != Kind::Present || view.drift != lifecycle::Drift::Untracked {
-        return Some("Compatibility adoption requires a fresh untracked present observation.");
-    }
-    let exe = view.agent.binary_name.as_str();
-    let exact = |left: &Binding, right: &Binding| {
-        left.same_source(right, exe) && left.target.arguments == right.target.arguments
-    };
-    if let Some(observed) = &view.binding
-        && !exact(observed, binding)
-    {
-        return Some("Compatibility adoption does not preserve the observed provider source.");
-    }
-    let state = providers::installed_state_for_method(view.agent, method, true);
-    match Binding::from_installed(view.agent, &state) {
-        Some(state_binding) if exact(&state_binding, binding) => None,
-        _ => Some("Compatibility adoption state does not resolve to the selected provider source."),
-    }
-}
-
 fn blocked(agent: &Agent, reason: &str) -> Outcome {
     failure(
         agent,
@@ -177,12 +145,10 @@ fn blocked(agent: &Agent, reason: &str) -> Outcome {
     )
 }
 
-fn record(ctx: &Context, view: &View, installed: &InstalledAgent, binding: &Binding) -> Result<(), CommandError> {
-    let receipt = lifecycle::receipt(view, binding);
-    let name = view.agent.name.clone();
+fn record(ctx: &Context, agent: &Agent, installed: &InstalledAgent) -> Result<(), CommandError> {
+    let name = agent.name.clone();
     store::mutate_state(&ctx.quantex_dir(), |state| {
         state.installed_agents.insert(name.clone(), installed.clone());
-        state.lifecycle_receipts.insert(name.clone(), receipt.clone());
     })
     .map(|_| ())
     .map_err(store::MutateError::into_command_error)
@@ -199,100 +165,60 @@ pub fn install_agent(ctx: &Context, input: &str) -> Outcome {
                 .details(json!({ "input": input })),
         );
     };
+    let _lock = if ctx.dry_run {
+        None
+    } else {
+        match store::acquire_lock(&dir, LIFECYCLE_LOCK, &["agent-lifecycle"]) {
+            Ok(lock) => Some(lock),
+            Err(error) => return Outcome::failure("install", Some(Target::agent(input)), error.into_command_error()),
+        }
+    };
     let state = match store::load_state(&dir) {
         Ok(state) => state,
         Err(error) => return Outcome::failure("install", Some(Target::agent(input)), error.into_command_error()),
     };
-
-    // An unattributable executable outside Quantex stays as it is, without taking the lock.
-    let unmanaged_candidate = !state.installed_agents.contains_key(&agent.name)
-        && !state.lifecycle_receipts.contains_key(&agent.name)
-        && crate::probe::resolve_executable(std::slice::from_ref(&agent.binary_name)).is_some();
-    if unmanaged_candidate {
-        let view_methods = observe_methods(ctx, agent);
-        let path = crate::probe::resolve_executable(&crate::probe::lookup_names(agent))
-            .map(|path| crate::probe::real_path(&path));
-        if providers::adoptable_method(&view_methods, path.as_deref()).is_none() {
-            return untracked(agent);
-        }
-    }
-
-    if ctx.dry_run {
-        let view = lifecycle::observe_lifecycle(ctx, agent, &state, None);
-        return preview(&view);
-    }
-
-    let _lock = match store::acquire_lock(&dir, LIFECYCLE_LOCK, &["agent-lifecycle"]) {
-        Ok(lock) => lock,
-        Err(error) => return Outcome::failure("install", Some(Target::agent(input)), error.into_command_error()),
-    };
-    let view = lifecycle::observe_lifecycle(ctx, agent, &state, None);
-    let decision = lifecycle::decide(&view);
-    match decision {
+    let view = lifecycle::observe_lifecycle(ctx, agent, &state);
+    match lifecycle::decide(&view) {
         Decision::Interrupted => install_failed(agent, "", None),
         Decision::Blocked(reason) => blocked(agent, &reason),
         Decision::AlreadySatisfied => already_installed(agent),
-        Decision::ExternalPreserved => match adoptable(&view) {
-            None => untracked(agent),
-            Some((method, binding)) if invalid_adoption(&view, &method, &binding).is_some() => {
-                blocked(agent, invalid_adoption(&view, &method, &binding).unwrap_or_default())
-            }
-            Some((method, binding)) => {
-                let installed = providers::installed_state_for_method(agent, &method, true);
-                if let Err(error) = record(ctx, &view, &installed, &binding) {
-                    return Outcome::failure("install", Some(Target::agent(&agent.name)), error);
-                }
-                success(agent, agent_data(agent, true, true, Some(&installed))).with_warning(Warning::new(
-                    "TRACKED_EXISTING_INSTALL",
-                    format!(
-                        "{} is already installed. Quantex is now tracking the existing install.",
-                        agent.display_name
-                    ),
-                ))
-            }
-        },
-        Decision::Install | Decision::Reinstall(_) => apply_install(ctx, &view, &decision),
+        Decision::Adopt => adopt(ctx, &view),
+        Decision::Install if ctx.dry_run => dry_run(agent, "install"),
+        Decision::Install => apply_install(ctx, &view),
     }
 }
 
-fn observe_methods(ctx: &Context, agent: &Agent) -> Vec<crate::catalog::InstallMethod> {
-    crate::observe::ordered_methods(ctx, agent)
-}
-
-fn preview(view: &View) -> Outcome {
+/// Records an untracked executable when its path or the catalog makes its source clear
+/// and that source confirms it; anything else stays as it is.
+fn adopt(ctx: &Context, view: &View) -> Outcome {
     let agent = view.agent;
-    match lifecycle::decide(view) {
-        Decision::AlreadySatisfied => already_installed(agent),
-        Decision::ExternalPreserved => match adoptable(view) {
-            None => untracked(agent),
-            Some((method, binding)) => match invalid_adoption(view, &method, &binding) {
-                Some(reason) => blocked(agent, reason),
-                None => dry_run(agent, "adopt"),
-            },
-        },
-        Decision::Install => dry_run(agent, "install"),
-        Decision::Reinstall(_) => dry_run(agent, "reinstall"),
-        Decision::Blocked(_) | Decision::Interrupted => {
-            let in_path = view.path_executable.present;
-            match (&view.installed, in_path) {
-                (None, true) => {
-                    if adoptable(view).is_some() {
-                        dry_run(agent, "adopt")
-                    } else {
-                        untracked(agent)
-                    }
-                }
-                (Some(_), true) => already_installed(agent),
-                (Some(_), false) => dry_run(agent, "reinstall"),
-                (None, false) => dry_run(agent, "install"),
-            }
-        }
+    let Some(method) = providers::adoptable_method(&view.methods, view.executable.path.as_deref()) else {
+        return untracked(agent);
+    };
+    let confirmed = Binding::from_method(agent, &method)
+        .is_some_and(|binding| matches!(providers::observe(ctx, &binding), Observed::Present { .. }));
+    if !confirmed {
+        return untracked(agent);
     }
+    if ctx.dry_run {
+        return dry_run(agent, "adopt");
+    }
+    let installed = providers::installed_state_for_method(agent, &method);
+    if let Err(error) = record(ctx, agent, &installed) {
+        return Outcome::failure("install", Some(Target::agent(&agent.name)), error);
+    }
+    success(agent, agent_data(agent, true, true, Some(&installed))).with_warning(Warning::new(
+        "TRACKED_EXISTING_INSTALL",
+        format!(
+            "{} is already installed. Quantex is now tracking the existing install.",
+            agent.display_name
+        ),
+    ))
 }
 
-fn apply_install(ctx: &Context, view: &View, decision: &Decision) -> Outcome {
+fn apply_install(ctx: &Context, view: &View) -> Outcome {
     let agent = view.agent;
-    let recipe = match lifecycle::resolve_recipe(ctx, view, decision) {
+    let recipe = match lifecycle::resolve_recipe(ctx, view) {
         Ok(recipe) => recipe,
         Err(reason) => return install_failed(agent, &reason, None),
     };
@@ -312,34 +238,20 @@ fn apply_install(ctx: &Context, view: &View, decision: &Decision) -> Outcome {
         compensate(ctx, &recipe.binding);
         return install_failed(agent, &failure.reason(), None);
     }
-    match providers::observe(ctx, &recipe.binding) {
-        Observed::Present { .. } => {}
-        Observed::Absent => {
-            compensate(ctx, &recipe.binding);
-            return verification_failed(
-                agent,
-                &format!(
-                    "{} is not installed through {}",
-                    recipe.binding.target.id,
-                    recipe.binding.provider.as_str()
-                ),
-            );
-        }
-        other => {
-            compensate(ctx, &recipe.binding);
-            return verification_failed(agent, &other.reason());
-        }
-    }
-    let state = store::load_state(&ctx.quantex_dir()).unwrap_or_default();
-    let verified = lifecycle::observe_lifecycle(ctx, agent, &state, Some(&recipe.binding));
-    if verified.kind != Kind::Present {
+    let reason = match providers::observe(ctx, &recipe.binding) {
+        Observed::Present { .. } => None,
+        Observed::Absent => Some(format!(
+            "{} is not installed through {}",
+            recipe.binding.target.id,
+            recipe.binding.provider.as_str()
+        )),
+        other => Some(other.reason()),
+    };
+    if let Some(reason) = reason {
         compensate(ctx, &recipe.binding);
-        return verification_failed(
-            agent,
-            "Fresh post-mutation observation did not confirm the selected provider source.",
-        );
+        return verification_failed(agent, &reason);
     }
-    if let Err(error) = record(ctx, &verified, &recipe.installed, &recipe.binding) {
+    if let Err(error) = record(ctx, agent, &recipe.installed) {
         return failure(
             agent,
             self::error(
@@ -600,9 +512,7 @@ pub fn uninstall(ctx: &Context, input: &str) -> Outcome {
                 .with_human(render_uninstall);
         }
     };
-    let installed = state.installed_agents.get(&agent.name).cloned();
-    let receipt = state.lifecycle_receipts.get(&agent.name).cloned();
-    if installed.is_none() && receipt.is_none() {
+    let Some(installed) = state.installed_agents.get(&agent.name).cloned() else {
         return Outcome::failure(
             "uninstall",
             Some(Target::agent(&agent.name)),
@@ -623,71 +533,51 @@ pub fn uninstall(ctx: &Context, input: &str) -> Outcome {
         )
         .with_data(uninstall_data(agent, false))
         .with_human(render_uninstall);
-    }
-    let outcome = uninstall_recorded(ctx, agent, installed, receipt);
-    outcome.with_human(render_uninstall)
+    };
+    uninstall_recorded(ctx, agent, &installed).with_human(render_uninstall)
 }
 
-fn uninstall_recorded(
-    ctx: &Context,
-    agent: &'static Agent,
-    installed: Option<InstalledAgent>,
-    receipt: Option<Value>,
-) -> Outcome {
+fn uninstall_recorded(ctx: &Context, agent: &'static Agent, installed: &InstalledAgent) -> Outcome {
     let dir = ctx.quantex_dir();
-    let live_before = binary_present(agent);
-    let state_binding = installed
-        .as_ref()
-        .and_then(|state| Binding::from_installed(agent, state));
-    let receipt_binding = receipt.as_ref().and_then(Binding::from_receipt);
-    if (installed.is_some() && state_binding.is_none()) || (receipt.is_some() && receipt_binding.is_none()) {
+    let Some(binding) = Binding::from_installed(agent, installed) else {
         return uninstall_failed(
             agent,
             "indeterminate-source",
-            format!("Cannot resolve provider evidence for {}.", agent.display_name),
+            format!("Cannot resolve the recorded install source for {}.", agent.display_name),
         );
-    }
-    if let (Some(state), Some(receipt)) = (&state_binding, &receipt_binding)
-        && !state.same_source(receipt, &agent.binary_name)
-    {
-        return uninstall_failed(
-            agent,
-            "conflicting-source",
-            format!("Recorded sources disagree for {}.", agent.display_name),
-        );
-    }
-    let binding = state_binding.or(receipt_binding).expect("a record exists");
-    let before = providers::observe(ctx, &binding);
-    let mutate = |change: &dyn Fn(&mut store::State)| {
-        store::mutate_state(&dir, |state| change(state)).map_err(store::MutateError::into_command_error)
     };
     let name = agent.name.clone();
-    match &before {
+    let forget = |restore: Option<&InstalledAgent>| {
+        store::mutate_state(&dir, |state| {
+            match restore {
+                Some(installed) => state.installed_agents.insert(name.clone(), installed.clone()),
+                None => state.installed_agents.remove(&name),
+            };
+        })
+        .map(|_| ())
+        .map_err(store::MutateError::into_command_error)
+    };
+    match providers::observe(ctx, &binding) {
+        Observed::Present { .. } => {}
+        Observed::Absent if binary_present(agent) => {
+            return uninstall_failed(
+                agent,
+                "conflicting-source",
+                format!(
+                    "{} is on PATH but its recorded provider target is absent.",
+                    agent.display_name
+                ),
+            );
+        }
+        Observed::Absent if ctx.dry_run => {
+            return uninstall_done(
+                agent,
+                false,
+                Some(Warning::new("DRY_RUN", "Dry run: would remove the stale record.")),
+            );
+        }
         Observed::Absent => {
-            if live_before {
-                return uninstall_failed(
-                    agent,
-                    "conflicting-source",
-                    format!(
-                        "{} is on PATH but its recorded provider target is absent.",
-                        agent.display_name
-                    ),
-                );
-            }
-            if ctx.dry_run {
-                return uninstall_done(
-                    agent,
-                    false,
-                    Some(Warning::new(
-                        "DRY_RUN",
-                        "Dry run: would reconcile stale lifecycle evidence.",
-                    )),
-                );
-            }
-            if let Err(error) = mutate(&|state| {
-                state.installed_agents.remove(&name);
-                state.lifecycle_receipts.remove(&name);
-            }) {
+            if let Err(error) = forget(None) {
                 return Outcome::failure("uninstall", Some(Target::agent(&agent.name)), error);
             }
             return uninstall_done(
@@ -696,13 +586,12 @@ fn uninstall_recorded(
                 Some(Warning::new(
                     "GHOST_STATE_RECONCILED",
                     format!(
-                        "{} was already absent; stale lifecycle evidence was removed.",
+                        "{} was already absent; its stale record was removed.",
                         agent.display_name
                     ),
                 )),
             );
         }
-        Observed::Present { .. } => {}
         _ => {
             return uninstall_failed(
                 agent,
@@ -711,13 +600,6 @@ fn uninstall_recorded(
             );
         }
     }
-    let Some(installed) = installed else {
-        return uninstall_failed(
-            agent,
-            "indeterminate-source",
-            format!("Cannot safely reconstruct {}'s uninstall source.", agent.display_name),
-        );
-    };
     if ctx.dry_run {
         return uninstall_done(
             agent,
@@ -728,54 +610,24 @@ fn uninstall_recorded(
             )),
         );
     }
-    let provider_failure = || {
-        uninstall_failed(
-            agent,
-            "provider-failure",
-            format!("Failed to uninstall {}.", agent.display_name),
-        )
+    // A script install has no uninstaller; only its record goes.
+    let Some(command) = providers::uninstall_command(&binding) else {
+        return match forget(None) {
+            Ok(()) => uninstall_done(agent, true, None),
+            Err(error) => Outcome::failure("uninstall", Some(Target::agent(&agent.name)), error),
+        };
     };
-    if !installed.install_type.can_uninstall() {
-        if let Err(error) = mutate(&|state| {
-            state.installed_agents.remove(&name);
-            state.lifecycle_receipts.remove(&name);
-        }) {
-            return Outcome::failure("uninstall", Some(Target::agent(&agent.name)), error);
-        }
-        return uninstall_done(agent, true, None);
-    }
-    if receipt.is_none() {
-        let mut record = Map::new();
-        if let Some(name) = &binding.target.binary_name {
-            record.insert("executableName".into(), name.clone().into());
-        }
-        record.insert("kind".into(), "lifecycle-receipt".into());
-        record.insert("providerId".into(), binding.provider.as_str().into());
-        record.insert("providerTargetId".into(), binding.target.id.clone().into());
-        record.insert("providerTargetKind".into(), binding.target.kind.into());
-        record.insert("schemaVersion".into(), store::RECEIPT_SCHEMA_VERSION.into());
-        record.insert("targetId".into(), agent.name.clone().into());
-        record.insert("verifiedAt".into(), crate::time::now_iso().into());
-        if let Observed::Present { version: Some(version) } = &before {
-            record.insert("version".into(), version.clone().into());
-        }
-        let record = Value::Object(record);
-        if let Err(error) = mutate(&|state| {
-            state.lifecycle_receipts.insert(name.clone(), record.clone());
-        }) {
-            return Outcome::failure("uninstall", Some(Target::agent(&agent.name)), error);
-        }
-    }
-    let command = providers::uninstall_command(&binding).unwrap_or_default();
     let description = format!("{} uninstall failed", binding.provider.as_str());
     if providers::run_mutation(ctx, &command, &description).is_err()
         && providers::observe(ctx, &binding) != Observed::Absent
     {
-        return provider_failure();
+        return uninstall_failed(
+            agent,
+            "provider-failure",
+            format!("Failed to uninstall {}.", agent.display_name),
+        );
     }
-    if let Err(error) = mutate(&|state| {
-        state.installed_agents.remove(&name);
-    }) {
+    if let Err(error) = forget(None) {
         return Outcome::failure("uninstall", Some(Target::agent(&agent.name)), error);
     }
     let mut absent = false;
@@ -791,36 +643,25 @@ fn uninstall_recorded(
             std::thread::sleep(std::time::Duration::from_millis(100));
         }
     }
-    if !absent {
-        if providers::observe(ctx, &binding) == Observed::Absent {
-            let _ = mutate(&|state| {
-                state.lifecycle_receipts.remove(&name);
-            });
-            return uninstall_failed(
-                agent,
-                "conflicting-source",
-                format!(
-                    "{0}'s managed package was removed, but another copy remains on PATH. If Bun left {1}.exe and {1}.bunx in its global bin, delete that pair and retry.",
-                    agent.display_name, agent.binary_name
-                ),
-            );
-        }
-        let restore = installed.clone();
-        let _ = mutate(&|state| {
-            state.installed_agents.insert(name.clone(), restore.clone());
-        });
+    if absent {
+        return uninstall_done(agent, true, None);
+    }
+    if providers::observe(ctx, &binding) == Observed::Absent {
         return uninstall_failed(
             agent,
-            "verification-failed",
-            format!("{} is still present after provider removal.", agent.display_name),
+            "conflicting-source",
+            format!(
+                "{0}'s managed package was removed, but another copy remains on PATH. If Bun left {1}.exe and {1}.bunx in its global bin, delete that pair and retry.",
+                agent.display_name, agent.binary_name
+            ),
         );
     }
-    if let Err(error) = mutate(&|state| {
-        state.lifecycle_receipts.remove(&name);
-    }) {
-        return Outcome::failure("uninstall", Some(Target::agent(&agent.name)), error);
-    }
-    uninstall_done(agent, true, None)
+    let _ = forget(Some(installed));
+    uninstall_failed(
+        agent,
+        "verification-failed",
+        format!("{} is still present after provider removal.", agent.display_name),
+    )
 }
 
 fn render_uninstall(outcome: &Outcome, human: &mut Human) {

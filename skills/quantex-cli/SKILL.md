@@ -69,15 +69,14 @@ For long-running operations, prefer:
 
 ```bash
 quantex install codex --json --non-interactive --timeout 2m
-quantex update --all --json --run-id ops-update-20260423
+quantex update --all --json
 quantex info claude --json --refresh
 ```
 
 Use:
 
 - `--timeout` to bound long operations
-- `--run-id` to correlate logs and results
-- `--refresh` or `--no-cache` when stale version data would be risky
+- `--refresh` when stale version data would be risky
 
 `install`, `update`, and `uninstall` are safe to retry: when nothing is left to do they succeed without changes.
 
