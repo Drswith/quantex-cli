@@ -13,7 +13,6 @@
   "platforms": {
     "windows": [
       {
-        "probes": ["executable-presence", "installed-version", "package-presence", "target-version"],
         "provider": "npm",
         "target": {
           "id": "command-code",
@@ -23,7 +22,6 @@
     ],
     "macos": [
       {
-        "probes": ["executable-presence", "installed-version", "package-presence", "target-version"],
         "provider": "npm",
         "target": {
           "id": "command-code",
@@ -33,7 +31,6 @@
     ],
     "linux": [
       {
-        "probes": ["executable-presence", "installed-version", "package-presence", "target-version"],
         "provider": "npm",
         "target": {
           "id": "command-code",

@@ -41,10 +41,7 @@ impl Platform {
 pub enum Provider {
     Bun,
     Npm,
-    Brew,
-    Winget,
     Script,
-    Binary,
 }
 
 impl Provider {
@@ -52,10 +49,7 @@ impl Provider {
         match self {
             Self::Bun => "bun",
             Self::Npm => "npm",
-            Self::Brew => "brew",
-            Self::Winget => "winget",
             Self::Script => "script",
-            Self::Binary => "binary",
         }
     }
 
@@ -64,7 +58,7 @@ impl Provider {
     }
 
     pub fn is_managed(self) -> bool {
-        !matches!(self, Self::Script | Self::Binary)
+        self != Self::Script
     }
 
     /// Package managers can update and uninstall what they installed; installers cannot.
@@ -89,7 +83,7 @@ impl Provider {
     pub fn package_key(self) -> Option<&'static str> {
         match self {
             Self::Bun | Self::Npm => Some("npm"),
-            Self::Brew | Self::Winget | Self::Script | Self::Binary => None,
+            Self::Script => None,
         }
     }
 }
@@ -125,8 +119,6 @@ pub struct Candidate {
     pub provider: Provider,
     pub target: TargetSource,
     #[serde(default)]
-    pub probes: Vec<String>,
-    #[serde(default)]
     pub legacy: Option<LegacyFlags>,
 }
 
@@ -160,7 +152,6 @@ impl Candidate {
                 command: self.command(),
                 package_install_args: Vec::new(),
                 package_name: None,
-                package_target_kind: None,
             };
         }
         let in_method = self.legacy.as_ref().is_some_and(|legacy| legacy.package_name_in_method);
@@ -170,7 +161,6 @@ impl Candidate {
             command: None,
             package_install_args: self.target.arguments.clone(),
             package_name: (self.provider.package_key().is_none() || in_method).then(|| self.target.id.clone()),
-            package_target_kind: matches!(self.target.kind.as_str(), "cask" | "id").then(|| self.target.kind.clone()),
         }
     }
 }
@@ -183,7 +173,6 @@ pub struct InstallMethod {
     pub command: Option<String>,
     pub package_install_args: Vec<String>,
     pub package_name: Option<String>,
-    pub package_target_kind: Option<String>,
 }
 
 impl InstallMethod {
@@ -200,9 +189,6 @@ impl InstallMethod {
         }
         if let Some(package_name) = &self.package_name {
             map.insert("packageName".into(), package_name.clone().into());
-        }
-        if let Some(kind) = &self.package_target_kind {
-            map.insert("packageTargetKind".into(), kind.clone().into());
         }
         map.insert("type".into(), self.kind.as_str().into());
         Value::Object(map)

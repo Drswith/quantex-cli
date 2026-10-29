@@ -13,7 +13,6 @@
   "platforms": {
     "windows": [
       {
-        "probes": ["executable-presence"],
         "provider": "script",
         "target": {
           "id": "https://antigravity.google/cli/install.ps1",
@@ -27,7 +26,6 @@
     ],
     "macos": [
       {
-        "probes": ["executable-presence"],
         "provider": "script",
         "target": {
           "id": "https://antigravity.google/cli/install.sh",
@@ -41,7 +39,6 @@
     ],
     "linux": [
       {
-        "probes": ["executable-presence"],
         "provider": "script",
         "target": {
           "id": "https://antigravity.google/cli/install.sh",

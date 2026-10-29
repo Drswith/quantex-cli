@@ -15,7 +15,7 @@ use crate::store::InstalledAgent;
 /// Default bound for one read-only provider probe.
 const PROBE_BUDGET: Duration = Duration::from_secs(60);
 
-/// What a provider installs: a package, formula, cask, tool, id, script, or binary.
+/// What a provider installs: a package or a script.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ProviderTarget {
     pub id: String,
@@ -31,18 +31,9 @@ pub struct Binding {
     pub target: ProviderTarget,
 }
 
-fn target_kind(provider: Provider, package_target_kind: Option<&str>) -> &'static str {
+fn target_kind(provider: Provider) -> &'static str {
     match provider {
-        Provider::Binary => "binary",
-        Provider::Brew => {
-            if package_target_kind == Some("cask") {
-                "cask"
-            } else {
-                "formula"
-            }
-        }
         Provider::Script => "script",
-        Provider::Winget => "id",
         Provider::Bun | Provider::Npm => "package",
     }
 }
@@ -58,11 +49,10 @@ impl Binding {
             .or_else(|| state.command.clone())
             .or_else(|| state.binary_name.clone())
             .or_else(|| match provider {
-                Provider::Binary | Provider::Script => Some(agent.binary_name.clone()),
-                Provider::Brew | Provider::Winget => None,
+                Provider::Script => Some(agent.binary_name.clone()),
                 other => agent.package_for(other).map(str::to_owned),
             })?;
-        let binary_name = if state.binary_name.is_some() || matches!(provider, Provider::Binary | Provider::Script) {
+        let binary_name = if state.binary_name.is_some() || provider == Provider::Script {
             Some(state.binary_name.clone().unwrap_or_else(|| agent.binary_name.clone()))
         } else {
             None
@@ -71,7 +61,7 @@ impl Binding {
             provider,
             target: ProviderTarget {
                 id,
-                kind: target_kind(provider, state.package_target_kind.as_deref()),
+                kind: target_kind(provider),
                 arguments: state.package_install_args.clone().unwrap_or_default(),
                 binary_name,
             },
@@ -88,17 +78,10 @@ impl Binding {
         let provider = Provider::parse(receipt["providerId"].as_str()?)?;
         let id = receipt["providerTargetId"].as_str().filter(|id| !id.is_empty())?;
         let kind = receipt["providerTargetKind"].as_str();
-        if provider == Provider::Brew && !matches!(kind, Some("cask" | "formula")) {
-            return None;
-        }
         let kind = match kind {
-            Some("cask") => "cask",
-            Some("formula") => "formula",
             Some("package") => "package",
-            Some("id") => "id",
             Some("script") => "script",
-            Some("binary") => "binary",
-            _ => target_kind(provider, None),
+            _ => target_kind(provider),
         };
         Some(Self {
             provider,
@@ -131,7 +114,7 @@ pub fn installed_state_for_method(agent: &Agent, method: &InstallMethod, _record
         binary_name,
         package_install_args: (!method.package_install_args.is_empty()).then(|| method.package_install_args.clone()),
         package_name: crate::observe::method_package(agent, method),
-        package_target_kind: method.package_target_kind.clone(),
+        package_target_kind: None,
         command: method.command.clone(),
     }
 }
@@ -183,7 +166,6 @@ impl Observed {
 }
 
 struct ProbeRun {
-    code: Option<i32>,
     stdout: String,
     stderr: String,
 }
@@ -214,7 +196,6 @@ fn run(ctx: &Context, argv: &[&str]) -> RunResult {
             RunResult::TimedOut
         }
         Ok(output) => RunResult::Done(ProbeRun {
-            code: output.code,
             stdout: output.stdout,
             stderr: output.stderr,
         }),
@@ -305,68 +286,7 @@ pub fn observe(ctx: &Context, binding: &Binding) -> Observed {
             }
             bun_manifest_presence(&target.id).unwrap_or(Observed::Absent)
         }
-        Provider::Brew => {
-            let kind = if target.kind == "cask" { "--cask" } else { "--formula" };
-            let run = match done(run(ctx, &["brew", "list", kind, "--versions", &target.id])) {
-                Ok(run) => run,
-                Err(observed) => return observed,
-            };
-            if run.code == Some(0) {
-                let version = run
-                    .stdout
-                    .split_whitespace()
-                    .last()
-                    .filter(|version| version.starts_with(|c: char| c.is_ascii_digit()))
-                    .map(str::to_owned);
-                return present(version);
-            }
-            let missing = run.stderr.to_lowercase();
-            if missing.contains("no such keg") || missing.contains("is not installed") {
-                Observed::Absent
-            } else {
-                unknown(provider, target)
-            }
-        }
-        Provider::Winget => {
-            let run = match done(run(ctx, &["winget", "list", "--id", &target.id, "-e"])) {
-                Ok(run) => run,
-                Err(observed) => return observed,
-            };
-            let id = target.id.to_lowercase();
-            if run.code == Some(0) {
-                for line in run.stdout.lines() {
-                    let parts: Vec<&str> = line
-                        .trim()
-                        .split("  ")
-                        .flat_map(|part| part.split('\t'))
-                        .map(str::trim)
-                        .filter(|part| !part.is_empty())
-                        .collect();
-                    if let Some(index) = parts.iter().position(|part| part.to_lowercase() == id) {
-                        return present(parts.get(index + 1).map(|version| (*version).to_owned()));
-                    }
-                }
-                return if run.stdout.to_lowercase().contains(&id) {
-                    present(None)
-                } else {
-                    unknown(provider, target)
-                };
-            }
-            let output = format!("{}\n{}", run.stdout, run.stderr).to_lowercase();
-            if [
-                "no installed package found",
-                "no package found matching input criteria",
-                "no installed package matched",
-            ]
-            .iter()
-            .any(|marker| output.contains(marker))
-            {
-                Observed::Absent
-            } else {
-                unknown(provider, target)
-            }
-        }
-        Provider::Script | Provider::Binary => {
+        Provider::Script => {
             let Some(binary) = &target.binary_name else {
                 return Observed::Indeterminate(format!(
                     "{} candidate does not declare an executable presence probe",
@@ -429,16 +349,7 @@ pub fn install_command(binding: &Binding, agent: &Agent) -> Vec<String> {
     let mut argv = match binding.provider {
         Provider::Npm => owned(&["npm", "install", "-g", &target.id]),
         Provider::Bun => owned(&["bun", "add", "-g", &target.id]),
-        Provider::Brew => {
-            let mut argv = owned(&["brew", "install"]);
-            if target.kind == "cask" {
-                argv.push("--cask".into());
-            }
-            argv.push(target.id.clone());
-            argv
-        }
-        Provider::Winget => owned(&["winget", "install", "--id", &target.id, "-e"]),
-        Provider::Script | Provider::Binary => return effect_command(binding, agent),
+        Provider::Script => return effect_command(binding, agent),
     };
     argv.shrink_to_fit();
     argv
@@ -470,16 +381,7 @@ pub fn update_command(binding: &Binding) -> Option<Vec<String>> {
     Some(match binding.provider {
         Provider::Npm => owned(&["npm", "install", "-g", &format!("{}@latest", target.id)]),
         Provider::Bun => owned(&["bun", "update", "-g", "--latest", &target.id]),
-        Provider::Brew => {
-            let mut argv = owned(&["brew", "upgrade"]);
-            if target.kind == "cask" {
-                argv.push("--cask".into());
-            }
-            argv.push(target.id.clone());
-            argv
-        }
-        Provider::Winget => owned(&["winget", "upgrade", "--id", &target.id, "-e"]),
-        Provider::Script | Provider::Binary => return None,
+        Provider::Script => return None,
     })
 }
 
@@ -489,16 +391,7 @@ pub fn uninstall_command(binding: &Binding) -> Option<Vec<String>> {
     Some(match binding.provider {
         Provider::Npm => owned(&["npm", "uninstall", "-g", &target.id]),
         Provider::Bun => owned(&["bun", "remove", "-g", &target.id]),
-        Provider::Brew => {
-            let mut argv = owned(&["brew", "uninstall"]);
-            if target.kind == "cask" {
-                argv.push("--cask".into());
-            }
-            argv.push(target.id.clone());
-            argv
-        }
-        Provider::Winget => owned(&["winget", "uninstall", "--id", &target.id, "-e"]),
-        Provider::Script | Provider::Binary => return None,
+        Provider::Script => return None,
     })
 }
 

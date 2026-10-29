@@ -12,7 +12,6 @@
   "platforms": {
     "windows": [
       {
-        "probes": ["executable-presence", "installed-version", "package-presence", "target-version"],
         "provider": "bun",
         "target": {
           "id": "@sourcegraph/amp",
@@ -20,7 +19,6 @@
         }
       },
       {
-        "probes": ["executable-presence", "installed-version", "package-presence", "target-version"],
         "provider": "npm",
         "target": {
           "id": "@sourcegraph/amp",
@@ -30,7 +28,6 @@
     ],
     "macos": [
       {
-        "probes": ["executable-presence", "installed-version", "package-presence", "target-version"],
         "provider": "bun",
         "target": {
           "id": "@sourcegraph/amp",
@@ -38,7 +35,6 @@
         }
       },
       {
-        "probes": ["executable-presence", "installed-version", "package-presence", "target-version"],
         "provider": "npm",
         "target": {
           "id": "@sourcegraph/amp",
@@ -48,7 +44,6 @@
     ],
     "linux": [
       {
-        "probes": ["executable-presence", "installed-version", "package-presence", "target-version"],
         "provider": "bun",
         "target": {
           "id": "@sourcegraph/amp",
@@ -56,7 +51,6 @@
         }
       },
       {
-        "probes": ["executable-presence", "installed-version", "package-presence", "target-version"],
         "provider": "npm",
         "target": {
           "id": "@sourcegraph/amp",

@@ -3,12 +3,8 @@
 use quantex_contract_tests::{Sandbox, assert_envelope, fake_agent};
 use serde_json::{Value, json};
 
-/// The package managers the catalog installs with on this platform.
-const INSTALLERS: [&str; 3] = if cfg!(windows) {
-    ["bun", "npm", "winget"]
-} else {
-    ["brew", "bun", "npm"]
-};
+/// The package managers the catalog installs with.
+const INSTALLERS: [&str; 2] = ["bun", "npm"];
 
 fn keys(value: &Value) -> Vec<String> {
     let mut keys: Vec<String> = value.as_object().unwrap().keys().cloned().collect();

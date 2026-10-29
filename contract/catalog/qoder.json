@@ -10,7 +10,6 @@
   "platforms": {
     "windows": [
       {
-        "probes": ["executable-presence", "installed-version", "package-presence", "target-version"],
         "provider": "bun",
         "target": {
           "id": "@qoder-ai/qodercli",
@@ -18,7 +17,6 @@
         }
       },
       {
-        "probes": ["executable-presence", "installed-version", "package-presence", "target-version"],
         "provider": "npm",
         "target": {
           "id": "@qoder-ai/qodercli",
@@ -28,7 +26,6 @@
     ],
     "macos": [
       {
-        "probes": ["executable-presence", "installed-version", "package-presence", "target-version"],
         "provider": "bun",
         "target": {
           "id": "@qoder-ai/qodercli",
@@ -36,7 +33,6 @@
         }
       },
       {
-        "probes": ["executable-presence", "installed-version", "package-presence", "target-version"],
         "provider": "npm",
         "target": {
           "id": "@qoder-ai/qodercli",
@@ -44,7 +40,6 @@
         }
       },
       {
-        "probes": ["executable-presence"],
         "provider": "script",
         "target": {
           "id": "https://qoder.com/install",
@@ -53,20 +48,11 @@
             "command": "curl -fsSL https://qoder.com/install | bash",
             "kind": "shell-script"
           }
-        }
-      },
-      {
-        "probes": ["executable-presence"],
-        "provider": "brew",
-        "target": {
-          "id": "qoderai/qoder/qodercli",
-          "kind": "cask"
         }
       }
     ],
     "linux": [
       {
-        "probes": ["executable-presence", "installed-version", "package-presence", "target-version"],
         "provider": "bun",
         "target": {
           "id": "@qoder-ai/qodercli",
@@ -74,7 +60,6 @@
         }
       },
       {
-        "probes": ["executable-presence", "installed-version", "package-presence", "target-version"],
         "provider": "npm",
         "target": {
           "id": "@qoder-ai/qodercli",
@@ -82,7 +67,6 @@
         }
       },
       {
-        "probes": ["executable-presence"],
         "provider": "script",
         "target": {
           "id": "https://qoder.com/install",
@@ -91,14 +75,6 @@
             "command": "curl -fsSL https://qoder.com/install | bash",
             "kind": "shell-script"
           }
-        }
-      },
-      {
-        "probes": ["executable-presence"],
-        "provider": "brew",
-        "target": {
-          "id": "qoderai/qoder/qodercli",
-          "kind": "cask"
         }
       }
     ]

@@ -12,7 +12,6 @@
   "platforms": {
     "windows": [
       {
-        "probes": ["executable-presence", "installed-version", "package-presence", "target-version"],
         "provider": "bun",
         "target": {
           "id": "openclaw",
@@ -20,7 +19,6 @@
         }
       },
       {
-        "probes": ["executable-presence", "installed-version", "package-presence", "target-version"],
         "provider": "npm",
         "target": {
           "id": "openclaw",
@@ -28,7 +26,6 @@
         }
       },
       {
-        "probes": ["executable-presence"],
         "provider": "script",
         "target": {
           "id": "https://openclaw.ai/install.ps1",
@@ -42,7 +39,6 @@
     ],
     "macos": [
       {
-        "probes": ["executable-presence", "installed-version", "package-presence", "target-version"],
         "provider": "bun",
         "target": {
           "id": "openclaw",
@@ -50,7 +46,6 @@
         }
       },
       {
-        "probes": ["executable-presence", "installed-version", "package-presence", "target-version"],
         "provider": "npm",
         "target": {
           "id": "openclaw",
@@ -58,7 +53,6 @@
         }
       },
       {
-        "probes": ["executable-presence"],
         "provider": "script",
         "target": {
           "id": "https://openclaw.ai/install.sh",
@@ -72,7 +66,6 @@
     ],
     "linux": [
       {
-        "probes": ["executable-presence", "installed-version", "package-presence", "target-version"],
         "provider": "bun",
         "target": {
           "id": "openclaw",
@@ -80,7 +73,6 @@
         }
       },
       {
-        "probes": ["executable-presence", "installed-version", "package-presence", "target-version"],
         "provider": "npm",
         "target": {
           "id": "openclaw",
@@ -88,7 +80,6 @@
         }
       },
       {
-        "probes": ["executable-presence"],
         "provider": "script",
         "target": {
           "id": "https://openclaw.ai/install.sh",

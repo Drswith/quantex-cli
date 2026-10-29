@@ -9,7 +9,6 @@
   "platforms": {
     "windows": [
       {
-        "probes": ["executable-presence", "installed-version", "package-presence", "target-version"],
         "provider": "bun",
         "target": {
           "id": "droid",
@@ -17,7 +16,6 @@
         }
       },
       {
-        "probes": ["executable-presence", "installed-version", "package-presence", "target-version"],
         "provider": "npm",
         "target": {
           "id": "droid",
@@ -25,7 +23,6 @@
         }
       },
       {
-        "probes": ["executable-presence"],
         "provider": "script",
         "target": {
           "id": "https://app.factory.ai/cli/windows",
@@ -39,7 +36,6 @@
     ],
     "macos": [
       {
-        "probes": ["executable-presence", "installed-version", "package-presence", "target-version"],
         "provider": "bun",
         "target": {
           "id": "droid",
@@ -47,7 +43,6 @@
         }
       },
       {
-        "probes": ["executable-presence", "installed-version", "package-presence", "target-version"],
         "provider": "npm",
         "target": {
           "id": "droid",
@@ -55,7 +50,6 @@
         }
       },
       {
-        "probes": ["executable-presence"],
         "provider": "script",
         "target": {
           "id": "https://app.factory.ai/cli",
@@ -64,20 +58,11 @@
             "command": "curl -fsSL https://app.factory.ai/cli | sh",
             "kind": "shell-script"
           }
-        }
-      },
-      {
-        "probes": ["executable-presence"],
-        "provider": "brew",
-        "target": {
-          "id": "droid",
-          "kind": "cask"
         }
       }
     ],
     "linux": [
       {
-        "probes": ["executable-presence", "installed-version", "package-presence", "target-version"],
         "provider": "bun",
         "target": {
           "id": "droid",
@@ -85,7 +70,6 @@
         }
       },
       {
-        "probes": ["executable-presence", "installed-version", "package-presence", "target-version"],
         "provider": "npm",
         "target": {
           "id": "droid",
@@ -93,7 +77,6 @@
         }
       },
       {
-        "probes": ["executable-presence"],
         "provider": "script",
         "target": {
           "id": "https://app.factory.ai/cli",
@@ -102,14 +85,6 @@
             "command": "curl -fsSL https://app.factory.ai/cli | sh",
             "kind": "shell-script"
           }
-        }
-      },
-      {
-        "probes": ["executable-presence"],
-        "provider": "brew",
-        "target": {
-          "id": "droid",
-          "kind": "cask"
         }
       }
     ]

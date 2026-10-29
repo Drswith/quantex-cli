@@ -13,7 +13,6 @@
   "platforms": {
     "windows": [
       {
-        "probes": ["executable-presence"],
         "provider": "script",
         "target": {
           "id": "https://cursor.com/install?win32=true",
@@ -27,7 +26,6 @@
     ],
     "macos": [
       {
-        "probes": ["executable-presence"],
         "provider": "script",
         "target": {
           "id": "https://cursor.com/install",
@@ -41,7 +39,6 @@
     ],
     "linux": [
       {
-        "probes": ["executable-presence"],
         "provider": "script",
         "target": {
           "id": "https://cursor.com/install",

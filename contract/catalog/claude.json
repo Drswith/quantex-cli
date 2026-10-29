@@ -10,7 +10,6 @@
   "platforms": {
     "windows": [
       {
-        "probes": ["executable-presence", "installed-version", "package-presence", "target-version"],
         "provider": "bun",
         "target": {
           "id": "@anthropic-ai/claude-code",
@@ -18,7 +17,6 @@
         }
       },
       {
-        "probes": ["executable-presence", "installed-version", "package-presence", "target-version"],
         "provider": "npm",
         "target": {
           "id": "@anthropic-ai/claude-code",
@@ -26,7 +24,6 @@
         }
       },
       {
-        "probes": ["executable-presence"],
         "provider": "script",
         "target": {
           "id": "https://claude.ai/install.ps1",
@@ -36,19 +33,10 @@
             "kind": "shell-script"
           }
         }
-      },
-      {
-        "probes": ["executable-presence"],
-        "provider": "winget",
-        "target": {
-          "id": "Anthropic.ClaudeCode",
-          "kind": "id"
-        }
       }
     ],
     "macos": [
       {
-        "probes": ["executable-presence", "installed-version", "package-presence", "target-version"],
         "provider": "bun",
         "target": {
           "id": "@anthropic-ai/claude-code",
@@ -56,7 +44,6 @@
         }
       },
       {
-        "probes": ["executable-presence", "installed-version", "package-presence", "target-version"],
         "provider": "npm",
         "target": {
           "id": "@anthropic-ai/claude-code",
@@ -64,7 +51,6 @@
         }
       },
       {
-        "probes": ["executable-presence"],
         "provider": "script",
         "target": {
           "id": "https://claude.ai/install.sh",
@@ -73,20 +59,11 @@
             "command": "curl -fsSL https://claude.ai/install.sh | bash",
             "kind": "shell-script"
           }
-        }
-      },
-      {
-        "probes": ["executable-presence"],
-        "provider": "brew",
-        "target": {
-          "id": "claude-code",
-          "kind": "cask"
         }
       }
     ],
     "linux": [
       {
-        "probes": ["executable-presence", "installed-version", "package-presence", "target-version"],
         "provider": "bun",
         "target": {
           "id": "@anthropic-ai/claude-code",
@@ -94,7 +71,6 @@
         }
       },
       {
-        "probes": ["executable-presence", "installed-version", "package-presence", "target-version"],
         "provider": "npm",
         "target": {
           "id": "@anthropic-ai/claude-code",
@@ -102,7 +78,6 @@
         }
       },
       {
-        "probes": ["executable-presence"],
         "provider": "script",
         "target": {
           "id": "https://claude.ai/install.sh",
@@ -111,14 +86,6 @@
             "command": "curl -fsSL https://claude.ai/install.sh | bash",
             "kind": "shell-script"
           }
-        }
-      },
-      {
-        "probes": ["executable-presence"],
-        "provider": "brew",
-        "target": {
-          "id": "claude-code",
-          "kind": "cask"
         }
       }
     ]

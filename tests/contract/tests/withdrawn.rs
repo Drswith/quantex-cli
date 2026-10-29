@@ -17,8 +17,9 @@ fn withdrawn_agents_are_unknown() {
 fn records_from_removed_providers_are_kept() {
     let sandbox = Sandbox::new();
     let record = json!({ "agentName": "openhands", "installType": "uv", "packageName": "openhands" });
+    let brew = json!({ "agentName": "codex", "installType": "brew", "packageName": "codex" });
     let state = json!({
-        "installedAgents": { "openhands": record },
+        "installedAgents": { "codex": brew, "openhands": record },
         "lifecycleReceipts": {},
         "schemaVersion": 2,
         "self": {},
@@ -34,6 +35,7 @@ fn records_from_removed_providers_are_kept() {
         "state was rewritten: {state}"
     );
     assert_eq!(state["installedAgents"]["openhands"], record);
+    assert_eq!(state["installedAgents"]["codex"], brew);
 }
 
 #[test]

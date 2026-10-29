@@ -9,7 +9,6 @@
   "platforms": {
     "windows": [
       {
-        "probes": ["executable-presence", "installed-version", "package-presence", "target-version"],
         "provider": "bun",
         "target": {
           "id": "@openai/codex",
@@ -17,7 +16,6 @@
         }
       },
       {
-        "probes": ["executable-presence", "installed-version", "package-presence", "target-version"],
         "provider": "npm",
         "target": {
           "id": "@openai/codex",
@@ -27,7 +25,6 @@
     ],
     "macos": [
       {
-        "probes": ["executable-presence", "installed-version", "package-presence", "target-version"],
         "provider": "bun",
         "target": {
           "id": "@openai/codex",
@@ -35,25 +32,15 @@
         }
       },
       {
-        "probes": ["executable-presence", "installed-version", "package-presence", "target-version"],
         "provider": "npm",
         "target": {
           "id": "@openai/codex",
           "kind": "package"
-        }
-      },
-      {
-        "probes": ["executable-presence"],
-        "provider": "brew",
-        "target": {
-          "id": "codex",
-          "kind": "formula"
         }
       }
     ],
     "linux": [
       {
-        "probes": ["executable-presence", "installed-version", "package-presence", "target-version"],
         "provider": "bun",
         "target": {
           "id": "@openai/codex",
@@ -61,19 +48,10 @@
         }
       },
       {
-        "probes": ["executable-presence", "installed-version", "package-presence", "target-version"],
         "provider": "npm",
         "target": {
           "id": "@openai/codex",
           "kind": "package"
-        }
-      },
-      {
-        "probes": ["executable-presence"],
-        "provider": "brew",
-        "target": {
-          "id": "codex",
-          "kind": "formula"
         }
       }
     ]

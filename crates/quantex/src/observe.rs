@@ -120,13 +120,8 @@ pub fn update_strategy(agent: &Agent, installed: Option<&InstalledAgent>, method
     UpdateStrategy::ManualHint
 }
 
-fn package_target(name: Option<&str>, kind: Option<&str>) -> String {
-    match (name, kind) {
-        (None, _) => String::new(),
-        (Some(name), Some("cask")) => format!(" ({name} cask)"),
-        (Some(name), Some("id")) => format!(" ({name} id)"),
-        (Some(name), _) => format!(" ({name})"),
-    }
+fn package_target(name: Option<&str>) -> String {
+    name.map(|name| format!(" ({name})")).unwrap_or_default()
 }
 
 /// `managed via npm (@openai/codex)`, `script installer`, `detected on disk`, ...
@@ -138,34 +133,23 @@ pub fn source_label(installed: Option<&InstalledAgent>) -> String {
         return format!(
             "managed via {}{}",
             installed.install_type.as_str(),
-            package_target(
-                installed.package_name.as_deref(),
-                installed.package_target_kind.as_deref()
-            )
+            package_target(installed.package_name.as_deref())
         );
     }
-    if installed.install_type == Provider::Script {
-        "script installer".into()
-    } else {
-        "binary installer".into()
-    }
+    "script installer".into()
 }
 
-/// `managed/npm`, `managed/brew (claude-code cask)`, `unmanaged/script`, ...
+/// `managed/npm (@openai/codex)`, `unmanaged/script`, ...
 pub fn method_label(method: &InstallMethod) -> String {
     if method.kind.is_managed() {
         return format!(
             "{}/{}{}",
             method.kind.lifecycle(),
             method.kind.as_str(),
-            package_target(method.package_name.as_deref(), method.package_target_kind.as_deref())
+            package_target(method.package_name.as_deref())
         );
     }
-    if method.kind == Provider::Script {
-        "unmanaged/script".into()
-    } else {
-        "unmanaged/binary".into()
-    }
+    "unmanaged/script".into()
 }
 
 /// The package a managed method installs: its own name, else the agent metadata.
@@ -182,19 +166,7 @@ pub fn method_command(agent: &Agent, method: &InstallMethod) -> String {
     match method.kind {
         Provider::Bun => package.map(|p| format!("bun add -g {p}")).unwrap_or_default(),
         Provider::Npm => package.map(|p| format!("npm i -g {p}")).unwrap_or_default(),
-        Provider::Brew => match &method.package_name {
-            Some(name) if method.package_target_kind.as_deref() == Some("cask") => {
-                format!("brew install --cask {name}")
-            }
-            Some(name) => format!("brew install {name}"),
-            None => String::new(),
-        },
-        Provider::Winget => method
-            .package_name
-            .as_ref()
-            .map(|name| format!("winget install --id {name} -e"))
-            .unwrap_or_default(),
-        Provider::Script | Provider::Binary => method.command.clone().unwrap_or_default(),
+        Provider::Script => method.command.clone().unwrap_or_default(),
     }
 }
 

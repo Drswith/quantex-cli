@@ -153,7 +153,7 @@ pub const STATE_SCHEMA_VERSION: u64 = 2;
 
 /// Install types earlier releases recorded but this one no longer manages. Their
 /// records are kept as they are, so the file stays readable and nothing is lost.
-const RETIRED_INSTALL_TYPES: [&str; 5] = ["cargo", "deno", "mise", "pip", "uv"];
+const RETIRED_INSTALL_TYPES: [&str; 8] = ["binary", "brew", "cargo", "deno", "mise", "pip", "uv", "winget"];
 pub const RECEIPT_SCHEMA_VERSION: u64 = 1;
 
 /// One `installedAgents` entry: how Quantex installed an agent.

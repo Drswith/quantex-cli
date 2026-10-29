@@ -9,7 +9,6 @@
   "platforms": {
     "windows": [
       {
-        "probes": ["executable-presence", "installed-version", "package-presence", "target-version"],
         "provider": "bun",
         "target": {
           "id": "@oh-my-pi/pi-coding-agent",
@@ -17,7 +16,6 @@
         }
       },
       {
-        "probes": ["executable-presence"],
         "provider": "script",
         "target": {
           "id": "https://omp.sh/install.ps1",
@@ -31,7 +29,6 @@
     ],
     "macos": [
       {
-        "probes": ["executable-presence", "installed-version", "package-presence", "target-version"],
         "provider": "bun",
         "target": {
           "id": "@oh-my-pi/pi-coding-agent",
@@ -39,7 +36,6 @@
         }
       },
       {
-        "probes": ["executable-presence"],
         "provider": "script",
         "target": {
           "id": "https://omp.sh/install",
@@ -53,7 +49,6 @@
     ],
     "linux": [
       {
-        "probes": ["executable-presence", "installed-version", "package-presence", "target-version"],
         "provider": "bun",
         "target": {
           "id": "@oh-my-pi/pi-coding-agent",
@@ -61,7 +56,6 @@
         }
       },
       {
-        "probes": ["executable-presence"],
         "provider": "script",
         "target": {
           "id": "https://omp.sh/install",

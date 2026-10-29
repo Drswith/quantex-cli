@@ -9,7 +9,6 @@
   "platforms": {
     "windows": [
       {
-        "probes": ["executable-presence", "installed-version", "package-presence", "target-version"],
         "provider": "bun",
         "target": {
           "id": "opencode-ai",
@@ -17,7 +16,6 @@
         }
       },
       {
-        "probes": ["executable-presence", "installed-version", "package-presence", "target-version"],
         "provider": "npm",
         "target": {
           "id": "opencode-ai",
@@ -27,7 +25,6 @@
     ],
     "macos": [
       {
-        "probes": ["executable-presence", "installed-version", "package-presence", "target-version"],
         "provider": "bun",
         "target": {
           "id": "opencode-ai",
@@ -35,7 +32,6 @@
         }
       },
       {
-        "probes": ["executable-presence", "installed-version", "package-presence", "target-version"],
         "provider": "npm",
         "target": {
           "id": "opencode-ai",
@@ -43,7 +39,6 @@
         }
       },
       {
-        "probes": ["executable-presence"],
         "provider": "script",
         "target": {
           "id": "https://opencode.ai/install",
@@ -52,20 +47,11 @@
             "command": "curl -fsSL https://opencode.ai/install | bash",
             "kind": "shell-script"
           }
-        }
-      },
-      {
-        "probes": ["executable-presence"],
-        "provider": "brew",
-        "target": {
-          "id": "anomalyco/tap/opencode",
-          "kind": "formula"
         }
       }
     ],
     "linux": [
       {
-        "probes": ["executable-presence", "installed-version", "package-presence", "target-version"],
         "provider": "bun",
         "target": {
           "id": "opencode-ai",
@@ -73,7 +59,6 @@
         }
       },
       {
-        "probes": ["executable-presence", "installed-version", "package-presence", "target-version"],
         "provider": "npm",
         "target": {
           "id": "opencode-ai",
@@ -81,7 +66,6 @@
         }
       },
       {
-        "probes": ["executable-presence"],
         "provider": "script",
         "target": {
           "id": "https://opencode.ai/install",
@@ -90,14 +74,6 @@
             "command": "curl -fsSL https://opencode.ai/install | bash",
             "kind": "shell-script"
           }
-        }
-      },
-      {
-        "probes": ["executable-presence"],
-        "provider": "brew",
-        "target": {
-          "id": "anomalyco/tap/opencode",
-          "kind": "formula"
         }
       }
     ]

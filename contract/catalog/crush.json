@@ -12,7 +12,6 @@
   "platforms": {
     "windows": [
       {
-        "probes": ["executable-presence", "installed-version", "package-presence", "target-version"],
         "provider": "bun",
         "target": {
           "id": "@charmland/crush",
@@ -20,25 +19,15 @@
         }
       },
       {
-        "probes": ["executable-presence", "installed-version", "package-presence", "target-version"],
         "provider": "npm",
         "target": {
           "id": "@charmland/crush",
           "kind": "package"
-        }
-      },
-      {
-        "probes": ["executable-presence"],
-        "provider": "winget",
-        "target": {
-          "id": "charmbracelet.crush",
-          "kind": "id"
         }
       }
     ],
     "macos": [
       {
-        "probes": ["executable-presence", "installed-version", "package-presence", "target-version"],
         "provider": "bun",
         "target": {
           "id": "@charmland/crush",
@@ -46,25 +35,15 @@
         }
       },
       {
-        "probes": ["executable-presence", "installed-version", "package-presence", "target-version"],
         "provider": "npm",
         "target": {
           "id": "@charmland/crush",
           "kind": "package"
-        }
-      },
-      {
-        "probes": ["executable-presence"],
-        "provider": "brew",
-        "target": {
-          "id": "charmbracelet/tap/crush",
-          "kind": "formula"
         }
       }
     ],
     "linux": [
       {
-        "probes": ["executable-presence", "installed-version", "package-presence", "target-version"],
         "provider": "bun",
         "target": {
           "id": "@charmland/crush",
@@ -72,19 +51,10 @@
         }
       },
       {
-        "probes": ["executable-presence", "installed-version", "package-presence", "target-version"],
         "provider": "npm",
         "target": {
           "id": "@charmland/crush",
           "kind": "package"
-        }
-      },
-      {
-        "probes": ["executable-presence"],
-        "provider": "brew",
-        "target": {
-          "id": "charmbracelet/tap/crush",
-          "kind": "formula"
         }
       }
     ]

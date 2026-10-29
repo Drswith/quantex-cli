@@ -13,7 +13,6 @@
   "platforms": {
     "windows": [
       {
-        "probes": ["executable-presence"],
         "provider": "script",
         "target": {
           "id": "https://code.kimi.com/kimi-code/install.ps1",
@@ -25,7 +24,6 @@
         }
       },
       {
-        "probes": ["executable-presence", "installed-version", "package-presence", "target-version"],
         "provider": "npm",
         "target": {
           "id": "@moonshot-ai/kimi-code",
@@ -35,7 +33,6 @@
     ],
     "macos": [
       {
-        "probes": ["executable-presence"],
         "provider": "script",
         "target": {
           "id": "https://code.kimi.com/kimi-code/install.sh",
@@ -47,7 +44,6 @@
         }
       },
       {
-        "probes": ["executable-presence", "installed-version", "package-presence", "target-version"],
         "provider": "npm",
         "target": {
           "id": "@moonshot-ai/kimi-code",
@@ -57,7 +53,6 @@
     ],
     "linux": [
       {
-        "probes": ["executable-presence"],
         "provider": "script",
         "target": {
           "id": "https://code.kimi.com/kimi-code/install.sh",
@@ -69,7 +64,6 @@
         }
       },
       {
-        "probes": ["executable-presence", "installed-version", "package-presence", "target-version"],
         "provider": "npm",
         "target": {
           "id": "@moonshot-ai/kimi-code",

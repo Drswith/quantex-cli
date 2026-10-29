@@ -298,7 +298,7 @@ fn apply_install(ctx: &Context, view: &View, decision: &Decision) -> Outcome {
     };
     let command = providers::install_command(&recipe.binding, agent);
     let description = match recipe.binding.provider {
-        crate::catalog::Provider::Script | crate::catalog::Provider::Binary => "install effect failed".to_owned(),
+        crate::catalog::Provider::Script => "install effect failed".to_owned(),
         provider => format!("{} install failed", provider.as_str()),
     };
     let remediation = (!recipe.binding.provider.is_managed())

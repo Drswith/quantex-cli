@@ -275,7 +275,7 @@ fn command_succeeds(program: &str, args: &[&str]) -> bool {
 /// Whether a package manager is usable: its `--version` exits 0.
 pub fn installer_available(provider: Provider) -> bool {
     match provider {
-        Provider::Script | Provider::Binary => true,
+        Provider::Script => true,
         other => command_succeeds(other.as_str(), &["--version"]),
     }
 }

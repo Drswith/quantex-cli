@@ -10,7 +10,6 @@
   "platforms": {
     "windows": [
       {
-        "probes": ["executable-presence", "installed-version", "package-presence", "target-version"],
         "provider": "npm",
         "target": {
           "id": "@mimo-ai/cli",
@@ -20,7 +19,6 @@
     ],
     "macos": [
       {
-        "probes": ["executable-presence"],
         "provider": "script",
         "target": {
           "id": "https://mimo.xiaomi.com/install",
@@ -32,7 +30,6 @@
         }
       },
       {
-        "probes": ["executable-presence", "installed-version", "package-presence", "target-version"],
         "provider": "npm",
         "target": {
           "id": "@mimo-ai/cli",
@@ -42,7 +39,6 @@
     ],
     "linux": [
       {
-        "probes": ["executable-presence"],
         "provider": "script",
         "target": {
           "id": "https://mimo.xiaomi.com/install",
@@ -54,7 +50,6 @@
         }
       },
       {
-        "probes": ["executable-presence", "installed-version", "package-presence", "target-version"],
         "provider": "npm",
         "target": {
           "id": "@mimo-ai/cli",

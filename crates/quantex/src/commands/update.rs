@@ -147,7 +147,7 @@ fn confirmed_binding(view: &View) -> Option<Binding> {
 fn tracked_unmanaged(view: &View) -> bool {
     view.installed
         .as_ref()
-        .is_some_and(|installed| matches!(installed.install_type, Provider::Script | Provider::Binary))
+        .is_some_and(|installed| installed.install_type == Provider::Script)
 }
 
 fn decide(view: &View, target_version: &str) -> Decision {

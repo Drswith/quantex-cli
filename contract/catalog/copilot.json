@@ -6,17 +6,22 @@
   "platforms": {
     "windows": [
       {
-        "probes": ["executable-presence"],
-        "provider": "winget",
+        "provider": "bun",
         "target": {
-          "id": "GitHub.Copilot",
-          "kind": "id"
+          "id": "@github/copilot",
+          "kind": "package"
+        }
+      },
+      {
+        "provider": "npm",
+        "target": {
+          "id": "@github/copilot",
+          "kind": "package"
         }
       }
     ],
     "macos": [
       {
-        "probes": ["executable-presence", "installed-version", "package-presence", "target-version"],
         "provider": "bun",
         "target": {
           "id": "@github/copilot",
@@ -24,7 +29,6 @@
         }
       },
       {
-        "probes": ["executable-presence", "installed-version", "package-presence", "target-version"],
         "provider": "npm",
         "target": {
           "id": "@github/copilot",
@@ -32,7 +36,6 @@
         }
       },
       {
-        "probes": ["executable-presence"],
         "provider": "script",
         "target": {
           "id": "https://gh.io/copilot-install",
@@ -41,20 +44,11 @@
             "command": "curl -fsSL https://gh.io/copilot-install | bash",
             "kind": "shell-script"
           }
-        }
-      },
-      {
-        "probes": ["executable-presence"],
-        "provider": "brew",
-        "target": {
-          "id": "copilot-cli",
-          "kind": "formula"
         }
       }
     ],
     "linux": [
       {
-        "probes": ["executable-presence", "installed-version", "package-presence", "target-version"],
         "provider": "bun",
         "target": {
           "id": "@github/copilot",
@@ -62,7 +56,6 @@
         }
       },
       {
-        "probes": ["executable-presence", "installed-version", "package-presence", "target-version"],
         "provider": "npm",
         "target": {
           "id": "@github/copilot",
@@ -70,7 +63,6 @@
         }
       },
       {
-        "probes": ["executable-presence"],
         "provider": "script",
         "target": {
           "id": "https://gh.io/copilot-install",
@@ -79,14 +71,6 @@
             "command": "curl -fsSL https://gh.io/copilot-install | bash",
             "kind": "shell-script"
           }
-        }
-      },
-      {
-        "probes": ["executable-presence"],
-        "provider": "brew",
-        "target": {
-          "id": "copilot-cli",
-          "kind": "formula"
         }
       }
     ]
