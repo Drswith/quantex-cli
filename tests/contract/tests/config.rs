@@ -8,10 +8,10 @@ use serde_json::{Value, json};
 fn config_json(sandbox: &Sandbox, args: &[&str]) -> (Run, Value) {
     let mut full = vec!["config"];
     full.extend_from_slice(args);
-    full.extend_from_slice(&["--output", "json"]);
+    full.extend_from_slice(&["--json"]);
     let run = sandbox.run(&full);
     let envelope = run.json();
-    assert_envelope(&envelope, "config", "json");
+    assert_envelope(&envelope, "config");
     (run, envelope)
 }
 

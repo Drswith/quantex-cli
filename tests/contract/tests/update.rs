@@ -16,7 +16,7 @@ fn sandbox() -> Sandbox {
 
 fn run_json(sandbox: &Sandbox, args: &[&str]) -> (i32, Value) {
     let mut full = args.to_vec();
-    full.extend_from_slice(&["--output", "json"]);
+    full.extend_from_slice(&["--json"]);
     let run = sandbox.run(&full);
     (run.code, run.json())
 }
@@ -57,7 +57,7 @@ fn an_agent_on_the_latest_version_is_up_to_date() {
     let sandbox = installed_codex("0.50.0");
     let (code, envelope) = run_json(&sandbox, &["update", "codex"]);
     assert_eq!(code, 0, "{envelope}");
-    assert_envelope(&envelope, "update", "json");
+    assert_envelope(&envelope, "update");
     assert_eq!(envelope["target"], json!({ "kind": "agent", "name": "codex" }));
     assert_eq!(
         envelope["data"],
@@ -114,20 +114,6 @@ fn respect_semver_uses_npm_update() {
     let (code, envelope) = run_json(&sandbox, &["update", "codex"]);
     assert_eq!(code, 0, "{envelope}");
     assert_eq!(mutations(&sandbox).last().unwrap(), "npm update -g @openai/codex");
-}
-
-#[test]
-fn single_update_streams_started_and_progress_events() {
-    let sandbox = installed_codex("0.51.0");
-    next_npm_version(&sandbox, "0.51.0");
-    let run = sandbox.run(["update", "codex", "--output", "ndjson"]);
-    assert_eq!(run.code, 0, "{run:?}");
-    let events = run.ndjson();
-    let types: Vec<&str> = events.iter().map(|event| event["type"].as_str().unwrap()).collect();
-    assert_eq!(types, ["started", "progress", "result"]);
-    assert_eq!(events[0]["data"], json!({ "agent": "codex", "scope": "single" }));
-    assert_eq!(events[1]["data"]["status"], "updated");
-    assert_eq!(events[1]["target"], json!({ "kind": "agent", "name": "codex" }));
 }
 
 #[test]
@@ -392,15 +378,8 @@ fn a_self_update_that_keeps_the_version_is_up_to_date() {
 fn batch_update_covers_recorded_and_present_agents() {
     let sandbox = installed_codex("0.51.0");
     next_npm_version(&sandbox, "0.51.0");
-    let run = sandbox.run(["update", "--all", "--output", "ndjson"]);
-    assert_eq!(run.code, 0, "{run:?}");
-    let events = run.ndjson();
-    assert_eq!(events[0]["type"], "started");
-    assert_eq!(events[0]["data"], json!({ "scope": "all" }));
-    assert_eq!(events[0]["target"], json!({ "kind": "agent" }));
-    let result = events.last().unwrap();
-    assert_eq!(result["type"], "result");
-    let envelope = &result["data"];
+    let (code, envelope) = run_json(&sandbox, &["update", "--all"]);
+    assert_eq!(code, 0, "{envelope}");
     assert_eq!(envelope["ok"], true);
     assert_eq!(envelope["target"], json!({ "kind": "agent" }));
     assert_eq!(envelope["data"]["scope"], "all");
@@ -415,8 +394,6 @@ fn batch_update_covers_recorded_and_present_agents() {
             "strategy": "managed/npm",
         }])
     );
-    let progress: Vec<&Value> = events.iter().filter(|event| event["type"] == "progress").collect();
-    assert_eq!(progress.len(), 1);
 }
 
 #[test]

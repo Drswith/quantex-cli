@@ -5,7 +5,7 @@ use serde_json::{Map, Value, json};
 use crate::catalog::{self, Agent};
 use crate::context::Context;
 use crate::lifecycle::{self, Decision, Kind, View};
-use crate::protocol::{self, CommandError, ErrorCode, EventType, Outcome, Target, Warning};
+use crate::protocol::{CommandError, ErrorCode, Outcome, Target, Warning};
 use crate::providers::{self, Binding, Observed};
 use crate::store::{self, InstalledAgent};
 use crate::term::Human;
@@ -35,12 +35,12 @@ fn agent_data(agent: &Agent, changed: bool, installed: bool, state: Option<&Inst
     data(&agent.name, &agent.display_name, changed, installed, state)
 }
 
-fn success(operation: &str, agent: &Agent, value: Value) -> Outcome {
-    Outcome::success(operation, Some(Target::agent(&agent.name)), value)
+fn success(agent: &Agent, value: Value) -> Outcome {
+    Outcome::success("install", Some(Target::agent(&agent.name)), value)
 }
 
-fn failure(operation: &str, agent: &Agent, error: CommandError) -> Outcome {
-    Outcome::failure(operation, Some(Target::agent(&agent.name)), error)
+fn failure(agent: &Agent, error: CommandError) -> Outcome {
+    Outcome::failure("install", Some(Target::agent(&agent.name)), error)
         .with_data(agent_data(agent, false, false, None))
 }
 
@@ -73,15 +73,15 @@ fn error(code: ErrorCode, message: String, details: Option<Value>) -> CommandErr
     error
 }
 
-fn already_installed(operation: &str, agent: &Agent) -> Outcome {
-    success(operation, agent, agent_data(agent, false, true, None)).with_warning(Warning::new(
+fn already_installed(agent: &Agent) -> Outcome {
+    success(agent, agent_data(agent, false, true, None)).with_warning(Warning::new(
         "ALREADY_INSTALLED",
         format!("{} is already installed.", agent.display_name),
     ))
 }
 
-fn untracked(operation: &str, agent: &Agent) -> Outcome {
-    success(operation, agent, agent_data(agent, false, true, None)).with_warning(Warning::new(
+fn untracked(agent: &Agent) -> Outcome {
+    success(agent, agent_data(agent, false, true, None)).with_warning(Warning::new(
         "UNTRACKED_EXISTING_INSTALL",
         format!(
             "{} is already installed but not tracked by Quantex. Quantex could not safely determine the supported install source, so the existing install remains unmanaged.",
@@ -90,7 +90,7 @@ fn untracked(operation: &str, agent: &Agent) -> Outcome {
     ))
 }
 
-fn dry_run(operation: &str, agent: &Agent, route: &str) -> Outcome {
+fn dry_run(agent: &Agent, route: &str) -> Outcome {
     let message = match route {
         "adopt" => format!(
             "Dry run: would record the existing {} install in Quantex state.",
@@ -102,18 +102,12 @@ fn dry_run(operation: &str, agent: &Agent, route: &str) -> Outcome {
         ),
         _ => format!("Dry run: would install {}.", agent.display_name),
     };
-    success(operation, agent, agent_data(agent, false, route == "adopt", None))
-        .with_warning(Warning::new("DRY_RUN", message))
+    success(agent, agent_data(agent, false, route == "adopt", None)).with_warning(Warning::new("DRY_RUN", message))
 }
 
-fn verification_failed(operation: &str, agent: &Agent, reason: &str) -> Outcome {
-    let message = if operation == "ensure" {
-        format!("{} could not be verified after ensure completed.", agent.display_name)
-    } else {
-        format!("{} could not be verified after installation.", agent.display_name)
-    };
+fn verification_failed(agent: &Agent, reason: &str) -> Outcome {
+    let message = format!("{} could not be verified after installation.", agent.display_name);
     failure(
-        operation,
         agent,
         error(
             ErrorCode::InstallFailed,
@@ -123,13 +117,12 @@ fn verification_failed(operation: &str, agent: &Agent, reason: &str) -> Outcome 
     )
 }
 
-fn install_failed(operation: &str, agent: &Agent, reason: &str, remediation: Option<&str>) -> Outcome {
+fn install_failed(agent: &Agent, reason: &str, remediation: Option<&str>) -> Outcome {
     let lifecycle = reason
         .trim_start()
         .starts_with("No installation provider is currently available")
         .then_some("provider-unavailable");
     failure(
-        operation,
         agent,
         error(
             ErrorCode::InstallFailed,
@@ -167,9 +160,8 @@ fn invalid_adoption(view: &View, method: &crate::catalog::InstallMethod, binding
     }
 }
 
-fn blocked(operation: &str, agent: &Agent, reason: &str) -> Outcome {
+fn blocked(agent: &Agent, reason: &str) -> Outcome {
     failure(
-        operation,
         agent,
         error(
             ErrorCode::InstallFailed,
@@ -196,12 +188,12 @@ fn record(ctx: &Context, view: &View, installed: &InstalledAgent, binding: &Bind
     .map_err(store::MutateError::into_command_error)
 }
 
-/// Installs or ensures one agent and returns its outcome without emitting it.
-pub fn install_agent(ctx: &Context, input: &str, operation: &str, emit_started: bool) -> Outcome {
+/// Installs one agent and returns its outcome without emitting it.
+pub fn install_agent(ctx: &Context, input: &str) -> Outcome {
     let dir = ctx.quantex_dir();
     let Some(agent) = catalog::find(input) else {
         return Outcome::failure(
-            operation,
+            "install",
             Some(Target::agent(input)),
             CommandError::new(ErrorCode::AgentNotFound, format!("Unknown agent: {input}"))
                 .details(json!({ "input": input })),
@@ -209,7 +201,7 @@ pub fn install_agent(ctx: &Context, input: &str, operation: &str, emit_started: 
     };
     let state = match store::load_state(&dir) {
         Ok(state) => state,
-        Err(error) => return Outcome::failure(operation, Some(Target::agent(input)), error.into_command_error()),
+        Err(error) => return Outcome::failure("install", Some(Target::agent(input)), error.into_command_error()),
     };
 
     // An unattributable executable outside Quantex stays as it is, without taking the lock.
@@ -221,38 +213,36 @@ pub fn install_agent(ctx: &Context, input: &str, operation: &str, emit_started: 
         let path = crate::probe::resolve_executable(&crate::probe::lookup_names(agent))
             .map(|path| crate::probe::real_path(&path));
         if providers::adoptable_method(&view_methods, path.as_deref()).is_none() {
-            return untracked(operation, agent);
+            return untracked(agent);
         }
     }
 
     if ctx.dry_run {
         let view = lifecycle::observe_lifecycle(ctx, agent, &state, None);
-        return preview(operation, &view);
+        return preview(&view);
     }
 
     let _lock = match store::acquire_lock(&dir, LIFECYCLE_LOCK, &["agent-lifecycle"]) {
         Ok(lock) => lock,
-        Err(error) => return Outcome::failure(operation, Some(Target::agent(input)), error.into_command_error()),
+        Err(error) => return Outcome::failure("install", Some(Target::agent(input)), error.into_command_error()),
     };
     let view = lifecycle::observe_lifecycle(ctx, agent, &state, None);
     let decision = lifecycle::decide(&view);
     match decision {
-        Decision::Interrupted => install_failed(operation, agent, "", None),
-        Decision::Blocked(reason) => blocked(operation, agent, &reason),
-        Decision::AlreadySatisfied => already_installed(operation, agent),
+        Decision::Interrupted => install_failed(agent, "", None),
+        Decision::Blocked(reason) => blocked(agent, &reason),
+        Decision::AlreadySatisfied => already_installed(agent),
         Decision::ExternalPreserved => match adoptable(&view) {
-            None => untracked(operation, agent),
-            Some((method, binding)) if invalid_adoption(&view, &method, &binding).is_some() => blocked(
-                operation,
-                agent,
-                invalid_adoption(&view, &method, &binding).unwrap_or_default(),
-            ),
+            None => untracked(agent),
+            Some((method, binding)) if invalid_adoption(&view, &method, &binding).is_some() => {
+                blocked(agent, invalid_adoption(&view, &method, &binding).unwrap_or_default())
+            }
             Some((method, binding)) => {
                 let installed = providers::installed_state_for_method(agent, &method, true);
                 if let Err(error) = record(ctx, &view, &installed, &binding) {
-                    return Outcome::failure(operation, Some(Target::agent(&agent.name)), error);
+                    return Outcome::failure("install", Some(Target::agent(&agent.name)), error);
                 }
-                success(operation, agent, agent_data(agent, true, true, Some(&installed))).with_warning(Warning::new(
+                success(agent, agent_data(agent, true, true, Some(&installed))).with_warning(Warning::new(
                     "TRACKED_EXISTING_INSTALL",
                     format!(
                         "{} is already installed. Quantex is now tracking the existing install.",
@@ -261,7 +251,7 @@ pub fn install_agent(ctx: &Context, input: &str, operation: &str, emit_started: 
                 ))
             }
         },
-        Decision::Install | Decision::Reinstall(_) => apply_install(ctx, operation, &view, &decision, emit_started),
+        Decision::Install | Decision::Reinstall(_) => apply_install(ctx, &view, &decision),
     }
 }
 
@@ -269,52 +259,43 @@ fn observe_methods(ctx: &Context, agent: &Agent) -> Vec<crate::catalog::InstallM
     crate::observe::ordered_methods(ctx, agent)
 }
 
-fn preview(operation: &str, view: &View) -> Outcome {
+fn preview(view: &View) -> Outcome {
     let agent = view.agent;
     match lifecycle::decide(view) {
-        Decision::AlreadySatisfied => already_installed(operation, agent),
+        Decision::AlreadySatisfied => already_installed(agent),
         Decision::ExternalPreserved => match adoptable(view) {
-            None => untracked(operation, agent),
+            None => untracked(agent),
             Some((method, binding)) => match invalid_adoption(view, &method, &binding) {
-                Some(reason) => blocked(operation, agent, reason),
-                None => dry_run(operation, agent, "adopt"),
+                Some(reason) => blocked(agent, reason),
+                None => dry_run(agent, "adopt"),
             },
         },
-        Decision::Install => dry_run(operation, agent, "install"),
-        Decision::Reinstall(_) => dry_run(operation, agent, "reinstall"),
+        Decision::Install => dry_run(agent, "install"),
+        Decision::Reinstall(_) => dry_run(agent, "reinstall"),
         Decision::Blocked(_) | Decision::Interrupted => {
             let in_path = view.path_executable.present;
             match (&view.installed, in_path) {
                 (None, true) => {
                     if adoptable(view).is_some() {
-                        dry_run(operation, agent, "adopt")
+                        dry_run(agent, "adopt")
                     } else {
-                        untracked(operation, agent)
+                        untracked(agent)
                     }
                 }
-                (Some(_), true) => already_installed(operation, agent),
-                (Some(_), false) => dry_run(operation, agent, "reinstall"),
-                (None, false) => dry_run(operation, agent, "install"),
+                (Some(_), true) => already_installed(agent),
+                (Some(_), false) => dry_run(agent, "reinstall"),
+                (None, false) => dry_run(agent, "install"),
             }
         }
     }
 }
 
-fn apply_install(ctx: &Context, operation: &str, view: &View, decision: &Decision, emit_started: bool) -> Outcome {
+fn apply_install(ctx: &Context, view: &View, decision: &Decision) -> Outcome {
     let agent = view.agent;
     let recipe = match lifecycle::resolve_recipe(ctx, view, decision) {
         Ok(recipe) => recipe,
-        Err(reason) => return install_failed(operation, agent, &reason, None),
+        Err(reason) => return install_failed(agent, &reason, None),
     };
-    if emit_started {
-        protocol::emit_event(
-            ctx,
-            operation,
-            EventType::Started,
-            json!({ "agent": { "displayName": agent.display_name, "name": agent.name } }),
-            Some(&Target::agent(&agent.name)),
-        );
-    }
     let command = providers::install_command(&recipe.binding, agent);
     let description = match recipe.binding.provider {
         crate::catalog::Provider::Script | crate::catalog::Provider::Binary => "install effect failed".to_owned(),
@@ -323,20 +304,19 @@ fn apply_install(ctx: &Context, operation: &str, view: &View, decision: &Decisio
     let remediation = (!recipe.binding.provider.is_managed())
         .then_some("Review the installer output and upstream installation instructions.");
     if let Err(failure) = providers::run_mutation(ctx, &command, &description) {
-        return install_failed(operation, agent, &failure.reason(), remediation);
+        return install_failed(agent, &failure.reason(), remediation);
     }
     if recipe.binding.provider == crate::catalog::Provider::Bun
         && let Err(failure) = providers::trust_bun_packages(ctx, std::slice::from_ref(&recipe.binding.target.id))
     {
         compensate(ctx, &recipe.binding);
-        return install_failed(operation, agent, &failure.reason(), None);
+        return install_failed(agent, &failure.reason(), None);
     }
     match providers::observe(ctx, &recipe.binding) {
         Observed::Present { .. } => {}
         Observed::Absent => {
             compensate(ctx, &recipe.binding);
             return verification_failed(
-                operation,
                 agent,
                 &format!(
                     "{} is not installed through {}",
@@ -347,7 +327,7 @@ fn apply_install(ctx: &Context, operation: &str, view: &View, decision: &Decisio
         }
         other => {
             compensate(ctx, &recipe.binding);
-            return verification_failed(operation, agent, &other.reason());
+            return verification_failed(agent, &other.reason());
         }
     }
     let state = store::load_state(&ctx.quantex_dir()).unwrap_or_default();
@@ -355,14 +335,12 @@ fn apply_install(ctx: &Context, operation: &str, view: &View, decision: &Decisio
     if verified.kind != Kind::Present {
         compensate(ctx, &recipe.binding);
         return verification_failed(
-            operation,
             agent,
             "Fresh post-mutation observation did not confirm the selected provider source.",
         );
     }
     if let Err(error) = record(ctx, &verified, &recipe.installed, &recipe.binding) {
         return failure(
-            operation,
             agent,
             self::error(
                 ErrorCode::InstallFailed,
@@ -371,7 +349,7 @@ fn apply_install(ctx: &Context, operation: &str, view: &View, decision: &Decisio
             ),
         );
     }
-    success(operation, agent, agent_data(agent, true, true, Some(&recipe.installed)))
+    success(agent, agent_data(agent, true, true, Some(&recipe.installed)))
 }
 
 /// Removes what a failed install just added, for package managers that can.
@@ -409,10 +387,6 @@ pub fn render_single(outcome: &Outcome, human: &mut Human) {
     let name = data["agent"]["displayName"].as_str().unwrap_or_default();
     let text = human.green(&format!("{name} installed successfully!"));
     human.line(&text);
-}
-
-pub fn ensure(ctx: &Context, input: &str) -> Outcome {
-    install_agent(ctx, input, "ensure", true).with_human(render_single)
 }
 
 /// Canonical batch targets: catalog names where known, deduplicated, sorted.
@@ -488,29 +462,15 @@ pub fn install(ctx: &Context, inputs: &[String]) -> Outcome {
     let targets = normalize_targets(inputs);
     if targets.len() <= 1 {
         let input = targets.first().cloned().unwrap_or_default();
-        return install_agent(ctx, &input, "install", true).with_human(render_single);
+        return install_agent(ctx, &input).with_human(render_single);
     }
-    protocol::emit_event(
-        ctx,
-        "install",
-        EventType::Started,
-        json!({ "scope": "batch" }),
-        Some(&Target::new(crate::protocol::TargetKind::Agent, None::<String>)),
-    );
     let mut results = Vec::new();
     for input in &targets {
         if ctx.is_cancelled() {
             break;
         }
-        let outcome = install_agent(ctx, input, "install", false);
+        let outcome = install_agent(ctx, input);
         let item = batch_item(input, &outcome);
-        protocol::emit_event(
-            ctx,
-            "install",
-            EventType::Progress,
-            item.clone(),
-            Some(&Target::agent(item["agent"]["name"].as_str().unwrap_or(input))),
-        );
         results.push(item);
     }
     let mut summary = json!({

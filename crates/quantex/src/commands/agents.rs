@@ -182,7 +182,7 @@ fn render_list(outcome: &Outcome, human: &mut Human) {
 // ---------------------------------------------------------------------------
 // info / inspect
 
-fn inspection_fields(observation: &Observation, with_update_label: bool) -> Value {
+fn inspection_fields(observation: &Observation) -> Value {
     let mut map = Map::new();
     insert_opt(&mut map, "binaryPath", observation.path_string());
     map.insert("installed".into(), observation.present.into());
@@ -198,26 +198,8 @@ fn inspection_fields(observation: &Observation, with_update_label: bool) -> Valu
         "sourceLabel",
         observation.present.then(|| observation.source_label()),
     );
-    if with_update_label {
-        map.insert("updateLabel".into(), observation.update_label().into());
-    }
+    map.insert("updateLabel".into(), observation.update_label().into());
     Value::Object(map)
-}
-
-pub fn info(ctx: &Context, name: &str) -> Outcome {
-    let observation = match observe_one(ctx, "info", name) {
-        Ok(observation) => observation,
-        Err(outcome) => return outcome.with_human(render_info),
-    };
-    Outcome::success(
-        "info",
-        Some(Target::agent(&observation.agent.name)),
-        json!({
-            "agent": observation.agent_summary(),
-            "inspection": inspection_fields(&observation, false),
-        }),
-    )
-    .with_human(render_info)
 }
 
 fn agent_fields(human: &Human, data: &Value) -> Vec<(&'static str, String)> {
@@ -296,22 +278,10 @@ fn render_methods(human: &mut Human, data: &Value) {
     );
 }
 
-fn render_info(outcome: &Outcome, human: &mut Human) {
-    if outcome.error.is_some() {
-        return render_error(outcome, human);
-    }
-    let Some(data) = &outcome.data else { return };
-    human.heading(data["agent"]["displayName"].as_str().unwrap_or_default());
-    let fields = agent_fields(human, data);
-    human.fields(&fields);
-    render_methods(human, data);
-    human.blank();
-}
-
-pub fn inspect(ctx: &Context, name: &str) -> Outcome {
-    let observation = match observe_one(ctx, "inspect", name) {
+pub fn info(ctx: &Context, name: &str) -> Outcome {
+    let observation = match observe_one(ctx, "info", name) {
         Ok(observation) => observation,
-        Err(outcome) => return outcome.with_human(render_inspect),
+        Err(outcome) => return outcome.with_human(render_info),
     };
     let capabilities = json!({
         "canAutoInstall": !observation.methods.is_empty(),
@@ -320,22 +290,22 @@ pub fn inspect(ctx: &Context, name: &str) -> Outcome {
         "canSelfUpdate": !observation.self_update_commands().is_empty(),
     });
     let mut outcome = Outcome::success(
-        "inspect",
+        "info",
         Some(Target::agent(&observation.agent.name)),
         json!({
             "agent": observation.agent_summary(),
             "capabilities": capabilities,
-            "inspection": inspection_fields(&observation, true),
+            "inspection": inspection_fields(&observation),
         }),
     )
-    .with_human(render_inspect);
+    .with_human(render_info);
     if let Some(warning) = observation.superseded_warning() {
         outcome = outcome.with_warning(warning);
     }
     outcome
 }
 
-fn render_inspect(outcome: &Outcome, human: &mut Human) {
+fn render_info(outcome: &Outcome, human: &mut Human) {
     if outcome.error.is_some() {
         return render_error(outcome, human);
     }

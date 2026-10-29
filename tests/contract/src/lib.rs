@@ -61,15 +61,6 @@ impl Run {
         serde_json::from_str(&self.stdout)
             .unwrap_or_else(|error| panic!("stdout is not JSON ({error}):\n{}", self.stdout))
     }
-
-    /// Parses stdout as NDJSON, one value per non-empty line.
-    pub fn ndjson(&self) -> Vec<Value> {
-        self.stdout
-            .lines()
-            .filter(|line| !line.trim().is_empty())
-            .map(|line| serde_json::from_str(line).unwrap_or_else(|error| panic!("line is not JSON ({error}): {line}")))
-            .collect()
-    }
 }
 
 /// A URL nothing listens on.
@@ -298,10 +289,10 @@ fn normalize_with_key(value: &Value, key: Option<&str>) -> Value {
 }
 
 /// Asserts the envelope invariants every structured result must satisfy.
-pub fn assert_envelope(envelope: &Value, action: &str, mode: &str) {
+pub fn assert_envelope(envelope: &Value, action: &str) {
     assert_eq!(envelope["action"], action, "action in {envelope}");
     assert!(envelope["ok"].is_boolean(), "ok must be boolean in {envelope}");
-    assert_eq!(envelope["meta"]["mode"], mode, "meta.mode in {envelope}");
+    assert_eq!(envelope["meta"]["mode"], "json", "meta.mode in {envelope}");
     assert_eq!(
         envelope["meta"]["schemaVersion"], "1",
         "meta.schemaVersion in {envelope}"

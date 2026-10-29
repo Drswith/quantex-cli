@@ -12,7 +12,7 @@ fn sandbox() -> Sandbox {
 
 fn run_json(sandbox: &Sandbox, args: &[&str]) -> (i32, Value) {
     let mut full = args.to_vec();
-    full.extend_from_slice(&["--output", "json"]);
+    full.extend_from_slice(&["--json"]);
     let run = sandbox.run(&full);
     (run.code, run.json())
 }
@@ -22,7 +22,7 @@ fn install_records_state_and_a_receipt() {
     let sandbox = sandbox();
     let (code, envelope) = run_json(&sandbox, &["install", "codex"]);
     assert_eq!(code, 0, "{envelope}");
-    assert_envelope(&envelope, "install", "json");
+    assert_envelope(&envelope, "install");
     assert_eq!(
         envelope["data"],
         json!({
@@ -81,11 +81,11 @@ fn dry_run_plans_without_changing_anything() {
 }
 
 #[test]
-fn ensure_installs_like_install() {
+fn ensure_is_install() {
     let sandbox = sandbox();
     let (code, envelope) = run_json(&sandbox, &["ensure", "codex"]);
     assert_eq!(code, 0, "{envelope}");
-    assert_envelope(&envelope, "ensure", "json");
+    assert_envelope(&envelope, "install");
     assert_eq!(envelope["data"]["changed"], true);
     let (_, envelope) = run_json(&sandbox, &["ensure", "codex"]);
     assert_eq!(envelope["warnings"][0]["code"], "ALREADY_INSTALLED");

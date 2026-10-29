@@ -142,9 +142,7 @@ fn set_global_flag(globals: &mut GlobalArgs, id: &str) {
 
 fn set_global_value(globals: &mut GlobalArgs, id: &str, value: String) {
     match id {
-        "output" => globals.output = Some(value),
         "color" => globals.color = Some(value),
-        "logLevel" => globals.log_level = Some(value),
         "runId" => globals.run_id = Some(value),
         "timeout" => globals.timeout = Some(value),
         _ => {}
@@ -471,12 +469,10 @@ fn globals_from(matches: &clap::ArgMatches) -> GlobalArgs {
     };
     GlobalArgs {
         json: flag("json"),
-        output: value("output"),
         non_interactive: flag("nonInteractive"),
         yes: flag("yes"),
         quiet: flag("quiet"),
         color: value("color"),
-        log_level: value("logLevel"),
         dry_run: flag("dryRun"),
         refresh: flag("refresh"),
         no_cache: flag("noCache"),
@@ -597,7 +593,7 @@ mod tests {
 
     #[test]
     fn aliases_resolve_to_canonical_commands() {
-        let Parsed::Command(invocation) = parse(&args("ls --output json")) else {
+        let Parsed::Command(invocation) = parse(&args("ls --json")) else {
             panic!("expected a command");
         };
         assert_eq!(invocation.name, "list");

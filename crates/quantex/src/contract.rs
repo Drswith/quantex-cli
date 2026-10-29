@@ -6,7 +6,6 @@ use serde::Deserialize;
 use serde_json::Value;
 
 const REGISTRY_JSON: &str = include_str!("../../../contract/cli/registry.json");
-const SCHEMAS_JSON: &str = include_str!("../../../contract/cli/schemas.json");
 
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -93,7 +92,7 @@ impl OptionSpec {
     }
 }
 
-/// Returns the long option name without dashes, e.g. `--log-level <level>` → `log-level`.
+/// Returns the long option name without dashes, e.g. `--timeout <duration>` → `timeout`.
 fn long_flag(flags: &str) -> &str {
     let start = flags.find("--").map(|index| index + 2).unwrap_or(0);
     let rest = &flags[start..];
@@ -106,11 +105,6 @@ fn long_flag(flags: &str) -> &str {
 pub fn registry() -> &'static Registry {
     static REGISTRY: OnceLock<Registry> = OnceLock::new();
     REGISTRY.get_or_init(|| serde_json::from_str(REGISTRY_JSON).expect("contract/cli/registry.json is valid"))
-}
-
-pub fn schemas() -> &'static Value {
-    static SCHEMAS: OnceLock<Value> = OnceLock::new();
-    SCHEMAS.get_or_init(|| serde_json::from_str(SCHEMAS_JSON).expect("contract/cli/schemas.json is valid"))
 }
 
 pub fn command(name: &str) -> Option<&'static CommandSpec> {
@@ -135,22 +129,8 @@ mod tests {
 
     #[test]
     fn long_flags_are_extracted() {
-        assert_eq!(long_flag("--output <mode>"), "output");
+        assert_eq!(long_flag("--timeout <duration>"), "timeout");
         assert_eq!(long_flag("--no-cache"), "no-cache");
-        assert_eq!(long_flag("--log-level <level>"), "log-level");
-    }
-
-    #[test]
-    fn registry_and_schemas_agree() {
-        let schemas = schemas().as_array().unwrap();
-        assert_eq!(registry().commands.len(), 15);
-        for command in &registry().commands {
-            assert!(
-                schemas.iter().any(|schema| schema["name"] == command.name.as_str()),
-                "missing schema for {}",
-                command.name
-            );
-        }
     }
 
     #[test]

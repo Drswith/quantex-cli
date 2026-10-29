@@ -8,7 +8,7 @@ use std::time::{Duration, Instant};
 use serde_json::json;
 
 use crate::context::Context;
-use crate::protocol::{self, CommandError, ErrorCode, EventType, Outcome, Target};
+use crate::protocol::{self, CommandError, ErrorCode, Outcome, Target};
 
 static SIGINT: AtomicBool = AtomicBool::new(false);
 static SIGTERM: AtomicBool = AtomicBool::new(false);
@@ -70,7 +70,6 @@ where
                 &ctx,
                 action,
                 target.as_ref(),
-                json!({ "reason": "signal", "signal": signal }),
                 CommandError::new(ErrorCode::Cancelled, format!("Command cancelled by {signal}."))
                     .details(json!({ "signal": signal })),
             );
@@ -126,15 +125,13 @@ fn timeout(ctx: &Context, action: &str, target: Option<&Target>) -> i32 {
         ctx,
         action,
         target,
-        json!({ "reason": "timeout", "timeoutMs": timeout_ms }),
         CommandError::new(ErrorCode::Timeout, format!("Command timed out after {timeout_ms}ms."))
             .details(json!({ "timeoutMs": timeout_ms })),
     )
 }
 
-fn cancel(ctx: &Context, action: &str, target: Option<&Target>, event: serde_json::Value, error: CommandError) -> i32 {
+fn cancel(ctx: &Context, action: &str, target: Option<&Target>, error: CommandError) -> i32 {
     ctx.cancel();
-    protocol::emit_event(ctx, action, EventType::Cancelled, event, target);
     let outcome = Outcome::failure(action, target.cloned(), error);
     protocol::emit(ctx, &outcome);
     outcome.process_exit_code()

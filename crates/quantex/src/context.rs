@@ -15,15 +15,6 @@ pub enum ColorMode {
     Never,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
-pub enum LogLevel {
-    Silent,
-    Error,
-    Warn,
-    Info,
-    Debug,
-}
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum CacheMode {
     Default,
@@ -43,12 +34,10 @@ pub struct Freshness {
 #[derive(Debug, Clone, Default)]
 pub struct GlobalArgs {
     pub json: bool,
-    pub output: Option<String>,
     pub non_interactive: bool,
     pub yes: bool,
     pub quiet: bool,
     pub color: Option<String>,
-    pub log_level: Option<String>,
     pub dry_run: bool,
     pub refresh: bool,
     pub no_cache: bool,
@@ -57,17 +46,10 @@ pub struct GlobalArgs {
 }
 
 impl GlobalArgs {
-    /// The output mode these options select. Without an explicit choice the mode is
-    /// human, matching v1 (see `contract/README.md`).
+    /// The output mode these options select: JSON with `--json`, human otherwise (see
+    /// `contract/README.md`).
     pub fn output_mode(&self) -> OutputMode {
-        if self.json {
-            return OutputMode::Json;
-        }
-        match self.output.as_deref() {
-            Some("json") => OutputMode::Json,
-            Some("ndjson") => OutputMode::Ndjson,
-            _ => OutputMode::Human,
-        }
+        if self.json { OutputMode::Json } else { OutputMode::Human }
     }
 }
 
@@ -75,7 +57,6 @@ impl GlobalArgs {
 pub struct Context {
     pub output_mode: OutputMode,
     pub color_mode: ColorMode,
-    pub log_level: LogLevel,
     pub quiet: bool,
     pub yes: bool,
     pub dry_run: bool,
@@ -102,16 +83,6 @@ impl Context {
                 return Err(invalid(format!("Invalid color mode: {other}"), "color", other));
             }
         };
-        let log_level = match args.log_level.as_deref() {
-            None | Some("info") => LogLevel::Info,
-            Some("silent") => LogLevel::Silent,
-            Some("error") => LogLevel::Error,
-            Some("warn") => LogLevel::Warn,
-            Some("debug") => LogLevel::Debug,
-            Some(other) => {
-                return Err(invalid(format!("Invalid log level: {other}"), "log-level", other));
-            }
-        };
         let timeout_ms = match args.timeout.as_deref() {
             None => None,
             Some(text) => match parse_duration_ms(text) {
@@ -136,7 +107,6 @@ impl Context {
         Ok(Self {
             output_mode: args.output_mode(),
             color_mode,
-            log_level,
             quiet: args.quiet,
             yes: args.yes,
             dry_run: args.dry_run,
@@ -164,7 +134,6 @@ impl Context {
     pub fn lenient(args: &GlobalArgs) -> Self {
         let mut relaxed = args.clone();
         relaxed.color = None;
-        relaxed.log_level = None;
         relaxed.timeout = None;
         relaxed.no_cache = false;
         Self::resolve(&relaxed).expect("default options always resolve")
@@ -230,10 +199,6 @@ impl Context {
     pub fn cancel(&self) {
         self.cancelled.store(true, Ordering::SeqCst);
         crate::process::kill_tracked_children();
-    }
-
-    pub fn logs_at(&self, level: LogLevel) -> bool {
-        self.log_level >= level && !(self.quiet && level >= LogLevel::Info)
     }
 }
 

@@ -1,4 +1,4 @@
-//! The structured output protocol: result envelopes, NDJSON events, error codes.
+//! The structured output protocol: result envelopes and error codes.
 
 use std::io::Write;
 
@@ -13,7 +13,6 @@ pub const SCHEMA_VERSION: &str = "1";
 pub enum OutputMode {
     Human,
     Json,
-    Ndjson,
 }
 
 impl OutputMode {
@@ -21,7 +20,6 @@ impl OutputMode {
         match self {
             Self::Human => "human",
             Self::Json => "json",
-            Self::Ndjson => "ndjson",
         }
     }
 
@@ -304,40 +302,6 @@ pub fn envelope(ctx: &Context, outcome: &Outcome, mode: OutputMode) -> Value {
     Value::Object(map)
 }
 
-/// NDJSON event types.
-#[derive(Debug, Clone, Copy)]
-pub enum EventType {
-    Cancelled,
-    Progress,
-    Result,
-    Started,
-}
-
-impl EventType {
-    fn as_str(self) -> &'static str {
-        match self {
-            Self::Cancelled => "cancelled",
-            Self::Progress => "progress",
-            Self::Result => "result",
-            Self::Started => "started",
-        }
-    }
-}
-
-fn event(ctx: &Context, action: &str, kind: EventType, data: Option<Value>, target: Option<&Target>) -> Value {
-    let mut map = Map::new();
-    map.insert("action".into(), action.into());
-    if let Some(data) = data {
-        map.insert("data".into(), data);
-    }
-    map.insert("meta".into(), meta(ctx, OutputMode::Ndjson));
-    if let Some(target) = target {
-        map.insert("target".into(), target.to_value());
-    }
-    map.insert("type".into(), kind.as_str().into());
-    Value::Object(map)
-}
-
 fn write_stdout(text: &str) {
     let stdout = std::io::stdout();
     let mut lock = stdout.lock();
@@ -353,17 +317,6 @@ pub fn emit(ctx: &Context, outcome: &Outcome) {
             let text = serde_json::to_string_pretty(&envelope(ctx, outcome, OutputMode::Json)).unwrap();
             write_stdout(&format!("{text}\n"));
         }
-        OutputMode::Ndjson => {
-            let data = envelope(ctx, outcome, OutputMode::Ndjson);
-            let line = event(
-                ctx,
-                &outcome.action,
-                EventType::Result,
-                Some(data),
-                outcome.target.as_ref(),
-            );
-            write_stdout(&format!("{}\n", serde_json::to_string(&line).unwrap()));
-        }
         OutputMode::Human => {
             let mut human = Human::new(ctx);
             match outcome.human {
@@ -372,15 +325,6 @@ pub fn emit(ctx: &Context, outcome: &Outcome) {
             }
         }
     }
-}
-
-/// Writes an intermediate NDJSON event; other modes ignore it.
-pub fn emit_event(ctx: &Context, action: &str, kind: EventType, data: Value, target: Option<&Target>) {
-    if ctx.output_mode != OutputMode::Ndjson {
-        return;
-    }
-    let line = event(ctx, action, kind, Some(data), target);
-    write_stdout(&format!("{}\n", serde_json::to_string(&line).unwrap()));
 }
 
 /// Human fallback: errors to stderr, nothing for successes without a renderer.

@@ -38,7 +38,7 @@ fn exec_passes_arguments_and_returns_the_agent_exit_code() {
 #[test]
 fn exec_in_json_mode_keeps_stdout_for_the_protocol() {
     let (sandbox, record) = recording_agent();
-    let run = sandbox.run(["exec", "codex", "--output", "json", "--", "a"]);
+    let run = sandbox.run(["exec", "codex", "--json", "--", "a"]);
     assert_eq!(run.code, 5, "{run:?}");
     assert_eq!(run.stdout, "", "a launched agent's output is not mixed into stdout");
     assert_eq!(recorded(&record), ["a"]);
@@ -52,7 +52,7 @@ fn exec_in_json_mode_moves_the_agent_output_to_stderr() {
         "[ \"$1\" = --version ] && { echo 0.48.0; exit 0; }\necho agent-out\necho agent-err >&2\nexit 3",
         "if \"%1\"==\"--version\" (echo 0.48.0& exit /b 0)\r\necho agent-out\r\necho agent-err 1>&2\r\nexit /b 3",
     );
-    let run = sandbox.run(["exec", "codex", "--output", "json"]);
+    let run = sandbox.run(["exec", "codex", "--json"]);
     assert_eq!(run.code, 3, "{run:?}");
     assert_eq!(run.stdout, "");
     let out = run.stderr.find("agent-out").expect("the agent's stdout reaches stderr");
@@ -63,11 +63,11 @@ fn exec_in_json_mode_moves_the_agent_output_to_stderr() {
 #[test]
 fn exec_dry_run_describes_the_launch() {
     let (sandbox, record) = recording_agent();
-    let run = sandbox.run(["exec", "codex", "--dry-run", "--output", "json", "--", "a", "b"]);
+    let run = sandbox.run(["exec", "codex", "--dry-run", "--json", "--", "a", "b"]);
     assert_eq!(run.code, 0, "{run:?}");
     assert!(!record.exists(), "dry run does not launch");
     let envelope = run.json();
-    assert_envelope(&envelope, "exec", "json");
+    assert_envelope(&envelope, "exec");
     assert_eq!(envelope["target"], json!({ "kind": "agent", "name": "codex" }));
     let agent = &envelope["data"]["agent"];
     assert_eq!(agent["name"], "codex");
@@ -83,10 +83,10 @@ fn exec_dry_run_describes_the_launch() {
 
 #[test]
 fn exec_refuses_a_missing_agent_by_default() {
-    let run = Sandbox::new().run(["exec", "kilo", "--output", "json", "--", "x"]);
+    let run = Sandbox::new().run(["exec", "kilo", "--json", "--", "x"]);
     assert_eq!(run.code, 4, "{run:?}");
     let envelope = run.json();
-    assert_envelope(&envelope, "exec", "json");
+    assert_envelope(&envelope, "exec");
     assert_eq!(envelope["error"]["code"], "AGENT_NOT_INSTALLED");
     assert_eq!(envelope["error"]["message"], "Kilo CLI is not installed.");
     let guidance = &envelope["error"]["details"];
@@ -103,7 +103,7 @@ fn exec_refuses_a_missing_agent_by_default() {
 
 #[test]
 fn exec_reports_unknown_agents() {
-    let run = Sandbox::new().run(["exec", "not-an-agent", "--output", "json"]);
+    let run = Sandbox::new().run(["exec", "not-an-agent", "--json"]);
     assert_eq!(run.code, 3, "{run:?}");
     let envelope = run.json();
     assert_eq!(
@@ -152,7 +152,7 @@ fn exec_timeout_stops_the_agent() {
         "if \"%1\"==\"--version\" (echo 0.48.0& exit /b 0)\r\nping -n 11 127.0.0.1 > nul",
     );
     let started = std::time::Instant::now();
-    let run = sandbox.run(["exec", "codex", "--timeout", "300ms", "--output", "json"]);
+    let run = sandbox.run(["exec", "codex", "--timeout", "300ms", "--json"]);
     assert_eq!(run.code, 10, "{run:?}");
     assert!(
         started.elapsed().as_secs() < 8,
@@ -164,6 +164,6 @@ fn exec_timeout_stops_the_agent() {
 fn a_timeout_during_preflight_is_a_timeout() {
     let sandbox = Sandbox::new();
     sandbox.fake_tool("codex", "sleep 10", "ping -n 11 127.0.0.1 > nul");
-    let run = sandbox.run(["exec", "codex", "--timeout", "300ms", "--output", "json"]);
+    let run = sandbox.run(["exec", "codex", "--timeout", "300ms", "--json"]);
     assert_eq!(run.code, 10, "{run:?}");
 }

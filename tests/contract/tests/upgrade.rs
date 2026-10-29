@@ -92,7 +92,7 @@ impl Install {
     fn upgrade(&self, extra: &[&str]) -> (i32, Value) {
         let mut args = vec!["upgrade"];
         args.extend_from_slice(extra);
-        args.extend_from_slice(&["--output", "json"]);
+        args.extend_from_slice(&["--json"]);
         let run = self.run(&args);
         (run.code, run.json())
     }
@@ -244,7 +244,7 @@ fn a_failed_download_is_a_network_failure() {
 fn no_manifest_means_the_check_is_unavailable() {
     let sandbox = Sandbox::new();
     let exe = sandbox.copy_quantex();
-    let run = sandbox.run_program(&exe, ["upgrade", "--output", "json"]);
+    let run = sandbox.run_program(&exe, ["upgrade", "--json"]);
     assert_eq!(run.code, 6, "{run:?}");
     let envelope = run.json();
     assert_eq!(
@@ -314,7 +314,7 @@ fn an_npm_install_upgrades_through_npm() {
         "exit /b 1",
     );
     quantex_contract_tests::seed_latest_version(&sandbox, "quantex-cli", "9.9.9");
-    let run = sandbox.run_program(&exe, ["upgrade", "--output", "json"]);
+    let run = sandbox.run_program(&exe, ["upgrade", "--json"]);
     assert_eq!(run.code, 0, "{run:?}");
     let envelope = run.json();
     assert_eq!(envelope["data"]["installSource"], "npm");

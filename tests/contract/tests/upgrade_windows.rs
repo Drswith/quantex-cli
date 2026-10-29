@@ -32,7 +32,7 @@ fn a_windows_binary_is_replaced_once_upgrade_exits() {
     });
     seed_cache(&sandbox, "self:manifest:stable", &manifest.to_string());
 
-    let run = sandbox.run_program(&exe, ["upgrade", "--output", "json"]);
+    let run = sandbox.run_program(&exe, ["upgrade", "--json"]);
     assert_eq!(run.code, 0, "{run:?}");
     assert_eq!(run.json()["data"]["status"], "updated");
 

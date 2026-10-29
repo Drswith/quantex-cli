@@ -11,12 +11,6 @@
       "value": "boolean"
     },
     {
-      "id": "output",
-      "flags": "--output <mode>",
-      "description": "Output mode: human, json, or ndjson",
-      "value": "string"
-    },
-    {
       "id": "nonInteractive",
       "flags": "--non-interactive",
       "description": "Disable interactive prompts and confirmations",
@@ -38,12 +32,6 @@
       "id": "color",
       "flags": "--color <mode>",
       "description": "Color mode: auto, always, or never",
-      "value": "string"
-    },
-    {
-      "id": "logLevel",
-      "flags": "--log-level <level>",
-      "description": "Log level: silent, error, warn, info, or debug",
       "value": "string"
     },
     {
@@ -79,43 +67,6 @@
   ],
   "commands": [
     {
-      "name": "capabilities",
-      "aliases": [],
-      "summary": "Return environment and surface capabilities",
-      "description": "查看当前环境与 surface 能力",
-      "arguments": [],
-      "options": [],
-      "catalogTokens": [],
-      "allowUnknownOptions": false,
-      "effects": [
-        "filesystem",
-        "network",
-        "process"
-      ],
-      "globalOptions": [
-        "json",
-        "output",
-        "nonInteractive",
-        "quiet",
-        "color",
-        "logLevel",
-        "refresh",
-        "noCache",
-        "timeout"
-      ],
-      "flags": [
-        "--json",
-        "--output",
-        "--non-interactive",
-        "--quiet",
-        "--color",
-        "--log-level",
-        "--refresh",
-        "--no-cache",
-        "--timeout"
-      ]
-    },
-    {
       "name": "commands",
       "aliases": [],
       "summary": "Return the stable command catalog",
@@ -127,18 +78,14 @@
       "effects": [],
       "globalOptions": [
         "json",
-        "output",
         "quiet",
         "color",
-        "logLevel",
         "timeout"
       ],
       "flags": [
         "--json",
-        "--output",
         "--quiet",
         "--color",
-        "--log-level",
         "--timeout"
       ]
     },
@@ -177,10 +124,8 @@
       ],
       "globalOptions": [
         "json",
-        "output",
         "quiet",
         "color",
-        "logLevel",
         "timeout"
       ],
       "flags": [
@@ -188,10 +133,8 @@
         "set",
         "reset",
         "--json",
-        "--output",
         "--quiet",
         "--color",
-        "--log-level",
         "--timeout"
       ]
     },
@@ -211,20 +154,16 @@
       ],
       "globalOptions": [
         "json",
-        "output",
         "quiet",
         "color",
-        "logLevel",
         "refresh",
         "noCache",
         "timeout"
       ],
       "flags": [
         "--json",
-        "--output",
         "--quiet",
         "--color",
-        "--log-level",
         "--refresh",
         "--no-cache",
         "--timeout"
@@ -270,9 +209,7 @@
         "yes",
         "quiet",
         "color",
-        "logLevel",
-        "dryRun",
-        "output"
+        "dryRun"
       ],
       "flags": [
         "--install",
@@ -280,58 +217,15 @@
         "--yes",
         "--quiet",
         "--color",
-        "--log-level",
-        "--dry-run",
-        "--output"
-      ]
-    },
-    {
-      "name": "ensure",
-      "aliases": [],
-      "summary": "Ensure an agent is installed",
-      "description": "确保指定 agent 已安装",
-      "arguments": [
-        {
-          "description": "Agent name or alias",
-          "name": "agent",
-          "syntax": "<agent>"
-        }
-      ],
-      "options": [],
-      "catalogTokens": [],
-      "allowUnknownOptions": false,
-      "effects": [
-        "filesystem",
-        "interaction",
-        "mutation",
-        "network",
-        "process"
-      ],
-      "globalOptions": [
-        "json",
-        "output",
-        "yes",
-        "quiet",
-        "color",
-        "logLevel",
-        "dryRun",
-        "timeout"
-      ],
-      "flags": [
-        "--json",
-        "--output",
-        "--yes",
-        "--quiet",
-        "--color",
-        "--log-level",
-        "--dry-run",
-        "--timeout"
+        "--dry-run"
       ]
     },
     {
       "name": "info",
-      "aliases": [],
-      "summary": "Show human-friendly agent details",
+      "aliases": [
+        "inspect"
+      ],
+      "summary": "Show agent details and structured state",
       "description": "查看 agent 详细信息",
       "arguments": [
         {
@@ -350,61 +244,16 @@
       ],
       "globalOptions": [
         "json",
-        "output",
         "quiet",
         "color",
-        "logLevel",
         "refresh",
         "noCache",
         "timeout"
       ],
       "flags": [
         "--json",
-        "--output",
         "--quiet",
         "--color",
-        "--log-level",
-        "--refresh",
-        "--no-cache",
-        "--timeout"
-      ]
-    },
-    {
-      "name": "inspect",
-      "aliases": [],
-      "summary": "Return structured agent state",
-      "description": "查看 agent 结构化状态",
-      "arguments": [
-        {
-          "description": "Agent name or alias",
-          "name": "agent",
-          "syntax": "<agent>"
-        }
-      ],
-      "options": [],
-      "catalogTokens": [],
-      "allowUnknownOptions": false,
-      "effects": [
-        "filesystem",
-        "network",
-        "process"
-      ],
-      "globalOptions": [
-        "json",
-        "output",
-        "quiet",
-        "color",
-        "logLevel",
-        "refresh",
-        "noCache",
-        "timeout"
-      ],
-      "flags": [
-        "--json",
-        "--output",
-        "--quiet",
-        "--color",
-        "--log-level",
         "--refresh",
         "--no-cache",
         "--timeout"
@@ -413,7 +262,8 @@
     {
       "name": "install",
       "aliases": [
-        "i"
+        "i",
+        "ensure"
       ],
       "summary": "Install one or more agents",
       "description": "安装指定 agent",
@@ -436,21 +286,17 @@
       ],
       "globalOptions": [
         "json",
-        "output",
         "yes",
         "quiet",
         "color",
-        "logLevel",
         "dryRun",
         "timeout"
       ],
       "flags": [
         "--json",
-        "--output",
         "--yes",
         "--quiet",
         "--color",
-        "--log-level",
         "--dry-run",
         "--timeout"
       ]
@@ -473,20 +319,16 @@
       ],
       "globalOptions": [
         "json",
-        "output",
         "quiet",
         "color",
-        "logLevel",
         "refresh",
         "noCache",
         "timeout"
       ],
       "flags": [
         "--json",
-        "--output",
         "--quiet",
         "--color",
-        "--log-level",
         "--refresh",
         "--no-cache",
         "--timeout"
@@ -514,55 +356,18 @@
       ],
       "globalOptions": [
         "json",
-        "output",
         "quiet",
         "color",
-        "logLevel",
         "refresh",
         "noCache",
         "timeout"
       ],
       "flags": [
         "--json",
-        "--output",
         "--quiet",
         "--color",
-        "--log-level",
         "--refresh",
         "--no-cache",
-        "--timeout"
-      ]
-    },
-    {
-      "name": "schema",
-      "aliases": [],
-      "summary": "Return structured output schemas",
-      "description": "查看结构化输出 schema",
-      "arguments": [
-        {
-          "description": "Optional command name",
-          "name": "command",
-          "syntax": "[command]"
-        }
-      ],
-      "options": [],
-      "catalogTokens": [],
-      "allowUnknownOptions": false,
-      "effects": [],
-      "globalOptions": [
-        "json",
-        "output",
-        "quiet",
-        "color",
-        "logLevel",
-        "timeout"
-      ],
-      "flags": [
-        "--json",
-        "--output",
-        "--quiet",
-        "--color",
-        "--log-level",
         "--timeout"
       ]
     },
@@ -604,11 +409,9 @@
       ],
       "globalOptions": [
         "json",
-        "output",
         "nonInteractive",
         "quiet",
         "color",
-        "logLevel",
         "dryRun",
         "refresh",
         "noCache",
@@ -618,11 +421,9 @@
         "--all",
         "--managed",
         "--json",
-        "--output",
         "--non-interactive",
         "--quiet",
         "--color",
-        "--log-level",
         "--dry-run",
         "--refresh",
         "--no-cache",
@@ -653,19 +454,15 @@
       ],
       "globalOptions": [
         "json",
-        "output",
         "quiet",
         "color",
-        "logLevel",
         "dryRun",
         "timeout"
       ],
       "flags": [
         "--json",
-        "--output",
         "--quiet",
         "--color",
-        "--log-level",
         "--dry-run",
         "--timeout"
       ]
@@ -700,10 +497,8 @@
       ],
       "globalOptions": [
         "json",
-        "output",
         "quiet",
         "color",
-        "logLevel",
         "dryRun",
         "refresh",
         "noCache",
@@ -713,10 +508,8 @@
         "--check",
         "--channel",
         "--json",
-        "--output",
         "--quiet",
         "--color",
-        "--log-level",
         "--dry-run",
         "--refresh",
         "--no-cache",

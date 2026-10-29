@@ -7,7 +7,7 @@ const CODEX_NPM_STATE: &str = r#"{"installedAgents":{"codex":{"agentName":"codex
 
 fn json_run(sandbox: &Sandbox, args: &[&str]) -> (i32, Value) {
     let mut full = args.to_vec();
-    full.extend_from_slice(&["--output", "json"]);
+    full.extend_from_slice(&["--json"]);
     let run = sandbox.run(&full);
     assert!(!run.stdout.is_empty(), "{full:?} printed nothing: {run:?}");
     (run.code, run.json())
@@ -41,7 +41,7 @@ fn list_covers_the_catalog_and_reports_installs() {
     sandbox.write_state(CODEX_NPM_STATE);
     let (code, envelope) = json_run(&sandbox, &["list"]);
     assert_eq!(code, 0, "{envelope}");
-    assert_envelope(&envelope, "list", "json");
+    assert_envelope(&envelope, "list");
     assert_eq!(envelope["target"], json!({ "kind": "system", "name": "agents" }));
     let agents = &envelope["data"]["agents"];
     let names: Vec<String> = agents
@@ -82,7 +82,7 @@ fn list_alias_matches_list() {
     let sandbox = Sandbox::new();
     let (code, envelope) = json_run(&sandbox, &["ls"]);
     assert_eq!(code, 0);
-    assert_envelope(&envelope, "list", "json");
+    assert_envelope(&envelope, "list");
 }
 
 #[test]
@@ -92,7 +92,7 @@ fn info_describes_an_installed_agent() {
     sandbox.write_state(CODEX_NPM_STATE);
     let (code, envelope) = json_run(&sandbox, &["info", "codex"]);
     assert_eq!(code, 0, "{envelope}");
-    assert_envelope(&envelope, "info", "json");
+    assert_envelope(&envelope, "info");
     assert_eq!(envelope["target"], json!({ "kind": "agent", "name": "codex" }));
     let agent = &envelope["data"]["agent"];
     assert_eq!(agent["name"], "codex");
@@ -108,17 +108,18 @@ fn info_describes_an_installed_agent() {
             "installedVersion": "0.48.0",
             "lifecycle": "managed",
             "sourceLabel": "managed via npm (@openai/codex)",
+            "updateLabel": "managed update",
         })
     );
 }
 
 #[test]
-fn inspect_reports_capabilities_and_finds_display_names() {
+fn inspect_is_info_and_display_names_resolve() {
     let sandbox = Sandbox::new();
     fake_agent(&sandbox, "claude", "2.1.0 (Claude Code)");
     let (code, envelope) = json_run(&sandbox, &["inspect", "Claude Code"]);
     assert_eq!(code, 0, "{envelope}");
-    assert_envelope(&envelope, "inspect", "json");
+    assert_envelope(&envelope, "info");
     assert_eq!(envelope["target"], json!({ "kind": "agent", "name": "claude" }));
     assert_eq!(
         envelope["data"]["capabilities"],
@@ -132,10 +133,10 @@ fn inspect_reports_capabilities_and_finds_display_names() {
 #[test]
 fn unknown_agents_are_not_found() {
     let sandbox = Sandbox::new();
-    for command in ["info", "inspect", "resolve"] {
+    for command in ["info", "resolve"] {
         let (code, envelope) = json_run(&sandbox, &[command, "not-an-agent"]);
         assert_eq!(code, 3, "{command}: {envelope}");
-        assert_envelope(&envelope, command, "json");
+        assert_envelope(&envelope, command);
         assert_eq!(
             envelope["error"],
             json!({
@@ -191,9 +192,9 @@ fn superseded_recorded_packages_produce_a_warning() {
     sandbox.write_state(
         r#"{"installedAgents":{"pi":{"agentName":"pi","installType":"npm","packageName":"@mariozechner/pi-coding-agent"}},"self":{}}"#,
     );
-    for command in ["list", "inspect"] {
+    for command in ["list", "info"] {
         let mut args = vec![command];
-        if command == "inspect" {
+        if command == "info" {
             args.push("pi");
         }
         let (code, envelope) = json_run(&sandbox, &args);

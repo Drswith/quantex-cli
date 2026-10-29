@@ -14,7 +14,7 @@ fn sandbox() -> Sandbox {
 
 fn run_json(sandbox: &Sandbox, args: &[&str]) -> (i32, Value) {
     let mut full = args.to_vec();
-    full.extend_from_slice(&["--output", "json"]);
+    full.extend_from_slice(&["--json"]);
     let run = sandbox.run(&full);
     (run.code, run.json())
 }
@@ -25,7 +25,7 @@ fn uninstall_removes_the_package_and_the_records() {
     run_json(&sandbox, &["install", "codex"]);
     let (code, envelope) = run_json(&sandbox, &["uninstall", "codex"]);
     assert_eq!(code, 0, "{envelope}");
-    assert_envelope(&envelope, "uninstall", "json");
+    assert_envelope(&envelope, "uninstall");
     assert_eq!(
         envelope["data"],
         json!({ "agent": { "displayName": "Codex CLI", "name": "codex" }, "changed": true })

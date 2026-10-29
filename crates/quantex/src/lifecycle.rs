@@ -506,7 +506,7 @@ pub enum LaunchInstallFailure {
 
 /// Installs a missing agent so it can be launched.
 pub fn install_for_launch(ctx: &Context, agent: &'static Agent) -> Result<(), LaunchInstallFailure> {
-    match crate::commands::mutate::install_agent(ctx, &agent.name, "install", false) {
+    match crate::commands::mutate::install_agent(ctx, &agent.name) {
         result if result.ok => Ok(()),
         _ if ctx.deadline_hit() => Err(LaunchInstallFailure::TimedOut),
         result => Err(LaunchInstallFailure::Failed(

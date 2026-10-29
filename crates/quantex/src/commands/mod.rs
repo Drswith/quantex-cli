@@ -21,12 +21,6 @@ pub fn dispatch(ctx: Arc<Context>, invocation: Invocation) -> i32 {
         "commands" => runtime::execute(ctx, "commands", Some(Target::system("commands")), |_| {
             catalog_commands::commands()
         }),
-        "schema" => {
-            let command = invocation.arg("command").map(str::to_owned);
-            runtime::execute(ctx, "schema", Some(Target::system("schema")), move |_| {
-                catalog_commands::schema(command.as_deref())
-            })
-        }
         "config" => {
             let action = invocation.arg("action").map(str::to_owned);
             let key = invocation.arg("key").map(str::to_owned);
@@ -37,22 +31,15 @@ pub fn dispatch(ctx: Arc<Context>, invocation: Invocation) -> i32 {
             })
         }
         "list" => runtime::execute(ctx, "list", Some(Target::system("agents")), agents::list),
-        "info" | "inspect" | "resolve" => {
+        "info" | "resolve" => {
             let name = invocation.name;
             let agent = invocation.arg("agent").unwrap_or_default().to_owned();
             let target = Target::agent(&agent);
             runtime::execute(ctx, name, Some(target), move |ctx| match name {
                 "info" => agents::info(ctx, &agent),
-                "inspect" => agents::inspect(ctx, &agent),
                 _ => agents::resolve(ctx, &agent),
             })
         }
-        "capabilities" => runtime::execute(
-            ctx,
-            "capabilities",
-            Some(Target::system("capabilities")),
-            system::capabilities,
-        ),
         "doctor" => runtime::execute(ctx, "doctor", Some(Target::system("doctor")), system::doctor),
         "install" => {
             let agents = invocation.args("agents").to_vec();
@@ -67,12 +54,6 @@ pub fn dispatch(ctx: Arc<Context>, invocation: Invocation) -> i32 {
             let agent = invocation.arg("agent").unwrap_or_default().to_owned();
             runtime::execute(ctx, "uninstall", Some(Target::agent(&agent)), move |ctx| {
                 mutate::uninstall(ctx, &agent)
-            })
-        }
-        "ensure" => {
-            let agent = invocation.arg("agent").unwrap_or_default().to_owned();
-            runtime::execute(ctx, "ensure", Some(Target::agent(&agent)), move |ctx| {
-                mutate::ensure(ctx, &agent)
             })
         }
         "update" => {

@@ -17,72 +17,16 @@ fn keys(value: &Value) -> Vec<String> {
 }
 
 #[test]
-fn capabilities_describe_the_surface() {
-    let run = Sandbox::new().run(["capabilities", "--output", "json"]);
-    assert_eq!(run.code, 0, "{run:?}");
-    let envelope = run.json();
-    assert_envelope(&envelope, "capabilities", "json");
-    assert_eq!(envelope["target"], json!({ "kind": "system", "name": "capabilities" }));
-    let data = &envelope["data"];
-    assert_eq!(
-        keys(data),
-        ["agents", "features", "installers", "outputModes", "platform"]
-    );
-    assert_eq!(data["outputModes"], json!(["human", "json", "ndjson"]));
-    assert_eq!(data["agents"].as_array().unwrap().len(), 22);
-    assert_eq!(keys(&data["installers"]), INSTALLERS);
-    for installer in keys(&data["installers"]) {
-        let installer = installer.as_str();
-        let entry = &data["installers"][installer];
-        assert!(entry["available"].is_boolean(), "{installer}: {entry}");
-        if entry["available"] == false {
-            assert!(
-                matches!(entry["reason"].as_str(), Some("not-found" | "not-on-platform")),
-                "{installer}: {entry}"
-            );
-            assert_eq!(entry["reason"], "not-found", "{installer}: {entry}");
-        }
-    }
-    assert!(matches!(
-        data["platform"]["os"].as_str(),
-        Some("macos" | "linux" | "windows")
-    ));
-    assert!(matches!(data["platform"]["arch"].as_str(), Some("arm64" | "x64")));
-    let features = &data["features"];
-    assert_eq!(features["channels"], json!(["stable", "beta"]));
-    assert_eq!(
-        features["execInstallPolicies"],
-        json!(["never", "if-missing", "always"])
-    );
-    assert_eq!(
-        features["logLevels"],
-        json!(["silent", "error", "warn", "info", "debug"])
-    );
-    for flag in [
-        "assumeYes",
-        "cacheBypass",
-        "cacheRefresh",
-        "dryRun",
-        "freshnessMetadata",
-        "quietLogs",
-        "timeout",
-    ] {
-        assert_eq!(features[flag], true, "{flag}");
-    }
-    assert!(features["selfUpgrade"].is_boolean());
-}
-
-#[test]
 fn doctor_reports_installers_agents_and_self() {
     let sandbox = Sandbox::new();
     fake_agent(&sandbox, "codex", "codex-cli 0.48.0");
     sandbox.write_state(
         r#"{"installedAgents":{"codex":{"agentName":"codex","installType":"npm","packageName":"@openai/codex"}},"self":{}}"#,
     );
-    let run = sandbox.run(["doctor", "--output", "json"]);
+    let run = sandbox.run(["doctor", "--json"]);
     assert_eq!(run.code, 0, "{run:?}");
     let envelope = run.json();
-    assert_envelope(&envelope, "doctor", "json");
+    assert_envelope(&envelope, "doctor");
     assert_eq!(envelope["target"], json!({ "kind": "system", "name": "doctor" }));
     let data = &envelope["data"];
     assert_eq!(keys(data), ["agents", "installers", "issues", "self"]);

@@ -8,37 +8,37 @@ fn assert_invalid_argument(args: &[&str], action: &str) {
     let run = Sandbox::new().run(args);
     assert_eq!(run.code, 2, "{args:?}: {run:?}");
     let envelope = run.json();
-    assert_envelope(&envelope, action, "json");
+    assert_envelope(&envelope, action);
     assert_eq!(envelope["ok"], false);
     assert_eq!(envelope["error"]["code"], "INVALID_ARGUMENT", "{envelope}");
 }
 
 #[test]
 fn unknown_option_is_an_invalid_argument() {
-    assert_invalid_argument(&["list", "--bogus", "--output", "json"], "list");
+    assert_invalid_argument(&["list", "--bogus", "--json"], "list");
 }
 
 #[test]
 fn missing_required_argument_is_an_invalid_argument() {
-    assert_invalid_argument(&["info", "--output", "json"], "info");
+    assert_invalid_argument(&["info", "--json"], "info");
 }
 
 #[test]
 fn invalid_global_option_values_are_invalid_arguments() {
-    assert_invalid_argument(&["commands", "--color", "rainbow", "--output", "json"], "commands");
-    assert_invalid_argument(&["commands", "--log-level", "loud", "--output", "json"], "commands");
-    assert_invalid_argument(&["commands", "--timeout", "soon", "--output", "json"], "commands");
-    assert_invalid_argument(&["list", "--refresh", "--no-cache", "--output", "json"], "list");
+    assert_invalid_argument(&["commands", "--color", "rainbow", "--json"], "commands");
+    assert_invalid_argument(&["commands", "--log-level", "loud", "--json"], "commands");
+    assert_invalid_argument(&["commands", "--timeout", "soon", "--json"], "commands");
+    assert_invalid_argument(&["list", "--refresh", "--no-cache", "--json"], "list");
 }
 
 #[test]
 fn unknown_command_is_an_invalid_argument() {
-    assert_invalid_argument(&["definitely-not-a-command", "--output", "json"], "quantex");
+    assert_invalid_argument(&["definitely-not-a-command", "--json"], "quantex");
 }
 
 #[test]
 fn argument_errors_go_to_stderr_in_human_mode() {
-    let run = Sandbox::new().run(["list", "--bogus", "--output", "human"]);
+    let run = Sandbox::new().run(["list", "--bogus"]);
     assert_eq!(run.code, 2, "{run:?}");
     assert_eq!(run.stdout, "");
     assert!(run.stderr.contains("--bogus"), "{run:?}");

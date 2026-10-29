@@ -9,7 +9,7 @@ use crate::catalog::{self, Agent, Provider};
 use crate::context::Context;
 use crate::lifecycle::{self, Drift, Kind, View};
 use crate::observe::{self, UpdateStrategy};
-use crate::protocol::{self, CommandError, ErrorCode, EventType, Outcome, Target, TargetKind, Warning};
+use crate::protocol::{CommandError, ErrorCode, Outcome, Target, TargetKind, Warning};
 use crate::providers::{self, Binding, MutationFailure};
 use crate::store::{self, State};
 use crate::term::Human;
@@ -585,19 +585,6 @@ fn stale_state_warning(agent: &Agent) -> Warning {
     }))
 }
 
-fn push_result(ctx: &Context, results: &mut Vec<Value>, item: Item) {
-    let name = item.0["name"].as_str().unwrap_or_default().to_owned();
-    let value = item.into_value();
-    protocol::emit_event(
-        ctx,
-        "update",
-        EventType::Progress,
-        value.clone(),
-        Some(&Target::agent(&name)),
-    );
-    results.push(value);
-}
-
 fn any_agent() -> Target {
     Target::new(TargetKind::Agent, None::<String>)
 }
@@ -652,13 +639,6 @@ fn plan_single(ctx: &Context, input: &str) -> Result<Planning, Outcome> {
 
 fn update_single(ctx: &Context, agent: &'static Agent) -> Outcome {
     let target = Target::agent(&agent.name);
-    protocol::emit_event(
-        ctx,
-        "update",
-        EventType::Started,
-        json!({ "agent": agent.name, "scope": "single" }),
-        Some(&target),
-    );
     let planning = match plan_single(ctx, &agent.name) {
         Ok(planning) => planning,
         Err(outcome) => return outcome,
@@ -707,8 +687,7 @@ fn single_outcome(
     }
     let item = result_item(ctx, agent, planning, execution);
     let status = item.status().to_owned();
-    let mut results = Vec::new();
-    push_result(ctx, &mut results, item);
+    let results = vec![item.into_value()];
     let data = json!({ "results": results, "scope": "single" });
     let cancelled = matches!(planning, Planning::Cancelled { .. }) || matches!(execution, Some(Execution::Cancelled));
     if cancelled {
@@ -782,13 +761,6 @@ fn plan_all(ctx: &Context, scope: &str) -> Result<Vec<(String, Planning)>, Outco
 
 /// Runs a batch in order.
 fn update_all(ctx: &Context, scope: &str) -> Outcome {
-    protocol::emit_event(
-        ctx,
-        "update",
-        EventType::Started,
-        json!({ "scope": scope }),
-        Some(&any_agent()),
-    );
     if !ctx.output_mode.is_structured() {
         Human::new(ctx).line("Checking installed agents...");
     }
@@ -855,7 +827,7 @@ fn batch_target(
     results: &mut Vec<Value>,
 ) -> Option<Execution> {
     let Some(agent) = catalog::find(name) else {
-        push_result(ctx, results, Item::new(name, name, "failed"));
+        results.push(Item::new(name, name, "failed").into_value());
         return None;
     };
     if matches!(
@@ -875,7 +847,7 @@ fn batch_target(
                 .set("latestVersion", plan.latest_version())
                 .set("message", Some("Update was cancelled before it could start."))
                 .set("strategy", Some(plan.strategy_label()));
-            push_result(ctx, results, item);
+            results.push(item.into_value());
             return None;
         }
         Planning::Planned(plan) => Some(execute(ctx, plan)),
@@ -897,7 +869,7 @@ fn batch_target(
     {
         item = item.set("hint", failure_hint(agent, before));
     }
-    push_result(ctx, results, item);
+    results.push(item.into_value());
     execution
 }
 

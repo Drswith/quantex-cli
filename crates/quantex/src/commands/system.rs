@@ -2,7 +2,7 @@
 
 use serde_json::{Map, Value, json};
 
-use crate::catalog::{self, Platform, Provider};
+use crate::catalog::Provider;
 use crate::context::Context;
 use crate::observe::{self, ObserveOptions};
 use crate::probe;
@@ -13,83 +13,6 @@ use crate::term::{Column, Human};
 
 const TROUBLESHOOTING_DOCS: &str = "docs/runbooks/quantex-troubleshooting.md";
 const SELF_UPGRADE_DOCS: &str = "docs/runbooks/release-and-self-upgrade-debugging.md";
-
-fn arch() -> &'static str {
-    match std::env::consts::ARCH {
-        "aarch64" => "arm64",
-        "x86_64" => "x64",
-        "x86" => "ia32",
-        other => other,
-    }
-}
-
-pub fn capabilities(ctx: &Context) -> Outcome {
-    let availability = probe::installer_availability();
-    let facts = selfupdate::facts(ctx, None);
-    let mut installers = Map::new();
-    for (provider, available) in availability {
-        let mut entry = Map::new();
-        entry.insert("available".into(), available.into());
-        if !available {
-            entry.insert("reason".into(), "not-found".into());
-        }
-        installers.insert(provider.as_str().into(), Value::Object(entry));
-    }
-    let data = json!({
-        "agents": catalog::agents().iter().map(|agent| agent.name.clone()).collect::<Vec<_>>(),
-        "features": {
-            "assumeYes": true,
-            "cacheBypass": true,
-            "cacheRefresh": true,
-            "channels": ["stable", "beta"],
-            "colorModes": ["auto", "always", "never"],
-            "dryRun": true,
-            "execInstallPolicies": ["never", "if-missing", "always"],
-            "freshnessMetadata": true,
-            "logLevels": ["silent", "error", "warn", "info", "debug"],
-            "quietLogs": true,
-            "selfUpgrade": facts.can_auto_update(),
-            "timeout": true,
-        },
-        "installers": installers,
-        "outputModes": ["human", "json", "ndjson"],
-        "platform": { "arch": arch(), "os": Platform::current().as_str() },
-    });
-    Outcome::success("capabilities", Some(Target::system("capabilities")), data).with_human(render_capabilities)
-}
-
-fn render_capabilities(outcome: &Outcome, human: &mut Human) {
-    let Some(data) = &outcome.data else { return };
-    human.heading("Quantex Capabilities");
-    human.fields(&[
-        (
-            "Platform",
-            format!(
-                "{} ({})",
-                data["platform"]["os"].as_str().unwrap_or_default(),
-                data["platform"]["arch"].as_str().unwrap_or_default()
-            ),
-        ),
-        ("Agents", data["agents"].as_array().map_or(0, Vec::len).to_string()),
-        ("Output modes", "human, json, ndjson".into()),
-    ]);
-    human.heading("Installers");
-    let rows: Vec<Vec<String>> = data["installers"]
-        .as_object()
-        .into_iter()
-        .flatten()
-        .map(|(name, entry)| {
-            let state = if entry["available"] == true {
-                human.green("available")
-            } else {
-                human.red(entry["reason"].as_str().unwrap_or("not-found"))
-            };
-            vec![name.clone(), state]
-        })
-        .collect();
-    human.table(&[Column::new("Installer"), Column::new("Status")], &rows);
-    human.blank();
-}
 
 /// "bun, npm, or brew" for the installers this platform's catalog uses.
 fn installer_names(availability: &[(Provider, bool)]) -> String {
