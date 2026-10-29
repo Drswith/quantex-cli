@@ -53,7 +53,6 @@ pub struct GlobalArgs {
     pub refresh: bool,
     pub no_cache: bool,
     pub run_id: Option<String>,
-    pub idempotency_key: Option<String>,
     pub timeout: Option<String>,
 }
 
@@ -86,7 +85,6 @@ pub struct Context {
     pub cache_mode: CacheMode,
     pub run_id: String,
     pub timeout_ms: Option<u64>,
-    pub idempotency_key: Option<String>,
     pub home: PathBuf,
     started: Instant,
     freshness: Mutex<Option<Freshness>>,
@@ -153,7 +151,6 @@ impl Context {
             },
             run_id,
             timeout_ms,
-            idempotency_key: args.idempotency_key.clone(),
             home: home_dir(),
             started: Instant::now(),
             freshness: Mutex::new(None),

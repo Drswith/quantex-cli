@@ -146,7 +146,6 @@ fn set_global_value(globals: &mut GlobalArgs, id: &str, value: String) {
         "color" => globals.color = Some(value),
         "logLevel" => globals.log_level = Some(value),
         "runId" => globals.run_id = Some(value),
-        "idempotencyKey" => globals.idempotency_key = Some(value),
         "timeout" => globals.timeout = Some(value),
         _ => {}
     }
@@ -482,7 +481,6 @@ fn globals_from(matches: &clap::ArgMatches) -> GlobalArgs {
         refresh: flag("refresh"),
         no_cache: flag("noCache"),
         run_id: value("runId"),
-        idempotency_key: value("idempotencyKey"),
         timeout: value("timeout"),
     }
 }

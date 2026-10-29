@@ -45,9 +45,6 @@
             "freshnessMetadata": {
               "type": "boolean"
             },
-            "idempotencyKey": {
-              "type": "boolean"
-            },
             "logLevels": {
               "items": {
                 "type": "string"
@@ -73,7 +70,6 @@
             "dryRun",
             "execInstallPolicies",
             "freshnessMetadata",
-            "idempotencyKey",
             "logLevels",
             "quietLogs",
             "selfUpgrade",

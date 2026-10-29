@@ -25,8 +25,6 @@ pub fn quantex_bin() -> &'static Path {
     })
 }
 
-/// True when the binary under test is the TypeScript reference release.
-
 fn build_workspace_binary() -> PathBuf {
     let cargo = std::env::var_os("CARGO").unwrap_or_else(|| "cargo".into());
     let workspace = Path::new(env!("CARGO_MANIFEST_DIR")).join("../..");

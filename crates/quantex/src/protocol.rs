@@ -202,9 +202,6 @@ pub struct Outcome {
     pub target: Option<Target>,
     pub warnings: Vec<Warning>,
     pub human: Option<HumanRenderer>,
-    /// A stored envelope replayed for `--idempotency-key`; written instead of one built
-    /// from the fields above, with fresh `meta.mode`, `meta.runId`, and `meta.timestamp`.
-    pub replay: Option<Value>,
 }
 
 impl Outcome {
@@ -218,7 +215,6 @@ impl Outcome {
             target,
             warnings: Vec::new(),
             human: None,
-            replay: None,
         }
     }
 
@@ -232,18 +228,7 @@ impl Outcome {
             target,
             warnings: Vec::new(),
             human: None,
-            replay: None,
         }
-    }
-
-    /// Replays a stored successful envelope.
-    pub fn replayed(stored: Value) -> Self {
-        let target = stored.get("target").and_then(Target::from_value);
-        let mut outcome = Self::success(stored["action"].as_str().unwrap_or_default(), target, Value::Null);
-        outcome.data = stored.get("data").cloned();
-        outcome.exit_code = stored.get("exitCode").and_then(Value::as_i64).map(|code| code as i32);
-        outcome.replay = Some(stored);
-        outcome
     }
 
     pub fn with_data(mut self, data: Value) -> Self {
@@ -295,15 +280,6 @@ fn meta(ctx: &Context, mode: OutputMode) -> Value {
 
 /// Builds the result envelope for an outcome.
 pub fn envelope(ctx: &Context, outcome: &Outcome, mode: OutputMode) -> Value {
-    if let Some(stored) = &outcome.replay {
-        let mut replayed = stored.clone();
-        if let Some(meta) = replayed.get_mut("meta").and_then(Value::as_object_mut) {
-            meta.insert("mode".into(), mode.as_str().into());
-            meta.insert("runId".into(), ctx.run_id.clone().into());
-            meta.insert("timestamp".into(), crate::time::now_iso().into());
-        }
-        return replayed;
-    }
     let mut map = Map::new();
     map.insert("action".into(), outcome.action.clone().into());
     if let Some(data) = &outcome.data {
@@ -390,10 +366,6 @@ pub fn emit(ctx: &Context, outcome: &Outcome) {
         }
         OutputMode::Human => {
             let mut human = Human::new(ctx);
-            // A replay reports nothing new; v1 prints nothing for it either.
-            if outcome.replay.is_some() {
-                return;
-            }
             match outcome.human {
                 Some(render) => render(outcome, &mut human),
                 None => default_human(outcome, &mut human),

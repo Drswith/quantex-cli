@@ -5,7 +5,7 @@ use std::sync::Arc;
 use crate::cli::Invocation;
 use crate::context::Context;
 use crate::protocol::{CommandError, ErrorCode, Outcome, Target};
-use crate::{idempotency, runtime};
+use crate::runtime;
 
 mod agents;
 mod catalog_commands;
@@ -61,47 +61,18 @@ pub fn dispatch(ctx: Arc<Context>, invocation: Invocation) -> i32 {
                 [only] => Target::agent(only),
                 many => Target::agent(&many.join(",")),
             };
-            runtime::execute(ctx, "install", Some(target.clone()), move |ctx| {
-                let targets = mutate::normalize_targets(&agents);
-                idempotency::guarded(
-                    ctx,
-                    "install",
-                    Some(target),
-                    |_| {
-                        Ok(match targets.as_slice() {
-                            [only] => idempotency::presence("install", only),
-                            many => idempotency::presence_batch(many),
-                        })
-                    },
-                    |ctx| mutate::install(ctx, &agents),
-                    |ctx, policy| policy.capture(ctx),
-                )
-            })
+            runtime::execute(ctx, "install", Some(target), move |ctx| mutate::install(ctx, &agents))
         }
         "uninstall" => {
             let agent = invocation.arg("agent").unwrap_or_default().to_owned();
             runtime::execute(ctx, "uninstall", Some(Target::agent(&agent)), move |ctx| {
-                idempotency::guarded(
-                    ctx,
-                    "uninstall",
-                    Some(Target::agent(&agent)),
-                    |ctx| Ok(idempotency::absence(ctx, &agent)),
-                    |ctx| mutate::uninstall(ctx, &agent),
-                    |ctx, policy| policy.capture(ctx),
-                )
+                mutate::uninstall(ctx, &agent)
             })
         }
         "ensure" => {
             let agent = invocation.arg("agent").unwrap_or_default().to_owned();
             runtime::execute(ctx, "ensure", Some(Target::agent(&agent)), move |ctx| {
-                idempotency::guarded(
-                    ctx,
-                    "ensure",
-                    Some(Target::agent(&agent)),
-                    |_| Ok(idempotency::presence("ensure", &agent)),
-                    |ctx| mutate::ensure(ctx, &agent),
-                    |ctx, policy| policy.capture(ctx),
-                )
+                mutate::ensure(ctx, &agent)
             })
         }
         "update" => {

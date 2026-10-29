@@ -46,7 +46,6 @@ pub fn capabilities(ctx: &Context) -> Outcome {
             "dryRun": true,
             "execInstallPolicies": ["never", "if-missing", "always"],
             "freshnessMetadata": true,
-            "idempotencyKey": true,
             "logLevels": ["silent", "error", "warn", "info", "debug"],
             "quietLogs": true,
             "selfUpgrade": facts.can_auto_update(),

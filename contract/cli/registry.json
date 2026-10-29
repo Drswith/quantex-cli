@@ -71,12 +71,6 @@
       "value": "string"
     },
     {
-      "id": "idempotencyKey",
-      "flags": "--idempotency-key <key>",
-      "description": "Deduplicate repeated mutating requests by client-supplied key",
-      "value": "string"
-    },
-    {
       "id": "timeout",
       "flags": "--timeout <duration>",
       "description": "Abort a command after the given duration, e.g. 500ms, 30s, 5m",
@@ -321,8 +315,7 @@
         "color",
         "logLevel",
         "dryRun",
-        "timeout",
-        "idempotencyKey"
+        "timeout"
       ],
       "flags": [
         "--json",
@@ -332,8 +325,7 @@
         "--color",
         "--log-level",
         "--dry-run",
-        "--timeout",
-        "--idempotency-key"
+        "--timeout"
       ]
     },
     {
@@ -450,8 +442,7 @@
         "color",
         "logLevel",
         "dryRun",
-        "timeout",
-        "idempotencyKey"
+        "timeout"
       ],
       "flags": [
         "--json",
@@ -461,8 +452,7 @@
         "--color",
         "--log-level",
         "--dry-run",
-        "--timeout",
-        "--idempotency-key"
+        "--timeout"
       ]
     },
     {
@@ -622,8 +612,7 @@
         "dryRun",
         "refresh",
         "noCache",
-        "timeout",
-        "idempotencyKey"
+        "timeout"
       ],
       "flags": [
         "--all",
@@ -637,8 +626,7 @@
         "--dry-run",
         "--refresh",
         "--no-cache",
-        "--timeout",
-        "--idempotency-key"
+        "--timeout"
       ]
     },
     {
@@ -670,8 +658,7 @@
         "color",
         "logLevel",
         "dryRun",
-        "timeout",
-        "idempotencyKey"
+        "timeout"
       ],
       "flags": [
         "--json",
@@ -680,8 +667,7 @@
         "--color",
         "--log-level",
         "--dry-run",
-        "--timeout",
-        "--idempotency-key"
+        "--timeout"
       ]
     },
     {
@@ -721,8 +707,7 @@
         "dryRun",
         "refresh",
         "noCache",
-        "timeout",
-        "idempotencyKey"
+        "timeout"
       ],
       "flags": [
         "--check",
@@ -735,8 +720,7 @@
         "--dry-run",
         "--refresh",
         "--no-cache",
-        "--timeout",
-        "--idempotency-key"
+        "--timeout"
       ]
     }
   ]

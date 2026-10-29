@@ -64,7 +64,6 @@ fn capabilities_describe_the_surface() {
         "cacheRefresh",
         "dryRun",
         "freshnessMetadata",
-        "idempotencyKey",
         "quietLogs",
         "timeout",
     ] {
