@@ -29,7 +29,7 @@ fn list_returns_the_effective_configuration() {
     let config = &envelope["data"]["config"];
     assert_eq!(
         config,
-        &json!({ "defaultPackageManager": "bun", "networkTimeoutMs": 1, "selfUpdateChannel": "stable" })
+        &json!({ "defaultPackageManager": "script", "networkTimeoutMs": 1, "selfUpdateChannel": "stable" })
     );
 }
 
@@ -63,7 +63,7 @@ fn set_validates_and_persists() {
     let stored = file(&sandbox);
     assert_eq!(stored["networkTimeoutMs"], 2500);
     assert_eq!(
-        stored["defaultPackageManager"], "bun",
+        stored["defaultPackageManager"], "script",
         "set writes the full effective config"
     );
 
@@ -87,7 +87,7 @@ fn set_validates_and_persists() {
         (
             "defaultPackageManager",
             "pnpm",
-            "defaultPackageManager must be bun or npm",
+            "defaultPackageManager must be script, bun, or npm",
         ),
         (
             "selfUpdateChannel",
@@ -125,7 +125,7 @@ fn reset_restores_defaults() {
     let (run, envelope) = config_json(&sandbox, &["reset"]);
     assert_eq!(run.code, 0, "{run:?}");
     let defaults = json!({
-        "defaultPackageManager": "bun",
+        "defaultPackageManager": "script",
         "networkTimeoutMs": 10000,
         "selfUpdateChannel": "stable",
     });

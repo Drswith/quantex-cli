@@ -151,7 +151,7 @@ pub fn doctor(ctx: &Context) -> Outcome {
             false,
             SELF_UPGRADE_DOCS,
             format!(
-                "Quantex CLI cannot auto-update from install source \"{}\". Reinstall via bun, npm, or the standalone binary if you want `quantex upgrade` support.",
+                "Quantex CLI cannot auto-update from install source \"{}\". Reinstall with the standalone binary (install.sh or install.ps1), bun, or npm if you want `quantex upgrade` support.",
                 source.as_str()
             ),
             self_subject.clone(),

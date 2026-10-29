@@ -227,8 +227,13 @@ fn apply_install(ctx: &Context, view: &View) -> Outcome {
         crate::catalog::Provider::Script => "install effect failed".to_owned(),
         provider => format!("{} install failed", provider.as_str()),
     };
-    let remediation = (!recipe.binding.provider.is_managed())
-        .then_some("Review the installer output and upstream installation instructions.");
+    let remediation = (!recipe.binding.provider.is_managed()).then(|| {
+        if view.methods.iter().any(|method| method.kind.is_managed()) {
+            "Review the installer output. To install through npm instead, run `qtx config set defaultPackageManager npm`."
+        } else {
+            "Review the installer output and upstream installation instructions."
+        }
+    });
     crate::term::progress(
         ctx,
         &format!(

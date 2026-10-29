@@ -2,12 +2,17 @@
 
 ## Unreleased
 
+Agents install through their official installer by default, and the standalone binary is the recommended way to install Quantex itself.
+
 ### Fixed
 
 * A missing `install` argument is reported as `'agents'`, in both the message and `error.details.argument`, instead of `'agents>'`.
 
 ### Changed
 
+* `defaultPackageManager` accepts `script`, the agent's official installer (usually a native binary), and defaults to it instead of `bun`. `install` tries the official installer first wherever the catalog offers one, for example Claude Code, OpenCode, GitHub Copilot CLI, Droid, Qoder CLI, CodeBuddy Code, OpenClaw, and oh-my-pi. Agents without one keep bun, then npm. A script install is updated with the agent's own update command, and `uninstall` only clears its record. Run `qtx config set defaultPackageManager npm` (or `bun`) to have a package manager install and remove agents again. A `config.json` that already stores `defaultPackageManager` keeps that value; `config set` and `config reset` wrote it out, so homes that ran either keep `bun`.
+* When an official installer fails for an agent that also has a package, the error suggests switching `defaultPackageManager` to npm.
+* The README recommends the standalone binary (`install.sh`, `install.ps1`) for Quantex itself, with npm and Bun as other ways, and `doctor` lists it first when it suggests a reinstall.
 * `install`, `update`, and `uninstall` print what they are about to do (for example `Updating Command Code via managed/npm... (1.88.1 -> 1.88.2)`) before the package manager starts, as 1.x did. `--quiet` and `--json` leave it out.
 * `doctor` shows the latest Quantex version, or `unknown` when it could not be checked.
 * `info` says who updates an installed agent (`Updates via: qtx update`) instead of printing `updateLabel` values such as `command update`, and shows `Lifecycle` again for an installed agent. The JSON is unchanged.

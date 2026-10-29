@@ -101,7 +101,7 @@ quantex upgrade --check --json
 
 Use:
 
-- `config` for CLI policy and defaults (`defaultPackageManager`, `networkTimeoutMs`, `selfUpdateChannel`, `selfUpdateRegistry`)
+- `config` for CLI policy and defaults (`defaultPackageManager`, `networkTimeoutMs`, `selfUpdateChannel`, `selfUpdateRegistry`). `defaultPackageManager` is `script` by default, so an agent's official installer runs first; set it to `npm` or `bun` when the install should be managed by a package manager
 - `doctor` for environment or recovery diagnosis, especially when another agent should consume structured remediation hints
 - `upgrade` for Quantex itself, not downstream agents
 

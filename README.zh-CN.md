@@ -27,6 +27,8 @@ Quantex 是面向 AI 编码助手和终端编码 agent 的生命周期 CLI，人
 
 ## 安装
 
+推荐安装独立二进制：不需要额外装运行时，`qtx upgrade` 会原地替换它。
+
 macOS 与 Linux：
 
 ```bash
@@ -41,7 +43,9 @@ irm https://raw.githubusercontent.com/Drswith/quantex-cli/main/install.ps1 | iex
 
 脚本会先用 `SHA256SUMS.txt` 校验下载内容，再把 `quantex` 和 `qtx` 装到 `~/.local/bin`（用 `QUANTEX_INSTALL_DIR` 改目录，用 `QUANTEX_VERSION=v<版本>` 固定版本）。
 
-也可以用 npm 或 Bun 安装，它们会通过对应平台的子包装上同一个原生二进制：
+每个 [GitHub release](https://github.com/Drswith/quantex-cli/releases) 都附带 macOS（arm64、x64）、Linux（arm64、x64，静态链接）和 Windows（x64）的二进制。
+
+其他方式：npm 和 Bun 会通过对应平台的子包装上同一个原生二进制，之后 `qtx upgrade` 也会走对应的包管理器。
 
 ```bash
 npm install -g quantex-cli
@@ -50,8 +54,6 @@ npm install -g quantex-cli
 ```bash
 bun add -g quantex-cli
 ```
-
-每个 [GitHub release](https://github.com/Drswith/quantex-cli/releases) 都附带 macOS（arm64、x64）、Linux（arm64、x64，静态链接）和 Windows（x64）的二进制。
 
 预发布版本以 GitHub 预发布的形式发布（开启 npm 发布后，也会发到 npm 的 `beta` 标签：`npm install -g quantex-cli@beta`）；stable 通道的安装永远不会被推送预发布版本。
 
@@ -183,13 +185,13 @@ agent 启动之后，`qtx exec` 和 `qtx <agent>` 以 agent 自己的退出码�
 
 ```json
 {
-  "defaultPackageManager": "bun",
+  "defaultPackageManager": "script",
   "networkTimeoutMs": 10000,
   "selfUpdateChannel": "stable"
 }
 ```
 
-- `defaultPackageManager`（`bun` 或 `npm`）：agent 提供该安装器时把它排在最前。
+- `defaultPackageManager`：agent 提供该安装器时把它排在最前。默认 `script` 是 agent 的官方安装器，一般是原生二进制；`bun` 或 `npm` 则从包仓库安装。官方安装器装的 agent 用它自带的命令更新，`qtx uninstall` 只清除记录；bun 和 npm 装的由 Quantex 负责更新和卸载。
 - `networkTimeoutMs`：每次版本查询的超时；`selfUpdateChannel`：`stable` 或 `beta`。
 - npm 和 Bun 安装的 agent 总是更新到最新版本。
 - `selfUpdateRegistry`（默认不设置）：npm 和 Bun 安装执行 `qtx upgrade` 时使用的 registry；`QTX_SELF_UPDATE_REGISTRY` 可以单次覆盖，不影响其他项目。

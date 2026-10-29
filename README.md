@@ -27,6 +27,8 @@ Quantex is a lifecycle CLI for AI coding assistants and terminal coding agents, 
 
 ## Install
 
+Install the standalone binary. It has no runtime to install, and `qtx upgrade` replaces it in place.
+
 macOS and Linux:
 
 ```bash
@@ -41,7 +43,9 @@ irm https://raw.githubusercontent.com/Drswith/quantex-cli/main/install.ps1 | iex
 
 The scripts install `quantex` and `qtx` into `~/.local/bin` (set `QUANTEX_INSTALL_DIR` to change it, or `QUANTEX_VERSION=v<version>` to pin a release) after checking the download against `SHA256SUMS.txt`.
 
-With npm or Bun, which install the same native binary through a per-platform package:
+Binaries for macOS (arm64, x64), Linux (arm64, x64, statically linked), and Windows (x64) are also attached to every [GitHub release](https://github.com/Drswith/quantex-cli/releases).
+
+Other ways: npm and Bun install the same native binary through a per-platform package, and `qtx upgrade` then goes through that package manager.
 
 ```bash
 npm install -g quantex-cli
@@ -50,8 +54,6 @@ npm install -g quantex-cli
 ```bash
 bun add -g quantex-cli
 ```
-
-Binaries for macOS (arm64, x64), Linux (arm64, x64, statically linked), and Windows (x64) are also attached to every [GitHub release](https://github.com/Drswith/quantex-cli/releases).
 
 Prereleases are published as GitHub prereleases (and, from the point npm publishing is turned on, to npm under the `beta` tag: `npm install -g quantex-cli@beta`); installs on the stable channel are never offered them.
 
@@ -183,13 +185,13 @@ Configuration lives in `~/.quantex/config.json` and is managed with `qtx config`
 
 ```json
 {
-  "defaultPackageManager": "bun",
+  "defaultPackageManager": "script",
   "networkTimeoutMs": 10000,
   "selfUpdateChannel": "stable"
 }
 ```
 
-- `defaultPackageManager` (`bun` or `npm`) moves that installer first when an agent offers it.
+- `defaultPackageManager` moves that installer first when an agent offers it: `script` (the default) is the agent's official installer, usually a native binary; `bun` or `npm` installs from the package registry instead. A script install is updated with the agent's own update command, and `qtx uninstall` only forgets it; bun and npm installs are updated and removed by Quantex.
 - `networkTimeoutMs` bounds each version lookup; `selfUpdateChannel` is `stable` or `beta`.
 - Updates of npm and Bun installs always go to the latest release.
 - `selfUpdateRegistry` (unset by default) is the registry `qtx upgrade` uses for npm and Bun installs; `QTX_SELF_UPDATE_REGISTRY` overrides it for one run. It does not affect other projects.

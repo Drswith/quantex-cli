@@ -32,8 +32,8 @@ pub struct Observation {
     pub latest_version: Option<String>,
 }
 
-/// Install methods for the current platform with the configured default package
-/// manager first.
+/// Install methods for the current platform with the configured `defaultPackageManager`
+/// first: the agent's official installer (`script`, the default), bun, or npm.
 pub fn ordered_methods(ctx: &Context, agent: &Agent) -> Vec<InstallMethod> {
     let preferred = store::load_config(&ctx.quantex_dir())
         .default_package_manager()

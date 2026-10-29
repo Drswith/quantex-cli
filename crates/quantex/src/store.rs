@@ -33,7 +33,7 @@ pub const VERSION_CACHE_TTL_HOURS: u64 = 6;
 
 pub fn default_config() -> Map<String, Value> {
     let mut map = Map::new();
-    map.insert("defaultPackageManager".into(), "bun".into());
+    map.insert("defaultPackageManager".into(), "script".into());
     map.insert("networkTimeoutMs".into(), 10000.into());
     map.insert("selfUpdateChannel".into(), "stable".into());
     map
@@ -51,7 +51,7 @@ impl Config {
     }
 
     pub fn default_package_manager(&self) -> &str {
-        self.values["defaultPackageManager"].as_str().unwrap_or("bun")
+        self.values["defaultPackageManager"].as_str().unwrap_or("script")
     }
 
     pub fn self_update_channel(&self) -> &str {
@@ -114,11 +114,12 @@ pub fn load_config(dir: &Path) -> Config {
         values.insert(key, value);
     }
     let manager = values.get("defaultPackageManager").and_then(Value::as_str);
-    // Older releases also accepted mise and uv, which no agent installs with any more.
-    let manager = if matches!(manager, Some("bun" | "npm")) {
+    // `script` is the agent's official installer. Older releases also accepted mise and
+    // uv, which no agent installs with any more.
+    let manager = if matches!(manager, Some("script" | "bun" | "npm")) {
         manager.unwrap().to_owned()
     } else {
-        "bun".to_owned()
+        "script".to_owned()
     };
     values.insert("defaultPackageManager".into(), manager.into());
     let timeout = positive_integer(values.get("networkTimeoutMs"), 10_000);
@@ -559,7 +560,7 @@ mod tests {
         .unwrap();
         let config = load_config(dir.path());
         assert_eq!(config.network_timeout_ms(), 250);
-        assert_eq!(config.default_package_manager(), "bun");
+        assert_eq!(config.default_package_manager(), "script");
         assert_eq!(config.values["custom"], true);
         assert!(!config.values.contains_key("selfUpdateRegistry"));
     }

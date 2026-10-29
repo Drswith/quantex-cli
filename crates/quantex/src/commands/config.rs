@@ -58,8 +58,8 @@ pub fn run(ctx: &Context, action: Option<&str>, key: Option<&str>, value: Option
                     "Unknown config key: {key}. Supported keys: {}",
                     CONFIG_KEYS.join(", ")
                 )),
-                "defaultPackageManager" if !matches!(raw, "bun" | "npm") => {
-                    Some("defaultPackageManager must be bun or npm".to_owned())
+                "defaultPackageManager" if !matches!(raw, "script" | "bun" | "npm") => {
+                    Some("defaultPackageManager must be script, bun, or npm".to_owned())
                 }
                 "selfUpdateChannel" if !matches!(raw, "stable" | "beta") => {
                     Some("selfUpdateChannel must be stable or beta".to_owned())

@@ -24,7 +24,7 @@ MiMoCode (`mimo`, `@mimo-ai/cli`, about 20 KB) is a quick agent to install and r
 |---|---|---|
 | Version and help | `quantex --version`, `qtx --version`, `quantex --help`, `quantex install --help` | The release version; usage on stdout, exit 0 |
 | Environment | `quantex doctor` | `Quantex: <version> (binary)`, bun and npm the only installers listed, both available, no issues |
-| Config | `quantex config set defaultPackageManager npm`, `quantex config` | Set; the full configuration is printed |
+| Config | `quantex config get defaultPackageManager`, `quantex config set defaultPackageManager npm`, `quantex config` | `script` before the set; then set, and the full configuration is printed |
 | Catalog | `quantex list`, `quantex info mimo` | Every catalog agent; MiMoCode not installed, with its latest version and npm listed first |
 | Install | `quantex install mimo`, then `mimo --version` | Installed through npm; `~/.quantex/state.json` records it |
 | Install again | `quantex install mimo` | "already installed" on stderr, exit 0 |
