@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased (2.0.0-beta.2)
+## [2.0.0-beta.2](https://github.com/Drswith/quantex-cli/releases/tag/v2.0.0-beta.2)
 
 From this release the goal is a small, light tool rather than matching 1.x in every detail. The `~/.quantex` files, the release assets, and the 1.x upgrade path are unchanged, so 1.x and 2.x still share one home directory.
 
