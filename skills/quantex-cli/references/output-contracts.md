@@ -8,10 +8,10 @@ Treat Quantex as a lifecycle CLI with a stable surface, not as a workflow engine
 
 Good fits:
 
-- ensure an agent is available
+- make sure an agent is available
 - inspect or resolve an agent before invoking it
 - update or uninstall a managed agent
-- discover supported commands and output schemas
+- discover supported commands
 - run a supported agent through `quantex exec`
 
 Not mainline fits:
@@ -22,11 +22,7 @@ Not mainline fits:
 
 ## Output modes
 
-Quantex supports three surface modes:
-
-- `human`
-- `json`
-- `ndjson`
+Quantex has two output modes: human (the default) and JSON (`--json`).
 
 ### Human mode
 
@@ -43,14 +39,14 @@ Use this for direct terminal workflows, not for parsing.
 Use:
 
 ```bash
-quantex inspect codex --json
-quantex capabilities --json
+quantex info codex --json
+quantex update --all --json
 ```
 
 In JSON mode:
 
 - `stdout` contains one final structured result
-- `stderr` contains logs, warnings, and installer chatter
+- `stderr` contains logs, warnings, installer output, and the output of an agent run through `exec`
 
 The result is an envelope with fields such as:
 
@@ -72,37 +68,18 @@ Typical `meta` fields include:
 - `staleAfter`
 - `source`
 
-### NDJSON mode
-
-Use:
-
-```bash
-quantex update --all --output ndjson
-```
-
-In NDJSON mode:
-
-- `stdout` contains one structured event per line
-- `stderr` remains the place for logs and installer output
-
-Prefer NDJSON for long-running operations where incremental progress matters more than a single final blob.
-
 ## Non-interactive and non-TTY behavior
 
 Quantex is `human-friendly + agent-friendly`.
 
-Structured output is selected only by:
-
-- `--json`
-- `--output json`
-- `--output ndjson`
+Structured output is selected only by `--json`.
 
 Interactivity is disabled when:
 
 - `--non-interactive` is used
 - `stdin` or `stdout` is not a TTY
 
-Human output stays the default on non-TTY streams, so pass an explicit output flag in automation.
+Human output stays the default on non-TTY streams, so pass `--json` in automation.
 
 ## Stream contract
 
@@ -114,7 +91,7 @@ Human output stays the default on non-TTY streams, so pass an explicit output fl
 ### What not to assume
 
 - do not parse human-readable colors or spacing
-- do not infer schemas from one sample run
+- do not infer fields from one sample run of a different command
 - do not assume shortcut execution has the same surface guarantees as `exec`
 
 ## Shortcut vs exec
@@ -133,7 +110,7 @@ Human output stays the default on non-TTY streams, so pass an explicit output fl
 
 ## Error and exit semantics
 
-In structured modes, failure information lives in:
+In JSON mode, failure information lives in:
 
 - `error.code`
 - `error.message`
@@ -158,20 +135,11 @@ Check `ok` first, then inspect `error`. Argument errors (an unknown option, a mi
 
 Once an agent runs, `quantex exec` exits with the agent's own exit code.
 
-When the exact command envelope matters, use:
-
-```bash
-quantex schema --json
-quantex schema inspect --json
-```
-
-This is the preferred way to understand output structure without guessing.
-
 ## Recommended automation pattern
 
 ```bash
-quantex inspect codex --json --non-interactive
-quantex ensure codex --json --non-interactive --yes --idempotency-key ensure-codex-001
+quantex info codex --json --non-interactive
+quantex install codex --json --non-interactive --yes
 quantex exec codex --install never -- --help
 ```
 
@@ -186,8 +154,8 @@ Use:
 Check state before mutating:
 
 ```bash
-quantex inspect claude --json
-quantex ensure claude --json --non-interactive --yes
+quantex info claude --json
+quantex install claude --json --non-interactive --yes
 ```
 
 Resolve before delegating to another runner that needs the absolute binary path or install source:
@@ -205,24 +173,22 @@ quantex exec codex --install if-missing -- --help
 
 ### Reliability controls
 
-- Use `--idempotency-key` on `install`, `ensure`, `update`, and `uninstall`. A retry with the same key and request returns the recorded result while its effect still holds (the agent is still installed, removed, or at the version reached), and otherwise runs normally. Reusing a key for a different request fails with `INVALID_ARGUMENT`. `--dry-run` neither replays nor records.
+- `install`, `update`, and `uninstall` are safe to retry. An agent that is already installed, already current, or already removed is reported without changes (`changed: false`, or an `ALREADY_INSTALLED` warning).
 - Use `--timeout` to bound operations; timeout and cancellation map to stable error handling.
-- Use `--run-id` or `QUANTEX_RUN_ID` to correlate JSON envelopes, NDJSON progress streams, and logs.
+- Use `--run-id` or `QUANTEX_RUN_ID` to correlate JSON envelopes and logs.
 
 ## Discovery-first automation
 
-Before automating against a command you have not seen before, discover the live surface instead of relying on stale assumptions about flags, schema refs, output modes, or install policies:
+Before automating against a command you have not seen before, discover the live surface instead of relying on stale assumptions about commands, flags, or install policies:
 
 ```bash
 quantex commands --json
-quantex schema --json
-quantex capabilities --json
 ```
 
 ## Practical guidance
 
 - Parse `stdout`, not `stderr`.
-- Prefer `inspect`, `ensure`, `resolve`, and `exec` over scraping `list` or `info`.
+- Prefer `info --json`, `resolve`, and `exec` over scraping human output.
 - Prefer `exec` over shortcut commands in automation.
 - Use `doctor` when the question is "why is this environment broken?" rather than "what can I do?"
 - When using `quantex doctor --json`, prefer `data.issues[].suggestedAction`, `suggestedCommands`, and `docsRef` over scraping warning prose.

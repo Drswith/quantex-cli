@@ -66,13 +66,11 @@ print(f"{label}: ok")
 
 echo "Quantex skill smoke check"
 
-check_json_command "capabilities" capabilities --json
 check_json_command "commands" commands --json
-check_json_command "schema" schema --json
-check_json_command "schema inspect" schema inspect --json
-check_json_command "inspect ${SMOKE_AGENT}" inspect "${SMOKE_AGENT}" --json
+check_json_command "list" list --json
+check_json_command "info ${SMOKE_AGENT}" info "${SMOKE_AGENT}" --json
 
-INSPECT_OUTPUT="$(run_quantex inspect "${SMOKE_AGENT}" --json 2>/dev/null)"
+INSPECT_OUTPUT="$(run_quantex info "${SMOKE_AGENT}" --json 2>/dev/null)"
 INSTALLED_STATE="$(printf '%s\n' "${INSPECT_OUTPUT}" | python3 -c '
 import json
 import sys

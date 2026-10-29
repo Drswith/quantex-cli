@@ -19,9 +19,9 @@ Quantex 是面向 AI 编码助手和终端编码 agent 的生命周期 CLI，人
 
 ## 为什么用 Quantex
 
-- 多个 agent CLI 共用一套生命周期命令：`install`、`ensure`、`inspect`、`resolve`、`update`、`uninstall`、`exec`。
-- 为脚本和 agent 设计：`--json`、`--output ndjson`、`--non-interactive`、`--dry-run`、`--timeout`、`--idempotency-key`，错误码和退出码都有文档。
-- 记录每个 agent 真实的安装来源（npm、Bun、Homebrew、winget、官方安装脚本或独立二进制），`update --all` 按记录的来源更新，而不是凭 `PATH` 猜。
+- 多个 agent CLI 共用一套生命周期命令：`install`、`info`、`resolve`、`update`、`uninstall`、`exec`。
+- 为脚本和 agent 设计：`--json`、`--non-interactive`、`--dry-run`、`--timeout`，错误码和退出码都有文档。
+- 记录每个 agent 真实的安装来源（npm、Bun 或官方安装脚本），`update --all` 按记录的来源更新，而不是凭 `PATH` 猜。
 - 先验证再记录：每次安装、更新、卸载之后都会重新观测一次再写入状态。
 - 单个原生二进制（约 3 MB），不需要安装运行时，用 `quantex upgrade` 保持最新。
 
@@ -64,16 +64,16 @@ qtx install claude codex
 qtx exec claude --install if-missing -- --help
 ```
 
-确保 agent 可用（幂等，适合脚本和 agent）：
+agent 已经安装时，再次安装会直接成功、不做改动，所以脚本可以每次都运行 `install`（或它的别名 `ensure`）：
 
 ```bash
-qtx ensure codex --json
+qtx install codex --json
 ```
 
 查看 agent 状态、解析可执行文件：
 
 ```bash
-qtx inspect codex --json
+qtx info codex --json
 qtx resolve codex --json
 ```
 
@@ -95,24 +95,20 @@ qtx upgrade
 
 | 命令 | 说明 |
 |---|---|
-| `qtx install <agent> [更多...]`（`i`） | 安装一个或多个 agent |
-| `qtx ensure <agent>` | 只在缺失时安装 agent |
+| `qtx install <agent> [更多...]`（`i`、`ensure`） | 安装缺失的 agent |
 | `qtx update <agent>`（`u`）、`qtx update --all [--managed]` | 更新某个 agent，或全部已安装的 agent |
 | `qtx uninstall <agent>`（`rm`） | 卸载由 Quantex 安装的 agent |
 | `qtx list`（`ls`） | 列出支持的 agent 及安装情况 |
-| `qtx info <agent>` | 查看 agent 详情和安装方式 |
-| `qtx inspect <agent>` | 返回 agent 完整的生命周期状态 |
+| `qtx info <agent>`（`inspect`） | 查看 agent 详情、状态和安装方式 |
 | `qtx resolve <agent>` | 解析要启动的可执行文件 |
 | `qtx exec <agent> [--install never\|if-missing\|always] -- [参数...]` | 按明确的安装策略启动 agent |
 | `qtx <agent> [参数...]` | 启动 agent，缺失时询问是否安装 |
 | `qtx doctor` | 诊断环境并给出恢复步骤 |
-| `qtx capabilities` | 查看安装器、平台和功能开关 |
 | `qtx commands` | 查看稳定的命令目录 |
-| `qtx schema [command]` | 查看结构化输出的 schema |
 | `qtx config [list\|get\|set\|reset] [key] [value]` | 查看和修改配置 |
 | `qtx upgrade [--check] [--channel stable\|beta]` | 升级 Quantex 自身 |
 
-`qtx uninstall` 只处理 Quantex 记录的安装来源，不会删除 `PATH` 上另外安装的副本；用 `qtx inspect <agent> --json` 可以看清各个副本的来源。
+`qtx uninstall` 只处理 Quantex 记录的安装来源，不会删除 `PATH` 上另外安装的副本；用 `qtx info <agent> --json` 可以看清各个副本的来源。
 
 ## 支持的 agent
 
@@ -152,19 +148,17 @@ npx skills add Drswith/quantex-cli --skill quantex-cli -a codex -a claude-code -
 然后发现稳定的命令面：
 
 ```bash
-qtx capabilities --json
 qtx commands --json
-qtx schema --json
 ```
 
 agent 可以依赖的契约：
 
-- `--json` 或 `--output json` 输出一个结果信封 `{ action, ok, data, error, warnings, meta, target }`；`--output ndjson` 流式输出 `started` / `progress` 事件，最后是 `result` 事件。
-- `json` 与 `ndjson` 模式下 stdout 只输出协议内容；日志、警告、提示和安装器输出都走 stderr。
+- `--json` 输出一个结果信封 `{ action, ok, data, error, warnings, meta, target }`。
+- 使用 `--json` 时 stdout 只输出信封；日志、警告、提示以及安装器和 agent 的输出都走 stderr。
 - `--non-interactive` 从不提示（需要确认时返回 `INTERACTION_REQUIRED`）；`--yes` 自动确认；`--quiet` 关闭提示性输出。
-- `--dry-run` 报告 `install`、`ensure`、`update`、`uninstall`、`exec`、`upgrade` 将会做什么，但不执行。
+- `--dry-run` 报告 `install`、`update`、`uninstall`、`exec`、`upgrade` 将会做什么，但不执行。
 - `--timeout <时长>`（`500ms`、`30s`、`2m`）限制命令时长；`--refresh` 与 `--no-cache` 控制版本缓存；`--run-id` 设置 `meta.runId`。
-- `--idempotency-key <key>` 让重试的 `install`、`ensure`、`update`、`uninstall` 在效果仍然成立时直接返回记录的结果；同一个 key 用于不同请求会被拒绝。
+- `install`、`update`、`uninstall` 都可以重试：已经没有事要做时直接成功，不做改动。
 
 | 退出码 | 含义 |
 |---|---|
@@ -190,32 +184,31 @@ agent 启动之后，`qtx exec` 和 `qtx <agent>` 以 agent 自己的退出码�
 ```json
 {
   "defaultPackageManager": "bun",
-  "npmBunUpdateStrategy": "latest-major",
-  "selfUpdateChannel": "stable",
-  "networkRetries": 2,
   "networkTimeoutMs": 10000,
-  "versionCacheTtlHours": 6
+  "selfUpdateChannel": "stable"
 }
 ```
 
 - `defaultPackageManager`（`bun` 或 `npm`）：agent 提供该安装器时把它排在最前。
-- `npmBunUpdateStrategy`：`latest-major`（安装 `@latest`）或 `respect-semver`（`npm update` / `bun update`）。
+- `networkTimeoutMs`：每次版本查询的超时；`selfUpdateChannel`：`stable` 或 `beta`。
+- npm 和 Bun 安装的 agent 总是更新到最新版本。
 - `selfUpdateRegistry`（默认不设置）：npm 和 Bun 安装执行 `qtx upgrade` 时使用的 registry；`QTX_SELF_UPDATE_REGISTRY` 可以单次覆盖，不影响其他项目。
 
-Quantex 在 `~/.quantex/state.json` 中记录每个 agent 的安装来源和验证后的收据；版本查询缓存在 `~/.quantex/cache/`，幂等记录在 `~/.quantex/idempotency/`，锁在 `~/.quantex/locks/`。
+Quantex 在 `~/.quantex/state.json` 中记录每个 agent 的安装来源和验证后的收据；版本查询缓存在 `~/.quantex/cache/`，锁在 `~/.quantex/locks/`。
 
 ## 从 1.x 升级
 
-Quantex 2 用 Rust 重写，保留 1.x 的命令行：命令、选项、JSON 和 NDJSON 字段、错误码、`~/.quantex` 下的文件都不变。1.x 安装可以直接 `qtx upgrade` 升级，1.x 与 2.x 可以共用同一个 home 目录。Windows 上的 1.x 独立二进制从来无法完成自升级（会报告 `updated`，但文件没有被替换），请改为重新运行 `install.ps1`。变化如下：
+Quantex 2 用 Rust 重写，保留 1.x 的核心命令行、JSON 字段、错误码和 `~/.quantex` 下的文件，去掉了很少有人用的部分。1.x 安装可以直接 `qtx upgrade` 升级，1.x 与 2.x 可以共用同一个 home 目录。Windows 上的 1.x 独立二进制从来无法完成自升级（会报告 `updated`，但文件没有被替换），请改为重新运行 `install.ps1`。变化如下：
 
-- 参数错误（未知选项、缺少参数、取值无效）退出码为 2，在 `json` / `ndjson` 模式下输出 `INVALID_ARGUMENT` 信封；1.x 打印纯文本错误并以 1 退出。
+- 删除：11 个很少使用的 agent；Homebrew、winget、Cargo、Deno、mise、pip、uv 这些安装途径；NDJSON 输出和 `--output`（改用 `--json`）；`--log-level`；`--idempotency-key`；`capabilities` 和 `schema` 命令；配置项 `npmBunUpdateStrategy`、`networkRetries`、`versionCacheTtlHours`。`ensure` 和 `inspect` 保留为 `install` 和 `info` 的别名。完整列表见 [`CHANGELOG.md`](./CHANGELOG.md)。
+- 参数错误（未知选项、缺少参数、取值无效）退出码为 2，使用 `--json` 时输出 `INVALID_ARGUMENT` 信封；1.x 打印纯文本错误并以 1 退出。
 - human 输出不属于契约，排版与 1.x 不同，含义一致。
 - npm 包不再导出 JavaScript 库，这条线也不再发布 `quantex-core`。
 - 修复了若干 1.x 缺陷，逐条列在 [`contract/README.md`](./contract/README.md)。
 
 ## 参与开发
 
-先读 [AGENTS.md](./AGENTS.md)。接口定义在 [`contract/`](./contract/README.md)，由 [`tests/contract/`](./tests/contract) 中的黑盒测试检查，这些测试也会对 v1.13.6 发布二进制运行。设计记录在 [`docs/design/`](./docs/design/)，发布流程见 [`docs/runbooks/releasing.md`](./docs/runbooks/releasing.md)。
+先读 [AGENTS.md](./AGENTS.md)。接口定义在 [`contract/`](./contract/README.md)，由 [`tests/contract/`](./tests/contract) 中的黑盒测试检查。设计记录在 [`docs/design/`](./docs/design/)，发布流程见 [`docs/runbooks/releasing.md`](./docs/runbooks/releasing.md)。
 
 ```bash
 cargo fmt --all --check

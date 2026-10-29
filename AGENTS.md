@@ -8,7 +8,7 @@
 
 ## 契约优先
 
-- 对外接口全部记录在 `contract/`，说明见 `contract/README.md`。优先级：契约测试 > `contract/` 下的数据文件 > `contract/behavior/` 里的行为说明。
+- 对外接口全部记录在 `contract/`，说明见 `contract/README.md`。优先级：契约测试 > `contract/` 下的数据文件 > `contract/README.md` 里的行为说明。
 - 改了任何外部可观察的行为（命令、参数、JSON 字段、错误码、exit code、`~/.quantex` 文件格式、release 资产名），同一个 PR 里必须同时更新 `contract/` 和 `tests/contract/`，并写进 `CHANGELOG.md`。
 - human 输出不算契约，可以自由调整排版，但含义要和 JSON 一致。
 - 想确认 v1 的行为，用 `git show v1.13.6:<path>` 读旧实现，或跑 v1.13.6 的发布二进制。不要照搬它的代码结构。
@@ -17,7 +17,7 @@
 
 - `crates/quantex/`：二进制和它的库代码
 - `tests/contract/`：黑盒契约测试，通过 `QUANTEX_BIN` 指定被测二进制
-- `contract/`：命令注册表、schema、错误码、agent 目录、测试数据、行为说明，构建时内嵌进二进制
+- `contract/`：命令注册表、错误码、agent 目录、测试数据和行为说明，前三者构建时内嵌进二进制
 - `skills/quantex-cli/`：给用户安装的产品 skill。路径和名字不能变，用户通过 `npx skills add Drswith/quantex-cli --skill quantex-cli` 安装
 - `install.sh`、`install.ps1`：独立二进制的安装脚本
 - `docs/design/`：设计记录
@@ -32,14 +32,14 @@ cargo clippy --workspace --all-targets -- -D warnings
 cargo test --workspace
 ```
 
-`cargo test --workspace` 会先构建 `quantex`，再对它跑契约测试。要拿 v1.13.6 基准对照时，把 `QUANTEX_BIN` 指向那个二进制，再单独跑 `cargo test -p quantex-contract-tests`。
+`cargo test --workspace` 会先构建 `quantex`，再对它跑契约测试。发布前的人工检查见 `docs/runbooks/manual-verification.md`。
 
 ## 红线
 
 - 未经维护者明确同意，不改命令名、别名、参数、JSON 字段名和类型、错误码、exit code。
 - `~/.quantex` 下的文件格式和锁协议必须能和 v1.13.6 互相读写。
 - release 资产名、`SHA256SUMS.txt` 和 `manifest.json` 格式不能变，发布必须从 `Drswith/quantex-cli` 出。老版本的二进制靠它们升级。
-- JSON / NDJSON 模式下 stdout 只能输出协议内容，日志和提示一律走 stderr。
+- `--json` 模式下 stdout 只能输出协议内容，日志、提示和 agent 自己的输出一律走 stderr。
 - Windows 是一等平台：路径、`.cmd` 包装、PATHEXT、Ctrl-C、替换正在运行的二进制都要考虑到。
 - 不要新建根目录下的零散 markdown，设计记录放 `docs/design/`。
 

@@ -19,9 +19,9 @@ Quantex is a lifecycle CLI for AI coding assistants and terminal coding agents, 
 
 ## Why Quantex
 
-- One lifecycle surface for many agent CLIs: `install`, `ensure`, `inspect`, `resolve`, `update`, `uninstall`, `exec`.
-- Built for scripts and agents: `--json`, `--output ndjson`, `--non-interactive`, `--dry-run`, `--timeout`, and `--idempotency-key`, with documented error codes and exit codes.
-- Tracks where each agent actually came from (npm, Bun, Homebrew, winget, an official install script, or a standalone binary), so `update --all` uses the recorded source instead of guessing from `PATH`.
+- One lifecycle surface for many agent CLIs: `install`, `info`, `resolve`, `update`, `uninstall`, `exec`.
+- Built for scripts and agents: `--json`, `--non-interactive`, `--dry-run`, and `--timeout`, with documented error codes and exit codes.
+- Tracks where each agent actually came from (npm, Bun, or an official install script), so `update --all` uses the recorded source instead of guessing from `PATH`.
 - Verifies before it records: every install, update, and uninstall is checked against a fresh observation.
 - A single native binary (about 3 MB) with no runtime to install, and a `quantex upgrade` that keeps it current.
 
@@ -64,16 +64,16 @@ qtx install claude codex
 qtx exec claude --install if-missing -- --help
 ```
 
-Make sure an agent is available, the idempotent form for scripts and agents:
+Installing an agent that is already there succeeds without changing anything, so scripts can run `install` (or its alias `ensure`) every time:
 
 ```bash
-qtx ensure codex --json
+qtx install codex --json
 ```
 
 Inspect an agent and resolve its executable:
 
 ```bash
-qtx inspect codex --json
+qtx info codex --json
 qtx resolve codex --json
 ```
 
@@ -95,24 +95,20 @@ qtx upgrade
 
 | Command | Description |
 |---|---|
-| `qtx install <agent> [more...]` (`i`) | Install one or more agents |
-| `qtx ensure <agent>` | Install an agent only if it is missing |
+| `qtx install <agent> [more...]` (`i`, `ensure`) | Install agents that are missing |
 | `qtx update <agent>` (`u`), `qtx update --all [--managed]` | Update an agent, or every installed one |
 | `qtx uninstall <agent>` (`rm`) | Uninstall an agent Quantex installed |
 | `qtx list` (`ls`) | List supported agents and what is installed |
-| `qtx info <agent>` | Show an agent's details and install methods |
-| `qtx inspect <agent>` | Return an agent's full lifecycle state |
+| `qtx info <agent>` (`inspect`) | Show an agent's details, state, and install methods |
 | `qtx resolve <agent>` | Resolve the executable to launch |
 | `qtx exec <agent> [--install never\|if-missing\|always] -- [args...]` | Run an agent with an explicit install policy |
 | `qtx <agent> [args...]` | Run an agent, offering to install it when missing |
 | `qtx doctor` | Diagnose the environment, with recovery steps |
-| `qtx capabilities` | Show installers, platform, and feature flags |
 | `qtx commands` | Show the stable command catalog |
-| `qtx schema [command]` | Show structured output schemas |
 | `qtx config [list\|get\|set\|reset] [key] [value]` | Read and change configuration |
 | `qtx upgrade [--check] [--channel stable\|beta]` | Upgrade Quantex itself |
 
-`qtx uninstall` acts on the install source Quantex recorded. It does not remove a separately installed copy that is still on `PATH`; `qtx inspect <agent> --json` shows which copy is which.
+`qtx uninstall` acts on the install source Quantex recorded. It does not remove a separately installed copy that is still on `PATH`; `qtx info <agent> --json` shows which copy is which.
 
 ## Supported agents
 
@@ -152,19 +148,17 @@ npx skills add Drswith/quantex-cli --skill quantex-cli -a codex -a claude-code -
 Then discover the stable surface:
 
 ```bash
-qtx capabilities --json
 qtx commands --json
-qtx schema --json
 ```
 
 The contract an agent can rely on:
 
-- `--json` or `--output json` prints one result envelope `{ action, ok, data, error, warnings, meta, target }`. `--output ndjson` streams `started` / `progress` events and ends with a `result` event.
-- In `json` and `ndjson` mode stdout carries only protocol output. Logs, warnings, prompts, and installer output go to stderr.
+- `--json` prints one result envelope `{ action, ok, data, error, warnings, meta, target }`.
+- With `--json`, stdout carries only the envelope. Logs, warnings, prompts, and installer and agent output go to stderr.
 - `--non-interactive` never prompts (a needed confirmation becomes `INTERACTION_REQUIRED`); `--yes` accepts prompts; `--quiet` silences informational output.
-- `--dry-run` reports what `install`, `ensure`, `update`, `uninstall`, `exec`, and `upgrade` would do, without doing it.
+- `--dry-run` reports what `install`, `update`, `uninstall`, `exec`, and `upgrade` would do, without doing it.
 - `--timeout <duration>` (`500ms`, `30s`, `2m`) bounds a command; `--refresh` and `--no-cache` control the version cache; `--run-id` sets `meta.runId`.
-- `--idempotency-key <key>` makes a retried `install`, `ensure`, `update`, or `uninstall` return the recorded result while its effect still holds. Reusing a key for a different request is refused.
+- `install`, `update`, and `uninstall` can be retried: one that has nothing left to do succeeds without changes.
 
 | Exit code | Meaning |
 |---|---|
@@ -190,32 +184,31 @@ Configuration lives in `~/.quantex/config.json` and is managed with `qtx config`
 ```json
 {
   "defaultPackageManager": "bun",
-  "npmBunUpdateStrategy": "latest-major",
-  "selfUpdateChannel": "stable",
-  "networkRetries": 2,
   "networkTimeoutMs": 10000,
-  "versionCacheTtlHours": 6
+  "selfUpdateChannel": "stable"
 }
 ```
 
 - `defaultPackageManager` (`bun` or `npm`) moves that installer first when an agent offers it.
-- `npmBunUpdateStrategy` is `latest-major` (install `@latest`) or `respect-semver` (`npm update` / `bun update`).
+- `networkTimeoutMs` bounds each version lookup; `selfUpdateChannel` is `stable` or `beta`.
+- Updates of npm and Bun installs always go to the latest release.
 - `selfUpdateRegistry` (unset by default) is the registry `qtx upgrade` uses for npm and Bun installs; `QTX_SELF_UPDATE_REGISTRY` overrides it for one run. It does not affect other projects.
 
-Quantex records each agent's install source and a verified receipt in `~/.quantex/state.json`. Version lookups are cached in `~/.quantex/cache/`, idempotency records live in `~/.quantex/idempotency/`, and locks in `~/.quantex/locks/`.
+Quantex records each agent's install source and a verified receipt in `~/.quantex/state.json`. Version lookups are cached in `~/.quantex/cache/`, and locks live in `~/.quantex/locks/`.
 
 ## Upgrading from 1.x
 
-Quantex 2 is a rewrite in Rust that keeps the 1.x command line: the same commands, options, JSON and NDJSON fields, error codes, and `~/.quantex` files. A 1.x install upgrades with `qtx upgrade`, and 1.x and 2.x can share one home directory. On Windows, a 1.x standalone binary never completes a self-upgrade (it reports `updated` but nothing is replaced), so rerun `install.ps1` there. What changes:
+Quantex 2 is a rewrite in Rust. It keeps the core 1.x command line, JSON fields, error codes, and `~/.quantex` files, and drops what few people used. A 1.x install upgrades with `qtx upgrade`, and 1.x and 2.x can share one home directory. On Windows, a 1.x standalone binary never completes a self-upgrade (it reports `updated` but nothing is replaced), so rerun `install.ps1` there. What changes:
 
-- Argument errors (unknown option, missing argument, invalid value) exit with code 2 and, in `json` / `ndjson` mode, print an `INVALID_ARGUMENT` envelope. 1.x printed a plain error and exited 1.
+- Removed: 11 rarely used agents, the Homebrew, winget, Cargo, Deno, mise, pip, and uv install routes, NDJSON output and `--output` (use `--json`), `--log-level`, `--idempotency-key`, the `capabilities` and `schema` commands, and the config keys `npmBunUpdateStrategy`, `networkRetries`, and `versionCacheTtlHours`. `ensure` and `inspect` remain as aliases of `install` and `info`. [`CHANGELOG.md`](./CHANGELOG.md) has the full list.
+- Argument errors (unknown option, missing argument, invalid value) exit with code 2 and, with `--json`, print an `INVALID_ARGUMENT` envelope. 1.x printed a plain error and exited 1.
 - Human-readable output is not part of the contract; its layout differs from 1.x while meaning the same thing.
 - The npm package no longer exports a JavaScript library, and `quantex-core` is not published from this line.
 - A number of 1.x defects are fixed; [`contract/README.md`](./contract/README.md) lists each one.
 
 ## Contributing
 
-Read [AGENTS.md](./AGENTS.md) first. The interface is defined in [`contract/`](./contract/README.md) and checked by the black-box suite in [`tests/contract/`](./tests/contract), which also runs against the v1.13.6 release binary. Design records live in [`docs/design/`](./docs/design/), and [`docs/runbooks/releasing.md`](./docs/runbooks/releasing.md) describes how releases are built.
+Read [AGENTS.md](./AGENTS.md) first. The interface is defined in [`contract/`](./contract/README.md) and checked by the black-box suite in [`tests/contract/`](./tests/contract). Design records live in [`docs/design/`](./docs/design/), and [`docs/runbooks/releasing.md`](./docs/runbooks/releasing.md) describes how releases are built.
 
 ```bash
 cargo fmt --all --check

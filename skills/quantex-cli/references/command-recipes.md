@@ -29,11 +29,10 @@ This skill snapshot knows about these Quantex agent names:
 - `pi`
 - `qoder`
 
-The running binary remains the source of truth. If you are unsure whether the current binary supports a specific agent, command, flag, or output shape, run:
+The running binary remains the source of truth. If you are unsure whether the current binary supports a specific agent, command, or flag, run:
 
 ```bash
 quantex list --json
-quantex capabilities --json
 quantex commands --json
 ```
 
@@ -45,39 +44,34 @@ quantex commands --json
 quantex list
 quantex list --json
 quantex info codex
-quantex inspect codex --json
+quantex info codex --json
 quantex resolve codex --json
-quantex capabilities --json
 quantex commands --json
-quantex schema --json
 ```
 
 Use:
 
 - `list` for human overview
 - `list --json` for an exact supported-agent inventory
-- `info` for human-friendly details
-- `inspect` for structured state
+- `info` for details and structured state (`inspect` is an alias)
 - `resolve` for executable path and launch resolution
-- `capabilities`, `commands`, `schema` for self-description
+- `commands` for self-description
 
-When `resolve --json` reports `AGENT_NOT_INSTALLED`, prefer `data.resolution.installGuidance` instead of scraping the error text. It now includes a suggested `quantex ensure <agent>` command plus install methods Quantex can attempt.
+When `resolve --json` reports `AGENT_NOT_INSTALLED`, prefer `data.resolution.installGuidance` instead of scraping the error text. It includes a suggested install command plus install methods Quantex can attempt.
 
 ### Installation and updates
 
 ```bash
 quantex install claude --json --yes --non-interactive
-quantex ensure claude --json --yes --non-interactive
 quantex update claude --json
-quantex update --all --output ndjson
+quantex update --all --json
 quantex uninstall claude --json
 ```
 
 Prefer:
 
-- `ensure` when the goal is "agent must be present"
-- `install` when the task is explicitly to install
-- `update --all --output ndjson` when tracking multi-agent progress
+- `install` both to install and to make sure an agent is present; an agent that is already installed is left alone (`ensure` is an alias)
+- `update --all --json` to update everything Quantex manages, with one result per agent in `data.results`
 
 ### Execution
 
@@ -93,7 +87,7 @@ Rules:
 - prefer `--install never` when mutation would be surprising
 - prefer `--install if-missing` when you want lifecycle management and execution in one step
 
-If `exec` fails before launch because the agent is missing, prefer the structured preflight guidance in the JSON result. It now includes both `suggestedEnsureCommand` and a rerun command with `--install if-missing`.
+If `exec` fails before launch because the agent is missing, prefer the structured preflight guidance in the JSON result. It includes both `suggestedEnsureCommand` and a rerun command with `--install if-missing`.
 
 ### Configuration and diagnosis
 
@@ -107,7 +101,7 @@ quantex upgrade --check --json
 
 Use:
 
-- `config` for CLI policy and defaults
+- `config` for CLI policy and defaults (`defaultPackageManager`, `networkTimeoutMs`, `selfUpdateChannel`, `selfUpdateRegistry`)
 - `doctor` for environment or recovery diagnosis, especially when another agent should consume structured remediation hints
 - `upgrade` for Quantex itself, not downstream agents
 
@@ -116,7 +110,6 @@ Use:
 These flags matter most in agent workflows:
 
 - `--json`
-- `--output <human|json|ndjson>`
 - `--non-interactive`
 - `--yes`
 - `--quiet`
@@ -125,12 +118,10 @@ These flags matter most in agent workflows:
 - `--no-cache`
 - `--run-id <id>`
 - `--timeout <duration>`
-- `--idempotency-key <key>`
 
 ## Heuristics
 
-- If another system will parse the result, use `--json` or `--output ndjson`.
-- If the task may retry, add `--idempotency-key` on mutating commands.
+- If another system will parse the result, use `--json`.
 - If timing is uncertain, add `--timeout`.
 - If cached version data would be misleading, add `--refresh`.
 - If you need a stable command inventory, read `commands --json` instead of hard-coding assumptions.

@@ -15,8 +15,8 @@ Re-implement `quantex` / `qtx` from scratch in Rust as a drop-in replacement for
 ## Decisions
 
 1. **Scope.** TypeScript internals, the Core/CLI package split, the `quantex-core` SDK, the npm root library exports, and the v1/v2 staged-migration governance are not constraints. The CLI-facing interface is.
-2. **Human output is not contract.** Only JSON / NDJSON, exit codes, error codes, and stdout / stderr routing are locked. Human text keeps its meaning; layout may change.
-3. **Argument-parse errors become `INVALID_ARGUMENT`.** Exit code 2, and the error envelope in `json` / `ndjson` mode. v1.13.6 prints `error: unknown option '--bogus'` to stderr and exits 1, which contradicts its own error table.
+2. **Human output is not contract.** Only JSON, exit codes, error codes, and stdout / stderr routing are locked. Human text keeps its meaning; layout may change.
+3. **Argument-parse errors become `INVALID_ARGUMENT`.** Exit code 2, and the error envelope in JSON mode. v1.13.6 prints `error: unknown option '--bogus'` to stderr and exits 1, which contradicts its own error table.
 4. **`~/.quantex` formats are kept exactly**, including the lock protocol, so the TypeScript and Rust builds can share one home directory and users can roll back.
 5. **OpenSpec is retired.** Contract data plus contract tests replace it. Decisions that need a record go here or in `docs/design/`.
 6. **CI, `AGENTS.md`, and agent-instruction files are rewritten from scratch.** One `AGENTS.md`; `CLAUDE.md` imports it.
@@ -46,11 +46,11 @@ One Cargo workspace:
 Modules inside `crates/quantex`:
 
 - `cli`: argv pre-dispatch for the bare-agent shortcut, then clap, built from `contract/cli/registry.json`.
-- `protocol`: result envelope, NDJSON events, error codes, exit codes, stdout / stderr routing.
+- `protocol`: result envelope, error codes, exit codes, stdout / stderr routing.
 - `catalog`: the embedded agent catalog and platform method resolution.
-- `store`: `state.json`, `config.json`, version cache, idempotency records, directory locks.
+- `store`: `state.json`, `config.json`, version cache, directory locks.
 - `probe`: executable resolution on `PATH`, version probes, the lenient version comparison from v1.
-- `providers`: one module per package manager or installer (npm, bun, brew, winget, script, cargo, deno, mise, pip, uv, binary).
+- `providers`: npm, bun, and install scripts: presence probes and the install, update, and uninstall commands.
 - `lifecycle`: observe, decide, execute, verify, record.
 - `commands`: one module per command.
 - `selfupdate`: install-source detection and the binary / npm / bun upgrade paths.

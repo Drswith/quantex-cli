@@ -2,14 +2,21 @@
 
 ## Unreleased (2.0.0-beta.2)
 
-From this release the goal is a small, light tool rather than matching 1.x in every detail.
+From this release the goal is a small, light tool rather than matching 1.x in every detail. The `~/.quantex` files, the release assets, and the 1.x upgrade path are unchanged, so 1.x and 2.x still share one home directory.
 
 ### Removed
 
 * Agents: Auggie CLI, Autohand Code CLI, CodeWhale, Gemini CLI, Goose, Junie CLI, Kiro CLI, Mistral Vibe, OpenHands CLI, Qwen Code, and Reasonix. 22 agents remain. Quantex no longer installs, updates, or removes them; an existing install stays where it is (remove it with the tool that installed it, for example `npm uninstall -g @google/gemini-cli`), and its `state.json` record is kept.
-* The cargo, deno, mise, pip, and uv providers, which no agent used. Records with those install types are kept and treated as untracked.
-* `capabilities` and `doctor` only check the package managers agents install with on this platform: bun and npm, plus brew on macOS and Linux or winget on Windows.
-* `defaultPackageManager` accepts `bun` or `npm`; a stored `mise` or `uv` reads as `bun`.
+* Install routes: Homebrew, winget, Cargo, Deno, mise, pip, uv, and standalone `binary` records. Every agent installs through bun, npm, or its own script; GitHub Copilot CLI uses bun or npm on Windows instead of winget. Records with those install types are kept and treated as untracked. `doctor` checks only bun and npm.
+* NDJSON output and `--output`. Use `--json`; `meta.mode` is always `json`.
+* `--log-level`, which never had an effect, and `--idempotency-key`. `install`, `update`, and `uninstall` can be retried safely without it.
+* The `capabilities` and `schema` commands. Use `commands --json` to discover the surface.
+* Config keys `npmBunUpdateStrategy` (updates always go to the latest release), `networkRetries` (fixed at 2), and `versionCacheTtlHours` (fixed at 6). `defaultPackageManager` accepts `bun` or `npm`.
+
+### Changed
+
+* `ensure` is an alias of `install`, and `inspect` an alias of `info`. `info --json` returns what `inspect --json` did, including `capabilities` and `inspection.updateLabel`; results report `action` as `install` and `info`.
+* `config set` rejects keys it does not know instead of storing them.
 
 ## [2.0.0-beta.1](https://github.com/Drswith/quantex-cli/releases/tag/v2.0.0-beta.1)
 

@@ -23,7 +23,7 @@ MiMoCode (`mimo`, `@mimo-ai/cli`, about 20 KB) is a quick agent to install and r
 | Check | Command | Expected |
 |---|---|---|
 | Version and help | `quantex --version`, `qtx --version`, `quantex --help`, `quantex install --help` | The release version; usage on stdout, exit 0 |
-| Environment | `quantex doctor` | `Quantex: <version> (binary)`, npm and bun available, no issues |
+| Environment | `quantex doctor` | `Quantex: <version> (binary)`, bun and npm the only installers listed, both available, no issues |
 | Config | `quantex config set defaultPackageManager npm`, `quantex config` | Set; the full configuration is printed |
 | Catalog | `quantex list`, `quantex info mimo` | Every catalog agent; MiMoCode not installed, with its latest version and npm listed first |
 | Install | `quantex install mimo`, then `mimo --version` | Installed through npm; `~/.quantex/state.json` records it |
@@ -35,10 +35,10 @@ MiMoCode (`mimo`, `@mimo-ai/cli`, about 20 KB) is a quick agent to install and r
 | Prompt | `quantex mimo` while it is not installed | Asks "Would you like to install it? (Y/n)"; answering n exits 1 |
 | Ctrl-C | Install an interactive agent (for example `quantex install pi`), run `quantex pi`, press Ctrl-C | The agent handles Ctrl-C, quantex exits with the agent's code, and the terminal is usable |
 | Shared home | `quantex-v1 install mimo`, `quantex list`; then `quantex uninstall mimo`, `quantex-v1 list` | Each build sees what the other one did |
-| Idempotency | `quantex install mimo --idempotency-key k1 --json` twice, then `quantex-v1 install mimo --idempotency-key k1 --json` | The repeats return at once without running npm; v1's reply still has the 2.x `meta.version` because it replays the 2.x record |
+| Aliases | `quantex ensure mimo --json`, `quantex inspect mimo --json` | `action` is `install` and `info` |
 | Argument errors | `quantex instal mimo; echo $?`, `quantex list --bogus --json; echo $?` | Exit 2; the second prints an `INVALID_ARGUMENT` envelope on stdout |
 | Other errors | `quantex install nope --json; echo $?`, `quantex config set defaultPackageManager mise; echo $?` | `AGENT_NOT_FOUND` with exit 3; `INVALID_ARGUMENT` with exit 2 |
-| NDJSON | `quantex list --output ndjson` | One JSON object per line, nothing else on stdout |
+| Removed surface | `quantex list --output json; echo $?`, `quantex capabilities --json; echo $?`, `quantex config set networkRetries 3; echo $?` | Each exits 2 with `INVALID_ARGUMENT` |
 | Self-upgrade | `quantex upgrade --check`, `quantex upgrade --check --channel beta` | Stable: up to date with `STALE_LATEST_VERSION` while 1.13.6 is the latest stable. Beta: `check-unavailable` until a 2.x prerelease exists |
 
 ## 3. Against your real ~/.quantex
@@ -53,7 +53,7 @@ cp -R ~/.quantex ~/.quantex.backup
 /tmp/qtx-sandbox/compare
 ```
 
-`compare` runs `update --all --dry-run`, and `inspect`, `resolve`, and `ensure --dry-run` for every installed agent with both builds, and prints any difference in the JSON (ignoring `meta`). Catalog-wide commands (`list`, `doctor`, `capabilities`) differ from 1.x on purpose since 2.0.0-beta.2, so check those by reading them; an agent 2.x no longer supports shows up as a difference. Then launch an agent you use with the new build, for example `/tmp/qtx-sandbox/home/.local/bin/quantex claude`, and use it as usual.
+`compare` runs `update --all --dry-run`, and `resolve` and `install --dry-run` for every installed agent with both builds, and prints any difference in the JSON (ignoring `meta` and `action`). Catalog-wide commands (`list`, `doctor`) and `info` differ from 1.x on purpose since 2.0.0-beta.2, because agents and install routes were removed, so check those by reading them; an agent 2.x no longer supports shows up as a difference. Then launch an agent you use with the new build, for example `/tmp/qtx-sandbox/home/.local/bin/quantex claude`, and use it as usual.
 
 Do not run `upgrade` here with the sandbox binary: it records its own install source (`binary`) in `state.json`.
 
