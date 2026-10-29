@@ -33,6 +33,7 @@ The reference binary is the published TypeScript release `v1.13.6`. Its source s
 ## Intentional differences from v1.13.6
 
 - Human (non-JSON) output is not contract. Wording keeps its meaning; layout, wrapping, width handling, and `--help` text may change.
+- In human mode, the envelope's `error` and `warnings` (for example `ALREADY_INSTALLED` and `DRY_RUN` notices) are written to stderr and results to stdout. v1.13.6 printed most of them on stdout. Exit codes are unchanged.
 - Argument-parse errors (unknown option, missing argument, invalid option value) report `INVALID_ARGUMENT` with exit code 2, and emit the error envelope in `json` / `ndjson` mode. v1.13.6 prints a plain stderr line and exits 1.
 - The npm package no longer exports a JavaScript library API, and `quantex-core` is not published from this line.
 

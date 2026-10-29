@@ -6,7 +6,8 @@ Releases are built and published by [`.github/workflows/release.yml`](../../.git
 
 1. Set `version` in the root `Cargo.toml` (`[workspace.package]`) to the release version and run `cargo build` so `Cargo.lock` follows. A version with a `-` (for example `2.0.0-alpha.1`) is a prerelease.
 2. Add a `## [<version>]` section to `CHANGELOG.md`. The workflow uses it as the release notes.
-3. Merge, then tag the merge commit and push the tag:
+3. Run the [manual checks](manual-verification.md) on the commit you will tag.
+4. Merge, then tag the merge commit and push the tag:
 
    ```bash
    git tag v2.0.0-alpha.1

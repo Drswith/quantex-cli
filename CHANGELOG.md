@@ -8,6 +8,7 @@ The first prerelease of Quantex 2, a rewrite in Rust. It keeps the 1.x command l
 
 * Argument errors (unknown option, missing argument, invalid value) exit with code 2 and, in `json` / `ndjson` mode, print an `INVALID_ARGUMENT` envelope instead of a plain error with exit code 1.
 * Human-readable output has a new layout with the same meaning. It is not part of the contract.
+* In human mode, errors and warnings (such as "already installed" and dry-run notices) go to stderr, and results stay on stdout. 1.x printed most of them on stdout.
 * The npm package installs a native binary through per-platform packages (`quantex-cli-<platform>-<arch>`) and no longer exports a JavaScript library. `quantex-core` is not published from this line.
 * Release binaries are about 3 MB instead of 25 to 37 MB; Linux binaries are statically linked.
 
