@@ -57,6 +57,7 @@
         "target": {
           "id": "https://openclaw.ai/install.sh",
           "kind": "script",
+          "binaryDirs": ["~/.local/bin"],
           "effect": {
             "command": "curl -fsSL https://openclaw.ai/install.sh | bash",
             "kind": "shell-script"
@@ -84,6 +85,7 @@
         "target": {
           "id": "https://openclaw.ai/install.sh",
           "kind": "script",
+          "binaryDirs": ["~/.local/bin"],
           "effect": {
             "command": "curl -fsSL https://openclaw.ai/install.sh | bash",
             "kind": "shell-script"

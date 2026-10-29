@@ -370,7 +370,8 @@ fn run_provider_command(
     let Some((program, args)) = argv.split_first() else {
         return Err(MutationFailure::Failed(format!("{description}: empty command")));
     };
-    let Some(path) = process::which(program).or_else(|| {
+    // An agent's own update command may sit in its installer's directory, off `PATH`.
+    let Some(path) = crate::probe::resolve_executable(std::slice::from_ref(program)).or_else(|| {
         let candidate = std::path::Path::new(program);
         candidate.is_absolute().then(|| candidate.to_path_buf())
     }) else {
@@ -476,7 +477,17 @@ pub fn trust_bun_packages(ctx: &Context, packages: &[String]) -> Result<(), Muta
 
 /// v1 `getAdoptableExistingInstallMethod`: the catalog method an untracked executable
 /// can be attributed to, from its path or from a single installer-only method.
-pub fn adoptable_method(methods: &[InstallMethod], binary_path: Option<&std::path::Path>) -> Option<InstallMethod> {
+pub fn adoptable_method(
+    agent: &Agent,
+    methods: &[InstallMethod],
+    binary_path: Option<&std::path::Path>,
+) -> Option<InstallMethod> {
+    if let Some(path) = binary_path
+        && let Some(method) = methods.iter().find(|method| method.kind == Provider::Script)
+        && from_official_installer(agent, path)
+    {
+        return Some(method.clone());
+    }
     if let Some(path) = binary_path {
         let normalized = path.to_string_lossy().replace('\\', "/");
         let inferred = if normalized.contains("/.bun/bin/") || normalized.contains("/.bun/install/global/") {
@@ -506,6 +517,17 @@ pub fn adoptable_method(methods: &[InstallMethod], binary_path: Option<&std::pat
         [only] if !only.kind.is_managed() => Some(only.clone()),
         _ => None,
     }
+}
+
+/// Whether `path` is the executable the agent's official installer leaves in its
+/// directory. Several installers link it there from a versioned directory, so the
+/// targets are compared.
+fn from_official_installer(agent: &Agent, path: &std::path::Path) -> bool {
+    let dirs = agent.installer_dirs();
+    let target = crate::probe::real_path(path);
+    crate::probe::lookup_names(agent)
+        .iter()
+        .any(|name| process::find_in(name, &dirs).is_some_and(|found| crate::probe::real_path(&found) == target))
 }
 
 #[cfg(test)]
@@ -538,7 +560,10 @@ mod tests {
         let claude = crate::catalog::find("claude").unwrap();
         let methods = claude.install_methods();
         let path = std::path::Path::new("/Users/a/.bun/install/global/node_modules/@anthropic-ai/claude-code/cli.js");
-        assert_eq!(adoptable_method(&methods, Some(path)).unwrap().kind, Provider::Bun);
-        assert!(adoptable_method(&methods, Some(std::path::Path::new("/usr/local/bin/claude"))).is_none());
+        assert_eq!(
+            adoptable_method(claude, &methods, Some(path)).unwrap().kind,
+            Provider::Bun
+        );
+        assert!(adoptable_method(claude, &methods, Some(std::path::Path::new("/usr/local/bin/claude"))).is_none());
     }
 }

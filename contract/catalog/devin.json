@@ -16,6 +16,7 @@
         "target": {
           "id": "https://static.devin.ai/cli/setup.ps1",
           "kind": "script",
+          "binaryDirs": ["%LOCALAPPDATA%\\devin\\cli\\bin"],
           "effect": {
             "command": "irm https://static.devin.ai/cli/setup.ps1 | iex",
             "kind": "shell-script"
@@ -29,6 +30,7 @@
         "target": {
           "id": "https://cli.devin.ai/install.sh",
           "kind": "script",
+          "binaryDirs": ["~/.local/bin"],
           "effect": {
             "command": "curl -fsSL https://cli.devin.ai/install.sh | bash",
             "kind": "shell-script"
@@ -42,6 +44,7 @@
         "target": {
           "id": "https://cli.devin.ai/install.sh",
           "kind": "script",
+          "binaryDirs": ["~/.local/bin"],
           "effect": {
             "command": "curl -fsSL https://cli.devin.ai/install.sh | bash",
             "kind": "shell-script"

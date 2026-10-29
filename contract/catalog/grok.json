@@ -17,6 +17,7 @@
         "target": {
           "id": "https://x.ai/cli/install.ps1",
           "kind": "script",
+          "binaryDirs": ["~\\.grok\\bin"],
           "effect": {
             "command": "irm https://x.ai/cli/install.ps1 | iex",
             "kind": "shell-script"
@@ -30,6 +31,7 @@
         "target": {
           "id": "https://x.ai/cli/install.sh",
           "kind": "script",
+          "binaryDirs": ["~/.grok/bin"],
           "effect": {
             "command": "curl -fsSL https://x.ai/cli/install.sh | bash",
             "kind": "shell-script"
@@ -43,6 +45,7 @@
         "target": {
           "id": "https://x.ai/cli/install.sh",
           "kind": "script",
+          "binaryDirs": ["~/.grok/bin"],
           "effect": {
             "command": "curl -fsSL https://x.ai/cli/install.sh | bash",
             "kind": "shell-script"

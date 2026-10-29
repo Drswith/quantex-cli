@@ -43,6 +43,7 @@
         "target": {
           "id": "https://opencode.ai/install",
           "kind": "script",
+          "binaryDirs": ["~/.opencode/bin"],
           "effect": {
             "command": "curl -fsSL https://opencode.ai/install | bash",
             "kind": "shell-script"
@@ -70,6 +71,7 @@
         "target": {
           "id": "https://opencode.ai/install",
           "kind": "script",
+          "binaryDirs": ["~/.opencode/bin"],
           "effect": {
             "command": "curl -fsSL https://opencode.ai/install | bash",
             "kind": "shell-script"

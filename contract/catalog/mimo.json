@@ -23,6 +23,7 @@
         "target": {
           "id": "https://mimo.xiaomi.com/install",
           "kind": "script",
+          "binaryDirs": ["~/.mimocode/bin"],
           "effect": {
             "command": "curl -fsSL https://mimo.xiaomi.com/install | bash",
             "kind": "shell-script"
@@ -43,6 +44,7 @@
         "target": {
           "id": "https://mimo.xiaomi.com/install",
           "kind": "script",
+          "binaryDirs": ["~/.mimocode/bin"],
           "effect": {
             "command": "curl -fsSL https://mimo.xiaomi.com/install | bash",
             "kind": "shell-script"

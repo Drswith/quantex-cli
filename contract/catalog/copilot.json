@@ -40,6 +40,7 @@
         "target": {
           "id": "https://gh.io/copilot-install",
           "kind": "script",
+          "binaryDirs": ["~/.local/bin"],
           "effect": {
             "command": "curl -fsSL https://gh.io/copilot-install | bash",
             "kind": "shell-script"
@@ -67,6 +68,7 @@
         "target": {
           "id": "https://gh.io/copilot-install",
           "kind": "script",
+          "binaryDirs": ["~/.local/bin"],
           "effect": {
             "command": "curl -fsSL https://gh.io/copilot-install | bash",
             "kind": "shell-script"

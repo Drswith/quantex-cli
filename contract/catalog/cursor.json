@@ -17,6 +17,7 @@
         "target": {
           "id": "https://cursor.com/install?win32=true",
           "kind": "script",
+          "binaryDirs": ["%LOCALAPPDATA%\\cursor-agent"],
           "effect": {
             "command": "irm 'https://cursor.com/install?win32=true' | iex",
             "kind": "shell-script"
@@ -30,6 +31,7 @@
         "target": {
           "id": "https://cursor.com/install",
           "kind": "script",
+          "binaryDirs": ["~/.local/bin"],
           "effect": {
             "command": "curl https://cursor.com/install -fsS | bash",
             "kind": "shell-script"
@@ -43,6 +45,7 @@
         "target": {
           "id": "https://cursor.com/install",
           "kind": "script",
+          "binaryDirs": ["~/.local/bin"],
           "effect": {
             "command": "curl https://cursor.com/install -fsS | bash",
             "kind": "shell-script"

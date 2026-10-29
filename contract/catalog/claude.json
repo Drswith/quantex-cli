@@ -28,6 +28,7 @@
         "target": {
           "id": "https://claude.ai/install.ps1",
           "kind": "script",
+          "binaryDirs": ["~\\.local\\bin"],
           "effect": {
             "command": "irm https://claude.ai/install.ps1 | iex",
             "kind": "shell-script"
@@ -55,6 +56,7 @@
         "target": {
           "id": "https://claude.ai/install.sh",
           "kind": "script",
+          "binaryDirs": ["~/.local/bin"],
           "effect": {
             "command": "curl -fsSL https://claude.ai/install.sh | bash",
             "kind": "shell-script"
@@ -82,6 +84,7 @@
         "target": {
           "id": "https://claude.ai/install.sh",
           "kind": "script",
+          "binaryDirs": ["~/.local/bin"],
           "effect": {
             "command": "curl -fsSL https://claude.ai/install.sh | bash",
             "kind": "shell-script"

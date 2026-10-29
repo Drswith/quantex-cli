@@ -17,6 +17,7 @@
         "target": {
           "id": "https://code.kimi.com/kimi-code/install.ps1",
           "kind": "script",
+          "binaryDirs": ["~\\.kimi-code\\bin"],
           "effect": {
             "command": "irm https://code.kimi.com/kimi-code/install.ps1 | iex",
             "kind": "shell-script"
@@ -37,6 +38,7 @@
         "target": {
           "id": "https://code.kimi.com/kimi-code/install.sh",
           "kind": "script",
+          "binaryDirs": ["~/.kimi-code/bin"],
           "effect": {
             "command": "curl -fsSL https://code.kimi.com/kimi-code/install.sh | bash",
             "kind": "shell-script"
@@ -57,6 +59,7 @@
         "target": {
           "id": "https://code.kimi.com/kimi-code/install.sh",
           "kind": "script",
+          "binaryDirs": ["~/.kimi-code/bin"],
           "effect": {
             "command": "curl -fsSL https://code.kimi.com/kimi-code/install.sh | bash",
             "kind": "shell-script"

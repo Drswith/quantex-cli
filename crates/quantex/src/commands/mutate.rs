@@ -192,7 +192,7 @@ pub fn install_agent(ctx: &Context, input: &str) -> Outcome {
 /// and that source confirms it; anything else stays as it is.
 fn adopt(ctx: &Context, view: &View) -> Outcome {
     let agent = view.agent;
-    let Some(method) = providers::adoptable_method(&view.methods, view.executable.path.as_deref()) else {
+    let Some(method) = providers::adoptable_method(agent, &view.methods, view.executable.path.as_deref()) else {
         return untracked(agent);
     };
     let confirmed = Binding::from_method(agent, &method)
@@ -274,7 +274,33 @@ fn apply_install(ctx: &Context, view: &View) -> Outcome {
             ),
         );
     }
-    success(agent, agent_data(agent, true, true, Some(&recipe.installed)))
+    let outcome = success(agent, agent_data(agent, true, true, Some(&recipe.installed)));
+    match not_on_path_warning(agent) {
+        Some(warning) => outcome.with_warning(warning),
+        None => outcome,
+    }
+}
+
+/// An official installer usually adds its directory to the shell profile only, so the
+/// agent is not runnable from this shell until it is reopened.
+fn not_on_path_warning(agent: &Agent) -> Option<Warning> {
+    let names = crate::probe::lookup_names(agent);
+    let path_dirs = crate::process::path_dirs();
+    if names
+        .iter()
+        .any(|name| crate::process::find_in(name, &path_dirs).is_some())
+    {
+        return None;
+    }
+    let found = crate::probe::resolve_executable(&names)?;
+    let dir = found.parent()?.display().to_string();
+    Some(Warning::new(
+        "NOT_ON_PATH",
+        format!(
+            "{} is installed in {dir}, which is not on PATH. Open a new terminal, or add that directory to PATH.",
+            agent.display_name
+        ),
+    ))
 }
 
 /// Removes what a failed install just added, for package managers that can.
@@ -304,11 +330,19 @@ pub fn render_single(outcome: &Outcome, human: &mut Human) {
                     let text = human.cyan(&warning.message);
                     human.line(&text);
                 }
+                "NOT_ON_PATH" => {
+                    installed_successfully(data, human);
+                    human.warn_line(&warning.message);
+                }
                 _ => human.warn_line(&warning.message),
             }
         }
         return;
     }
+    installed_successfully(data, human);
+}
+
+fn installed_successfully(data: &Value, human: &mut Human) {
     let name = data["agent"]["displayName"].as_str().unwrap_or_default();
     let text = human.green(&format!("{name} installed successfully!"));
     human.line(&text);
@@ -626,8 +660,17 @@ fn uninstall_recorded(ctx: &Context, agent: &'static Agent, installed: &Installe
     }
     // A script install has no uninstaller; only its record goes.
     let Some(command) = providers::uninstall_command(&binding) else {
+        let left = crate::probe::resolve_executable(&crate::probe::lookup_names(agent))
+            .map_or_else(|| agent.binary_name.clone(), |path| path.display().to_string());
+        let kept = Warning::new(
+            "FILES_KEPT",
+            format!(
+                "Quantex no longer tracks {name}. Its official installer has no uninstaller, so {left} is still there; delete it to remove {name}.",
+                name = agent.display_name
+            ),
+        );
         return match forget(None) {
-            Ok(()) => uninstall_done(agent, true, None),
+            Ok(()) => uninstall_done(agent, true, Some(kept)),
             Err(error) => Outcome::failure("uninstall", Some(Target::agent(&agent.name)), error),
         };
     };

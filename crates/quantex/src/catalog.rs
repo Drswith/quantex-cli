@@ -104,6 +104,10 @@ pub struct TargetSource {
     pub arguments: Vec<String>,
     pub binary_name: Option<String>,
     pub effect: Option<Effect>,
+    /// Where an official installer puts the executable: `~` is the home directory and
+    /// `%NAME%` an environment variable.
+    #[serde(default)]
+    pub binary_dirs: Vec<String>,
 }
 
 #[derive(Debug, Clone, Deserialize)]
@@ -291,6 +295,15 @@ impl Agent {
         self.platforms.get(&platform).map_or(&[], Vec::as_slice)
     }
 
+    /// Where this agent's official installer puts its executable on this platform.
+    pub fn installer_dirs(&self) -> Vec<std::path::PathBuf> {
+        self.candidates()
+            .iter()
+            .flat_map(|candidate| &candidate.target.binary_dirs)
+            .filter_map(|dir| expand_dir(dir))
+            .collect()
+    }
+
     /// v1 install methods for the current platform.
     pub fn install_methods(&self) -> Vec<InstallMethod> {
         self.candidates().iter().map(Candidate::install_method).collect()
@@ -320,6 +333,40 @@ pub fn installers() -> Vec<Provider> {
         .filter(|provider| provider.is_managed())
         .collect();
     used.into_iter().collect()
+}
+
+/// Directories the official installers on this platform put executables in. A fresh
+/// install often adds its directory to the shell profile only, not to this `PATH`.
+pub fn installer_dirs() -> Vec<std::path::PathBuf> {
+    let mut dirs = Vec::new();
+    for dir in agents().iter().flat_map(Agent::installer_dirs) {
+        if !dirs.contains(&dir) {
+            dirs.push(dir);
+        }
+    }
+    dirs
+}
+
+/// Expands a leading `~` and `%NAME%` variables; `None` when a variable is unset.
+fn expand_dir(text: &str) -> Option<std::path::PathBuf> {
+    let mut expanded = String::new();
+    let mut rest = text;
+    if let Some(tail) = rest.strip_prefix('~') {
+        expanded.push_str(&crate::context::home_dir().to_string_lossy());
+        rest = tail;
+    }
+    while let Some(start) = rest.find('%') {
+        expanded.push_str(&rest[..start]);
+        let after = &rest[start + 1..];
+        let end = after.find('%')?;
+        let value = std::env::var(&after[..end])
+            .ok()
+            .filter(|value| !value.trim().is_empty())?;
+        expanded.push_str(value.trim());
+        rest = &after[end + 1..];
+    }
+    expanded.push_str(rest);
+    Some(std::path::PathBuf::from(expanded))
 }
 
 pub fn agents() -> &'static [Agent] {
@@ -359,6 +406,26 @@ mod tests {
         assert!(find("claude").is_some());
         assert!(find("Claude Code").is_some());
         assert!(find("not-an-agent").is_none());
+    }
+
+    #[test]
+    fn installer_dirs_expand_home_and_variables() {
+        let home = crate::context::home_dir();
+        assert_eq!(
+            expand_dir("~/.opencode/bin"),
+            Some(std::path::PathBuf::from(format!("{}/.opencode/bin", home.display())))
+        );
+        assert_eq!(expand_dir("%QUANTEX_SURELY_UNSET_VARIABLE%/bin"), None);
+        let opencode = find("opencode").unwrap();
+        assert_eq!(
+            opencode
+                .candidates_for(Platform::Macos)
+                .last()
+                .unwrap()
+                .target
+                .binary_dirs,
+            ["~/.opencode/bin"]
+        );
     }
 
     #[test]

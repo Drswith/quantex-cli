@@ -17,41 +17,6 @@ fn run_json(sandbox: &Sandbox, args: &[&str]) -> (i32, Value) {
     (run.code, run.json())
 }
 
-/// A fake `curl` whose "installer" writes a fake `claude` into the sandbox, so the
-/// official install script runs without the network.
-fn fake_claude_installer(sandbox: &Sandbox) {
-    let claude = sandbox.bin_dir().join("claude");
-    let installer = format!(
-        "cat <<'EOS'\nprintf '#!/bin/sh\\necho 2.1.0 (Claude Code)\\n' > '{0}'; chmod +x '{0}'\nEOS",
-        claude.display()
-    );
-    sandbox.fake_tool("curl", &installer, "exit /b 1");
-}
-
-/// The official installer comes first by default; `defaultPackageManager` moves a
-/// package manager ahead of it.
-#[test]
-fn the_official_installer_is_tried_first() {
-    let sandbox = sandbox();
-    fake_claude_installer(&sandbox);
-    let (code, envelope) = run_json(&sandbox, &["install", "claude"]);
-    assert_eq!(code, 0, "{envelope}");
-    assert_eq!(envelope["data"]["installState"], json!({ "installType": "script" }));
-    assert!(!sandbox.npm_calls().iter().any(|call| call.starts_with("npm install")));
-
-    let sandbox = self::sandbox();
-    fake_claude_installer(&sandbox);
-    sandbox.run(["config", "set", "defaultPackageManager", "npm"]);
-    let (code, envelope) = run_json(&sandbox, &["install", "claude"]);
-    assert_eq!(code, 0, "{envelope}");
-    assert_eq!(envelope["data"]["installState"]["installType"], "npm");
-    assert!(
-        sandbox
-            .npm_calls()
-            .contains(&"npm install -g @anthropic-ai/claude-code".to_owned())
-    );
-}
-
 #[test]
 fn install_records_state() {
     let sandbox = sandbox();

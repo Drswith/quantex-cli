@@ -48,6 +48,7 @@ pub fn known_install_dirs() -> Vec<PathBuf> {
             home.join(".npm-global").join("bin"),
         ]
     };
+    dirs.extend(crate::catalog::installer_dirs());
     let mut seen = Vec::new();
     dirs.retain(|dir| {
         let fresh = !seen.contains(dir);

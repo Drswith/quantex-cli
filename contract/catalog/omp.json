@@ -20,6 +20,7 @@
         "target": {
           "id": "https://omp.sh/install.ps1",
           "kind": "script",
+          "binaryDirs": ["%LOCALAPPDATA%\\omp"],
           "effect": {
             "command": "irm https://omp.sh/install.ps1 | iex",
             "kind": "shell-script"
@@ -40,6 +41,7 @@
         "target": {
           "id": "https://omp.sh/install",
           "kind": "script",
+          "binaryDirs": ["~/.local/bin"],
           "effect": {
             "command": "curl -fsSL https://omp.sh/install | sh",
             "kind": "shell-script"
@@ -60,6 +62,7 @@
         "target": {
           "id": "https://omp.sh/install",
           "kind": "script",
+          "binaryDirs": ["~/.local/bin"],
           "effect": {
             "command": "curl -fsSL https://omp.sh/install | sh",
             "kind": "shell-script"
