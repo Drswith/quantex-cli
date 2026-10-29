@@ -59,5 +59,5 @@ Do not run `upgrade` here with the sandbox binary: it records its own install so
 ## 4. After the prerelease is published
 
 - A 1.x standalone binary on macOS or Linux: `qtx upgrade --channel beta`, then `qtx --version`.
-- npm: `npm i -g quantex-cli@next --prefix /tmp/qtx-npm`, then `/tmp/qtx-npm/bin/quantex doctor` reports `installSource: npm`.
+- npm (once npm publishing is on): `npm i -g quantex-cli@beta --prefix /tmp/qtx-npm`, then `/tmp/qtx-npm/bin/quantex doctor` reports `installSource: npm`.
 - Windows: rerun `install.ps1`, then `qtx --version`.

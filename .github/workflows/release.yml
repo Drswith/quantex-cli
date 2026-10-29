@@ -23,7 +23,7 @@ on:
   workflow_dispatch:
     inputs:
       tag:
-        description: Existing version tag to publish again (for example v2.0.0-alpha.1)
+        description: Existing version tag to publish again (for example v2.0.0-beta.1)
         required: true
         type: string
 
@@ -164,6 +164,7 @@ jobs:
         env:
           VERSION: ${{ needs.prepare.outputs.version }}
           PRERELEASE: ${{ needs.prepare.outputs.prerelease }}
+          NPM_PUBLISH: ${{ vars.NPM_PUBLISH }}
         run: |
           set -eu
           awk -v version="$VERSION" '
@@ -176,7 +177,11 @@ jobs:
           if [ "$PRERELEASE" = true ]; then
             {
               echo
-              echo "This is a prerelease. Install it with \`npm install -g quantex-cli@next\`, or download a binary below."
+              if [ "$NPM_PUBLISH" = true ]; then
+                echo "This is a prerelease. Install it with \`npm install -g quantex-cli@beta\`, or download a binary below."
+              else
+                echo "This is a prerelease, published as the binaries below only (not on npm)."
+              fi
               echo "Installs on the stable channel are not offered prereleases."
             } >> release/notes.md
           fi
@@ -320,11 +325,16 @@ jobs:
             gh release create "$TAG" release/assets/* --verify-tag --title "$TAG" \
               --notes-file release/notes.md --latest
           fi
+      - name: npm packages skipped
+        if: vars.NPM_PUBLISH != 'true'
+        run: echo "::notice::npm publishing is off; set the repository variable NPM_PUBLISH to true to publish $VERSION to npm."
       - uses: actions/setup-node@v4
+        if: vars.NPM_PUBLISH == 'true'
         with:
           node-version: 24
           registry-url: https://registry.npmjs.org
       - name: npm packages
+        if: vars.NPM_PUBLISH == 'true'
         env:
           # Trusted publishing covers packages configured for it; a token covers the
           # first publish of a platform package.

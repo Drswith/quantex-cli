@@ -53,7 +53,7 @@ bun add -g quantex-cli
 
 Binaries for macOS (arm64, x64), Linux (arm64, x64, statically linked), and Windows (x64) are also attached to every [GitHub release](https://github.com/Drswith/quantex-cli/releases).
 
-Prereleases are published to npm under the `next` tag (`npm install -g quantex-cli@next`) and as GitHub prereleases; installs on the stable channel are never offered them.
+Prereleases are published as GitHub prereleases (and, from the point npm publishing is turned on, to npm under the `beta` tag: `npm install -g quantex-cli@beta`); installs on the stable channel are never offered them.
 
 ## Quick start
 

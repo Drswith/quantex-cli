@@ -4,17 +4,17 @@ Releases are built and published by [`.github/workflows/release.yml`](../../.git
 
 ## Cutting a release
 
-1. Set `version` in the root `Cargo.toml` (`[workspace.package]`) to the release version and run `cargo build` so `Cargo.lock` follows. A version with a `-` (for example `2.0.0-alpha.1`) is a prerelease.
+1. Set `version` in the root `Cargo.toml` (`[workspace.package]`) to the release version and run `cargo build` so `Cargo.lock` follows. A version with a `-` (for example `2.0.0-beta.1`) is a prerelease.
 2. Add a `## [<version>]` section to `CHANGELOG.md`. The workflow uses it as the release notes.
 3. Run the [manual checks](manual-verification.md) on the commit you will tag.
 4. Merge, then tag the merge commit and push the tag:
 
    ```bash
-   git tag v2.0.0-alpha.1
+   git tag v2.0.0-beta.1
    ```
 
    ```bash
-   git push origin v2.0.0-alpha.1
+   git push origin v2.0.0-beta.1
    ```
 
 The workflow refuses a tag that does not match the workspace version.
@@ -23,11 +23,11 @@ The workflow refuses a tag that does not match the workspace version.
 
 | Job | Work |
 |---|---|
-| `prepare` | Checks the tag against the workspace version; decides prerelease and the npm dist-tag (`next` for prereleases, `latest` otherwise). |
+| `prepare` | Checks the tag against the workspace version; decides prerelease and the npm dist-tag (`beta` for prereleases, which the beta channel upgrades npm and Bun installs from; `latest` otherwise). |
 | `build` | Builds five targets: `x86_64` / `aarch64` Linux (static musl), `aarch64` / `x86_64` macOS, `x86_64` Windows (static CRT). Native targets run `--version` and `commands --json`. |
 | `package` | `quantex-release package` writes one archive per binary, `SHA256SUMS.txt`, and `manifest.json` in the v1.13.6 format. `quantex-release npm` writes the npm packages, which are then packed. |
 | `verify` | On Linux, macOS, and Windows: `install.sh` / `install.ps1` install the release from a local server; the npm tarballs install into a temporary prefix and report `installSource: npm`; on Linux and macOS a real v1.13.6 binary upgrades itself to the release ([`scripts/release/v1-upgrade-check.sh`](../../scripts/release/v1-upgrade-check.sh)). |
-| `publish` | Creates the GitHub release with the seven assets (prereleases are marked prerelease and never "latest"), then publishes the platform packages and finally `quantex-cli`. Already-published versions are skipped, so a failed run can be re-run with `workflow_dispatch` and the tag. |
+| `publish` | Creates the GitHub release with the seven assets (prereleases are marked prerelease and never "latest"), then, when npm publishing is on, publishes the platform packages and finally `quantex-cli`. Already-published versions are skipped, so a failed run can be re-run with `workflow_dispatch` and the tag. |
 
 Pushes and pull requests that touch the pipeline (`release.yml`, `crates/release`, `scripts/release`, the install scripts) run every job except `publish`.
 
@@ -50,6 +50,10 @@ On Windows, v1.13.x downloads and unpacks the release but never replaces itself:
 - `quantex-cli-darwin-arm64`, `quantex-cli-darwin-x64`, `quantex-cli-linux-arm64`, `quantex-cli-linux-x64`, `quantex-cli-win32-x64`: `bin/quantex[.exe]`, selected by `os` and `cpu`.
 
 A binary under `node_modules/quantex-cli*` reports `installSource: npm` and upgrades with `npm install -g quantex-cli@<tag>`.
+
+### Turning npm publishing on
+
+npm publishing is off unless the repository variable `NPM_PUBLISH` is `true`; without it a release goes to GitHub only. To publish a version that is already on GitHub, set the variable and run the workflow with `workflow_dispatch` and its tag.
 
 ### One-time setup for the platform packages
 

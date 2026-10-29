@@ -53,7 +53,7 @@ bun add -g quantex-cli
 
 每个 [GitHub release](https://github.com/Drswith/quantex-cli/releases) 都附带 macOS（arm64、x64）、Linux（arm64、x64，静态链接）和 Windows（x64）的二进制。
 
-预发布版本发布在 npm 的 `next` 标签（`npm install -g quantex-cli@next`）和 GitHub 预发布中；stable 通道的安装永远不会被推送预发布版本。
+预发布版本以 GitHub 预发布的形式发布（开启 npm 发布后，也会发到 npm 的 `beta` 标签：`npm install -g quantex-cli@beta`）；stable 通道的安装永远不会被推送预发布版本。
 
 ## 快速上手
 

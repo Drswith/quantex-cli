@@ -1,9 +1,9 @@
 //! Release packaging for quantex.
 //!
 //! ```text
-//! quantex-release version --tag v2.0.0-alpha.1
-//! quantex-release package --version 2.0.0-alpha.1 --binaries <dir> --out <dir>
-//! quantex-release npm --version 2.0.0-alpha.1 --binaries <dir> --out <dir> --readme README.md --license LICENSE
+//! quantex-release version --tag v2.0.0-beta.1
+//! quantex-release package --version 2.0.0-beta.1 --binaries <dir> --out <dir>
+//! quantex-release npm --version 2.0.0-beta.1 --binaries <dir> --out <dir> --readme README.md --license LICENSE
 //! ```
 //!
 //! `<dir>` of binaries holds `quantex-darwin-arm64`, ..., `quantex-windows-x64.exe`.
@@ -125,7 +125,8 @@ fn version(flags: &Flags) -> Result<(), String> {
     println!("tag={tag}");
     println!("version={version}");
     println!("prerelease={prerelease}");
-    println!("npm_tag={}", if prerelease { "next" } else { "latest" });
+    // The beta channel upgrades npm and Bun installs from the `beta` dist-tag.
+    println!("npm_tag={}", if prerelease { "beta" } else { "latest" });
     Ok(())
 }
 
@@ -375,7 +376,7 @@ mod tests {
     }
 
     #[test]
-    fn prerelease_versions_go_to_next() {
+    fn prerelease_versions_are_detected() {
         assert!(prerelease("2.0.0-alpha.1"));
         assert!(!prerelease("2.0.0"));
         assert_eq!(channel("2.0.0-beta.1"), "beta");

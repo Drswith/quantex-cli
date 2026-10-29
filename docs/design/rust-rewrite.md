@@ -29,7 +29,7 @@ Re-implement `quantex` / `qtx` from scratch in Rust as a drop-in replacement for
 - This line starts from a deletion commit on top of `main` (not an orphan branch), so the final cutover is an ordinary pull request.
 - Contract tests use the published v1.13.6 binary as the reference; no TypeScript source is needed on this line.
 - Cutover: once every contract test passes and a real v1.13.6 binary has upgraded itself into a Rust prerelease, one pull request replaces `main` and the line ships as 2.0.0.
-- Prereleases are tagged `v2.0.0-alpha.N`, marked as GitHub prereleases (so `releases/latest` never selects them), and published to npm under the `next` dist-tag.
+- Prereleases are tagged `v2.0.0-beta.N` and marked as GitHub prereleases (so `releases/latest` never selects them). Once npm publishing is on, they go to npm under the `beta` dist-tag, which the beta channel upgrades from. `2.0.0-beta.1` is the build that matches v1.13.6 and is published on GitHub only; later betas trim the product instead of matching v1.
 
 ## Architecture
 

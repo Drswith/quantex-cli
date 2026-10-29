@@ -52,4 +52,4 @@ Quantex was installed through npm or Bun, but that package manager is no longer 
 
 ## Channels
 
-`--channel`, then `QUANTEX_UPDATE_CHANNEL`, then the `selfUpdateChannel` config value choose `stable` or `beta`. Stable installs only ever see the latest non-prerelease GitHub release (and the npm `latest` tag). Prereleases are GitHub prereleases and use the npm `next` tag.
+`--channel`, then `QUANTEX_UPDATE_CHANNEL`, then the `selfUpdateChannel` config value choose `stable` or `beta`. Stable installs only ever see the latest non-prerelease GitHub release (and the npm `latest` tag). Prereleases are GitHub prereleases and use the npm `beta` tag.
