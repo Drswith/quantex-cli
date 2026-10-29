@@ -469,7 +469,7 @@ dependencies = [
 
 [[package]]
 name = "quantex"
-version = "2.0.0-beta.2"
+version = "2.0.0-beta.3"
 dependencies = [
  "clap",
  "ctrlc",
@@ -489,7 +489,7 @@ dependencies = [
 
 [[package]]
 name = "quantex-contract-tests"
-version = "2.0.0-beta.2"
+version = "2.0.0-beta.3"
 dependencies = [
  "flate2",
  "serde_json",
@@ -499,7 +499,7 @@ dependencies = [
 
 [[package]]
 name = "quantex-release"
-version = "2.0.0-beta.2"
+version = "2.0.0-beta.3"
 dependencies = [
  "quantex",
  "serde_json",

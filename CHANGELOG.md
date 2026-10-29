@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased (2.0.0-beta.3)
+## [2.0.0-beta.3](https://github.com/Drswith/quantex-cli/releases/tag/v2.0.0-beta.3)
 
 Quantex 2 still reads every `~/.quantex` a 1.x build wrote, so upgrading from 1.x keeps all records, but it no longer keeps in step with 1.x on a shared home directory. Going back to 1.x after upgrading is not supported.
 
