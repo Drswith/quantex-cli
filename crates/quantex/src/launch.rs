@@ -351,9 +351,9 @@ fn launch(ctx: &Context, agent: &Agent, argv: &[String]) -> i32 {
     command.args(&argv[1..]);
     let structured = ctx.output_mode.is_structured();
     if structured {
-        // Structured modes reserve stdout for the protocol; the agent's output is drained.
-        // With no terminal involved, the agent gets its own process group so a timeout
-        // or cancellation can stop everything it started.
+        // Structured modes reserve stdout for the protocol; the agent's output goes to
+        // stderr once it exits. With no terminal involved, the agent gets its own process
+        // group so a timeout or cancellation can stop everything it started.
         command
             .stdin(Stdio::null())
             .stdout(Stdio::piped())
@@ -376,24 +376,26 @@ fn launch(ctx: &Context, agent: &Agent, argv: &[String]) -> i32 {
             return 1;
         }
     };
-    if structured {
-        for stream in [
+    let readers: Vec<_> = if structured {
+        [
             child.stdout.take().map(|s| Box::new(s) as Box<dyn Read + Send>),
             child.stderr.take().map(|s| Box::new(s) as Box<dyn Read + Send>),
         ]
         .into_iter()
-        .flatten()
-        {
-            std::thread::spawn(move || {
-                let mut stream = stream;
-                let _ = std::io::copy(&mut stream, &mut std::io::sink());
-            });
-        }
-    }
+        .map(crate::process::read_in_background)
+        .collect()
+    } else {
+        Vec::new()
+    };
     let deadline = ctx.timeout_ms.map(|ms| Instant::now() + Duration::from_millis(ms));
     loop {
         match child.try_wait() {
             Ok(Some(status)) => {
+                // As in v1: the agent's stdout, then its stderr. A stopped agent's is dropped.
+                for reader in &readers {
+                    let output = reader.recv_timeout(crate::process::READER_GRACE).unwrap_or_default();
+                    let _ = std::io::stderr().write_all(&output);
+                }
                 if let Some(code) = status.code() {
                     return code;
                 }

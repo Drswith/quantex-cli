@@ -50,7 +50,20 @@ fn kill_tree(pid: u32) {
 
 /// How long output readers may keep draining after the process itself has exited, for
 /// descendants that inherited the pipes.
-const READER_GRACE: Duration = Duration::from_millis(500);
+pub const READER_GRACE: Duration = Duration::from_millis(500);
+
+/// Reads `stream` to the end on its own thread; the receiver yields everything read.
+pub fn read_in_background(stream: Option<Box<dyn Read + Send>>) -> std::sync::mpsc::Receiver<Vec<u8>> {
+    let (sender, receiver) = std::sync::mpsc::channel();
+    std::thread::spawn(move || {
+        let mut buffer = Vec::new();
+        if let Some(mut stream) = stream {
+            let _ = stream.read_to_end(&mut buffer);
+        }
+        let _ = sender.send(buffer);
+    });
+    receiver
+}
 
 /// Captured output of a finished process.
 #[derive(Debug, Clone)]
@@ -116,24 +129,13 @@ pub fn run_command_captured(mut command: Command, timeout: Option<Duration>) -> 
 }
 
 fn wait_captured(child: &mut Child, timeout: Option<Duration>) -> std::io::Result<Captured> {
-    let spawn_reader = |stream: Option<Box<dyn Read + Send>>| {
-        let (sender, receiver) = std::sync::mpsc::channel();
-        std::thread::spawn(move || {
-            let mut buffer = Vec::new();
-            if let Some(mut stream) = stream {
-                let _ = stream.read_to_end(&mut buffer);
-            }
-            let _ = sender.send(buffer);
-        });
-        receiver
-    };
-    let out_reader = spawn_reader(
+    let out_reader = read_in_background(
         child
             .stdout
             .take()
             .map(|stream| Box::new(stream) as Box<dyn Read + Send>),
     );
-    let err_reader = spawn_reader(
+    let err_reader = read_in_background(
         child
             .stderr
             .take()

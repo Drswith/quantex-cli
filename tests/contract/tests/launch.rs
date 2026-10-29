@@ -45,6 +45,22 @@ fn exec_in_json_mode_keeps_stdout_for_the_protocol() {
 }
 
 #[test]
+fn exec_in_json_mode_moves_the_agent_output_to_stderr() {
+    let sandbox = Sandbox::new();
+    sandbox.fake_tool(
+        "codex",
+        "[ \"$1\" = --version ] && { echo 0.48.0; exit 0; }\necho agent-out\necho agent-err >&2\nexit 3",
+        "if \"%1\"==\"--version\" (echo 0.48.0& exit /b 0)\r\necho agent-out\r\necho agent-err 1>&2\r\nexit /b 3",
+    );
+    let run = sandbox.run(["exec", "codex", "--output", "json"]);
+    assert_eq!(run.code, 3, "{run:?}");
+    assert_eq!(run.stdout, "");
+    let out = run.stderr.find("agent-out").expect("the agent's stdout reaches stderr");
+    let err = run.stderr.find("agent-err").expect("the agent's stderr reaches stderr");
+    assert!(out < err, "stdout is written before stderr: {run:?}");
+}
+
+#[test]
 fn exec_dry_run_describes_the_launch() {
     let (sandbox, record) = recording_agent();
     let run = sandbox.run(["exec", "codex", "--dry-run", "--output", "json", "--", "a", "b"]);

@@ -263,7 +263,10 @@ fn parse_exec(argv: &[String], exec_index: usize, prescan: GlobalArgs) -> Parsed
             break;
         }
         if token == "--help" || token == "-h" {
-            let help = build_clap()
+            let mut root = build_clap();
+            // Building propagates the program name, so the usage line reads `quantex exec`.
+            root.build();
+            let help = root
                 .find_subcommand_mut("exec")
                 .map(|command| command.render_help().to_string())
                 .unwrap_or_default();
