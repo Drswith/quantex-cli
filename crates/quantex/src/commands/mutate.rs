@@ -521,17 +521,18 @@ pub fn uninstall(ctx: &Context, input: &str) -> Outcome {
         }
     };
     let Some(installed) = state.installed_agents.get(&agent.name).cloned() else {
+        let message = if crate::process::which(&agent.binary_name).is_some() {
+            format!(
+                "{} was not installed by qtx, so qtx cannot uninstall it. Run `qtx info {}` to see where it came from.",
+                agent.display_name, agent.name
+            )
+        } else {
+            format!("{} is not installed.", agent.display_name)
+        };
         return Outcome::failure(
             "uninstall",
             Some(Target::agent(&agent.name)),
-            CommandError::new(
-                ErrorCode::UninstallUnmanaged,
-                format!(
-                    "{} is not managed by qtx, so qtx cannot auto-uninstall it. Run qtx inspect {} for details.",
-                    agent.display_name, agent.name
-                ),
-            )
-            .details(json!({
+            CommandError::new(ErrorCode::UninstallUnmanaged, message).details(json!({
                 "canAutoUninstall": false,
                 "displayName": agent.display_name,
                 "input": input,

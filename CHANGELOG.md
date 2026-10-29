@@ -10,7 +10,13 @@
 
 * `install`, `update`, and `uninstall` print what they are about to do (for example `Updating Command Code via managed/npm... (1.88.1 -> 1.88.2)`) before the package manager starts, as 1.x did. `--quiet` and `--json` leave it out.
 * `doctor` shows the latest Quantex version, or `unknown` when it could not be checked.
-* `info` says who updates an installed agent (`Updates via: qtx update`) instead of printing `updateLabel` values such as `command update`. The JSON is unchanged.
+* `info` says who updates an installed agent (`Updates via: qtx update`) instead of printing `updateLabel` values such as `command update`, and shows `Lifecycle` again for an installed agent. The JSON is unchanged.
+* `update` keeps the package manager's output out of the terminal and prints it to stderr only when the command fails. `install` and `uninstall` still show it.
+* `resolve` prints the agent card 1.x printed (path, source, lifecycle, install type, version, launch command) instead of the bare path. Scripts should read `resolution.binaryPath` from `resolve --json`.
+* Field labels in `info`, `resolve`, and `doctor` are bold again, as in 1.x.
+* `doctor` and `upgrade` say what they are checking before they wait on the network, and a failed version check suggests raising `networkTimeoutMs`.
+* `uninstall` of an agent that is not installed says so (`Codex CLI is not installed.`); for one installed outside Quantex it points to `qtx info`. The error code is still `UNINSTALL_UNMANAGED`.
+* `update --all` with nothing to update says so, and `list` points to `qtx info <agent>`.
 
 ## [2.0.0-beta.3](https://github.com/Drswith/quantex-cli/releases/tag/v2.0.0-beta.3)
 

@@ -63,6 +63,21 @@ fn unmanaged_agents_are_refused() {
         json!({ "canAutoUninstall": false, "displayName": "Codex CLI", "input": "codex", "lifecycle": "unmanaged", "name": "codex" })
     );
     assert_eq!(envelope["data"]["changed"], false);
+    assert_eq!(envelope["error"]["message"], "Codex CLI is not installed.");
+}
+
+#[test]
+fn an_agent_installed_outside_quantex_is_not_uninstalled() {
+    let sandbox = sandbox();
+    sandbox.fake_tool("codex", "echo codex 0.1.0", "@echo codex 0.1.0");
+    let (code, envelope) = run_json(&sandbox, &["uninstall", "codex"]);
+    assert_eq!(code, 1, "{envelope}");
+    assert_eq!(envelope["error"]["code"], "UNINSTALL_UNMANAGED");
+    assert_eq!(
+        envelope["error"]["message"],
+        "Codex CLI was not installed by qtx, so qtx cannot uninstall it. Run `qtx info codex` to see where it came from."
+    );
+    assert!(!sandbox.npm_calls().iter().any(|call| call.starts_with("npm uninstall")));
 }
 
 #[test]

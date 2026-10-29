@@ -54,6 +54,7 @@ pub fn doctor(ctx: &Context) -> Outcome {
         Ok(state) => state,
         Err(error) => return Outcome::failure("doctor", Some(target), error.into_command_error()),
     };
+    crate::term::progress(ctx, "Checking installers, agents, and the latest Quantex version...");
     let (availability, inspection, observations) = std::thread::scope(|scope| {
         let availability = scope.spawn(probe::installer_availability);
         let inspection = scope.spawn(|| selfupdate::inspect(ctx, None));

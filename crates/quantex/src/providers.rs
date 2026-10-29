@@ -1,8 +1,9 @@
 //! Package managers and installers: availability, presence probes, and the commands
 //! that install, update, and uninstall a provider target.
 
+use std::io::Write;
 use std::path::PathBuf;
-use std::process::{Command, Stdio};
+use std::process::{Child, Command, Stdio};
 use std::time::Duration;
 
 use serde_json::Value;
@@ -350,6 +351,22 @@ impl MutationFailure {
 /// Runs a provider mutation. Its output goes to the terminal in human mode and to
 /// stderr in structured modes, so stdout stays protocol-only.
 pub fn run_mutation(ctx: &Context, argv: &[String], description: &str) -> Result<(), MutationFailure> {
+    run_provider_command(ctx, argv, description, false)
+}
+
+/// Like [`run_mutation`], but in human mode the output is held back and written to
+/// stderr only when the command fails, so a routine step stays one line.
+pub fn run_collapsed_mutation(ctx: &Context, argv: &[String], description: &str) -> Result<(), MutationFailure> {
+    run_provider_command(ctx, argv, description, true)
+}
+
+fn run_provider_command(
+    ctx: &Context,
+    argv: &[String],
+    description: &str,
+    collapse: bool,
+) -> Result<(), MutationFailure> {
+    let failed = |error: std::io::Error| MutationFailure::Failed(format!("{description}: {error}"));
     let Some((program, args)) = argv.split_first() else {
         return Err(MutationFailure::Failed(format!("{description}: empty command")));
     };
@@ -363,15 +380,34 @@ pub fn run_mutation(ctx: &Context, argv: &[String], description: &str) -> Result
     };
     let mut command: Command = process::command_for(&path);
     command.args(args).stdin(Stdio::null());
+    let mut held = None;
     if ctx.output_mode.is_structured() {
         command.stdout(std::io::stderr());
         command.stderr(Stdio::inherit());
+    } else if collapse {
+        // One pipe for both streams keeps the output in the order it was written.
+        let (reader, writer) = std::io::pipe().map_err(failed)?;
+        command.stdout(writer.try_clone().map_err(failed)?).stderr(writer);
+        held = Some(reader);
     } else {
         command.stdout(Stdio::inherit()).stderr(Stdio::inherit());
     }
-    let mut child = command
-        .spawn()
-        .map_err(|error| MutationFailure::Failed(format!("{description}: {error}")))?;
+    let spawned = command.spawn();
+    // The command holds the pipe's write ends; the reader sees EOF only once it is gone.
+    drop(command);
+    let mut child = spawned.map_err(failed)?;
+    let output = held.map(|reader| process::read_in_background(Some(Box::new(reader))));
+    let result = wait_for_mutation(ctx, &mut child, description);
+    if result.is_err()
+        && let Some(output) = output
+    {
+        let bytes = output.recv_timeout(process::READER_GRACE).unwrap_or_default();
+        let _ = std::io::stderr().write_all(&bytes);
+    }
+    result
+}
+
+fn wait_for_mutation(ctx: &Context, child: &mut Child, description: &str) -> Result<(), MutationFailure> {
     let deadline = ctx.deadline();
     loop {
         match child.try_wait() {

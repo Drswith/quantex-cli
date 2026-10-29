@@ -173,7 +173,7 @@ fn render_list(outcome: &Outcome, human: &mut Human) {
         agents.len() - installed
     ));
     human.paragraph(&summary, "  ");
-    let hint = human.dim("Details: qtx inspect <agent>");
+    let hint = human.dim("Details: qtx info <agent>");
     human.paragraph(&hint, "  ");
     human.blank();
     render_warnings(outcome, human);
@@ -252,10 +252,15 @@ fn agent_fields(human: &Human, data: &Value) -> Vec<(&'static str, String)> {
     ));
     for (label, key) in [
         ("Source", "sourceLabel"),
+        ("Lifecycle", "lifecycle"),
         ("Version", "installedVersion"),
         ("Latest", "latestVersion"),
         ("Path", "binaryPath"),
     ] {
+        // `lifecycle` reads `unmanaged` for an absent agent, which says nothing useful.
+        if key == "lifecycle" && inspection["installed"] != true {
+            continue;
+        }
         if let Some(value) = inspection[key].as_str() {
             fields.push((label, value.to_owned()));
         }
@@ -428,6 +433,28 @@ fn render_resolve(outcome: &Outcome, human: &mut Human) {
         return;
     }
     let Some(data) = &outcome.data else { return };
+    let agent = &data["agent"];
     let resolution = &data["resolution"];
-    human.line(resolution["binaryPath"].as_str().unwrap_or_default());
+    let text = |value: &Value| value.as_str().unwrap_or_default().to_owned();
+    human.heading(agent["displayName"].as_str().unwrap_or_default());
+    let mut fields = vec![
+        ("Name", text(&agent["name"])),
+        ("Binary", text(&agent["binaryName"])),
+        ("Path", text(&resolution["binaryPath"])),
+        ("Source", text(&resolution["sourceLabel"])),
+        ("Lifecycle", text(&resolution["lifecycle"])),
+        ("Install type", text(&resolution["installSource"])),
+    ];
+    if let Some(version) = resolution["installedVersion"].as_str() {
+        fields.push(("Version", version.to_owned()));
+    }
+    let launch: Vec<&str> = resolution["suggestedLaunchCommand"]
+        .as_array()
+        .into_iter()
+        .flatten()
+        .filter_map(Value::as_str)
+        .collect();
+    fields.push(("Launch", launch.join(" ")));
+    human.fields(&fields);
+    human.blank();
 }

@@ -74,6 +74,7 @@ fn with_warnings(mut outcome: Outcome, warnings: impl IntoIterator<Item = Warnin
 /// `--channel` accepts stable or beta; anything else falls back to the configured channel.
 pub fn upgrade(ctx: &Context, check: bool, channel: Option<&str>) -> Outcome {
     let channel = channel.filter(|channel| matches!(*channel, "stable" | "beta"));
+    crate::term::progress(ctx, "Checking for the latest Quantex CLI version...");
     let inspection = selfupdate::plan(ctx, channel);
     let informational: Vec<Warning> = mirror_lag(&inspection)
         .into_iter()
@@ -205,6 +206,11 @@ fn render(outcome: &Outcome, human: &mut Human) {
         "check-unavailable" => {
             if let Some(error) = &outcome.error {
                 human.warn_line(&error.message);
+                // Each request is bounded by `networkTimeoutMs`, not by `--timeout`.
+                let text = human.cyan(
+                    "Next step: try again, or allow slower connections with `qtx config set networkTimeoutMs 30000`.",
+                );
+                human.warn_line(&text);
             }
             informational_lines(outcome, human);
         }

@@ -378,6 +378,26 @@ fn batch_update_covers_recorded_and_present_agents() {
     );
 }
 
+/// Human `update` holds the package manager's output back and shows it only on failure.
+#[test]
+fn human_update_shows_package_manager_output_only_when_it_fails() {
+    let sandbox = installed_codex("0.51.0");
+    next_npm_version(&sandbox, "0.51.0");
+    let run = sandbox.run(["update", "codex"]);
+    assert_eq!(run.code, 0, "{run:?}");
+    assert!(run.stdout.contains("Updating Codex CLI"), "{run:?}");
+    assert!(!format!("{}{}", run.stdout, run.stderr).contains("fake npm"), "{run:?}");
+
+    let sandbox = installed_codex("0.51.0");
+    fs::write(sandbox.root().join("npm-fail"), "").unwrap();
+    let run = sandbox.run(["update", "codex"]);
+    assert_eq!(run.code, 1, "{run:?}");
+    assert!(
+        run.stderr.contains("npm error fake failure for @openai/codex"),
+        "{run:?}"
+    );
+}
+
 #[test]
 fn batch_update_failure_reports_update_failed() {
     let sandbox = installed_codex("0.51.0");

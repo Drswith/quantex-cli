@@ -240,7 +240,7 @@ impl Human {
         let indent = 2;
         let value_width = self.width.saturating_sub(indent + label_width + 2).max(16);
         for (label, value) in fields {
-            let label_text = pad(&format!("{label}:"), label_width);
+            let label_text = pad(&self.bold(&format!("{label}:")), label_width);
             let lines = wrap(value, value_width);
             for (index, line) in lines.iter().enumerate() {
                 let prefix = if index == 0 {

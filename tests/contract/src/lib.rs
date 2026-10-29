@@ -420,7 +420,7 @@ echo "npm $*" >> "$ROOT/npm-calls.log"
 bin_for() { case "$1" in @openai/codex*) echo codex;; @kilocode/cli*) echo kilo;; @anthropic-ai/claude-code*) echo claude;; *) echo "";; esac; }
 put() {
   pkg="$1"; b=$(bin_for "$pkg"); [ -n "$b" ] || exit 1
-  [ -f "$ROOT/npm-fail" ] && exit 1
+  [ -f "$ROOT/npm-fail" ] && { echo "npm error fake failure for $pkg" >&2; exit 1; }
   v=$(cat "$ROOT/npm-next-version" 2>/dev/null || echo 0.50.0)
   printf '#!/bin/sh\necho "%s %s"\n' "$b" "$v" > "$ROOT/bin/$b"; chmod +x "$ROOT/bin/$b"
   grep -q -x "$pkg" "$ROOT/npm-installed.txt" 2>/dev/null || echo "$pkg" >> "$ROOT/npm-installed.txt"
@@ -428,7 +428,7 @@ put() {
 }
 case "$1" in
   --version) echo 10.9.0 ;;
-  install|i) for a in "$@"; do case "$a" in @*) put "${a%@latest}";; esac; done ;;
+  install|i) for a in "$@"; do case "$a" in @*) put "${a%@latest}";; esac; done; echo "changed 1 package (fake npm)" ;;
   update) put "$3" ;;
   uninstall)
     pkg="$3"; b=$(bin_for "$pkg"); rm -f "$ROOT/bin/$b"

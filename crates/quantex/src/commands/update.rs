@@ -322,7 +322,7 @@ fn run_provider_update(ctx: &Context, binding: &Binding) -> Result<(), MutationF
             binding.provider.as_str()
         )));
     };
-    providers::run_mutation(ctx, &command, &format!("{} update failed", binding.provider.as_str()))?;
+    providers::run_collapsed_mutation(ctx, &command, &format!("{} update failed", binding.provider.as_str()))?;
     if binding.provider == Provider::Bun {
         providers::trust_bun_packages(ctx, std::slice::from_ref(&binding.target.id))?;
     }
@@ -333,7 +333,7 @@ fn run_provider_update(ctx: &Context, binding: &Binding) -> Result<(), MutationF
 fn run_self_update(ctx: &Context, commands: &[Vec<String>]) -> Result<(), MutationFailure> {
     let mut last = MutationFailure::Failed("No self-update command is configured.".into());
     for command in commands {
-        match providers::run_mutation(ctx, command, "agent self-update failed") {
+        match providers::run_collapsed_mutation(ctx, command, "agent self-update failed") {
             Ok(()) => return Ok(()),
             Err(failure @ (MutationFailure::TimedOut | MutationFailure::Cancelled)) => return Err(failure),
             Err(failure) => last = failure,
@@ -701,9 +701,7 @@ fn plan_all(ctx: &Context, scope: &str) -> Result<Vec<(String, Planning)>, Outco
 
 /// Runs a batch in order.
 fn update_all(ctx: &Context, scope: &str) -> Outcome {
-    if !ctx.output_mode.is_structured() {
-        Human::new(ctx).line("Checking installed agents...");
-    }
+    crate::term::progress(ctx, "Checking installed agents...");
     let targets = match plan_all(ctx, scope) {
         Ok(targets) => targets,
         Err(outcome) => return outcome,
@@ -847,6 +845,14 @@ fn render(outcome: &Outcome, human: &mut Human) {
         human.warn_line(&warning.message);
     }
     let results = data["results"].as_array().cloned().unwrap_or_default();
+    if results.is_empty() && outcome.error.is_none() {
+        let text = human.dim(if data["scope"] == "managed" {
+            "No managed agents are installed."
+        } else {
+            "No installed agents to update."
+        });
+        human.line(&text);
+    }
     for item in &results {
         let display = item["displayName"].as_str().unwrap_or_default();
         match item["status"].as_str().unwrap_or_default() {
