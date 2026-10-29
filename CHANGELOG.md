@@ -1,5 +1,16 @@
 # Changelog
 
+## Unreleased (2.0.0-beta.2)
+
+From this release the goal is a small, light tool rather than matching 1.x in every detail.
+
+### Removed
+
+* Agents: Auggie CLI, Autohand Code CLI, CodeWhale, Gemini CLI, Goose, Junie CLI, Kiro CLI, Mistral Vibe, OpenHands CLI, Qwen Code, and Reasonix. 22 agents remain. Quantex no longer installs, updates, or removes them; an existing install stays where it is (remove it with the tool that installed it, for example `npm uninstall -g @google/gemini-cli`), and its `state.json` record is kept.
+* The cargo, deno, mise, pip, and uv providers, which no agent used. Records with those install types are kept and treated as untracked.
+* `capabilities` and `doctor` only check the package managers agents install with on this platform: bun and npm, plus brew on macOS and Linux or winget on Windows.
+* `defaultPackageManager` accepts `bun` or `npm`; a stored `mise` or `uv` reads as `bun`.
+
 ## [2.0.0-beta.1](https://github.com/Drswith/quantex-cli/releases/tag/v2.0.0-beta.1)
 
 The first prerelease of Quantex 2, a rewrite in Rust that matches 1.13.6. It keeps the 1.x command line: the same commands, options, JSON and NDJSON fields, error codes, exit codes, and `~/.quantex` files. It is published as GitHub release binaries only, not on npm. A 1.x standalone binary upgrades to it with `qtx upgrade --channel beta`. On Windows, a 1.x standalone binary cannot complete any self-upgrade (it reports `updated`, but the PowerShell script that should swap the executable fails to parse, so nothing is replaced), so reinstall with `install.ps1` instead. 1.x and 2.x can share one home directory.

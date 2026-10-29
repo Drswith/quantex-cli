@@ -36,7 +36,7 @@ The agent update system SHALL choose the best available update strategy for a si
 #### Scenario: Recorded unmanaged install is not reclassified as managed
 
 - GIVEN an agent has recorded install state with install type `script` or `binary`
-- AND the agent definition also declares a managed install method such as `pip`
+- AND the agent definition also declares a managed install method such as `npm`
 - WHEN the user runs `quantex update <agent>`
 - THEN Quantex does not select the managed install method from the definition as the update source
 - AND it uses a self-update command when available or reports a manual/explanatory outcome
@@ -116,7 +116,7 @@ Batch agent updates SHALL prioritize recorded actual install sources over candid
 #### Scenario: Tracked unmanaged install is not batched through a candidate managed method
 
 - GIVEN an agent has recorded install state with install type `script` or `binary`
-- AND the agent definition also declares a managed install method such as `pip`
+- AND the agent definition also declares a managed install method such as `npm`
 - WHEN the user runs `quantex update --all`
 - THEN Quantex does not include that agent in a grouped managed update bucket for the candidate method
 - AND the agent receives a self-update or manual/explanatory per-agent outcome instead
@@ -237,7 +237,7 @@ Agent update behavior SHALL be inspectable through user-facing diagnostic comman
 
 - GIVEN the user runs `quantex schema doctor` in JSON mode
 - WHEN Quantex returns the doctor command `dataSchema`
-- THEN the `installers` object lists every managed installer key that `quantex doctor --json` may emit, including `cargo` and `pip`
+- THEN the `installers` object lists every installer key that `quantex doctor --json` may emit: the package managers the catalog uses, `bun` and `npm` everywhere plus `brew` on macOS and Linux and `winget` on Windows
 - AND strict schema validation of real doctor JSON output does not fail solely because an installer flag is missing from the published schema
 
 #### Scenario: Resolve exposes machine-actionable install guidance
@@ -271,121 +271,6 @@ The supported agent catalog SHALL expose verified canonical names, lookup aliase
 - **WHEN** a user refers to a supported agent by its canonical Quantex name or a published upstream alias
 - **THEN** Quantex resolves the same catalog entry
 - **AND** lifecycle commands operate on that agent without requiring a separate duplicate definition
-
-### Requirement: Cargo-managed agent lifecycle MUST use Cargo commands
-
-Cargo-managed agent lifecycle operations SHALL install, update, batch update, uninstall, and diagnose agents through the Cargo installer when the recorded or selected install source is Cargo.
-
-#### Scenario: Updating Cargo-managed agents
-
-- **GIVEN** an agent has recorded install state with install type `cargo`
-- **WHEN** the user runs `quantex update <agent>` or `quantex update --all`
-- **THEN** Quantex selects the Cargo managed update path
-- **AND** it runs Cargo with the recorded crate name and `--force` instead of guessing another package-manager source
-- **AND** it preserves any recorded Cargo install arguments such as `--locked`
-
-#### Scenario: Grouping Cargo-managed updates
-
-- **GIVEN** multiple installed agents have recorded Cargo install state
-- **WHEN** the user runs `quantex update --all`
-- **THEN** Quantex groups those updates by the Cargo installer
-- **AND** it executes Cargo-managed batch update work without mixing the crates into npm, Bun, Homebrew, or winget groups
-
-#### Scenario: Reporting Cargo installer availability
-
-- **GIVEN** the user runs `quantex capabilities` or `quantex doctor`
-- **WHEN** Quantex reports managed installer availability
-- **THEN** the output includes Cargo availability alongside Bun, npm, Homebrew, and winget
-
-### Requirement: uv-managed agent lifecycle MUST use uv tool commands
-
-uv-managed agent lifecycle operations SHALL install, update, batch update, uninstall, diagnose, and report agents through the uv installer when the recorded or selected install source is uv.
-
-#### Scenario: Installing uv-managed agents
-
-- **GIVEN** an agent exposes a uv managed install method
-- **WHEN** the user runs `quantex install <agent>` or `quantex ensure <agent>` and that uv method is selected
-- **THEN** Quantex runs `uv tool install` with the resolved package name
-- **AND** it preserves any package-specific install arguments declared by the agent definition
-- **AND** it records the installed state with install type `uv`, package name, and package install arguments
-
-#### Scenario: Updating uv-managed agents
-
-- **GIVEN** an agent has recorded install state with install type `uv`
-- **WHEN** the user runs `quantex update <agent>` or `quantex update --all`
-- **THEN** Quantex selects the uv managed update path
-- **AND** it runs `uv tool upgrade` with the recorded package name instead of guessing another package-manager source
-- **AND** it preserves any recorded package-specific install arguments
-
-#### Scenario: Grouping uv-managed updates
-
-- **GIVEN** multiple installed agents have recorded uv install state
-- **WHEN** the user runs `quantex update --all`
-- **THEN** Quantex groups those updates by the uv installer
-- **AND** it executes uv-managed batch update work without mixing the tool packages into Bun, npm, Homebrew, Cargo, pip, or winget groups
-
-#### Scenario: Uninstalling uv-managed agents
-
-- **GIVEN** an agent has recorded install state with install type `uv`
-- **WHEN** the user runs `quantex uninstall <agent>`
-- **THEN** Quantex runs `uv tool uninstall` with the recorded package name
-- **AND** it removes the Quantex installed-agent state only after uv reports success
-
-#### Scenario: Reporting uv installer availability
-
-- **GIVEN** the user runs `quantex capabilities` or `quantex doctor`
-- **WHEN** Quantex reports managed installer availability
-- **THEN** the output includes uv availability alongside Bun, npm, Homebrew, Cargo, pip, and winget
-
-#### Scenario: Doctor schema documents uv installer availability
-
-- **GIVEN** the user runs `quantex schema doctor` in JSON mode
-- **WHEN** Quantex returns the doctor command `dataSchema`
-- **THEN** the `installers` object lists the `uv` installer key that `quantex doctor --json` may emit
-- **AND** strict schema validation of real doctor JSON output does not fail solely because the uv installer flag is missing from the published schema
-
-### Requirement: mise-managed agent lifecycle MUST use mise commands
-
-mise-managed agent lifecycle operations SHALL install, update, batch update, uninstall, diagnose, and report agents through the mise installer when the recorded or selected install source is mise.
-
-#### Scenario: Installing mise-managed agents
-
-- **GIVEN** an agent exposes a mise managed install method
-- **WHEN** the user runs `quantex install <agent>` or `quantex ensure <agent>` and that mise method is selected
-- **THEN** Quantex runs `mise use --global` with the resolved mise tool reference
-- **AND** it records the installed state with install type `mise` and the mise tool reference
-
-#### Scenario: Updating mise-managed agents
-
-- **GIVEN** an agent has recorded install state with install type `mise`
-- **WHEN** the user runs `quantex update <agent>`
-- **THEN** Quantex selects the mise managed update path
-- **AND** it runs `mise use --global --force` with the recorded mise tool reference instead of guessing another package-manager source
-
-#### Scenario: Grouping mise-managed updates
-
-- **GIVEN** multiple installed agents have recorded mise install state
-- **WHEN** the user runs `quantex update --all`
-- **THEN** Quantex groups those updates by the mise installer
-- **AND** it executes mise-managed batch update work without mixing the tool references into Bun, npm, Homebrew, Cargo, pip, uv, or winget groups
-
-#### Scenario: Uninstalling mise-managed agents
-
-- **GIVEN** an agent has recorded install state with install type `mise`
-- **WHEN** the user runs `quantex uninstall <agent>`
-- **THEN** Quantex runs `mise unuse --global` with the recorded mise tool reference
-- **AND** it removes the Quantex installed-agent state only after mise reports success
-
-#### Scenario: Reporting mise installer availability
-
-- **WHEN** Quantex reports managed installer availability
-- **THEN** the output includes mise availability alongside Bun, npm, Homebrew, Cargo, pip, uv, and winget
-
-#### Scenario: Doctor schema documents mise installer availability
-
-- **WHEN** a user or agent reads `quantex schema doctor`
-- **THEN** the `installers` object lists the `mise` installer key that `quantex doctor --json` may emit
-- **AND** strict schema validation of real doctor JSON output does not fail solely because the mise installer flag is missing from the published schema
 
 ### Requirement: Managed lifecycle cancellation MUST terminate Windows wrapper process trees before wrapper fallback kill
 
@@ -476,56 +361,6 @@ When a managed package is no longer installed but Quantex still records install 
 - **GIVEN** an agent has recorded managed install state with install type `bun`
 - **AND** bun is available
 - **AND** bun global presence probing cannot confirm whether the package is installed or absent
-- **WHEN** the user runs `quantex uninstall <agent>`
-- **AND** the managed package-manager uninstall command reports failure
-- **THEN** Quantex does not remove the installed-agent state entry
-- **AND** the uninstall command reports failure
-
-#### Scenario: Ghost recovery does not run when mise presence probing is inconclusive
-
-- **GIVEN** an agent has recorded managed install state with install type `mise`
-- **AND** mise is available
-- **AND** mise presence probing cannot confirm whether the package is installed or absent
-- **WHEN** the user runs `quantex uninstall <agent>`
-- **AND** the managed package-manager uninstall command reports failure
-- **THEN** Quantex does not remove the installed-agent state entry
-- **AND** the uninstall command reports failure
-
-#### Scenario: Ghost recovery does not run when uv presence probing is inconclusive
-
-- **GIVEN** an agent has recorded managed install state with install type `uv`
-- **AND** uv is available
-- **AND** uv tool presence probing cannot confirm whether the package is installed or absent
-- **WHEN** the user runs `quantex uninstall <agent>`
-- **AND** the managed package-manager uninstall command reports failure
-- **THEN** Quantex does not remove the installed-agent state entry
-- **AND** the uninstall command reports failure
-
-#### Scenario: Ghost recovery does not run when cargo presence probing is inconclusive
-
-- **GIVEN** an agent has recorded managed install state with install type `cargo`
-- **AND** cargo is available
-- **AND** cargo presence probing cannot confirm whether the package is installed or absent
-- **WHEN** the user runs `quantex uninstall <agent>`
-- **AND** the managed package-manager uninstall command reports failure
-- **THEN** Quantex does not remove the installed-agent state entry
-- **AND** the uninstall command reports failure
-
-#### Scenario: Ghost recovery does not run when deno presence probing is inconclusive
-
-- **GIVEN** an agent has recorded managed install state with install type `deno`
-- **AND** deno is available
-- **AND** deno presence probing cannot confirm whether the global binary is installed or absent
-- **WHEN** the user runs `quantex uninstall <agent>`
-- **AND** the managed package-manager uninstall command reports failure
-- **THEN** Quantex does not remove the installed-agent state entry
-- **AND** the uninstall command reports failure
-
-#### Scenario: Ghost recovery does not run when pip presence probing is inconclusive
-
-- **GIVEN** an agent has recorded managed install state with install type `pip`
-- **AND** pip is available
-- **AND** pip presence probing cannot confirm whether the package is installed or absent
 - **WHEN** the user runs `quantex uninstall <agent>`
 - **AND** the managed package-manager uninstall command reports failure
 - **THEN** Quantex does not remove the installed-agent state entry
@@ -744,23 +579,6 @@ Agent update planning MUST allow a tracked managed install to use its recorded p
 - **THEN** Quantex does not fail with an update-source conflict solely because the stored and resolved path strings differ
 - **AND** it proceeds through the normal recorded-provider update decision
 
-### Requirement: Successful empty uv tool inventories MUST be conclusive absence
-
-Quantex MUST classify a uv tool package as absent when `uv tool list` exits successfully and emits the explicit `No tools installed` marker with no tool entries. The legacy and Core presence probes MUST apply the same rule. Empty or unparseable output without that successful marker MUST remain unknown or indeterminate so mutation routing still fails closed.
-
-#### Scenario: Fresh uv tool directory is empty
-
-- **GIVEN** uv is available and no uv tools are installed
-- **WHEN** `uv tool list` exits zero with no tool entries and emits `No tools installed`
-- **THEN** Quantex conclusively observes the requested uv package as absent
-- **AND** a fresh install may proceed through normal lifecycle reconciliation
-
-#### Scenario: Empty uv output is unexplained
-
-- **WHEN** `uv tool list` has empty or unparseable output without the successful `No tools installed` marker
-- **THEN** Quantex keeps package presence unknown or indeterminate
-- **AND** it does not authorize a mutation from guessed absence
-
 ### Requirement: Self-update completion MUST NOT require a stable executable path
 
 An agent whose self-update command installs each release into its own directory relocates its executable on every successful upgrade. Quantex MUST verify such an update through the recorded provider binding and semantic version ordering, and MUST NOT report a postcondition failure solely because the post-update executable path differs from the path recorded by the pre-update lifecycle receipt. On success Quantex MUST persist a refreshed receipt carrying the observed post-update executable path and version.
@@ -810,30 +628,6 @@ When `quantex update` reports an agent as failed, human-mode output MUST include
 ### Requirement: Managed update observation MUST preserve recorded install arguments beside receipts
 
 When Quantex observes a managed agent that has both installed-agent state and a lifecycle receipt for the same provider identity, the binding used for managed update planning and execution MUST preserve any recorded package install arguments from installed state. Lifecycle receipts MAY omit install arguments; observation MUST NOT drop state arguments solely because a narrower receipt binding is preferred for executable identity metadata.
-
-#### Scenario: Updating a Cargo-managed agent with recorded arguments and a matching receipt
-
-- **GIVEN** an agent has recorded install state with install type `cargo` and package install arguments such as `--locked`
-- **AND** a lifecycle receipt exists for the same Cargo provider target identity
-- **WHEN** Quantex observes the agent for `quantex update <agent>` or `quantex update --all`
-- **THEN** the planned update binding includes the recorded Cargo install arguments
-- **AND** Quantex runs Cargo update with those recorded arguments
-
-#### Scenario: Updating a uv-managed agent with recorded arguments and a matching receipt
-
-- **GIVEN** an agent has recorded install state with install type `uv` and package install arguments such as `--python 3.12`
-- **AND** a lifecycle receipt exists for the same uv provider target identity
-- **WHEN** Quantex observes the agent for `quantex update <agent>` or `quantex update --all`
-- **THEN** the planned update binding includes the recorded uv install arguments
-- **AND** Quantex runs `uv tool upgrade` with those recorded arguments
-
-#### Scenario: Updating a Deno-managed agent with recorded arguments and a matching receipt
-
-- **GIVEN** an agent has recorded install state with install type `deno` and package install arguments such as permission flags
-- **AND** a lifecycle receipt exists for the same Deno provider target identity
-- **WHEN** Quantex observes the agent for `quantex update <agent>` or `quantex update --all`
-- **THEN** the planned update binding includes the recorded Deno install arguments
-- **AND** Quantex runs Deno update with those recorded arguments
 
 ### Requirement: Installs bound to a superseded package MUST report migration instead of a version comparison
 

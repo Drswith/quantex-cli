@@ -124,7 +124,7 @@ quantex inspect codex --json
 quantex ensure claude --json --non-interactive --yes
 
 # Resolve the binary path Quantex would use
-quantex resolve gemini --json
+quantex resolve codex --json
 
 # Execute with explicit install behavior
 quantex exec codex --install if-missing -- --help

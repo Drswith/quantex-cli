@@ -117,7 +117,8 @@ pub fn load_config(dir: &Path) -> Config {
         values.insert(key, value);
     }
     let manager = values.get("defaultPackageManager").and_then(Value::as_str);
-    let manager = if matches!(manager, Some("bun" | "mise" | "npm" | "uv")) {
+    // Older releases also accepted mise and uv, which no agent installs with any more.
+    let manager = if matches!(manager, Some("bun" | "npm")) {
         manager.unwrap().to_owned()
     } else {
         "bun".to_owned()
@@ -164,6 +165,10 @@ pub fn save_config(dir: &Path, values: &Map<String, Value>) -> std::io::Result<(
 // State
 
 pub const STATE_SCHEMA_VERSION: u64 = 2;
+
+/// Install types earlier releases recorded but this one no longer manages. Their
+/// records are kept as they are, so the file stays readable and nothing is lost.
+const RETIRED_INSTALL_TYPES: [&str; 5] = ["cargo", "deno", "mise", "pip", "uv"];
 pub const RECEIPT_SCHEMA_VERSION: u64 = 1;
 
 /// One `installedAgents` entry: how Quantex installed an agent.
@@ -206,6 +211,8 @@ impl InstalledAgent {
 #[derive(Debug, Clone, Default)]
 pub struct State {
     pub installed_agents: BTreeMap<String, InstalledAgent>,
+    /// `installedAgents` records with a retired install type, unchanged.
+    pub retired_agents: Map<String, Value>,
     pub lifecycle_receipts: BTreeMap<String, Value>,
     pub self_state: Map<String, Value>,
 }
@@ -213,8 +220,8 @@ pub struct State {
 impl State {
     pub fn to_value(&self) -> Value {
         json!({
-            "installedAgents": self.installed_agents.iter()
-                .map(|(name, agent)| (name.clone(), agent.to_value()))
+            "installedAgents": self.retired_agents.clone().into_iter()
+                .chain(self.installed_agents.iter().map(|(name, agent)| (name.clone(), agent.to_value())))
                 .collect::<Map<String, Value>>(),
             "lifecycleReceipts": self.lifecycle_receipts.iter()
                 .map(|(name, receipt)| (name.clone(), receipt.clone()))
@@ -369,6 +376,11 @@ pub fn parse_state(value: &Value) -> Result<(State, bool), String> {
         None => {}
         Some(Value::Object(agents)) => {
             for (name, agent) in agents {
+                let install_type = agent.get("installType").and_then(Value::as_str);
+                if install_type.is_some_and(|kind| RETIRED_INSTALL_TYPES.contains(&kind)) {
+                    state.retired_agents.insert(name.clone(), agent.clone());
+                    continue;
+                }
                 state
                     .installed_agents
                     .insert(name.clone(), normalize_installed_agent(name, agent)?);
@@ -703,6 +715,23 @@ mod tests {
         }
         let corrupt = fs::read_to_string(fixtures.join("corrupt.txt")).unwrap();
         assert!(serde_json::from_str::<Value>(&corrupt).is_err());
+    }
+
+    #[test]
+    fn records_with_retired_install_types_are_kept() {
+        let uv = json!({ "agentName": "openhands", "installType": "uv", "packageName": "openhands" });
+        let value = json!({
+            "installedAgents": {
+                "codex": { "agentName": "codex", "installType": "npm", "packageName": "@openai/codex" },
+                "openhands": uv,
+            },
+            "lifecycleReceipts": {},
+            "schemaVersion": 2,
+        });
+        let (state, _) = parse_state(&value).unwrap();
+        assert!(state.installed_agents.contains_key("codex"));
+        assert!(!state.installed_agents.contains_key("openhands"));
+        assert_eq!(state.to_value()["installedAgents"]["openhands"], uv);
     }
 
     #[test]

@@ -42,39 +42,17 @@ pub enum Provider {
     Bun,
     Npm,
     Brew,
-    Cargo,
-    Deno,
-    Mise,
-    Pip,
-    Uv,
     Winget,
     Script,
     Binary,
 }
 
 impl Provider {
-    pub const MANAGED: [Provider; 9] = [
-        Provider::Bun,
-        Provider::Npm,
-        Provider::Brew,
-        Provider::Cargo,
-        Provider::Deno,
-        Provider::Mise,
-        Provider::Pip,
-        Provider::Uv,
-        Provider::Winget,
-    ];
-
     pub fn as_str(self) -> &'static str {
         match self {
             Self::Bun => "bun",
             Self::Npm => "npm",
             Self::Brew => "brew",
-            Self::Cargo => "cargo",
-            Self::Deno => "deno",
-            Self::Mise => "mise",
-            Self::Pip => "pip",
-            Self::Uv => "uv",
             Self::Winget => "winget",
             Self::Script => "script",
             Self::Binary => "binary",
@@ -111,11 +89,6 @@ impl Provider {
     pub fn package_key(self) -> Option<&'static str> {
         match self {
             Self::Bun | Self::Npm => Some("npm"),
-            Self::Cargo => Some("cargo"),
-            Self::Deno => Some("deno"),
-            Self::Mise => Some("mise"),
-            Self::Pip => Some("pip"),
-            Self::Uv => Some("uv"),
             Self::Brew | Self::Winget | Self::Script | Self::Binary => None,
         }
     }
@@ -352,6 +325,17 @@ impl Agent {
     }
 }
 
+/// The package managers some agent installs with on this platform, in a fixed order.
+pub fn installers() -> Vec<Provider> {
+    let used: std::collections::BTreeSet<Provider> = agents()
+        .iter()
+        .flat_map(Agent::install_methods)
+        .map(|method| method.kind)
+        .filter(|provider| provider.is_managed())
+        .collect();
+    used.into_iter().collect()
+}
+
 pub fn agents() -> &'static [Agent] {
     static AGENTS: OnceLock<Vec<Agent>> = OnceLock::new();
     AGENTS.get_or_init(|| {
@@ -385,7 +369,7 @@ mod tests {
 
     #[test]
     fn catalog_loads_every_agent() {
-        assert_eq!(agents().len(), 33);
+        assert_eq!(agents().len(), 22);
         assert!(find("claude").is_some());
         assert!(find("Claude Code").is_some());
         assert!(find("not-an-agent").is_none());

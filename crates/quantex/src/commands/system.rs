@@ -23,14 +23,6 @@ fn arch() -> &'static str {
     }
 }
 
-fn unavailable_reason(provider: Provider) -> &'static str {
-    match provider {
-        Provider::Winget if !cfg!(windows) => "not-on-platform",
-        Provider::Brew if cfg!(windows) => "not-on-platform",
-        _ => "not-found",
-    }
-}
-
 pub fn capabilities(ctx: &Context) -> Outcome {
     let availability = probe::installer_availability();
     let facts = selfupdate::facts(ctx, None);
@@ -39,7 +31,7 @@ pub fn capabilities(ctx: &Context) -> Outcome {
         let mut entry = Map::new();
         entry.insert("available".into(), available.into());
         if !available {
-            entry.insert("reason".into(), unavailable_reason(provider).into());
+            entry.insert("reason".into(), "not-found".into());
         }
         installers.insert(provider.as_str().into(), Value::Object(entry));
     }
@@ -98,6 +90,16 @@ fn render_capabilities(outcome: &Outcome, human: &mut Human) {
         .collect();
     human.table(&[Column::new("Installer"), Column::new("Status")], &rows);
     human.blank();
+}
+
+/// "bun, npm, or brew" for the installers this platform's catalog uses.
+fn installer_names(availability: &[(Provider, bool)]) -> String {
+    let names: Vec<&str> = availability.iter().map(|(provider, _)| provider.as_str()).collect();
+    match names.split_last() {
+        Some((last, [])) => (*last).to_owned(),
+        Some((last, rest)) => format!("{}, or {last}", rest.join(", ")),
+        None => "a package manager".to_owned(),
+    }
 }
 
 #[allow(clippy::too_many_arguments)]
@@ -183,7 +185,10 @@ pub fn doctor(ctx: &Context) -> Outcome {
             "NO_MANAGED_INSTALLER",
             true,
             TROUBLESHOOTING_DOCS,
-            "No managed installer found. Install bun, npm, brew, cargo, deno, mise, pip, uv, or winget before relying on managed lifecycle operations.".into(),
+            format!(
+                "No managed installer found. Install {} before relying on managed lifecycle operations.",
+                installer_names(&availability)
+            ),
             json!({ "kind": "system" }),
             "restore-managed-installer",
             Vec::new(),

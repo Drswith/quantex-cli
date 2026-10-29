@@ -22,6 +22,7 @@ Re-implement `quantex` / `qtx` from scratch in Rust as a drop-in replacement for
 6. **CI, `AGENTS.md`, and agent-instruction files are rewritten from scratch.** One `AGENTS.md`; `CLAUDE.md` imports it.
 7. **Releases ship from `Drswith/quantex-cli`.** v1 binaries hard-code `https://github.com/Drswith/quantex-cli` and download `releases/latest/download/<asset>`, so asset names, `SHA256SUMS.txt`, and `manifest.json` keep their v1.13.6 shape.
 8. **`skills/quantex-cli/` keeps its path.** Users install it with `npx skills add Drswith/quantex-cli --skill quantex-cli` from the default branch.
+9. **After 2.0.0-beta.1, trim instead of matching v1.** `2.0.0-beta.1` is the v1.13.6-compatible baseline. From 2.0.0-beta.2 the aim is a small, light tool: rarely used agents and the providers only they needed are removed, and v1 behaviour is kept only where users depend on it. Reading and writing `~/.quantex` alongside 1.x, the release assets, and the self-upgrade path stay fixed.
 
 ## Branch plan
 

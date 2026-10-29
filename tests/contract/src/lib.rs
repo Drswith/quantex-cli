@@ -434,7 +434,7 @@ pub fn fake_agent(sandbox: &Sandbox, name: &str, version_line: &str) -> PathBuf 
 pub fn fake_npm(sandbox: &Sandbox) {
     let script = r#"ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 echo "npm $*" >> "$ROOT/npm-calls.log"
-bin_for() { case "$1" in @openai/codex*) echo codex;; @google/gemini-cli*) echo gemini;; @anthropic-ai/claude-code*) echo claude;; *) echo "";; esac; }
+bin_for() { case "$1" in @openai/codex*) echo codex;; @kilocode/cli*) echo kilo;; @anthropic-ai/claude-code*) echo claude;; *) echo "";; esac; }
 put() {
   pkg="$1"; b=$(bin_for "$pkg"); [ -n "$b" ] || exit 1
   [ -f "$ROOT/npm-fail" ] && exit 1

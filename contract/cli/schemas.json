@@ -114,82 +114,7 @@
               ],
               "type": "object"
             },
-            "cargo": {
-              "additionalProperties": false,
-              "properties": {
-                "available": {
-                  "type": "boolean"
-                },
-                "reason": {
-                  "type": "string"
-                }
-              },
-              "required": [
-                "available"
-              ],
-              "type": "object"
-            },
-            "deno": {
-              "additionalProperties": false,
-              "properties": {
-                "available": {
-                  "type": "boolean"
-                },
-                "reason": {
-                  "type": "string"
-                }
-              },
-              "required": [
-                "available"
-              ],
-              "type": "object"
-            },
-            "mise": {
-              "additionalProperties": false,
-              "properties": {
-                "available": {
-                  "type": "boolean"
-                },
-                "reason": {
-                  "type": "string"
-                }
-              },
-              "required": [
-                "available"
-              ],
-              "type": "object"
-            },
             "npm": {
-              "additionalProperties": false,
-              "properties": {
-                "available": {
-                  "type": "boolean"
-                },
-                "reason": {
-                  "type": "string"
-                }
-              },
-              "required": [
-                "available"
-              ],
-              "type": "object"
-            },
-            "pip": {
-              "additionalProperties": false,
-              "properties": {
-                "available": {
-                  "type": "boolean"
-                },
-                "reason": {
-                  "type": "string"
-                }
-              },
-              "required": [
-                "available"
-              ],
-              "type": "object"
-            },
-            "uv": {
               "additionalProperties": false,
               "properties": {
                 "available": {
@@ -221,15 +146,8 @@
             }
           },
           "required": [
-            "brew",
             "bun",
-            "cargo",
-            "deno",
-            "mise",
-            "npm",
-            "pip",
-            "uv",
-            "winget"
+            "npm"
           ],
           "type": "object"
         },
@@ -941,22 +859,7 @@
             "bun": {
               "type": "boolean"
             },
-            "cargo": {
-              "type": "boolean"
-            },
-            "deno": {
-              "type": "boolean"
-            },
-            "mise": {
-              "type": "boolean"
-            },
             "npm": {
-              "type": "boolean"
-            },
-            "pip": {
-              "type": "boolean"
-            },
-            "uv": {
               "type": "boolean"
             },
             "winget": {
@@ -964,15 +867,8 @@
             }
           },
           "required": [
-            "brew",
             "bun",
-            "cargo",
-            "deno",
-            "mise",
-            "npm",
-            "pip",
-            "uv",
-            "winget"
+            "npm"
           ],
           "type": "object"
         },

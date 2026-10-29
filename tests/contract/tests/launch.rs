@@ -83,22 +83,22 @@ fn exec_dry_run_describes_the_launch() {
 
 #[test]
 fn exec_refuses_a_missing_agent_by_default() {
-    let run = Sandbox::new().run(["exec", "gemini", "--output", "json", "--", "x"]);
+    let run = Sandbox::new().run(["exec", "kilo", "--output", "json", "--", "x"]);
     assert_eq!(run.code, 4, "{run:?}");
     let envelope = run.json();
     assert_envelope(&envelope, "exec", "json");
     assert_eq!(envelope["error"]["code"], "AGENT_NOT_INSTALLED");
-    assert_eq!(envelope["error"]["message"], "Gemini CLI is not installed.");
+    assert_eq!(envelope["error"]["message"], "Kilo CLI is not installed.");
     let guidance = &envelope["error"]["details"];
     assert_eq!(guidance["suggestedAction"], "rerun-with-install-policy");
-    assert_eq!(guidance["suggestedEnsureCommand"], "quantex ensure gemini");
+    assert_eq!(guidance["suggestedEnsureCommand"], "quantex ensure kilo");
     assert_eq!(
         guidance["suggestedExecCommand"],
-        "quantex exec gemini --install if-missing -- x"
+        "quantex exec kilo --install if-missing -- x"
     );
     assert_eq!(envelope["data"]["execution"]["installGuidance"], *guidance);
     assert_eq!(envelope["data"]["execution"]["installed"], false);
-    assert_eq!(envelope["data"]["agent"]["name"], "gemini");
+    assert_eq!(envelope["data"]["agent"]["name"], "kilo");
 }
 
 #[test]
@@ -145,7 +145,7 @@ fn shortcut_without_a_terminal_does_not_prompt_for_a_missing_agent() {
     if is_reference() {
         return;
     }
-    let run = Sandbox::new().run(["gemini"]);
+    let run = Sandbox::new().run(["kilo"]);
     assert_eq!(run.code, 7, "{run:?}");
 }
 

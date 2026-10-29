@@ -1,9 +1,14 @@
 //! `capabilities` and `doctor`.
 
-use quantex_contract_tests::{Sandbox, assert_envelope, fake_agent};
+use quantex_contract_tests::{Sandbox, assert_envelope, fake_agent, is_reference};
 use serde_json::{Value, json};
 
-const INSTALLERS: [&str; 9] = ["brew", "bun", "cargo", "deno", "mise", "npm", "pip", "uv", "winget"];
+/// The package managers the catalog installs with on this platform.
+const INSTALLERS: [&str; 3] = if cfg!(windows) {
+    ["bun", "npm", "winget"]
+} else {
+    ["brew", "bun", "npm"]
+};
 
 fn keys(value: &Value) -> Vec<String> {
     let mut keys: Vec<String> = value.as_object().unwrap().keys().cloned().collect();
@@ -23,10 +28,14 @@ fn capabilities_describe_the_surface() {
         keys(data),
         ["agents", "features", "installers", "outputModes", "platform"]
     );
-    assert_eq!(data["agents"].as_array().unwrap().len(), 33);
     assert_eq!(data["outputModes"], json!(["human", "json", "ndjson"]));
-    assert_eq!(keys(&data["installers"]), INSTALLERS);
-    for installer in INSTALLERS {
+    // v1.13.6 lists all 33 agents and nine installers; 2.0.0-beta.2 trimmed both.
+    if !is_reference() {
+        assert_eq!(data["agents"].as_array().unwrap().len(), 22);
+        assert_eq!(keys(&data["installers"]), INSTALLERS);
+    }
+    for installer in keys(&data["installers"]) {
+        let installer = installer.as_str();
         let entry = &data["installers"][installer];
         assert!(entry["available"].is_boolean(), "{installer}: {entry}");
         if entry["available"] == false {
@@ -34,6 +43,9 @@ fn capabilities_describe_the_surface() {
                 matches!(entry["reason"].as_str(), Some("not-found" | "not-on-platform")),
                 "{installer}: {entry}"
             );
+            if !is_reference() {
+                assert_eq!(entry["reason"], "not-found", "{installer}: {entry}");
+            }
         }
     }
     assert!(matches!(
@@ -80,7 +92,9 @@ fn doctor_reports_installers_agents_and_self() {
     assert_eq!(envelope["target"], json!({ "kind": "system", "name": "doctor" }));
     let data = &envelope["data"];
     assert_eq!(keys(data), ["agents", "installers", "issues", "self"]);
-    assert_eq!(keys(&data["installers"]), INSTALLERS);
+    if !is_reference() {
+        assert_eq!(keys(&data["installers"]), INSTALLERS);
+    }
     assert_eq!(
         data["agents"],
         json!([{

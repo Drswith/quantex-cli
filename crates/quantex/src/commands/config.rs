@@ -54,8 +54,8 @@ pub fn run(ctx: &Context, action: Option<&str>, key: Option<&str>, value: Option
                 return invalid(None, "Please specify both key and value");
             };
             let invalid_value = match key {
-                "defaultPackageManager" if !matches!(raw, "bun" | "npm" | "mise" | "uv") => {
-                    Some("defaultPackageManager must be bun, npm, mise, or uv".to_owned())
+                "defaultPackageManager" if !matches!(raw, "bun" | "npm") => {
+                    Some("defaultPackageManager must be bun or npm".to_owned())
                 }
                 "npmBunUpdateStrategy" if !matches!(raw, "latest-major" | "respect-semver") => {
                     Some("npmBunUpdateStrategy must be latest-major or respect-semver".to_owned())

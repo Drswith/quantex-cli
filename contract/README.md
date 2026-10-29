@@ -10,7 +10,7 @@ When sources disagree, the higher one wins:
 2. Data files in this directory (`cli/*.json`, `catalog/`, `fixtures/`).
 3. Behaviour notes in `behavior/`.
 
-The reference binary is the published TypeScript release `v1.13.6`. Its source stays readable in git history (`git show v1.13.6:<path>`).
+The reference binary is the published TypeScript release `v1.13.6`. Its source stays readable in git history (`git show v1.13.6:<path>`). Since 2.0.0-beta.2 the goal is a small, light tool rather than matching v1 everywhere; the differences are listed under [Removed in 2.0.0-beta.2](#removed-in-200-beta2).
 
 ## Files
 
@@ -19,7 +19,7 @@ The reference binary is the published TypeScript release `v1.13.6`. Its source s
 | `cli/registry.json` | Program name, global options, the 15 stable commands with aliases, arguments, options, effects, and discovery flags |
 | `cli/schemas.json` | JSON Schema documents returned by `quantex schema` (envelope, data, NDJSON event per command) |
 | `cli/error-codes.json` | The 15 error codes and their exit codes |
-| `catalog/*.json`, `catalog.schema.json` | The 33 supported agents and the catalog schema |
+| `catalog/*.json`, `catalog.schema.json` | The 22 supported agents and the catalog schema |
 | `fixtures/state/` | `~/.quantex/state.json` samples: valid, ghost entry, untracked entry, corrupt file |
 | `behavior/*.md` | Behaviour requirements imported from the v1.13.6 specifications, minus TypeScript-engine routing |
 
@@ -36,6 +36,13 @@ The reference binary is the published TypeScript release `v1.13.6`. Its source s
 - In human mode, the envelope's `error` and `warnings` (for example `ALREADY_INSTALLED` and `DRY_RUN` notices) are written to stderr and results to stdout. v1.13.6 printed most of them on stdout. Exit codes are unchanged.
 - Argument-parse errors (unknown option, missing argument, invalid option value) report `INVALID_ARGUMENT` with exit code 2, and emit the error envelope in `json` / `ndjson` mode. v1.13.6 prints a plain stderr line and exits 1.
 - The npm package no longer exports a JavaScript library API, and `quantex-core` is not published from this line.
+
+## Removed in 2.0.0-beta.2
+
+- Auggie CLI, Autohand Code CLI, CodeWhale, Gemini CLI, Goose, Junie CLI, Kiro CLI, Mistral Vibe, OpenHands CLI, Qwen Code, and Reasonix are no longer in the catalog. Their names report `AGENT_NOT_FOUND` like any unknown agent; their `state.json` records are kept.
+- The `cargo`, `deno`, `mise`, `pip`, and `uv` providers are gone; no catalog agent used them. `state.json` records with those install types are kept unchanged and treated as untracked.
+- `capabilities` and `doctor` report only the package managers the catalog uses on this platform: `bun` and `npm`, plus `brew` on macOS and Linux or `winget` on Windows. An unavailable one always has `reason: "not-found"`.
+- `defaultPackageManager` accepts `bun` or `npm`. A stored `mise` or `uv` reads as the default, `bun`.
 
 ## v1.13.6 defects the Rust build fixes
 

@@ -94,12 +94,12 @@ fn ensure_installs_like_install() {
 #[test]
 fn an_unattributable_existing_executable_stays_unmanaged() {
     let sandbox = sandbox();
-    sandbox.fake_tool("gemini", "echo 1.0.0", "echo 1.0.0");
-    let (code, envelope) = run_json(&sandbox, &["install", "gemini"]);
+    sandbox.fake_tool("kilo", "echo 1.0.0", "echo 1.0.0");
+    let (code, envelope) = run_json(&sandbox, &["install", "kilo"]);
     assert_eq!(code, 0, "{envelope}");
     assert_eq!(
         envelope["data"],
-        json!({ "agent": { "displayName": "Gemini CLI", "name": "gemini" }, "changed": false, "installed": true })
+        json!({ "agent": { "displayName": "Kilo CLI", "name": "kilo" }, "changed": false, "installed": true })
     );
     assert_eq!(envelope["warnings"][0]["code"], "UNTRACKED_EXISTING_INSTALL");
     assert!(sandbox.read_state().is_none());
@@ -155,7 +155,7 @@ fn a_recorded_but_missing_agent_is_reinstalled_from_its_source() {
 #[test]
 fn batch_install_summarises_every_target() {
     let sandbox = sandbox();
-    let (code, envelope) = run_json(&sandbox, &["install", "gemini", "codex", "nope", "codex"]);
+    let (code, envelope) = run_json(&sandbox, &["install", "kilo", "codex", "nope", "codex"]);
     assert_eq!(code, 1, "{envelope}");
     assert_eq!(envelope["target"], json!({ "kind": "agent" }));
     let data = &envelope["data"];
@@ -166,11 +166,7 @@ fn batch_install_summarises_every_target() {
         .iter()
         .map(|r| r["input"].as_str().unwrap())
         .collect();
-    assert_eq!(
-        inputs,
-        ["codex", "gemini", "nope"],
-        "targets are deduplicated and sorted"
-    );
+    assert_eq!(inputs, ["codex", "kilo", "nope"], "targets are deduplicated and sorted");
     assert_eq!(
         data["summary"],
         json!({ "alreadyInstalled": 0, "failed": 1, "installed": 2, "locked": 0, "planned": 0, "trackedExistingInstall": 0, "untrackedExistingInstall": 0 })

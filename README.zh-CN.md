@@ -15,7 +15,7 @@
 
 </div>
 
-Quantex 是面向 AI 编码助手和终端编码 agent 的生命周期 CLI，人和 agent 都能直接用。一个 `qtx` 命令就能安装、检查、更新、卸载和启动 Codex CLI、Claude Code、Gemini CLI、Cursor CLI、OpenCode 等 33 个 agent，并提供稳定的机器可读输出。`qtx` 和 `quantex` 是同一个命令，本文用较短的 `qtx`。
+Quantex 是面向 AI 编码助手和终端编码 agent 的生命周期 CLI，人和 agent 都能直接用。一个 `qtx` 命令就能安装、检查、更新、卸载和启动 Codex CLI、Claude Code、Cursor CLI、OpenCode、Pi 等 22 个 agent，并提供稳定的机器可读输出。`qtx` 和 `quantex` 是同一个命令，本文用较短的 `qtx`。
 
 ## 为什么用 Quantex
 
@@ -120,11 +120,8 @@ qtx upgrade
 |---|---|---|
 | Amp | `qtx amp` | Sourcegraph 的前沿 AI 编码 agent CLI |
 | Antigravity CLI | `qtx antigravity` | Google 的 Antigravity 终端编码 agent CLI |
-| Auggie CLI | `qtx auggie` | Augment 官方终端编码 agent |
-| Autohand Code CLI | `qtx autohand` | Autohand 的自主终端编码 agent CLI |
 | Claude Code | `qtx claude` | Anthropic 官方 AI 编码助手 CLI |
 | CodeBuddy Code | `qtx codebuddy` | 腾讯官方 AI 编码助手 CLI |
-| CodeWhale | `qtx codewhale` | 以 DeepSeek 为先的编码模型 agent 终端 |
 | Codex CLI | `qtx codex` | OpenAI 官方 AI 编码助手 CLI |
 | Command Code | `qtx commandcode` | Command Code 的 AI 编码助手 CLI |
 | Crush | `qtx crush` | Charmbracelet 的终端 AI 编码 agent CLI |
@@ -132,25 +129,17 @@ qtx upgrade
 | DeepSeek Harness | `qtx dsh` | DeepSeek 官方插件化 agent harness CLI |
 | Devin for Terminal | `qtx devin` | Cognition 的本地编码 agent CLI |
 | Droid | `qtx droid` | Factory AI 软件工程 agent CLI |
-| Gemini CLI | `qtx gemini` | Google 开源 AI 编码助手 CLI |
 | GitHub Copilot CLI | `qtx copilot` | GitHub Copilot 命令行工具 |
-| Goose | `qtx goose` | Block 开源、可扩展的 AI agent CLI |
 | Grok Build | `qtx grok` | xAI 的终端编码 agent CLI |
 | Hermes Agent | `qtx hermes` | Nous Research 的自我改进 AI agent CLI |
-| Junie CLI | `qtx junie` | JetBrains 的 AI 编码 agent CLI |
 | Kilo CLI | `qtx kilo` | Kilo 官方 AI 编码助手 CLI |
 | Kimi Code | `qtx kimi` | 月之暗面的编码助手 CLI |
-| Kiro CLI | `qtx kiro` | Amazon 的 AI 编码 agent CLI |
 | MiMoCode | `qtx mimo` | 小米的终端原生 AI 编码助手 CLI |
-| Mistral Vibe | `qtx vibe` | Mistral 开源 CLI 编码助手 |
 | oh-my-pi (OMP) | `qtx omp` | oh-my-pi 编码 agent CLI |
 | OpenClaw | `qtx openclaw` | OpenClaw 开源 AI agent 运行时 CLI |
 | OpenCode | `qtx opencode` | 开源 AI 编码 CLI |
-| OpenHands CLI | `qtx openhands` | OpenHands 开源软件开发 agent CLI |
 | Pi | `qtx pi` | 精简、可扩展的终端编码 agent |
 | Qoder CLI | `qtx qoder` | Qoder 官方 AI 编码助手 CLI |
-| Qwen Code | `qtx qwen` | 通义千问的 AI 编码助手 CLI |
-| Reasonix | `qtx reasonix` | DeepSeek 原生终端编码 agent |
 
 ## 给 agent 和自动化使用
 
@@ -209,7 +198,7 @@ agent 启动之后，`qtx exec` 和 `qtx <agent>` 以 agent 自己的退出码�
 }
 ```
 
-- `defaultPackageManager`（`bun`、`npm`、`mise`、`uv`）：agent 提供该安装器时把它排在最前。
+- `defaultPackageManager`（`bun` 或 `npm`）：agent 提供该安装器时把它排在最前。
 - `npmBunUpdateStrategy`：`latest-major`（安装 `@latest`）或 `respect-semver`（`npm update` / `bun update`）。
 - `selfUpdateRegistry`（默认不设置）：npm 和 Bun 安装执行 `qtx upgrade` 时使用的 registry；`QTX_SELF_UPDATE_REGISTRY` 可以单次覆盖，不影响其他项目。
 

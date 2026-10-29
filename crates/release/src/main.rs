@@ -23,8 +23,8 @@ use sha2::{Digest, Sha256};
 const REPOSITORY: &str = "https://github.com/Drswith/quantex-cli";
 const PACKAGE: &str = "quantex-cli";
 const LAUNCHER: &str = include_str!("../npm/quantex.js");
-const DESCRIPTION: &str = "Agent-friendly lifecycle CLI for AI coding assistant CLIs: install, inspect, update, uninstall, run, and automate Codex, Claude Code, Gemini, Cursor, OpenCode, and more";
-const KEYWORDS: [&str; 20] = [
+const DESCRIPTION: &str = "Agent-friendly lifecycle CLI for AI coding assistant CLIs: install, inspect, update, uninstall, run, and automate Codex, Claude Code, Cursor, OpenCode, Pi, and more";
+const KEYWORDS: [&str; 19] = [
     "agent-cli",
     "agent-lifecycle",
     "ai",
@@ -39,7 +39,6 @@ const KEYWORDS: [&str; 20] = [
     "coding-assistant",
     "cursor-cli",
     "developer-tools",
-    "gemini-cli",
     "machine-readable",
     "opencode",
     "qtx",

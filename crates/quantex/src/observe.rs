@@ -179,8 +179,6 @@ pub fn method_package(agent: &Agent, method: &InstallMethod) -> Option<String> {
 /// The shell command a method corresponds to, for display.
 pub fn method_command(agent: &Agent, method: &InstallMethod) -> String {
     let package = method_package(agent, method);
-    let args = &method.package_install_args;
-    let join = |parts: Vec<String>| parts.join(" ");
     match method.kind {
         Provider::Bun => package.map(|p| format!("bun add -g {p}")).unwrap_or_default(),
         Provider::Npm => package.map(|p| format!("npm i -g {p}")).unwrap_or_default(),
@@ -191,26 +189,6 @@ pub fn method_command(agent: &Agent, method: &InstallMethod) -> String {
             Some(name) => format!("brew install {name}"),
             None => String::new(),
         },
-        Provider::Cargo => package
-            .map(|p| join([vec!["cargo".into(), "install".into(), p], args.clone()].concat()))
-            .unwrap_or_default(),
-        Provider::Deno => package
-            .map(|p| {
-                join(
-                    [
-                        vec!["deno".into(), "install".into(), "--global".into()],
-                        args.clone(),
-                        vec![p],
-                    ]
-                    .concat(),
-                )
-            })
-            .unwrap_or_default(),
-        Provider::Mise => package.map(|p| format!("mise use --global {p}")).unwrap_or_default(),
-        Provider::Pip => package.map(|p| format!("pip install {p}")).unwrap_or_default(),
-        Provider::Uv => package
-            .map(|p| join([vec!["uv".into(), "tool".into(), "install".into(), p], args.clone()].concat()))
-            .unwrap_or_default(),
         Provider::Winget => method
             .package_name
             .as_ref()

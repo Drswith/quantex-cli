@@ -272,27 +272,21 @@ fn command_succeeds(program: &str, args: &[&str]) -> bool {
     process::run_captured(&path, args, Some(Duration::from_secs(15))).is_ok_and(|output| output.success())
 }
 
-/// Whether a package manager is usable: its `--version` exits 0. pip also accepts
-/// `pip3` and `python[3] -m pip`.
+/// Whether a package manager is usable: its `--version` exits 0.
 pub fn installer_available(provider: Provider) -> bool {
     match provider {
-        Provider::Pip => {
-            command_succeeds("pip", &["--version"])
-                || command_succeeds("pip3", &["--version"])
-                || command_succeeds("python", &["-m", "pip", "--version"])
-                || command_succeeds("python3", &["-m", "pip", "--version"])
-        }
         Provider::Script | Provider::Binary => true,
         other => command_succeeds(other.as_str(), &["--version"]),
     }
 }
 
-/// Availability of every managed installer, probed in parallel.
+/// Availability of the package managers the catalog uses on this platform, probed in
+/// parallel.
 pub fn installer_availability() -> Vec<(Provider, bool)> {
     std::thread::scope(|scope| {
-        let handles: Vec<_> = Provider::MANAGED
-            .iter()
-            .map(|&provider| scope.spawn(move || (provider, installer_available(provider))))
+        let handles: Vec<_> = crate::catalog::installers()
+            .into_iter()
+            .map(|provider| scope.spawn(move || (provider, installer_available(provider))))
             .collect();
         handles.into_iter().map(|handle| handle.join().unwrap()).collect()
     })

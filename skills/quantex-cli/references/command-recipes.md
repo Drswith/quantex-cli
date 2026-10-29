@@ -8,11 +8,8 @@ This skill snapshot knows about these Quantex agent names:
 
 - `amp`
 - `antigravity`
-- `auggie`
-- `autohand`
 - `claude`
 - `codebuddy`
-- `codewhale`
 - `codex`
 - `commandcode`
 - `copilot`
@@ -21,24 +18,16 @@ This skill snapshot knows about these Quantex agent names:
 - `devin`
 - `droid`
 - `dsh`
-- `gemini`
-- `goose`
 - `grok`
 - `hermes`
-- `junie`
 - `kilo`
 - `kimi`
-- `kiro`
 - `mimo`
 - `openclaw`
-- `openhands`
 - `opencode`
 - `omp`
 - `pi`
 - `qoder`
-- `qwen`
-- `reasonix`
-- `vibe`
 
 The running binary remains the source of truth. If you are unsure whether the current binary supports a specific agent, command, flag, or output shape, run:
 

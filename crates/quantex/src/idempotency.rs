@@ -937,10 +937,7 @@ fn stored_binding(provider: &Value, kind: &Value, id: &Value, binary: Option<Str
         catalog::Provider::Script => kind == "script",
         catalog::Provider::Brew => matches!(kind, "formula" | "cask"),
         catalog::Provider::Winget => kind == "id",
-        catalog::Provider::Deno | catalog::Provider::Mise | catalog::Provider::Uv => kind == "tool",
-        catalog::Provider::Bun | catalog::Provider::Cargo | catalog::Provider::Npm | catalog::Provider::Pip => {
-            kind == "package"
-        }
+        catalog::Provider::Bun | catalog::Provider::Npm => kind == "package",
     };
     if !valid {
         return None;

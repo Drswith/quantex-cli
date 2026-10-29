@@ -50,24 +50,6 @@ Quantex SHALL include Qoder CLI in the supported agent catalog with lifecycle-fo
 - **WHEN** Quantex plans an update for a Qoder CLI installation that supports self-update
 - **THEN** the catalog exposes `qodercli update` as the agent self-update command
 
-### Requirement: Qwen Code MUST be a supported lifecycle agent
-
-Quantex SHALL include Qwen Code in the supported agent catalog with lifecycle-focused metadata for installation, inspection, resolution, execution, and stable identification.
-
-#### Scenario: Looking up Qwen Code
-
-- **WHEN** a user or machine consumer looks up the canonical agent name `qwen`
-- **THEN** Quantex returns a supported agent entry for Qwen Code
-- **AND** the entry identifies `qwen` as the executable binary
-- **AND** the entry identifies `@qwen-code/qwen-code` as its npm package metadata
-
-#### Scenario: Installing Qwen Code through supported methods
-
-- **WHEN** Quantex renders or executes install options for Qwen Code
-- **THEN** the catalog includes npm-compatible and bun-compatible managed install methods on all platforms
-- **AND** macOS and Linux include the official Homebrew formula and curl installer options
-- **AND** Windows includes the official batch installer option
-
 ### Requirement: Kimi Code CLI MUST be a supported lifecycle agent
 
 Quantex SHALL include Kimi Code CLI in the supported agent catalog with lifecycle-focused metadata for installation, inspection, resolution, execution, update planning, and stable identification.
@@ -85,7 +67,6 @@ Quantex SHALL include Kimi Code CLI in the supported agent catalog with lifecycl
 - **THEN** macOS and Linux include the official current curl install script option (`curl -fsSL https://code.kimi.com/kimi-code/install.sh | bash`)
 - **AND** Windows includes the official current PowerShell install script option (`irm https://code.kimi.com/kimi-code/install.ps1 | iex`)
 - **AND** Windows, macOS, and Linux include the npm-compatible managed install method
-- **AND** the entry does not include uv managed install methods for fresh Kimi Code CLI installs
 
 #### Scenario: Probing Kimi Code CLI version
 
@@ -182,33 +163,6 @@ Quantex SHALL include Amp (by Sourcegraph) in the supported agent catalog with l
 - **WHEN** Quantex plans an update for an Amp installation that supports self-update
 - **THEN** the catalog exposes `amp update` as the agent self-update command
 
-### Requirement: Goose MUST be a supported lifecycle agent
-
-Quantex SHALL include Goose (by Block) in the supported agent catalog with lifecycle-focused metadata for installation, inspection, resolution, execution, update planning, and stable identification.
-
-#### Scenario: Looking up Goose
-
-- **WHEN** a user or machine consumer looks up the canonical agent name `goose`
-- **THEN** Quantex returns a supported agent entry for Goose
-- **AND** the entry identifies `goose` as the executable binary
-- **AND** the entry identifies `https://github.com/aaif-goose/goose` as the homepage
-
-#### Scenario: Installing Goose through supported methods
-
-- **WHEN** Quantex renders or executes install options for Goose
-- **THEN** macOS and Linux include the official curl install script option and the Homebrew formula install method (`block-goose-cli`)
-- **AND** Windows includes the official curl install script option (Git Bash / MSYS2) and the PowerShell install script option (downloaded from raw.githubusercontent.com)
-
-#### Scenario: Probing Goose version
-
-- **WHEN** Quantex probes the installed version of Goose
-- **THEN** it runs `goose --version` and parses the output
-
-#### Scenario: Planning Goose updates
-
-- **WHEN** Quantex plans an update for a Goose installation that supports self-update
-- **THEN** the catalog exposes `goose update` as the agent self-update command
-
 ### Requirement: Grok Build MUST be a supported lifecycle agent
 
 Quantex SHALL include Grok Build in the supported agent catalog with lifecycle-focused metadata for installation, inspection, resolution, execution, update planning, and stable identification.
@@ -238,35 +192,6 @@ Quantex SHALL include Grok Build in the supported agent catalog with lifecycle-f
 - **WHEN** Quantex plans an update for a Grok Build installation that supports self-update
 - **THEN** the catalog exposes `grok update` as the agent self-update command
 
-### Requirement: Junie CLI MUST be a supported lifecycle agent
-
-Quantex SHALL include Junie CLI (by JetBrains) in the supported agent catalog with lifecycle-focused metadata for installation, inspection, resolution, execution, update planning, and stable identification.
-
-#### Scenario: Looking up Junie CLI
-
-- **WHEN** a user or machine consumer looks up the canonical agent name `junie`
-- **THEN** Quantex returns a supported agent entry for Junie CLI
-- **AND** the entry identifies `junie` as the executable binary
-- **AND** the entry identifies `@jetbrains/junie` as its npm package metadata
-- **AND** the entry identifies `https://junie.jetbrains.com/docs/junie-cli.html` as the homepage
-
-#### Scenario: Installing Junie CLI through supported methods
-
-- **WHEN** Quantex renders or executes install options for Junie CLI
-- **THEN** the catalog includes npm-compatible and bun-compatible managed install methods on all platforms
-- **AND** macOS and Linux include the official curl install script option and the Homebrew tap formula install method (`jetbrains-junie/junie/junie`)
-- **AND** Windows includes the official PowerShell install script option (`iex (irm 'https://junie.jetbrains.com/install.ps1')`)
-
-#### Scenario: Probing Junie CLI version
-
-- **WHEN** Quantex probes the installed version of Junie CLI
-- **THEN** it runs `junie --version` and parses the output
-
-#### Scenario: Planning Junie CLI updates
-
-- **WHEN** Quantex plans an update for a Junie CLI installation
-- **THEN** the catalog does not expose a self-update command because upstream documentation describes automated update checks rather than a dedicated update subcommand
-
 ### Requirement: Kilo CLI MUST use the current supported display name
 
 Quantex SHALL expose the Kilo catalog entry with the display name `Kilo CLI` while keeping the canonical agent slug `kilo`.
@@ -276,64 +201,6 @@ Quantex SHALL expose the Kilo catalog entry with the display name `Kilo CLI` whi
 - **WHEN** a user or machine consumer inspects the supported `kilo` agent entry
 - **THEN** Quantex reports the display name `Kilo CLI`
 - **AND** the entry continues to identify `kilo` as the canonical agent name and executable binary
-
-### Requirement: Kiro CLI MUST be a supported lifecycle agent
-
-Quantex SHALL include Kiro CLI (by Amazon) in the supported agent catalog with lifecycle-focused metadata for installation, inspection, resolution, execution, and stable identification.
-
-#### Scenario: Looking up Kiro CLI
-
-- **WHEN** a user or machine consumer looks up the canonical agent name `kiro` or the alias `kiro-cli`
-- **THEN** Quantex returns a supported agent entry for Kiro CLI
-- **AND** the entry identifies `kiro-cli` as the executable binary
-
-#### Scenario: Installing Kiro CLI through supported methods
-
-- **WHEN** Quantex renders or executes install options for Kiro CLI
-- **THEN** macOS and Linux include the official curl install script option (`curl -fsSL https://cli.kiro.dev/install | bash`)
-- **AND** Windows includes the official PowerShell install script option (`irm 'https://cli.kiro.dev/install.ps1' | iex`)
-
-#### Scenario: Probing Kiro CLI version
-
-- **WHEN** Quantex probes the installed version of Kiro CLI
-- **THEN** it runs `kiro-cli --version` and parses the output
-
-#### Scenario: Planning Kiro CLI updates
-
-- **WHEN** Quantex plans an update for a Kiro CLI installation
-- **THEN** the catalog does not expose a self-update command because Kiro CLI auto-updates in the background
-
-### Requirement: CodeWhale MUST be a supported lifecycle agent
-
-Quantex SHALL include CodeWhale in the supported agent catalog with lifecycle-focused metadata for installation, inspection, resolution, execution, update planning, and stable identification.
-
-#### Scenario: Looking up CodeWhale
-
-- **WHEN** a user or machine consumer looks up the canonical agent name `codewhale`
-- **THEN** Quantex returns a supported agent entry for CodeWhale
-- **AND** the entry identifies `codewhale` as the executable binary
-- **AND** the entry identifies `codewhale` as its npm package metadata
-- **AND** the entry identifies `https://github.com/Hmbown/CodeWhale` as the homepage
-
-#### Scenario: Rejecting old DeepSeek TUI lookup names
-
-- **WHEN** a user or machine consumer looks up `deepseek` or `deepseek-tui`
-- **THEN** Quantex does not return a supported agent entry for those names
-
-#### Scenario: Installing CodeWhale through supported methods
-
-- **WHEN** Quantex renders or executes install options for CodeWhale
-- **THEN** the catalog includes the npm-compatible managed install method on Windows, macOS, and Linux
-
-#### Scenario: Probing CodeWhale version
-
-- **WHEN** Quantex probes the installed version of CodeWhale
-- **THEN** it runs `codewhale --version` and parses the output
-
-#### Scenario: Planning CodeWhale updates
-
-- **WHEN** Quantex plans an update for a CodeWhale installation that supports self-update
-- **THEN** the catalog exposes `codewhale update` as the agent self-update command
 
 ### Requirement: Antigravity CLI MUST be a supported lifecycle agent
 Quantex SHALL include Google Antigravity CLI in the supported agent catalog with lifecycle-focused metadata for installation, inspection, resolution, execution, update planning, and stable identification.
@@ -373,7 +240,7 @@ Quantex SHALL include Hermes Agent in the supported agent catalog with lifecycle
 - **WHEN** Quantex renders or executes install options for Hermes Agent
 - **THEN** macOS and Linux include the official native shell installer (`curl -fsSL https://hermes-agent.nousresearch.com/install.sh | bash`)
 - **AND** Windows includes the official native PowerShell installer (`iex (irm https://hermes-agent.nousresearch.com/install.ps1)`)
-- **AND** the entry does not include npm, Cargo, Homebrew, pip, uv, or winget managed install methods for fresh Hermes installs
+- **AND** the entry does not include managed install methods for fresh Hermes installs
 
 #### Scenario: Probing Hermes Agent version
 
@@ -474,50 +341,18 @@ Each install candidate SHALL declare the provider and executable probes availabl
 
 ### Requirement: Credential-free canary routes MUST declare installed-version evidence
 
-Catalog candidates selected for credential-free Goose, Junie, and Devin lifecycle canaries MUST declare the installed-version probe when their unauthenticated version command is available, so real canaries verify semantic version evidence rather than executable presence alone.
-
-#### Scenario: Goose official script route
-
-- **WHEN** the Linux Goose script candidate is selected with interactive configuration disabled
-- **THEN** its catalog probes require `goose --version` evidence after installation
-
-#### Scenario: Junie official script route
-
-- **WHEN** the Linux Junie official script candidate is selected for the canary
-- **THEN** its catalog probes require `junie --version` evidence after installation
+Catalog candidates selected for credential-free lifecycle canaries, such as Devin, MUST declare the installed-version probe when their unauthenticated version command is available, so real canaries verify semantic version evidence rather than executable presence alone.
 
 #### Scenario: Devin binary lifecycle route
 
 - **WHEN** the official Devin installer has acquired the executable and account setup is deferred
 - **THEN** its catalog probes require `devin version` evidence before Quantex reports the binary lifecycle as verified
 
-### Requirement: Junie catalog ownership MUST match the durable installation
-
-The Junie catalog MUST NOT advertise Bun or npm as managed installation sources while those packages delegate to an external native installation that remains after package removal. Linux and macOS MUST retain the official install script as an install-only source, and Windows MUST retain the official PowerShell installer.
-
-#### Scenario: Junie package wrapper is not treated as managed
-
-- **GIVEN** the Junie package postinstall writes its durable shim and native payload outside the package-manager root
-- **WHEN** Quantex resolves Junie installation candidates
-- **THEN** it does not select Bun or npm as a managed source
-- **AND** the official script source remains available for automated install, inspect, list, version, and untracking coverage
-
-### Requirement: Autohand MUST expose its official npm lifecycle without removing the script source
-
-The Autohand catalog MUST retain its official native script installer and MUST also expose the official `autohand-cli` npm package as a managed candidate on supported platforms. The npm candidate MUST declare executable, installed-version, package-presence, and target-version probes.
-
-#### Scenario: Full canary selects the managed Autohand source
-
-- **GIVEN** the mutable native release asset fails its own startup probe
-- **WHEN** the full canary configures npm as the production-selectable package-manager preference
-- **THEN** Quantex installs `autohand-cli` through npm
-- **AND** inspect, list, package version, uninstall, and physical absence are verified without a skip
-
 ### Requirement: Catalog membership is a maintainer commitment that MAY be withdrawn
 
 The supported agent catalog SHALL represent the set of agents Quantex commits to keeping installable, probeable, updatable, and canary-verified. Membership is not an archival record of every agent that has ever been supported. A maintainer MAY withdraw an entry when its adoption no longer justifies the standing support obligation, provided the withdrawal is recorded in an approved change that states the basis.
 
-A withdrawal SHALL NOT be described as an upstream defect, deprecation, or abandonment unless the change records evidence for that claim. Withdrawing an entry SHALL NOT remove the install provider it used, because provider support is scoped to the provider, not to any catalog consumer. When the withdrawn name is part of the v1 root export snapshot, the symbol is retained as frozen data under `compatibility-contract`, so a withdrawal is not by itself a breaking change.
+A withdrawal SHALL NOT be described as an upstream defect, deprecation, or abandonment unless the change records evidence for that claim. 2.0.0-beta.2 withdrew Auggie CLI, Autohand Code CLI, CodeWhale, Gemini CLI, Goose, Junie CLI, Kiro CLI, Mistral Vibe, OpenHands CLI, Qwen Code, and Reasonix to keep the catalog small.
 
 #### Scenario: Withdrawing an entry whose upstream is healthy
 
@@ -525,13 +360,6 @@ A withdrawal SHALL NOT be described as an upstream defect, deprecation, or aband
 - **WHEN** an approved change withdraws it for adoption reasons
 - **THEN** the change records the measured adoption basis and the measurement date
 - **AND** the change does not assert that the upstream project is abandoned, deprecated, or defective
-
-#### Scenario: Withdrawing the last consumer of an install provider
-
-- **GIVEN** a catalog entry is the only entry using a given install provider
-- **WHEN** that entry is withdrawn
-- **THEN** the provider implementation remains supported
-- **AND** its behavior remains covered by tests that do not depend on catalog membership
 
 #### Scenario: Looking up a withdrawn entry
 
@@ -546,101 +374,31 @@ A withdrawal SHALL NOT be described as an upstream defect, deprecation, or aband
 - **THEN** it preserves the record without rewriting or deleting it
 - **AND** it reports the agent as untracked rather than failing the invocation
 
-### Requirement: Catalog install methods MUST come from the eligible provider set
+### Requirement: Catalog install methods MUST come from the supported provider set
 
-Quantex SHALL restrict supported agent catalog entries to install methods drawn from the eligible provider set: `bun`, `npm`, `brew`, `winget`, `script`, and `binary`. These cover the Node ecosystem and native binary distribution, including operating-system package managers that ship native binaries.
+Quantex SHALL restrict catalog entries to install methods from the providers it implements: `bun`, `npm`, `brew`, `winget`, `script`, and `binary`. An entry MUST offer at least one install method on every platform it declares; a platform with none MUST be dropped from the entry.
 
-Catalog entries MUST NOT declare `cargo`, `deno`, `mise`, `pip`, or `uv` install methods, and MUST NOT carry `packages` metadata whose only purpose is to describe one of those methods. An entry MUST offer at least one eligible install method on every platform it declares; a platform that would be left with no eligible method MUST be dropped from the entry rather than retained as a platform Quantex cannot install on.
-
-Provider ineligibility is a catalog rule, not a provider removal. The `cargo`, `deno`, `mise`, `pip`, and `uv` provider implementations SHALL remain available so an installation already recorded in state continues to resolve its managed update and uninstall path through the provider that produced it.
-
-Ineligibility binds catalog entries only. A frozen definition retained for a withdrawn agent under `compatibility-contract` MAY still declare an ineligible method, because it records what the catalog last offered rather than a route Quantex will execute. Such a definition MUST NOT be edited to satisfy this requirement.
+Quantex no longer implements the `cargo`, `deno`, `mise`, `pip`, and `uv` providers. A `state.json` record with one of those install types, written by an earlier release, is kept unchanged but not managed: the agent is treated as untracked, so `update` and `uninstall` do not act on it, and the record is written back as it was.
 
 #### Scenario: Declaring an ineligible install method
 
-- **WHEN** a catalog entry declares a `cargo`, `deno`, `mise`, `pip`, or `uv` install method
-- **THEN** the entry is rejected as outside the eligible provider set
+- **WHEN** a catalog entry declares an install method outside the supported provider set
+- **THEN** the entry is rejected by the catalog schema
 - **AND** the rejection is independent of whether the upstream agent is genuinely distributed that way
 
 #### Scenario: A platform is left with no eligible method
 
-- **GIVEN** an entry whose only methods on one platform are ineligible
-- **WHEN** the ineligible methods are removed
+- **GIVEN** an entry whose only methods on one platform are unsupported
+- **WHEN** the unsupported methods are removed
 - **THEN** that platform is dropped from the entry
 - **AND** the entry does not advertise a platform for which Quantex offers no install route
 
-#### Scenario: Updating an agent installed through a now-ineligible provider
+#### Scenario: A record from a removed provider
 
-- **GIVEN** persisted state records an installation performed through `cargo`, `deno`, `mise`, `pip`, or `uv`
-- **WHEN** Quantex plans an update or uninstall for that agent
-- **THEN** it resolves the recorded install type rather than the entry's current catalog methods
-- **AND** the managed update and uninstall paths continue to work through the recorded provider
-
-#### Scenario: Installing an agent fresh after its provider became ineligible
-
-- **WHEN** a user installs an agent whose ineligible method was removed
-- **THEN** Quantex offers only the entry's remaining eligible methods
-- **AND** no ineligible method appears in rendered install options
-
-#### Scenario: A withdrawn agent's frozen definition declares an ineligible method
-
-- **GIVEN** a withdrawn agent's retained definition declares an ineligible install method
-- **WHEN** the catalog eligibility rule is applied
-- **THEN** the retained definition is out of scope, because it is not a catalog entry
-- **AND** the definition keeps the methods it carried at withdrawal
-
-### Requirement: OpenHands CLI MUST be a supported lifecycle agent
-
-Quantex SHALL include OpenHands CLI in the supported agent catalog with lifecycle-focused metadata for installation, inspection, resolution, execution, update planning, and stable identification.
-
-#### Scenario: Looking up OpenHands CLI
-
-- **WHEN** a user or machine consumer looks up the canonical agent name `openhands`
-- **THEN** Quantex returns a supported agent entry for OpenHands CLI
-- **AND** the entry identifies `openhands` as the executable binary
-- **AND** the entry identifies `https://docs.openhands.dev/openhands/usage/cli/installation` as the homepage
-
-#### Scenario: Installing OpenHands CLI through supported methods
-
-- **WHEN** Quantex renders or executes install options for OpenHands CLI
-- **THEN** macOS and Linux include the official install script (`curl -fsSL https://install.openhands.dev/install.sh | sh`)
-- **AND** the script candidate declares the installed-version probe, so the credential-free canary verifies `openhands --version` evidence rather than executable presence alone
-- **AND** the entry does not advertise a native Windows install method, because upstream CLI docs route Windows users through WSL
-
-#### Scenario: Probing OpenHands CLI version
-
-- **WHEN** Quantex probes the installed version of OpenHands CLI
-- **THEN** it runs `openhands --version` and parses the output
-
-#### Scenario: Planning an OpenHands CLI update
-
-- **GIVEN** the entry declares no self-update command, because its official installer downloads a standalone release binary rather than registering a `uv` tool
-- **WHEN** Quantex plans an update for an OpenHands CLI installation that it did not record as managed
-- **THEN** it reports manual update guidance
-- **AND** it does not run a package-manager upgrade command that would target a different installation than the one on disk
-
-### Requirement: Mistral Vibe MUST be a supported lifecycle agent
-
-Quantex SHALL include Mistral Vibe in the supported agent catalog with lifecycle-focused metadata for installation, inspection, resolution, execution, update planning, and stable identification.
-
-#### Scenario: Looking up Mistral Vibe
-
-- **WHEN** a user or machine consumer looks up the canonical agent name `vibe` or the alias `mistral-vibe`
-- **THEN** Quantex returns a supported agent entry for Mistral Vibe
-- **AND** the entry identifies `vibe` as the executable binary
-- **AND** the entry identifies `https://docs.mistral.ai/mistral-vibe/terminal/install` as the homepage
-
-#### Scenario: Installing Mistral Vibe through supported methods
-
-- **WHEN** Quantex renders or executes install options for Mistral Vibe
-- **THEN** macOS and Linux include the official shell installer (`curl -fsSL https://mistral.ai/vibe/install.sh | bash`)
-- **AND** the script candidate declares the installed-version probe, so the credential-free canary verifies `vibe --version` evidence rather than executable presence alone
-- **AND** the entry declares no Windows platform, because upstream publishes only Python-toolchain installers for Windows and those providers are outside the eligible set
-
-#### Scenario: Probing Mistral Vibe version
-
-- **WHEN** Quantex probes the installed version of Mistral Vibe
-- **THEN** it runs `vibe --version` and parses the output
+- **GIVEN** `state.json` records an agent with install type `uv`
+- **WHEN** Quantex reads and later rewrites the state
+- **THEN** the agent is reported as untracked rather than failing the invocation
+- **AND** the record is written back unchanged
 
 ### Requirement: DeepSeek Harness MUST be a supported lifecycle agent
 

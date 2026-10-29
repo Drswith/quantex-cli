@@ -50,7 +50,10 @@ fn list_covers_the_catalog_and_reports_installs() {
         .iter()
         .map(|agent| agent["name"].as_str().unwrap().to_owned())
         .collect();
-    assert_eq!(names, catalog_names());
+    // 2.0.0-beta.2 trimmed the catalog that v1.13.6 still lists in full.
+    if !is_reference() {
+        assert_eq!(names, catalog_names());
+    }
 
     assert_eq!(
         find(agents, "codex"),
@@ -71,10 +74,10 @@ fn list_covers_the_catalog_and_reports_installs() {
     assert_eq!(claude["lifecycle"], "unmanaged");
     assert_eq!(claude["sourceLabel"], "detected on disk");
     assert_eq!(claude["updateLabel"], "command update");
-    let gemini = find(agents, "gemini");
-    assert_eq!(gemini["installed"], false);
-    assert!(gemini.get("installedVersion").is_none());
-    assert_eq!(gemini["updateLabel"], "manual update");
+    let dsh = find(agents, "dsh");
+    assert_eq!(dsh["installed"], false);
+    assert!(dsh.get("installedVersion").is_none());
+    assert_eq!(dsh["updateLabel"], "manual update");
 }
 
 #[test]
@@ -172,13 +175,13 @@ fn resolve_returns_the_launch_command() {
 
 #[test]
 fn resolve_explains_how_to_install_a_missing_agent() {
-    let (code, envelope) = json_run(&Sandbox::new(), &["resolve", "gemini"]);
+    let (code, envelope) = json_run(&Sandbox::new(), &["resolve", "kilo"]);
     assert_eq!(code, 4, "{envelope}");
     assert_eq!(envelope["ok"], false);
     assert_eq!(envelope["error"]["code"], "AGENT_NOT_INSTALLED");
-    assert_eq!(envelope["error"]["message"], "Gemini CLI is not installed.");
+    assert_eq!(envelope["error"]["message"], "Kilo CLI is not installed.");
     let guidance = &envelope["data"]["resolution"]["installGuidance"];
-    assert_eq!(guidance["suggestedEnsureCommand"], "quantex ensure gemini");
+    assert_eq!(guidance["suggestedEnsureCommand"], "quantex ensure kilo");
     assert_eq!(guidance["docsRef"], "skills/quantex-cli/references/command-recipes.md");
     assert_eq!(envelope["error"]["details"], *guidance);
     assert_eq!(envelope["data"]["resolution"]["installSource"], "not-installed");

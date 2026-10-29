@@ -263,16 +263,16 @@ fn an_untracked_agent_needs_manual_action() {
         return;
     }
     let sandbox = sandbox();
-    sandbox.fake_tool("gemini", "echo 1.0.0", "echo 1.0.0");
-    let (code, envelope) = run_json(&sandbox, &["update", "gemini"]);
+    sandbox.fake_tool("kilo", "echo 1.0.0", "echo 1.0.0");
+    let (code, envelope) = run_json(&sandbox, &["update", "kilo"]);
     assert_eq!(code, 0, "{envelope}");
     assert_eq!(
         envelope["data"]["results"],
         json!([{
-            "displayName": "Gemini CLI",
+            "displayName": "Kilo CLI",
             "installedVersion": "1.0.0",
-            "message": "Gemini CLI is detected on disk but not tracked as a Quantex-managed install. Use `quantex inspect gemini --json` to confirm the source, then reinstall through Quantex if you want `quantex update --all` to manage it.",
-            "name": "gemini",
+            "message": "Kilo CLI is detected on disk but not tracked as a Quantex-managed install. Use `quantex inspect kilo --json` to confirm the source, then reinstall through Quantex if you want `quantex update --all` to manage it.",
+            "name": "kilo",
             "status": "manual-required",
         }])
     );

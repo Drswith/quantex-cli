@@ -76,7 +76,8 @@ exec env HOME="$home" ZDOTDIR="$home" NPM_CONFIG_PREFIX="$home/.npm-global" BUN_
 EOF
 chmod +x "$dir/shell"
 
-# `compare` runs read-only commands with v1 and this build in the caller's real HOME.
+# `compare` runs read-only per-agent commands with v1 and this build in the caller's real
+# HOME. Catalog-wide output (list, doctor, capabilities) differs on purpose since 2.0.0-beta.2.
 if [ -n "$v1" ]; then
   cat >"$dir/compare" <<EOF
 #!/bin/sh
@@ -98,9 +99,6 @@ compare() {
     status=1
   fi
 }
-compare list
-compare doctor
-compare capabilities
 compare update --all --dry-run
 for agent in \$("\$rust" list --json | jq -r '.data.agents[] | select(.installed) | .name'); do
   compare inspect "\$agent"

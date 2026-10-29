@@ -4,7 +4,7 @@
 
 - `quantex` / `qtx` 是给人和 agent 共用的 agent 生命周期 CLI：安装、检查、确保可用、更新、卸载、启动各类 coding agent CLI。
 - 不做 workflow 编排平台。batch / stdin pipe / daemon / MCP server 等不是主线目标。
-- 这条线是 Rust 从零实现，目标是替代 TypeScript 版 v1.13.x。背景和决定见 `docs/design/rust-rewrite.md`。
+- 这条线是 Rust 从零实现，替代 TypeScript 版 v1.13.x。`2.0.0-beta.1` 与 v1.13.6 对齐；从 `2.0.0-beta.2` 起目标是精简轻量，不再逐项对齐 v1。背景和决定见 `docs/design/rust-rewrite.md`。
 
 ## 契约优先
 

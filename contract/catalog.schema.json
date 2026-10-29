@@ -34,27 +34,7 @@
       "packages": {
         "type": "object",
         "properties": {
-          "cargo": {
-            "type": "string",
-            "minLength": 1
-          },
-          "deno": {
-            "type": "string",
-            "minLength": 1
-          },
-          "mise": {
-            "type": "string",
-            "minLength": 1
-          },
           "npm": {
-            "type": "string",
-            "minLength": 1
-          },
-          "pip": {
-            "type": "string",
-            "minLength": 1
-          },
-          "uv": {
             "type": "string",
             "minLength": 1
           }
@@ -94,7 +74,7 @@
                     },
                     "type": {
                       "type": "string",
-                      "enum": ["bun", "npm", "brew", "cargo", "deno", "mise", "pip", "uv", "winget"]
+                      "enum": ["bun", "npm", "brew", "winget"]
                     }
                   },
                   "required": ["type"],
@@ -203,7 +183,7 @@
                     },
                     "type": {
                       "type": "string",
-                      "enum": ["bun", "npm", "brew", "cargo", "deno", "mise", "pip", "uv", "winget"]
+                      "enum": ["bun", "npm", "brew", "winget"]
                     }
                   },
                   "required": ["type"],
@@ -312,7 +292,7 @@
                     },
                     "type": {
                       "type": "string",
-                      "enum": ["bun", "npm", "brew", "cargo", "deno", "mise", "pip", "uv", "winget"]
+                      "enum": ["bun", "npm", "brew", "winget"]
                     }
                   },
                   "required": ["type"],

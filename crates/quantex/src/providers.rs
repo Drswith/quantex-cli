@@ -41,10 +41,9 @@ fn target_kind(provider: Provider, package_target_kind: Option<&str>) -> &'stati
                 "formula"
             }
         }
-        Provider::Deno | Provider::Mise | Provider::Uv => "tool",
         Provider::Script => "script",
         Provider::Winget => "id",
-        Provider::Bun | Provider::Cargo | Provider::Npm | Provider::Pip => "package",
+        Provider::Bun | Provider::Npm => "package",
     }
 }
 
@@ -63,9 +62,7 @@ impl Binding {
                 Provider::Brew | Provider::Winget => None,
                 other => agent.package_for(other).map(str::to_owned),
             })?;
-        let binary_name = if state.binary_name.is_some()
-            || matches!(provider, Provider::Binary | Provider::Script | Provider::Deno)
-        {
+        let binary_name = if state.binary_name.is_some() || matches!(provider, Provider::Binary | Provider::Script) {
             Some(state.binary_name.clone().unwrap_or_else(|| agent.binary_name.clone()))
         } else {
             None
@@ -98,7 +95,6 @@ impl Binding {
             Some("cask") => "cask",
             Some("formula") => "formula",
             Some("package") => "package",
-            Some("tool") => "tool",
             Some("id") => "id",
             Some("script") => "script",
             Some("binary") => "binary",
@@ -128,10 +124,7 @@ impl Binding {
 
 /// v1 `buildInstalledAgentState`: the `installedAgents` record for a method.
 pub fn installed_state_for_method(agent: &Agent, method: &InstallMethod, _recorded: bool) -> InstalledAgent {
-    let binary_name = method
-        .binary_name
-        .clone()
-        .or_else(|| (method.kind == Provider::Deno).then(|| agent.binary_name.clone()));
+    let binary_name = method.binary_name.clone();
     InstalledAgent {
         agent_name: agent.name.clone(),
         install_type: method.kind,
@@ -334,187 +327,6 @@ pub fn observe(ctx: &Context, binding: &Binding) -> Observed {
                 unknown(provider, target)
             }
         }
-        Provider::Cargo => {
-            let run = match done(run(ctx, &["cargo", "install", "--list"])) {
-                Ok(run) => run,
-                Err(observed) => return observed,
-            };
-            if run.code != Some(0) {
-                return unknown(provider, target);
-            }
-            let prefix = format!("{} v", target.id);
-            for line in run.stdout.lines() {
-                if let Some(rest) = line.strip_prefix(&prefix)
-                    && let Some(version) = rest.trim_end().strip_suffix(':')
-                    && !version.is_empty()
-                    && !version.contains(char::is_whitespace)
-                {
-                    return present(Some(version.to_owned()));
-                }
-            }
-            Observed::Absent
-        }
-        Provider::Deno => {
-            let binary = target
-                .binary_name
-                .clone()
-                .filter(|name| !name.trim().is_empty())
-                .or_else(|| {
-                    target
-                        .id
-                        .trim()
-                        .rsplit('/')
-                        .next()
-                        .map(|stem| stem.split('@').next().unwrap_or(stem).to_owned())
-                        .filter(|stem| !stem.is_empty())
-                });
-            let Some(binary) = binary else {
-                return unknown(provider, target);
-            };
-            let root = std::env::var("DENO_INSTALL_ROOT")
-                .ok()
-                .filter(|value| !value.trim().is_empty())
-                .map_or_else(|| crate::context::home_dir().join(".deno"), PathBuf::from);
-            if root.join("bin").join(binary).exists() {
-                present(None)
-            } else {
-                Observed::Absent
-            }
-        }
-        Provider::Mise => {
-            let run = match done(run(ctx, &["mise", "ls", "--installed", "--json", &target.id])) {
-                Ok(run) => run,
-                Err(observed) => return observed,
-            };
-            if run.stdout.trim().is_empty() {
-                return unknown(provider, target);
-            }
-            let Ok(Value::Object(data)) = serde_json::from_str::<Value>(&run.stdout) else {
-                return unknown(provider, target);
-            };
-            let short = target.id.rsplit(':').next().and_then(|rest| rest.rsplit('/').next());
-            let entries = data
-                .get(&target.id)
-                .filter(|value| value.is_array())
-                .or_else(|| short.and_then(|short| data.get(short)).filter(|value| value.is_array()));
-            match entries.and_then(Value::as_array) {
-                Some(entries) if !entries.is_empty() => present(
-                    entries
-                        .iter()
-                        .find_map(|entry| entry["version"].as_str())
-                        .map(str::to_owned),
-                ),
-                _ => Observed::Absent,
-            }
-        }
-        Provider::Pip => {
-            let mut saw_runnable = false;
-            for candidate in [
-                &["pip"][..],
-                &["pip3"],
-                &["python", "-m", "pip"],
-                &["python3", "-m", "pip"],
-            ] {
-                let mut version_argv = candidate.to_vec();
-                version_argv.push("--version");
-                match run(ctx, &version_argv) {
-                    RunResult::Missing => continue,
-                    RunResult::Done(run) if run.code == Some(0) => {}
-                    RunResult::TimedOut => return Observed::TimedOut,
-                    RunResult::Done(_) | RunResult::Failed => {
-                        saw_runnable = true;
-                        continue;
-                    }
-                }
-                let mut show = candidate.to_vec();
-                show.extend(["show", target.id.as_str()]);
-                let run = match done(run(ctx, &show)) {
-                    Ok(run) => run,
-                    Err(observed) => return observed,
-                };
-                if run.code == Some(0) {
-                    let version = run.stdout.lines().find_map(|line| {
-                        let line = line.trim();
-                        line.get(..8)
-                            .filter(|head| head.eq_ignore_ascii_case("version:"))
-                            .map(|_| line[8..].trim().to_owned())
-                            .filter(|version| !version.is_empty())
-                    });
-                    return present(version);
-                }
-                let missing = run.stderr.to_lowercase();
-                return if missing.contains("not found") {
-                    Observed::Absent
-                } else {
-                    unknown(provider, target)
-                };
-            }
-            if saw_runnable {
-                unknown(provider, target)
-            } else {
-                unavailable(provider)
-            }
-        }
-        Provider::Uv => {
-            let run = match done(run(ctx, &["uv", "tool", "list"])) {
-                Ok(run) => run,
-                Err(observed) => return observed,
-            };
-            if run.code == Some(0) {
-                let messages: Vec<&str> = run
-                    .stdout
-                    .lines()
-                    .chain(run.stderr.lines())
-                    .map(str::trim)
-                    .filter(|line| !line.is_empty())
-                    .collect();
-                if messages.len() == 1 {
-                    let message = messages[0].trim_end_matches('.').to_lowercase();
-                    if message == "no tools installed" {
-                        return Observed::Absent;
-                    }
-                }
-            }
-            if run.stdout.trim().is_empty() {
-                return unknown(provider, target);
-            }
-            let normalize = |name: &str| {
-                let mut out = String::new();
-                let mut last_sep = false;
-                for c in name.to_lowercase().chars() {
-                    if matches!(c, '-' | '_' | '.') {
-                        if !last_sep {
-                            out.push('-');
-                        }
-                        last_sep = true;
-                    } else {
-                        out.push(c);
-                        last_sep = false;
-                    }
-                }
-                out
-            };
-            let expected = normalize(&target.id);
-            let mut has_entries = false;
-            for line in run.stdout.lines() {
-                let mut parts = line.split_whitespace();
-                let (Some(name), Some(version)) = (parts.next(), parts.next()) else {
-                    continue;
-                };
-                let Some(version) = version.strip_prefix('v').filter(|version| !version.is_empty()) else {
-                    continue;
-                };
-                has_entries = true;
-                if normalize(name) == expected {
-                    return present(Some(version.to_owned()));
-                }
-            }
-            if has_entries {
-                Observed::Absent
-            } else {
-                unknown(provider, target)
-            }
-        }
         Provider::Winget => {
             let run = match done(run(ctx, &["winget", "list", "--id", &target.id, "-e"])) {
                 Ok(run) => run,
@@ -607,26 +419,6 @@ pub fn available(provider: Provider) -> bool {
     crate::probe::installer_available(provider)
 }
 
-/// The pip invocation that works on this machine.
-fn pip_command() -> Vec<String> {
-    for candidate in [
-        &["pip"][..],
-        &["pip3"],
-        &["python", "-m", "pip"],
-        &["python3", "-m", "pip"],
-    ] {
-        let Some(path) = process::which(candidate[0]) else {
-            continue;
-        };
-        let mut args: Vec<&str> = candidate[1..].to_vec();
-        args.push("--version");
-        if process::run_captured(&path, &args, Some(Duration::from_secs(15))).is_ok_and(|out| out.success()) {
-            return candidate.iter().map(|part| (*part).to_owned()).collect();
-        }
-    }
-    vec!["pip".into()]
-}
-
 fn owned(parts: &[&str]) -> Vec<String> {
     parts.iter().map(|part| (*part).to_owned()).collect()
 }
@@ -643,28 +435,6 @@ pub fn install_command(binding: &Binding, agent: &Agent) -> Vec<String> {
                 argv.push("--cask".into());
             }
             argv.push(target.id.clone());
-            argv
-        }
-        Provider::Cargo => {
-            let mut argv = owned(&["cargo", "install", &target.id]);
-            argv.extend(target.arguments.iter().cloned());
-            argv
-        }
-        Provider::Deno => {
-            let mut argv = owned(&["deno", "install", "--global"]);
-            argv.extend(target.arguments.iter().cloned());
-            argv.push(target.id.clone());
-            argv
-        }
-        Provider::Mise => owned(&["mise", "use", "--global", &target.id]),
-        Provider::Pip => {
-            let mut argv = pip_command();
-            argv.extend(owned(&["install", &target.id]));
-            argv
-        }
-        Provider::Uv => {
-            let mut argv = owned(&["uv", "tool", "install", &target.id]);
-            argv.extend(target.arguments.iter().cloned());
             argv
         }
         Provider::Winget => owned(&["winget", "install", "--id", &target.id, "-e"]),
@@ -725,28 +495,6 @@ pub fn update_command(binding: &Binding, latest_major: bool, dist_tag: &str) -> 
             argv.push(target.id.clone());
             argv
         }
-        Provider::Cargo => {
-            let mut argv = owned(&["cargo", "install", &target.id, "--force"]);
-            argv.extend(target.arguments.iter().cloned());
-            argv
-        }
-        Provider::Deno => {
-            let mut argv = owned(&["deno", "install", "--global", "--force"]);
-            argv.extend(target.arguments.iter().cloned());
-            argv.push(target.id.clone());
-            argv
-        }
-        Provider::Mise => owned(&["mise", "use", "--global", "--force", &target.id]),
-        Provider::Pip => {
-            let mut argv = pip_command();
-            argv.extend(owned(&["install", "--upgrade", &target.id]));
-            argv
-        }
-        Provider::Uv => {
-            let mut argv = owned(&["uv", "tool", "upgrade", &target.id]);
-            argv.extend(target.arguments.iter().cloned());
-            argv
-        }
         Provider::Winget => owned(&["winget", "upgrade", "--id", &target.id, "-e"]),
         Provider::Script | Provider::Binary => return None,
     })
@@ -766,21 +514,6 @@ pub fn uninstall_command(binding: &Binding) -> Option<Vec<String>> {
             argv.push(target.id.clone());
             argv
         }
-        Provider::Cargo => owned(&["cargo", "uninstall", &target.id]),
-        Provider::Deno => {
-            let binary = target.binary_name.clone().unwrap_or_else(|| {
-                let stem = target.id.rsplit('/').next().unwrap_or(&target.id);
-                stem.split('@').next().unwrap_or(stem).to_owned()
-            });
-            owned(&["deno", "uninstall", "--global", &binary])
-        }
-        Provider::Mise => owned(&["mise", "unuse", "--global", &target.id]),
-        Provider::Pip => {
-            let mut argv = pip_command();
-            argv.extend(owned(&["uninstall", "-y", &target.id]));
-            argv
-        }
-        Provider::Uv => owned(&["uv", "tool", "uninstall", &target.id]),
         Provider::Winget => owned(&["winget", "uninstall", "--id", &target.id, "-e"]),
         Provider::Script | Provider::Binary => return None,
     })
@@ -902,8 +635,6 @@ pub fn adoptable_method(methods: &[InstallMethod], binary_path: Option<&std::pat
         let normalized = path.to_string_lossy().replace('\\', "/");
         let inferred = if normalized.contains("/.bun/bin/") || normalized.contains("/.bun/install/global/") {
             Some(Provider::Bun)
-        } else if normalized.contains("/.local/share/mise/shims/") || normalized.contains("/.mise/shims/") {
-            Some(Provider::Mise)
         } else if !normalized.contains("/node_modules/.bin/")
             && [
                 "/lib/node_modules/",

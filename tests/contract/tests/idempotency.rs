@@ -97,7 +97,7 @@ fn a_replay_is_skipped_once_the_agent_is_gone() {
 fn a_key_reused_for_another_request_is_refused() {
     let sandbox = sandbox();
     run_json(&sandbox, &with_key(&["install", "codex"], "job-1"));
-    let (code, envelope) = run_json(&sandbox, &with_key(&["install", "gemini"], "job-1"));
+    let (code, envelope) = run_json(&sandbox, &with_key(&["install", "kilo"], "job-1"));
     assert_eq!(code, 2, "{envelope}");
     assert_eq!(
         envelope["error"],
@@ -114,9 +114,9 @@ fn a_key_reused_for_another_request_is_refused() {
 fn distinct_keys_never_share_a_record() {
     let sandbox = sandbox();
     run_json(&sandbox, &with_key(&["install", "codex"], "job-1/install/codex"));
-    let (code, envelope) = run_json(&sandbox, &with_key(&["install", "gemini"], "job-1_install_codex"));
+    let (code, envelope) = run_json(&sandbox, &with_key(&["install", "kilo"], "job-1_install_codex"));
     assert_eq!(code, 0, "{envelope}");
-    assert_eq!(envelope["data"]["agent"]["name"], "gemini");
+    assert_eq!(envelope["data"]["agent"]["name"], "kilo");
     assert_eq!(records(&sandbox).len(), 2);
 }
 
@@ -209,9 +209,9 @@ fn batch_install_records_and_replays() {
         return;
     }
     let sandbox = sandbox();
-    let (code, first) = run_json(&sandbox, &with_key(&["install", "codex", "gemini"], "job-1"));
+    let (code, first) = run_json(&sandbox, &with_key(&["install", "codex", "kilo"], "job-1"));
     assert_eq!(code, 0, "{first}");
-    let (code, second) = run_json(&sandbox, &with_key(&["install", "gemini", "codex"], "job-1"));
+    let (code, second) = run_json(&sandbox, &with_key(&["install", "kilo", "codex"], "job-1"));
     assert_eq!(code, 0, "{second}");
     assert_eq!(stable(&second), stable(&first));
     assert_eq!(installs(&sandbox), 2);

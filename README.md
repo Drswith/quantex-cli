@@ -15,7 +15,7 @@ Install, inspect, update, uninstall, and run AI coding assistant CLIs from one a
 
 </div>
 
-Quantex is a lifecycle CLI for AI coding assistants and terminal coding agents, built for people and for agents. One `qtx` command installs, inspects, updates, uninstalls, and runs Codex CLI, Claude Code, Gemini CLI, Cursor CLI, OpenCode, and 28 more, with stable machine-readable output. `qtx` and `quantex` are the same command; this README uses the shorter one.
+Quantex is a lifecycle CLI for AI coding assistants and terminal coding agents, built for people and for agents. One `qtx` command installs, inspects, updates, uninstalls, and runs Codex CLI, Claude Code, Cursor CLI, OpenCode, Pi, and 17 more, with stable machine-readable output. `qtx` and `quantex` are the same command; this README uses the shorter one.
 
 ## Why Quantex
 
@@ -120,11 +120,8 @@ qtx upgrade
 |---|---|---|
 | Amp | `qtx amp` | Sourcegraph's frontier AI coding agent CLI |
 | Antigravity CLI | `qtx antigravity` | Google's Antigravity terminal coding agent CLI |
-| Auggie CLI | `qtx auggie` | Augment's official terminal coding agent |
-| Autohand Code CLI | `qtx autohand` | Autohand's autonomous terminal coding agent CLI |
 | Claude Code | `qtx claude` | Anthropic's official AI coding assistant CLI |
 | CodeBuddy Code | `qtx codebuddy` | Tencent's official AI coding assistant CLI |
-| CodeWhale | `qtx codewhale` | DeepSeek-first agentic terminal for coding models |
 | Codex CLI | `qtx codex` | OpenAI's official AI coding assistant CLI |
 | Command Code | `qtx commandcode` | Command Code's AI coding assistant CLI |
 | Crush | `qtx crush` | Charmbracelet's terminal AI coding agent CLI |
@@ -132,25 +129,17 @@ qtx upgrade
 | DeepSeek Harness | `qtx dsh` | DeepSeek's official plugin-architecture agent harness CLI |
 | Devin for Terminal | `qtx devin` | Cognition's local coding agent CLI |
 | Droid | `qtx droid` | Factory AI software engineering agent CLI |
-| Gemini CLI | `qtx gemini` | Google's open-source AI coding assistant CLI |
 | GitHub Copilot CLI | `qtx copilot` | GitHub Copilot command-line tool |
-| Goose | `qtx goose` | Block's open-source extensible AI agent CLI |
 | Grok Build | `qtx grok` | xAI's terminal coding agent CLI |
 | Hermes Agent | `qtx hermes` | Nous Research's self-improving AI agent CLI |
-| Junie CLI | `qtx junie` | JetBrains' AI coding agent CLI |
 | Kilo CLI | `qtx kilo` | Kilo's official AI coding assistant CLI |
 | Kimi Code | `qtx kimi` | Moonshot AI's coding assistant CLI |
-| Kiro CLI | `qtx kiro` | Amazon's AI coding agent CLI |
 | MiMoCode | `qtx mimo` | Xiaomi's terminal-native AI coding assistant CLI |
-| Mistral Vibe | `qtx vibe` | Mistral's open-source CLI coding assistant |
 | oh-my-pi (OMP) | `qtx omp` | oh-my-pi coding agent CLI |
 | OpenClaw | `qtx openclaw` | OpenClaw's open-source AI agent runtime CLI |
 | OpenCode | `qtx opencode` | Open-source AI coding CLI |
-| OpenHands CLI | `qtx openhands` | OpenHands' open-source software development agent CLI |
 | Pi | `qtx pi` | Minimal and extensible terminal coding agent |
 | Qoder CLI | `qtx qoder` | Qoder's official AI coding assistant CLI |
-| Qwen Code | `qtx qwen` | Qwen's AI coding assistant CLI |
-| Reasonix | `qtx reasonix` | DeepSeek-native terminal coding agent |
 
 ## For agents and automation
 
@@ -209,7 +198,7 @@ Configuration lives in `~/.quantex/config.json` and is managed with `qtx config`
 }
 ```
 
-- `defaultPackageManager` (`bun`, `npm`, `mise`, `uv`) moves that installer first when an agent offers it.
+- `defaultPackageManager` (`bun` or `npm`) moves that installer first when an agent offers it.
 - `npmBunUpdateStrategy` is `latest-major` (install `@latest`) or `respect-semver` (`npm update` / `bun update`).
 - `selfUpdateRegistry` (unset by default) is the registry `qtx upgrade` uses for npm and Bun installs; `QTX_SELF_UPDATE_REGISTRY` overrides it for one run. It does not affect other projects.
 
