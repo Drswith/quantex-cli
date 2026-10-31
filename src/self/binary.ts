@@ -220,8 +220,8 @@ function scheduleWindowsBinaryReplacement(
         'Bypass',
         '-WindowStyle',
         'Hidden',
-        '-Command',
-        command,
+        '-EncodedCommand',
+        encodePowerShellEncodedCommand(command),
       ],
       {
         stdio: ['ignore', 'ignore', 'ignore'] as const,
@@ -238,7 +238,11 @@ function scheduleWindowsBinaryReplacement(
   }
 }
 
-function createWindowsReplacementCommand(
+export function encodePowerShellEncodedCommand(script: string): string {
+  return Buffer.from(script, 'utf16le').toString('base64')
+}
+
+export function createWindowsReplacementCommand(
   tempPath: string,
   executablePath: string,
   backupPath: string,
@@ -254,6 +258,8 @@ function createWindowsReplacementCommand(
   const escapedExpectedVersion = escapePowerShellString(expectedVersion ?? '')
   const escapedPeerExecutablePath = escapePowerShellString(peerExecutablePath ?? '')
 
+  // One statement per line. Joining with "; " puts a terminator between each
+  // `try {}` and its `catch {}`, so Windows PowerShell rejects the script.
   return [
     `$ErrorActionPreference = 'Stop'`,
     `$pidToWait = ${pid}`,
@@ -304,7 +310,7 @@ function createWindowsReplacementCommand(
     `}`,
     `Remove-Item -LiteralPath $backupPath -Force -ErrorAction SilentlyContinue`,
     `Remove-Item -LiteralPath $tempDir -Force -Recurse -ErrorAction SilentlyContinue`,
-  ].join('; ')
+  ].join('\n')
 }
 
 function escapePowerShellString(value: string): string {
