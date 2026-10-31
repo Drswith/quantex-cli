@@ -8,7 +8,12 @@ import { join } from 'node:path'
 import process from 'node:process'
 import { gzipSync } from 'node:zlib'
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { getWindowsStandaloneBinaryPeerPath, upgradeStandaloneBinary } from '../src/self/binary'
+import {
+  createWindowsReplacementCommand,
+  encodePowerShellEncodedCommand,
+  getWindowsStandaloneBinaryPeerPath,
+  upgradeStandaloneBinary,
+} from '../src/self/binary'
 
 const spawnMock = vi.hoisted(() => vi.fn())
 const originalFetch = globalThis.fetch
@@ -35,6 +40,35 @@ function expectExecutableBits(mode: number): void {
   expect(mode & 0o111).toBeGreaterThan(0)
 }
 
+function decodeScheduledWindowsHelper(command: string[]): string {
+  const encodedIndex = command.indexOf('-EncodedCommand')
+  expect(encodedIndex).toBeGreaterThan(-1)
+  const encoded = command[encodedIndex + 1]
+  expect(encoded).toBeTruthy()
+  return Buffer.from(encoded!, 'base64').toString('utf16le')
+}
+
+describe('createWindowsReplacementCommand', () => {
+  it('keeps try/catch adjacent and encodes the helper as UTF-16LE', () => {
+    const script = createWindowsReplacementCommand(
+      'C:\\Users\\test\\.quantex-upgrade-tmp\\qtx.exe',
+      'C:\\Users\\test\\.local\\bin\\qtx.exe',
+      'C:\\Users\\test\\.local\\bin\\qtx.exe.bak',
+      'C:\\Users\\test\\.quantex-upgrade-tmp',
+      4242,
+      '1.13.7',
+      'C:\\Users\\test\\.local\\bin\\quantex.exe',
+    )
+
+    expect(script).toContain('\n')
+    expect(script).not.toContain('; catch')
+    expect(script).not.toMatch(/}\s*;\s*catch/)
+    expect(script).toMatch(/}\r?\n\s*catch/)
+    expect(encodePowerShellEncodedCommand(script)).toBe(Buffer.from(script, 'utf16le').toString('base64'))
+    expect(encodePowerShellEncodedCommand('dir')).toBe('ZABpAHIA')
+  })
+})
+
 describe('upgradeStandaloneBinary', () => {
   it('schedules delayed replacement on Windows', async () => {
     const tempRoot = await mkdtemp(join(tmpdir(), 'quantex-binary-win-'))
@@ -59,14 +93,18 @@ describe('upgradeStandaloneBinary', () => {
       })
 
       const [command, options] = spawnMock.mock.calls[0] as [string[], Record<string, unknown>]
+      const script = decodeScheduledWindowsHelper(command)
       expect(command[0]).toBe('powershell.exe')
-      expect(command).toContain('-Command')
-      expect(command[command.length - 1]).toContain('Move-Item -LiteralPath')
-      expect(command[command.length - 1]).toContain('qtx.exe')
+      expect(command).toContain('-EncodedCommand')
+      expect(command).not.toContain('-Command')
+      expect(script).not.toMatch(/}\s*;\s*catch/)
+      expect(script).toMatch(/}\r?\n\s*catch/)
+      expect(script).toContain('Move-Item -LiteralPath')
+      expect(script).toContain('qtx.exe')
       const peerPath = getWindowsStandaloneBinaryPeerPath(executablePath)
       expect(peerPath).toBeTruthy()
-      expect(command[command.length - 1]).toContain(`$peerPath = '${peerPath!.replaceAll("'", "''")}'`)
-      expect(command[command.length - 1]).toContain('Copy-Item -LiteralPath $targetPath -Destination $peerPath -Force')
+      expect(script).toContain(`$peerPath = '${peerPath!.replaceAll("'", "''")}'`)
+      expect(script).toContain('Copy-Item -LiteralPath $targetPath -Destination $peerPath -Force')
       expect(options).toMatchObject({
         stdio: ['ignore', 'ignore', 'ignore'],
         windowsHide: true,
@@ -100,7 +138,7 @@ describe('upgradeStandaloneBinary', () => {
       })
 
       const [command] = spawnMock.mock.calls[0] as [string[], Record<string, unknown>]
-      const script = command[command.length - 1] as string
+      const script = decodeScheduledWindowsHelper(command)
       expect(script).toContain("release''s bin")
       expect(script).not.toContain("$targetPath = '" + executablePath + "'")
     } finally {
@@ -165,7 +203,7 @@ describe('upgradeStandaloneBinary', () => {
       })
 
       const [command] = spawnMock.mock.calls[0] as [string[], Record<string, unknown>]
-      const script = command[command.length - 1] as string
+      const script = decodeScheduledWindowsHelper(command)
       expect(script).toContain('try {')
       expect(script).toContain('Move-Item -LiteralPath $tempPath -Destination $targetPath -Force')
       expect(script).toContain(
@@ -207,7 +245,7 @@ describe('upgradeStandaloneBinary', () => {
       })
 
       const [command] = spawnMock.mock.calls[0] as [string[], Record<string, unknown>]
-      const script = command[command.length - 1] as string
+      const script = decodeScheduledWindowsHelper(command)
       expect(script).toContain('$backupReady = $false')
       expect(script).toContain('$backupReady = $true')
       expect(script).toContain('if (-not $backupReady)')
@@ -244,10 +282,11 @@ describe('upgradeStandaloneBinary', () => {
       })
 
       const [command] = spawnMock.mock.calls[0] as [string[], Record<string, unknown>]
+      const script = decodeScheduledWindowsHelper(command)
       const peerPath = getWindowsStandaloneBinaryPeerPath(executablePath)
       expect(peerPath).toBeTruthy()
-      expect(command[command.length - 1]).toContain(`$peerPath = '${peerPath!.replaceAll("'", "''")}'`)
-      expect(command[command.length - 1]).toContain('Copy-Item -LiteralPath $targetPath -Destination $peerPath -Force')
+      expect(script).toContain(`$peerPath = '${peerPath!.replaceAll("'", "''")}'`)
+      expect(script).toContain('Copy-Item -LiteralPath $targetPath -Destination $peerPath -Force')
     } finally {
       await rm(tempRoot, { recursive: true, force: true })
     }
@@ -276,8 +315,9 @@ describe('upgradeStandaloneBinary', () => {
       })
 
       const [command] = spawnMock.mock.calls[0] as [string[], Record<string, unknown>]
-      expect(command[command.length - 1]).toContain(`$peerPath = ''`)
-      expect(command[command.length - 1]).toContain("if ($peerPath -ne '')")
+      const script = decodeScheduledWindowsHelper(command)
+      expect(script).toContain(`$peerPath = ''`)
+      expect(script).toContain("if ($peerPath -ne '')")
     } finally {
       await rm(tempRoot, { recursive: true, force: true })
     }
