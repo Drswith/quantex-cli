@@ -7,6 +7,7 @@
 * With `--json`, an `install` or `update` that times out or is cancelled also stops what the official installer started. Only the shell running `curl … | bash` was stopped, so the download kept going and could still finish installing after the command had reported `TIMEOUT`, or run alongside a retry.
 * An existing CodeBuddy Code or Qoder CLI install from its official installer (`~/.local/bin/codebuddy`, `~/.local/bin/qodercli` on macOS and Linux) is adopted as a script install instead of reported untracked.
 * `update` of a GitHub Copilot CLI or MiMoCode installed by its official installer runs `copilot update` or `mimo upgrade` instead of reporting `manual-required`.
+* An official installer that exits with an error after installing the agent (Devin's ends by signing in, which fails without a terminal) no longer fails `install`. If the executable is in place and verifies, it is recorded and `install` succeeds with an `INSTALLER_EXITED_WITH_ERROR` warning; before, it reported `INSTALL_FAILED` and a second `install` adopted it.
 * When an official installer fails, the suggested `defaultPackageManager` is one the agent has: npm where it has an npm package, otherwise bun (oh-my-pi was told to switch to npm, which it does not have).
 
 ### Changed

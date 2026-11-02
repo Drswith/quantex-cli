@@ -150,6 +150,33 @@ fn a_failed_installer_suggests_a_package_manager_the_agent_has() {
     }
 }
 
+/// An installer that fails after putting the agent in place (Devin's ends by signing in)
+/// installs it, with a warning.
+#[test]
+fn an_installer_that_fails_after_installing_is_a_warning() {
+    let sandbox = sandbox();
+    let path = sandbox.bin_dir().join("claude");
+    sandbox.fake_tool(
+        "curl",
+        &format!(
+            "cat <<'EOS'\nprintf '#!/bin/sh\\necho 2.1.0\\n' > '{0}'; chmod +x '{0}'; exit 1\nEOS",
+            path.display()
+        ),
+        "exit /b 1",
+    );
+    let (code, envelope) = run_json(&sandbox, &["install", "claude"]);
+    assert_eq!(code, 0, "{envelope}");
+    assert_eq!(envelope["data"]["installState"], json!({ "installType": "script" }));
+    assert_eq!(
+        envelope["warnings"][0]["code"], "INSTALLER_EXITED_WITH_ERROR",
+        "{envelope}"
+    );
+    assert_eq!(
+        sandbox.read_state().unwrap()["installedAgents"]["claude"]["installType"],
+        "script"
+    );
+}
+
 /// A timeout stops the installer script and what it started, not only the shell
 /// running `curl | bash`.
 #[test]

@@ -255,7 +255,13 @@ fn apply_install(ctx: &Context, view: &View) -> Outcome {
             recipe.binding.provider.as_str()
         ),
     );
-    if let Err(failure) = providers::run_mutation(ctx, &command, &description) {
+    let ran = providers::run_mutation(ctx, &command, &description);
+    // An official installer can fail on a last step, such as signing in, after it has put
+    // the agent in place; the check below decides whether the agent is installed.
+    if let Err(failure) = &ran
+        && (recipe.binding.provider != crate::catalog::Provider::Script
+            || !matches!(failure, providers::MutationFailure::Failed(_)))
+    {
         return install_failed(agent, &failure.reason(), remediation.as_deref());
     }
     if recipe.binding.provider == crate::catalog::Provider::Bun
@@ -275,7 +281,10 @@ fn apply_install(ctx: &Context, view: &View) -> Outcome {
     };
     if let Some(reason) = reason {
         compensate(ctx, &recipe.binding);
-        return verification_failed(agent, &reason);
+        return match &ran {
+            Err(failure) => install_failed(agent, &failure.reason(), remediation.as_deref()),
+            Ok(()) => verification_failed(agent, &reason),
+        };
     }
     if let Err(error) = record(ctx, agent, &recipe.installed) {
         return failure(
@@ -287,7 +296,19 @@ fn apply_install(ctx: &Context, view: &View) -> Outcome {
             ),
         );
     }
-    let outcome = success(agent, agent_data(agent, true, true, Some(&recipe.installed)));
+    let mut outcome = success(agent, agent_data(agent, true, true, Some(&recipe.installed)));
+    if let Err(failure) = &ran {
+        outcome = outcome.with_warning(Warning::new(
+            "INSTALLER_EXITED_WITH_ERROR",
+            with_reason(
+                &format!(
+                    "{} is installed, but its official installer reported an error. A last step, such as signing in, may not have run.",
+                    agent.display_name
+                ),
+                &failure.reason(),
+            ),
+        ));
+    }
     match not_on_path_warning(agent) {
         Some(warning) => outcome.with_warning(warning),
         None => outcome,
@@ -333,6 +354,13 @@ pub fn render_single(outcome: &Outcome, human: &mut Human) {
     }
     let Some(data) = &outcome.data else { return };
     if !outcome.warnings.is_empty() {
+        if outcome
+            .warnings
+            .iter()
+            .any(|warning| matches!(warning.code.as_str(), "NOT_ON_PATH" | "INSTALLER_EXITED_WITH_ERROR"))
+        {
+            installed_successfully(data, human);
+        }
         for warning in &outcome.warnings {
             match warning.code.as_str() {
                 "TRACKED_EXISTING_INSTALL" => {
@@ -342,10 +370,6 @@ pub fn render_single(outcome: &Outcome, human: &mut Human) {
                 "DRY_RUN" => {
                     let text = human.cyan(&warning.message);
                     human.line(&text);
-                }
-                "NOT_ON_PATH" => {
-                    installed_successfully(data, human);
-                    human.warn_line(&warning.message);
                 }
                 _ => human.warn_line(&warning.message),
             }
