@@ -3,6 +3,9 @@
   "displayName": "GitHub Copilot CLI",
   "homepage": "https://github.com/features/copilot/cli",
   "binaryName": "copilot",
+  "selfUpdate": {
+    "command": ["copilot", "update"]
+  },
   "platforms": {
     "windows": [
       {

@@ -228,10 +228,23 @@ fn apply_install(ctx: &Context, view: &View) -> Outcome {
         provider => format!("{} install failed", provider.as_str()),
     };
     let remediation = (!recipe.binding.provider.is_managed()).then(|| {
-        if view.methods.iter().any(|method| method.kind.is_managed()) {
-            "Review the installer output. To install through npm instead, run `qtx config set defaultPackageManager npm`."
-        } else {
-            "Review the installer output and upstream installation instructions."
+        let managed: Vec<_> = view
+            .methods
+            .iter()
+            .map(|method| method.kind)
+            .filter(|kind| kind.is_managed())
+            .collect();
+        // npm where the agent has it, since more machines have it than bun.
+        match managed
+            .iter()
+            .find(|kind| **kind == crate::catalog::Provider::Npm)
+            .or(managed.first())
+        {
+            Some(kind) => format!(
+                "Review the installer output. To install through {0} instead, run `qtx config set defaultPackageManager {0}`.",
+                kind.as_str()
+            ),
+            None => "Review the installer output and upstream installation instructions.".to_owned(),
         }
     });
     crate::term::progress(
@@ -243,7 +256,7 @@ fn apply_install(ctx: &Context, view: &View) -> Outcome {
         ),
     );
     if let Err(failure) = providers::run_mutation(ctx, &command, &description) {
-        return install_failed(agent, &failure.reason(), remediation);
+        return install_failed(agent, &failure.reason(), remediation.as_deref());
     }
     if recipe.binding.provider == crate::catalog::Provider::Bun
         && let Err(failure) = providers::trust_bun_packages(ctx, std::slice::from_ref(&recipe.binding.target.id))

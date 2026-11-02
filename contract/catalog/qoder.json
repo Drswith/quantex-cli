@@ -44,6 +44,7 @@
         "target": {
           "id": "https://qoder.com/install",
           "kind": "script",
+          "binaryDirs": ["~/.local/bin"],
           "effect": {
             "command": "curl -fsSL https://qoder.com/install | bash",
             "kind": "shell-script"
@@ -71,6 +72,7 @@
         "target": {
           "id": "https://qoder.com/install",
           "kind": "script",
+          "binaryDirs": ["~/.local/bin"],
           "effect": {
             "command": "curl -fsSL https://qoder.com/install | bash",
             "kind": "shell-script"

@@ -4,6 +4,9 @@
   "displayName": "MiMoCode",
   "homepage": "https://github.com/XiaomiMiMo/MiMo-Code",
   "binaryName": "mimo",
+  "selfUpdate": {
+    "command": ["mimo", "upgrade"]
+  },
   "versionProbe": {
     "command": ["mimo", "--version"]
   },

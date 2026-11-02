@@ -133,6 +133,23 @@ fn updates_run_the_agents_own_command() {
     assert_eq!(result["strategy"], "self-update");
 }
 
+/// A failed official installer suggests a package manager the agent has: npm where it
+/// has one, otherwise bun.
+#[test]
+fn a_failed_installer_suggests_a_package_manager_the_agent_has() {
+    for (agent, manager) in [("claude", "npm"), ("omp", "bun")] {
+        let sandbox = sandbox();
+        sandbox.fake_tool("curl", "echo 'exit 1'", "exit /b 1");
+        let (code, envelope) = run_json(&sandbox, &["install", agent]);
+        assert_eq!(code, 1, "{envelope}");
+        let remediation = envelope["error"]["details"]["remediation"].as_str().unwrap();
+        assert!(
+            remediation.contains(&format!("defaultPackageManager {manager}")),
+            "{envelope}"
+        );
+    }
+}
+
 /// A timeout stops the installer script and what it started, not only the shell
 /// running `curl | bash`.
 #[test]

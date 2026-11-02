@@ -58,6 +58,7 @@
         "target": {
           "id": "https://www.codebuddy.cn/cli/install.sh",
           "kind": "script",
+          "binaryDirs": ["~/.local/bin"],
           "effect": {
             "command": "curl -fsSL https://www.codebuddy.cn/cli/install.sh | bash",
             "kind": "shell-script"
@@ -85,6 +86,7 @@
         "target": {
           "id": "https://www.codebuddy.cn/cli/install.sh",
           "kind": "script",
+          "binaryDirs": ["~/.local/bin"],
           "effect": {
             "command": "curl -fsSL https://www.codebuddy.cn/cli/install.sh | bash",
             "kind": "shell-script"
