@@ -9,19 +9,22 @@
   "versionProbe": {
     "command": ["amp", "version"]
   },
+  "supersededPackages": {
+    "npm": ["@sourcegraph/amp"]
+  },
   "platforms": {
     "windows": [
       {
         "provider": "bun",
         "target": {
-          "id": "@sourcegraph/amp",
+          "id": "@ampcode/cli",
           "kind": "package"
         }
       },
       {
         "provider": "npm",
         "target": {
-          "id": "@sourcegraph/amp",
+          "id": "@ampcode/cli",
           "kind": "package"
         }
       }
@@ -30,14 +33,14 @@
       {
         "provider": "bun",
         "target": {
-          "id": "@sourcegraph/amp",
+          "id": "@ampcode/cli",
           "kind": "package"
         }
       },
       {
         "provider": "npm",
         "target": {
-          "id": "@sourcegraph/amp",
+          "id": "@ampcode/cli",
           "kind": "package"
         }
       }
@@ -46,14 +49,14 @@
       {
         "provider": "bun",
         "target": {
-          "id": "@sourcegraph/amp",
+          "id": "@ampcode/cli",
           "kind": "package"
         }
       },
       {
         "provider": "npm",
         "target": {
-          "id": "@sourcegraph/amp",
+          "id": "@ampcode/cli",
           "kind": "package"
         }
       }

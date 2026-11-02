@@ -237,34 +237,12 @@ pub fn observe(ctx: &Context, binding: &Binding) -> Observed {
     }
 }
 
-fn bun_global_root() -> PathBuf {
-    std::env::var("BUN_INSTALL_GLOBAL_DIR")
+fn bun_manifest_presence(package: &str) -> Option<Observed> {
+    let root = std::env::var("BUN_INSTALL_GLOBAL_DIR")
         .ok()
         .map(PathBuf::from)
-        .unwrap_or_else(|| crate::context::home_dir().join(".bun").join("install").join("global"))
-}
-
-/// The direct dependencies of a package Bun installed globally.
-fn bun_dependencies(package: &str) -> Vec<String> {
-    let manifest = bun_global_root()
-        .join("node_modules")
-        .join(package)
-        .join("package.json");
-    let Some(Value::Object(manifest)) = std::fs::read_to_string(manifest)
-        .ok()
-        .and_then(|text| serde_json::from_str(&text).ok())
-    else {
-        return Vec::new();
-    };
-    ["dependencies", "optionalDependencies"]
-        .iter()
-        .filter_map(|field| manifest.get(*field)?.as_object())
-        .flat_map(|entries| entries.keys().cloned())
-        .collect()
-}
-
-fn bun_manifest_presence(package: &str) -> Option<Observed> {
-    let text = std::fs::read_to_string(bun_global_root().join("package.json")).ok()?;
+        .unwrap_or_else(|| crate::context::home_dir().join(".bun").join("install").join("global"));
+    let text = std::fs::read_to_string(root.join("package.json")).ok()?;
     let Value::Object(manifest) = serde_json::from_str::<Value>(&text).ok()? else {
         return Some(Observed::Indeterminate(format!(
             "bun could not determine whether {package} is installed"
@@ -473,9 +451,7 @@ fn wait_for_mutation(ctx: &Context, child: &mut Child, description: &str) -> Res
     }
 }
 
-/// After `bun add -g`, trust the packages and their direct dependencies whose lifecycle
-/// scripts Bun blocked. A dependency may build the executable: Amp's `@ampcode/cli`
-/// downloads it in `postinstall`.
+/// After `bun add -g`, trust packages whose lifecycle scripts Bun blocked.
 pub fn trust_bun_packages(ctx: &Context, packages: &[String]) -> Result<(), MutationFailure> {
     let Some(bun) = process::which("bun") else {
         return Ok(());
@@ -498,13 +474,10 @@ pub fn trust_bun_packages(ctx: &Context, packages: &[String]) -> Result<(), Muta
             Some(rest.split(" @").next()?.to_owned())
         })
         .collect();
-    let wanted: Vec<String> = packages
+    let blocked: Vec<String> = packages
         .iter()
-        .flat_map(|package| std::iter::once(package.clone()).chain(bun_dependencies(package)))
-        .collect();
-    let blocked: Vec<String> = untrusted
-        .into_iter()
-        .filter(|package| wanted.contains(package))
+        .filter(|package| untrusted.contains(package))
+        .cloned()
         .collect();
     if blocked.is_empty() {
         return Ok(());

@@ -243,7 +243,7 @@ fn unreadable_state_is_a_state_read_error() {
 
 #[test]
 fn latest_versions_come_from_the_registry_and_the_cache() {
-    let stub = HttpStub::start(vec![("/%40sourcegraph%2Famp/latest", 200, r#"{"version":"9.9.9"}"#)]);
+    let stub = HttpStub::start(vec![("/%40ampcode%2Fcli/latest", 200, r#"{"version":"9.9.9"}"#)]);
     let mut sandbox = Sandbox::new();
     sandbox.env("QUANTEX_NPM_REGISTRY_URL", stub.url());
     sandbox.write_config(&json!({ "networkTimeoutMs": 2000 }));
@@ -257,7 +257,7 @@ fn latest_versions_come_from_the_registry_and_the_cache() {
     let cache: Value =
         serde_json::from_str(&std::fs::read_to_string(sandbox.quantex_dir().join("cache/versions.json")).unwrap())
             .unwrap();
-    let key = format!("npm:{}:@sourcegraph/amp:latest", stub.url());
+    let key = format!("npm:{}:@ampcode/cli:latest", stub.url());
     assert_eq!(cache["entries"][&key]["body"], r#"{"version":"9.9.9"}"#);
 
     let hits = stub.hits().len();
