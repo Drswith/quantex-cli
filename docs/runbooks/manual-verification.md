@@ -62,3 +62,13 @@ Do not run `upgrade` here with the sandbox binary: it records its own install so
 - A 1.x standalone binary on macOS or Linux: `qtx upgrade --channel beta`, then `qtx --version`.
 - npm (once npm publishing is on): `npm i -g quantex-cli@beta --prefix /tmp/qtx-npm`, then `/tmp/qtx-npm/bin/quantex doctor` reports `installSource: npm`.
 - Windows: rerun `install.ps1`, then `qtx --version`.
+
+## 5. Real agent installs
+
+The Agent Canaries workflow installs, updates, uninstalls, and installs again every catalog agent through its real installer or package manager, on throwaway GitHub runners for Linux, macOS, and Windows. Run it after changing the catalog or the install code, and before a release:
+
+```bash
+gh workflow run agent-canary.yml --ref <branch> -f os=all
+```
+
+`-f agents="devin codebuddy"` limits it to some agents. Each job's summary has a table of the steps, and its `canary-*` artifact has every step's JSON and stderr. A failed job needs reading, not an automatic fix: the installers belong to the agents' vendors and change on their own.

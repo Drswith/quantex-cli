@@ -1,0 +1,110 @@
+name: Agent Canaries
+
+# Real installs of catalog agents through Quantex, on GitHub's runners, where each job is
+# a throwaway machine. Advisory and manual only: installers and registries live outside
+# this repository and change without notice.
+
+on:
+  workflow_dispatch:
+    inputs:
+      agents:
+        description: Agents to run, separated by spaces (empty for every agent)
+        required: false
+        default: ''
+        type: string
+      os:
+        description: Platforms to run on
+        required: true
+        default: all
+        type: choice
+        options: [all, linux, macos, windows]
+
+permissions:
+  contents: read
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  resolve:
+    runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.matrix.outputs.matrix }}
+      runners: ${{ steps.matrix.outputs.runners }}
+    steps:
+      - uses: actions/checkout@v4
+      - id: matrix
+        env:
+          AGENTS: ${{ inputs.agents }}
+          PLATFORMS: ${{ inputs.os }}
+        shell: python
+        run: |
+          import glob, json, os, sys
+          runners = {"linux": "ubuntu-latest", "macos": "macos-latest", "windows": "windows-latest"}
+          wanted = set(os.environ["AGENTS"].split())
+          agents = [json.load(open(path)) for path in sorted(glob.glob("contract/catalog/*.json"))]
+          unknown = wanted - {agent["name"] for agent in agents}
+          if unknown:
+              sys.exit(f"Unknown agents: {' '.join(sorted(unknown))}")
+          include = [
+              {"agent": agent["name"], "platform": platform, "runner": runners[platform]}
+              for agent in agents
+              if not wanted or agent["name"] in wanted
+              for platform, methods in agent["platforms"].items()
+              if methods and os.environ["PLATFORMS"] in ("all", platform)
+          ]
+          used = sorted({entry["runner"] for entry in include})
+          print(json.dumps(include, indent=2))
+          with open(os.environ["GITHUB_OUTPUT"], "a") as output:
+              output.write(f"matrix={json.dumps(include)}\nrunners={json.dumps(used)}\n")
+
+  build:
+    needs: resolve
+    strategy:
+      matrix:
+        runner: ${{ fromJSON(needs.resolve.outputs.runners) }}
+    runs-on: ${{ matrix.runner }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+      - run: cargo build --release -p quantex
+      - uses: actions/upload-artifact@v4
+        with:
+          name: quantex-${{ matrix.runner }}
+          path: target/release/quantex${{ runner.os == 'Windows' && '.exe' || '' }}
+
+  canary:
+    name: ${{ matrix.agent }} (${{ matrix.platform }})
+    needs: [resolve, build]
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 60
+    strategy:
+      fail-fast: false
+      max-parallel: 20
+      matrix:
+        include: ${{ fromJSON(needs.resolve.outputs.matrix) }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: quantex-${{ matrix.runner }}
+          path: qtx-bin
+      # Recent releases: some installers require a newer Node or Bun than the image has.
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+      - name: Run the lifecycle
+        shell: bash
+        env:
+          AGENT: ${{ matrix.agent }}
+          QTX: ./qtx-bin/quantex${{ runner.os == 'Windows' && '.exe' || '' }}
+        run: bash scripts/agent-canary.sh "$AGENT"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: canary-${{ matrix.agent }}-${{ matrix.platform }}
+          path: canary-out
