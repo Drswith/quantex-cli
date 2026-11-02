@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## [2.0.0-beta.4](https://github.com/Drswith/quantex-cli/releases/tag/v2.0.0-beta.4)
 
 Agents install through their official installer by default, and the standalone binary is the recommended way to install Quantex itself.
 
