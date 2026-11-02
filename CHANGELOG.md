@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased
+
+### Changed
+
+* `doctor` no longer shows an older release as the latest version when this build is newer, for example a beta on the stable channel. It reads `Latest: 1.13.6 (stable channel; 2.0.0-beta.4 is newer)`, and `doctor --json` reports the channel it checked as `self.channel`.
+
 ## [2.0.0-beta.4](https://github.com/Drswith/quantex-cli/releases/tag/v2.0.0-beta.4)
 
 Agents install through their official installer by default, and the standalone binary is the recommended way to install Quantex itself.

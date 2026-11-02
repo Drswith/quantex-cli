@@ -1,6 +1,6 @@
 //! `capabilities` and `doctor`.
 
-use quantex_contract_tests::{Sandbox, assert_envelope, fake_agent};
+use quantex_contract_tests::{Sandbox, assert_envelope, contract_json, fake_agent, seed_cache};
 use serde_json::{Value, json};
 
 /// The package managers the catalog installs with.
@@ -39,6 +39,7 @@ fn doctor_reports_installers_agents_and_self() {
     );
     let self_data = &data["self"];
     assert!(self_data["canAutoUpdate"].is_boolean());
+    assert_eq!(self_data["channel"], "stable");
     assert!(self_data["currentVersion"].is_string());
     assert!(self_data["installSource"].is_string());
     assert!(self_data["outdated"].is_boolean());
@@ -47,4 +48,19 @@ fn doctor_reports_installers_agents_and_self() {
         assert!(issue["code"].is_string() && issue["message"].is_string());
         assert!(issue["suggestedCommands"].is_array());
     }
+}
+
+/// On the stable channel a prerelease build is newer than the latest release; doctor
+/// names the channel instead of listing an older version as the latest.
+#[test]
+fn doctor_names_the_channel_when_this_build_is_newer() {
+    let sandbox = Sandbox::new();
+    // The real v1.13.6 manifest, still the latest stable release when 2.x betas shipped.
+    let manifest = contract_json("fixtures/release/manifest.json");
+    seed_cache(&sandbox, "self:manifest:stable", &manifest.to_string());
+    let envelope = sandbox.run(["doctor", "--json"]).json();
+    assert_eq!(envelope["data"]["self"]["latestVersion"], "1.13.6", "{envelope}");
+    assert_eq!(envelope["data"]["self"]["outdated"], false);
+    let run = sandbox.run(["doctor"]);
+    assert!(run.stdout.contains("1.13.6 (stable channel; "), "{run:?}");
 }

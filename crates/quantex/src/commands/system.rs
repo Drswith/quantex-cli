@@ -243,6 +243,7 @@ pub fn doctor(ctx: &Context) -> Outcome {
     }
     let mut self_summary = Map::new();
     self_summary.insert("canAutoUpdate".into(), facts.can_auto_update().into());
+    self_summary.insert("channel".into(), facts.update_channel.into());
     self_summary.insert("currentVersion".into(), current.into());
     self_summary.insert("installSource".into(), source.as_str().into());
     if let Some(latest) = &latest {
@@ -266,12 +267,12 @@ fn render_doctor(outcome: &Outcome, human: &mut Human) {
     let Some(data) = &outcome.data else { return };
     human.heading("Quantex Doctor");
     let self_data = &data["self"];
+    let current = self_data["currentVersion"].as_str().unwrap_or_default();
     human.fields(&[
         (
             "Quantex",
             format!(
-                "{} ({})",
-                self_data["currentVersion"].as_str().unwrap_or_default(),
+                "{current} ({})",
                 self_data["installSource"].as_str().unwrap_or_default()
             ),
         ),
@@ -279,6 +280,11 @@ fn render_doctor(outcome: &Outcome, human: &mut Human) {
             "Latest",
             match self_data["latestVersion"].as_str() {
                 Some(latest) if self_data["outdated"] == true => human.yellow(latest),
+                // A prerelease is newer than the latest release on the stable channel.
+                Some(latest) if probe::is_version_newer(current, latest) => format!(
+                    "{latest} ({} channel; {current} is newer)",
+                    self_data["channel"].as_str().unwrap_or("stable")
+                ),
                 Some(latest) => latest.to_owned(),
                 None => human.dim("unknown"),
             },
