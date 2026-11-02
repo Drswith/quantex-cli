@@ -73,7 +73,7 @@ fn the_official_installer_is_tried_first() {
     assert!(
         sandbox
             .npm_calls()
-            .contains(&"npm install -g @anthropic-ai/claude-code".to_owned())
+            .contains(&"npm install -g @anthropic-ai/claude-code --allow-scripts=@anthropic-ai/claude-code".to_owned())
     );
 }
 

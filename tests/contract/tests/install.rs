@@ -32,7 +32,11 @@ fn install_records_state() {
             "installed": true,
         })
     );
-    assert!(sandbox.npm_calls().contains(&"npm install -g @openai/codex".to_owned()));
+    assert!(
+        sandbox
+            .npm_calls()
+            .contains(&"npm install -g @openai/codex --allow-scripts=@openai/codex".to_owned())
+    );
     let state = sandbox.read_state().unwrap();
     assert_eq!(state["schemaVersion"], 2);
     assert_eq!(
@@ -138,7 +142,11 @@ fn a_recorded_but_missing_agent_is_installed_again_from_its_source() {
     let (code, envelope) = run_json(&sandbox, &["install", "codex"]);
     assert_eq!(code, 0, "{envelope}");
     assert_eq!(envelope["data"]["changed"], true);
-    assert!(sandbox.npm_calls().contains(&"npm install -g @openai/codex".to_owned()));
+    assert!(
+        sandbox
+            .npm_calls()
+            .contains(&"npm install -g @openai/codex --allow-scripts=@openai/codex".to_owned())
+    );
 }
 
 #[test]

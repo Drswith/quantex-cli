@@ -72,7 +72,10 @@ fn an_agent_on_the_latest_version_is_up_to_date() {
             "scope": "single",
         })
     );
-    assert_eq!(mutations(&sandbox), ["npm install -g @openai/codex"]);
+    assert_eq!(
+        mutations(&sandbox),
+        ["npm install -g @openai/codex --allow-scripts=@openai/codex"]
+    );
 }
 
 #[test]
@@ -94,7 +97,10 @@ fn an_outdated_agent_is_updated() {
     );
     assert_eq!(
         mutations(&sandbox),
-        ["npm install -g @openai/codex", "npm install -g @openai/codex@latest"]
+        [
+            "npm install -g @openai/codex --allow-scripts=@openai/codex",
+            "npm install -g @openai/codex@latest --allow-scripts=@openai/codex"
+        ]
     );
     let (_, envelope) = run_json(&sandbox, &["update", "codex"]);
     assert_eq!(envelope["data"]["results"][0]["status"], "up-to-date");
@@ -155,7 +161,10 @@ fn dry_run_plans_without_updating() {
             "strategy": "managed/npm",
         }])
     );
-    assert_eq!(mutations(&sandbox), ["npm install -g @openai/codex"]);
+    assert_eq!(
+        mutations(&sandbox),
+        ["npm install -g @openai/codex --allow-scripts=@openai/codex"]
+    );
 }
 
 #[test]
@@ -276,7 +285,10 @@ fn a_held_lifecycle_lock_is_reported() {
     let result = &envelope["data"]["results"][0];
     assert_eq!(result["status"], "locked");
     assert_eq!(result["resource"], "agent lifecycle");
-    assert_eq!(mutations(&sandbox), ["npm install -g @openai/codex"]);
+    assert_eq!(
+        mutations(&sandbox),
+        ["npm install -g @openai/codex --allow-scripts=@openai/codex"]
+    );
 }
 
 #[test]

@@ -282,12 +282,18 @@ fn owned(parts: &[&str]) -> Vec<String> {
 pub fn install_command(binding: &Binding, agent: &Agent) -> Vec<String> {
     let target = &binding.target;
     let mut argv = match binding.provider {
-        Provider::Npm => owned(&["npm", "install", "-g", &target.id]),
+        Provider::Npm => owned(&["npm", "install", "-g", &target.id, &npm_allow_scripts(&target.id)]),
         Provider::Bun => owned(&["bun", "add", "-g", &target.id]),
         Provider::Script => return effect_command(binding, agent),
     };
     argv.shrink_to_fit();
     argv
+}
+
+/// npm 12 skips install scripts in `npm install -g` unless they are allowed, and some
+/// agents' packages fetch their executable in `postinstall`. Older npm ignores the flag.
+fn npm_allow_scripts(package: &str) -> String {
+    format!("--allow-scripts={package}")
 }
 
 /// A script or binary candidate's effect as an argv.
@@ -314,7 +320,13 @@ fn shell(command: &str) -> Vec<String> {
 pub fn update_command(binding: &Binding) -> Option<Vec<String>> {
     let target = &binding.target;
     Some(match binding.provider {
-        Provider::Npm => owned(&["npm", "install", "-g", &format!("{}@latest", target.id)]),
+        Provider::Npm => owned(&[
+            "npm",
+            "install",
+            "-g",
+            &format!("{}@latest", target.id),
+            &npm_allow_scripts(&target.id),
+        ]),
         Provider::Bun => owned(&["bun", "update", "-g", "--latest", &target.id]),
         Provider::Script => return None,
     })
