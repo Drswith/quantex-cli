@@ -3,6 +3,9 @@
   "displayName": "oh-my-pi (OMP)",
   "homepage": "https://github.com/can1357/oh-my-pi",
   "binaryName": "omp",
+  "selfUpdate": {
+    "command": ["omp", "update"]
+  },
   "versionProbe": {
     "command": ["omp", "--version"]
   },

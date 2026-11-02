@@ -177,3 +177,33 @@ fn a_held_lifecycle_lock_is_resource_locked() {
     assert_eq!(envelope["error"]["code"], "RESOURCE_LOCKED");
     assert_eq!(envelope["error"]["details"]["resource"], "agent lifecycle");
 }
+
+/// Bun blocks lifecycle scripts, and Amp's executable comes from its dependency
+/// `@ampcode/cli`'s `postinstall`, so install trusts the dependency too.
+#[test]
+fn install_trusts_a_dependency_that_builds_the_executable() {
+    let sandbox = Sandbox::new();
+    sandbox.fake_tool(
+        "bun",
+        r#"G="$HOME/.bun/install/global"
+case "$1 $2 $3" in
+  "--version  ") echo 1.4.4 ;;
+  "add -g @sourcegraph/amp")
+    mkdir -p "$G/node_modules/@sourcegraph/amp"
+    echo '{"dependencies":{"@sourcegraph/amp":"1"}}' > "$G/package.json"
+    echo '{"dependencies":{"@ampcode/cli":"1"}}' > "$G/node_modules/@sourcegraph/amp/package.json" ;;
+  "pm -g ls") if [ -f "$G/package.json" ]; then echo '@sourcegraph/amp@1.0.0'; else echo 'No package.json was found for directory' >&2; fi ;;
+  "pm -g untrusted") [ -f "$HOME/trusted" ] || printf './node_modules/@ampcode/cli @1.0.0\n >> [postinstall]: node install.cjs\n' ;;
+  "pm -g trust")
+    echo "$*" > "$HOME/trusted"
+    mkdir -p "$HOME/.bun/bin"; printf '#!/bin/sh\necho 1.0.0\n' > "$HOME/.bun/bin/amp"; chmod +x "$HOME/.bun/bin/amp" ;;
+esac"#,
+        "exit /b 1",
+    );
+    let (code, envelope) = run_json(&sandbox, &["install", "amp"]);
+    assert_eq!(code, 0, "{envelope}");
+    let trusted = std::fs::read_to_string(sandbox.home().join("trusted")).unwrap();
+    assert_eq!(trusted.trim(), "pm -g trust @ampcode/cli");
+    let (_, envelope) = run_json(&sandbox, &["info", "amp"]);
+    assert_eq!(envelope["data"]["inspection"]["installed"], true, "{envelope}");
+}
