@@ -385,6 +385,16 @@ fn run_provider_command(
     if ctx.output_mode.is_structured() {
         command.stdout(std::io::stderr());
         command.stderr(Stdio::inherit());
+        // With no terminal involved, its own group lets a timeout stop what `curl | bash`
+        // started. In human mode it stays in the terminal's group: installers prompt on
+        // `/dev/tty`, and Ctrl-C reaches the whole group.
+        // shortcut: a human-mode `--timeout` stops only the shell; walk the process tree
+        // if human runs with a timeout leave installers behind.
+        #[cfg(unix)]
+        {
+            use std::os::unix::process::CommandExt;
+            command.process_group(0);
+        }
     } else if collapse {
         // One pipe for both streams keeps the output in the order it was written.
         let (reader, writer) = std::io::pipe().map_err(failed)?;
@@ -397,8 +407,10 @@ fn run_provider_command(
     // The command holds the pipe's write ends; the reader sees EOF only once it is gone.
     drop(command);
     let mut child = spawned.map_err(failed)?;
+    process::track(child.id());
     let output = held.map(|reader| process::read_in_background(Some(Box::new(reader))));
     let result = wait_for_mutation(ctx, &mut child, description);
+    process::untrack(child.id());
     if result.is_err()
         && let Some(output) = output
     {
@@ -425,12 +437,12 @@ fn wait_for_mutation(ctx: &Context, child: &mut Child, description: &str) -> Res
             Err(error) => return Err(MutationFailure::Failed(format!("{description}: {error}"))),
         }
         if ctx.is_cancelled() {
-            let _ = child.kill();
+            process::kill_tree(child.id());
             let _ = child.wait();
             return Err(MutationFailure::Cancelled);
         }
         if deadline.is_some_and(|deadline| std::time::Instant::now() >= deadline) {
-            let _ = child.kill();
+            process::kill_tree(child.id());
             let _ = child.wait();
             ctx.mark_deadline_hit();
             return Err(MutationFailure::TimedOut);

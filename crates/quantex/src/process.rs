@@ -11,11 +11,11 @@ use std::time::{Duration, Instant};
 /// Captured children, each the leader of its own process group on Unix.
 static TRACKED: Mutex<Vec<u32>> = Mutex::new(Vec::new());
 
-fn track(pid: u32) {
+pub fn track(pid: u32) {
     TRACKED.lock().unwrap().push(pid);
 }
 
-fn untrack(pid: u32) {
+pub fn untrack(pid: u32) {
     TRACKED.lock().unwrap().retain(|&tracked| tracked != pid);
 }
 
@@ -30,7 +30,7 @@ pub fn kill_tracked_children() {
 /// Kills a process and everything it started. Captured children lead their own
 /// process group, so a shell wrapper cannot leave a grandchild holding the pipes.
 #[cfg(unix)]
-fn kill_tree(pid: u32) {
+pub fn kill_tree(pid: u32) {
     // SAFETY: killpg(2) / kill(2) have no memory-safety preconditions.
     unsafe {
         if libc::killpg(pid as libc::pid_t, libc::SIGKILL) != 0 {
@@ -40,7 +40,7 @@ fn kill_tree(pid: u32) {
 }
 
 #[cfg(windows)]
-fn kill_tree(pid: u32) {
+pub fn kill_tree(pid: u32) {
     let _ = Command::new("taskkill")
         .args(["/PID", &pid.to_string(), "/T", "/F"])
         .stdout(Stdio::null())

@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+### Fixed
+
+* With `--json`, an `install` or `update` that times out or is cancelled also stops what the official installer started. Only the shell running `curl … | bash` was stopped, so the download kept going and could still finish installing after the command had reported `TIMEOUT`, or run alongside a retry.
+
 ### Changed
 
 * `doctor` no longer shows an older release as the latest version when this build is newer, for example a beta on the stable channel. It reads `Latest: 1.13.6 (stable channel; 2.0.0-beta.4 is newer)`, and `doctor --json` reports the channel it checked as `self.channel`.

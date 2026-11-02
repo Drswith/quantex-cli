@@ -133,6 +133,23 @@ fn updates_run_the_agents_own_command() {
     assert_eq!(result["strategy"], "self-update");
 }
 
+/// A timeout stops the installer script and what it started, not only the shell
+/// running `curl | bash`.
+#[test]
+fn a_timed_out_installer_is_stopped() {
+    let sandbox = sandbox();
+    let marker = sandbox.home().join("installer-finished");
+    sandbox.fake_tool(
+        "curl",
+        &format!("echo \"sleep 2; touch '{}'\"", marker.display()),
+        "exit /b 1",
+    );
+    let (code, envelope) = run_json(&sandbox, &["install", "claude", "--timeout", "500ms"]);
+    assert_eq!(code, 10, "{envelope}");
+    std::thread::sleep(std::time::Duration::from_secs(3));
+    assert!(!marker.exists(), "the installer kept running after the timeout");
+}
+
 #[test]
 fn uninstall_clears_the_record_and_says_the_files_stay() {
     let sandbox = sandbox();
