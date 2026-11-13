@@ -177,22 +177,25 @@ fn render_list(outcome: &Outcome, human: &mut Human) {
     human.paragraph(&summary, "  ");
     // A latest version comes only from the npm registry, so an agent installed by its
     // official installer has none: its own updater knows, and `qtx update` runs it.
-    let unknown = |self_updating: bool| {
+    let unknown = |label: &str| {
         agents.iter().any(|agent| {
             agent["installed"] == true
                 && agent["latestVersion"].is_null()
-                && (agent["updateLabel"] == "command update") == self_updating
+                && agent["updateLabel"] == label
                 && !superseded.iter().any(|name| agent["name"] == name.as_str())
         })
     };
-    for (self_updating, text) in [
+    for (label, text) in [
         (
-            true,
+            "command update",
             "unknown + command: the agent's own updater checks; run qtx update.",
         ),
-        (false, "unknown + managed: the latest version could not be checked."),
+        (
+            "managed update",
+            "unknown + managed: the latest version could not be checked.",
+        ),
     ] {
-        if unknown(self_updating) {
+        if unknown(label) {
             let note = human.dim(text);
             human.paragraph(&note, "  ");
         }
