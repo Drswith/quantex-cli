@@ -1,6 +1,8 @@
 # Changelog
 
-## Unreleased
+## [2.0.0-beta.5](https://github.com/Drswith/quantex-cli/releases/tag/v2.0.0-beta.5)
+
+Fixes from installing every catalog agent for real on Linux, macOS, and Windows: an install that times out stops its installer, npm 12 and Bun installs leave a working executable, and more official installs are found, adopted, and updated.
 
 ### Fixed
 
