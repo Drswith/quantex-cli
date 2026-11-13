@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased
+
+### Changed
+
+* `list` tells an up-to-date agent from one whose latest version is unknown: the Available column reads `up to date` or `unknown` instead of `—` for both, and a note under the table says why. An agent installed by its official installer (`Managed: command`) has no version source Quantex can read, so `qtx update` runs its own updater; for a package-manager install, `unknown` means the lookup failed. The JSON is unchanged.
+
 ## [2.0.0-beta.5](https://github.com/Drswith/quantex-cli/releases/tag/v2.0.0-beta.5)
 
 Fixes from installing every catalog agent for real on Linux, macOS, and Windows: an install that times out stops its installer, npm 12 and Bun installs leave a working executable, and more official installs are found, adopted, and updated.

@@ -125,12 +125,14 @@ fn render_list(outcome: &Outcome, human: &mut Human) {
             let text = |key: &str| agent[key].as_str().unwrap_or_default().to_owned();
             let available = if superseded.contains(&text("name")) {
                 human.yellow("migrate")
+            } else if !installed {
+                human.dim("—")
             } else {
                 match (agent["installedVersion"].as_str(), agent["latestVersion"].as_str()) {
-                    (Some(current), Some(latest)) if installed && probe::is_version_newer(latest, current) => {
-                        human.cyan(latest)
-                    }
-                    _ => human.dim("—"),
+                    (Some(current), Some(latest)) if probe::is_version_newer(latest, current) => human.cyan(latest),
+                    (Some(_), Some(_)) => human.dim("up to date"),
+                    (None, Some(latest)) => human.dim(latest),
+                    (_, None) => human.dim("unknown"),
                 }
             };
             vec![
@@ -173,6 +175,28 @@ fn render_list(outcome: &Outcome, human: &mut Human) {
         agents.len() - installed
     ));
     human.paragraph(&summary, "  ");
+    // A latest version comes only from the npm registry, so an agent installed by its
+    // official installer has none: its own updater knows, and `qtx update` runs it.
+    let unknown = |self_updating: bool| {
+        agents.iter().any(|agent| {
+            agent["installed"] == true
+                && agent["latestVersion"].is_null()
+                && (agent["updateLabel"] == "command update") == self_updating
+                && !superseded.iter().any(|name| agent["name"] == name.as_str())
+        })
+    };
+    for (self_updating, text) in [
+        (
+            true,
+            "unknown + command: the agent's own updater checks; run qtx update.",
+        ),
+        (false, "unknown + managed: the latest version could not be checked."),
+    ] {
+        if unknown(self_updating) {
+            let note = human.dim(text);
+            human.paragraph(&note, "  ");
+        }
+    }
     let hint = human.dim("Details: qtx info <agent>");
     human.paragraph(&hint, "  ");
     human.blank();
