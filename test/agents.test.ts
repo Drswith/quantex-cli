@@ -6,6 +6,7 @@ import { describe, expect, it } from 'vitest'
 import { buildAgentCatalogManifest, readCatalogEntries } from '../scripts/build/write-agent-catalog-manifest'
 import * as agentExports from '../src/agents'
 import {
+  amp,
   auggie,
   antigravity,
   autohand,
@@ -70,6 +71,36 @@ describe('agent registry', () => {
     const agent = getAgentByLookupName('agent')
     expect(agent).toBeDefined()
     expect(agent!.name).toBe('cursor')
+  })
+})
+
+describe('amp', () => {
+  it('has valid structure', () => {
+    validateAgent(amp)
+    expect(amp.name).toBe('amp')
+    expect(amp.displayName).toBe('Amp')
+    expect(amp.packages?.npm).toBe('@ampcode/cli')
+    expect(amp.binaryName).toBe('amp')
+    expect(amp.selfUpdate?.command).toEqual(['amp', 'update'])
+    expect(amp.homepage).toBe('https://ampcode.com/')
+  })
+
+  it('binds @ampcode/cli on every bun and npm candidate', () => {
+    expect(Object.keys(amp.platforms).sort()).toEqual(['linux', 'macos', 'windows'])
+    for (const methods of Object.values(amp.platforms)) {
+      for (const method of methods!) {
+        expect(['bun', 'npm']).toContain(method.type)
+        expect(method.packageName ?? amp.packages?.npm).toBe('@ampcode/cli')
+      }
+    }
+  })
+
+  it('declares @sourcegraph/amp as superseded', () => {
+    expect(getCatalogSupersededPackages('amp')?.npm).toEqual(['@sourcegraph/amp'])
+  })
+
+  it('does not project superseded packages onto the agent definition', () => {
+    expect(amp).not.toHaveProperty('supersededPackages')
   })
 })
 
