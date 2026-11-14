@@ -9,7 +9,7 @@ export const coreAgentCatalog: readonly AgentDefinition[] = [
     homepage: 'https://ampcode.com/',
     name: 'amp',
     packages: {
-      npm: '@sourcegraph/amp',
+      npm: '@ampcode/cli',
     },
     platforms: {
       linux: [

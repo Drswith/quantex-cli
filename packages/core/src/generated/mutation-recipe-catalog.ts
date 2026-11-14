@@ -11,7 +11,7 @@ export const coreMutationRecipeCatalog = [
           probes: ['executable-presence', 'installed-version', 'package-presence', 'target-version'],
           provider: 'bun',
           target: {
-            id: '@sourcegraph/amp',
+            id: '@ampcode/cli',
             kind: 'package',
           },
         },
@@ -19,7 +19,7 @@ export const coreMutationRecipeCatalog = [
           probes: ['executable-presence', 'installed-version', 'package-presence', 'target-version'],
           provider: 'npm',
           target: {
-            id: '@sourcegraph/amp',
+            id: '@ampcode/cli',
             kind: 'package',
           },
         },
@@ -29,7 +29,7 @@ export const coreMutationRecipeCatalog = [
           probes: ['executable-presence', 'installed-version', 'package-presence', 'target-version'],
           provider: 'bun',
           target: {
-            id: '@sourcegraph/amp',
+            id: '@ampcode/cli',
             kind: 'package',
           },
         },
@@ -37,7 +37,7 @@ export const coreMutationRecipeCatalog = [
           probes: ['executable-presence', 'installed-version', 'package-presence', 'target-version'],
           provider: 'npm',
           target: {
-            id: '@sourcegraph/amp',
+            id: '@ampcode/cli',
             kind: 'package',
           },
         },
@@ -47,7 +47,7 @@ export const coreMutationRecipeCatalog = [
           probes: ['executable-presence', 'installed-version', 'package-presence', 'target-version'],
           provider: 'bun',
           target: {
-            id: '@sourcegraph/amp',
+            id: '@ampcode/cli',
             kind: 'package',
           },
         },
@@ -55,7 +55,7 @@ export const coreMutationRecipeCatalog = [
           probes: ['executable-presence', 'installed-version', 'package-presence', 'target-version'],
           provider: 'npm',
           target: {
-            id: '@sourcegraph/amp',
+            id: '@ampcode/cli',
             kind: 'package',
           },
         },

@@ -9,13 +9,16 @@
   "versionProbe": {
     "command": ["amp", "version"]
   },
+  "supersededPackages": {
+    "npm": ["@sourcegraph/amp"]
+  },
   "platforms": {
     "windows": [
       {
         "probes": ["executable-presence", "installed-version", "package-presence", "target-version"],
         "provider": "bun",
         "target": {
-          "id": "@sourcegraph/amp",
+          "id": "@ampcode/cli",
           "kind": "package"
         }
       },
@@ -23,7 +26,7 @@
         "probes": ["executable-presence", "installed-version", "package-presence", "target-version"],
         "provider": "npm",
         "target": {
-          "id": "@sourcegraph/amp",
+          "id": "@ampcode/cli",
           "kind": "package"
         }
       }
@@ -33,7 +36,7 @@
         "probes": ["executable-presence", "installed-version", "package-presence", "target-version"],
         "provider": "bun",
         "target": {
-          "id": "@sourcegraph/amp",
+          "id": "@ampcode/cli",
           "kind": "package"
         }
       },
@@ -41,7 +44,7 @@
         "probes": ["executable-presence", "installed-version", "package-presence", "target-version"],
         "provider": "npm",
         "target": {
-          "id": "@sourcegraph/amp",
+          "id": "@ampcode/cli",
           "kind": "package"
         }
       }
@@ -51,7 +54,7 @@
         "probes": ["executable-presence", "installed-version", "package-presence", "target-version"],
         "provider": "bun",
         "target": {
-          "id": "@sourcegraph/amp",
+          "id": "@ampcode/cli",
           "kind": "package"
         }
       },
@@ -59,7 +62,7 @@
         "probes": ["executable-presence", "installed-version", "package-presence", "target-version"],
         "provider": "npm",
         "target": {
-          "id": "@sourcegraph/amp",
+          "id": "@ampcode/cli",
           "kind": "package"
         }
       }

@@ -1,7 +1,7 @@
 import type { InstallMethod } from '../src/agents'
 import type { InstalledAgentState } from '../src/state'
 import { describe, expect, it } from 'vitest'
-import { pi } from '../src/agents'
+import { amp, pi } from '../src/agents'
 import { resolveSupersededPackage } from '../src/agents/superseded'
 import { getLatestVersionPackage } from '../src/utils/install'
 
@@ -60,5 +60,27 @@ describe('getLatestVersionPackage', () => {
 
   it('resolves the catalog package when nothing is recorded', () => {
     expect(getLatestVersionPackage(pi, undefined, bunMethods)).toBe(CURRENT)
+  })
+})
+
+describe('Amp superseded @sourcegraph/amp', () => {
+  const previous = '@sourcegraph/amp'
+  const current = '@ampcode/cli'
+  const ampMethods: InstallMethod[] = [{ packageName: current, type: 'bun' }]
+  const recordedAmp = (packageName: string): InstalledAgentState => ({
+    agentName: 'amp',
+    installType: 'bun',
+    packageName,
+  })
+
+  it('reports migration for an Amp install recorded under @sourcegraph/amp', () => {
+    expect(resolveSupersededPackage(amp, recordedAmp(previous))).toEqual({
+      currentPackage: current,
+      recordedPackage: previous,
+    })
+  })
+
+  it('does not treat the alias as the latest-version package', () => {
+    expect(getLatestVersionPackage(amp, recordedAmp(previous), ampMethods)).toBeUndefined()
   })
 })
