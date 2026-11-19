@@ -13,6 +13,7 @@ pub mod cli;
 pub mod commands;
 pub mod context;
 pub mod contract;
+mod devin;
 pub mod launch;
 pub mod lifecycle;
 pub mod net;

@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased
+
+### Fixed
+
+* Devin installation no longer enters the login wizard, and updates work without a terminal. Both use the version-pinned official installer, preserve checksum checks, and verify the installed version; sign in separately with `devin setup`.
+
 ## [2.0.0-beta.6](https://github.com/Drswith/quantex-cli/releases/tag/v2.0.0-beta.6)
 
 `list` says whether an agent is up to date or its latest version is unknown.

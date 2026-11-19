@@ -291,6 +291,12 @@ fn execute(ctx: &Context, plan: &Plan) -> Execution {
     );
     let ran = match &plan.strategy {
         Strategy::Managed { .. } => run_provider_update(ctx, &plan.binding),
+        Strategy::SelfUpdate { before_version, .. } if agent.name == "devin" => {
+            match crate::devin::install(ctx, agent, Some(before_version)) {
+                Err(MutationFailure::Failed(reason)) => return Execution::Unsatisfied(reason),
+                result => result,
+            }
+        }
         Strategy::SelfUpdate { commands, .. } => run_self_update(ctx, commands),
     };
     if let Err(failure) = ran {

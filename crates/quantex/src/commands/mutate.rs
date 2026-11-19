@@ -255,11 +255,17 @@ fn apply_install(ctx: &Context, view: &View) -> Outcome {
             recipe.binding.provider.as_str()
         ),
     );
-    let ran = providers::run_mutation(ctx, &command, &description);
+    let devin_installer = agent.name == "devin" && recipe.binding.provider == crate::catalog::Provider::Script;
+    let ran = if devin_installer {
+        crate::devin::install(ctx, agent, None)
+    } else {
+        providers::run_mutation(ctx, &command, &description)
+    };
     // An official installer can fail on a last step, such as signing in, after it has put
     // the agent in place; the check below decides whether the agent is installed.
     if let Err(failure) = &ran
-        && (recipe.binding.provider != crate::catalog::Provider::Script
+        && (devin_installer
+            || recipe.binding.provider != crate::catalog::Provider::Script
             || !matches!(failure, providers::MutationFailure::Failed(_)))
     {
         return install_failed(agent, &failure.reason(), remediation.as_deref());
