@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## [2.0.0-beta.7](https://github.com/Drswith/quantex-cli/releases/tag/v2.0.0-beta.7)
 
 ### Fixed
 
