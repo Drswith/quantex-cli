@@ -72,3 +72,5 @@ gh workflow run agent-canary.yml --ref <branch> -f os=all
 ```
 
 `-f agents="devin codebuddy"` limits it to some agents. Each job's summary has a table of the steps, and its `canary-*` artifact has every step's JSON and stderr. A failed job needs reading, not an automatic fix: the installers belong to the agents' vendors and change on their own.
+
+Self-updater failures remain failures even when the old executable is still present. Read the failing step's stderr before retrying: the Hermes jobs receive a read-only `GITHUB_TOKEN` to avoid anonymous API limits; authentication or non-interactive failures need vendor-specific investigation. Retry a transient download failure by rerunning its job, so the original attempt's artifacts remain available.

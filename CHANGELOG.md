@@ -1,5 +1,15 @@
 # Changelog
 
+## Unreleased
+
+### Fixed
+
+* Hermes Agent Canaries use the job's read-only GitHub token to avoid anonymous API rate limits on shared runners.
+
+### Tests
+
+* Cover failed self-updaters with unchanged or removed installs, and confirm that batch updates continue after a failure while preserving each agent's result.
+
 ## [2.0.0-beta.6](https://github.com/Drswith/quantex-cli/releases/tag/v2.0.0-beta.6)
 
 `list` says whether an agent is up to date or its latest version is unknown.

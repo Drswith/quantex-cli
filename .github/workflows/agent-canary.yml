@@ -102,6 +102,8 @@ jobs:
         env:
           AGENT: ${{ matrix.agent }}
           QTX: ./qtx-bin/quantex${{ runner.os == 'Windows' && '.exe' || '' }}
+          # Hermes uses authenticated GitHub requests to avoid shared-runner rate limits.
+          GITHUB_TOKEN: ${{ matrix.agent == 'hermes' && github.token || '' }}
         run: bash scripts/agent-canary.sh "$AGENT"
       - uses: actions/upload-artifact@v4
         if: always()
