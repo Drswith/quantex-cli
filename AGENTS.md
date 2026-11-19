@@ -9,7 +9,7 @@
 ## 契约优先
 
 - 对外接口全部记录在 `contract/`，说明见 `contract/README.md`。优先级：契约测试 > `contract/` 下的数据文件 > `contract/README.md` 里的行为说明。
-- 改了任何外部可观察的行为（命令、参数、JSON 字段、错误码、exit code、`~/.quantex` 文件格式、release 资产名），同一个 PR 里必须同时更新 `contract/` 和 `tests/contract/`，并写进 `CHANGELOG.md`。
+- 改了任何外部可观察的行为（命令、参数、JSON 字段、错误码、exit code、`~/.quantex` 文件格式、release 资产名），同一次变更必须同时更新 `contract/` 和 `tests/contract/`，并写进 `CHANGELOG.md`。
 - human 输出不算契约，可以自由调整排版，但含义要和 JSON 一致。
 - 想确认 v1 的行为，用 `git show v1.13.6:<path>` 读旧实现，或跑 v1.13.6 的发布二进制。不要照搬它的代码结构。
 
@@ -45,6 +45,6 @@ cargo test --workspace
 
 ## 交付
 
-- 从这条线拉分支，提 PR，CI 全绿再合并。
+- 直接在 `claude/quantex-cli-rust-rewrite-1b3c4a` 分支接力开发，完成对应验证后提交、推送并检查 CI；不要求另建分支或提 PR，除非维护者明确要求。
 - commit 消息用 Conventional Commits（`feat:`、`fix:`、`chore:` 等），关联 Linear issue 时写 `Refs DRS-123`。
 - 收尾时说明：跑了哪些验证、结果如何、改了哪些契约文件、提交和推送状态。
