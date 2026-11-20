@@ -243,7 +243,7 @@ fn an_untracked_agent_needs_manual_action() {
         json!([{
             "displayName": "Kilo CLI",
             "installedVersion": "1.0.0",
-            "message": "Kilo CLI is detected on disk but not tracked as a Quantex-managed install. Use `quantex inspect kilo --json` to confirm the source, then reinstall through Quantex if you want `quantex update --all` to manage it.",
+            "message": "Kilo CLI is detected on disk but not tracked as a Quantex-managed install. Run `quantex install kilo` to verify and record the existing install source without reinstalling, then retry the update.",
             "name": "kilo",
             "status": "manual-required",
         }])

@@ -201,13 +201,13 @@ pub fn doctor(ctx: &Context) -> Outcome {
                 false,
                 TROUBLESHOOTING_DOCS,
                 format!(
-                    "{} is detected on disk but not tracked as a managed Quantex install. Use `quantex inspect {} --json` to confirm the source, then reinstall through Quantex if you want managed lifecycle operations.",
+                    "{} is detected on disk but not tracked as a managed Quantex install. Run `quantex install {}` to verify and record the existing install source without reinstalling.",
                     agent.display_name, agent.name
                 ),
                 subject.clone(),
                 "inspect-agent-install-source",
                 vec![
-                    format!("quantex inspect {} --json", agent.name),
+                    format!("quantex info {} --json", agent.name),
                     format!("quantex install {}", agent.name),
                 ],
             ));

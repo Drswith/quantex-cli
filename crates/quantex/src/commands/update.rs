@@ -425,7 +425,7 @@ fn manual_message(agent: &Agent) -> String {
 
 fn untracked_message(agent: &Agent) -> String {
     format!(
-        "{} is detected on disk but not tracked as a Quantex-managed install. Use `quantex inspect {} --json` to confirm the source, then reinstall through Quantex if you want `quantex update --all` to manage it.",
+        "{} is detected on disk but not tracked as a Quantex-managed install. Run `quantex install {}` to verify and record the existing install source without reinstalling, then retry the update.",
         agent.display_name, agent.name
     )
 }

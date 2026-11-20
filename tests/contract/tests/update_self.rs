@@ -2,6 +2,59 @@
 
 use quantex_contract_tests::Sandbox;
 
+#[test]
+fn untracked_script_guidance_adopts_the_existing_install_before_updating() {
+    let sandbox = Sandbox::new();
+    sandbox.fake_tool(
+        "agy",
+        "if [ \"$1\" = update ]; then echo fake-self-update >&2; exit 0; fi\necho 1.5.13",
+        "if \"%~1\"==\"update\" (\r\n echo fake-self-update 1>&2\r\n exit /b 0\r\n)\r\necho 1.5.13",
+    );
+    let run = sandbox.run(["update", "antigravity", "--json"]);
+    assert_eq!(run.code, 0, "{run:?}");
+    let result = &run.json()["data"]["results"][0];
+    assert_eq!(result["status"], "manual-required");
+    assert!(
+        result["message"]
+            .as_str()
+            .unwrap()
+            .contains("quantex install antigravity")
+    );
+    assert!(!run.stderr.contains("fake-self-update"));
+    let doctor = sandbox.run(["doctor", "--json"]).json();
+    let issue = doctor["data"]["issues"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|issue| issue["code"] == "AGENT_UNTRACKED_IN_PATH")
+        .unwrap();
+    assert!(issue["message"].as_str().unwrap().contains("without reinstalling"));
+    assert_eq!(
+        issue["suggestedCommands"],
+        serde_json::json!(["quantex info antigravity --json", "quantex install antigravity"])
+    );
+
+    let plan = sandbox.run(["install", "antigravity", "--dry-run", "--json"]);
+    assert_eq!(plan.code, 0, "{plan:?}");
+    assert!(
+        plan.json()["warnings"][0]["message"]
+            .as_str()
+            .unwrap()
+            .contains("would record the existing")
+    );
+    assert!(sandbox.read_state().is_none());
+    let install = sandbox.run(["install", "antigravity", "--json"]);
+    assert_eq!(install.code, 0, "{install:?}");
+    assert_eq!(
+        sandbox.read_state().unwrap()["installedAgents"]["antigravity"]["installType"],
+        "script"
+    );
+    let update = sandbox.run(["update", "antigravity", "--json"]);
+    assert_eq!(update.code, 0, "{update:?}");
+    assert_eq!(update.json()["data"]["results"][0]["status"], "up-to-date");
+    assert!(update.stderr.contains("fake-self-update"), "{update:?}");
+}
+
 fn cursor_install() -> Sandbox {
     let sandbox = Sandbox::new();
     sandbox.write_state(r#"{"installedAgents":{"cursor":{"agentName":"cursor","installType":"script"}},"self":{}}"#);
