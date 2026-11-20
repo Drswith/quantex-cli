@@ -1,5 +1,11 @@
 # Changelog
 
+## [2.0.0-beta.8](https://github.com/Drswith/quantex-cli/releases/tag/v2.0.0-beta.8)
+
+### Fixed
+
+* `update` and `doctor` now direct untracked agents to `quantex install <agent>` to verify and record an existing installation without reinstalling it. This includes manually installed Antigravity CLI; source verification still determines whether an installation can be adopted. Diagnostic suggestions use the canonical `info` command.
+
 ## [2.0.0-beta.7](https://github.com/Drswith/quantex-cli/releases/tag/v2.0.0-beta.7)
 
 ### Fixed
