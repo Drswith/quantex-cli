@@ -1,12 +1,11 @@
 //! `upgrade` of a standalone binary: each test upgrades a private copy of the binary
-//! under test from a release served locally. The manifest comes from the response
-//! cache, which a failed refresh falls back to, so no test touches the network.
+//! under test from a release and manifest served locally; no test touches the network.
 #![cfg(unix)]
 
 use std::fs;
 use std::path::PathBuf;
 
-use quantex_contract_tests::{HttpStub, Run, Sandbox, release_tar_gz, seed_cache, sha256_hex};
+use quantex_contract_tests::{HttpStub, Run, Sandbox, release_tar_gz, sha256_hex};
 use serde_json::{Value, json};
 
 fn platform() -> (&'static str, &'static str) {
@@ -48,7 +47,7 @@ struct Install {
 
 impl Install {
     fn new(release: Release) -> Self {
-        let sandbox = Sandbox::new();
+        let mut sandbox = Sandbox::new();
         let exe = sandbox.copy_quantex();
         let original = fs::read(&exe).unwrap();
         let asset = format!("{}.tar.gz", binary_name());
@@ -76,7 +75,9 @@ impl Install {
             "channel": "stable",
             "version": release.version,
         });
-        seed_cache(&sandbox, "self:manifest:stable", &manifest.to_string());
+        stub.route("/manifest.json", 200, manifest.to_string().into_bytes());
+        sandbox.env("QUANTEX_RELEASE_BASE_URL", stub.url());
+        sandbox.write_config(&json!({"networkTimeoutMs":2000}));
         Self {
             sandbox,
             exe,
@@ -292,7 +293,7 @@ fn a_found_update_is_mentioned_after_later_commands() {
 
 #[test]
 fn an_npm_install_upgrades_through_npm() {
-    let sandbox = Sandbox::new();
+    let mut sandbox = Sandbox::new();
     let (os, arch) = platform();
     let package_bin = sandbox
         .root()
@@ -313,7 +314,11 @@ fn an_npm_install_upgrades_through_npm() {
         ),
         "exit /b 1",
     );
-    quantex_contract_tests::seed_latest_version(&sandbox, "quantex-cli", "9.9.9");
+    let stub = HttpStub::start(vec![("/quantex-cli/latest", 200, r#"{"version":"9.9.9"}"#)]);
+    sandbox
+        .env("QUANTEX_NPM_REGISTRY_URL", stub.url())
+        .env("QTX_SELF_UPDATE_REGISTRY", stub.url());
+    sandbox.write_config(&json!({"networkTimeoutMs":2000}));
     let run = sandbox.run_program(&exe, ["upgrade", "--json"]);
     assert_eq!(run.code, 0, "{run:?}");
     let envelope = run.json();

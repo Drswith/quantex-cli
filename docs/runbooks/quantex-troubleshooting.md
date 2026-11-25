@@ -72,7 +72,11 @@ Another Quantex process holds the agent lifecycle lock (`~/.quantex/locks/agent-
 
 ### `TIMEOUT` and `NETWORK_ERROR`
 
-`--timeout` bounds the whole command, including version lookups and installer runs. Version lookups use `networkTimeoutMs` from `quantex config`, retry twice, and fall back to the cache when the network fails. Use `--refresh` to look the version up again when it looks stale.
+`--timeout` bounds the whole command, including version lookups and installer runs. Version lookups use `networkTimeoutMs` from `quantex config`, with at most two retries. Use `--refresh` for a live version check; self-upgrade always checks live metadata. Failed requests leave the old cache intact but do not use it as a successful result. A self-upgrade check reports `NETWORK_ERROR` / `check-unavailable`; a managed package update reports failure when it cannot resolve the latest version. Neither result means “already up to date”.
+
+Quantex first uses the proxy environment for the target URL, or a direct connection when none applies. On a connection failure, HTTP 429/5xx, or a rate-limit 403, macOS detects the currently enabled system HTTP/HTTPS proxy and its actual port and retries through it. Recovery progress goes to stderr, keeping JSON stdout valid. An ordinary authentication or permission error is not retried through another proxy. Windows and Linux use the proxy environment; automatic system-proxy discovery currently applies to macOS.
+
+`NO_PROXY` / `no_proxy`, local/private/service-discovery destinations, hosts-file mappings to private addresses, and macOS proxy exceptions bypass proxy selection. No proxy port is hardcoded, no PAC script is executed, and no environment or persistent configuration is modified. If recovery fails, check the direct and proxy paths separately and verify the current proxy settings; do not repeatedly rerun the whole installer or update command.
 
 ### `INTERACTION_REQUIRED`
 

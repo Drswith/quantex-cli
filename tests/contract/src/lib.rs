@@ -328,8 +328,11 @@ pub fn contract_json(relative: &str) -> Value {
 }
 
 /// A tiny HTTP/1.1 server answering fixed routes, for registry and release lookups.
+type HttpRoutes = std::sync::Arc<std::sync::Mutex<Vec<(String, u16, Vec<u8>)>>>;
+
 pub struct HttpStub {
     address: String,
+    routes: HttpRoutes,
     hits: std::sync::Arc<std::sync::Mutex<Vec<String>>>,
 }
 
@@ -351,6 +354,8 @@ impl HttpStub {
         let address = format!("http://{}", listener.local_addr().unwrap());
         let hits = std::sync::Arc::new(std::sync::Mutex::new(Vec::new()));
         let recorded = std::sync::Arc::clone(&hits);
+        let routes = std::sync::Arc::new(std::sync::Mutex::new(routes));
+        let served_routes = std::sync::Arc::clone(&routes);
         std::thread::spawn(move || {
             for stream in listener.incoming() {
                 let Ok(mut stream) = stream else { continue };
@@ -367,7 +372,9 @@ impl HttpStub {
                 }
                 let path = request_line.split_whitespace().nth(1).unwrap_or("/").to_owned();
                 recorded.lock().unwrap().push(path.clone());
-                let (status, body) = routes
+                let (status, body) = served_routes
+                    .lock()
+                    .unwrap()
                     .iter()
                     .find(|(route, _, _)| *route == path)
                     .map_or((404, b"{}".to_vec()), |(_, status, body)| (*status, body.clone()));
@@ -379,7 +386,11 @@ impl HttpStub {
                 let _ = stream.write_all(&body);
             }
         });
-        Self { address, hits }
+        Self { address, hits, routes }
+    }
+
+    pub fn route(&self, path: &str, status: u16, body: Vec<u8>) {
+        self.routes.lock().unwrap().push((path.to_owned(), status, body));
     }
 
     pub fn url(&self) -> &str {

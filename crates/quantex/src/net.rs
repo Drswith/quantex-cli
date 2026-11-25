@@ -1,7 +1,6 @@
 //! HTTP metadata lookups with the v1 response cache (`~/.quantex/cache/versions.json`).
 
 use std::fs;
-use std::io::Read;
 use std::path::{Path, PathBuf};
 use std::sync::Mutex;
 use std::time::{Duration, Instant};
@@ -10,6 +9,8 @@ use serde_json::{Map, Value, json};
 
 use crate::context::{CacheMode, Context, Freshness};
 use crate::store;
+
+mod proxy;
 
 pub const OFFICIAL_NPM_REGISTRY: &str = "https://registry.npmjs.org";
 
@@ -75,73 +76,152 @@ fn record_network(ctx: &Context, now: i64, stale_after: i64) {
 struct Response {
     status: u16,
     etag: Option<String>,
-    body: Option<String>,
+    body: Option<Vec<u8>>,
+    retryable: bool,
 }
 
 fn user_agent() -> String {
     format!("quantex-cli/{}", crate::VERSION)
 }
 
-fn attempt(url: &str, etag: Option<&str>, timeout: Duration) -> Result<Response, String> {
+fn retryable_status(status: u16, remaining: Option<&str>, retry_after: bool) -> bool {
+    status == 429 || (500..600).contains(&status) || status == 403 && (remaining == Some("0") || retry_after)
+}
+
+fn attempt(
+    url: &str,
+    etag: Option<&str>,
+    timeout: Duration,
+    proxy: Option<ureq::Proxy>,
+    limit: u64,
+) -> Result<Response, String> {
     let agent: ureq::Agent = ureq::Agent::config_builder()
         .timeout_global(Some(timeout))
         .http_status_as_error(false)
         .user_agent(user_agent())
+        .proxy(proxy)
         .build()
         .into();
     let mut request = agent.get(url);
     if let Some(etag) = etag {
         request = request.header("If-None-Match", etag);
     }
-    let mut response = request.call().map_err(|error| error.to_string())?;
+    // Do not expose request/proxy credentials in transport error strings.
+    let mut response = request.call().map_err(|_| "HTTP connection failed".to_owned())?;
     let status = response.status().as_u16();
+    let retryable = retryable_status(
+        status,
+        response
+            .headers()
+            .get("x-ratelimit-remaining")
+            .and_then(|v| v.to_str().ok()),
+        response.headers().contains_key("retry-after"),
+    );
     let etag = response
         .headers()
         .get("etag")
         .and_then(|value| value.to_str().ok())
         .map(str::to_owned);
     let body = if (200..300).contains(&status) {
-        let mut text = String::new();
-        response
-            .body_mut()
-            .as_reader()
-            .read_to_string(&mut text)
-            .map_err(|error| error.to_string())?;
-        Some(text)
+        Some(
+            response
+                .body_mut()
+                .with_config()
+                .limit(limit)
+                .read_to_vec()
+                .map_err(|_| "HTTP response body could not be read".to_owned())?,
+        )
     } else {
         None
     };
-    Ok(Response { status, etag, body })
+    Ok(Response {
+        status,
+        etag,
+        body,
+        retryable,
+    })
 }
 
-/// GETs `url` with `retries + 1` attempts, each bounded by the per-attempt timeout and
-/// the invocation deadline. `None` when every attempt failed.
-fn fetch_with_retries(ctx: &Context, url: &str, etag: Option<&str>, timeout_ms: u64, retries: u64) -> Option<Response> {
-    let deadline = ctx.deadline();
-    for _ in 0..=retries {
+/// Bounded GET retries; the current system proxy is discovered only after failure.
+/// Provider installers/updaters are never replayed by this HTTP layer.
+fn fetch_with_retries(
+    ctx: &Context,
+    url: &str,
+    etag: Option<&str>,
+    timeout_ms: u64,
+    limit: u64,
+) -> Result<Response, String> {
+    fetch_with_proxy_lookup(ctx, url, etag, timeout_ms, limit, proxy::system)
+}
+
+fn fetch_with_proxy_lookup(
+    ctx: &Context,
+    url: &str,
+    etag: Option<&str>,
+    timeout_ms: u64,
+    limit: u64,
+    discover: impl Fn(&Context, &str) -> Option<ureq::Proxy>,
+) -> Result<Response, String> {
+    let mut route = proxy::environment(url);
+    let mut last_error = "HTTP request failed".to_owned();
+    for attempt_no in 0..=store::NETWORK_RETRIES {
         if ctx.is_cancelled() {
-            return None;
+            return Err("Request cancelled".into());
         }
         let mut timeout = Duration::from_millis(timeout_ms.max(1));
-        if let Some(deadline) = deadline {
+        if let Some(deadline) = ctx.deadline() {
             let remaining = deadline.saturating_duration_since(Instant::now());
             if remaining.is_zero() {
                 ctx.mark_deadline_hit();
-                return None;
+                return Err("Request timed out".into());
             }
             timeout = timeout.min(remaining);
         }
-        if let Ok(response) = attempt(url, etag, timeout) {
-            return Some(response);
+        let response = attempt(url, etag, timeout, route.clone(), limit);
+        let retry = match &response {
+            Ok(response) => response.retryable,
+            Err(_) => true,
+        };
+        if !retry || attempt_no == store::NETWORK_RETRIES {
+            if ctx.deadline_passed() {
+                ctx.mark_deadline_hit();
+            }
+            return response;
         }
+        let reason = match &response {
+            Ok(r) => format!("HTTP {}", r.status),
+            Err(e) => e.clone(),
+        };
+        if attempt_no == 0 {
+            if let Some(current) = discover(ctx, url)
+                && route.as_ref().is_none_or(|old| old.uri() != current.uri())
+            {
+                let host = url::Url::parse(url)
+                    .ok()
+                    .and_then(|u| u.host_str().map(str::to_owned))
+                    .unwrap_or_default();
+                let previous = if route.is_some() {
+                    "configured proxy"
+                } else {
+                    "direct connection"
+                };
+                if !ctx.quiet {
+                    eprintln!("{host}: {previous} failed ({reason}); retrying through the current system proxy.");
+                }
+                route = Some(current);
+            } else if response.as_ref().is_ok_and(|r| matches!(r.status, 403 | 429)) {
+                // Retrying the same rate-limited route immediately cannot help.
+                return response;
+            }
+        } else if response.as_ref().is_ok_and(|r| matches!(r.status, 403 | 429)) {
+            return response;
+        }
+        last_error = reason;
     }
-    if ctx.deadline_passed() {
-        ctx.mark_deadline_hit();
-    }
-    None
+    Err(last_error)
 }
 
-/// Fetches `url` through the response cache, as v1's `fetchTextWithCache` did.
+/// Uses a fresh cache entry or revalidates it; failed revalidation never serves stale data.
 pub fn fetch_text_with_cache(ctx: &Context, url: &str, key: &str, expect_json: bool) -> Option<String> {
     fetch_text_with_mode(ctx, url, key, expect_json, ctx.cache_mode)
 }
@@ -165,23 +245,9 @@ pub fn fetch_text_with_mode(ctx: &Context, url: &str, key: &str, expect_json: bo
         return Some(entry.body.clone());
     }
     let etag = cached.as_ref().and_then(|entry| entry.etag.clone());
-    let response = fetch_with_retries(
-        ctx,
-        url,
-        etag.as_deref(),
-        config.network_timeout_ms(),
-        store::NETWORK_RETRIES,
-    );
-    let fallback = |cached: Option<CachedEntry>| {
-        cached.map(|entry| {
-            record_cached(ctx, &entry, ttl_ms);
-            entry.body
-        })
-    };
-    let Some(response) = response else {
-        return fallback(cached);
-    };
+    let response = fetch_with_retries(ctx, url, etag.as_deref(), config.network_timeout_ms(), 8 * 1024 * 1024).ok()?;
     if response.status == 304
+        && etag.is_some()
         && let Some(entry) = &cached
     {
         let _guard = CACHE_LOCK.lock().unwrap();
@@ -194,11 +260,9 @@ pub fn fetch_text_with_mode(ctx: &Context, url: &str, key: &str, expect_json: bo
         record_network(ctx, now, now + ttl_ms);
         return Some(entry.body.clone());
     }
-    let Some(body) = response.body else {
-        return fallback(cached);
-    };
+    let body = String::from_utf8(response.body?).ok()?;
     if expect_json && serde_json::from_str::<Value>(&body).is_err() {
-        return fallback(cached);
+        return None;
     }
     {
         let _guard = CACHE_LOCK.lock().unwrap();
@@ -236,41 +300,15 @@ pub enum DownloadError {
 /// Largest release archive a download accepts.
 const DOWNLOAD_LIMIT: u64 = 512 * 1024 * 1024;
 
-/// GETs `url` without the cache, bounded only by the invocation deadline.
+/// GETs `url` without the cache, with five-minute attempts bounded by the invocation deadline.
 pub fn download(ctx: &Context, url: &str) -> Result<Vec<u8>, DownloadError> {
-    let timeout = match ctx.deadline() {
-        Some(deadline) => {
-            let remaining = deadline.saturating_duration_since(Instant::now());
-            if remaining.is_zero() {
-                ctx.mark_deadline_hit();
-                return Err(DownloadError::TimedOut);
-            }
-            Some(remaining)
-        }
-        None => None,
-    };
-    let agent: ureq::Agent = ureq::Agent::config_builder()
-        .timeout_global(timeout)
-        .http_status_as_error(false)
-        .user_agent(user_agent())
-        .build()
-        .into();
-    let outcome = agent.get(url).call().and_then(|mut response| {
-        let status = response.status().as_u16();
-        if !(200..300).contains(&status) {
-            return Ok(Err(DownloadError::Status(status)));
-        }
-        let body = response.body_mut().with_config().limit(DOWNLOAD_LIMIT).read_to_vec()?;
-        Ok(Ok(body))
-    });
-    match outcome {
-        Ok(result) => result,
-        Err(_) if ctx.deadline_passed() => {
-            ctx.mark_deadline_hit();
-            Err(DownloadError::TimedOut)
-        }
-        Err(error) => Err(DownloadError::Failed(error.to_string())),
+    let response = fetch_with_retries(ctx, url, None, 300_000, DOWNLOAD_LIMIT);
+    if ctx.deadline_passed() {
+        ctx.mark_deadline_hit();
+        return Err(DownloadError::TimedOut);
     }
+    let response = response.map_err(DownloadError::Failed)?;
+    response.body.ok_or(DownloadError::Status(response.status))
 }
 
 /// `encodeURIComponent`.
@@ -350,6 +388,116 @@ pub fn cache_read(ctx: &Context, key: &str) -> Option<Value> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    fn server(reply: &str, tunnel: bool) -> (String, std::thread::JoinHandle<()>) {
+        use std::io::{Read, Write};
+        let listener = std::net::TcpListener::bind("127.0.0.1:0").unwrap();
+        let url = format!("http://{}", listener.local_addr().unwrap());
+        let reply = reply.to_owned();
+        let worker = std::thread::spawn(move || {
+            let (mut stream, _) = listener.accept().unwrap();
+            stream.set_read_timeout(Some(Duration::from_secs(3))).unwrap();
+            let request = |stream: &mut std::net::TcpStream| {
+                let mut bytes = Vec::new();
+                while !bytes.ends_with(b"\r\n\r\n") {
+                    let mut byte = [0];
+                    stream.read_exact(&mut byte).unwrap();
+                    bytes.push(byte[0]);
+                }
+                String::from_utf8(bytes).unwrap()
+            };
+            let first = request(&mut stream);
+            if tunnel {
+                assert!(first.starts_with("CONNECT "), "{first}");
+                stream
+                    .write_all(b"HTTP/1.1 200 Connection established\r\n\r\n")
+                    .unwrap();
+                assert!(request(&mut stream).starts_with("GET "));
+            }
+            stream.write_all(reply.as_bytes()).unwrap();
+        });
+        (url, worker)
+    }
+
+    #[test]
+    fn rate_limit_discovers_a_proxy_and_retries_the_actual_request() {
+        let (direct, first) = server(
+            "HTTP/1.1 403 Forbidden\r\nx-ratelimit-remaining: 0\r\nContent-Length: 0\r\nConnection: close\r\n\r\n",
+            false,
+        );
+        let (proxy, second) = server(
+            "HTTP/1.1 200 OK\r\nContent-Length: 3\r\nConnection: close\r\n\r\nnew",
+            true,
+        );
+        let ctx = Context::resolve(&crate::context::GlobalArgs::default()).unwrap();
+        let discoveries = std::cell::Cell::new(0);
+        let result = fetch_with_proxy_lookup(&ctx, &direct, None, 2000, 1024, |_, _| {
+            discoveries.set(discoveries.get() + 1);
+            Some(ureq::Proxy::new(&proxy).unwrap())
+        })
+        .unwrap();
+        assert_eq!(result.status, 200);
+        assert_eq!(result.body.unwrap(), b"new");
+        assert_eq!(discoveries.get(), 1);
+        first.join().unwrap();
+        second.join().unwrap();
+    }
+
+    #[test]
+    fn connection_failure_can_recover_through_a_discovered_proxy() {
+        let listener = std::net::TcpListener::bind("127.0.0.1:0").unwrap();
+        let offline = format!("http://{}", listener.local_addr().unwrap());
+        drop(listener);
+        let (proxy, worker) = server(
+            "HTTP/1.1 200 OK\r\nContent-Length: 2\r\nConnection: close\r\n\r\nok",
+            true,
+        );
+        let ctx = Context::resolve(&crate::context::GlobalArgs::default()).unwrap();
+        let result = fetch_with_proxy_lookup(&ctx, &offline, None, 2000, 1024, |_, _| {
+            Some(ureq::Proxy::new(&proxy).unwrap())
+        })
+        .unwrap();
+        assert_eq!(result.body.unwrap(), b"ok");
+        worker.join().unwrap();
+    }
+
+    #[test]
+    fn ordinary_authentication_failures_do_not_trigger_proxy_retries() {
+        for status in [401, 403, 404] {
+            let (url, worker) = server(
+                &format!("HTTP/1.1 {status} Error\r\nContent-Length: 0\r\nConnection: close\r\n\r\n"),
+                false,
+            );
+            let ctx = Context::resolve(&crate::context::GlobalArgs::default()).unwrap();
+            let result =
+                fetch_with_proxy_lookup(&ctx, &url, None, 2000, 1024, |_, _| panic!("not a network failure")).unwrap();
+            assert_eq!(result.status, status);
+            worker.join().unwrap();
+        }
+        assert!(retryable_status(429, None, false));
+        assert!(retryable_status(503, None, false));
+        assert!(retryable_status(403, None, true));
+    }
+
+    #[test]
+    fn cancelled_or_expired_requests_do_not_start_proxy_discovery() {
+        for cancelled in [true, false] {
+            let mut args = crate::context::GlobalArgs::default();
+            if !cancelled {
+                args.timeout = Some("1ms".into());
+            }
+            let ctx = Context::resolve(&args).unwrap();
+            if cancelled {
+                ctx.cancel();
+            } else {
+                std::thread::sleep(Duration::from_millis(5));
+            }
+            let result = fetch_with_proxy_lookup(&ctx, "http://127.0.0.1:9", None, 2000, 1024, |_, _| {
+                panic!("request budget was already exhausted")
+            });
+            assert!(result.is_err());
+        }
+    }
 
     #[test]
     fn component_encoding_matches_encode_uri_component() {

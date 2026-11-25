@@ -5,7 +5,7 @@
 use std::fs;
 use std::time::{Duration, Instant};
 
-use quantex_contract_tests::{HttpStub, Sandbox, release_zip, seed_cache, sha256_hex};
+use quantex_contract_tests::{HttpStub, Sandbox, release_zip, sha256_hex};
 use serde_json::json;
 
 #[test]
@@ -30,7 +30,9 @@ fn a_windows_binary_is_replaced_once_upgrade_exits() {
         "channel": "stable",
         "version": "9.9.9",
     });
-    seed_cache(&sandbox, "self:manifest:stable", &manifest.to_string());
+    stub.route("/manifest.json", 200, manifest.to_string().into_bytes());
+    sandbox.env("QUANTEX_RELEASE_BASE_URL", stub.url());
+    sandbox.write_config(&json!({"networkTimeoutMs":2000}));
 
     let run = sandbox.run_program(&exe, ["upgrade", "--json"]);
     assert_eq!(run.code, 0, "{run:?}");
