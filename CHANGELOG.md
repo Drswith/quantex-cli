@@ -1,5 +1,11 @@
 # Changelog
 
+## [2.0.0-beta.11](https://github.com/Drswith/quantex-cli/releases/tag/v2.0.0-beta.11)
+
+### Fixed
+
+* Beta self-upgrade selects the highest published prerelease by semantic version across GitHub API pages, instead of using the first list entry. Drafts, stable releases, and invalid tags are excluded; incomplete listings or invalid selected manifests fail explicitly rather than reporting an older beta as latest. This correctly orders `beta.9`, `beta.10`, and later versions regardless of API order.
+
 ## [2.0.0-beta.10](https://github.com/Drswith/quantex-cli/releases/tag/v2.0.0-beta.10)
 
 ### Fixed

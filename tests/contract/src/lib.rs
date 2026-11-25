@@ -90,6 +90,7 @@ impl Sandbox {
         let mut env = BTreeMap::new();
         env.insert("QUANTEX_NPM_REGISTRY_URL".to_owned(), OFFLINE_URL.to_owned());
         env.insert("QUANTEX_RELEASE_BASE_URL".to_owned(), OFFLINE_URL.to_owned());
+        env.insert("QUANTEX_GITHUB_RELEASES_URL".to_owned(), OFFLINE_URL.to_owned());
         let sandbox = Self { root, env };
         fs::create_dir_all(sandbox.bin_dir()).unwrap();
         fs::create_dir_all(sandbox.quantex_dir()).unwrap();

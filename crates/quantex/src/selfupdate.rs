@@ -196,30 +196,65 @@ pub fn release_base_url() -> String {
         .unwrap_or_else(|| format!("{REPOSITORY_URL}/releases/latest/download"))
 }
 
-/// The release manifest for a channel: the latest release for stable, the newest
-/// prerelease for beta.
+/// Select the highest published prerelease by version, across the release listing.
+/// Incomplete listings fail closed instead of declaring an older page's version latest.
+fn latest_beta_release(ctx: &Context, mode: CacheMode) -> Option<Value> {
+    // The override lets contract tests serve the GitHub API locally.
+    let base = std::env::var("QUANTEX_GITHUB_RELEASES_URL")
+        .unwrap_or_else(|_| "https://api.github.com/repos/Drswith/quantex-cli/releases".into());
+    let mut latest: Option<Value> = None;
+    for page in 1..=10 {
+        let mut url = url::Url::parse(&base).ok()?;
+        url.query_pairs_mut()
+            .append_pair("per_page", "100")
+            .append_pair("page", &page.to_string());
+        let releases = net::fetch_json_with_mode(ctx, url.as_str(), &format!("self:github-releases:{page}"), mode)?;
+        let releases = releases.as_array()?;
+        for release in releases {
+            if release["draft"] == true || release["prerelease"] != true {
+                continue;
+            }
+            let Some(tag) = release["tag_name"].as_str() else {
+                continue;
+            };
+            if probe::compare_versions(tag, tag).is_none() {
+                continue;
+            }
+            if latest
+                .as_ref()
+                .is_none_or(|old| probe::is_version_newer(tag, old["tag_name"].as_str().unwrap()))
+            {
+                latest = Some(release.clone());
+            }
+        }
+        if releases.len() < 100 {
+            return latest;
+        }
+    }
+    None
+}
+
+/// The release manifest for stable, or the highest published prerelease for beta.
 pub fn fetch_manifest(ctx: &Context, channel: &str, mode: CacheMode) -> Option<Value> {
-    let url = if channel == "stable" {
-        format!("{}/manifest.json", release_base_url())
-    } else {
-        let releases = net::fetch_json_with_mode(
+    if channel == "stable" {
+        return net::fetch_json_with_mode(
             ctx,
-            "https://api.github.com/repos/Drswith/quantex-cli/releases?per_page=20",
-            "self:github-releases",
+            &format!("{}/manifest.json", release_base_url()),
+            "self:manifest:stable",
             mode,
-        )?;
-        let release = releases
-            .as_array()?
-            .iter()
-            .find(|release| release["prerelease"].as_bool() == Some(channel == "beta"))?;
-        release["assets"]
-            .as_array()?
-            .iter()
-            .find(|asset| asset["name"] == "manifest.json")?["browser_download_url"]
-            .as_str()?
-            .to_owned()
-    };
-    net::fetch_json_with_mode(ctx, &url, &format!("self:manifest:{channel}"), mode)
+        );
+    }
+    let release = latest_beta_release(ctx, mode)?;
+    let url = release["assets"]
+        .as_array()?
+        .iter()
+        .find(|asset| asset["name"] == "manifest.json")?["browser_download_url"]
+        .as_str()?;
+    let manifest = net::fetch_json_with_mode(ctx, url, "self:manifest:beta", mode)?;
+    // A malformed/incomplete newest release must not silently select an older one.
+    (probe::compare_versions(manifest["version"].as_str()?, release["tag_name"].as_str()?)
+        == Some(std::cmp::Ordering::Equal))
+    .then_some(manifest)
 }
 
 // ---------------------------------------------------------------------------
