@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.0.0-beta.9](https://github.com/Drswith/quantex-cli/releases/tag/v2.0.0-beta.9)
+
+### Changed
+
+* OpenCode installs use the v2 `@opencode/cli` package through npm and Bun on all three platforms, and the official `/v2/install` script on macOS and Linux.
+* Existing OpenCode v1 installs require an explicit migration: old `opencode-ai` packages report `AGENT_PACKAGE_SUPERSEDED`, and script-installed 1.x binaries report `AGENT_MAJOR_UPGRADE_REQUIRED`. Single and batch updates return `manual-required` with migration steps, preserving the installation and user data. Once migrated, v2 updates use the new package or the normal self-updater. See [the migration runbook](docs/runbooks/opencode-v2-migration.md).
+
 ## [2.0.0-beta.8](https://github.com/Drswith/quantex-cli/releases/tag/v2.0.0-beta.8)
 
 ### Fixed

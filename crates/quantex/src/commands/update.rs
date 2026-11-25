@@ -23,7 +23,7 @@ enum Blocked {
     StaleState,
     Untracked,
     UnknownSource,
-    Superseded,
+    MigrationRequired,
     ManualRequired,
 }
 
@@ -176,11 +176,13 @@ fn plan(ctx: &Context, name: &str, state: &State) -> Planning {
         }
         Status::TimedOut => return Planning::TimedOut { before },
     };
-    // The recorded package no longer receives releases, so its latest version says nothing.
-    if let Some(warning) = observe::superseded_warning(agent, before.installed.as_ref()) {
+    // Package renames and incompatible major upgrades require an explicit migration.
+    if let Some(warning) =
+        observe::migration_warning(agent, before.installed.as_ref(), before.executable.version.as_deref())
+    {
         return Planning::Blocked {
             before,
-            category: Blocked::Superseded,
+            category: Blocked::MigrationRequired,
             reason: warning.message,
         };
     }
@@ -450,7 +452,7 @@ fn result_item(ctx: &Context, agent: &Agent, planning: &Planning, execution: Opt
                 let (status, message) = match category {
                     Blocked::Untracked => ("manual-required", untracked_message(agent)),
                     Blocked::ManualRequired => ("manual-required", manual_message(agent)),
-                    Blocked::Superseded => ("manual-required", reason.clone()),
+                    Blocked::MigrationRequired => ("manual-required", reason.clone()),
                     Blocked::NotInstalled | Blocked::StaleState | Blocked::UnknownSource => ("failed", reason.clone()),
                 };
                 Item::new(display, name, status)
@@ -662,11 +664,12 @@ fn single_outcome(
     }
     let mut outcome = Outcome::success("update", Some(target), data);
     if let Planning::Blocked {
-        category: Blocked::Superseded,
+        category: Blocked::MigrationRequired,
         before,
         ..
     } = planning
-        && let Some(warning) = observe::superseded_warning(agent, before.installed.as_ref())
+        && let Some(warning) =
+            observe::migration_warning(agent, before.installed.as_ref(), before.executable.version.as_deref())
     {
         outcome = outcome.with_warning(warning);
     }
@@ -721,7 +724,11 @@ fn update_all(ctx: &Context, scope: &str) -> Outcome {
         let agent = catalog::find(name).unwrap_or(before.agent);
         match category {
             Blocked::StaleState => warnings.push(stale_state_warning(agent)),
-            Blocked::Superseded => warnings.extend(observe::superseded_warning(agent, before.installed.as_ref())),
+            Blocked::MigrationRequired => warnings.extend(observe::migration_warning(
+                agent,
+                before.installed.as_ref(),
+                before.executable.version.as_deref(),
+            )),
             _ => {}
         }
     }

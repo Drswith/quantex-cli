@@ -85,7 +85,7 @@ pub fn list(ctx: &Context) -> Outcome {
         .collect();
     let mut outcome = Outcome::success("list", Some(target), json!({ "agents": agents })).with_human(render_list);
     for observation in &observations {
-        if let Some(warning) = observation.superseded_warning() {
+        if let Some(warning) = observation.migration_warning() {
             outcome = outcome.with_warning(warning);
         }
     }
@@ -339,7 +339,7 @@ pub fn info(ctx: &Context, name: &str) -> Outcome {
         }),
     )
     .with_human(render_info);
-    if let Some(warning) = observation.superseded_warning() {
+    if let Some(warning) = observation.migration_warning() {
         outcome = outcome.with_warning(warning);
     }
     outcome

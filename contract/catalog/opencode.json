@@ -6,19 +6,22 @@
   "selfUpdate": {
     "command": ["opencode", "upgrade"]
   },
+  "supersededPackages": {
+    "npm": ["opencode-ai"]
+  },
   "platforms": {
     "windows": [
       {
         "provider": "bun",
         "target": {
-          "id": "opencode-ai",
+          "id": "@opencode/cli",
           "kind": "package"
         }
       },
       {
         "provider": "npm",
         "target": {
-          "id": "opencode-ai",
+          "id": "@opencode/cli",
           "kind": "package"
         }
       }
@@ -27,25 +30,25 @@
       {
         "provider": "bun",
         "target": {
-          "id": "opencode-ai",
+          "id": "@opencode/cli",
           "kind": "package"
         }
       },
       {
         "provider": "npm",
         "target": {
-          "id": "opencode-ai",
+          "id": "@opencode/cli",
           "kind": "package"
         }
       },
       {
         "provider": "script",
         "target": {
-          "id": "https://opencode.ai/install",
+          "id": "https://opencode.ai/v2/install",
           "kind": "script",
           "binaryDirs": ["~/.opencode/bin"],
           "effect": {
-            "command": "curl -fsSL https://opencode.ai/install | bash",
+            "command": "curl -fsSL https://opencode.ai/v2/install | bash",
             "kind": "shell-script"
           }
         }
@@ -55,25 +58,25 @@
       {
         "provider": "bun",
         "target": {
-          "id": "opencode-ai",
+          "id": "@opencode/cli",
           "kind": "package"
         }
       },
       {
         "provider": "npm",
         "target": {
-          "id": "opencode-ai",
+          "id": "@opencode/cli",
           "kind": "package"
         }
       },
       {
         "provider": "script",
         "target": {
-          "id": "https://opencode.ai/install",
+          "id": "https://opencode.ai/v2/install",
           "kind": "script",
           "binaryDirs": ["~/.opencode/bin"],
           "effect": {
-            "command": "curl -fsSL https://opencode.ai/install | bash",
+            "command": "curl -fsSL https://opencode.ai/v2/install | bash",
             "kind": "shell-script"
           }
         }

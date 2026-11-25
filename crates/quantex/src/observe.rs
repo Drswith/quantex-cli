@@ -83,6 +83,30 @@ pub fn superseded_warning(agent: &Agent, installed: Option<&InstalledAgent>) -> 
     Some(Warning::new("AGENT_PACKAGE_SUPERSEDED", message).details(Value::Object(details)))
 }
 
+/// A major-version migration that an ordinary update must not silently perform.
+pub fn migration_warning(agent: &Agent, installed: Option<&InstalledAgent>, version: Option<&str>) -> Option<Warning> {
+    if let Some(mut warning) = superseded_warning(agent, installed) {
+        if agent.name == "opencode" {
+            warning.message.push_str(" OpenCode 2 changes the plugin and server APIs. Back up your configuration and session data first; see https://opencode.ai/docs/migrate-v1.");
+        }
+        return Some(warning);
+    }
+    if agent.name != "opencode"
+        || installed?.install_type != Provider::Script
+        || !version?.trim_start_matches('v').starts_with("1.")
+    {
+        return None;
+    }
+    Some(Warning::new(
+        "AGENT_MAJOR_UPGRADE_REQUIRED",
+        "OpenCode 1 uses the legacy installer. Back up your configuration and session data, then run `curl -fsSL https://opencode.ai/v2/install | bash` to replace it with OpenCode 2. Verify `opencode --version`, then retry `quantex update opencode`. Plugins and server API integrations need migration; see https://opencode.ai/docs/migrate-v1.",
+    ).details(json!({
+        "agentName": "opencode",
+        "suggestedAction": "migrate-agent",
+        "suggestedCommands": ["curl -fsSL https://opencode.ai/v2/install | bash", "opencode --version", "quantex update opencode"],
+    })))
+}
+
 /// The npm package whose `latest` dist-tag answers "what is the newest version".
 pub fn latest_version_package(
     agent: &Agent,
@@ -222,8 +246,8 @@ impl Observation {
             .unwrap_or_default()
     }
 
-    pub fn superseded_warning(&self) -> Option<Warning> {
-        superseded_warning(self.agent, self.installed.as_ref())
+    pub fn migration_warning(&self) -> Option<Warning> {
+        migration_warning(self.agent, self.installed.as_ref(), self.version.as_deref())
     }
 
     /// `{ aliases, binaryName, displayName, installMethods, name, packageName?, selfUpdateCommands }`.

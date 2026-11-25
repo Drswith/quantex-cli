@@ -181,7 +181,14 @@ pub fn install_agent(ctx: &Context, input: &str) -> Outcome {
     match lifecycle::decide(&view) {
         Decision::Interrupted => install_failed(agent, "", None),
         Decision::Blocked(reason) => blocked(agent, &reason),
-        Decision::AlreadySatisfied => already_installed(agent),
+        Decision::AlreadySatisfied => {
+            let outcome = already_installed(agent);
+            match crate::observe::migration_warning(agent, view.installed.as_ref(), view.executable.version.as_deref())
+            {
+                Some(warning) => outcome.with_warning(warning),
+                None => outcome,
+            }
+        }
         Decision::Adopt => adopt(ctx, &view),
         Decision::Install if ctx.dry_run => dry_run(agent, "install"),
         Decision::Install => apply_install(ctx, &view),
@@ -207,13 +214,17 @@ fn adopt(ctx: &Context, view: &View) -> Outcome {
     if let Err(error) = record(ctx, agent, &installed) {
         return Outcome::failure("install", Some(Target::agent(&agent.name)), error);
     }
-    success(agent, agent_data(agent, true, true, Some(&installed))).with_warning(Warning::new(
+    let outcome = success(agent, agent_data(agent, true, true, Some(&installed))).with_warning(Warning::new(
         "TRACKED_EXISTING_INSTALL",
         format!(
             "{} is already installed. Quantex is now tracking the existing install.",
             agent.display_name
         ),
-    ))
+    ));
+    match crate::observe::migration_warning(agent, Some(&installed), view.executable.version.as_deref()) {
+        Some(warning) => outcome.with_warning(warning),
+        None => outcome,
+    }
 }
 
 fn apply_install(ctx: &Context, view: &View) -> Outcome {

@@ -212,6 +212,30 @@ pub fn doctor(ctx: &Context) -> Outcome {
                 ],
             ));
         }
+        if let Some(warning) = observation.migration_warning() {
+            let commands = warning
+                .details
+                .as_ref()
+                .and_then(|details| details["suggestedCommands"].as_array())
+                .map(|commands| {
+                    commands
+                        .iter()
+                        .filter_map(|command| command.as_str().map(str::to_owned))
+                        .collect()
+                })
+                .unwrap_or_default();
+            issues.push(issue(
+                "agent",
+                &warning.code,
+                false,
+                TROUBLESHOOTING_DOCS,
+                warning.message,
+                subject.clone(),
+                "migrate-agent",
+                commands,
+            ));
+            continue;
+        }
         if !outdated || observation.lifecycle() == "managed" {
             continue;
         }
