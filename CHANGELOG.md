@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.0.0-beta.10](https://github.com/Drswith/quantex-cli/releases/tag/v2.0.0-beta.10)
+
+### Fixed
+
+* Failed version checks no longer fall back to cached metadata and incorrectly report that Quantex or an agent is up to date. Network errors, rate limits, and invalid responses leave the existing cache unchanged and report that the latest version could not be confirmed.
+* Quantex HTTP metadata requests and downloads retry transient failures within the command timeout. On macOS, recovery detects the currently enabled system HTTP/HTTPS proxy and its actual port, respecting proxy exclusions, local addresses, and hosts-file mappings. Proxy ports are never hardcoded or persisted, and retry diagnostics stay on stderr so JSON output remains valid.
+
 ## [2.0.0-beta.9](https://github.com/Drswith/quantex-cli/releases/tag/v2.0.0-beta.9)
 
 ### Changed
